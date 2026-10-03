@@ -1,0 +1,2 @@
+PASS Tutorial 7 installed setup wording/readable startup link; 10119 bytes; SHA256 cf9b32fc5b2e1529906ac7c3df5f2b64ceb808995fbfa4eaa5ffd51411d74efe
+No tutorial, mission, GUI operation, kernel configuration or numerical check was run.

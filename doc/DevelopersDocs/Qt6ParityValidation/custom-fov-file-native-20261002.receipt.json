@@ -1,0 +1,281 @@
+{
+  "frozen_inputs": {
+    "application/bin/GmatQt": {
+      "bytes": 6027456,
+      "sha256": "02d7711e11dc83843e07c4cbef469ec5557d2842777b74fd11a8ee8d039708ee"
+    },
+    "application/bin/libGmatBase.so.R2026a": {
+      "bytes": 25040656,
+      "sha256": "2082a341f5f123e81bad362972cd2b28a0a4753047ae51b5c09609e246be430c"
+    },
+    "application/bin/libGmatUtil.so.R2026a": {
+      "bytes": 2929904,
+      "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+    },
+    "application/bin/gmat_startup_qt.txt": {
+      "bytes": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    },
+    "build/example-qualification/20261002/fov-path-native/owned-startup.txt": {
+      "bytes": 10424,
+      "sha256": "3acf499165ad31a3ad45fd1df8f2ba340f6fe809beca663adb9b1c00a9ae1431"
+    },
+    "build/example-qualification/20261002/fov-path-native/documents/owned-before.script": {
+      "bytes": 236,
+      "sha256": "e2e0a79153654540023dd99c8389f3521cf3e0bf5ff97980be50ea5176988443"
+    },
+    "build/example-qualification/20261002/fov-path-native/masks/owned-fov-mask.txt": {
+      "bytes": 41,
+      "sha256": "eda413d506a52a293e13f2d6d0a3fe64b79966c573866772943f999677edcc6d"
+    }
+  },
+  "saved_source": {
+    "bytes": 374,
+    "sha256": "9e1dc913cba1a796763b6971823cbe1f28471b2beb378a21a8a48ede77d3935e"
+  },
+  "report": {
+    "bytes": 27,
+    "sha256": "1176b4e60ad94151602ed03e9d73f48082605c56e1d9cb2d4ac7bf63c63b8cb3",
+    "expected": 23
+  },
+  "native": {
+    "app": "/home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a",
+    "startup": "/home/dan/GIT/GMAT-Qt/build/example-qualification/20261002/fov-path-native/owned-startup.txt",
+    "script": "/home/dan/GIT/GMAT-Qt/build/example-qualification/20261002/fov-path-native/documents/owned-before.script",
+    "app_sha256": "02d7711e11dc83843e07c4cbef469ec5557d2842777b74fd11a8ee8d039708ee",
+    "original_startup_sha256": "3acf499165ad31a3ad45fd1df8f2ba340f6fe809beca663adb9b1c00a9ae1431",
+    "clone_startup_sha256": "081fbce5f0b0f798e1cd783f237b31acfa288b5129590c1e75810c1e7d37ede6",
+    "startup_change": "OUTPUT_PATH value only",
+    "artifacts": "/home/dan/GIT/GMAT-Qt/build/example-qualification/20261002/fov-path-native/native/isolated-x11-dk5sannd",
+    "seconds": 600,
+    "screen": [
+      1600,
+      1200
+    ],
+    "wm_command": [
+      "/tmp/gmat-isolated-x11/wm/usr/bin/openbox",
+      "--sm-disable",
+      "--config-file",
+      "/tmp/gmat-isolated-x11/openbox.xml"
+    ],
+    "limits": "Own X11/software GL input and rendering only; GNOME/Wayland/portal and hardware-driver acceptance remain open",
+    "display": ":2",
+    "qpa": "xcb",
+    "software_gl": true,
+    "processes": {
+      "xvfb": 2639372,
+      "wm": 2639380,
+      "application": 2639435
+    },
+    "closed": true,
+    "exit_codes": {
+      "xvfb": 0,
+      "wm": 0,
+      "application": -15
+    }
+  },
+  "first_eof_session": {
+    "app": "/home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a",
+    "startup": "/home/dan/GIT/GMAT-Qt/build/example-qualification/20261002/fov-path-native/owned-startup.txt",
+    "script": "/home/dan/GIT/GMAT-Qt/build/example-qualification/20261002/fov-path-native/documents/owned-before.script",
+    "app_sha256": "02d7711e11dc83843e07c4cbef469ec5557d2842777b74fd11a8ee8d039708ee",
+    "original_startup_sha256": "3acf499165ad31a3ad45fd1df8f2ba340f6fe809beca663adb9b1c00a9ae1431",
+    "clone_startup_sha256": "1ad3f9fe7b82a1853a566ad589d7a5d695cd5f0beed36bbf653bdd2630490b09",
+    "startup_change": "OUTPUT_PATH value only",
+    "artifacts": "/home/dan/GIT/GMAT-Qt/build/example-qualification/20261002/fov-path-native/native/isolated-x11-xh16uzrm",
+    "seconds": 600,
+    "screen": [
+      1600,
+      1200
+    ],
+    "wm_command": [
+      "/tmp/gmat-isolated-x11/wm/usr/bin/openbox",
+      "--sm-disable",
+      "--config-file",
+      "/tmp/gmat-isolated-x11/openbox.xml"
+    ],
+    "limits": "Own X11/software GL input and rendering only; GNOME/Wayland/portal and hardware-driver acceptance remain open",
+    "display": ":2",
+    "qpa": "xcb",
+    "software_gl": true,
+    "processes": {
+      "xvfb": 2637820,
+      "wm": 2637828,
+      "application": 2637831
+    },
+    "closed": true,
+    "exit_codes": {
+      "xvfb": 0,
+      "wm": 0,
+      "application": -15
+    }
+  },
+  "records": {
+    "saved-before-run.json": {
+      "bytes": 99,
+      "sha256": "1808c70b0328615e4ea4707a9597390894899229b6017815f27fd0c47d681672"
+    },
+    "frozen-inputs.json": {
+      "bytes": 1163,
+      "sha256": "951e149d81eab321bf530fb106318a06fcfef8476a213bd9e906ca6c913cff0a"
+    },
+    "owned-startup.txt": {
+      "bytes": 10424,
+      "sha256": "3acf499165ad31a3ad45fd1df8f2ba340f6fe809beca663adb9b1c00a9ae1431"
+    },
+    "documents/owned-before.script": {
+      "bytes": 236,
+      "sha256": "e2e0a79153654540023dd99c8389f3521cf3e0bf5ff97980be50ea5176988443"
+    },
+    "documents/owned-file-fov.script": {
+      "bytes": 374,
+      "sha256": "9e1dc913cba1a796763b6971823cbe1f28471b2beb378a21a8a48ede77d3935e"
+    },
+    "masks/owned-fov-mask.txt": {
+      "bytes": 41,
+      "sha256": "eda413d506a52a293e13f2d6d0a3fe64b79966c573866772943f999677edcc6d"
+    },
+    "native/isolated-x11-dk5sannd/xvfb.log": {
+      "bytes": 264,
+      "sha256": "18b994563c61904f959cb44346126933ebd488bf232ed5ab5e7f9fab0cd38b2c"
+    },
+    "native/isolated-x11-dk5sannd/application.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "native/isolated-x11-dk5sannd/wm.log": {
+      "bytes": 105,
+      "sha256": "21d489e69ca9281a7566d0dce6ad924b6a0699215675f569b2c7821cf279eda7"
+    },
+    "native/isolated-x11-dk5sannd/session.json": {
+      "bytes": 1313,
+      "sha256": "e2e10ea0fabfde3973b853701bacc41971ee058644fda94f5e52ab4e42e36863"
+    },
+    "native/isolated-x11-dk5sannd/actions.jsonl": {
+      "bytes": 8943,
+      "sha256": "0fee95d8dec14b0fb800077f9d9117e73171189f54529e841d84c6382b372a0d"
+    },
+    "native/isolated-x11-dk5sannd/original-startup.txt": {
+      "bytes": 10424,
+      "sha256": "3acf499165ad31a3ad45fd1df8f2ba340f6fe809beca663adb9b1c00a9ae1431"
+    },
+    "native/isolated-x11-dk5sannd/gmat_startup_isolated.txt": {
+      "bytes": 10525,
+      "sha256": "081fbce5f0b0f798e1cd783f237b31acfa288b5129590c1e75810c1e7d37ede6"
+    },
+    "native/isolated-x11-xh16uzrm/xvfb.log": {
+      "bytes": 264,
+      "sha256": "18b994563c61904f959cb44346126933ebd488bf232ed5ab5e7f9fab0cd38b2c"
+    },
+    "native/isolated-x11-xh16uzrm/application.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "native/isolated-x11-xh16uzrm/wm.log": {
+      "bytes": 61,
+      "sha256": "72ac73bf0912dd2f417f0b7b6c3b4b74ff0edffa74284af52597bcdf378f9309"
+    },
+    "native/isolated-x11-xh16uzrm/session.json": {
+      "bytes": 1313,
+      "sha256": "3662aaa12392c6be4d07b69b3e3cc21ccf9695a2fcd1cba84adb70c05edf5009"
+    },
+    "native/isolated-x11-xh16uzrm/original-startup.txt": {
+      "bytes": 10424,
+      "sha256": "3acf499165ad31a3ad45fd1df8f2ba340f6fe809beca663adb9b1c00a9ae1431"
+    },
+    "native/isolated-x11-xh16uzrm/gmat_startup_isolated.txt": {
+      "bytes": 10525,
+      "sha256": "1ad3f9fe7b82a1853a566ad589d7a5d695cd5f0beed36bbf653bdd2630490b09"
+    },
+    "native/isolated-x11-xh16uzrm/output/GmatLog.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/008-imager-fov-picker.png": {
+      "bytes": 140138,
+      "sha256": "1c3efbfd3a969d3d90a17bd226fcbf7e96dc5f635437c034e803e66a450ef6bc"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/014-settled-save-file-fov.png": {
+      "bytes": 166035,
+      "sha256": "3efaf21456d27483e605cc3af593932b9851768d583b09094aaf168219312d25"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/003-resource-creator.png": {
+      "bytes": 157211,
+      "sha256": "66766bbae70fcecb5e17789b93b5b9ca0f9f3e28f3f2730cc7bf51f4b20422ac"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/005-pending-relative-fov.png": {
+      "bytes": 159504,
+      "sha256": "f740418524f5ae48229e9611fb679d41da4c0ea80a46aee29083a90f8113e4fe"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/011-save-owned-fov-dialog.png": {
+      "bytes": 175986,
+      "sha256": "e5c696c6da2ccf7684c9ec30e41391952e0fe06f30f1b1c4e130308011542fcc"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/007-imager-creator.png": {
+      "bytes": 130311,
+      "sha256": "852e88536a6bbef372a902a2e2ea81e9c7556585e3f96582b0f6ac3a117f97a5"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/002-edit-new-resource.png": {
+      "bytes": 132772,
+      "sha256": "341a11429b02379d88c663c309e4948e401ac9052b2890692daa6c98abc88cb2"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/012-saved-file-fov.png": {
+      "bytes": 176047,
+      "sha256": "6516406b864855ad4c408de1ab74381e9988fe6d091c75ec75fc4e76b4c0bd19"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/016-reopened-file-fov-run.png": {
+      "bytes": 171491,
+      "sha256": "816c07d5941235915afecb32af0af2328972bdbc2805eb35731fcfa8d9afe186"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/004-custom-fov-file-mode.png": {
+      "bytes": 158481,
+      "sha256": "7c6787f500234c9494ce2327096ad2d970af397caca9146614ce05dc43ab76b6"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/018-fov-report-23.png": {
+      "bytes": 167791,
+      "sha256": "be896a300251a3598bf72250c7701ff754c8afe23eb623b0da8dffc86c7e8fcf"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/001-loaded-owned-setup.png": {
+      "bytes": 145600,
+      "sha256": "695633228c9e8469e721086087308070fd8817949dbe1f386ec65617ddceaeec"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/013-reopen-file-fov-dialog.png": {
+      "bytes": 176047,
+      "sha256": "6516406b864855ad4c408de1ab74381e9988fe6d091c75ec75fc4e76b4c0bd19"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/015-settled-reopen-dialog.png": {
+      "bytes": 180671,
+      "sha256": "b062a1ca27830c299b5196359601b10168a84e95dcf431b3535e3f9f1570b516"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/009-pending-imager-reference.png": {
+      "bytes": 131723,
+      "sha256": "039c78299720d5baaf3847944219cc641bcac28066676793d3916e394ccd0b47"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/010-created-imager-reference.png": {
+      "bytes": 166198,
+      "sha256": "ad43162eebad3fefdf7a95a690cd1becba741e752a346d1346122d81f332b3ea"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/006-created-relative-fov.png": {
+      "bytes": 202255,
+      "sha256": "15d10cc850750ea51472881fd2367d671cf85875205d1816096ca3c117c237ed"
+    },
+    "native/isolated-x11-dk5sannd/screenshots/017-fov-run-output.png": {
+      "bytes": 137358,
+      "sha256": "c3c71649aaac417973fefc5d932be2c600c0c2b5657724c3ea0d6cb2112b690c"
+    },
+    "native/isolated-x11-dk5sannd/output/GmatLog.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "native/isolated-x11-dk5sannd/output/fov-path-report.txt": {
+      "bytes": 27,
+      "sha256": "1176b4e60ad94151602ed03e9d73f48082605c56e1d9cb2d4ac7bf63c63b8cb3"
+    },
+    "native/isolated-x11-dk5sannd/settings/GMAT/GMAT Qt 6.ini": {
+      "bytes": 1052,
+      "sha256": "6e66fd3d32e82db18dea7ad558278ed4299073bc1d1b77b0b3b2108725d3cb07"
+    }
+  },
+  "result": "Bounded actual-input FOV file creation, Imager FieldOfView reference selection, Save/reopen and one0.024s F5 initialization/report/Output access passed at app SHA02d7711e",
+  "limits": "Own private X11/softwareGL only; no numerical FOV geometry acceptance. Source374bytes stays exact. Both helpers exited0, app SIGTERM-15 after cleanup; no normal-exit claim. First session ended on stdin EOF before input; Save first click did not complete, settled retry succeeded, no product attribution."
+}

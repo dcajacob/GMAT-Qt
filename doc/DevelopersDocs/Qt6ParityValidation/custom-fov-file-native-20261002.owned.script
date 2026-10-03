@@ -1,0 +1,12 @@
+Create Imager ImagerOwned;
+Create CustomFOV MaskOwned;
+% Owned FOV path qualification setup; no propagation.
+Create Variable Proof;
+Proof = 23;
+Create ReportFile Evidence;
+Evidence.Filename = 'fov-path-report.txt';
+Evidence.WriteHeaders = false;
+MaskOwned.FOVFileName = 'owned-fov-mask.txt';
+ImagerOwned.FieldOfView = MaskOwned;
+BeginMissionSequence;
+Report Evidence Proof;

@@ -38,7 +38,9 @@ and separately verifies the reviewed tracking-frame repair. The installed
 offline Help is rebuilt with that correction. Tutorial 6 completes functions, Global sharing and Mars capture. Tutorial 8 independently passed electric hardware/finite-burn forms
 and matched the corrected reference summary. Tutorial 7 completes its core
 eclipse/contact workflow, with optional exercises and GUI LSK management
-unclaimed. The earlier shipped-script corpus
+unclaimed. The current Help now accurately describes the startup-only
+leap-second kernel setting; [the wording/readback record](Qt6ParityValidation/event-help-startup-kernels-20261002.md)
+records the narrow correction without repeating this walkthrough. The earlier shipped-script corpus
 and repairs are not GUI walkthrough evidence.
 The current runtime is in `/home/dan/GIT/GMAT-Qt/application/bin`. Live testing on
 the user's desktop remains stopped following the GNOME Shell crash. A private,

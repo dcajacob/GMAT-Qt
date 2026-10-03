@@ -212,14 +212,6 @@
         </listitem>
 
         <listitem>
-          <para><guilabel>Leap Second Kernel</guilabel>: This is the SPICE LSK
-          file used to keep track of leap seconds in the UTC time system for
-          the SPICE subsystem. This is kept consistent with GMAT's internal
-          leap seconds file (tai-utc.dat) specified in the GMAT startup
-          file.</para>
-        </listitem>
-
-        <listitem>
           <para><guilabel>Planetary Constants Kernel</guilabel>: This is the
           SPICE PCK file used for default configuration for all the default
           celestial bodies. This file contains planetary shape and orientation
@@ -229,6 +221,16 @@
           etc.).</para>
         </listitem>
       </itemizedlist>
+
+      <note>
+        <para>SPICE's leap second kernel is configured by
+        <literal>LSK_FILE</literal> in the <xref linkend="StartupFile"/>.
+        The current <guilabel>SolarSystem</guilabel> panel has no input for
+        this file. GMAT's internal leap seconds file
+        (tai-utc.dat) is selected by <literal>LEAP_SECS_FILE</literal> in the
+        same startup file. This tutorial uses the supplied files and requires
+        no change to either setting.</para>
+      </note>
 
       <para>These are already configured correctly, so we don't need to make
       any changes.</para>

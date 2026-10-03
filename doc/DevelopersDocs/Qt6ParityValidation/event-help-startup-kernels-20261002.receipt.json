@@ -1,0 +1,31 @@
+{
+  "files": {
+    "doc/help/src/Tut_EventLocation.xml": {
+      "bytes": 29889,
+      "sha256": "45f0bdcbe4694cc5d85272d2789b3d7e621ef1f22cdd72ae8eab2ef77aa63590"
+    },
+    "doc/help/html/ch11s03.html": {
+      "bytes": 10119,
+      "sha256": "cf9b32fc5b2e1529906ac7c3df5f2b64ceb808995fbfa4eaa5ffd51411d74efe"
+    },
+    "application/docs/help/html/ch11s03.html": {
+      "bytes": 10119,
+      "sha256": "cf9b32fc5b2e1529906ac7c3df5f2b64ceb808995fbfa4eaa5ffd51411d74efe"
+    },
+    "application/docs/help/help.html": {
+      "bytes": 4256871,
+      "sha256": "edd46b8715cfa51dac392b9655e234201b06ef1f57ec6d78ce01ba8bc3060e68"
+    }
+  },
+  "build": {
+    "result": "exit0",
+    "command": "cmake --build build/linux-gui --target build-qt-help",
+    "log_sha256": "6b21afbb81ab9eb7a82ce13926278eefb764d58188b02985682cb26f164b76e2"
+  },
+  "readback": {
+    "result": "exit0",
+    "output": "PASS Tutorial 7 installed setup wording/readable startup link; 10119 bytes; SHA256 cf9b32fc5b2e1529906ac7c3df5f2b64ceb808995fbfa4eaa5ffd51411d74efe\nNo tutorial, mission, GUI operation, kernel configuration or numerical check was run.\n",
+    "script_sha256": "8b44d4c636ab113fb945063db2e98efc8c0277f69d6de8d93983c4344e90b75b"
+  },
+  "limits": "Help-only correction. No kernel settings changed, no tutorial/mission/app test rerun. Existing12 tutorial results retain their recorded scope."
+}
