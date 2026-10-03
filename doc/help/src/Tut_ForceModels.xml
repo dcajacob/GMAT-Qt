@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<section version="5.0" xml:id="ForceModels"
+<chapter version="5.0" xml:id="ForceModels"
          xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
@@ -18,9 +18,9 @@
     advantageous, for example, in simplifying a mission sequence, increasing
     accuracy, or reducing computing time.</para>
 
-    <para>You can download the script file and run it beforehand to see the
-    final results of this tutorial: <link
-    xlink:href="scripts/ForceModelsTutorial.script">ForceModelsTutorial.script</link></para>
+    <para>After constructing, running, saving, and reopening your own mission,
+    you can compare it with the supplied script: <link
+    xlink:href="files/scripts/ForceModelsTutorial.script">ForceModelsTutorial.script</link></para>
 
     <section>
       <title>Prerequisites</title>
@@ -84,6 +84,16 @@
     spacecraft, one OpenGL Plot, one report, and a series of 6 propagators to
     accomplish this mission. Everything else should be default. The steps on
     how to setup the resource tree is presented below.</para>
+
+    <para>Start with File, New. In the Qt GUI, plots and reports are under
+    Resources, Output. Add a Propagator through Resources, Propagators; its
+    associated ForceModel appears under Force Models. Edit step sizes and
+    accuracy in the propagator, then open that ForceModel to edit PrimaryBodies,
+    PointMasses, SRP, and the Advanced Gravity fields. The Atmosphere and drag
+    button opens the atmosphere settings. Keep Earth as the primary body for
+    all six models; Degree and Order zero provide the point-mass approximation.
+    Apply the changes in each form before continuing. The figures retain
+    historical GUI labels.</para>
 
     <section>
       <title>Objects Required</title>
@@ -257,8 +267,9 @@
                 </listitem>
 
                 <listitem>
-                  <para>Add Sun, Luna, and all the planets except Mercury and
-                  Pluto to the Point Masses field</para>
+                  <para>Set PointMasses to Sun, Luna, Venus, Mars, Jupiter, Saturn,
+                  Uranus, Neptune. Retain Earth in PrimaryBodies; do not add it
+                  twice</para>
                 </listitem>
               </itemizedlist>
             </listitem>
@@ -310,6 +321,11 @@
               <itemizedlist>
                 <listitem>
                   <para>Add a Propagator and rename it RKV89MSISE90</para>
+                </listitem>
+
+                <listitem>
+                  <para>Set the Initial Step Size to 30, as for the other
+                  fixed-step propagators</para>
                 </listitem>
 
                 <listitem>
@@ -421,8 +437,13 @@
                 </listitem>
 
                 <listitem>
-                  <para>Check the Use Solar Radiation Pressure Check
-                  box</para>
+                  <para>Set SRP to On</para>
+                </listitem>
+
+                <listitem>
+                  <para>In RKV89SRP, set StopIfAccuracyIsViolated to false.
+                  This permits the fixed 30-second demonstration to continue
+                  when its requested accuracy cannot be met</para>
                 </listitem>
               </itemizedlist>
             </listitem>
@@ -434,7 +455,8 @@
 
           <itemizedlist>
             <listitem>
-              <para>Delete DefaultIB in the Resource tree</para>
+              <para>Delete DefaultIB in the Resource tree if it exists; current
+              File, New does not create this unused burn</para>
             </listitem>
           </itemizedlist>
         </listitem>
@@ -448,12 +470,11 @@
 
               <itemizedlist>
                 <listitem>
-                  <para>Rename DefaultOpenGL to OpenGLSat1</para>
+                  <para>Rename DefaultOrbitView to OpenGLSat1</para>
                 </listitem>
 
                 <listitem>
-                  <para>Set the Axis under the View Up Definition Group box to
-                  X</para>
+                  <para>In Setup, Camera, set View Up Axis to X</para>
                 </listitem>
               </itemizedlist>
 
@@ -480,7 +501,7 @@
 
               <itemizedlist>
                 <listitem>
-                  <para>Create a Report Named ForceModelRpt</para>
+                  <para>Under Output, create a ReportFile named ForceModelRpt</para>
                 </listitem>
 
                 <listitem>
@@ -488,8 +509,10 @@
                 </listitem>
 
                 <listitem>
-                  <para>Select the File as being
-                  ./output/SampleMissions/Ex_ForceModels.report</para>
+                  <para>Set Filename to Ex_ForceModels.report, which uses the
+                  configured output directory, or select an existing writable
+                  directory. Leave Add empty; the Report commands supply the
+                  parameters</para>
                 </listitem>
               </itemizedlist>
 
@@ -520,7 +543,7 @@
     <title>Creating and Configuring the Mission Sequence</title>
 
     <para>In addition to the default layout, this mission sequence includes an
-    initial Report and Equation, followed by a series of alternating
+    initial Report and Assignment, followed by a series of alternating
     Propagates and Reports. Consequently, the mission runs several different
     Propagators, with their progress reported back to the user via the
     generated report file.</para>
@@ -536,8 +559,9 @@
       </listitem>
 
       <listitem>
-        <para>Insert an Equation after Report 1. Set it to
-        ForceModelRpt.WriteHeaders = Off</para>
+        <para>Insert an Assignment after Report 1. Set Destination to
+        ForceModelRpt.WriteHeaders and Expression to Off. This is the Equation
+        command in the historical figure</para>
       </listitem>
     </itemizedlist>
 
@@ -577,9 +601,14 @@
 
     <itemizedlist>
       <listitem>
-        <para>Insert a Propagate after Equation1</para>
+        <para>Insert a Propagate after the Assignment</para>
 
         <itemizedlist>
+          <listitem>
+            <para>Select RKV89PointMass and Sat1. Use the Days stop type,
+            which supplies Sat1.ElapsedDays</para>
+          </listitem>
+
           <listitem>
             <para>Set the Parameter Field to Sat1.ElapsedDays</para>
           </listitem>
@@ -797,8 +826,19 @@
     difficult to understand, you may try to change the output parameters in
     the Report commands to Keplerian orbital elements, or to some other method
     of tracking. You will notice slight variations in the data received from
-    each report, due to the differences in governing forces in each
-    Propagator.</para>
+    each report as the mission progresses through different epochs and force
+    models. This sequential demonstration is not a controlled comparison of
+    models from identical initial states.</para>
+
+    <para>The report has seven rows of six Cartesian state values: the initial
+    state and one endpoint for each 0.1-day leg. The last epoch is 04 Jan 2003
+    14:24:00 UTC. The fixed-step SRP leg can print an accuracy-violation warning
+    even with StopIfAccuracyIsViolated false; retain and inspect that warning.
+    Completing this observation tutorial does not demonstrate that 1e-12
+    accuracy was met. The supplied comparison script allows smaller steps,
+    whereas the instructions above deliberately retain 30-second fixed steps.
+    Mission Summary reports the leg epochs; whole-mission timing alone does
+    not measure the cost of each force model.</para>
 
     <screenshot>
       <info>
@@ -817,4 +857,4 @@
       </mediaobject>
     </screenshot>
   </section>
-</section>
+</chapter>

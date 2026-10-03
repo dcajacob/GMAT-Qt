@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<section version="5.0" xml:id="FormationRendezvous"
+<chapter version="5.0" xml:id="FormationRendezvous"
          xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
@@ -8,6 +8,13 @@
          xmlns:html="http://www.w3.org/1999/xhtml"
          xmlns:db="http://docbook.org/ns/docbook">
   <title>Formation Rendezvous</title>
+
+  <para>In the Qt GUI, start with File → New and rename DefaultSC to Sat1 and
+  DefaultProp to PropRKV_LowEarth. Clone Sat1 for the other three spacecraft,
+  then set each orbit from the table below. Use Edit → New resource for the
+  remaining objects. The creation and property forms provide Help for their
+  resource type; Apply commits their pending settings. Historical screenshots
+  retain the older wx layout and propagator name.</para>
 
   <section>
     <title>Objective and Overview</title>
@@ -129,7 +136,7 @@
         </listitem>
 
         <listitem>
-          <para>Propagator: RKV_LowEarth</para>
+          <para>Propagator: PropRKV_LowEarth</para>
         </listitem>
 
         <listitem>
@@ -314,7 +321,7 @@
 
           <itemizedlist>
             <listitem>
-              <para>Add propagator RKV_LowEarth</para>
+              <para>Add propagator PropRKV_LowEarth</para>
             </listitem>
 
             <listitem>
@@ -323,7 +330,7 @@
             </listitem>
 
             <listitem>
-              <para>Use RKV_LowEarth propagator</para>
+              <para>Use PropRKV_LowEarth propagator</para>
             </listitem>
 
             <listitem>
@@ -341,7 +348,7 @@
 
           <screenshot>
             <info>
-              <title>Figure: RKV_LowEarth Propagator Object</title>
+              <title>Figure: PropRKV_LowEarth Propagator Object</title>
             </info>
 
             <mediaobject>
@@ -351,7 +358,7 @@
               </imageobject>
 
               <caption>
-                <para>Figure: RKV_LowEarth Propagator Object</para>
+                <para>Figure: PropRKV_LowEarth Propagator Object</para>
               </caption>
             </mediaobject>
           </screenshot>
@@ -632,6 +639,15 @@
   <section>
     <title>Creating and Configuring the Mission Sequence</title>
 
+    <para>Use the Mission tree’s Insert before, Insert after and Append inside
+    branch actions to add the commands below. Select a template and configure
+    its typed fields before Apply. For every Propagate command, open
+    Propagators and spacecraft and put Sat1, Sat2, Sat3 and Sat4 in its single
+    PropRKV_LowEarth group. Configure its elapsed-time stopping condition
+    separately. Add the targeting commands and reports inside their respective
+    Target branches, and place the last coast after Target2. Maximize a command
+    panel or scroll its controls when its fields do not fit the workspace.</para>
+
     <para>This mission consists of first sequence, two targeting sequences.
     The first sequence includes some reports, an equation and a propagator,
     and the purpose is observation of the achievement of the formation flying
@@ -766,7 +782,7 @@
 
             <itemizedlist>
               <listitem>
-                <para>Use RKV_LowEarth propagator</para>
+                <para>Use PropRKV_LowEarth propagator</para>
               </listitem>
 
               <listitem>
@@ -999,7 +1015,7 @@
 
                 <itemizedlist>
                   <listitem>
-                    <para>Use RKV_LowEarth propagator</para>
+                    <para>Use PropRKV_LowEarth propagator</para>
                   </listitem>
 
                   <listitem>
@@ -1306,7 +1322,7 @@
 
                 <itemizedlist>
                   <listitem>
-                    <para>Use RKV_LowEarth propagator</para>
+                    <para>Use PropRKV_LowEarth propagator</para>
                   </listitem>
 
                   <listitem>
@@ -1421,7 +1437,7 @@
 
                 <itemizedlist>
                   <listitem>
-                    <para>Use RKV_LowEarth propagator</para>
+                    <para>Use PropRKV_LowEarth propagator</para>
                   </listitem>
 
                   <listitem>
@@ -1480,14 +1496,23 @@
   <section>
     <title>Running the Mission</title>
 
-    <para>Save the mission, then run it. The reconstructed script writes
-    FormationRendezvousTutorial.data with the twenty Cartesian-state reports
-    and FormationRendezvousResiduals.data with the separate target endpoint
-    residuals and VNB burn components. Each position component after Target1
-    should be within 0.0001 km of zero; each inertial velocity difference after
-    Target2 should be within 0.0001 km/s of zero. The latter report also records
-    the unconstrained position at the velocity-match endpoint. The final
-    0.2-day coast follows Target2 and adds no constraints.</para>
+    <para>Save the mission, then run it. The twenty Report commands write
+    FormationRendezvousTutorial.data. With the report’s default solver-iteration
+    setting, the target branches also write repeated Sat1–Sat4 groups for
+    nominal and perturbed solver passes. In the Window menu, select the solver
+    progress window for Target1 and verify Converged and a residual below
+    0.0001 km for each position component. Select Target2’s progress window
+    and verify each inertial velocity difference is below 0.0001 km/s.
+    DifferentialCorrectorDC.data records the last target’s achieved values,
+    and Mission → Mission summary lets you inspect and save command endpoint
+    states. The final 0.2-day coast follows Target2 and adds no constraints.</para>
+
+    <para>The downloadable reconstructed script adds a separate
+    FormationRendezvousResiduals.data diagnostic report and suppresses trial
+    rows in its Cartesian report. Those additional diagnostic variables and
+    assignments are not created by the steps above. Both missions demonstrate
+    the same two separate targeting goals. Position remains unconstrained at
+    the later velocity-match endpoint.</para>
 
     <para>The figure below is retained as a historical illustration. Its
     numerical trajectories are not acceptance values for the reconstructed
@@ -1510,4 +1535,4 @@
       </mediaobject>
     </screenshot>
   </section>
-</section>
+</chapter>

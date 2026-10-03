@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<section version="5.0" xml:id="CreatingaReport"
+<chapter version="5.0" xml:id="CreatingaReport"
          xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
@@ -17,7 +17,7 @@
     as how to use strings to improve the readability of a report file.</para>
 
     <para>Download the script file: <link
-    xlink:href="scripts/ReportTutorial.script">ReportFile.script</link></para>
+    xlink:href="files/scripts/ReportTutorial.script">ReportTutorial.script</link></para>
 
     <section>
       <title>Prerequisites</title>
@@ -137,6 +137,13 @@
   <section>
     <title>Creating and Configuring the Resource Tree</title>
 
+    <para>Start with a new mission using File &gt; New mission. Retain the default
+    spacecraft, propagator, and force model. In the Qt GUI, the Output resource
+    folder contains the ReportFile objects described below as Plots/Reports,
+    and Variables, Arrays, Strings contains the string resource. Creation forms
+    let you choose a name immediately; Rename resource is also available from
+    the resource context menu.</para>
+
     <section>
       <title>Objects Required</title>
 
@@ -157,7 +164,7 @@
 
           <itemizedlist>
             <listitem>
-              <para>String Variable - StringVar</para>
+              <para>String Variable - stringVar</para>
             </listitem>
           </itemizedlist>
         </listitem>
@@ -362,7 +369,8 @@
           </listitem>
 
           <listitem>
-            <para>Click the Create button and click OK to exit out of that
+            <para>Click the Create button. In the Qt GUI, the new resource editor opens;
+            close it to return to the mission. In earlier GUIs, click OK to exit that
             panel.</para>
           </listitem>
 
@@ -393,6 +401,14 @@
 
     <section>
       <title>Creating and Configuring the Mission Tree</title>
+
+      <para>Configure both Propagate commands below to use DefaultProp and
+      DefaultSC, with stop type Days, stop parameter DefaultSC.ElapsedDays,
+      and stop value 0.1. Each command advances for 0.1 days, so the final
+      manual report is 0.2 days after the initial report, as illustrated below.
+      Leave the intervening ScriptEvent empty; it is a placeholder for
+      additional commands. In the Qt GUI, command labels show their configured
+      statement until an optional command name is assigned.</para>
 
       <section>
         <title>Add Misc. Commands</title>
@@ -656,4 +672,4 @@ DecoratedReport.WriteHeaders = On;</programlisting>
       </section>
     </section>
   </section>
-</section>
+</chapter>

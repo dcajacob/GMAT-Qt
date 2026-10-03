@@ -12,18 +12,18 @@
   <section>
     <title>Objective and Overview</title>
 
-    <para><emphasis role="bold"></emphasis>n this tutorial, you will learn how
+    <para>In this tutorial, you will learn how
     to use the GMAT's control flow and targeting mechanisms to maintain a
-    Low-Earth orbit in the presense of atmosphere drag. For the sake of
-    simulation time, we will make the area-to-mass ratio of the spacecraft
-    large, to make the drag cause a rapid lowering of the orbit semimajor
-    axis. The process used in this script is also useful for generating
+    Low-Earth orbit in the presence of atmospheric drag. Use the default
+    spacecraft DryMass of 850 kg, DragArea of 15 square metres, Cd of 2.2,
+    SRPArea of 1 square metre and Cr of 1.8. We will follow the initial low
+    orbit for ten days using Jacchia-Roberts drag. The process used in this script is also useful for generating
     delta-V estimates for LEO stationkeeping of real-world missions. The basic
     steps of this tutorial are:</para>
 
     <procedure>
       <step>
-        <para>Create and configure the Resourse Tree - configure a spacecraft,
+        <para>Create and configure the Resource Tree - configure a spacecraft,
         impulsive maneuver, propagator, XY plot, and differential
         corrector.</para>
       </step>
@@ -41,7 +41,7 @@
       <step>
         <para>Add Part 2 - a control target sequence nested in an <literal>If
         </literal>statement that executes at altitudes below 342 km (where
-        drag is a serious factor) and keep the altitude above 342 km.</para>
+        drag is a serious factor) and raise the orbit when the threshold is crossed. The threshold triggers the correction; it is not a guaranteed minimum altitude.</para>
       </step>
 
       <step>
@@ -54,9 +54,8 @@
   <section>
     <title>Creating and Configuring the Resource Tree</title>
 
-    <para>Here we will configure a model of a LEO spacecraft, a propopagator,
-    a maneuver, and an XY plot that we will use to visualize the semi-major
-    axis (SMA) during the control sequence that we will develop in the next
+    <para>Here we will configure a model of a LEO spacecraft, a propagator,
+    a maneuver, and an XY plot that we will use to visualize the altitude during the control sequence that we will develop in the next
     section.</para>
 
     <section>
@@ -135,7 +134,7 @@
 
         <step>
           <para>Now your LEOprop dialog window should look like the screen
-          capture below. Click OK to save.</para>
+          capture below. Click Apply, then Close.</para>
         </step>
       </procedure>
 
@@ -176,8 +175,10 @@
         </step>
 
         <step>
-          <para>In the Burns folder, right-click on DefaultIB, rename it as
-          DeltaV.</para>
+          <para>In the Burns folder, add an ImpulsiveBurn named DeltaV. If a
+          DefaultIB is already present, rename it instead. Retain Local
+          coordinates, Earth origin, VNB axes, zero Element1/Element2/Element3
+          and DecrementMass disabled.</para>
         </step>
 
         <step>
@@ -185,7 +186,7 @@
           then XYPlot. Open XYPlot box; click Edit X; replace the item in the
           right-hand column with A1ModJulian; click OK. Click Edit Y; replace
           the item in the right-hand column with Altitude; click OK. Your
-          XYPlot box sdhould now look as shown below. Click OK to save
+          XYPlot box should now look as shown below. Click OK to save
           it..</para>
 
           <screenshot>
@@ -212,22 +213,27 @@
     <para>We will implement the mission in two parts. In Part 1 we will set a
     <literal>While</literal> loop with a propagate sequence, and will
     configure it to propagate for about 10 days. This will still lack any
-    orbit control strategy - upon running the mission you will see the SMA
-    drop below the allowed value of 342 km. Later in Part 2 a control sequence
-    will be added, to ensure that SMA remains above approximately 342 km.
+    orbit control strategy. Observe the altitude relative to the 342 km
+    trigger. Later in Part 2 a control sequence will raise the orbit whenever
+    the altitude falls below 342 km. This threshold is altitude, not
+    semimajor axis.
     Below is an illustration of the Mission Tree after you have completed Part
     1. Follow the steps below.</para>
 
     <procedure>
       <step>
-        <para>In the Mission Tree, right-click Propagate1, select Insert
-        After, select Control Logic, select While.</para>
+        <para>In the Mission Tree, right-click Propagate1 and select Insert
+        after. Choose While in the command template list. Before Apply, set
+        the optional command name to While1 and the Condition to
+        <literal>LEOsat.ElapsedDays &lt; 10</literal>. Apply and close the
+        panel. Qt validates the complete mission when Apply is pressed.</para>
       </step>
 
       <step>
-        <para>Right-click While1, select Insert After, select Propagate (it
-        will appear as Propagate2). Your Mission Tree should now look as shown
-        below.</para>
+        <para>Right-click While1 and select Append inside branch. Choose
+        the Propagate template, select LEOprop and LEOsat, check Single step,
+        and name the command Propagate2. Apply and close the panel. Your
+        Mission Tree should now look as shown below.</para>
 
         <screenshot>
           <mediaobject>
@@ -255,16 +261,14 @@
       </step>
 
       <step>
-        <para>In the Stopping Conditions group, double-left click the
-        <literal>Parameter</literal> field to select the text
-        <literal>LEOSat.ElapsedSecs</literal>. Delete this text (using the
-        Delete or Backspace key).</para>
+        <para>Check Single step in the Propagation group. This removes the
+        stopping condition and disables the inactive stop fields.</para>
       </step>
 
       <step>
-        <para>In the Stopping Conditions, double-left click <literal>the
-        Condition</literal> field to select the text <literal>12000</literal>.
-        Delete it.</para>
+        <para>The command preview should now be
+        <literal>Propagate LEOprop(LEOsat);</literal>, with any optional
+        command name preserved.</para>
       </step>
 
       <step>
@@ -291,14 +295,14 @@
       </step>
 
       <step>
-        <para>Note that the value in the Left-Hand Side column is already set
-        to <literal>LEOSat.ElapsedDays</literal>, and the conditional operator
-        is set to "&lt;" (less-than). We will leave those fields at this
-        default.</para>
+        <para>Set the Left-Hand Side to
+        <literal>LEOsat.ElapsedDays</literal> and the conditional operator
+        to "&lt;" (less-than). Select these explicitly rather than relying on
+        the template defaults.</para>
       </step>
 
       <step>
-        <para>Change the Right-Hand Side value to10.0.</para>
+        <para>Change the Right-Hand Side value to 10.0.</para>
       </step>
 
       <step>
@@ -321,10 +325,14 @@
       </step>
     </procedure>
 
+    <para>Verify that Propagate2 also has Single step checked, with
+    LEOprop and LEOsat selected. Both Propagate commands must have no
+    stopping condition.</para>
+
     <para>We are now ready to run the first part of the mission and observe
     the evolution of the LEOsat altitude. Click Run in the Toolbar. A plot
     should appear looking similar to the illustration below. Notice that the
-    alttitude drops below the allowed value of 342 km. We will address this
+    altitude drops below the allowed value of 342 km. We will address this
     issue below, in the mission's Part 2, by implementing a relevant control
     strategy.</para>
 
@@ -345,7 +353,7 @@
     <para>Just in case you may want in the future to return to the mission
     executed in Part 1, this is a good point to save your mission under an
     appropriate name. In order to avoid confusion, you may want to also save
-    it under the nmae that reflects its becoming the Part 2 mission.</para>
+    it under the name that reflects its becoming the Part 2 mission.</para>
 
     <para>In Part 2, every time the orbit dips below 342 km, the control
     strategy that we will set up will perform a Hohmann transfer, increasing
@@ -357,11 +365,14 @@
 
     <procedure>
       <step>
-        <para>Add an If statement after the Propagate2 Command.</para>
+        <para>Use Insert after on Propagate2 and choose If. Before Apply,
+        set the condition to <literal>LEOsat.Earth.Altitude &lt; 342</literal>
+        and name the command If1. Then Apply and close. The Qt If template
+        includes an empty Else branch; leave Else empty.</para>
       </step>
 
       <step>
-        <para>Add a Target statement inside the If statement</para>
+        <para>Use Insert before on the Else row to insert Target1 in the true branch. Set its solver to DC, SolveMode to Solve and ExitMode to SaveAndContinue before Apply.</para>
       </step>
 
       <step>
@@ -394,7 +405,7 @@
     </procedure>
 
     <para>The figure below illustrates how your Mission Tree should now look
-    like. .</para>
+    like. The images illustrate the command settings from the older GUI. In Qt, use the typed command fields and Apply, then Close. Resize a command window or scroll its form when lower fields are hidden.</para>
 
     <screenshot>
       <mediaobject>
@@ -411,7 +422,10 @@
     </screenshot>
 
     <para>Let us now configure the commands created above, to perform the
-    Hohman transfer control sequence.</para>
+    Hohmann transfer control sequence. Select DC in Target1, with SolveMode
+    Solve and ExitMode SaveAndContinue. Both Vary and Achieve commands use DC;
+    both Maneuver commands use DeltaV and LEOsat. Vary2 also selects
+    DeltaV.Element1. Keep these two Maneuver commands inside Target1.</para>
 
     <procedure>
       <step>
@@ -419,12 +433,11 @@
       </step>
 
       <step>
-        <para>Set the Left Hand Side value to LEOsat.Altitude</para>
+        <para>Set the typed condition to LEOsat.Earth.Altitude &lt; 342</para>
       </step>
 
       <step>
-        <para>Set the Right Hand Side value to 342. Click OK to save and close
-        the box.</para>
+        <para>Click Apply, then Close to save the condition.</para>
 
         <screenshot>
           <mediaobject>
@@ -446,7 +459,9 @@
       </step>
 
       <step>
-        <para>Change the IntialValue field to 0.002. Click OK to save.</para>
+        <para>Select DC and DeltaV.Element1. Set Initial Value to 0.002,
+        Perturbation to 0.0001, Lower to -9.999999e300, Upper to 9.999999e300
+        and Max Step to 0.0001. Click Apply to save.</para>
 
         <screenshot>
           <mediaobject>
@@ -472,7 +487,7 @@
       </step>
 
       <step>
-        <para>Change the Value to 6734. Click OK to close.</para>
+        <para>Change the Value to 6734 and keep Tolerance 0.1. Click Apply, then Close.</para>
 
         <screenshot>
           <mediaobject>
@@ -494,15 +509,13 @@
       </step>
 
       <step>
-        <para>In the Stopping Conditions group, change the
-        <literal>Parameter</literal> field to
-        <literal>LEOSat.Earth.Apoapsis</literal>.</para>
+        <para>Leave Single step unchecked and change the
+        <literal>Stop parameter</literal> field to
+        <literal>LEOsat.Earth.Apoapsis</literal>.</para>
       </step>
 
       <step>
-        <para>In the Stopping Conditions group, delete data in the
-        <literal>Condition</literal> field. Your box should now look as shown
-        below. Click OK to save it.</para>
+        <para>The Qt form disables Stop value for Apoapsis, because this event needs no numeric goal. Your command should contain LEOsat.Earth.Apoapsis as its stopping condition. Click Apply, then Close.</para>
 
         <screenshot>
           <mediaobject>
@@ -526,7 +539,7 @@
       <step>
         <para>Set Initial Value= 0.001; Perturbation=0.00005;
         Lower=-9.999999e300; Upper=9.999999e300; Max Step=0.001. Your box
-        should look as shown below. Click OK to save.</para>
+        should look as shown below. Click Apply, then Close.</para>
 
         <screenshot>
           <mediaobject>
@@ -553,7 +566,7 @@
 
       <step>
         <para>Set Value=0.0005; Tolerance=0.0001. Your dialog box should now
-        look as shown below. Click OK to close.</para>
+        look as shown below. Click Apply, then Close.</para>
 
         <screenshot>
           <mediaobject>
@@ -580,8 +593,7 @@
     final form it should look similar to the illustration below. Notice that,
     with the altitude control sequence now added, the spacecraft initiates an
     altitude-boosting maneuver every time its altitude dips below the allowed
-    342 km. You may want to save this script now, in case you decide to return
-    to it in the future.</para>
+    342 km. Save the completed script. Reopen it to verify the saved spacecraft, force model and command settings. Numerical output depends on the epoch and propagation settings; compare the control response rather than expecting every point to stay above 342 km.</para>
 
     <screenshot>
       <mediaobject>
