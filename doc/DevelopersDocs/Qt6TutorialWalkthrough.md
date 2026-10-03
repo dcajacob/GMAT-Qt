@@ -130,34 +130,39 @@ boundaries; successful backend execution alone is not GUI capability coverage.
 The local optional VF13ad component has previous execution evidence, which does
 not establish tutorial 5's interactive workflow.
 
-## Additional source tutorials
+## Additional source tutorials — current 2026-10-03
 
-These twelve source chapters are absent from the current Tutorials table of
-contents and have no installed chapter pages. The [availability audit](Qt6ParityValidation/help-extra-chapters-20261002.md)
-records the exact book/files and all 195 image references. Keep them separate
-from the twelve published chapters: no additional walkthrough is passed.
-MATLAB/fmincon chapters are deferred; contradictory/legacy optimizer identities
-remain unresolved. Creating a Report, Force Models and LEO Station Keeping are
-potential additional coverage. Earlier repairs/execution of these chapters do
-not satisfy independent interactive construction.
+The [availability audit](Qt6ParityValidation/help-extra-chapters-20261002.md)
+retains the original twelve source chapters outside the Tutorials book and their
+195 image references. The user-approved follow-up independently constructs seven
+usable chapters before publication. Four walkthroughs are now complete; three
+remain in progress. The original twelve published tutorial passes above are
+preserved and were not rerun. Until the book is rebuilt and its installed pages
+verified, these remain qualified source chapters awaiting publication.
 
-| Chapter source | Additional or legacy chapter |
+| Chapter source | Current disposition |
 |---|---|
-| `Tut_ACEStationKeeping.xml` | ACE Station Keeping |
-| `Tut_AlgebraicOptimization.xml` | Algebraic Optimization |
-| `Tut_CreatingReport.xml` | Creating a Report |
-| `Tut_ForceModels.xml` | Force Models |
-| `Tut_FormationRendezvous.xml` | Formation Rendezvous |
-| `Tut_L2Transfer.xml` | L2 Transfer with Swingby |
-| `Tut_LEOStationKeeping.xml` | LEO Station Keeping |
-| `Tut_LunarTransfer.xml` | Lunar Transfer |
-| `Tut_MATLAB.xml` | Running GMAT Scripts from MATLAB — deferred |
-| `Tut_MarsB-PlaneTargeting.xml` | Older Mars B-Plane Targeting chapter |
-| `Tut_MinFuelLunarTransfer.xml` | Minimum Fuel for Lunar Transfer |
-| `Tut_MinFuelOrbitTransfer.xml` | Minimum Fuel for Orbit Transfer |
+| `Tut_CreatingReport.xml` | **Passed** — [independent GUI construction/run/reopen](Qt6ParityValidation/help-creating-report-20261003.md), three reports and taught ScriptEvent header statements; supplied script read only after freeze. |
+| `Tut_ForceModels.xml` | **Passed with stated fixed-step accuracy limitation** — [independent GUI construction/run/reopen](Qt6ParityValidation/help-force-models-20261003.md), six force setups and six0.1-day legs. Requested1e-12 SRP accuracy is not established; its stop guard continuation and warning are explicit. |
+| `Tut_FormationRendezvous.xml` | **Passed** — [independent GUI construction/run/reopen](Qt6ParityValidation/help-formation-rendezvous-20261003.md), four spacecraft, two separately converged position/velocity targets, twenty Report commands and fresh source readback before comparison. This is not simultaneous six-state docking. |
+| `Tut_LEOStationKeeping.xml` | **Passed** — Parts1/2 independently built through actual GUI input, run, saved and freshly reopened before comparison; raw receipt `build/example-qualification/20261003/extra-help/leo/qualification.json`. Its individual tracked narrative is being finalized. |
+| `Tut_ACEStationKeeping.xml` | **In progress** — independent resources/viewers/mission construction; forwarded-axis Rename blocker repaired and actual F2 verified. No walkthrough pass claimed yet. |
+| `Tut_LunarTransfer.xml` | **In progress** — independent resource/viewer/target construction, literal EarthToMoon.BdotT goal retained. No walkthrough pass claimed yet. |
+| `Tut_MarsB-PlaneTargeting.xml` | **In progress** — independent older chapter construction, separate from the already-passed modern Mars tutorial. No walkthrough pass claimed yet. |
+| `Tut_L2Transfer.xml` | **Held** — original two sign brackets miss the required L2 plane; bounded failure/domain evidence retained, no ephemeris extension or objective change. |
+| `Tut_MATLAB.xml` | **Deferred** — Running GMAT Scripts from MATLAB. |
+| `Tut_MinFuelOrbitTransfer.xml` | **Deferred** — MATLAB/fmincon dependency. |
+| `Tut_AlgebraicOptimization.xml` | **Unresolved legacy optimizer identity/dependency** — not a walkthrough pass. |
+| `Tut_MinFuelLunarTransfer.xml` | **Unresolved legacy optimizer identity/dependency** — not a walkthrough pass. |
 
-For each actual walkthrough, add a per-chapter record under
-`doc/DevelopersDocs/Qt6ParityValidation` and link it here. Preserve raw artifacts
-in the ignored qualification artifact tree. All twelve published tutorials have completed
-records linked above. Additional source chapters retain the separate
-availability/dependency disposition and have no completed walkthrough claim.
+Each completed walkthrough freezes its own GUI-authored mission, result and fresh
+readback before reading a supplied script. Differences remain documented instead
+of retrofitting the construction to the reference. Original attempt failures,
+bounded stops and per-session app identities remain in the ignored artifact tree.
+[Implicit Earth gravity](Qt6ParityValidation/implicit-gravity-20261003.md),
+[single-step propagation](Qt6ParityValidation/single-step-20261003.md) and
+[coordinate Rename/window size](Qt6ParityValidation/axis-command-usability-20261003.md)
+record concrete GUI blockers found by these walks and their focused repairs.
+These additions preserve the nine replacement acceptance gates. Live host testing
+remains stopped; Mutter client attribution, safe host condition and physical GPU
+acceptance remain unproven. Windows, macOS and MATLAB remain deferred.

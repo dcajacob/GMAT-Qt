@@ -1,0 +1,20 @@
+# Creating a Report — independent GUI qualification, 2026-10-03
+
+Raw artifacts remain under `build/example-qualification/20261003/extra-help/creating-report` in the separate Qt checkout. This tracked record preserves the accepted run identities; later app rebuilds do not substitute new identities for these runs.
+Passed construction through real private X11 input, one authored mission run, GUI Save, and a fresh-process reopen/build before reference comparison. The app was `e955be000a69082e055e4bf95b5ccd41f7a67513cb093435f56e632cf9956b1c` with the installed Qt startup; runtime hashes and outputs are frozen in `pre-reference-freeze.json`.
+
+The walkthrough started from observed New defaults. Three ReportFile resources were created, configured, and renamed individually through the GUI. AutoReport and DecoratedReport received the chapter's seven ordered time/Cartesian references through the parameter chooser. ManualReport's selected list was empty. A blank `stringVar` was created. Typed mission forms added the two manual reports and two propagates; the ScriptEvent body editor received only the chapter's eight taught header statements. The middle ScriptEvent remained empty apart from its default comment.
+
+Both propagates stop after 0.1 days. The original prose omitted their durations; the chapter's own ManualReport illustration shows the 17280-second total used here. Absolute owned output paths replaced relative paths for isolation. No resource or mission scaffolding was pasted into the script editor.
+
+The mission completed in 0.398 seconds. AutoReport has 176 finite data rows with nondecreasing epochs. ManualReport has two data rows and spans 17280 seconds, initial state `[7100,0,1300,0,7.35,1]`, final state `[4263.589172056314,-5629.04040006073,51.64912710595482,5.96629938252482,4.362644736391378,1.687440824584614]`. Its endpoints equal the automatic report. DecoratedReport has the three taught lines and then byte-identical AutoReport content. Output-tree viewers displayed all three reports. A fresh process reopened the authored file, reported Build succeeded, and displayed retained report settings and first-leg settings. No repeat numerical run was needed for reopen.
+
+Only then was `doc/help/src/files/scripts/ReportTutorial.script` read. Its spacecraft, parameter order, durations and string code agree; its zero DefaultIB Maneuver is omitted by the construction prose and current New. Other disclosed differences are legacy OpenGLPlot/gravity spelling, current New's GroundTrack, ColumnWidth23/Current versus20/None, and isolated paths. The comparison reference was not executed or used to seed construction.
+
+The XML root is now `chapter` preserving `CreatingaReport`. Corrections identify current folder names/New prerequisite, make the two durations explicit, normalize `stringVar`, and fix the actual download link/label. Existing objective, taught code, IDs and illustration remain.
+
+Retained setup/input attempts: first launch selected the wx startup and was rejected for a wx-only plugin; early propagation combo selection required Enter before commit; Save's first action navigated to its directory; the in-session Open dialog was incomplete at close, followed by verified fresh-process reopen. These are not erased or counted as passes. Helpers closed their own children using SIGTERM; chapter success does not assert normal FileExit exit-code proof.
+
+Evidence: `chapter-instructions.json`, `AuthoredCreatingReport.script`, `output/`, the three private session action logs/screenshots and session.json files, `pre-reference-freeze.json`, `post-reference-comparison.json`, and `receipt.json`. Representative images: construction013/033, run038, viewers040–042 in `isolated-x11-3fpn3ra8`, and fresh reopen001/003–007 in `isolated-x11-jpenn3ry`.
+
+This proves this Help walkthrough on owned authenticated Xvfb/Openbox with xcb and software GL. Live host testing remains stopped. Mutter client attribution, physical GPU, host Wayland/portal and full nine-gate qualification remain open; Windows, macOS and MATLAB remain deferred.
