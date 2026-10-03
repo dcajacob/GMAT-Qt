@@ -135,7 +135,7 @@ not establish tutorial 5's interactive workflow.
 The [availability audit](Qt6ParityValidation/help-extra-chapters-20261002.md)
 retains the original twelve source chapters outside the Tutorials book and their
 195 image references. The user-approved follow-up independently constructs seven
-usable chapters before publication. Four walkthroughs are now complete; three
+usable chapters before publication. Five walkthroughs are now complete; two
 remain in progress. The original twelve published tutorial passes above are
 preserved and were not rerun. Until the book is rebuilt and its installed pages
 verified, these remain qualified source chapters awaiting publication.
@@ -146,7 +146,7 @@ verified, these remain qualified source chapters awaiting publication.
 | `Tut_ForceModels.xml` | **Passed with stated fixed-step accuracy limitation** — [independent GUI construction/run/reopen](Qt6ParityValidation/help-force-models-20261003.md), six force setups and six0.1-day legs. Requested1e-12 SRP accuracy is not established; its stop guard continuation and warning are explicit. |
 | `Tut_FormationRendezvous.xml` | **Passed** — [independent GUI construction/run/reopen](Qt6ParityValidation/help-formation-rendezvous-20261003.md), four spacecraft, two separately converged position/velocity targets, twenty Report commands and fresh source readback before comparison. This is not simultaneous six-state docking. |
 | `Tut_LEOStationKeeping.xml` | **Passed** — [Parts1/2 actual-input construction/run/reopen](Qt6ParityValidation/help-leo-station-keeping-20261003.md), both ten-day histories and105 converged targets, frozen before reference comparison; the342km condition is a correction trigger, not a minimum-altitude guarantee. |
-| `Tut_ACEStationKeeping.xml` | **In progress** — independent resources/viewers/mission construction; forwarded-axis Rename blocker repaired and actual F2 verified. No walkthrough pass claimed yet. |
+| `Tut_ACEStationKeeping.xml` | **Passed** — [independent GUI construction/run/reopen](Qt6ParityValidation/help-ace-station-keeping-20261003.md), seven converged targets, eight finite report records and two viewers; full comparison followed freeze. Original missing link and retained early attempts are explicit. |
 | `Tut_LunarTransfer.xml` | **In progress** — independent resource/viewer/target construction, literal EarthToMoon.BdotT goal retained. No walkthrough pass claimed yet. |
 | `Tut_MarsB-PlaneTargeting.xml` | **In progress** — independent older chapter construction, separate from the already-passed modern Mars tutorial. No walkthrough pass claimed yet. |
 | `Tut_L2Transfer.xml` | **Held** — original two sign brackets miss the required L2 plane; bounded failure/domain evidence retained, no ephemeris extension or objective change. |

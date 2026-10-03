@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<section version="5.0" xml:id="ACEStationKeeping"
+<chapter version="5.0" xml:id="ACEStationKeeping"
          xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
@@ -21,8 +21,8 @@
     slightly by small maneuvers due to the unstable nature of Sun-Earth
     L<subscript>1</subscript>.</para>
 
-    <para>Download the script file: <link
-    xlink:href="scripts/ACEStationKeepingTutorial.script">ACEStationKeepingTutorial.script</link></para>
+    <para>This walkthrough is self-contained. Create the resources and mission
+    sequence below in a new mission.</para>
 
     <section>
       <title>Prerequisites</title>
@@ -146,10 +146,10 @@
       <itemizedlist>
         <listitem>
           <para>Objective: Maintain an orbit about the Sun-Earth
-          L<subscript>1</subscript> Libration point by performing a burn
-          perpendicular to the direction of travel so that as the spacecraft
-          passes through the ecliptic, its velocity relative to the Sun and
-          Earth is zero.</para>
+          L<subscript>1</subscript> Libration point by varying the VNB burn
+          component perpendicular to the direction of travel. At each
+          EarthSunL1CS Y = 0 crossing, target the EarthSunL1CS VX component
+          to zero.</para>
         </listitem>
 
         <listitem>
@@ -161,14 +161,14 @@
             </listitem>
 
             <listitem>
-              <para>A UTCGregorian Epoch of 09 Dec 2005 12:59:60.000</para>
+              <para>A UTCGregorian Epoch of 09 Dec 2005 13:00:00.000</para>
             </listitem>
           </itemizedlist>
         </listitem>
 
         <listitem>
           <para>Find: The deltaV required perpendicular to the direction of
-          travel at each pass of the ecliptic to meet the above
+          travel at each Y = 0 crossing to meet the above
           objective</para>
         </listitem>
       </itemizedlist>
@@ -263,7 +263,7 @@
         </listitem>
 
         <listitem>
-          <para>Propagators: defaultProp (modified)</para>
+          <para>Propagators: DefaultProp (modified)</para>
         </listitem>
 
         <listitem>
@@ -305,7 +305,7 @@
             </listitem>
 
             <listitem>
-              <para>Set the Epoch to 09 Dec 2005 12:59:60.000</para>
+              <para>Set the Epoch to 09 Dec 2005 13:00:00.000</para>
             </listitem>
 
             <listitem>
@@ -350,11 +350,11 @@
             </listitem>
 
             <listitem>
-              <para>Remove any Primary Bodies</para>
+              <para>Open DefaultProp_ForceModel under Force Models. Clear PrimaryBodies and set PointMasses to Sun, Earth, Luna before Apply; the two gravity selections are applied together. Keep Drag None and SRP Off.</para>
             </listitem>
 
             <listitem>
-              <para>Add Sun, Earth, and Luna as Point Masses</para>
+              <para>Keep DefaultProp Type RungeKutta89, InitialStepSize 60, Accuracy 1e-11, and StopIfAccuracyIsViolated true.</para>
             </listitem>
           </itemizedlist>
 
@@ -381,13 +381,13 @@
 
           <itemizedlist>
             <listitem>
-              <para>Add a Barycenter under Special Points and rename it
-              DefaultBC</para>
+              <para>Add a Barycenter under Calculated Points named DefaultBC and
+              select Sun and Earth as its Bodies.</para>
             </listitem>
 
             <listitem>
-              <para>Add a Libration Point under Special Points and rename it
-              ESL1</para>
+              <para>Add a LibrationPoint under Calculated Points named ESL1. Set
+              Primary to Sun, Secondary to Earth, and Point to L1.</para>
             </listitem>
           </itemizedlist>
          <screenshot>
@@ -413,7 +413,10 @@
 
           <itemizedlist>
             <listitem>
-              <para>Rename DefaultIB to dV</para>
+              <para>Rename DefaultIB to dV if it exists. In a new Qt mission, use
+              Add ImpulsiveBurn under Burns, name it dV, and retain the
+              Local coordinate system, Earth origin, VNB axes, zero elements,
+              and DecrementMass false.</para>
             </listitem>
           </itemizedlist>
         </listitem>
@@ -423,10 +426,9 @@
 
           <itemizedlist>
             <listitem>
-              <para>To create the necessary variables, insert the line of code
-              below into the script just after the setup of the <link
-              linkend="CoordinateSystem">Coordinate System
-              Objects</link></para>
+              <para>To create the necessary variables, insert this declaration
+              into the script before BeginMissionSequence. Build the script, then return to the mission controls to build all commands. This literal declaration creates only the variables.</para>
+              <programlisting>Create Variable TotaldV VX VY VZ dVX dVY dVZ I;</programlisting>
             </listitem>
           </itemizedlist>
         </listitem>
@@ -449,12 +451,13 @@
                 </listitem>
 
                 <listitem>
-                  <para>Change the Axes type to Object Referenced</para>
+                  <para>Select ObjectReferenced for Axes. In Qt, open Advanced and Axes to set the dependent fields below. Click OK in the axes dialog, then Create in the parent dialog.</para>
                 </listitem>
 
                 <listitem>
                   <para>Change the Primary and Secondary Values to Sun and
-                  Earth, respectively</para>
+                  Earth, respectively. Set XAxis to R and ZAxis to N; leave
+                  YAxis blank so GMAT completes the right-handed frame.</para>
                 </listitem>
               </itemizedlist>
 
@@ -483,16 +486,17 @@
               <itemizedlist>
                 <listitem>
                   <para>Add a new Coordinate System and name it
-                  EarthSunRotCS</para>
+                  EarthSunRotCS. Keep Origin Earth.</para>
                 </listitem>
 
                 <listitem>
-                  <para>Change the Axes type to Object Referenced</para>
+                  <para>Select ObjectReferenced for Axes. In Qt, open Advanced and Axes to set the dependent fields below. Click OK in the axes dialog, then Create in the parent dialog.</para>
                 </listitem>
 
                 <listitem>
                   <para>Change the Primary and Secondary Values to Sun and
-                  Earth, respectively</para>
+                  Earth, respectively. Set XAxis to R and ZAxis to N; leave
+                  YAxis blank so GMAT completes the right-handed frame.</para>
                 </listitem>
               </itemizedlist>
             </listitem>
@@ -511,8 +515,10 @@
             </listitem>
 
             <listitem>
-              <para>Add the code lines below to the script under the DefaultDC
-              section</para>
+              <para>Use the current default settings: MaximumIterations 25,
+              ForwardDifference, NewtonRaphson, ShowProgress true and
+              ReportStyle Normal. Choose a report file in a writable
+              output directory.</para>
             </listitem>
           </itemizedlist>
 
@@ -539,24 +545,22 @@
 
           <itemizedlist>
             <listitem>
-              <para>Rename DefaultOpenGL to L1View</para>
+              <para>Rename DefaultOrbitView to L1View.</para>
             </listitem>
 
             <listitem>
-              <para>Create an OpenGL Plot Named EarthSunRotView</para>
+              <para>On L1View's Setup tab, keep Add as ACE, Earth. Retain
+              the current View Point Offset [30000, 0, 0] and View Up Axis Z.
+              Configure the remaining settings as follows.</para>
 
               <itemizedlist>
                 <listitem>
-                  <para>Set EarthSunL1CS as the both the View Direction and
-                  View Up Definition Coordinate System (Note: you will have to
-                  create the coordinate system outlined below before taking
-                  this step)</para>
+                  <para>Set CoordinateSystem and ViewUpCoordinateSystem
+                  to EarthSunL1CS.</para>
                 </listitem>
 
                 <listitem>
-                  <para>Change both the View Point Reference and View
-                  Direction to ESL1 (Note: again, this will need to be created
-                  first)</para>
+                  <para>Set ViewPointReference and ViewDirection to ESL1.</para>
                 </listitem>
 
                 <listitem>
@@ -588,12 +592,15 @@
             </listitem>
 
             <listitem>
-              <para>Create an OpenGL Plot Named EarthSunRotView</para>
+              <para>Create an OrbitView named EarthSunRotView. On its Setup
+              tab set Add to ACE, Earth, Luna, keep ViewPointReference and
+              ViewDirection Earth, and retain the current View Point Offset
+              [0, 0, 30000].</para>
 
               <itemizedlist>
                 <listitem>
                   <para>Add Luna as a Celestial Object and Change its orbit
-                  color to Grey</para>
+                  color to Gray. In Qt, verify Luna's Visualization tab; its current Orbit color default is already Gray</para>
                 </listitem>
 
                 <listitem>
@@ -619,7 +626,7 @@
             </listitem>
 
             <listitem>
-              <para>Create a Report Named ESL1Ephem</para>
+              <para>Create a ReportFile named ESL1Ephem.</para>
 
               <itemizedlist>
                 <listitem>
@@ -627,8 +634,9 @@
                 </listitem>
 
                 <listitem>
-                  <para>Select the File as being
-                  ./output/SampleMissions/Ex_ACEStationKeeping.report</para>
+                  <para>Choose a filename in an existing writable output
+                  directory, for example Ex_ACEStationKeeping.report. Keep
+                  WriteReport true, WriteHeaders true and Precision 16.</para>
                 </listitem>
               </itemizedlist>
 
@@ -642,23 +650,33 @@
   <section>
     <title>Creating and Configuring the Mission Sequence</title>
 
-    <para>Now that we have all the resources at out disposal to complete this
+    <para>Now that we have all the resources at our disposal to complete this
     mission, we will go ahead and start building the mission tree. ACE's
-    mission if fairly straight forward at the level we will be dealing with.
+    mission is fairly straight forward at the level we will be dealing with.
     As stated before, the primary goal here is to allow the spacecraft seven
     iterations, or half orbits, and at the beginning of each one, calculate
-    the deltaV required in the perpendicular-to-travel direction required at
-    the ecliptic to ensure no velocity towards or away from the Sun or Earth.
-    Basically, the spacecraft must not have any movement between these two
-    bodies as it passes through the plane on which the Sun and Earth both lie.
+    the deltaV required in the perpendicular-to-travel direction. The target
+    sets ACE.EarthSunL1CS.VX to zero at the ACE.EarthSunL1CS.Y = 0 crossing;
+    it does not set all three velocity components to zero.
     The entire Mission Sequence is relatively short and is given below in its
     entirety.</para>
 
-    <para>This particular mission tree may be a bit more complex then those
+    <para>This particular mission tree may be a bit more complex than those
     you have previously dealt with but it is only due to the several equations
     and reports that it looks more complicated than it actually is. This part
     of the tutorial will go through the mission sequence step by step and at
     the end you will have a functional setup.</para>
+
+    <para>In Qt, use Insert after or Append command in the Mission tree,
+    then choose the command template. Fill the settings below before Apply;
+    Apply validates the complete mission. Equation steps use the Assignment
+    template's Destination and Expression fields. For For1, select I as the
+    Index, Start 1, Step 1, and End 7 before Apply. Use Append inside branch
+    to add commands inside For1 and Target1. Set Target1 to DefaultDC with
+    SolveMode Solve and ExitMode SaveAndContinue before Apply. Resize a
+    command panel or scroll its form to reach lower settings. After Apply,
+    close that panel before inserting the next command. The images below
+    show the older GUI; the typed settings are authoritative.</para>
 
     <itemizedlist>
       <listitem>
@@ -674,11 +692,12 @@
           </listitem>
 
           <listitem>
-            <para>Remove ACE.A1ModJulian from the parameters list</para>
+            <para>Set Report file to ESL1Ephem and replace the default
+            Parameters list with the six state parameters below.</para>
           </listitem>
 
           <listitem>
-            <para>Add ACE.EarthSunL1CS.X, Y, Z, VZ, VY, and VZ to the
+            <para>Add ACE.EarthSunL1CS.X, Y, Z, VX, VY, and VZ to the
             parameters list</para>
           </listitem>
         </itemizedlist>
@@ -693,12 +712,7 @@
 
         <itemizedlist>
           <listitem>
-            <para>Target1: (Note: In the 6-16-2008 build of GMAT, and for
-            several builds thereafter, the targeter requires an extra
-            parameter. If you are working with a version soon after 6-09-2008,
-            use the line "<link linkend="Target">Target Command</link>
-            DefaultDC {ExitMode = SaveAndContinue};" instead of the normal
-            target line in the script)</para>
+            <para>Target1: select DefaultDC, SolveMode Solve and ExitMode SaveAndContinue. Add the following commands inside the target.</para>
 
             <itemizedlist>
               <listitem>
@@ -706,7 +720,9 @@
 
                 <itemizedlist>
                   <listitem>
-                    <para>Set the variable to dV.B</para>
+                    <para>Select dV.Element3, the current field equivalent of the
+                    legacy dV.B alias. Retain Local/Earth/VNB axes on dV,
+                    zero other components, and mass decrement disabled.</para>
                   </listitem>
 
                   <listitem>
@@ -744,23 +760,23 @@
               </listitem>
 
               <listitem>
-                <para>Maneuver1</para>
+                <para>Maneuver1: Select dV and ACE.</para>
               </listitem>
 
               <listitem>
-                <para>Equation5: Set as ACE.VX - VX</para>
+                <para>Equation5: Set dVX = ACE.VX - VX</para>
               </listitem>
 
               <listitem>
-                <para>Equation6: Set as ACE.VY - VY</para>
+                <para>Equation6: Set dVY = ACE.VY - VY</para>
               </listitem>
 
               <listitem>
-                <para>Equation7: Set as ACE.VZ - VZ</para>
+                <para>Equation7: Set dVZ = ACE.VZ - VZ</para>
               </listitem>
 
               <listitem>
-                <para>Equation8: Set as TotaldV = TotaldV + sqrt( dVZ^2 +
+                <para>Equation8: Set as TotaldV = TotaldV + sqrt( dVX^2 +
                 dVY^2 + dVZ^2 )</para>
               </listitem>
 
@@ -777,7 +793,9 @@
           </listitem>
 
           <listitem>
-            <para>Propagate2</para>
+            <para>Propagate2: Select DefaultProp and ACE, with a stopping
+            condition of ACE.ElapsedSecs = 12000. This short coast follows
+            the accepted target sequence and precedes Report2.</para>
           </listitem>
 
           <listitem>
@@ -785,12 +803,13 @@
 
             <itemizedlist>
               <listitem>
-                <para>Remove ACE.A1ModJulian and put in
-                ACE.UTCGregorian</para>
+                <para>Select ESL1Ephem and replace the default Parameters
+                list with ACE.UTCGregorian followed by the six state
+                parameters below.</para>
               </listitem>
 
               <listitem>
-                <para>Add ACE.EarthSunL1CS.X, Y, Z, VZ, VY, and VZ to the
+                <para>Add ACE.EarthSunL1CS.X, Y, Z, VX, VY, and VZ to the
                 parameters list</para>
               </listitem>
             </itemizedlist>
@@ -939,12 +958,17 @@
   <section>
     <title>Running the Mission</title>
 
-    <para>While running this setup, you should see the spacecraft ACE make
-    seven half-loops around the Sun-Earth L<subscript>1</subscript> Libration
-    Point. Just before each run you will see a slight pause in drawing of the
-    model as GMAT computes the needed change in velocity. As you may be able
-    to see in the reports, the changes in velocity here are quite small due to
-    this Libration Point's unstable nature.</para>
+    <para>Save the mission, then Run. All seven target sequences should
+    converge. L1View shows the successive arcs around the Sun-Earth
+    L<subscript>1</subscript> point; EarthSunRotView also shows Luna's orbit.
+    Use Latest to show the entire retained trajectory and Fit to frame it.</para>
+
+    <para>ESL1Ephem contains one initial state record and seven records with
+    UTC epochs and state components. Report2 runs after the 12000-second
+    coast, so its VX values need not remain within the target tolerance.
+    Check target convergence in the solver panel or message output. Finally,
+    reopen the saved mission and confirm the Vary, Achieve and Target
+    settings before continuing.</para>
 
     <para>If you look into the reports stored in the directory specified then
     you will find the various parameters that were saved. This information
@@ -977,4 +1001,4 @@
       </mediaobject>
     </screenshot>
   </section>
-</section>
+</chapter>
