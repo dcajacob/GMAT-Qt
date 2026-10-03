@@ -33,6 +33,7 @@
 #include "ResourceRename.hpp"
 #include "ResourceProperties.hpp"
 #include "CustomFovProperties.hpp"
+#include "QtScriptInterpreter.hpp"
 #include "SpacecraftOrbit.hpp"
 #include "AtmosphereDialog.hpp"
 #include "GroundStationDialog.hpp"
@@ -1182,7 +1183,7 @@ bool MainWindow::buildScript()
       setScriptDirectory();
       const auto cameras=qtCameraSettings(editor->toPlainText());
       std::istringstream stream(editor->toPlainText().toStdString());
-      success = Moderator::Instance()->InterpretScript(&stream, true);
+      success = qtInterpretScript(stream);
       if (success) { QtPlotReceiver::validateCameraReferences(cameras); plots->cameraSettings=cameras; }
    } catch (BaseException &error) { messages->appendPlainText(QString::fromStdString(error.GetFullMessage())); }
    catch (const std::exception &error) { success=false; messages->appendPlainText(QString::fromUtf8(error.what())); }
@@ -1448,7 +1449,7 @@ FolderRunResult MainWindow::runFolderScripts(const FolderRunOptions &options,QtP
                   if (prompt.exec()!=QMessageBox::Yes) { item.category=buildFailureCategory="Conversion skipped"; item.details=buildFailureDetails="Original OpenFrames script preserved."; return item; }
                   source=converted.script; item.details=converted.notes.join('\n')+"\n";
                }
-               const auto cameras=qtCameraSettings(source); std::istringstream stream(source.toStdString()); built=Moderator::Instance()->InterpretScript(&stream,true);
+               const auto cameras=qtCameraSettings(source); std::istringstream stream(source.toStdString()); built=qtInterpretScript(stream);
                if (built) { QtPlotReceiver::validateCameraReferences(cameras); batchPlots.cameraSettings=cameras; }
             }
             if (!built) { item.category=buildFailureCategory.isEmpty() ? "Build error" : buildFailureCategory; item.details=buildFailureDetails; }
@@ -1507,7 +1508,7 @@ FolderRunResult MainWindow::runFolderScripts(const FolderRunOptions &options,QtP
    restore("Script-folder restore",[&] { if (!fm->SetGmatWorkingDirectory(originalWorking)) throw std::runtime_error("The original script folder is unavailable."); });
    restore("Log restore",[&] { receiver->RestoreLog(originalLog,originalLogging); }); global->SetBatchMode(originalBatch);
    try {
-      std::istringstream stream(builtScript.toStdString()); const bool restored=Moderator::Instance()->InterpretScript(&stream,true);
+      std::istringstream stream(builtScript.toStdString()); const bool restored=qtInterpretScript(stream);
       modelValid=restored && originalValid;
       if (!restored) result.error+="\nThe original engine configuration could not be restored. Rebuild the open mission before running it.";
    } catch (BaseException &error) { modelValid=false; result.error+="\nRestore failed: "+QString::fromStdString(error.GetFullMessage()); }
@@ -2332,7 +2333,7 @@ bool MainWindow::restoreBuiltModel()
    try {
       setScriptDirectory();
       std::istringstream previous(builtScript.toStdString());
-      modelValid=Moderator::Instance()->InterpretScript(&previous,true);
+      modelValid=qtInterpretScript(previous);
    } catch (...) { }
    refreshTrees(); return modelValid;
 }
@@ -2345,14 +2346,13 @@ QString MainWindow::applyModelScript(const QString &requested,const std::functio
       candidate=retainQtCameraSettings(editor->toPlainText(),requested,removedCamera);
       cameras=qtCameraSettings(candidate);
    } catch (const std::exception &error) { return QString::fromUtf8(error.what()); }
-   auto *moderator = Moderator::Instance();
    QString error;
    ++modelGeneration; summaryAvailable=false;
    plots->clear();
    try {
       setScriptDirectory();
       std::istringstream stream(candidate.toStdString());
-      if (!moderator->InterpretScript(&stream, true)) error = "The mission rejected these changes. See Message Window.";
+      if (!qtInterpretScript(stream)) error = "The mission rejected these changes. See Message Window.";
       else { QtPlotReceiver::validateCameraReferences(cameras); if (validate) error=validate(); }
    } catch (BaseException &exception) { error = QString::fromStdString(exception.GetFullMessage()); }
    catch (const std::exception &exception) { error = QString::fromUtf8(exception.what()); }

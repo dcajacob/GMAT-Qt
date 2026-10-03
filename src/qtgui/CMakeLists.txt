@@ -34,6 +34,7 @@ add_library(GmatQtFrontend STATIC MainWindow.cpp MainWindow.hpp MainWindowDocume
    GroundStationDialog.cpp GroundStationDialog.hpp
    RegionDialog.cpp RegionDialog.hpp
    CustomFovDialog.cpp CustomFovDialog.hpp CustomFovProperties.cpp CustomFovProperties.hpp
+   QtScriptInterpreter.cpp QtScriptInterpreter.hpp
    EventLocatorDialog.cpp EventLocatorDialog.hpp
    XYPlotDialog.cpp XYPlotDialog.hpp
    GroundTrackDialog.cpp GroundTrackDialog.hpp
@@ -261,6 +262,9 @@ if(GMAT_QT_BUILD_TESTS)
    add_executable(GmatQtCustomFovControlsTests tests/CustomFovControlsTests.cpp)
    target_link_libraries(GmatQtCustomFovControlsTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtCustomFovControlsTests GmatQt)
+   add_executable(GmatQtCustomFovPathsTests tests/CustomFovPathsTests.cpp)
+   target_link_libraries(GmatQtCustomFovPathsTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtCustomFovPathsTests GmatQt)
    add_executable(GmatQtRegionTests tests/RegionWorkflowTests.cpp)
    target_link_libraries(GmatQtRegionTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtRegionTests GmatQt)
@@ -492,6 +496,7 @@ if(GMAT_QT_BUILD_TESTS)
    add_qt_test(QtGui.MarsGravity GmatQtMarsGravityTests "${qt_test_startup}")
    add_qt_test(QtGui.Stations GmatQtStationTests "${qt_test_startup}")
    add_qt_test(QtGui.CustomFovControls GmatQtCustomFovControlsTests "${qt_test_startup}")
+   add_qt_test(QtGui.CustomFovPaths GmatQtCustomFovPathsTests "${qt_test_startup}")
    add_qt_test(QtGui.Region GmatQtRegionTests "${qt_test_startup}")
    add_qt_test(QtGui.EventLocators GmatQtEventLocatorTests "${qt_test_startup}")
    add_qt_test(QtGui.EventLocatorCreation GmatQtEventLocatorCreationTests "${qt_test_startup}")
@@ -586,7 +591,7 @@ if(GMAT_QT_BUILD_TESTS)
    add_dependencies(check-qt GmatQtKalmanTests GmatQtInspectionTests GmatQtParameterTests GmatQtPathTests GmatQtSolarSystemTests GmatQtCelestialBodyTests)
    add_dependencies(check-qt GmatQtCovarianceTests GmatQtForceSourceTests GmatQtForceSelectorTests GmatQtGravityBodyTests)
    add_dependencies(check-qt GmatQtMarsGravityTests)
-   add_dependencies(check-qt GmatQtEventLocatorCreationTests GmatQtRegionTests GmatQtCustomFovControlsTests)
+   add_dependencies(check-qt GmatQtEventLocatorCreationTests GmatQtRegionTests GmatQtCustomFovControlsTests GmatQtCustomFovPathsTests)
    add_dependencies(check-qt GmatQtOwnedPlotBatchTests)
    add_dependencies(check-qt GmatQtBulirschControlsTests)
    add_dependencies(check-qt GmatQtPropagationColorTests)

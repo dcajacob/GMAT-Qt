@@ -8714,3 +8714,18 @@ Wayland-resource fault is established, while GMAT client attribution, repaired
 host condition and physical GPU acceptance remain unproven. All nine gates,
 external/domain limits and deferred platforms remain in the current map. The
 full replacement goal stays active and full qualification is not claimed.
+
+
+## CustomFOV fallback path lifecycle — 2026-10-02
+
+[The focused path record](Qt6ParityValidation/custom-fov-paths-20261002.md)
+repairs pending/detached CustomFOV construction and all five Qt interpretation
+routes so configured FOV fallback expressions and aliases survive Help/Cancel,
+relative-file creation/Apply, rejection, failed Build/rebuild and Unicode reopen.
+The new path check passes 0.31 s; directly affected controls and folder checks
+pass 0.35/2.60 s. The 15-failure baseline and corrected compile signature remain
+recorded. Current GmatQt is 6,027,456 bytes / SHA02d7711e…; base/startup are
+byte-identical and util changes for an additive read-only path-definition getter.
+No numerical algorithm, new native scene or host test changed. Exact boresight,
+other recorded domain/external limits and host/GPU/client-attribution gates remain
+unqualified. Live host testing stays stopped; full qualification is not claimed.

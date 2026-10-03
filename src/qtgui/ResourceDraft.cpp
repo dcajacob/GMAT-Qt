@@ -1,5 +1,6 @@
 #include "ResourceDraft.hpp"
 #include "FactoryManager.hpp"
+#include "FileManager.hpp"
 #include "Moderator.hpp"
 #include "GmatBase.hpp"
 #include "Spacecraft.hpp"
@@ -38,7 +39,18 @@ bool propagatorUsesForceModel(const QString &type)
 QtResourcePreview resourceDraft(const QString &type,const QString &name)
 {
    auto *factory=FactoryManager::Instance();
-   QtResourcePreview draft(factory->CreateObject(factory->GetBaseTypeOf(type.toStdString()),type.toStdString(),name.toStdString()));
+   QtResourcePreview draft;
+   auto *files=FileManager::Instance();
+   const auto paths=type=="CustomFOV" ? files->CaptureState() : nullptr;
+   try {
+      draft.reset(factory->CreateObject(factory->GetBaseTypeOf(type.toStdString()),type.toStdString(),name.toStdString()));
+   } catch (...) {
+      if (paths) files->RestoreState(*paths);
+      throw;
+   }
+   // Selecting a pending FOV must not reset configured search paths, including
+   // their absence; registration/defaults belong to the accepted source build.
+   if (paths) files->RestoreState(*paths);
    if (!draft) throw std::runtime_error("The runtime cannot prepare this resource type.");
    auto *moderator=Moderator::Instance();
    if (auto *setup=dynamic_cast<PropSetup *>(draft.get())) {

@@ -3,14 +3,27 @@
 #include "ScriptStatements.hpp"
 #include "CustomFOV.hpp"
 #include "FileManager.hpp"
+#include "UtilityException.hpp"
 #include "Rvector.hpp"
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <cmath>
 #include <stdexcept>
+#include <optional>
 
 namespace {
 const QSet<QString> geometryFields{"@CustomFovSource","@CustomFovCoordinates","FOVFileName","ConeAngles","ClockAngles","Azimuth","Elevation","InterpolationStepSize"};
+class FovPathsGuard
+{
+public:
+   FovPathsGuard(): files(FileManager::Instance()),state(files->CaptureState()) { }
+   ~FovPathsGuard() { files->RestoreState(*state); }
+   FovPathsGuard(const FovPathsGuard &)=delete;
+   FovPathsGuard &operator=(const FovPathsGuard &)=delete;
+private:
+   FileManager *files;
+   std::shared_ptr<const FileManager::State> state;
+};
 QString vectorText(GmatBase &object,const QString &name)
 {
    const Rvector values=object.GetRvectorParameter(name.toStdString()); QStringList cells;
@@ -67,20 +80,16 @@ QSet<QString> applyCustomFovProperties(GmatBase &object,const QMap<QString,QStri
    // caches and the old coordinate mode. Indexed setters supply the engine's
    // range checks and grow each paired vector without the fixed-size Rvector
    // Elevation setter or stale initialized mask cache.
-   CustomFOV replacement=[&] {
-      auto *files=FileManager::Instance();
-      const auto state=files->CaptureState();
-      try {
-         // The engine constructor installs its default FOV_DATA_PATH. Keep
-         // detached edits from changing the user's current file search paths.
-         CustomFOV result(fov->GetName());
-         files->RestoreState(*state);
-         return result;
-      } catch (...) {
-         files->RestoreState(*state);
-         throw;
-      }
-   }();
+   FovPathsGuard paths;
+   auto *files=FileManager::Instance();
+   std::optional<std::string> configuredPath;
+   try { configuredPath=files->GetPathDefinition("FOV_DATA_PATH"); }
+   catch (const UtilityException &) { }
+   CustomFOV replacement(fov->GetName());
+   // Use the existing path expression when configured. Otherwise the engine's
+   // temporary default supports first-use validation; the guard restores the
+   // original state (including absence) on either acceptance or rejection.
+   if (configuredPath) files->AddFileType("FOV_DATA_PATH",*configuredPath);
    replacement.SetStringParameter("Color",fov->GetStringParameter("Color"));
    replacement.SetUnsignedIntParameter("Alpha",fov->GetUnsignedIntParameter("Alpha"));
    bool valid=false;

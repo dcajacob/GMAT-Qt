@@ -197,6 +197,8 @@ public:
                            std::string &outFullPathName, bool writeWarning);
    
    // Methods returning path
+   // Return the authored path expression, retaining startup aliases.
+   std::string GetPathDefinition(const std::string &typeName) const;
    std::string GetPathname(const FileType type);
    std::string GetPathname(const std::string &typeName);
    

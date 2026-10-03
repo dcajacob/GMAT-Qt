@@ -2310,6 +2310,19 @@ bool FileManager::GetBody3dModelFile(const std::string &inFileName, const std::s
 
 
 //------------------------------------------------------------------------------
+// Return a stored path expression without expanding aliases or relative paths.
+//------------------------------------------------------------------------------
+std::string FileManager::GetPathDefinition(const std::string &typeName) const
+{
+   const auto entry = mPathMap.find(GmatStringUtil::ToUpper(typeName));
+   if (entry == mPathMap.end())
+      throw UtilityException("FileManager::GetPathDefinition() file type: " +
+                             typeName + " is unknown\n");
+   return entry->second;
+}
+
+
+//------------------------------------------------------------------------------
 // std::string GetPathname(const FileType type)
 //------------------------------------------------------------------------------
 /**
@@ -2320,6 +2333,7 @@ bool FileManager::GetBody3dModelFile(const std::string &inFileName, const std::s
  * @return file pathname if path type found.
  * @exception thrown if enum type is out of bounds.
  */
+
 //------------------------------------------------------------------------------
 std::string FileManager::GetPathname(const FileType type)
 {

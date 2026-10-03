@@ -1,0 +1,44 @@
+FAIL Detached FOV draft preserves existing path or absence
+FAIL Choosing CustomFOV preserves raw path alias
+FAIL Pending CustomFOV Help preserves raw path alias
+FAIL Pending CustomFOV Help preserves raw path alias
+FAIL CustomFOV creator Cancel preserves raw path alias
+PASS Pending creator Help/F1/Cancel preserves source/model/Undo
+PASS Committed FOV retains engine default when path was absent
+PASS Committed vertex FOV initializes
+PASS Invalid relative FOV create preserves source/model/Undo
+FAIL Invalid relative FOV create preserves raw path alias
+Create detail: Choose a readable FOV input file.
+FAIL Relative FOV create uses configured fallback path
+FAIL Relative FOV create preserves raw path alias
+PASS Relative FOV Apply validates and commits
+FAIL Relative FOV Apply preserves raw path alias
+Initialization detail: FieldOfView Exception Thrown: ERROR: must have 3 points to form valid FOV
+
+FAIL Applied relative file FOV initializes after reconstruction
+PASS Invalid relative FOV Apply preserves source/model/Undo
+PASS Invalid relative FOV Apply preserves raw path alias
+Rejected candidate detail: Invalid array expression grid
+PASS Rejected interpreted candidate restores source/model/Undo
+PASS Rejected candidate and model restoration preserve raw path alias
+PASS Restored relative file FOV initializes
+PASS Invalid build is rejected
+FAIL Failed build preserves raw path alias
+PASS Existing file-backed source rebuilds after failed build
+FAIL Rebuild preserves raw path alias
+Initialization detail: FieldOfView Exception Thrown: ERROR: must have 3 points to form valid FOV
+
+FAIL Rebuilt relative file FOV initializes
+PASS Relative FOV save/reopen retains exact source
+FAIL Save/reopen preserves raw path alias
+Initialization detail: FieldOfView Exception Thrown: ERROR: must have 3 points to form valid FOV
+
+FAIL Reopened relative file FOV initializes from configured fallback
+FAIL CustomFOV paths: 15 failures; no mission propagation, numerical algorithm or host qualification.
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support raise()
+This plugin does not support propagateSizeHints()
+This plugin does not support raise()

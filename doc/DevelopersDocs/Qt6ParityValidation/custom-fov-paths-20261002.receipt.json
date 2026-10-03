@@ -1,0 +1,130 @@
+{
+  "recorded_utc": "2026-10-03T05:03:29.799589+00:00",
+  "parent_commit": "82418383605175c512fc8bbf1dacf91b935febe1",
+  "files": {
+    "application/bin/GmatQt": {
+      "resolved": "/home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a",
+      "bytes": 6027456,
+      "sha256": "02d7711e11dc83843e07c4cbef469ec5557d2842777b74fd11a8ee8d039708ee"
+    },
+    "application/bin/libGmatBase.so.R2026a": {
+      "resolved": "/home/dan/GIT/GMAT-Qt/application/bin/libGmatBase.so.R2026a",
+      "bytes": 25040656,
+      "sha256": "2082a341f5f123e81bad362972cd2b28a0a4753047ae51b5c09609e246be430c"
+    },
+    "application/bin/libGmatUtil.so.R2026a": {
+      "resolved": "/home/dan/GIT/GMAT-Qt/application/bin/libGmatUtil.so.R2026a",
+      "bytes": 2929904,
+      "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+    },
+    "application/bin/gmat_startup_qt.txt": {
+      "resolved": "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt",
+      "bytes": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    }
+  },
+  "plugins": {
+    "application/plugins/libDataInterface.so.R2026a": "ff8ed5f9d39c504d109855c7b97e75934ef766bd4432fa6950bf0fa11959e4d6",
+    "application/plugins/libEKF.so.R2026a": "7f04d3b87c215dcde3fab923bf60e79b95d731f805caed2df9159c41863cfb0c",
+    "application/plugins/libEphemPropagator.so.R2026a": "1da68b1b480b6b5075782c3d7f6d8c1c84fbfcfc44edb7006e1d129f2f69c5c2",
+    "application/plugins/libEventLocator.so.R2026a": "dc925c73e27d2513bbe3ccdf18c09008a397dca2caa6be2f65028969b38a690a",
+    "application/plugins/libExternalForceModel_py314.so.R2026a": "d8a9b4d788dee458e000f27c33a0fb12c4bc7bbb01bae2a3726f54d4cca9b650",
+    "application/plugins/libExtraPropagators.so.R2026a": "047265890211b5c7a232925338c24cee87d1cef10c37ee6efbac363ae537e35b",
+    "application/plugins/libFormation.so.R2026a": "05d288872c594639a991874bddbde6b925b6ae25e66694d8a7dd97ecf1583c33",
+    "application/plugins/libGmatEstimation.so.R2026a": "ce09722f3726a64065bf1b10c89b1cd2de1b4b2820b21e851b4e6adeb1c4ae35",
+    "application/plugins/libGmatFunction.so.R2026a": "d6ed5495d57733f049b05ba9dd539979d2d0e171e792c685712d82e6be5f834f",
+    "application/plugins/libMsise00.so.R2026a": "07af877e4b1a88e7c7d0bdcd8b20fb02dc3c371cf792fddbd4290ad3475e9d4c",
+    "application/plugins/libNewParameters.so.R2026a": "3733e8c76e8782fac68788e3318cffb8f4ce665d08eeea913b47e0d02a24229e",
+    "application/plugins/libPolyhedronGravity.so.R2026a": "1e548b3f38329219aa9a9b85f30cd67561aaf110f0356196f952d108a34e0d59",
+    "application/plugins/libProductionPropagators.so.R2026a": "cc569275b76dcedbd079249bb81491036354c99dc0907022f6a6f63829acfdf7",
+    "application/plugins/libPythonInterface_py314.so.R2026a": "e545c081338e5205db83256905519d82abb88c0f087c497bb55017c0b778e380",
+    "application/plugins/libSaveCommand.so.R2026a": "2a7b8e269e00e68777729fc9d5c56219b1bb894f95e59ea7d1a8fa54600ac7b1",
+    "application/plugins/libScriptTools.so.R2026a": "b205610739069c630e0c17daa6df6e93efe45079b43820240b5c77ba626d0ea2",
+    "application/plugins/libStation.so.R2026a": "e43c9b40d8b977321b30e57491a8864d34a640aa4debc59152606e66ce5d4581",
+    "application/plugins/libThrustFile.so.R2026a": "e97880025502b09d2330daa9d3beed980b59f7bfbf323423e2e80a2fe44322f0",
+    "application/plugins/libYukonOptimizer.so.R2026a": "6d455d1957174c0c9db3dc7d7c612555cca4ec6b20c23bbfb14ad61008cd93b2",
+    "application/plugins/thinksys/libTLEPropagator.so.R2026a": "765564ed765e4162aae780c618932b2183482cd88de386844df2757963a5031a",
+    "application/plugins/thinksys/vf13ad/libVF13adOptimizer.so.R2026a": "27ecf054f2ded98a5ed97cd344f203f214cfcab9e8f148298a08bbccb7d1106d"
+  },
+  "source": {
+    "src/gmatutil/util/FileManager.cpp": "5d55b60e94c07c673bef28069d408cbc6d35aa73d8b3c055290fae1afa87c86c",
+    "src/gmatutil/util/FileManager.hpp": "1807ebc489693cc91eb4cd7beb03b0d2e0349b4a001b62515ec98b3685048c67",
+    "src/qtgui/CMakeLists.txt": "21226ec7834716f6119ab70ce78ccfefd82cfad990a10ddfdb854601d609f168",
+    "src/qtgui/CustomFovProperties.cpp": "55aaa71962e90f80eb294b8046653ceef799284cf62bb6bebf59aeaf38158486",
+    "src/qtgui/ResourceDraft.cpp": "a98de087ae3fb9cedac3a482e74e5f6c5ffbad64d7c6b2af56ca68bceab166bf",
+    "src/qtgui/MainWindow.cpp": "9c85f2c2187b28e641647757f8604e1e71fb386bfe6a83d2269208534b3e36c4",
+    "src/qtgui/QtScriptInterpreter.cpp": "bbd249dc5aecd99d527c390ff902a6ea504cba65505e8fd4703748d621a030e0",
+    "src/qtgui/QtScriptInterpreter.hpp": "2507c375effd52aedca26dea8c8e60f768f81165574815b196f7adf73e4e70bb",
+    "src/qtgui/tests/CustomFovPathsTests.cpp": "532465f544c90606ffe473b5b5cf8f531cd79131ca81b304d1cd747741c165e5"
+  },
+  "records": {
+    "findings.md": {
+      "bytes": 4196,
+      "sha256": "c128a88afd8cfa19438a80e07decaf92e4611579e06682cedb1ec52d5696f9b7"
+    },
+    "compile-baseline.py": {
+      "bytes": 1353,
+      "sha256": "8ff197e8964e50897e592e94877848d68f3d015ac6330431715c51ce901e0031"
+    },
+    "repaired-build.txt": {
+      "bytes": 8977,
+      "sha256": "885a28bbae3a070007d0e339c823698cee55093ea00d22fd7df587ab8b023ee8"
+    },
+    "baseline-run.txt": {
+      "bytes": 2315,
+      "sha256": "17f104d6e9e8fd27d052cbdbf5a073dc21ee82417f5fabec4272525b8e9fb19a"
+    },
+    "ctest-console.txt": {
+      "bytes": 510,
+      "sha256": "03bbfb6f4b391bbb72c10c6d6da0b13c2463e35679c57963e5b167749a5be806"
+    },
+    "baseline-compile-command.txt": {
+      "bytes": 4105,
+      "sha256": "507cca9e16fb0847966e7fc0fbf763d95eee0a2ebbb47499400a3671a0e5e1ad"
+    },
+    "CustomFovPathsBaseline.cpp": {
+      "bytes": 10681,
+      "sha256": "33f205ee690d2788b714fb27952fc1417ba13b0fd72db03fa1c1c5877380764d"
+    },
+    "last-test.txt": {
+      "bytes": 6023,
+      "sha256": "d56ff764e984726e2f1dc4fd3e09fc694081ed315e15e3e99c867a7a77a3e637"
+    },
+    "application-build.txt": {
+      "bytes": 18251,
+      "sha256": "7cb86b43b3e442efd4f5703eae63381505ed0eee9f0f7042f655c3b635b0c3ea"
+    },
+    "focused-checks.txt": {
+      "bytes": 510,
+      "sha256": "03bbfb6f4b391bbb72c10c6d6da0b13c2463e35679c57963e5b167749a5be806"
+    }
+  },
+  "baseline": {
+    "compile_exit": 0,
+    "run_exit": 1,
+    "focused_failures": 15,
+    "runtime": "82418383 frontend and preceding runtime identities; baseline run preceded production edits",
+    "limit": "The baseline Array grid was malformed and did not reach interpretation. The new strict fixture uses valid JSON with an undefined operand."
+  },
+  "checks": {
+    "QtGui.CustomFovPaths": {
+      "result": "pass",
+      "seconds": 0.31
+    },
+    "QtGui.CustomFovControls": {
+      "result": "pass",
+      "seconds": 0.35,
+      "affected": "Detached FOV validation guard scope changed"
+    },
+    "QtGui.FolderRun": {
+      "result": "pass",
+      "seconds": 2.6,
+      "affected": "Batch interpretation and original-model restoration now use scoped wrapper"
+    }
+  },
+  "build": {
+    "application-build.txt": "first attempt failed on wrapper istream/istringstream mismatch",
+    "repaired-build.txt": "exit 0; GmatQt and all three selected test targets rebuilt before checks"
+  },
+  "limits": "Offscreen path/control evidence; no new native scene, mission propagation in new check, numerical algorithm change, host test, GPU or full qualification. Existing FolderRun check includes its bounded mission execution."
+}

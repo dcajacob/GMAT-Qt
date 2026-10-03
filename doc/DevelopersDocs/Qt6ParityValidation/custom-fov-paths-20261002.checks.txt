@@ -1,0 +1,103 @@
+Start testing: Oct 02 23:02 MDT
+----------------------------------------------------------
+64/145 Testing: QtGui.CustomFovControls
+64/145 Test: QtGui.CustomFovControls
+Command: "/usr/bin/python3" "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtCustomFovControlsTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+Directory: /home/dan/GIT/GMAT-Qt/application/bin
+"QtGui.CustomFovControls" start time: Oct 02 23:02 MDT
+Output:
+----------------------------------------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+PASS CustomFOV paired creation/Cancel, atomic invalid-input recovery, Add/Remove, cone-clock and azimuth-elevation modes, interpolation retention without derived source, file transitions/recovery, exact unrelated source/comments/Undo/Redo/Unicode reopen, and known interior/exterior geometry; no mission propagation or native qualification.
+<end of output>
+Test time =   0.35 sec
+----------------------------------------------------------
+Test Passed.
+"QtGui.CustomFovControls" end time: Oct 02 23:02 MDT
+"QtGui.CustomFovControls" time elapsed: 00:00:00
+----------------------------------------------------------
+
+65/145 Testing: QtGui.CustomFovPaths
+65/145 Test: QtGui.CustomFovPaths
+Command: "/usr/bin/python3" "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtCustomFovPathsTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+Directory: /home/dan/GIT/GMAT-Qt/application/bin
+"QtGui.CustomFovPaths" start time: Oct 02 23:02 MDT
+Output:
+----------------------------------------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support raise()
+This plugin does not support propagateSizeHints()
+This plugin does not support raise()
+PASS Detached FOV draft preserves existing path or absence
+PASS First absolute-file detached validation preserves path absence
+PASS First absolute-file detached FOV initializes
+PASS Choosing CustomFOV preserves raw path alias
+PASS Pending CustomFOV Help preserves raw path alias
+PASS Pending CustomFOV Help preserves raw path alias
+PASS CustomFOV creator Cancel preserves raw path alias
+PASS Pending creator Help/F1/Cancel preserves source/model/Undo
+PASS Committed FOV retains engine default when path was absent
+PASS Committed vertex FOV initializes
+PASS Invalid relative FOV create preserves source/model/Undo
+PASS Invalid relative FOV create preserves raw path alias
+PASS Relative FOV create uses configured fallback path
+PASS Relative FOV create preserves raw path alias
+PASS Created relative file FOV initializes after reconstruction
+PASS Relative FOV Apply validates and commits
+PASS Relative FOV Apply preserves raw path alias
+PASS Applied relative file FOV initializes after reconstruction
+PASS Invalid relative FOV Apply preserves source/model/Undo
+PASS Invalid relative FOV Apply preserves raw path alias
+Rejected candidate detail: The mission rejected these changes. See Message Window.
+PASS Rejected interpreted candidate restores source/model/Undo
+PASS Rejected candidate and model restoration preserve raw path alias
+PASS Restored relative file FOV initializes
+PASS Invalid build is rejected
+PASS Failed build preserves raw path alias
+PASS Existing file-backed source rebuilds after failed build
+PASS Rebuild preserves raw path alias
+PASS Rebuilt relative file FOV initializes
+PASS Relative FOV save/reopen retains exact source
+PASS Save/reopen preserves raw path alias
+PASS Reopened relative file FOV initializes from configured fallback
+PASS CustomFOV paths: 0 failures; no mission propagation, numerical algorithm or host qualification.
+<end of output>
+Test time =   0.31 sec
+----------------------------------------------------------
+Test Passed.
+"QtGui.CustomFovPaths" end time: Oct 02 23:02 MDT
+"QtGui.CustomFovPaths" time elapsed: 00:00:00
+----------------------------------------------------------
+
+136/145 Testing: QtGui.FolderRun
+136/145 Test: QtGui.FolderRun
+Command: "/usr/bin/python3" "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtFolderRunTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+Directory: /home/dan/GIT/GMAT-Qt/application/bin
+"QtGui.FolderRun" start time: Oct 02 23:02 MDT
+Output:
+----------------------------------------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+QOpenGLWidget is not supported on this platform.
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+PASS: sorted folder missions/functions/backups, range/two filters, repeats and per-run outputs, exact saved copies with relative includes, independent numeric reports/comparison and exports, build/init/runtime failure recovery, between-run/active Stop, output failure and original document/Undo/engine/path/log/batch restoration; menu/dialog summary and retry controls, retained textured OrbitView/GroundTrack scenes after restoration and automatic OF conversion offer without changing source files
+<end of output>
+Test time =   2.60 sec
+----------------------------------------------------------
+Test Passed.
+"QtGui.FolderRun" end time: Oct 02 23:02 MDT
+"QtGui.FolderRun" time elapsed: 00:00:02
+----------------------------------------------------------
+
+End testing: Oct 02 23:02 MDT
+
+qt-gui =   3.26 sec*proc
+

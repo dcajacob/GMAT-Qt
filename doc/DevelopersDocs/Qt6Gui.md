@@ -2370,3 +2370,11 @@ geometry. Save/reopen retains authored vertices rather than expanded interpolati
 or file-derived arrays. [Focused and private actual-input evidence](Qt6ParityValidation/remaining-gui-controls-20261002.md)
 records current coverage and the unchanged engine's exact-boresight limitation.
 This evidence does not close host/GPU or broader scientific qualification.
+
+
+Configured `FOV_DATA_PATH` aliases now survive pending creation Help/Cancel,
+file-based creation/Apply, Build and Save/reopen. Bare relative mask names search
+the mission directory and then the configured FOV fallback using existing engine
+lookup rules. Accepted first-use creation retains the ordinary engine default
+when no FOV path was configured. [Focused path evidence](Qt6ParityValidation/custom-fov-paths-20261002.md)
+records this bounded lifecycle and its remaining limits.
