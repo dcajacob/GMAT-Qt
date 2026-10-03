@@ -688,6 +688,17 @@ or
       multiple spacecraft, and whether or not to propagate the STM and compute
       the A-Matrix.</para>
 
+      <para>In the Qt GUI, select <guilabel>Single step</guilabel> to take one
+      propagator step without a stopping condition. The stopping fields become
+      inactive; clear the checkbox to restore them. You can also open
+      <guilabel>Stopping conditions…</guilabel>, remove every row, and accept
+      the empty list. <guilabel>Apply</guilabel> commits the pending command.
+      The step duration follows the selected propagator's settings; it is not
+      a request to propagate to a particular elapsed time. Use
+      <guilabel>Propagators and spacecraft…</guilabel> for multiple groups.
+      Typed fields scroll when the command window is small; source preview
+      and Apply remain outside that scrolling area.</para>
+
       <para>To follow the examples below, you can load the following script
       snippet or create a new mission with three spacecraft (named
       <guilabel>sat1</guilabel>, <guilabel>sat2</guilabel>, and
