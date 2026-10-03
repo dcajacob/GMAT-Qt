@@ -27,6 +27,8 @@
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QTemporaryDir>
+#include <QTextDocument>
+#include <QMap>
 #include <QTimer>
 #include <QTreeWidget>
 #include <functional>
@@ -48,6 +50,72 @@ static QString withoutCamera(QString source)
 {
    source.remove(QRegularExpression("^[ \\t]*% GMAT-Qt-Camera [^\\n]*(?:\\n|$)",QRegularExpression::MultilineOption)); return source;
 }
+static void safeLocalDependencies(MainWindow &window,const QString &directory)
+{
+   require(QDir().mkpath(directory+"/defs") && QDir().mkpath(directory+"/nested") && QDir().mkpath(directory+"/functions"),"Safe Rename dependency directories unavailable");
+   auto *editor=window.findChild<QPlainTextEdit *>("scriptEditor");
+   const auto mission=directory+"/main.script",report=directory+"/values.txt";
+   const auto include=directory+"/defs/config.inc",nested=directory+"/nested/constants.inc";
+   const auto helper=directory+"/functions/Actual.gmf",child=directory+"/functions/Nested.gmf",functionInclude=directory+"/functions/math.inc";
+   QMap<QString,QByteArray> external;
+   const auto write=[&](const QString &path,const QByteArray &bytes) { QFile file(path); require(file.open(QIODevice::WriteOnly) && file.write(bytes)==bytes.size(),"Safe Rename dependency write failed"); if (path!=mission) external[path]=bytes; };
+   const auto unchanged=[&] { for (auto it=external.cbegin();it!=external.cend();++it) { QFile file(it.key()); require(file.open(QIODevice::ReadOnly) && file.readAll()==it.value(),"Safe Rename modified external file bytes"); } };
+   const auto restore=[&] {
+      write(include,"% LocalValue RenamedValue P P_ForceModel Other Other_ForceModel are comments\n#Include 'nested/constants.inc'\nCreate Variable Included;\nIncluded = 2;\n");
+      write(nested,"Create Variable Offset;\nOffset = 3;\n");
+      write(functionInclude,"% LocalValue RenamedValue remain comments\nCreate Variable Factor;\nFactor = 1;\n");
+      write(helper,"function [output] = Actual(input);\n#Include 'functions/math.inc'\nCreate Variable output;\nBeginMissionSequence;\noutput = Nested(input) + Factor;\n");
+      write(child,"function [output] = Nested(input);\nCreate Variable output;\nBeginMissionSequence;\noutput = input + 2;\n");
+   };
+   const auto build=[&] { require(window.buildScript(),qPrintable("Safe Rename build failed:\n"+window.findChild<QPlainTextEdit *>("messageWindow")->toPlainText())); };
+   const auto prepare=[&](const QString &source) { closePanels(window); write(mission,source.toUtf8()); require(window.loadScript(mission),"Safe Rename source load failed"); build(); unchanged(); };
+   const auto outputSettings="Create ReportFile Values;\nValues.Filename = '"+report+"';\nValues.WriteHeaders = false;\nValues.WriteReport = false;\n";
+   const auto includeSource=QString("% LocalValue remains in the main comment\nCreate Variable LocalValue;\nLocalValue = 7;\n#Include 'defs/config.inc'\n")+outputSettings+"BeginMissionSequence;\nLocalValue = LocalValue + Included + Offset;\nReport Values LocalValue;\n";
+   const auto functionSource=QString("% LocalValue remains in the main comment\nCreate Variable LocalValue Answer;\nLocalValue = 7;\nCreate GmatFunction PublicHelper;\nPublicHelper.FunctionPath = '")+helper+"';\n"+outputSettings+"BeginMissionSequence;\n[Answer] = PublicHelper(LocalValue);\nReport Values Answer;\n";
+   const auto reject=[&](const QString &old,const QString &next,const QString &diagnostic) {
+      const auto before=editor->toPlainText(); const auto previous=object(old); const auto undo=editor->document()->availableUndoSteps();
+      const auto error=window.renameResource(old,next,before);
+      require(!error.isEmpty() && error.contains(diagnostic,Qt::CaseInsensitive),qPrintable("Safe Rename refusal missing expected diagnostic "+diagnostic+": "+error));
+      require(editor->toPlainText()==before && object(old)==previous && !object(next) && editor->document()->availableUndoSteps()==undo,"Unsafe dependency Rename changed source/model/Undo");
+   };
+   const auto accept=[&](const QString &source,double expected) {
+      prepare(source); const auto error=window.renameResource("LocalValue","RenamedValue",source); require(error.isEmpty(),qPrintable(error));
+      auto wanted=source; wanted.replace("Create Variable LocalValue","Create Variable RenamedValue").replace("\nLocalValue =","\nRenamedValue =").replace("= LocalValue +","= RenamedValue +").replace("Report Values LocalValue;","Report Values RenamedValue;").replace("PublicHelper(LocalValue)","PublicHelper(RenamedValue)");
+      require(editor->toPlainText()==wanted && !object("LocalValue") && object("RenamedValue"),"Safe Rename did not patch only main-owned references"); unchanged();
+      editor->undo(); require(editor->toPlainText()==source,"Safe Rename Undo was not one exact edit"); build(); unchanged();
+      editor->redo(); require(editor->toPlainText()==wanted,"Safe Rename Redo was not exact"); build(); unchanged();
+      const auto saved=directory+"/renamed mission α.script";
+      require(window.saveScriptTo(saved) && window.loadScript(saved) && editor->toPlainText()==wanted,"Safe Rename Unicode Save/reopen lost exact source"); build();
+      const auto result=window.runMission(); QApplication::processEvents(); require(result==MainWindow::RunResult::Completed,qPrintable("Safe Rename run failed for known value "+QString::number(expected)+" with result "+QString::number(static_cast<int>(result))+":\n"+window.findChild<QPlainTextEdit *>("messageWindow")->toPlainText()));
+      QFile file(report); require(file.open(QIODevice::ReadOnly),"Safe Rename report missing"); const auto values=QString::fromUtf8(file.readAll()).split(QRegularExpression("\\s+"),Qt::SkipEmptyParts);
+      require(values.size()==1 && values[0].toDouble()==expected,"Safe Rename changed independently known report value"); unchanged();
+   };
+   restore(); accept(includeSource,12);
+   // Nested includes resolve through the existing global include priority,
+   // not the including file's directory (there is no defs/nested copy).
+   restore(); prepare(includeSource); reject("Included","MovedIncluded","local declaration"); unchanged();
+   write(nested,"Offset = LocalValue;\n"); reject("LocalValue","RenamedValue","LocalValue"); unchanged();
+   restore(); prepare(includeSource); write(nested,"Create Variable RenamedValue;\nRenamedValue = 3;\n"); reject("LocalValue","RenamedValue","RenamedValue"); unchanged();
+   restore(); prepare(includeSource); require(QFile::remove(nested),"Cannot remove owned missing-dependency fixture"); reject("LocalValue","RenamedValue","resolve"); write(nested,external.value(nested)); unchanged();
+   restore(); prepare(includeSource); const auto permissions=QFileInfo(nested).permissions(); require(QFile::setPermissions(nested,QFile::Permissions{}),"Cannot set owned unreadable dependency"); reject("LocalValue","RenamedValue","resolve"); require(QFile::setPermissions(nested,permissions),"Cannot restore dependency permissions"); unchanged();
+   restore(); prepare(includeSource); write(nested,"#Include 'defs/config.inc'\n"); reject("LocalValue","RenamedValue","circular"); unchanged();
+   restore(); const auto dynamic=QString("Create String IncludePath;\nIncludePath = 'defs/config.inc';\n")+QString(includeSource).replace("#Include 'defs/config.inc'","#Include IncludePath"); prepare(dynamic); reject("LocalValue","RenamedValue","nonliteral"); unchanged();
+   restore(); const auto propagate=QString("Create ForceModel P_ForceModel;\nP_ForceModel.PrimaryBodies = {};\nP_ForceModel.PointMasses = {Earth};\nCreate Propagator P;\nP.FM = P_ForceModel;\n")+includeSource;
+   prepare(propagate); write(nested,"% companion is a real external reference\nOffset = P_ForceModel.GravityField.Earth.Mu;\n"); reject("P","Other","P_ForceModel"); unchanged();
+   restore(); prepare(propagate); write(nested,"Create ForceModel Other_ForceModel;\n"); reject("P","Other","Other_ForceModel"); unchanged();
+   restore(); accept(functionSource,10);
+   // Nested GMFs can remain absent from Moderator until function execution.
+   restore(); prepare(functionSource); write(child,"function [output] = Nested(input);\nGlobal LocalValue;\nCreate Variable output;\noutput = LocalValue;\n"); reject("LocalValue","RenamedValue","LocalValue"); unchanged();
+   restore(); prepare(functionSource); write(child,"function [output] = Nested(input);\nCreate Variable RenamedValue output;\noutput = input;\n"); reject("LocalValue","RenamedValue","RenamedValue"); unchanged();
+   restore(); prepare(functionSource); write(functionInclude,"Global LocalValue;\n"); reject("LocalValue","RenamedValue","LocalValue"); unchanged();
+   restore(); prepare(functionSource); write(child,"function [output] = Nested(input);\nCreate Variable output;\noutput = MissingHelper(input);\n"); reject("LocalValue","RenamedValue","MissingHelper"); unchanged();
+   restore(); prepare(functionSource); require(QFile::remove(helper),"Cannot remove owned missing GMF fixture"); reject("LocalValue","RenamedValue","PublicHelper"); write(helper,external.value(helper)); unchanged();
+   restore(); prepare(functionSource); write(child,"function [output] = Nested(input);\n#Include FileVariable\nCreate Variable output;\noutput = input;\n"); reject("LocalValue","RenamedValue","nonliteral"); unchanged();
+   // Absolute local FunctionPath declarations are scanned even when unused.
+   restore(); prepare(functionSource); write(helper,("function [output] = Actual(input);\nCreate GmatFunction InnerAlias;\nInnerAlias.FunctionPath = '"+child+"';\nCreate Variable output;\noutput = input;\n").toUtf8()); write(child,"function [output] = Nested(input);\nGlobal LocalValue;\nCreate Variable output;\noutput = LocalValue;\n"); reject("LocalValue","RenamedValue","LocalValue"); unchanged();
+   std::cout<<"PASS safe main-only Rename with unrelated/nested literal includes and aliased/nested GMFs, known reports12/10, exact atomic Undo/Redo/Unicode reopen, include-owned refusal, old/proposed/companion-FM reference guards, missing/unreadable/dynamic/cyclic/unresolved dependencies, unchanged external file bytes and rejected model/source/Undo.\n";
+}
+
 int main(int argc,char **argv)
 {
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv);
@@ -147,6 +215,7 @@ int main(int argc,char **argv)
       closePanels(window); const auto included=final+"#Include 'missing-reference.inc'\n";
       bool refused=false; try { renameResourceSource(included,*object("Vehicle"),"External"); } catch (const std::exception &error) { refused=QString::fromUtf8(error.what()).contains("external"); }
       require(refused && editor->toPlainText()==final && object("Vehicle"),"External reference rename was silently accepted");
+      safeLocalDependencies(window,files.filePath("safe dependencies"));
       std::cout<<"PASS actual Rename/F2/context popup destruction, Cancel/correction/protection/source literals, typed resource and dependent frame references, nested commands/array indices/formulas/markers, PropSetup owned FM, Qt metadata, exact Undo/Redo/Unicode reopen and independent calculation; external documents explicitly deferred.\n";
       return 0;
    } catch (const std::exception &error) { std::cerr<<error.what()<<'\n'; return 1; }

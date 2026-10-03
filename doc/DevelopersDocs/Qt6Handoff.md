@@ -18,6 +18,17 @@ brief, not proof of qualification. Recheck the repository before making changes.
 4. Make concrete fixes, validate them, record their evidence, and rebuild the
    actual application. Do not stop at another inventory or proposed plan.
 
+## Current local Rename follow-up — 2026-10-03
+
+The blanket include/function Rename ban is repaired for provably unrelated
+literal dependencies; see [safe local Rename](Qt6ParityValidation/safe-local-rename-20261003.md).
+Affected or unresolved external files still require coordinated script editing.
+The actual rebuilt app, focused check and private F2/Undo/Redo/Save/reopen/known
+report are verified. Seven additional Help walkthroughs are being independently
+constructed; publish each only after verified completion. L2 remains held,
+MATLAB and unresolved optimizer chapters remain deferred/unresolved, and live
+host testing remains stopped. Keep all nine original acceptance gates.
+
 ## User intent and boundaries
 
 Current priority, clarified on 2026-10-01: deliver a usable Qt GMAT GUI with broad

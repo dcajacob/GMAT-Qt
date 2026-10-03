@@ -8757,3 +8757,16 @@ stopped. Mutter's NULL Wayland event-resource fault is established; GMAT client
 attribution, safe/repaired host condition and physical GPU acceptance remain
 unproven. Broader recorded scientific/external limits and deferred platforms
 remain visible. Full qualification is not claimed.
+
+
+## Safe local Rename follow-up — 2026-10-03
+
+The blanket include/GMF restriction in the earlier Rename checkpoint is superseded
+by [safe local Rename](Qt6ParityValidation/safe-local-rename-20261003.md). Exactly
+one main-source declaration and conservative read-only dependency inspection now
+allow unrelated literal dependencies. Affected/unresolved external references
+still refuse before mutation. The actual app was rebuilt, the directly affected
+Rename test passes in 0.62 s and an actual-input F2/Undo/Redo/Save/reopen/run case
+reports the independent value10 with external files unchanged and exits0/0/0.
+The nine acceptance gates remain in progress; no host/GPU or scientific-wide
+qualification is claimed.

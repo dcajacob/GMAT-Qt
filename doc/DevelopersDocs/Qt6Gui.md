@@ -2281,9 +2281,12 @@ Build script changes and apply/discard pending panels first.
 Built-in coordinates/points, celestial bodies and SolarSystem are protected.
 Propagators can be renamed; their associated automatically named force model
 follows the wx naming rule. Filenames, literal strings/comments and camera
-labels retain their text. Documents with includes or external GMAT functions,
-and unsupported tracking signal-path syntax, require coordinated edits in the
-script editor; the GUI explains that boundary before changing the mission.
+labels retain their text. Main-file resources can be renamed with unrelated
+literal includes or GMAT functions after read-only dependency checks. Included
+resources, affected or unresolved external dependencies and unsupported tracking
+signal-path syntax require coordinated script-editor edits; the GUI explains
+that boundary before changing the mission. See
+[the safe local Rename check](Qt6ParityValidation/safe-local-rename-20261003.md).
 
 
 ### Undo after a GUI edit
