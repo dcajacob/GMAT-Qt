@@ -145,7 +145,7 @@ verified, these remain qualified source chapters awaiting publication.
 | `Tut_CreatingReport.xml` | **Passed** — [independent GUI construction/run/reopen](Qt6ParityValidation/help-creating-report-20261003.md), three reports and taught ScriptEvent header statements; supplied script read only after freeze. |
 | `Tut_ForceModels.xml` | **Passed with stated fixed-step accuracy limitation** — [independent GUI construction/run/reopen](Qt6ParityValidation/help-force-models-20261003.md), six force setups and six0.1-day legs. Requested1e-12 SRP accuracy is not established; its stop guard continuation and warning are explicit. |
 | `Tut_FormationRendezvous.xml` | **Passed** — [independent GUI construction/run/reopen](Qt6ParityValidation/help-formation-rendezvous-20261003.md), four spacecraft, two separately converged position/velocity targets, twenty Report commands and fresh source readback before comparison. This is not simultaneous six-state docking. |
-| `Tut_LEOStationKeeping.xml` | **Passed** — Parts1/2 independently built through actual GUI input, run, saved and freshly reopened before comparison; raw receipt `build/example-qualification/20261003/extra-help/leo/qualification.json`. Its individual tracked narrative is being finalized. |
+| `Tut_LEOStationKeeping.xml` | **Passed** — [Parts1/2 actual-input construction/run/reopen](Qt6ParityValidation/help-leo-station-keeping-20261003.md), both ten-day histories and105 converged targets, frozen before reference comparison; the342km condition is a correction trigger, not a minimum-altitude guarantee. |
 | `Tut_ACEStationKeeping.xml` | **In progress** — independent resources/viewers/mission construction; forwarded-axis Rename blocker repaired and actual F2 verified. No walkthrough pass claimed yet. |
 | `Tut_LunarTransfer.xml` | **In progress** — independent resource/viewer/target construction, literal EarthToMoon.BdotT goal retained. No walkthrough pass claimed yet. |
 | `Tut_MarsB-PlaneTargeting.xml` | **In progress** — independent older chapter construction, separate from the already-passed modern Mars tutorial. No walkthrough pass claimed yet. |
@@ -160,7 +160,8 @@ readback before reading a supplied script. Differences remain documented instead
 of retrofitting the construction to the reference. Original attempt failures,
 bounded stops and per-session app identities remain in the ignored artifact tree.
 [Implicit Earth gravity](Qt6ParityValidation/implicit-gravity-20261003.md),
-[single-step propagation](Qt6ParityValidation/single-step-20261003.md) and
+[single-step propagation](Qt6ParityValidation/single-step-20261003.md),
+[valid While insertion](Qt6ParityValidation/while-template-20261003.md) and
 [coordinate Rename/window size](Qt6ParityValidation/axis-command-usability-20261003.md)
 record concrete GUI blockers found by these walks and their focused repairs.
 These additions preserve the nine replacement acceptance gates. Live host testing
