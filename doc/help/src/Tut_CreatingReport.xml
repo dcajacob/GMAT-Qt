@@ -44,7 +44,7 @@
             </listitem>
 
             <listitem>
-              <para><link linkend="ScriptEvent">ScriptEvent
+              <para><link linkend="BeginScript">ScriptEvent
               Command</link></para>
             </listitem>
           </itemizedlist>

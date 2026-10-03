@@ -37,12 +37,12 @@
 
           <itemizedlist>
             <listitem>
-              <para><link linkend="CreatingandPropagatingaSpacecraft">Creating
+              <para><link linkend="SimulatingAnOrbit">Creating
               and Propagating a Spacecraft</link></para>
             </listitem>
 
             <listitem>
-              <para><link linkend="DesigningaHohmannTransfer">Designing a
+              <para><link linkend="SimpleOrbitTransfer">Designing a
               Hohman Transfer</link></para>
             </listitem>
           </itemizedlist>
@@ -81,7 +81,7 @@
             </listitem>
 
             <listitem>
-              <para><link linkend="OpenGLPlot">OpenGL Plot
+              <para><link linkend="OrbitView">OpenGL Plot
               Object</link></para>
             </listitem>
 
@@ -109,7 +109,7 @@
             </listitem>
 
             <listitem>
-              <para><link linkend="Equation">Equation Command</link></para>
+              <para><link linkend="Assignment">Equation Command</link></para>
             </listitem>
 
             <listitem>
@@ -980,7 +980,7 @@
     objects for this mission such as the Barycenter, Libration Point, <link
     linkend="CoordinateSystem">Coordinate System Objects</link>, Reports,
     <link linkend="Variable">Variable Object</link>, and different views for
-    the <link linkend="OpenGLPlot">OpenGL Plot Object</link>, but also how to
+    the <link linkend="OrbitView">OpenGL Plot Object</link>, but also how to
     apply these to create an effective and well documented mission. Below are
     the screen captures of both the output tree (where you can view the report
     output information) and the output window itself.</para>

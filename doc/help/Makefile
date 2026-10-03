@@ -37,6 +37,7 @@ ALL_XALANFLAGS = -PARAM use.extensions 1 \
 helpsrc = $(srcdir)/help.xml
 srcfiles = $(srcdir)/*.xml
 fostyle = ./xform/fo.xsl
+chunkstyle = ./xform/html-chunk.xsl
 
 # Rules
 all: help
@@ -136,7 +137,7 @@ help.html: help-pre.xml files/style.css
 	    -OUT $@ \
 	    $(ALL_XALANFLAGS)
 
-html/index.html: help-pre.xml files/style.css
+html/index.html: help-pre.xml files/style.css $(chunkstyle)
 	$(XALAN) \
 	    -PARAM base.dir html/ \
 	    -PARAM img.src.path ../ \
@@ -146,7 +147,7 @@ html/index.html: help-pre.xml files/style.css
 	    -PARAM use.id.as.filename 1 \
 	    -PARAM variablelist.as.table 1 \
 	    -IN help-pre.xml \
-	    -XSL $(docbookxsldir)/html/chunkfast.xsl \
+	    -XSL $(chunkstyle) \
 	    $(ALL_XALANFLAGS)
 
 files/style.css: $(srcdir)/files/style.css
