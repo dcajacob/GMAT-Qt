@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<section version="5.0" xml:id="MarsB-PlaneTargeting"
+<chapter version="5.0" xml:id="MarsB-PlaneTargeting"
          xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
@@ -14,13 +14,15 @@
 
     <para>The goal of this mission is to show how to target a transfer
     trajectory from an Earth parking orbit to a Mars orbit via B-Plane
-    targeting. Given a specified inclination for the final orbit, we solve for
-    the velocity of the spacecraft in certain directions in order to determine
-    a transfer trajectory.</para>
+    targeting. Given an inclination target for the Sun-centered transfer,
+    we solve for the velocity of the spacecraft in certain directions in
+    order to determine a transfer trajectory.</para>
 
-    <para>You can download the script file and run it beforehand to see the
-    final results of this tutorial: <link
-    xlink:href="scripts/MarsBPlaneTutorial.script">MarsBPlaneTutorial.script</link></para>
+    <para>Construct, run, save and reopen your own mission first. Then compare
+    its settings with the historical reference
+    <link xlink:href="files/scripts/MarsBPlaneTutorial.script">MarsBPlaneTutorial.script</link>.
+    The reference uses older resource names and some more precise values;
+    the differences described below are intentional.</para>
 
     <section>
       <title>Prerequisites</title>
@@ -36,13 +38,13 @@
 
           <itemizedlist>
             <listitem>
-              <para><link linkend="CreatingandPropagatingaSpacecraft">Creating
-              and Propagating a Spacecraft</link></para>
+              <para><link linkend="SimulatingAnOrbit">Simulating
+              an Orbit</link></para>
             </listitem>
 
             <listitem>
-              <para><link linkend="DesigningaHohmannTransfer">Designing a
-              Hohmann Transfer</link></para>
+              <para><link linkend="SimpleOrbitTransfer">Simple
+              Orbit Transfer</link></para>
             </listitem>
           </itemizedlist>
         </listitem>
@@ -55,7 +57,8 @@
       <itemizedlist>
         <listitem>
           <para>Objective: Target a Martian transfer trajectory using B-Plane
-          Targeting, to achieve a final inclination of 24.677°.</para>
+          Targeting, to achieve a transfer inclination of 24.677° in the
+          SunMJ2kEq coordinate system before the Mars encounter.</para>
         </listitem>
 
         <listitem>
@@ -112,11 +115,20 @@
   <section>
     <title>Creating and Configuring the Resource Tree</title>
 
+    <para>In the Qt GUI, start a new mission and use the Resources tree. The
+    existing DefaultSC and DefaultProp can be renamed MarsSupply and EarthProp
+    with F2; create the other resources with the tree's Add commands. Resource
+    forms use Apply and update the active script. Propagator forms edit the
+    integrator; the associated Force Models entry edits CentralBody,
+    PrimaryBodies and PointMasses. Output contains the current OrbitView and
+    ReportFile resources. The older illustrations below remain useful for
+    their parameter values, although their wx dialog labels differ.</para>
+
     <para>For this tutorial, four impulsive burns are used to maneuver a
     single spacecraft, and three propagators are used for different portions
     of the spacecraft's propagation. The propagators use different point
     masses to account for the dominant gravity fields during the spacecraft's
-    trajectory. Two OpenGL plots are used to track the path at the starting
+    trajectory. Two OrbitView plots are used to track the path at the starting
     point and ending point of the mission. Finally, four coordinate systems
     are used to define the spacecraft's position - based, accordingly, on
     Earth, Mars, the ecliptic, and the equatorial plane of the Earth.</para>
@@ -207,7 +219,11 @@
           <itemizedlist>
             <listitem>
               <para>Remove all primary bodies and gravity models from all
-              propagators</para>
+              propagators. In each associated Force Model set PrimaryBodies
+              to an empty list, then configure CentralBody and PointMasses:
+              Earth/Earth for EarthProp, Sun/Sun, Earth, Luna for SunProp, and
+              Mars/Mars for MarsProp. This removes the default Earth gravity
+              field rather than leaving it alongside the point masses.</para>
             </listitem>
 
             <listitem>
@@ -215,7 +231,13 @@
 
               <itemizedlist>
                 <listitem>
-                  <para>Use an Integrator max step size of 86400 sec</para>
+                  <para>Use RungeKutta89, InitialStepSize 60 sec, Accuracy
+                  1e-12, MinStep 0.001 sec, MaxStep 86400 sec and
+                  MaxStepAttempts 50, as shown in the EarthProp illustration.
+                  For SunProp and MarsProp the original prose omits Accuracy;
+                  this walkthrough retains the current creator default 1e-11,
+                  with RungeKutta89, InitialStepSize 60 sec and MinStep
+                  0.001 sec. Keep StopIfAccuracyIsViolated true.</para>
                 </listitem>
 
                 <listitem>
@@ -279,6 +301,11 @@
         <listitem>
           <para>Burns</para>
 
+          <para>Create four ImpulsiveBurn resources with CoordinateSystem
+          Local and Axes VNB. In the current form V, N and B are Element1,
+          Element2 and Element3 respectively. Leave unspecified elements zero
+          and DecrementMass false; TOI uses Origin Earth.</para>
+
           <itemizedlist>
             <listitem>
               <para>Change the TOI vector V to 2.85 km/s</para>
@@ -332,7 +359,9 @@
 
                 <listitem>
                   <para>Make Sun the Primary body and Earth the Secondary
-                  body</para>
+                  body. Set Origin Earth, XAxis R, leave YAxis blank, and
+                  set ZAxis N, as shown in the illustration. ObjectReferenced
+                  axes expose these settings directly in the current form.</para>
                 </listitem>
               </itemizedlist>
 
@@ -405,13 +434,16 @@
 
           <itemizedlist>
             <listitem>
-              <para>Add a differential corrector to the Boundary Value Solvers
-              folder in the Solvers folder under the resource tree and rename
-              it MarsTOIDC</para>
+              <para>Create a DifferentialCorrector named MarsTOIDC in the
+              Solvers folder. Retain the current defaults: ShowProgress true,
+              ReportStyle Normal, MaximumIterations 25,
+              DerivativeMethod ForwardDifference and Algorithm NewtonRaphson.</para>
             </listitem>
 
             <listitem>
-              <para>Use the Targeter Text File targeter_MarsTOIDC.data</para>
+              <para>Set ReportFile to targeter_MarsTOIDC.data in an existing
+              writable output directory. This is the current name of the
+              older Targeter Text File setting.</para>
             </listitem>
           </itemizedlist>
 
@@ -438,8 +470,11 @@
 
           <itemizedlist>
             <listitem>
-              <para>Add a Report file to the Plots/Reports folder under the
-              resource tree</para>
+              <para>Create a ReportFile named Data in Output. Set Filename
+              to Ex_MarsBPlane.report in an existing writable output directory,
+              Precision 16 and ColumnWidth 20. Leave Add empty: the Report
+              commands below supply the parameter list. Retain
+              SolverIterations Current and the other report defaults.</para>
 
               <screenshot>
                 <info>
@@ -460,17 +495,19 @@
             </listitem>
 
             <listitem>
-              <para>EarthView</para>
+              <para>Create an OrbitView named EarthView in Output. Use
+              EarthMJ2000Eq for CoordinateSystem and ViewUpCoordinateSystem,
+              Earth for ViewPointReference and ViewDirection, a
+              ViewPointVector of [0 0 30000], ViewScaleFactor 1 and ViewUpAxis Z.
+              Include MarsSupply and Earth.</para>
 
               <itemizedlist>
                 <listitem>
-                  <para>Add the Sun to the Selected Celestial Objects
-                  field</para>
+                  <para>Add Sun to the Objects list</para>
                 </listitem>
 
                 <listitem>
-                  <para>Check the Draw Grid and Draw Sun Line boxes in the
-                  Drawing Option group box</para>
+                  <para>Set Grid and SunLine to On</para>
                 </listitem>
               </itemizedlist>
 
@@ -493,12 +530,14 @@
             </listitem>
 
             <listitem>
-              <para>MarsView</para>
+              <para>Create an OrbitView named MarsView. Include MarsSupply
+              and Earth, then add the bodies below. Set ViewPointReference and
+              ViewDirection to Mars, ViewPointVector [0 0 30000] and ViewUpAxis
+              Z, as shown in the MarsView illustration.</para>
 
               <itemizedlist>
                 <listitem>
-                  <para>Add the Sun and Mars to the Selected Celestial Objects
-                  field</para>
+                  <para>Add Sun and Mars to the Objects list</para>
                 </listitem>
 
                 <listitem>
@@ -511,8 +550,7 @@
                 </listitem>
 
                 <listitem>
-                  <para>Check the Draw Grid and Draw Sun Line boxes in the
-                  Drawing Option group box</para>
+                  <para>Set Grid and SunLine to On</para>
                 </listitem>
               </itemizedlist>
             </listitem>
@@ -533,10 +571,27 @@
     when the second sequence targets a distinct B-Plane parameter. After the
     second targeting sequence is accomplished, the spacecraft is slowed by a
     final maneuver that puts it into the elliptical orbit and continues to
-    propagate for another half day. During each Propagate and Maneuver command
+    propagate for another 25 days. During each Propagate and Maneuver command
     before and after the targeting sequences, reports are added for tracking
     and analysis purposes, to monitor the spacecraft's Cartesian coordinates
     and velocity vectors.</para>
+
+    <note>
+      <para>The original overview and historical reference use a half-day
+      final coast, while the detailed Propagate 6 instruction below specifies
+      25 elapsed days. This walkthrough follows that detailed instruction.
+      The 24.677° target is the SunMJ2kEq transfer inclination in Target 1;
+      the final MarsMJ2000Eq orbit inclination is a different quantity.</para>
+    </note>
+
+    <para>Use the Mission tree's Insert before, Insert after and Append inside
+    branch commands with the typed forms. The current Assignment template is
+    the older Equation command. Apply each command and save the active script.
+    Configure Target commands with MarsTOIDC, SolveMode Solve,
+    ExitMode DiscardAndContinue and ShowProgressWindow true. Place each Vary,
+    Maneuver, Propagate and Achieve inside its Target branch, with the report
+    following EndTarget. The current Vary variables use burn Element1/2/3
+    names; the numerical V/N/B meanings remain the same.</para>
 
     <itemizedlist>
       <listitem>
@@ -597,7 +652,7 @@
 
           <listitem>
             <para>The final command, Propagate 6, propagates the spacecraft
-            for an additional half day, so the plot can show the entire
+            for an additional 25 days, so the plot can show the entire
             elliptical trajectory around Mars.</para>
           </listitem>
         </itemizedlist>
@@ -622,13 +677,16 @@
               </listitem>
 
               <listitem>
-                <para>Do not remove the A1ModJulian parameter</para>
+                <para>Include MarsSupply.A1ModJulian first, followed by
+                MarsSupply.X, Y, Z, VX, VY and VZ. The current Report template
+                may begin with ElapsedSecs; replace it with A1ModJulian.</para>
               </listitem>
             </itemizedlist>
           </listitem>
 
           <listitem>
-            <para>Equation 1: set Data.WriteHeaders = Off</para>
+            <para>Assignment 1: set the destination Data.WriteHeaders and
+            the expression Off.</para>
           </listitem>
 
           <listitem>
@@ -641,7 +699,9 @@
 
               <listitem>
                 <para>Set the stopping condition parameter to be Earth's
-                periapsis</para>
+                periapsis: MarsSupply.Earth.Periapsis. Enter it in Stop
+                parameter; the form uses Other parameter and disables Stop
+                value for this event.</para>
               </listitem>
             </itemizedlist>
           </listitem>
@@ -652,6 +712,12 @@
 
           <listitem>
             <para>Maneuver 1: utilize the TOI burn</para>
+          </listitem>
+
+          <listitem>
+            <para>Report 3: refer to Report 1 for the parameters list. This
+            report after TOI is present in the mission-tree illustration but
+            was omitted from the original detailed prose.</para>
           </listitem>
 
           <listitem>
@@ -905,7 +971,7 @@
 
                 <itemizedlist>
                   <listitem>
-                    <para>Set the second Variable to V using the MarBPlane
+                    <para>Set the second Variable to V using the MarsBPlane
                     impulsive burn</para>
                   </listitem>
 
@@ -992,7 +1058,8 @@
 
                   <listitem>
                     <para>Set the stopping condition parameter to be Mars'
-                    periapsis</para>
+                    periapsis: MarsSupply.Mars.Periapsis, entered in Stop
+                    parameter.</para>
                   </listitem>
                 </itemizedlist>
               </listitem>
@@ -1170,7 +1237,19 @@
     see the results. First, save the changes you've made and then click the
     Run button (green arrow on the tool bar) to run the mission. The screen
     capture below summarizes what you should see after correctly completing
-    this tutorial.</para>
+    this tutorial. Confirm convergence of both Target sequences: Target 1's
+    SunMJ2kEq.INC residual must be within 0.001°, and Target 2's BdotT and
+    BdotR residuals within 50 km. The data file contains nine rows after its
+    initial header, with seven finite values per row.</para>
+
+    <para>Use Mission summary and select MarsMJ2000Eq from the visible
+    coordinate-system drop-down to inspect the final Mars-relative orbit.
+    A positive SMA and eccentricity between zero and one confirm the ellipse.
+    In the qualified walkthrough the final SMA was about 8334.16 km,
+    eccentricity 0.475753 and MarsMJ2000Eq inclination 46.5188°; these are
+    readbacks, not new targeting goals. Save your mission and reopen it to
+    confirm that the resources and command settings were retained before
+    consulting the historical reference.</para>
 
     <screenshot>
       <info>
@@ -1189,4 +1268,4 @@
       </mediaobject>
     </screenshot>
   </section>
-</section>
+</chapter>

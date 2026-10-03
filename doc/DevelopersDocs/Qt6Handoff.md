@@ -36,8 +36,8 @@ in the primary form and by removing all stopping rows. Typed command controls
 scroll. [Coordinate Rename and new-window size](Qt6ParityValidation/axis-command-usability-20261003.md)
 repair further actual walkthrough blockers; installed app SHA483ed090… is rebuilt
 and directly affected checks pass. [Implicit Earth gravity](Qt6ParityValidation/implicit-gravity-20261003.md)
-retains the existing Earth field during paired force edits. Five of seven additional
-usable source walkthroughs are complete; Lunar Transfer and older Mars are
+retains the existing Earth field during paired force edits. Six of seven additional
+usable source walkthroughs are complete; Lunar Transfer is
 being completed independently. Use the current [walkthrough ledger](Qt6TutorialWalkthrough.md)
 and individual runtime receipts. Publication waits for installed Help readback.
 Original twelve published passes and all nine gates remain intact; host/GPU stops

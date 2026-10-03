@@ -135,7 +135,7 @@ not establish tutorial 5's interactive workflow.
 The [availability audit](Qt6ParityValidation/help-extra-chapters-20261002.md)
 retains the original twelve source chapters outside the Tutorials book and their
 195 image references. The user-approved follow-up independently constructs seven
-usable chapters before publication. Five walkthroughs are now complete; two
+usable chapters before publication. Six walkthroughs are now complete; one
 remain in progress. The original twelve published tutorial passes above are
 preserved and were not rerun. Until the book is rebuilt and its installed pages
 verified, these remain qualified source chapters awaiting publication.
@@ -148,7 +148,7 @@ verified, these remain qualified source chapters awaiting publication.
 | `Tut_LEOStationKeeping.xml` | **Passed** — [Parts1/2 actual-input construction/run/reopen](Qt6ParityValidation/help-leo-station-keeping-20261003.md), both ten-day histories and105 converged targets, frozen before reference comparison; the342km condition is a correction trigger, not a minimum-altitude guarantee. |
 | `Tut_ACEStationKeeping.xml` | **Passed** — [independent GUI construction/run/reopen](Qt6ParityValidation/help-ace-station-keeping-20261003.md), seven converged targets, eight finite report records and two viewers; full comparison followed freeze. Original missing link and retained early attempts are explicit. |
 | `Tut_LunarTransfer.xml` | **In progress** — independent resource/viewer/target construction, literal EarthToMoon.BdotT goal retained. No walkthrough pass claimed yet. |
-| `Tut_MarsB-PlaneTargeting.xml` | **In progress** — independent older chapter construction, separate from the already-passed modern Mars tutorial. No walkthrough pass claimed yet. |
+| `Tut_MarsB-PlaneTargeting.xml` | **Passed with explicit frame/coast interpretation** — [older chapter actual-input walk](Qt6ParityValidation/help-mars-b-plane-legacy-20261003.md), two converged targets, original nine finite report rows and fresh reopen; changed-output-only diagnostic confirms the final Mars ellipse. Separate from the already-passed modern tutorial. |
 | `Tut_L2Transfer.xml` | **Held** — original two sign brackets miss the required L2 plane; bounded failure/domain evidence retained, no ephemeris extension or objective change. |
 | `Tut_MATLAB.xml` | **Deferred** — Running GMAT Scripts from MATLAB. |
 | `Tut_MinFuelOrbitTransfer.xml` | **Deferred** — MATLAB/fmincon dependency. |
