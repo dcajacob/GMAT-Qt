@@ -1,0 +1,21 @@
+direct indexed cardinal paired_count=4
+direct indexed cardinal cone_deg=0 clock_deg=0 visibility=0
+direct indexed cardinal cone_deg=5 clock_deg=45 visibility=1
+direct indexed cardinal cone_deg=5 clock_deg=20 visibility=1
+direct indexed cardinal cone_deg=1 clock_deg=30 visibility=1
+direct indexed cardinal cone_deg=40 clock_deg=0 visibility=0
+direct indexed cardinal cone_deg=40 clock_deg=45 visibility=0
+direct indexed offset paired_count=4
+direct indexed offset cone_deg=0 clock_deg=0 visibility=0
+direct indexed offset cone_deg=5 clock_deg=45 visibility=1
+direct indexed offset cone_deg=5 clock_deg=20 visibility=1
+direct indexed offset cone_deg=1 clock_deg=30 visibility=1
+direct indexed offset cone_deg=40 clock_deg=0 visibility=0
+direct indexed offset cone_deg=40 clock_deg=45 visibility=0
+direct indexed azel paired_count=12
+direct indexed azel cone_deg=0 clock_deg=0 visibility=0
+direct indexed azel cone_deg=5 clock_deg=45 visibility=1
+direct indexed azel cone_deg=5 clock_deg=20 visibility=1
+direct indexed azel cone_deg=1 clock_deg=30 visibility=1
+direct indexed azel cone_deg=40 clock_deg=0 visibility=0
+direct indexed azel cone_deg=40 clock_deg=45 visibility=0

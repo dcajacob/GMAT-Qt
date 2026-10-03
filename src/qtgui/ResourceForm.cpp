@@ -5,6 +5,7 @@
 #include "BurnDialog.hpp"
 #include "GroundStationDialog.hpp"
 #include "RegionDialog.hpp"
+#include "CustomFovDialog.hpp"
 #include "OrbitViewDialog.hpp"
 #include "GroundTrackDialog.hpp"
 #include "XYPlotDialog.hpp"
@@ -24,7 +25,7 @@
 #include <QKeyEvent>
 #include <memory>
 
-ResourceForm::ResourceForm(GmatBase &object,QWidget *parent) : QWidget(parent)
+ResourceForm::ResourceForm(GmatBase &object,QWidget *parent,const QString &script) : QWidget(parent)
 {
    setObjectName("resourceForm");
    auto *layout=new QVBoxLayout(this); layout->setContentsMargins(0,0,0,0);
@@ -38,6 +39,8 @@ ResourceForm::ResourceForm(GmatBase &object,QWidget *parent) : QWidget(parent)
       auto *form=new BurnDialog(object,{},this); add("Burn",form,[form] { return form->settings(); });
    } else if (object.IsOfType("PlanetographicRegion")) {
       auto *form=new RegionDialog(object,this); add("Region",form,[form] { return form->settings(); });
+   } else if (object.IsOfType("CustomFOV")) {
+      auto *form=new CustomFovDialog(object,script,this); add("Field of view",form,[form] { return form->settings(); });
    } else if (object.IsOfType("GroundStation")) {
       auto *form=new GroundStationDialog(object,{},this); add("Station",form,[form] { return form->settings(); });
    } else if (type=="OrbitView") {

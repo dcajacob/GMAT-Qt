@@ -8693,3 +8693,24 @@ was made. The original crash record remains unchanged, and runtime SHA 989d3499�
 /base SHA 2082a341… remains the previously rebuilt binary. Host/GPU acceptance stays
 open pending an established safe host condition and its outstanding operations.
 Completed tutorial/corpus/regression work was not repeated.
+
+
+## Resource creation Help and ordinary controls — 2026-10-02
+
+[The bounded control record](Qt6ParityValidation/remaining-gui-controls-20261002.md)
+adds visible selected-resource Help/F1 to creation and Clone, repairs active report
+search routing and stored OF camera aliases, and implements paired CustomFOV
+creation/editing. The four focused checks pass; directly affected shared checks
+are recorded without repeating completed audits/tutorials/corpus. One private
+actual-input X11 case passes Help/F1/Cancel, paired FOV creation, Save/reopen,
+Build and four-row readback. App/WM/Xvfb exits are 0/0/0.
+
+Current GmatQt is 6,008,024 bytes / SHA167efe0f…, with base/util/startup unchanged;
+compiled source snapshots and raw failures/corrections remain bound in the record.
+The unchanged CustomFOV engine rejects the diagnostic's exact boresight; known
+interior/exterior checks pass, without a numerical repair or broad scientific
+acceptance claim. Live host testing stays stopped. Mutter's immediate NULL
+Wayland-resource fault is established, while GMAT client attribution, repaired
+host condition and physical GPU acceptance remain unproven. All nine gates,
+external/domain limits and deferred platforms remain in the current map. The
+full replacement goal stays active and full qualification is not claimed.

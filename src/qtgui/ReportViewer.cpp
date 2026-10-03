@@ -9,7 +9,6 @@
 #include <QFile>
 #include <QFontDatabase>
 #include <QSignalBlocker>
-#include <QShortcut>
 #include <QLineEdit>
 #include <QCheckBox>
 #include <QTimer>
@@ -102,10 +101,10 @@ ReportViewer::ReportViewer(const QString &path,const QString &name,QWidget *pare
    status=new QLabel(this); status->setObjectName("reportPageStatus"); status->setWordWrap(true); layout->addWidget(status);
    text=new QPlainTextEdit(this); text->setObjectName("report:"+name); text->setReadOnly(true);
    text->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont)); text->setLineWrapMode(QPlainTextEdit::NoWrap); text->setToolTip(path); layout->addWidget(text);
-   auto *search=new FindReplaceDialog(text,this);
+   search=new FindReplaceDialog(text,this);
    connect(find,&QPushButton::clicked,search,&FindReplaceDialog::openSearch);
-   auto *shortcut=new QShortcut(QKeySequence::Find,this); shortcut->setContext(Qt::WidgetWithChildrenShortcut);
-   connect(shortcut,&QShortcut::activated,search,&FindReplaceDialog::openSearch);
+   // The main Edit actions own the workspace shortcuts and route them here.
+   // Registering another Ctrl+F in this child makes both shortcuts ambiguous.
    connect(first,&QPushButton::clicked,this,[this] { loadPage(0); });
    connect(previous,&QPushButton::clicked,this,[this] { loadPage(currentPage-1); });
    connect(next,&QPushButton::clicked,this,[this] { loadPage(currentPage+1); });

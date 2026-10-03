@@ -1,0 +1,113 @@
+{
+  "head_before_commit": "ad343e74d9540001b5307e3153249b453a5ce85b",
+  "files": {
+    "application/bin/GmatQt": {
+      "resolved": "/home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a",
+      "bytes": 6008024,
+      "sha256": "167efe0f180609e29772cbad0e0a20e609113007fa182ffd59764b2a1859fe69"
+    },
+    "application/bin/libGmatBase.so.R2026a": {
+      "resolved": "/home/dan/GIT/GMAT-Qt/application/bin/libGmatBase.so.R2026a",
+      "bytes": 25040656,
+      "sha256": "2082a341f5f123e81bad362972cd2b28a0a4753047ae51b5c09609e246be430c"
+    },
+    "application/bin/libGmatUtil.so.R2026a": {
+      "resolved": "/home/dan/GIT/GMAT-Qt/application/bin/libGmatUtil.so.R2026a",
+      "bytes": 2929664,
+      "sha256": "1e4e7fe6ba83701266ef780588003c3ae607b6ebc56ecc040f9cfac399777fcc"
+    },
+    "application/bin/gmat_startup_qt.txt": {
+      "resolved": "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt",
+      "bytes": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    }
+  },
+  "source": {
+    "src/qtgui/CMakeLists.txt": "501d34b31e21a0f9145a19e1a825532bb04a965a2af41936d7ce3e8e4d85970c",
+    "src/qtgui/HelpDialog.cpp": "64ed07ee585e9560a9aa1161c8059ccab517bd7d6d66a04e929a5420385bf0bc",
+    "src/qtgui/MainWindow.cpp": "f2c9ad1084d228e50d63d74fdcfffab863ad380875281c790ea2f4ec6a3e2e0a",
+    "src/qtgui/ReportViewer.cpp": "5fbb8ad5717501d22a8756da779ff4cf703d1d7a425ee6e0de2dfc6030115dee",
+    "src/qtgui/ReportViewer.hpp": "0e86140d983fcbe095b1767789c3ecbbd7f5a1324669e0a6d89e127b761d1f53",
+    "src/qtgui/ResourceEditor.cpp": "ac452b507f69e6d7192558f04ea46e9cf02d535a8f058895621abefa46e85cc4",
+    "src/qtgui/ResourceForm.cpp": "28ccafba2ee4436516a7038d4f649be9a8a8a532df38fd9ec543ef647674fd41",
+    "src/qtgui/ResourceForm.hpp": "73a26210779c4f45b548f30cdd243644729a8883404b706be788f86417695875",
+    "src/qtgui/ScriptCompatibility.cpp": "f52dcf519f061157816c25775261d2950348a1069fff86d99f5bba6663ac8e6f",
+    "src/qtgui/CustomFovDialog.cpp": "9790ed6bb4bfb2a1005eb12cc0333767f8fff71fc342694c3ad2330816c508ab",
+    "src/qtgui/CustomFovDialog.hpp": "012494af516705d57569135c050cc621caf50f6bb7abc4ee2518195db7572521",
+    "src/qtgui/CustomFovProperties.cpp": "f3fdd9dc5f930109da7b472e77750717715998fd779da9340b8ae7867a99415c",
+    "src/qtgui/CustomFovProperties.hpp": "a6e24cdabcba408a6810dddab11b32e40420916e86ccd82b5683875aeb14f0c6",
+    "src/qtgui/tests/CustomFovControlsTests.cpp": "114fb40e357082aba58286109f792a424cfc0a5945239ac90292e4d8295258b9",
+    "src/qtgui/tests/OpenFramesCameraAliasTests.cpp": "1a0f3cc1acf37c353cf9a35f3ba5bb98339c9b621def9bcf4e5e64bb7b22141c",
+    "src/qtgui/tests/ResourceCreationHelpTests.cpp": "e1745166e942ac3b248aa032458caf05267a2361f97db32413ac3f52e4b1125d",
+    "src/qtgui/tests/SearchRoutingTests.cpp": "997a1796b66735c0121bf30015f432a38f706da939bbb5b03da7e9b4160c44d2"
+  },
+  "native": {
+    "app": "/home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a",
+    "startup": "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt",
+    "script": null,
+    "app_sha256": "167efe0f180609e29772cbad0e0a20e609113007fa182ffd59764b2a1859fe69",
+    "original_startup_sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a",
+    "clone_startup_sha256": "35231c83af2233ea5bc0b4d7f3e195095537ab41b1231e6f05a1850322e34d70",
+    "startup_change": "OUTPUT_PATH value only",
+    "artifacts": "/home/dan/GIT/GMAT-Qt/build/example-qualification/20261002/remaining-gui-controls/native-help-fov/isolated-x11-l9z012yv",
+    "seconds": 600,
+    "screen": [
+      1600,
+      1200
+    ],
+    "wm_command": [
+      "/tmp/gmat-isolated-x11/wm/usr/bin/openbox",
+      "--sm-disable",
+      "--config-file",
+      "/tmp/gmat-isolated-x11/openbox.xml"
+    ],
+    "limits": "Own X11/software GL input and rendering only; GNOME/Wayland/portal and hardware-driver acceptance remain open",
+    "display": ":2",
+    "qpa": "xcb",
+    "software_gl": true,
+    "processes": {
+      "xvfb": 2489111,
+      "wm": 2489119,
+      "application": 2489122
+    },
+    "closed": true,
+    "exit_codes": {
+      "xvfb": 0,
+      "wm": 0,
+      "application": 0
+    }
+  },
+  "checks": {
+    "SearchRouting": {
+      "seconds": 0.2,
+      "result": "pass",
+      "receipt": "search-alias-fixed-check.txt"
+    },
+    "OpenFramesCameraAliases": {
+      "seconds": 0.04,
+      "result": "pass",
+      "receipt": "search-alias-fixed-check.txt"
+    },
+    "ResourceCreationHelp": {
+      "seconds": 2.11,
+      "result": "pass",
+      "receipt": "creation-help-custom-fov-check.txt"
+    },
+    "CustomFovControls": {
+      "seconds": 0.32,
+      "result": "pass",
+      "receipt": "custom-fov-final-check.txt"
+    },
+    "affected_shared": {
+      "results": "ReportSearchOptions/OpenFramesSyntax/ScriptEditing/Help pass",
+      "seconds": [
+        1.88,
+        0.13,
+        0.81,
+        0.48
+      ],
+      "receipt": "affected-search-help-built-check.txt"
+    }
+  },
+  "limits": "Bounded source/offscreen/private X11 evidence only; retained failures/corrections in linked control record; no full qualification, host retry or numerical engine change."
+}

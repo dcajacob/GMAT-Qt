@@ -190,6 +190,9 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
    if (types.isEmpty()) return result;
    const QRegularExpression assignment("^(?:GMAT\\s+)?([A-Za-z][A-Za-z0-9_]*)\\.([A-Za-z][A-Za-z0-9_]*)\\s*=\\s*(.+?)\\s*;?$");
    QMap<int,QPair<QString,QString>> settings;
+   const QMap<QString,QString> viewAliases={
+      {"SetCameraLocation","SetDefaultLocation"}, {"CameraEye","DefaultEye"},
+      {"CameraCenter","DefaultCenter"}, {"CameraUp","DefaultUp"}};
    bool mission=false;
    for (int i=0;i<lines.size();++i) {
       auto code=codePart(lines[i]);
@@ -208,7 +211,12 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
             result.error=match.captured(1)+"."+match.captured(2)+": not a valid OpenFrames guide field. Qt converts per-object DrawGrid and DrawXYPlane; the original script is unchanged."; return result;
          }
          auto value=match.captured(3).trimmed();
-         properties[match.captured(1)][match.captured(2)]=value;
+         // Legacy camera aliases share the Default storage in OpenFramesView.
+         // Normalize while reading source order, so the last alias or canonical
+         // assignment wins, while the original spelling remains in comments.
+         const auto property=types.value(match.captured(1))=="OpenFramesView"
+            ? viewAliases.value(match.captured(2),match.captured(2)) : match.captured(2);
+         properties[match.captured(1)][property]=value;
          settings[i]={match.captured(1),match.captured(2)};
       } else {
          // Never remove a view object that is used by a calculation, command or

@@ -1361,7 +1361,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
    // Primary forms and Advanced share one pending snapshot and one Apply.
    // The table remains the backing store for generic controls and converters.
    auto *pages=new QTabWidget(this); pages->setObjectName("resourceEditorTabs");
-   auto *primary=new ResourceForm(object,pages);
+   auto *primary=new ResourceForm(object,pages,script);
    if (creation) for (auto *label:primary->findChildren<QLabel *>())
       if (label->text()=="Edit settings here. Apply commits them; Close lets you discard pending changes.")
          label->setText("Edit settings here. Create adds the resource; Cancel discards pending settings.");

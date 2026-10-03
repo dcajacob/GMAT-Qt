@@ -2347,3 +2347,26 @@ retains the last real pose when a spacecraft is absent from a publication. One
 shows both spacecraft at their orbital endpoints and produces the same complete
 numerical report. Legitimate zero coordinates remain valid. Original attempts
 and source limitations are retained.
+
+
+### Resource creation Help, report search and custom FOVs
+
+New resource and Clone resource have visible Help buttons. F1 opens the resource
+topic from the name field and nested editors; changing the selected type changes
+the Help topic. Help retains pending edits. Celestial-body types use CelestialBody
+and FOV types use FieldOfView. Missing plugin pages retain the existing diagnostic
+and Contents navigation.
+
+Find/Next/Previous and Edit-menu search use the active report, including reports
+in comparison results. Replace on a read-only report opens Find; Go to line stays
+with the selected script. Stored OpenFrames camera aliases translate with the
+same last-assignment precedence as their Default spellings.
+
+CustomFOV Setup edits paired cone/clock or azimuth/elevation vertices, with
+Add/Remove, interpolation and an alternative FOV-file Browse mode. At least three
+finite paired vertices are required. Apply/Create commits one representation;
+Cancel retains the mission, and unrelated appearance edits preserve authored
+geometry. Save/reopen retains authored vertices rather than expanded interpolation
+or file-derived arrays. [Focused and private actual-input evidence](Qt6ParityValidation/remaining-gui-controls-20261002.md)
+records current coverage and the unchanged engine's exact-boresight limitation.
+This evidence does not close host/GPU or broader scientific qualification.

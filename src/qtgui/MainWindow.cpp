@@ -32,6 +32,7 @@
 #include "ResourceDraft.hpp"
 #include "ResourceRename.hpp"
 #include "ResourceProperties.hpp"
+#include "CustomFovProperties.hpp"
 #include "SpacecraftOrbit.hpp"
 #include "AtmosphereDialog.hpp"
 #include "GroundStationDialog.hpp"
@@ -642,16 +643,29 @@ MainWindow::MainWindow()
    auto searchAction=[&](const QString &label,const QString &name,QKeySequence key,auto callback) {
       auto *action=edit->addAction(label); action->setObjectName(name); action->setShortcut(key);
       connect(action,&QAction::triggered,this,[this,callback] {
+         if (QApplication::activeModalWidget()) return;
+         if (auto *child=workspace->activeSubWindow()) {
+            auto *report=dynamic_cast<ReportViewer *>(child->widget());
+            // Comparison results embed the same read-only report viewer.
+            if (!report) for (auto *widget:child->widget()->findChildren<QWidget *>())
+               if ((report=dynamic_cast<ReportViewer *>(widget))) break;
+            if (report) { callback(report->searchDialog()); return; }
+         }
          const auto document=selectedScriptDocument(); if (!document || !document->window) return;
          if (document->window->isMinimized() || !document->window->isVisible()) document->window->showNormal();
-         workspace->setActiveSubWindow(document->window); callback(document);
+         workspace->setActiveSubWindow(document->window); callback(document->search);
       });
    };
-   searchAction("&Find…","scriptFind",QKeySequence::Find,[](const auto &document) { document->search->openSearch(); });
-   searchAction("&Replace…","scriptReplace",QKeySequence::Replace,[](const auto &document) { document->search->openSearch(); });
-   searchAction("Find next","scriptFindNext",QKeySequence::FindNext,[](const auto &document) { document->search->findNext(); });
-   searchAction("Find previous","scriptFindPrevious",QKeySequence::FindPrevious,[](const auto &document) { document->search->findNext(true); });
-   searchAction("Go to line…","scriptGoToLine",QKeySequence("Ctrl+L"),[this](const auto &document) {
+   searchAction("&Find…","scriptFind",QKeySequence::Find,[](FindReplaceDialog *search) { search->openSearch(); });
+   searchAction("&Replace…","scriptReplace",QKeySequence::Replace,[](FindReplaceDialog *search) { search->openSearch(); });
+   searchAction("Find next","scriptFindNext",QKeySequence::FindNext,[](FindReplaceDialog *search) { search->findNext(); });
+   searchAction("Find previous","scriptFindPrevious",QKeySequence::FindPrevious,[](FindReplaceDialog *search) { search->findNext(true); });
+   auto *goToLine=edit->addAction("Go to line…"); goToLine->setObjectName("scriptGoToLine"); goToLine->setShortcut(QKeySequence("Ctrl+L"));
+   connect(goToLine,&QAction::triggered,this,[this] {
+      if (QApplication::activeModalWidget()) return;
+      const auto document=selectedScriptDocument(); if (!document || !document->window) return;
+      if (document->window->isMinimized() || !document->window->isVisible()) document->window->showNormal();
+      workspace->setActiveSubWindow(document->window);
       auto *editor=document->editor.data(); bool accepted=false;
       const int line=QInputDialog::getInt(this,"Go to line","Line number",editor->textCursor().blockNumber()+1,
          1,editor->document()->blockCount(),1,&accepted);
@@ -1701,6 +1715,7 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
       const auto gravityChanges=applyGravityBodyProperties(*proposed,changes);
       const auto tankChanges=applyChemicalTankProperties(*proposed,changes);
       const auto regionChanges=applyRegionProperties(*proposed,changes);
+      const auto customFovChanges=applyCustomFovProperties(*proposed,changes,customFovCoordinates(*object,expectedScript));
       const auto atmosphereChanges=applyAtmosphereProperties(*proposed,changes);
       const auto stationChanges=applyGroundStationLocation(*proposed,changes);
       const auto eventChanges=applyEventLocatorProperties(*proposed,changes);
@@ -1712,7 +1727,7 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
       const QString modelField=proposed->IsOfType("ProcessNoiseModel") ? "Type" : proposed->IsOfType("EstimatedParameter") ? "Model" : QString();
       if (!modelField.isEmpty() && changes.contains(modelField)) setResourceProperty(*proposed,modelField,changes.value(modelField));
       for (auto it = changes.cbegin(); it != changes.cend(); ++it) {
-         if (propChanges.contains(it.key()) || orbitChanges.contains(it.key()) || attitudeChanges.contains(it.key()) || gravityChanges.contains(it.key()) || tankChanges.contains(it.key()) || regionChanges.contains(it.key()) || atmosphereChanges.contains(it.key()) || stationChanges.contains(it.key()) || eventChanges.contains(it.key()) || viewChanges.contains(it.key()) || burnChanges.contains(it.key()) || ephemerisChanges.contains(it.key()) || objectDrawingKeys.contains(it.key()) || it.key()=="@ArrayExpressions" || it.key()=="@DynamicData" || it.key()=="@TrackingConfigs" || it.key().startsWith("@ExternalForce.") || it.key()=="@PolyhedronForces" || (pairedMixture && it.key()=="MixRatio")) continue;
+         if (propChanges.contains(it.key()) || orbitChanges.contains(it.key()) || attitudeChanges.contains(it.key()) || gravityChanges.contains(it.key()) || tankChanges.contains(it.key()) || regionChanges.contains(it.key()) || customFovChanges.contains(it.key()) || atmosphereChanges.contains(it.key()) || stationChanges.contains(it.key()) || eventChanges.contains(it.key()) || viewChanges.contains(it.key()) || burnChanges.contains(it.key()) || ephemerisChanges.contains(it.key()) || objectDrawingKeys.contains(it.key()) || it.key()=="@ArrayExpressions" || it.key()=="@DynamicData" || it.key()=="@TrackingConfigs" || it.key().startsWith("@ExternalForce.") || it.key()=="@PolyhedronForces" || (pairedMixture && it.key()=="MixRatio")) continue;
          if (intervalChanges.contains(it.key()) || warmChanges.contains(it.key()) || it.key()==modelField || isResourceList(*proposed,it.key())) continue;
          try { setResourceProperty(*proposed, it.key(), it.value()); }
          catch (BaseException &error) { return it.key() + ": " + QString::fromStdString(error.GetFullMessage()); }
@@ -1762,8 +1777,9 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
       const auto snapshot=[&](GmatBase &resource) { return resource.IsOfType("Spacecraft") ? spacecraftOrbitScript(resource) : resource.IsOfType("OrbitView") ? orbitViewScript(resource) : (resource.IsOfType("ImpulsiveBurn") || resource.IsOfType("FiniteBurn")) ? burnResourceScript(resource) : serialize(resource); };
       const auto oldBlock = omitUnsetHardwareFovs(snapshot(*object),object);
       auto newBlock = snapshot(*proposed);
+      if (!customFovChanges.isEmpty()) newBlock=customFovResourceScript(*proposed,customFovEditedCoordinates(changes,customFovCoordinates(*object,expectedScript)));
       for (auto it=changes.cbegin();it!=changes.cend();++it)
-         if (!objectDrawingKeys.contains(it.key()) && it.key()!="@ArrayExpressions" && it.key()!="@DynamicData" && it.key()!="@TrackingConfigs" && !it.key().startsWith("@ExternalForce.") && it.key()!="@PolyhedronForces" && !orbitChanges.contains(it.key()) && !regionChanges.contains(it.key()) && !atmosphereChanges.contains(it.key()) && !eventChanges.contains(it.key()) && !viewChanges.contains(it.key()) && !burnChanges.contains(it.key()) && isResourceList(*proposed,it.key())) newBlock=replaceResourceList(*proposed,newBlock,it.key(),it.value(),pairedMixture && it.key()=="Tank" ? &mixture : nullptr);
+         if (!objectDrawingKeys.contains(it.key()) && it.key()!="@ArrayExpressions" && it.key()!="@DynamicData" && it.key()!="@TrackingConfigs" && !it.key().startsWith("@ExternalForce.") && it.key()!="@PolyhedronForces" && !orbitChanges.contains(it.key()) && !regionChanges.contains(it.key()) && !customFovChanges.contains(it.key()) && !atmosphereChanges.contains(it.key()) && !eventChanges.contains(it.key()) && !viewChanges.contains(it.key()) && !burnChanges.contains(it.key()) && isResourceList(*proposed,it.key())) newBlock=replaceResourceList(*proposed,newBlock,it.key(),it.value(),pairedMixture && it.key()=="Tank" ? &mixture : nullptr);
       if (changes.contains("@TrackingConfigs")) newBlock=replaceTrackingConfigurations(*proposed,newBlock,changes.value("@TrackingConfigs"));
       if (changes.contains("FieldOfView") && object->IsOfType("Imager")) {
          // Imager's getter can still read the clone's old FOV pointer after
@@ -1897,6 +1913,8 @@ QString MainWindow::createResource(const QString &type,const QString &name,const
    // geometry; retain its input mode so the pending helper validates it before
    // the generic empty-change fast paths can register a blank resource.
    if (type=="PlanetographicRegion" && changes.isEmpty()) changes.insert("@RegionSource","Vertices");
+   if (type=="CustomFOV" && !changes.contains("@CustomFovSource"))
+      changes.insert("@CustomFovSource",changes.value("FOVFileName").trimmed().isEmpty() ? "Vertices" : "File");
    if (type=="PropSetup") {
       try {
          const auto selectedType=settings.value("Type","RungeKutta89");
@@ -2009,6 +2027,7 @@ void MainWindow::showCloneResource(const QString &original)
       const auto preview=cloneResourceSource(snapshot,original,suggested,firstCommand);
       QtResourcePreview draft(object->Clone()); draft->SetName(suggested.toStdString(),suggested.toStdString());
       QDialog dialog(this); dialog.setObjectName("cloneResourceDialog"); dialog.setWindowTitle("Clone "+original);
+      const auto helpTopic=QString::fromStdString(object->GetTypeName()); dialog.setProperty("helpTopic",helpTopic);
       auto *layout=new QVBoxLayout(&dialog); auto *form=new QFormLayout; layout->addLayout(form);
       form->addRow("Source",new QLabel(original+" — "+QString::fromStdString(object->GetTypeName()),&dialog));
       auto *name=new QLineEdit(&dialog); name->setObjectName("resourceName"); name->setPlaceholderText(suggested);
@@ -2024,7 +2043,9 @@ void MainWindow::showCloneResource(const QString &original)
       if (auto *message=panel->findChild<QLabel *>("resourceStatus")) message->hide();
       contextHelp->attach(panel,QString::fromStdString(object->GetTypeName()));
       layout->addWidget(panel,1); layout->addWidget(status);
-      auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,&dialog); buttons->setObjectName("resourceCloneButtons"); buttons->button(QDialogButtonBox::Ok)->setText("Clone"); layout->addWidget(buttons);
+      auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel|QDialogButtonBox::Help,&dialog); buttons->setObjectName("resourceCloneButtons"); buttons->button(QDialogButtonBox::Ok)->setText("Clone"); layout->addWidget(buttons);
+      auto *help=buttons->button(QDialogButtonBox::Help); help->setObjectName("resourceCloneHelp"); help->setToolTip("Help for this resource (F1)");
+      connect(buttons,&QDialogButtonBox::helpRequested,&dialog,[this,helpTopic] { contextHelp->show(helpTopic); });
       connect(buttons,&QDialogButtonBox::accepted,panel,&ResourceEditor::requestApply);
       connect(buttons,&QDialogButtonBox::rejected,&dialog,&QDialog::reject);
       dialog.resize(850,(object->GetTypeName()=="Variable" || object->GetTypeName()=="String") ? 330 : 740); name->setFocus();
@@ -2132,6 +2153,8 @@ void MainWindow::showCreateResource(const QString &initialType)
    if (!initialType.isEmpty() && !available.contains(initialType)) { statusBar()->showMessage("This resource type is no longer available"); return; }
    type->addItems(initialType.isEmpty() ? available : QStringList{initialType}); type->setCurrentText(initialType.isEmpty() ? "Spacecraft" : initialType);
    type->setEnabled(initialType.isEmpty());
+   dialog.setProperty("helpTopic",type->currentText());
+   connect(type,&QComboBox::currentTextChanged,&dialog,[&dialog](const QString &topic) { dialog.setProperty("helpTopic",topic); });
    auto *name=new QLineEdit(&dialog); name->setObjectName("resourceName");
    const auto suggestName=[type,name] {
       name->setPlaceholderText(QString::fromStdString(Moderator::Instance()->GetNewName(type->currentText().toStdString(),1)));
@@ -2186,6 +2209,7 @@ void MainWindow::showCreateResource(const QString &initialType)
                (selected=="Variable" || selected=="String") ? std::optional<QString>(settings.value("Value")) : std::nullopt,{},settings.value("Spacecraft"),settings);
             return error;
          },host,{},false,true);
+         panel->setProperty("helpTopic",selected);
          if (selected=="EphemerisFile" || selected=="ReportFile") {
             auto *filename=panel->findChild<QLineEdit *>(selected=="EphemerisFile" ? "ephemeris_Filename" : "resource_Filename");
             if (filename) {
@@ -2228,7 +2252,9 @@ void MainWindow::showCreateResource(const QString &initialType)
    const auto resizeArray=[active,type,rows,columns] { if (*active && type->currentText()=="Array") (*active)->resizeArray(rows->value(),columns->value()); };
    connect(rows,&QSpinBox::valueChanged,&dialog,resizeArray); connect(columns,&QSpinBox::valueChanged,&dialog,resizeArray);
    outer->addWidget(status);
-   auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,&dialog);
+   auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel|QDialogButtonBox::Help,&dialog);
+   auto *help=buttons->button(QDialogButtonBox::Help); help->setObjectName("resourceCreationHelp"); help->setToolTip("Help for the selected resource (F1)");
+   connect(buttons,&QDialogButtonBox::helpRequested,&dialog,[this,type] { contextHelp->show(type->currentText()); });
    buttons->setObjectName("resourceCreationButtons"); buttons->button(QDialogButtonBox::Ok)->setText("Create"); outer->addWidget(buttons);
    connect(buttons,&QDialogButtonBox::rejected,&dialog,&QDialog::reject);
    connect(buttons,&QDialogButtonBox::accepted,&dialog,[&] {

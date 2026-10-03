@@ -9,7 +9,7 @@ class QDialog;
 class ResourceForm final : public QWidget
 {
 public:
-   explicit ResourceForm(GmatBase &object,QWidget *parent=nullptr);
+   explicit ResourceForm(GmatBase &object,QWidget *parent=nullptr,const QString &script={});
    QMap<QString,QString> values() const;
    QMap<QString,QString> changes() const;
    bool isEmpty() const { return readers.isEmpty(); }

@@ -4,6 +4,7 @@
 #include <QByteArray>
 #include <functional>
 class QPlainTextEdit;
+class FindReplaceDialog;
 class QLineEdit;
 class QCheckBox;
 class QFile;
@@ -16,7 +17,9 @@ class ReportViewer final : public QWidget
 public:
    ReportViewer(const QString &path,const QString &name,QWidget *parent=nullptr,
                 const std::function<void()> &compare={});
+   FindReplaceDialog *searchDialog() const { return search; }
 private:
+   FindReplaceDialog *search;
    bool loadPage(qint64 page);
    void searchFile(qint64 start);
    void stopSearch();
