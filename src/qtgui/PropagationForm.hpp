@@ -14,7 +14,7 @@ public:
 private:
    QComboBox *propagator, *spacecraft, *units;
    QLineEdit *duration,*stopParameter,*tolerance;
-   QCheckBox *backward;
+   QCheckBox *backward,*singleStep;
    QString original;
    bool synchronizing=false;
 };

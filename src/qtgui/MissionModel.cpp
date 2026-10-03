@@ -148,6 +148,22 @@ QString propagationKey(const QString &code)
       rest=rest.mid(match.capturedLength()).trimmed();
    }
    if (!count) return key(code);
+   // Single-step serialization omits inactive StopTolerance and writes a
+   // leading comma before OrbitColor. Normalize only a classified options-only
+   // body; retain the authored command and all actual stopping conditions.
+   const auto body=QRegularExpression(R"(^\{([^{}]*)\}\s*;?\s*$)").match(rest);
+   if (body.hasMatch()) {
+      auto entries=body.captured(1).split(',');
+      if (entries.size()>1 && entries.first().trimmed().isEmpty()) entries.removeFirst();
+      bool singleStep=!entries.isEmpty(); QSet<QString> seen; QString color;
+      for (const auto &entry:entries) {
+         const auto option=QRegularExpression(R"(^\s*(StopTolerance|OrbitColor)\s*=\s*(.+?)\s*$)").match(entry);
+         if (!option.hasMatch() || seen.contains(option.captured(1))) { singleStep=false; break; }
+         seen.insert(option.captured(1));
+         if (option.captured(1)=="OrbitColor") color=option.captured(2);
+      }
+      if (singleStep) rest=color.isEmpty() ? QString(";") : "{OrbitColor = "+color+"};";
+   }
    if (flags.contains("Covariance")) flags.remove("STM");
    auto ordered=flags.values(); ordered.sort();
    return key(header+rest)+"|variational="+ordered.join(',');

@@ -11,6 +11,6 @@ public:
 private:
    QString source;
    QStringList options;
-   int start=0,length=0;
+   int start=0,length=0,braceStart=-1,braceLength=0;
    QTableWidget *table;
 };

@@ -14,6 +14,7 @@
 #include <QLineEdit>
 #include <QFormLayout>
 #include <QSignalBlocker>
+#include <QScrollArea>
 #include <stdexcept>
 #include <QMessageBox>
 #include <QPlainTextEdit>
@@ -63,10 +64,15 @@ CommandEditor::CommandEditor(const QString &statement,bool adding,const QMap<QSt
       auto cursor=source->textCursor(); cursor.beginEditBlock(); cursor.select(QTextCursor::Document);
       cursor.insertText(text); cursor.endEditBlock();
    },this);
-   layout->addWidget(propagation);
+   auto *typed=new QWidget(this); auto *typedLayout=new QVBoxLayout(typed); typedLayout->setContentsMargins(0,0,0,0);
+   typedLayout->setSizeConstraint(QLayout::SetMinimumSize);
+   auto *typedScroll=new QScrollArea(this); typedScroll->setObjectName("commandTypedControls");
+   typedScroll->setWidgetResizable(true); typedScroll->setWidget(typed);
+   typedScroll->setMinimumHeight(110); layout->addWidget(typedScroll,1);
+   typedLayout->addWidget(propagation);
    connect(source,&QPlainTextEdit::textChanged,propagation,[this,propagation] { propagation->setStatement(source->toPlainText()); });
    propagation->setStatement(statement);
-   auto *groups=new QPushButton("Propagators and spacecraft…",this); groups->setObjectName("editPropagationGroups"); layout->addWidget(groups);
+   auto *groups=new QPushButton("Propagators and spacecraft…",this); groups->setObjectName("editPropagationGroups"); typedLayout->addWidget(groups);
    auto showGroups=[this,groups] { groups->setVisible(PropagationGroupsDialog::supports(source->toPlainText())); };
    connect(source,&QPlainTextEdit::textChanged,this,showGroups); showGroups();
    connect(groups,&QPushButton::clicked,this,[this,propagators,spacecraft,formations] {
@@ -74,7 +80,7 @@ CommandEditor::CommandEditor(const QString &statement,bool adding,const QMap<QSt
       if (dialog.exec()!=QDialog::Accepted) return;
       auto cursor=source->textCursor(); cursor.beginEditBlock(); cursor.select(QTextCursor::Document); cursor.insertText(dialog.statement()); cursor.endEditBlock();
    });
-   auto *stops=new QPushButton("Stopping conditions…",this); stops->setObjectName("editPropagationStops"); layout->addWidget(stops);
+   auto *stops=new QPushButton("Stopping conditions…",this); stops->setObjectName("editPropagationStops"); typedLayout->addWidget(stops);
    auto showStops=[this,stops] { stops->setVisible(PropagationStopsDialog::supports(source->toPlainText())); };
    connect(source,&QPlainTextEdit::textChanged,this,showStops); showStops();
    connect(stops,&QPushButton::clicked,this,[this] {
@@ -82,7 +88,7 @@ CommandEditor::CommandEditor(const QString &statement,bool adding,const QMap<QSt
       if (dialog.exec()!=QDialog::Accepted) return;
       auto cursor=source->textCursor(); cursor.beginEditBlock(); cursor.select(QTextCursor::Document); cursor.insertText(dialog.statement()); cursor.endEditBlock();
    });
-   auto *color=new QPushButton("Segment color…",this); color->setObjectName("editPropagationColor"); layout->addWidget(color);
+   auto *color=new QPushButton("Segment color…",this); color->setObjectName("editPropagationColor"); typedLayout->addWidget(color);
    auto showColor=[this,color] { color->setVisible(PropagationColorDialog::supports(source->toPlainText())); };
    connect(source,&QPlainTextEdit::textChanged,this,showColor); showColor();
    connect(color,&QPushButton::clicked,this,[this] {
@@ -93,11 +99,13 @@ CommandEditor::CommandEditor(const QString &statement,bool adding,const QMap<QSt
       auto cursor=source->textCursor(); cursor.beginEditBlock(); cursor.select(QTextCursor::Document);
       cursor.insertText(text); cursor.endEditBlock();
    },this);
-   layout->addWidget(command);
+   typedLayout->addWidget(command);
+   auto showTyped=[typedScroll,propagation,groups,stops,color,command] { typedScroll->setVisible(!propagation->isHidden() || !groups->isHidden() || !stops->isHidden() || !color->isHidden() || !command->isHidden()); };
    connect(source,&QPlainTextEdit::textChanged,command,[this,command] { command->setStatement(source->toPlainText()); });
-   command->setStatement(statement);
+   connect(source,&QPlainTextEdit::textChanged,this,showTyped);
+   command->setStatement(statement); showTyped();
    source->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-   source->setLineWrapMode(QPlainTextEdit::NoWrap); layout->addWidget(source,1);
+   source->setLineWrapMode(QPlainTextEdit::NoWrap); source->setMinimumHeight(90); layout->addWidget(source,1);
    auto *status=new QLabel("Apply validates the complete mission and updates the script. Branches include their enclosed commands.",this);
    status->setObjectName("commandStatus");
    status->setWordWrap(true); layout->addWidget(status);

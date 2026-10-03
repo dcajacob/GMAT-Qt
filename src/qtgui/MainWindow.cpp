@@ -2421,7 +2421,7 @@ CommandEditor *MainWindow::makeCommandPanel(int index,MissionEdit operation)
       {"Report",QString("Report %1 %2.ElapsedSecs %2.X %2.Y %2.Z;").arg(report,sat)},
       {"Assignment","VariableName = 1;"},
       {"If","If VariableName > 0;\n   % Insert commands here.\nElse;\n   % Insert alternate commands here.\nEndIf;"},
-      {"While","While VariableName < 10;\n   VariableName = VariableName + 1;\nEndWhile;"},
+      {"While","While VariableName < 10;\n   % Insert commands here.\nEndWhile;"},
       {"For","For VariableName = 1:1:10;\n   % Insert commands here.\nEndFor;"},
       {"Target",QString("Target %1 {SolveMode = Solve, ExitMode = DiscardAndContinue, ShowProgressWindow = true};\n   % Add Vary, mission commands, and Achieve here.\nEndTarget;").arg(solver)},
       {"Vary",QString("Vary %1(%2.Element1 = 0.1, {Perturbation = 0.0001, Lower = -10, Upper = 10, MaxStep = 0.2});").arg(solver,burn)},

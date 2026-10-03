@@ -244,6 +244,22 @@ QString patchResourceConfiguration(const QString &source,const QString &name,con
    for (auto it=old.values.cbegin();it!=old.values.cend();++it) if (it.value()!=pending.values.value(it.key())) changed.append(it.key());
    for (auto it=pending.values.cbegin();it!=pending.values.cend();++it) if (!old.values.contains(it.key())) changed.append(it.key());
    QString forceSource=source;
+   if (replaceOwnedConfiguration && !changed.contains("PrimaryBodies") && pending.values.contains("PrimaryBodies") &&
+       (changed.contains("PointMasses") || std::any_of(changed.cbegin(),changed.cend(),[](const QString &field) { return field.startsWith("GravityField."); }))) {
+      // A new force model can still own implicit Earth gravity. The interpreter
+      // clears that default when a point-mass creator is assigned, and named
+      // gravity leaves require an explicit creator. Materialize only that
+      // missing prerequisite; retain existing modern or legacy creator text.
+      QString firstCommand;
+      if (!firstMissionStatement.isEmpty()) { const auto commands=statements(firstMissionStatement); if (!commands.isEmpty()) firstCommand=normalize(commands.first().code); }
+      bool explicitPrimary=false;
+      for (const auto &statement:statements(source)) {
+         if (QRegularExpression("^\\s*BeginMissionSequence\\b").match(statement.code).hasMatch() || (!firstCommand.isEmpty() && normalize(statement.code)==firstCommand)) break;
+         const auto match=assignment.match(statement.code);
+         if (match.hasMatch() && (match.captured(1)=="PrimaryBodies" || match.captured(1)=="Gravity")) { explicitPrimary=true; break; }
+      }
+      if (!explicitPrimary) changed.append("PrimaryBodies");
+   }
    if (replaceOwnedConfiguration) for (const auto &field:QStringList{"SRP","RelativisticCorrection"}) if (changed.contains(field)) {
       const auto codes=pending.values.value(field);
       const QRegularExpression value("=\\s*'?((?:On|Off))'?\\s*;\\s*$");

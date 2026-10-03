@@ -18,7 +18,7 @@
 #include <stdexcept>
 namespace {
 struct Parsed {
-   bool valid=false;
+   bool valid=false,optionsOnly=true;
    ScriptStatement statement;
    int open=-1,close=-1,insert=0,color=-1,valueBegin=0,valueEnd=0;
    QVector<QPair<int,int>> entries;
@@ -57,6 +57,7 @@ Parsed parse(const QString &source)
          for (int i=0;i<result.entries.size();++i) {
             const auto span=result.entries[i]; const auto entry=code.mid(span.first,span.second-span.first);
             if (entry.trimmed().isEmpty()) return result;
+            if (!QRegularExpression("^\\s*(?:StopTolerance|OrbitColor)\\s*=").match(entry).hasMatch()) result.optionsOnly=false;
             const auto match=QRegularExpression("^\\s*OrbitColor\\s*=\\s*(.*?)\\s*$",QRegularExpression::DotMatchesEverythingOption).match(entry);
             if (!match.hasMatch()) continue;
             if (result.color>=0 || match.captured(1).isEmpty()) return result;
@@ -81,7 +82,7 @@ QString edit(const QString &source,const Parsed &parsed,bool enabled,const QStri
    int begin=parsed.valueBegin,end=parsed.valueEnd;
    if (!enabled) {
       const auto span=parsed.entries[parsed.color]; begin=span.first; end=span.second;
-      if (parsed.entries.size()==1) { begin=parsed.open; end=parsed.close+1; }
+      if (parsed.entries.size()==1 || parsed.optionsOnly) { begin=parsed.open; end=parsed.close+1; }
       else if (parsed.color>0) --begin; else ++end;
    }
    QVector<qsizetype> remove;

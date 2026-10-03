@@ -1056,7 +1056,9 @@ QSet<QString> applyGravityBodyProperties(GmatBase &object,const QMap<QString,QSt
       auto *configured=Moderator::Instance()->GetConfiguredObject(body.toStdString());
       if (!configured || !configured->IsOfType("CelestialBody")) throw std::runtime_error("Select existing celestial bodies for gravity.");
    }
-   if (!selected.value("PrimaryBodies").isEmpty() || !selected.value("PointMasses").isEmpty()) model->TakeAction("ClearDefaultForce");
+   // The implicit Earth gravity field is an ordinary retained contributor.
+   // ClearDefaultForce would delete it even when only PointMasses changes,
+   // losing its settings and any gravity edits in the same transaction.
    // Remove obsolete contributors before adding replacements, including a
    // primary/point-mass exchange. Retained bodies keep their owned settings.
    for (int i=model->GetNumForces()-1;i>=0;--i) {
