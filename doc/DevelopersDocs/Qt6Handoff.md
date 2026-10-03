@@ -20,7 +20,16 @@ brief, not proof of qualification. Recheck the repository before making changes.
 
 ## Current installed application — 2026-10-03
 
-GmatQt is rebuilt at **6,146,632 bytes / SHA12a9dddf…**. [Help attachment and Find Return verification](Qt6ParityValidation/help-attachments-20261003.md) closes the actual linked-script whitespace/markup and default-Back-on-Return usability defects, with affected checks and private actual input/normal0/0/0 exit evidence. Base/util/startup are unchanged. [Offline Help publication](Qt6ParityValidation/help-publication-20261003.md) now includes eighteen tutorial chapters. Earlier numerical walkthroughs remain bound to their recorded runtime; they were not repeated for these Help changes.
+GmatQt is rebuilt at **6,151,088 bytes / SHAaf0c42cf…**.
+[The animation segment-pause repair](Qt6ParityValidation/playback-segment-gaps-20261003.md)
+removes discarded solver callbacks from replay time while retaining original
+sample IDs. The reproduced failure, five directly affected passing checks and
+one affected Mars B Plane replay probe with a byte-identical solver report are
+recorded; base/util/startup are unchanged. Earlier
+[Help attachment and Find Return evidence](Qt6ParityValidation/help-attachments-20261003.md)
+remains bound to its original runtime. [Offline Help publication](Qt6ParityValidation/help-publication-20261003.md)
+includes eighteen tutorial chapters. Numerical walkthroughs remain bound to
+their recorded runtimes and were not repeated for the Help repairs.
 
 ## Current local Rename follow-up — 2026-10-03
 

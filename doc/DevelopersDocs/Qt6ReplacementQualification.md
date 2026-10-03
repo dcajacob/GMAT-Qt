@@ -8802,3 +8802,19 @@ L2 remains held, two MATLAB chapters deferred and two legacy optimizer chapters 
 ## Readable Help attachments and Return search — 2026-10-03
 
 [Help usability verification](Qt6ParityValidation/help-attachments-20261003.md) closes two actual new-publication blockers: linked script line/markup loss and Return also activating default Back. Local script/function text retains literal contents, URLs and history; Find stays on its document. Actual GmatQt is rebuilt at6,146,632 bytes / SHA12a9dddf…; new HelpAttachments0.06s and affected Help0.46s pass. A fresh private actual-input display/Return/Back/Forward retry closes normally0/0/0. All failed baselines and intermediate runtime identities remain. No numerical engine/mission or live-host test changed; the nine original gates and held/external/deferred requirements remain.
+
+
+## Animation segment pauses repaired — 2026-10-03
+
+[The retained-frame replay record](Qt6ParityValidation/playback-segment-gaps-20261003.md)
+repairs the actual multi-segment pause reported with Mars B Plane: Current solver
+mode discards trial samples but leaves gaps in cumulative callback IDs. Both local
+and shared replay now select retained frames, preserving original IDs for cameras,
+vectors and curve breaks. The new reproduced failure and five directly affected
+passing checks cover gap/tail removal, live invalidation, trimming and reopen.
+One affected private offscreen Mars B Plane replay probe passes shared/local
+selection and all 100 master advances, with a source-matched byte-identical
+solver report. No tutorial construction, corpus or numerical reference rerun.
+GmatQt is rebuilt at 6,151,088 bytes / SHAaf0c42cf…; engine/util/startup are unchanged.
+Host/GPU/client-attribution and all other nine-gate limits remain explicit. Live
+host testing remains stopped; full qualification is not claimed.

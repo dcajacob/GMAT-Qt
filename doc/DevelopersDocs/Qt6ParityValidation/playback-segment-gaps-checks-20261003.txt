@@ -1,0 +1,18 @@
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start   4: QtGui.SharedPlayback
+1/5 Test   #4: QtGui.SharedPlayback .............   Passed    0.20 sec
+    Start  75: QtGui.OwnedPlotBatch
+2/5 Test  #75: QtGui.OwnedPlotBatch .............   Passed    0.07 sec
+    Start 136: QtGui.SolverPlots
+3/5 Test #136: QtGui.SolverPlots ................   Passed    1.30 sec
+    Start 150: QtGui.Plots
+4/5 Test #150: QtGui.Plots ......................   Passed    2.63 sec
+    Start 151: QtGui.PlotsHiDPI
+5/5 Test #151: QtGui.PlotsHiDPI .................   Passed    2.92 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Label Time Summary:
+qt-gui    =   7.13 sec*proc (5 tests)
+
+Total Test time (real) =   7.13 sec

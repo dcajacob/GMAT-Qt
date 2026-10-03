@@ -63,6 +63,10 @@ private:
    std::function<QString(bool,double)> projectionSaver;
    std::function<QStringList()> protectedPaths;
    quint64 historyGeneration=0;
+   QVector<quint64> replayFrames;
+   quint64 replaySourceFrame=std::numeric_limits<quint64>::max();
+   quint64 replaySourceGeneration=std::numeric_limits<quint64>::max();
+   size_t replayPointCount=0;
    void updateReplayFrame();
    void editPlotStyle();
    QString exportPathError(const QString &path) const;

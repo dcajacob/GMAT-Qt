@@ -551,7 +551,11 @@ Orbit and ground-track playback has Start, Play/Pause, Latest and speed controls
 pauses playback. Latest follows incoming data, and Play at the end restarts the
 retained history. The timeline occupies a separate row so it remains accessible
 in narrow tiled windows. Speeds describe a nominal three-second sweep of the
-retained history, not elapsed simulation seconds.
+retained history, not elapsed simulation seconds. Replay advances through the
+retained samples, skipping callback-number gaps left by discarded solver trials
+or inactive data. Original IDs still align camera/vector histories with curves;
+solver calculation time does not become a replay delay. See
+[the segment-pause repair](Qt6ParityValidation/playback-segment-gaps-20261003.md).
 
 The Standard toolbar's Animation controls share one playback clock across Orbit,
 Ground Track and XY displays. Start pauses at the beginning; Play/Pause resumes

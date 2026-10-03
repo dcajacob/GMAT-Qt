@@ -720,11 +720,22 @@ void PlotWidget::setSharedReplayPosition(int value)
 }
 void PlotWidget::updateReplayFrame()
 {
-   quint64 first=data->frame;
-   for (const auto &curve:data->curves) if (!curve.points.empty()) first=std::min(first,curve.points.front().frame);
    const int value=timeline->value();
    if (replayPosition) replayPosition->setText(value==1000 ? "Latest" : QString::number(value/10.)+"%");
-   drawing->setFrame(value==1000 ? std::numeric_limits<quint64>::max() : first+static_cast<quint64>((data->frame-first)*(value/1000.0)));
+   if (value==1000) { drawing->setFrame(std::numeric_limits<quint64>::max()); return; }
+   size_t pointCount=0;
+   for (const auto &curve:data->curves) pointCount+=curve.points.size();
+   if (replaySourceFrame!=data->frame || replaySourceGeneration!=data->historyGeneration || replayPointCount!=pointCount) {
+      // Current solver mode discards trial samples but retains their callback
+      // serials. Sweep actual retained frames, preserving their IDs so cameras
+      // and vector histories still select the same publication as the curves.
+      replayFrames.clear();
+      for (const auto &curve:data->curves) for (const auto &point:curve.points) replayFrames.append(point.frame);
+      std::sort(replayFrames.begin(),replayFrames.end());
+      replayFrames.erase(std::unique(replayFrames.begin(),replayFrames.end()),replayFrames.end());
+      replaySourceFrame=data->frame; replaySourceGeneration=data->historyGeneration; replayPointCount=pointCount;
+   }
+   drawing->setFrame(replayFrames.isEmpty() ? data->frame : replayFrames[static_cast<qsizetype>((replayFrames.size()-1)*(value/1000.0))]);
 }
 void PlotWidget::restoreView(const PlotViewState &state)
 {

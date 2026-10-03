@@ -123,6 +123,57 @@ int main(int argc,char **argv)
       receiver.CreateXyPlotWindow("Rerun","",0,0,0,0,false,"XY","x","y");
       require(controls->isEnabled() && !play->isChecked(),"New run inherited playback");
       receiver.clear();
+      // Current solver mode removes trial publications without renumbering the
+      // retained samples. Replay must skip those holes, including a removed tail.
+      receiver.CreateGlPlotWindow("SparseOrbit","",0,0,0,0,false,0);
+      receiver.SetGlObject("SparseOrbit",{"Vehicle"},{});
+      receiver.CreateGroundTrackWindow("SparseGround","","Ground",0,0,0,0,false);
+      receiver.CreateXyPlotWindow("SparseXY","",0,0,0,0,false,"XY","x","y");
+      receiver.AddXyPlotCurve("SparseXY",0,"Curve",0xff0000);
+      auto publish=[&](int index,bool solver) {
+         receiver.UpdateGlPlot("SparseOrbit","",{"Vehicle"},21545.+index,{7000.},{double(index)},{0.},{},{},{},{},{},solver,0,false,true,false);
+         receiver.TakeGroundTrackAction("SparseGround",solver ? "SolverData=On" : "SolverData=Off");
+         double point[]={double(index),0};
+         receiver.UpdateGroundTrackData("SparseGround",21545.+index,point,1);
+         receiver.UpdateXyPlotCurve("SparseXY",0,index,index);
+      };
+      auto markTrials=[&] { receiver.XyPlotMarkBreak("SparseXY"); };
+      auto discardTrials=[&] {
+         require(receiver.TakeGlAction("SparseOrbit","ClearSolverData"),"Orbit trial cleanup failed");
+         require(receiver.TakeGroundTrackAction("SparseGround","ClearSolverData"),"Ground trial cleanup failed");
+         receiver.XyPlotClearFromBreak("SparseXY",-1,-1,-1);
+      };
+      publish(1,false); publish(2,false); markTrials();
+      for (int i=3;i<=202;++i) publish(i,true);
+      discardTrials();
+      publish(203,false); publish(204,false); publish(205,false);
+      receiver.missionFinished();
+      slider->setValue(500);
+      for (const auto &name:{"SparseOrbit","SparseGround","SparseXY"})
+         require(plot(receiver,name)->canvas()->frame()==203,"Replay paused in discarded solver frames between segments");
+      markTrials(); for (int i=206;i<=405;++i) publish(i,true);
+      receiver.setReplayPosition(500);
+      require(plot(receiver,"SparseOrbit")->canvas()->frame()==303,"Incoming trial frames did not invalidate replay index");
+      discardTrials(); receiver.setReplayPosition(500);
+      for (const auto &name:{"SparseOrbit","SparseGround","SparseXY"}) {
+         const auto model=receiver.model(name);
+         require(model->frame==405 && model->curves[0].points.size()==5,"Replay changed source history or trial cleanup");
+         require(plot(receiver,name)->canvas()->frame()==203,"Removed trailing solver frames still occupied replay time");
+      }
+      // Local controls use the same retained index; reopened views rebuild it.
+      auto *local=plot(receiver,"SparseOrbit")->findChild<QSlider *>("plotTimeline");
+      local->setValue(750);
+      require(!receiver.replayPosition() && plot(receiver,"SparseOrbit")->canvas()->frame()==204,"Local replay still used cumulative publication count");
+      receiver.setReplayPosition(500);
+      require(dynamic_cast<QMdiSubWindow *>(plot(receiver,"SparseOrbit")->parentWidget())->close(),"Sparse viewer close failed");
+      app.processEvents(); require(receiver.show("SparseOrbit"),"Sparse viewer reopen failed");
+      require(plot(receiver,"SparseOrbit")->canvas()->frame()==203,"Reopened replay lost retained frame selection");
+      receiver.SetMaxGlDataPoints("SparseOrbit",3); receiver.setReplayPosition(0);
+      require(plot(receiver,"SparseOrbit")->canvas()->frame()==203,"Replay index did not follow retained-point trimming");
+      receiver.setReplayPosition(500);
+      require(plot(receiver,"SparseOrbit")->canvas()->frame()==204,"Trimmed retained replay midpoint incorrect");
+      receiver.clear();
+      std::cout << "PASS: discarded solver gaps/tails, Orbit/Ground/XY retained replay, local/shared controls, cache updates, trimming and reopen.\n";
       std::cout << "PASS: distinct Debug bug icon; shared Orbit/Ground/XY Start, Play/Pause, Latest, speed, scrubbing, unequal histories, incoming/reset data, local override, close/reopen, clear/rerun; table excluded; source histories retained. Offscreen only.\n";
       return 0;
    } catch (const std::exception &error) { std::cerr << error.what() << '\n'; return 1; }

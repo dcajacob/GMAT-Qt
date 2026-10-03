@@ -1,0 +1,411 @@
+{
+  "converted_sha256": "973bdb6692d36737dd85495267d180b101cf9aae6cfc18ed6fd36d4029c131e4",
+  "limits": "Retained-frame replay inspection only; no native desktop, host/GPU, new tutorial, or numerical scientific qualification",
+  "master_animation_ticks_checked": 100,
+  "numerical_run_count": 1,
+  "platform": "offscreen",
+  "plots": [
+    {
+      "callback_frame": "7872",
+      "curves": [
+        {
+          "largest_missing_interval": {
+            "from": "6454",
+            "from_provider": "Prop 3 days",
+            "missing_frames": "478",
+            "to": "6933",
+            "to_provider": "Prop 12 Days to TCM"
+          },
+          "name": "MAVEN",
+          "point_count": 1178
+        },
+        {
+          "largest_missing_interval": {
+            "from": "6454",
+            "from_provider": "Prop 3 days",
+            "missing_frames": "478",
+            "to": "6933",
+            "to_provider": "Prop 12 Days to TCM"
+          },
+          "name": "Earth",
+          "point_count": 1178
+        },
+        {
+          "largest_missing_interval": {
+            "from": "6454",
+            "from_provider": "Prop 3 days",
+            "missing_frames": "478",
+            "to": "6933",
+            "to_provider": "Prop 12 Days to TCM"
+          },
+          "name": "Sun",
+          "point_count": 1178
+        }
+      ],
+      "first_retained_frame": "5977",
+      "largest_missing_interval": {
+        "from": "6454",
+        "missing_frames": "478",
+        "to": "6933"
+      },
+      "last_retained_frame": "7872",
+      "name": "OFI_EarthView",
+      "old_largest_gap_fraction": 0.25224274406332453,
+      "old_largest_gap_seconds_at_1x": 0.7567282321899736,
+      "retained_unique_frame_count": 1178,
+      "selection_checks": [
+        {
+          "local_frame": "5977",
+          "old_raw_frame": "5977",
+          "position": 0,
+          "shared_frame": "5977"
+        },
+        {
+          "local_frame": "6094",
+          "old_raw_frame": "6166",
+          "position": 100,
+          "shared_frame": "6094"
+        },
+        {
+          "local_frame": "6271",
+          "old_raw_frame": "6450",
+          "position": 250,
+          "shared_frame": "6271"
+        },
+        {
+          "local_frame": "7129",
+          "old_raw_frame": "6924",
+          "position": 500,
+          "shared_frame": "7129"
+        },
+        {
+          "local_frame": "7577",
+          "old_raw_frame": "7398",
+          "position": 750,
+          "shared_frame": "7577"
+        },
+        {
+          "local_frame": "7754",
+          "old_raw_frame": "7682",
+          "position": 900,
+          "shared_frame": "7754"
+        },
+        {
+          "local_frame": "7860",
+          "old_raw_frame": "7853",
+          "position": 990,
+          "shared_frame": "7860"
+        },
+        {
+          "local_frame": "18446744073709551615",
+          "old_raw_frame": "7872",
+          "position": 1000,
+          "shared_frame": "18446744073709551615"
+        }
+      ]
+    },
+    {
+      "callback_frame": "7872",
+      "curves": [
+        {
+          "largest_missing_interval": {
+            "from": "6454",
+            "from_provider": "Prop 3 days",
+            "missing_frames": "478",
+            "to": "6933",
+            "to_provider": "Prop 12 Days to TCM"
+          },
+          "name": "MAVEN",
+          "point_count": 1178
+        },
+        {
+          "largest_missing_interval": {
+            "from": "6454",
+            "from_provider": "Prop 3 days",
+            "missing_frames": "478",
+            "to": "6933",
+            "to_provider": "Prop 12 Days to TCM"
+          },
+          "name": "Mars",
+          "point_count": 1178
+        },
+        {
+          "largest_missing_interval": {
+            "from": "6454",
+            "from_provider": "Prop 3 days",
+            "missing_frames": "478",
+            "to": "6933",
+            "to_provider": "Prop 12 Days to TCM"
+          },
+          "name": "Earth",
+          "point_count": 1178
+        },
+        {
+          "largest_missing_interval": {
+            "from": "6454",
+            "from_provider": "Prop 3 days",
+            "missing_frames": "478",
+            "to": "6933",
+            "to_provider": "Prop 12 Days to TCM"
+          },
+          "name": "Sun",
+          "point_count": 1178
+        }
+      ],
+      "first_retained_frame": "5977",
+      "largest_missing_interval": {
+        "from": "6454",
+        "missing_frames": "478",
+        "to": "6933"
+      },
+      "last_retained_frame": "7872",
+      "name": "OFI_MarsView",
+      "old_largest_gap_fraction": 0.25224274406332453,
+      "old_largest_gap_seconds_at_1x": 0.7567282321899736,
+      "retained_unique_frame_count": 1178,
+      "selection_checks": [
+        {
+          "local_frame": "5977",
+          "old_raw_frame": "5977",
+          "position": 0,
+          "shared_frame": "5977"
+        },
+        {
+          "local_frame": "6094",
+          "old_raw_frame": "6166",
+          "position": 100,
+          "shared_frame": "6094"
+        },
+        {
+          "local_frame": "6271",
+          "old_raw_frame": "6450",
+          "position": 250,
+          "shared_frame": "6271"
+        },
+        {
+          "local_frame": "7129",
+          "old_raw_frame": "6924",
+          "position": 500,
+          "shared_frame": "7129"
+        },
+        {
+          "local_frame": "7577",
+          "old_raw_frame": "7398",
+          "position": 750,
+          "shared_frame": "7577"
+        },
+        {
+          "local_frame": "7754",
+          "old_raw_frame": "7682",
+          "position": 900,
+          "shared_frame": "7754"
+        },
+        {
+          "local_frame": "7860",
+          "old_raw_frame": "7853",
+          "position": 990,
+          "shared_frame": "7860"
+        },
+        {
+          "local_frame": "18446744073709551615",
+          "old_raw_frame": "7872",
+          "position": 1000,
+          "shared_frame": "18446744073709551615"
+        }
+      ]
+    },
+    {
+      "callback_frame": "7872",
+      "curves": [
+        {
+          "largest_missing_interval": {
+            "from": "6454",
+            "from_provider": "Prop 3 days",
+            "missing_frames": "478",
+            "to": "6933",
+            "to_provider": "Prop 12 Days to TCM"
+          },
+          "name": "MAVEN",
+          "point_count": 1178
+        },
+        {
+          "largest_missing_interval": {
+            "from": "6454",
+            "from_provider": "Prop 3 days",
+            "missing_frames": "478",
+            "to": "6933",
+            "to_provider": "Prop 12 Days to TCM"
+          },
+          "name": "Earth",
+          "point_count": 1178
+        },
+        {
+          "largest_missing_interval": {
+            "from": "6454",
+            "from_provider": "Prop 3 days",
+            "missing_frames": "478",
+            "to": "6933",
+            "to_provider": "Prop 12 Days to TCM"
+          },
+          "name": "Mars",
+          "point_count": 1178
+        },
+        {
+          "largest_missing_interval": {
+            "from": "6454",
+            "from_provider": "Prop 3 days",
+            "missing_frames": "478",
+            "to": "6933",
+            "to_provider": "Prop 12 Days to TCM"
+          },
+          "name": "Sun",
+          "point_count": 1178
+        }
+      ],
+      "first_retained_frame": "5977",
+      "largest_missing_interval": {
+        "from": "6454",
+        "missing_frames": "478",
+        "to": "6933"
+      },
+      "last_retained_frame": "7872",
+      "name": "OFI_SolarSystemView",
+      "old_largest_gap_fraction": 0.25224274406332453,
+      "old_largest_gap_seconds_at_1x": 0.7567282321899736,
+      "retained_unique_frame_count": 1178,
+      "selection_checks": [
+        {
+          "local_frame": "5977",
+          "old_raw_frame": "5977",
+          "position": 0,
+          "shared_frame": "5977"
+        },
+        {
+          "local_frame": "6094",
+          "old_raw_frame": "6166",
+          "position": 100,
+          "shared_frame": "6094"
+        },
+        {
+          "local_frame": "6271",
+          "old_raw_frame": "6450",
+          "position": 250,
+          "shared_frame": "6271"
+        },
+        {
+          "local_frame": "7129",
+          "old_raw_frame": "6924",
+          "position": 500,
+          "shared_frame": "7129"
+        },
+        {
+          "local_frame": "7577",
+          "old_raw_frame": "7398",
+          "position": 750,
+          "shared_frame": "7577"
+        },
+        {
+          "local_frame": "7754",
+          "old_raw_frame": "7682",
+          "position": 900,
+          "shared_frame": "7754"
+        },
+        {
+          "local_frame": "7860",
+          "old_raw_frame": "7853",
+          "position": 990,
+          "shared_frame": "7860"
+        },
+        {
+          "local_frame": "18446744073709551615",
+          "old_raw_frame": "7872",
+          "position": 1000,
+          "shared_frame": "18446744073709551615"
+        }
+      ]
+    }
+  ],
+  "source": "/home/dan/GIT/GMAT-Qt/application/samples/Tut_Mars_B_Plane_Targeting.script",
+  "source_sha256": "f334cf650aaa435f132de1d8e7823333378a0d40cd179e0bb0e3143af4ff3178",
+  "source_unchanged": true,
+  "prior_receipt": "/home/dan/GIT/GMAT-Qt/build/example-qualification/20261002/raw/scripts/application__samples__Tut_Mars_B_Plane_Targeting.script/run/attempt-01/result.json",
+  "prior_source_sha256": "f334cf650aaa435f132de1d8e7823333378a0d40cd179e0bb0e3143af4ff3178",
+  "source_matches_frozen_receipt": true,
+  "solver_report_sha256": "165c8d5cea3af50829ad9bb855c6220243e847ce2402375eb0f1024fac083350",
+  "prior_solver_report_sha256": "165c8d5cea3af50829ad9bb855c6220243e847ce2402375eb0f1024fac083350",
+  "source_matched_solver_report_byte_identical": true,
+  "runtime_hashes": {
+    "/tmp/gmat-mars-segment-probe/probe": "5efc6dcbd68b2348212b943b182739dfbf644a664d7f30af51c1f446583153e5",
+    "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/libGmatQtFrontend.a": "1c2672526d3dc10aad68c3877a9745dfbc9302e2b8567d1300d8643c1ae83d57",
+    "/home/dan/GIT/GMAT-Qt/application/bin/GmatQt": "af0c42cfecd5f7b7c0109b69fe656548afecad2ee83fe874caae365def1e4948",
+    "/home/dan/GIT/GMAT-Qt/application/bin/libGmatBase.so": "2082a341f5f123e81bad362972cd2b28a0a4753047ae51b5c09609e246be430c",
+    "/home/dan/GIT/GMAT-Qt/application/bin/libGmatUtil.so": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8",
+    "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a",
+    "/tmp/gmat-mars-segment-probe/startup.txt": "cc582c700e01ce0c9fdd840aafa28aebe78956f3fac7456659760d994c0e2b57"
+  },
+  "command": [
+    "/tmp/gmat-mars-segment-probe/probe",
+    "/tmp/gmat-mars-segment-probe/startup.txt",
+    "/home/dan/GIT/GMAT-Qt/application/samples/Tut_Mars_B_Plane_Targeting.script",
+    "/tmp/gmat-mars-segment-probe"
+  ],
+  "exit_code": 0,
+  "raw_artifacts": "/home/dan/GIT/GMAT-Qt/build/linux-gui/playback-segment-gaps-20261003/raw",
+  "raw_artifact_files": [
+    {
+      "path": "MyGmat.ini",
+      "size": 385,
+      "sha256": "739259eedae559f4999b1131a897666f15cae9d0012d5f10e23d7927467f8e67"
+    },
+    {
+      "path": "build-commands.json",
+      "size": 4957,
+      "sha256": "b7bbb3008a40a5ae20539071b16fc46af97f3e1f3cefc4b357727d6d7babe30a"
+    },
+    {
+      "path": "converted.script",
+      "size": 19176,
+      "sha256": "973bdb6692d36737dd85495267d180b101cf9aae6cfc18ed6fd36d4029c131e4"
+    },
+    {
+      "path": "output/DifferentialCorrectorDC1.data",
+      "size": 740,
+      "sha256": "165c8d5cea3af50829ad9bb855c6220243e847ce2402375eb0f1024fac083350"
+    },
+    {
+      "path": "output/GmatLog.txt",
+      "size": 4849,
+      "sha256": "0d57f2143ed4174a4241c6a5681b96e1319fa560fdc92cbb80c44626ecc97d83"
+    },
+    {
+      "path": "probe.cpp",
+      "size": 8231,
+      "sha256": "96b16a039b6847bd047f1d571cc737fc87f8ad6b877296f31089fbe6d714c6c9"
+    },
+    {
+      "path": "receipt.json",
+      "size": 67521,
+      "sha256": "46b7f840088688bcbe22d118b7c16b80c8d5435fc25a156639fef58c6834dd56"
+    },
+    {
+      "path": "settings/GMATPrivateProbe/MarsSegmentReplay.ini",
+      "size": 68,
+      "sha256": "bfaebb0d50e5e59a9f4b45650e540354b8c862bff751e716b225950dd5deb624"
+    },
+    {
+      "path": "startup.txt",
+      "size": 10999,
+      "sha256": "cc582c700e01ce0c9fdd840aafa28aebe78956f3fac7456659760d994c0e2b57"
+    },
+    {
+      "path": "stderr.txt",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stdout.txt",
+      "size": 108,
+      "sha256": "5cc6972d61ee61550c05105e4b56d7074753cd58ac99d503e02e81189a457c0e"
+    }
+  ]
+}

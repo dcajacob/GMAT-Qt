@@ -1,0 +1,15 @@
+[1/15] cd /home/dan/GIT/GMAT-Qt/build/linux-gui && /usr/bin/cmake -E make_directory /home/dan/GIT/GMAT-Qt/application/bin && /usr/bin/cmake -E copy_if_different /home/dan/GIT/GMAT-Qt/build/linux-gui/qt-startup/Release/gmat_startup_qt.txt /home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt
+[2/15] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/VisualModelDialog.cpp.o
+[3/15] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/PlotWidget.cpp.o
+[4/15] Building CXX object src/qtgui/CMakeFiles/GmatQtSolverPlotTests.dir/tests/SolverPlotTests.cpp.o
+[5/15] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/QtPlotReceiver.cpp.o
+[6/15] Linking CXX static library src/qtgui/libGmatQtFrontend.a
+[7/15] Linking CXX executable /home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a
+[8/15] Creating executable symlink /home/dan/GIT/GMAT-Qt/application/bin/GmatQt
+[9/15] Building CXX object src/qtgui/CMakeFiles/GmatQtPlotTests.dir/tests/PlotTests.cpp.o
+[10/15] Building CXX object src/qtgui/CMakeFiles/GmatQtSharedPlaybackTests.dir/tests/SharedPlaybackTests.cpp.o
+[11/15] Linking CXX executable src/qtgui/GmatQtSolverPlotTests
+[12/15] Linking CXX executable src/qtgui/GmatQtPlotTests
+[13/15] Building CXX object src/qtgui/CMakeFiles/GmatQtOwnedPlotBatchTests.dir/tests/OwnedPlotBatchTests.cpp.o
+[14/15] Linking CXX executable src/qtgui/GmatQtSharedPlaybackTests
+[15/15] Linking CXX executable src/qtgui/GmatQtOwnedPlotBatchTests
