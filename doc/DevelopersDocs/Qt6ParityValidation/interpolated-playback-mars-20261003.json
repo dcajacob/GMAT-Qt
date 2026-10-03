@@ -1,0 +1,168 @@
+{
+  "converted_sha256": "973bdb6692d36737dd85495267d180b101cf9aae6cfc18ed6fd36d4029c131e4",
+  "limits": "Retained-frame replay inspection only; no native desktop, host/GPU, new tutorial, or numerical scientific qualification",
+  "master_animation_ticks_checked": 100,
+  "numerical_run_count": 1,
+  "platform": "offscreen",
+  "plots": [
+    {
+      "callback_frame": "7872",
+      "checked_interpolated_camera_targets": 99,
+      "connected_time_seconds": 26646284.284521848,
+      "disconnected_edges": 6,
+      "disconnected_time_seconds": -10813.862362888176,
+      "first_retained_frame": "5977",
+      "fractional_presentation_poses": 99,
+      "interpolated_epoch_delta_max_seconds": 266462.8428454511,
+      "interpolated_epoch_delta_min_seconds": 255648.9804822486,
+      "largest_missing_interval": {
+        "from": "6454",
+        "missing_frames": "478",
+        "to": "6933"
+      },
+      "last_retained_frame": "7872",
+      "max_camera_target_error_km": 0,
+      "max_global_linear_epoch_error_seconds": 10705.72373920586,
+      "name": "OFI_EarthView",
+      "old_largest_gap_fraction": 0.25224274406332453,
+      "old_largest_gap_seconds_at_1x": 0.7567282321899736,
+      "propagation_epoch_delta_max_seconds": 8299221.46578416,
+      "propagation_epoch_delta_min_seconds": -9915.809407015331,
+      "retained_history_byte_identical": true,
+      "retained_history_sha256": "db48e7856ab5e5a95a3b348ee047161a9e4b58d9f9f75ab60fc0f294483ce068",
+      "retained_unique_frame_count": 1178,
+      "connected_cadence_validation": {
+        "equal_percentage_intervals": 100,
+        "uniform_connected_intervals": 99,
+        "expected_delta_seconds": 266462.8428452185,
+        "observed_connected_delta_min_seconds": 266462.84284513677,
+        "observed_connected_delta_max_seconds": 266462.8428454511,
+        "reset_crossings": [
+          {
+            "position": 1000,
+            "delta_seconds": 255648.9804822486,
+            "difference_from_connected_seconds": -10813.8623629699
+          }
+        ],
+        "recorded_reset_sum_error_seconds": 4.656612873077393e-10,
+        "passed": true
+      }
+    },
+    {
+      "callback_frame": "7872",
+      "checked_interpolated_camera_targets": 99,
+      "connected_time_seconds": 26646284.284521848,
+      "disconnected_edges": 6,
+      "disconnected_time_seconds": -10813.862362888176,
+      "first_retained_frame": "5977",
+      "fractional_presentation_poses": 99,
+      "interpolated_epoch_delta_max_seconds": 266462.8428454511,
+      "interpolated_epoch_delta_min_seconds": 255648.9804822486,
+      "largest_missing_interval": {
+        "from": "6454",
+        "missing_frames": "478",
+        "to": "6933"
+      },
+      "last_retained_frame": "7872",
+      "max_camera_target_error_km": 0,
+      "max_global_linear_epoch_error_seconds": 10705.72373920586,
+      "name": "OFI_MarsView",
+      "old_largest_gap_fraction": 0.25224274406332453,
+      "old_largest_gap_seconds_at_1x": 0.7567282321899736,
+      "propagation_epoch_delta_max_seconds": 8299221.46578416,
+      "propagation_epoch_delta_min_seconds": -9915.809407015331,
+      "retained_history_byte_identical": true,
+      "retained_history_sha256": "5997f665cb0e6b1488eb113e2c914dc177a4e5feb2a8f85f5c027e1931bbdcb6",
+      "retained_unique_frame_count": 1178,
+      "connected_cadence_validation": {
+        "equal_percentage_intervals": 100,
+        "uniform_connected_intervals": 99,
+        "expected_delta_seconds": 266462.8428452185,
+        "observed_connected_delta_min_seconds": 266462.84284513677,
+        "observed_connected_delta_max_seconds": 266462.8428454511,
+        "reset_crossings": [
+          {
+            "position": 1000,
+            "delta_seconds": 255648.9804822486,
+            "difference_from_connected_seconds": -10813.8623629699
+          }
+        ],
+        "recorded_reset_sum_error_seconds": 4.656612873077393e-10,
+        "passed": true
+      }
+    },
+    {
+      "callback_frame": "7872",
+      "checked_interpolated_camera_targets": 99,
+      "connected_time_seconds": 26646284.284521848,
+      "disconnected_edges": 6,
+      "disconnected_time_seconds": -10813.862362888176,
+      "first_retained_frame": "5977",
+      "fractional_presentation_poses": 99,
+      "interpolated_epoch_delta_max_seconds": 266462.8428454511,
+      "interpolated_epoch_delta_min_seconds": 255648.9804822486,
+      "largest_missing_interval": {
+        "from": "6454",
+        "missing_frames": "478",
+        "to": "6933"
+      },
+      "last_retained_frame": "7872",
+      "max_camera_target_error_km": 0,
+      "max_global_linear_epoch_error_seconds": 10705.72373920586,
+      "name": "OFI_SolarSystemView",
+      "old_largest_gap_fraction": 0.25224274406332453,
+      "old_largest_gap_seconds_at_1x": 0.7567282321899736,
+      "propagation_epoch_delta_max_seconds": 8299221.46578416,
+      "propagation_epoch_delta_min_seconds": -9915.809407015331,
+      "retained_history_byte_identical": true,
+      "retained_history_sha256": "24deaa0302315eb4d59e622f7a59aec4a5cef64f2e629f992887870f331ae0a9",
+      "retained_unique_frame_count": 1178,
+      "connected_cadence_validation": {
+        "equal_percentage_intervals": 100,
+        "uniform_connected_intervals": 99,
+        "expected_delta_seconds": 266462.8428452185,
+        "observed_connected_delta_min_seconds": 266462.84284513677,
+        "observed_connected_delta_max_seconds": 266462.8428454511,
+        "reset_crossings": [
+          {
+            "position": 1000,
+            "delta_seconds": 255648.9804822486,
+            "difference_from_connected_seconds": -10813.8623629699
+          }
+        ],
+        "recorded_reset_sum_error_seconds": 4.656612873077393e-10,
+        "passed": true
+      }
+    }
+  ],
+  "source": "/home/dan/GIT/GMAT-Qt/application/samples/Tut_Mars_B_Plane_Targeting.script",
+  "source_sha256": "f334cf650aaa435f132de1d8e7823333378a0d40cd179e0bb0e3143af4ff3178",
+  "source_unchanged": true,
+  "prior_receipt": "/home/dan/GIT/GMAT-Qt/build/example-qualification/20261002/raw/scripts/application__samples__Tut_Mars_B_Plane_Targeting.script/run/attempt-01/result.json",
+  "prior_source_sha256": "f334cf650aaa435f132de1d8e7823333378a0d40cd179e0bb0e3143af4ff3178",
+  "source_matches_frozen_receipt": true,
+  "solver_report_sha256": "165c8d5cea3af50829ad9bb855c6220243e847ce2402375eb0f1024fac083350",
+  "prior_solver_report_sha256": "165c8d5cea3af50829ad9bb855c6220243e847ce2402375eb0f1024fac083350",
+  "source_matched_solver_report_byte_identical": true,
+  "runtime_hashes": {
+    "/tmp/gmat-mars-interpolated-probe/probe": "ee87d09046a151d400b90262669b8c9cc2681efc0b9c4bafd8347ffb3f83484d",
+    "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/libGmatQtFrontend.a": "62b1dc5b55e9ffa21edcc7a939590f811b80183daa41395f888edccbb2e2dd14",
+    "/home/dan/GIT/GMAT-Qt/application/bin/GmatQt": "e126f7a1348a29bd527665064800d1aa517cfa0f599b383f4fdb11d6339ca798",
+    "/home/dan/GIT/GMAT-Qt/application/bin/libGmatBase.so": "2082a341f5f123e81bad362972cd2b28a0a4753047ae51b5c09609e246be430c",
+    "/home/dan/GIT/GMAT-Qt/application/bin/libGmatUtil.so": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8",
+    "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a",
+    "/tmp/gmat-mars-interpolated-probe/startup.txt": "72b31bf1548c5f5e2f968afc3819732e8cb0d2127c3016cfbc973ccb74ef6a2f"
+  },
+  "command": [
+    "/tmp/gmat-mars-interpolated-probe/probe",
+    "/tmp/gmat-mars-interpolated-probe/startup.txt",
+    "/home/dan/GIT/GMAT-Qt/application/samples/Tut_Mars_B_Plane_Targeting.script",
+    "/tmp/gmat-mars-interpolated-probe"
+  ],
+  "exit_code": 0,
+  "both_modes_checked": true,
+  "shared_and_local_slower_faster_checked": true,
+  "default_mode": "Interpolated steps",
+  "raw_evidence_directory": "/home/dan/GIT/GMAT-Qt/build/linux-gui/interpolated-playback-20261003/raw",
+  "raw_receipt_sha256": "df91a8accae828ac6f1b764b5fd0486dce3b08e94eb0e8606406f3a4c5ebb2b1"
+}

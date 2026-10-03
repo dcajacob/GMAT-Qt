@@ -5,6 +5,7 @@
 #include "OrbitVelocity.hpp"
 #include <osg/PolygonOffset>
 #include "OrbitVectors.hpp"
+#include "PlotInterpolation.hpp"
 #include <osg/PolygonMode>
 #include <osg/BlendFunc>
 #include <QOpenGLContext>
@@ -295,8 +296,7 @@ struct OrbitRenderer::Scene
       const double halfHeight=model->perspective ? distance*tangent : viewExtent/zoom/std::min(1.0,aspect),halfWidth=halfHeight*aspect;
       osg::Vec4 lightPosition(outward.x(),outward.y(),outward.z(),0);
       for (const auto &source:model->curves) {
-         const PlotPoint *last=nullptr;
-         for (const auto &point:source.points) if (point.frame<=frame) last=&point;
+         const auto *last=orbitObjectPose(source,frame);
          if (model->sunlight && last && last->hasSun) {
             lightPosition=osg::Vec4(last->sunPosition[0],last->sunPosition[1],last->sunPosition[2],1);
             break;
@@ -314,8 +314,8 @@ struct OrbitRenderer::Scene
       sky->removeDrawables(0,sky->getNumDrawables());
       std::array<double,9> inertialToView={1,0,0,0,1,0,0,0,1};
       const PlotPoint *sample=nullptr;
-      for (const auto &source:model->curves) for (const auto &point:source.points)
-         if (point.frame<=frame && (!sample || point.frame>sample->frame)) sample=&point;
+      for (const auto &source:model->curves)
+         if (const auto *pose=orbitObjectPose(source,frame); pose && (!sample || pose->frame>=sample->frame)) sample=pose;
       if (sample) inertialToView=sample->inertialToView;
       auto rotateSky=[&](const std::array<double,3> &value) {
          osg::Vec3d result;
@@ -418,7 +418,7 @@ struct OrbitRenderer::Scene
       }
       for (const auto &source:model->curves) if (source.visible && source.objectVelocity) {
          const auto first=model->firstVisibleFrame(source,frame);
-         for (const auto &point:source.points) if (point.frame>=first && point.frame<=frame)
+         for (const auto &point:plotDisplayedPoints(source,frame)) if (point.frame>=first)
             if (const auto velocity=orbitVelocitySegment(point)) line(velocity->start,velocity->end,color(velocity->color));
       }
       for (const auto &source:model->curves) if (source.visible && source.objectAxes) {
@@ -506,8 +506,8 @@ struct OrbitRenderer::Scene
          // centerline's bound; let the GPU clip that geometry instead.
          curve.root->setCullingActive(!wide); curve.track->setCullingActive(!wide);
          const auto first=model->firstVisibleFrame(source,frame);
-         for (const auto &p:source.points) {
-            if (p.frame>frame || p.frame<first) continue;
+         for (const auto &p:plotDisplayedPoints(source,frame)) {
+            if (p.frame<first) continue;
             if (!p.connect && positions->size()>start) {
                if (source.lines && !wide) geometry->addPrimitiveSet(new osg::DrawArrays(GL_LINE_STRIP,start,positions->size()-start));
                start=positions->size();
@@ -528,8 +528,8 @@ struct OrbitRenderer::Scene
             osg::ref_ptr<osg::Vec4Array> neighbors=new osg::Vec4Array,tints=new osg::Vec4Array;
             const auto projection=viewer.getCamera()->getViewMatrix()*viewer.getCamera()->getProjectionMatrix();
             const PlotPoint *previous=nullptr;
-            for (const auto &p:source.points) {
-               if (p.frame>frame || p.frame<first) continue;
+            for (const auto &p:plotDisplayedPoints(source,frame)) {
+               if (p.frame<first) continue;
                if (previous && p.connect) {
                   osg::Vec3d a(previous->x,previous->y,previous->z),b(p.x,p.y,p.z);
                   auto ca=color(previous->color),cb=color(p.color);
@@ -680,8 +680,7 @@ void OrbitRenderer::drawOverlay(QPainter &painter)
       const auto projection=scene->viewer.getCamera()->getViewMatrix()*scene->viewer.getCamera()->getProjectionMatrix();
       for (const auto &curve:scene->model->curves) {
          if (!curve.drawsLabel()) continue;
-         const PlotPoint *last=nullptr;
-         for (const auto &point:curve.points) if (point.frame<=scene->frame) last=&point;
+         const auto *last=orbitObjectPose(curve,scene->frame);
          if (!last) continue;
          const auto clip=osg::Vec4d(last->x,last->y,last->z,1)*projection;
          if (clip.w()<=0 || std::abs(clip.x())>clip.w() || std::abs(clip.y())>clip.w() || std::abs(clip.z())>clip.w()) continue;

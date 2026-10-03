@@ -1,4 +1,5 @@
 #include "PlotPlaybackControls.hpp"
+#include "PlotModel.hpp"
 #include "QtPlotReceiver.hpp"
 #include <QAction>
 #include <QComboBox>
@@ -21,7 +22,7 @@ PlotPlaybackControls::PlotPlaybackControls(QtPlotReceiver &plots,QWidget *parent
    layout->addWidget(new QLabel("Animation",this));
    auto action=[&](const QString &name,const QString &text,QStyle::StandardPixmap icon,const QString &tip) {
       auto *result=new QAction(style()->standardIcon(icon),text,this); result->setObjectName(name); result->setToolTip(tip);
-      auto *button=new QToolButton(this); button->setDefaultAction(result); layout->addWidget(button);
+      auto *button=new QToolButton(this); button->setObjectName(name); button->setAccessibleName(text); button->setDefaultAction(result); layout->addWidget(button);
       return result;
    };
    auto *start=action("allPlotReplayStart","Start",QStyle::SP_MediaSkipBackward,"Pause all plots and return to the start of retained history");
@@ -34,11 +35,25 @@ PlotPlaybackControls::PlotPlaybackControls(QtPlotReceiver &plots,QWidget *parent
    timeline->setToolTip("Shared percentage of each display's retained history; this is not a common epoch"); layout->addWidget(timeline);
    position=new QLabel("Latest",this); position->setObjectName("allPlotReplayPosition");
    position->setMinimumWidth(position->fontMetrics().horizontalAdvance("100.0%")+4); layout->addWidget(position);
+   mode=new QComboBox(this); mode->setObjectName("allPlotReplayMode"); mode->setAccessibleName("All plots playback mode");
+   mode->setToolTip("Show retained propagation samples or interpolate at uniform time steps within each segment");
+   mode->addItem("Propagation steps",static_cast<int>(PlotReplayMode::PropagationSteps));
+   mode->addItem("Interpolated steps",static_cast<int>(PlotReplayMode::InterpolatedSteps));
+   mode->setCurrentIndex(1); layout->addWidget(mode);
+   slower=action("allPlotReplaySlower","Slower playback",QStyle::SP_MediaSeekBackward,"Decrease playback speed");
    speed=new QComboBox(this); speed->setObjectName("allPlotReplaySpeed"); speed->setAccessibleName("All plots playback speed");
    speed->setToolTip("Animation speed relative to a three-second sweep of retained history");
    for (double rate:{0.25,0.5,1.,2.,4.}) speed->addItem(QString::number(rate)+QString::fromUtf8("×"),rate);
    speed->setCurrentIndex(2); layout->addWidget(speed);
+   faster=action("allPlotReplayFaster","Faster playback",QStyle::SP_MediaSeekForward,"Increase playback speed");
    timer=new QTimer(this); timer->setObjectName("allPlotReplayTimer"); timer->setInterval(30);
+   connect(mode,&QComboBox::currentIndexChanged,this,[this] {
+      receiver.setReplayMode(static_cast<PlotReplayMode>(mode->currentData().toInt()));
+      syncFromReceiver();
+   });
+   connect(slower,&QAction::triggered,this,[this] { speed->setCurrentIndex(std::max(0,speed->currentIndex()-1)); });
+   connect(faster,&QAction::triggered,this,[this] { speed->setCurrentIndex(std::min(speed->count()-1,speed->currentIndex()+1)); });
+   connect(speed,&QComboBox::currentIndexChanged,this,[this] { updateSpeedButtons(); });
    connect(start,&QAction::triggered,this,[this] { stop(); seek(0); });
    connect(latest,&QAction::triggered,this,[this] { stop(); seek(1000); });
    connect(play,&QAction::toggled,this,[this](bool checked) {
@@ -69,8 +84,16 @@ void PlotPlaybackControls::seek(int value)
    receiver.setReplayPosition(value);
    syncFromReceiver();
 }
+void PlotPlaybackControls::updateSpeedButtons()
+{
+   slower->setEnabled(speed->currentIndex()>0);
+   faster->setEnabled(speed->currentIndex()<speed->count()-1);
+}
 void PlotPlaybackControls::syncFromReceiver()
 {
+   const QSignalBlocker modeBlock(mode);
+   mode->setCurrentIndex(mode->findData(static_cast<int>(receiver.replayMode())));
+   updateSpeedButtons();
    const bool available=receiver.hasReplayDisplays();
    setEnabled(available);
    const auto shared=receiver.replayPosition();

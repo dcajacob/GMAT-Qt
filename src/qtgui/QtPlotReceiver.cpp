@@ -155,7 +155,20 @@ bool QtPlotReceiver::hasReplayDisplays() const
 void QtPlotReceiver::setReplayPosition(int value)
 {
    sharedReplayPosition=std::clamp(value,0,1000);
-   for (auto &entry:entries) if (entry.widget) entry.widget->setSharedReplayPosition(*sharedReplayPosition);
+   for (auto &entry:entries) if (entry.widget) {
+      entry.widget->setSharedReplayMode(sharedReplayMode);
+      entry.widget->setSharedReplayPosition(*sharedReplayPosition);
+   }
+   if (replayChanged) replayChanged();
+}
+void QtPlotReceiver::setReplayMode(PlotReplayMode mode)
+{
+   sharedReplayMode=mode;
+   for (auto &entry:entries) if (entry.widget) {
+      entry.widget->setSharedReplayMode(mode);
+      if (sharedReplayPosition) entry.widget->setSharedReplayPosition(*sharedReplayPosition);
+      else entry.widget->refresh();
+   }
    if (replayChanged) replayChanged();
 }
 void QtPlotReceiver::releaseSharedReplay()
@@ -223,6 +236,7 @@ bool QtPlotReceiver::show(const QString &name)
          entry.widget=new PlotWidget(entry.data);
          entry.widget->replayRequested=[this] { releaseSharedReplay(); };
          entry.widget->skyRequested=[this,name] { if (auto *current=find(name.toStdString())) loadSkyCatalogs(*current,name.toStdString()); };
+         entry.widget->setSharedReplayMode(sharedReplayMode);
          if (sharedReplayPosition) entry.widget->setSharedReplayPosition(*sharedReplayPosition);
          entry.widget->setProtectedPaths([this] { return protectedPaths ? protectedPaths() : QStringList(); });
          if (saveProjection) entry.widget->setProjectionSaver([this,name](bool perspective,double fov) { return saveProjection(name,perspective,fov); });

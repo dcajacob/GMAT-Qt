@@ -23,6 +23,8 @@ public:
    void missionFinished();
    bool hasReplayDisplays() const;
    void setReplayPosition(int value);
+   void setReplayMode(PlotReplayMode mode);
+   PlotReplayMode replayMode() const { return sharedReplayMode; }
    void releaseSharedReplay();
    std::optional<int> replayPosition() const { return sharedReplayPosition; }
    static void validateCameraReferences(const QMap<QString,QtCameraSetting> &settings);
@@ -236,6 +238,7 @@ private:
    QMdiArea *workspace;
    QMap<QString, Entry> entries;
    std::optional<int> sharedReplayPosition;
+   PlotReplayMode sharedReplayMode=PlotReplayMode::InterpolatedSteps;
    QSet<QString> warnings;
    QMap<QString,PlotViewState> savedViews;
 };

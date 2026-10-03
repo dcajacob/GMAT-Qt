@@ -14,6 +14,7 @@
 #include <QColorDialog>
 #include <functional>
 #include "PlotWidget.hpp"
+#include "PlotInterpolation.hpp"
 #include <QSignalBlocker>
 #include "OrbitRenderer.hpp"
 #include "OrbitLabels.hpp"
@@ -133,7 +134,10 @@ void PlotCanvas::restoreView(const PlotViewState &state)
    if (!data->cameraViews.isEmpty()) { data->cameraViews[data->selectedCamera].perspective=saved.perspective; data->cameraViews[data->selectedCamera].fieldOfView=saved.fieldOfView; }
    refresh();
 }
-void PlotCanvas::setFrame(quint64 value) { visibleFrame = value; refresh(); }
+void PlotCanvas::setFrame(quint64 value) { plotSetReplayCursor(*data,{}); visibleFrame = value; refresh(); }
+void PlotCanvas::setReplayCursor(const PlotReplayCursor &cursor) {
+   plotSetReplayCursor(*data,cursor); visibleFrame=cursor.before; refresh();
+}
 void PlotCanvas::zoomBy(double steps) { zoom = std::clamp(zoom * std::pow(1.15, steps), 0.02, 200.0); refresh(); }
 void PlotCanvas::setViewAngles(double azimuth, double elevation) { yaw = azimuth; pitch = elevation; refresh(); }
 void PlotCanvas::mousePressEvent(QMouseEvent *event) { lastMouse = event->position(); if (data->kind==PlotModel::Kind::Orbit) setFocus(Qt::MouseFocusReason); }
@@ -297,7 +301,7 @@ void PlotCanvas::paintEvent(QPaintEvent *)
          if (!curve.visible) continue;
          const PlotPoint *previous=nullptr,*last=nullptr;
          const auto first=data->firstVisibleFrame(curve,visibleFrame);
-         for (const auto &point:curve.points) {
+         for (const auto &point:plotDisplayedPoints(curve,visibleFrame)) {
             if (point.frame>visibleFrame || point.frame<first) continue;
             if (curve.lines && previous && point.connect) {
                const PlotPoint *a=previous,*b=&point;
@@ -394,7 +398,7 @@ void PlotCanvas::paintEvent(QPaintEvent *)
             const double reach=data->perspective ? 1.0 : camera.distance;
             bool occluded=false;
             for (const auto &body:data->curves) if (body.visible && body.showObject && body.radius>0) {
-               const PlotPoint *center=nullptr; for (const auto &p:body.points) if (p.frame<=visibleFrame) center=&p;
+               const PlotPoint *center=orbitObjectPose(body,visibleFrame);
                if (!center) continue;
                const auto delta=origin-osg::Vec3d(center->x,center->y,center->z);
                const double a=direction*direction,b=delta*direction,c=delta*delta-body.radius*body.radius;
@@ -458,8 +462,7 @@ void PlotCanvas::paintEvent(QPaintEvent *)
       }
       if (data->labels) for (const auto &curve:data->curves) {
          if (!curve.drawsLabel()) continue;
-         const PlotPoint *last=nullptr;
-         for (const auto &point:curve.points) if (point.frame<=visibleFrame) last=&point;
+         const PlotPoint *last=orbitObjectPose(curve,visibleFrame);
          if (last && perspectiveScale(*last)>0) { painter.setPen(foreground); drawOrbitLabel(painter,screen(project(*last)),curve); }
       }
    }
@@ -467,7 +470,7 @@ void PlotCanvas::paintEvent(QPaintEvent *)
       if (!curve.visible) continue;
       const PlotPoint *previous=nullptr, *last=nullptr;
       const auto first=data->firstVisibleFrame(curve,visibleFrame);
-      for (const auto &point : curve.points) {
+      for (const auto &point : plotDisplayedPoints(curve,visibleFrame)) {
          if (point.frame > visibleFrame || point.frame<first) continue;
          const QPointF position=project(point), pixel=screen(position);
          painter.setPen(curvePen(curve,point.color));
@@ -663,6 +666,16 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
    timeline = new QSlider(Qt::Horizontal,this); timeline->setObjectName("plotTimeline"); timeline->setRange(0,1000); timeline->setValue(1000);
    timeline->hide();
    timer = new QTimer(this); timer->setObjectName("plotReplayTimer"); timer->setInterval(30);
+   replayMode=new QComboBox(this); replayMode->setObjectName("plotReplayMode");
+   replayMode->addItem("Propagation steps",static_cast<int>(PlotReplayMode::PropagationSteps));
+   replayMode->addItem("Interpolated steps",static_cast<int>(PlotReplayMode::InterpolatedSteps));
+   replayMode->setCurrentIndex(1);
+   replayMode->setToolTip("Uniform simulation-time interpolation within connected Orbit/Ground Track history; XY uses recorded samples");
+   replayMode->setAccessibleName("Playback mode");
+   replayMode->hide();
+   connect(replayMode,&QComboBox::currentIndexChanged,this,[this] {
+      if (replayRequested) replayRequested(); updateReplayFrame();
+   });
    if (data->kind != PlotModel::Kind::XY) {
       auto *transport=new QWidget(this); transport->setObjectName("plotPlaybackControls");
       auto *transportLayout=new QVBoxLayout(transport); transportLayout->setContentsMargins(4,0,4,2); transportLayout->setSpacing(2);
@@ -697,7 +710,24 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
       auto *speed=new QComboBox(transport); speed->setObjectName("plotReplaySpeed"); speed->setAccessibleName("Playback speed");
       speed->setToolTip("Playback speed relative to a three-second sweep of recorded history");
       for (double rate:{0.25,0.5,1.,2.,4.}) speed->addItem(QString::number(rate)+QString::fromUtf8("×"),rate);
-      speed->setCurrentIndex(2); buttons->addStretch(); buttons->addWidget(speed);
+      speed->setCurrentIndex(2);
+      auto *slower=addPlaybackAction(QStyle::SP_ArrowLeft,"Slower"); slower->setObjectName("plotReplaySlower");
+      auto *faster=addPlaybackAction(QStyle::SP_ArrowRight,"Faster"); faster->setObjectName("plotReplayFaster");
+      slower->setToolTip("Decrease playback speed"); faster->setToolTip("Increase playback speed");
+      for (auto *button:transport->findChildren<QToolButton *>())
+         if (button->defaultAction()==slower || button->defaultAction()==faster) {
+            button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+            button->setAccessibleName(button->defaultAction()->text());
+         }
+      connect(slower,&QAction::triggered,this,[speed] { speed->setCurrentIndex(std::max(0,speed->currentIndex()-1)); });
+      connect(faster,&QAction::triggered,this,[speed] { speed->setCurrentIndex(std::min(speed->count()-1,speed->currentIndex()+1)); });
+      auto syncSpeed=[speed,slower,faster] {
+         slower->setEnabled(speed->currentIndex()>0); faster->setEnabled(speed->currentIndex()+1<speed->count());
+      };
+      connect(speed,&QComboBox::currentIndexChanged,this,syncSpeed); syncSpeed();
+      // Mode and speed get their own row to preserve narrow tiled plots.
+      auto *options=new QHBoxLayout; options->setSpacing(3); transportLayout->addLayout(options);
+      replayMode->show(); options->addWidget(replayMode); options->addStretch(); options->addWidget(speed);
       connect(timer,&QTimer::timeout,this,[this,speed,remainder=0.]() mutable {
          const double advance=10*speed->currentData().toDouble()+remainder;
          const int steps=static_cast<int>(advance); remainder=advance-steps;
@@ -709,6 +739,11 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
    }
    connect(timeline,&QSlider::valueChanged,this,[this] { if (replayRequested) replayRequested(); updateReplayFrame(); });
    layout->addWidget(drawing,1);
+}
+void PlotWidget::setSharedReplayMode(PlotReplayMode mode)
+{
+   const QSignalBlocker block(replayMode);
+   replayMode->setCurrentIndex(replayMode->findData(static_cast<int>(mode)));
 }
 void PlotWidget::setSharedReplayPosition(int value)
 {
@@ -733,7 +768,31 @@ void PlotWidget::updateReplayFrame()
       for (const auto &curve:data->curves) for (const auto &point:curve.points) replayFrames.append(point.frame);
       std::sort(replayFrames.begin(),replayFrames.end());
       replayFrames.erase(std::unique(replayFrames.begin(),replayFrames.end()),replayFrames.end());
+      replayTimes.clear(); replayTimes.resize(replayFrames.size());
+      QVector<bool> connected(replayFrames.size(),false);
+      for (const auto &curve:data->curves) for (const auto &point:curve.points) {
+         const auto index=std::lower_bound(replayFrames.begin(),replayFrames.end(),point.frame)-replayFrames.begin();
+         replayTimes[index].epoch=point.epoch;
+         connected[index]=connected[index] || point.connect;
+      }
+      for (qsizetype i=1;i<replayTimes.size();++i) {
+         const auto delta=replayTimes[i].epoch-replayTimes[i-1].epoch;
+         replayTimes[i].time=replayTimes[i-1].time+(connected[i] && delta>0 ? delta : 0);
+      }
       replaySourceFrame=data->frame; replaySourceGeneration=data->historyGeneration; replayPointCount=pointCount;
+   }
+   const bool interpolated=replayMode->currentData().toInt()==static_cast<int>(PlotReplayMode::InterpolatedSteps);
+   if (interpolated && data->kind!=PlotModel::Kind::XY && !replayTimes.isEmpty() && replayTimes.back().time>0) {
+      const double time=replayTimes.back().time*(value/1000.0);
+      auto upper=std::upper_bound(replayTimes.cbegin(),replayTimes.cend(),time,[](double t,const ReplaySample &sample) { return t<sample.time; });
+      const auto after=upper-replayTimes.cbegin();
+      if (after<replayTimes.size()) {
+         const auto before=after-1;
+         const double fraction=(time-replayTimes[before].time)/(replayTimes[after].time-replayTimes[before].time);
+         drawing->setReplayCursor({replayFrames[before],replayFrames[after],fraction,
+            replayTimes[before].epoch+(replayTimes[after].epoch-replayTimes[before].epoch)*fraction});
+         return;
+      }
    }
    drawing->setFrame(replayFrames.isEmpty() ? data->frame : replayFrames[static_cast<qsizetype>((replayFrames.size()-1)*(value/1000.0))]);
 }

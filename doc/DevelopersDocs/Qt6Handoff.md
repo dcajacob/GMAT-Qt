@@ -20,12 +20,16 @@ brief, not proof of qualification. Recheck the repository before making changes.
 
 ## Current installed application — 2026-10-03
 
-GmatQt is rebuilt at **6,151,088 bytes / SHAaf0c42cf…**.
-[The animation segment-pause repair](Qt6ParityValidation/playback-segment-gaps-20261003.md)
-removes discarded solver callbacks from replay time while retaining original
-sample IDs. The reproduced failure, five directly affected passing checks and
-one affected Mars B Plane replay probe with a byte-identical solver report are
-recorded; base/util/startup are unchanged. Earlier
+GmatQt is rebuilt at **6,187,872 bytes / SHAe126f7a1…**.
+[Two animation modes and speed buttons](Qt6ParityValidation/interpolated-playback-20261003.md)
+add default uniform simulation-time interpolation within connected forward
+segments, retained Propagation steps and shared/local Slower/Faster buttons.
+Seven relevant checks pass, including private Xvfb software rendering. One
+affected Mars B Plane run verifies connected timing and unchanged raw histories
+with a byte-identical solver report. Disconnected resets remain immediate jumps;
+host/GPU acceptance remains open. Base/util/startup are unchanged.
+[The earlier segment-pause repair](Qt6ParityValidation/playback-segment-gaps-20261003.md)
+retains its reproduced failure and original runtime evidence. Earlier
 [Help attachment and Find Return evidence](Qt6ParityValidation/help-attachments-20261003.md)
 remains bound to its original runtime. [Offline Help publication](Qt6ParityValidation/help-publication-20261003.md)
 includes eighteen tutorial chapters. Numerical walkthroughs remain bound to

@@ -546,27 +546,37 @@ into rows and reserve space above the chart; excess entries use a count instead
 of drawing over the data. Hover over the chart for complete title, axis labels
 and visible curve names. Wider windows restore full labels automatically.
 
-Orbit and ground-track playback has Start, Play/Pause, Latest and speed controls
-(0.25×–4×). Pause/resume retains the selected position; dragging the timeline
-pauses playback. Latest follows incoming data, and Play at the end restarts the
-retained history. The timeline occupies a separate row so it remains accessible
-in narrow tiled windows. Speeds describe a nominal three-second sweep of the
-retained history, not elapsed simulation seconds. Replay advances through the
-retained samples, skipping callback-number gaps left by discarded solver trials
-or inactive data. Original IDs still align camera/vector histories with curves;
-solver calculation time does not become a replay delay. See
-[the segment-pause repair](Qt6ParityValidation/playback-segment-gaps-20261003.md).
+Orbit and ground-track playback has Start, Play/Pause, Latest, a mode selector
+and Slower/Faster buttons. Speeds step through 0.25×, 0.5×, 1×, 2× and 4×;
+the button disables at each limit. Pause/resume retains the selected position;
+dragging the timeline pauses playback. Latest follows incoming data, and Play
+at the end restarts retained history. Separate timeline and mode/speed rows keep
+controls accessible in narrow tiled windows. Speeds describe a nominal
+three-second sweep at 1×.
+
+Interpolated steps is the default: equal playback ticks cover equal amounts of
+connected forward simulation time. Display positions, orientation, cameras,
+vectors and trajectory tips interpolate between recorded samples. Propagation
+steps visits retained samples in original order and exposes adaptive numerical
+step spacing. Both skip callback-ID gaps from discarded solver trials. Resets
+and disconnected edges jump immediately without inventing connecting arcs;
+histories without connected forward time fall back to recorded steps. XY uses
+recorded samples because its history has no simulation epoch. Raw numerical
+samples and exports remain unchanged. See
+[two modes and speed buttons](Qt6ParityValidation/interpolated-playback-20261003.md)
+and [the segment-pause repair](Qt6ParityValidation/playback-segment-gaps-20261003.md).
 
 The Standard toolbar's Animation controls share one playback clock across Orbit,
 Ground Track and XY displays. Start pauses at the beginning; Play/Pause resumes
-from the selected position, Latest follows incoming data, and the slider and
-0.25×–4× speed apply to all retained plot histories. A plot reopened from Output
-joins the shared position. The position is the same percentage of each plot's
-retained history, not a common simulation epoch. Tables contain current values
-and do not replay. Using an individual plot's transport releases shared playback
-and the toolbar reads Local; a shared control takes ownership again. Rebuild and
-new-run clearing stop animation and reset the transport. Debug mission uses a
-bug pictogram, distinct from the Run triangle; Ctrl+F5 remains its shortcut.
+from the selected position, Latest follows incoming data, and mode, slider and
+Slower/Faster speed controls apply to all retained plot histories. A plot reopened
+from Output joins the shared mode and position. Position is the same percentage
+of each plot's retained history, not a common simulation epoch. Tables contain
+current values and do not replay. Using an individual plot's transport releases
+shared playback and the toolbar reads Local; a shared control takes ownership
+again. Rebuild and new-run clearing stop animation and reset the transport.
+Debug mission uses a bug pictogram, distinct from the Run triangle; Ctrl+F5
+remains its shortcut.
 
 Configured spacecraft models retain their texture materials, display scale,
 offset and rotation. Like wx, normalized spacecraft display size is exaggerated

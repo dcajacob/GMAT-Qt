@@ -1,5 +1,6 @@
 #pragma once
 #include "PlotModel.hpp"
+#include "PlotInterpolation.hpp"
 #include <osg/Vec3d>
 #include <osg/Quat>
 #include <cmath>
@@ -42,6 +43,9 @@ inline OrbitCameraBasis orbitCamera(const PlotModel &model,quint64 frame,double 
    const auto &history=reset ? reset->cameras : model.selectedCamera>0 && model.selectedCamera<model.cameraViews.size()
       ? model.cameraViews[model.selectedCamera].cameras : model.cameras;
    if (model.scriptedCamera) for (const auto &sample:history) if (sample.frame<=frame) camera=&sample;
+   const auto interpolated=model.replayCursor && model.replayCursor->before==frame
+      ? plotInterpolatedCamera(history,*model.replayCursor) : std::optional<PlotCamera>{};
+   if (interpolated) camera=&*interpolated;
    if (camera) {
       target.set(camera->target[0],camera->target[1],camera->target[2]);
       outward.set(camera->eye[0]-target.x(),camera->eye[1]-target.y(),camera->eye[2]-target.z());

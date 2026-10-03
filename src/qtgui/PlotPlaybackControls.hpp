@@ -17,10 +17,14 @@ public:
 private:
    QtPlotReceiver &receiver;
    QAction *play;
+   QAction *slower;
+   QAction *faster;
    QSlider *timeline;
    QTimer *timer;
    QLabel *position;
    QComboBox *speed;
+   QComboBox *mode;
    double remainder=0;
    void seek(int value);
+   void updateSpeedButtons();
 };

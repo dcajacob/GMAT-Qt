@@ -11,6 +11,7 @@ struct OrbitObjectAxis
 // Use the retained pose only: replay never consults an engine object.
 inline const PlotPoint *orbitObjectPose(const PlotCurve &curve,quint64 frame)
 {
+   if (curve.replayPose && curve.replayPose->frame==frame) return &*curve.replayPose;
    const PlotPoint *pose=nullptr;
    for (const auto &point:curve.points) if (point.frame<=frame) pose=&point;
    return pose;

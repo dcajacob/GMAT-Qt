@@ -6,6 +6,7 @@
 #include <memory>
 class QAction;
 class QSlider;
+class QComboBox;
 class QTimer;
 class QLabel;
 class OrbitRenderer;
@@ -18,6 +19,7 @@ public:
    void resetView();
    void restoreView(const PlotViewState &state);
    void setFrame(quint64 value);
+   void setReplayCursor(const PlotReplayCursor &cursor);
    quint64 frame() const { return visibleFrame; }
    double zoomFactor() const { return zoom; }
    void zoomBy(double wheelSteps);
@@ -44,6 +46,7 @@ public:
    explicit PlotWidget(std::shared_ptr<PlotModel> data, QWidget *parent = nullptr);
    void refresh();
    void setSharedReplayPosition(int value);
+   void setSharedReplayMode(PlotReplayMode mode);
    std::function<void()> replayRequested;
    std::function<void()> skyRequested;
    void restoreView(const PlotViewState &state);
@@ -57,6 +60,8 @@ private:
    PlotCanvas *drawing;
    QSlider *timeline;
    QTimer *timer;
+   QComboBox *replayMode;
+
    QAction *replay=nullptr;
    QLabel *replayPosition=nullptr;
    QAction *saveProjection=nullptr;
@@ -64,6 +69,8 @@ private:
    std::function<QStringList()> protectedPaths;
    quint64 historyGeneration=0;
    QVector<quint64> replayFrames;
+   struct ReplaySample { double epoch=0,time=0; };
+   QVector<ReplaySample> replayTimes;
    quint64 replaySourceFrame=std::numeric_limits<quint64>::max();
    quint64 replaySourceGeneration=std::numeric_limits<quint64>::max();
    size_t replayPointCount=0;

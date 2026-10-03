@@ -1,0 +1,91 @@
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start   4: QtGui.SharedPlayback
+1/6 Test   #4: QtGui.SharedPlayback .............   Passed    0.19 sec
+    Start   5: QtGui.InterpolatedPlayback
+2/6 Test   #5: QtGui.InterpolatedPlayback .......***Failed    0.06 sec
+This plugin does not support propagateSizeHints()
+Raw export failed
+
+    Start  76: QtGui.OwnedPlotBatch
+3/6 Test  #76: QtGui.OwnedPlotBatch .............   Passed    0.08 sec
+    Start 137: QtGui.SolverPlots
+4/6 Test #137: QtGui.SolverPlots ................   Passed    1.27 sec
+    Start 151: QtGui.Plots
+5/6 Test #151: QtGui.Plots ......................***Failed    2.73 sec
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support raise()
+This plugin does not support raise()
+This plugin does not support raise()
+This plugin does not support raise()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+FAIL: Playback controls forced a tiled plot wider than requested
+
+    Start 152: QtGui.PlotsHiDPI
+6/6 Test #152: QtGui.PlotsHiDPI .................***Failed    2.81 sec
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support raise()
+This plugin does not support raise()
+This plugin does not support raise()
+This plugin does not support raise()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+FAIL: Playback controls forced a tiled plot wider than requested
+
+
+50% tests passed, 3 tests failed out of 6
+
+Label Time Summary:
+qt-gui    =   7.14 sec*proc (6 tests)
+
+Total Test time (real) =   7.15 sec
+
+The following tests FAILED:
+	  5 - QtGui.InterpolatedPlayback (Failed)               qt-gui
+	151 - QtGui.Plots (Failed)                              qt-gui
+	152 - QtGui.PlotsHiDPI (Failed)                         qt-gui
+Errors while running CTest
+
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start   5: QtGui.InterpolatedPlayback
+1/3 Test   #5: QtGui.InterpolatedPlayback .......   Passed    0.06 sec
+    Start 151: QtGui.Plots
+2/3 Test #151: QtGui.Plots ......................   Passed    2.59 sec
+    Start 152: QtGui.PlotsHiDPI
+3/3 Test #152: QtGui.PlotsHiDPI .................   Passed    2.72 sec
+
+100% tests passed, 0 tests failed out of 3
+
+Label Time Summary:
+qt-gui    =   5.37 sec*proc (3 tests)
+
+Total Test time (real) =   5.37 sec
+
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start  5: QtGui.InterpolatedPlayback
+1/2 Test  #5: QtGui.InterpolatedPlayback .........   Passed    0.06 sec
+    Start 20: QtGui.NativeInterpolatedPlayback
+2/2 Test #20: QtGui.NativeInterpolatedPlayback ...   Passed    0.55 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Label Time Summary:
+qt-gui    =   0.61 sec*proc (2 tests)
+
+Total Test time (real) =   0.61 sec

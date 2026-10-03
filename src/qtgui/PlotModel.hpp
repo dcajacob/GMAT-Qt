@@ -13,6 +13,13 @@
 #include <cmath>
 #include "StarCatalog.hpp"
 
+enum class PlotReplayMode { PropagationSteps, InterpolatedSteps };
+struct PlotReplayCursor
+{
+   quint64 before=0,after=0;
+   double fraction=0,epoch=0;
+};
+
 struct PlotViewState
 {
    double zoom=1,yaw=0,pitch=0;
@@ -56,6 +63,8 @@ struct PlotCurve
    QString name;
    QColor color = Qt::red;
    std::deque<PlotPoint> points;
+   // Transient display pose; never part of retained numerical samples/exports.
+   std::optional<PlotPoint> replayPose;
    QVector<quint64> breaks;
    bool breakNext = true, visible = true, lines = true, markers = false;
    bool showObject = true;
@@ -102,6 +111,7 @@ struct PlotVector
    QColor color=Qt::red;
    std::array<double,3> start{},direction{1,0,0};
    std::deque<PlotVectorSample> samples;
+   std::optional<PlotVectorSample> replaySample;
 };
 struct PlotCamera
 {
@@ -186,6 +196,7 @@ struct PlotModel
    // Compact endpoints survive point trimming; retained until model/data reset.
    QMap<QString,QVector<PlotRegularArc>> regularArcs;
    double lastEpoch = 0;
+   std::optional<PlotReplayCursor> replayCursor;
    void append(int curve, double x, double y, double z = 0, double epoch = 0,
                bool drawing = true, bool solver = false, double high = 0, double low = 0);
    void clear();

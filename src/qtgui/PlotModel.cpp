@@ -33,11 +33,11 @@ void PlotModel::append(int index, double x, double y, double z, double epoch,
 }
 void PlotModel::clear()
 {
-   for (auto &curve : curves) { curve.points.clear(); curve.breaks.clear(); curve.breakNext = true; }
+   for (auto &curve : curves) { curve.points.clear(); curve.replayPose.reset(); curve.breaks.clear(); curve.breakNext = true; }
    frame = 0; pendingUpdates = 0; endOfRun=false; ++historyGeneration;
    regularArcs.clear(); nextRegularArc=0;
-   cameras.clear();
-   for (auto &vector:vectors) vector.samples.clear();
+   cameras.clear(); replayCursor.reset();
+   for (auto &vector:vectors) { vector.samples.clear(); vector.replaySample.reset(); }
    if (resetView) resetView->cameras.clear();
    for (auto &view:cameraViews) { view.cameras.clear(); if (view.reset) view.reset->cameras.clear(); }
 }
@@ -69,6 +69,9 @@ QVector<PlotOrbitMarker> PlotModel::orbitMarkers(const PlotCurve &curve,quint64 
       if (point.frame>through || point.frame<first) continue;
       if (!last || !point.connect || point.provider!=last->provider) { ends(); start=&point; }
       last=&point;
+   }
+   if (curve.replayPose && curve.replayPose->frame==through) {
+      last=&*curve.replayPose; if (!start) start=last;
    }
    ends(); if (curve.centerMarker && last) result.append({last,false});
    return result;

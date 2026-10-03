@@ -10,6 +10,8 @@ struct OrbitVectorArrow
 };
 inline const PlotVectorSample *orbitVectorSample(const PlotVector &vector,quint64 frame)
 {
+   if (vector.replaySample && vector.replaySample->source.frame==frame)
+      return vector.replaySample->valid ? &*vector.replaySample : nullptr;
    const PlotVectorSample *sample=nullptr;
    for (const auto &item:vector.samples) if (item.source.frame<=frame) sample=&item;
    return sample && sample->valid ? sample : nullptr;

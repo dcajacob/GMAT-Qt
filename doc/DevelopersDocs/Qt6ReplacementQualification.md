@@ -8818,3 +8818,23 @@ solver report. No tutorial construction, corpus or numerical reference rerun.
 GmatQt is rebuilt at 6,151,088 bytes / SHAaf0c42cf…; engine/util/startup are unchanged.
 Host/GPU/client-attribution and all other nine-gate limits remain explicit. Live
 host testing remains stopped; full qualification is not claimed.
+
+
+## Two playback modes and speed buttons — 2026-10-03
+
+[Interpolated playback evidence](Qt6ParityValidation/interpolated-playback-20261003.md)
+records the user-requested Propagation steps / Interpolated steps selection and
+shared/local Slower/Faster buttons. Default interpolation advances uniformly
+through connected forward simulation time and preserves raw samples/exports;
+disconnected/reset boundaries jump, and epoch-less XY/no-forward-time histories
+use recorded samples. Seven relevant checks pass, including a freshly owned
+Xvfb software-renderer case. One affected Mars B Plane run verifies connected
+cadence, both modes and unchanged raw camera/vector/numerical histories, with
+a byte-identical source-matched solver report. Initial export-fixture, narrow
+layout and native child-lookup corrections remain in the logs. GmatQt is rebuilt
+at 6,187,872 bytes / SHAe126f7a1…; base/util/Qt startup remain unchanged.
+No completed corpus/tutorial or unaffected passing suite was repeated. The
+original nine acceptance gates remain authoritative; live host testing is
+stopped, GMAT crash attribution and host/physical GPU acceptance are unproven,
+and held/external/domain plus Windows/macOS/MATLAB limits remain explicit.
+Full qualification is not claimed.

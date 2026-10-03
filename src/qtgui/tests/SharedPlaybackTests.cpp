@@ -54,6 +54,11 @@ int main(int argc,char **argv)
       auto *speed=controls->findChild<QComboBox *>("allPlotReplaySpeed");
       auto *position=controls->findChild<QLabel *>("allPlotReplayPosition");
       require(start && play && latest && slider && timer && speed && position,"Incomplete global transport");
+      auto *mode=controls->findChild<QComboBox *>("allPlotReplayMode");
+      auto *slower=controls->findChild<QAction *>("allPlotReplaySlower"),*faster=controls->findChild<QAction *>("allPlotReplayFaster");
+      require(mode && slower && faster && mode->currentIndex()==1,"Missing playback modes/default or speed buttons");
+      mode->setCurrentIndex(0); // Retained-step coverage remains distinct from epoch interpolation.
+      require(receiver.replayMode()==PlotReplayMode::PropagationSteps,"Global mode did not reach receiver");
       require(!controls->isEnabled(),"Empty transport enabled");
       receiver.CreateDynamicDataDisplay("Table","","Live values",0,0,0,0);
       require(!controls->isEnabled(),"Table alone enabled retained animation");
@@ -69,6 +74,11 @@ int main(int argc,char **argv)
       for (int i=0;i<10;++i) receiver.UpdateXyPlotCurve("XY",0,i,i*i);
       receiver.missionFinished(); app.processEvents();
       require(controls->isEnabled(),"Plot transport disabled");
+      faster->trigger(); require(speed->currentIndex()==3,"Faster button did not increase playback speed");
+      slower->trigger(); require(speed->currentIndex()==2,"Slower button did not decrease playback speed");
+      speed->setCurrentIndex(0); require(!slower->isEnabled() && faster->isEnabled(),"Minimum-speed button state incorrect");
+      speed->setCurrentIndex(4); require(!faster->isEnabled() && slower->isEnabled(),"Maximum-speed button state incorrect");
+      speed->setCurrentIndex(2);
       for (const auto &name:{"Orbit","Ground","XY"}) require(!receiver.model(name)->curves[0].points.empty(),"Synthetic plot has no history");
       auto checkPosition=[&](int value) {
          require(receiver.replayPosition()==value,"Receiver lost shared position");
