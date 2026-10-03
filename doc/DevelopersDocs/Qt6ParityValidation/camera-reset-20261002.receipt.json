@@ -1,0 +1,452 @@
+{
+  "base_commit": "aa052916694174d6a4b6709b0dc0fb7f8a84ff63",
+  "scope": "Separate legacy Default reset destination; existing Script view restores Current. Linux Qt presentation only.",
+  "compiled_source": [
+    {
+      "path": "src/qtgui/CMakeLists.txt",
+      "bytes": 45703,
+      "sha256": "e1152df5fd384a71c510c8bbf7b4cfc9f0185c1b8616e08997bf5593ff873495"
+    },
+    {
+      "path": "src/qtgui/MainWindow.cpp",
+      "bytes": 182894,
+      "sha256": "c60f338873e19aa32a6611ef0d515661ce040f237c6031d0cc226f9583c83af2"
+    },
+    {
+      "path": "src/qtgui/OrbitCamera.hpp",
+      "bytes": 6819,
+      "sha256": "1593e7cf4b2c3b796d261e53fc67ce035833787757a05a7d516f220d6575343a"
+    },
+    {
+      "path": "src/qtgui/PlotModel.cpp",
+      "bytes": 5802,
+      "sha256": "427ecb15a9179b639a91b6475f1bc6ade937489f4b4a507b649e0d9dbaf08f12"
+    },
+    {
+      "path": "src/qtgui/PlotModel.hpp",
+      "bytes": 6608,
+      "sha256": "a30cc0bb3d9324983123ac433adc2b4512f26c7dfe52b541ad00a0ec940737cf"
+    },
+    {
+      "path": "src/qtgui/PlotWidget.cpp",
+      "bytes": 60414,
+      "sha256": "3ccbc75dfcd4f12c67ec69e15e1fe6ee6e4a56365da5f62493f1594c0e74930d"
+    },
+    {
+      "path": "src/qtgui/PlotWidget.hpp",
+      "bytes": 2291,
+      "sha256": "98bb332dd7093e7135b46321b8c53bda848897e381c85a450551611ef806b48e"
+    },
+    {
+      "path": "src/qtgui/QtPlotReceiver.cpp",
+      "bytes": 77829,
+      "sha256": "18128ecde195b8bb24b5b878a0f120683425402e96c2fa18b0ae1a7ff0a57efa"
+    },
+    {
+      "path": "src/qtgui/ResourceRename.cpp",
+      "bytes": 16197,
+      "sha256": "eb5f5a846128856eb72fcba133b321d5199f690081afef644492afb12837db79"
+    },
+    {
+      "path": "src/qtgui/ScriptCompatibility.cpp",
+      "bytes": 68566,
+      "sha256": "d98e3ba7f9f68899cdce420154a6bc1a17925817f80512924e06f2353fa63cf3"
+    },
+    {
+      "path": "src/qtgui/ScriptCompatibility.hpp",
+      "bytes": 3177,
+      "sha256": "0b24a3e929f481564cbeb1681789cb4d5a5d2f34a659eff5b5eb140a975f1c48"
+    },
+    {
+      "path": "src/qtgui/tests/CameraResetTests.cpp",
+      "bytes": 13354,
+      "sha256": "6b665d23f7d1daab9c948e74633c5855b5143d68df6c2618ec6e64ef16616554"
+    }
+  ],
+  "runtime": [
+    {
+      "path": "application/bin/GmatQt-R2026a",
+      "bytes": 6075296,
+      "sha256": "8d791a3dbab4cbd3f0d9870e16c602f92fd9dc6e8dc0036b3a832c0211a2f907"
+    },
+    {
+      "path": "application/bin/libGmatBase.so.R2026a",
+      "bytes": 25040656,
+      "sha256": "2082a341f5f123e81bad362972cd2b28a0a4753047ae51b5c09609e246be430c"
+    },
+    {
+      "path": "application/bin/libGmatUtil.so.R2026a",
+      "bytes": 2929904,
+      "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+    },
+    {
+      "path": "application/bin/gmat_startup_qt.txt",
+      "bytes": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    },
+    {
+      "path": "build/linux-gui/src/qtgui/libGmatQtFrontend.a",
+      "bytes": 13628570,
+      "sha256": "e5888d40f90883da8c2e0392226ec0ba703014c79e382c1eba465a76eedbcd57"
+    },
+    {
+      "path": "build/linux-gui/src/qtgui/GmatQtCameraResetTests",
+      "bytes": 6114384,
+      "sha256": "392ef2f7eebffe235d193601df8422a499830cf4dfcb6c2c87289ddae92a0252"
+    }
+  ],
+  "baseline": "Unchanged b704092b frontend observation exits0 while demonstrating discarded Default and absent Reset; not a failing regression suite.",
+  "raw_logs": [
+    {
+      "path": "build/example-qualification/20261002/camera-reset/manifest.json",
+      "bytes": 5839,
+      "sha256": "e0422c9d9dc07fb9b59bd96bec19424245c650c089170cb7615c37db236a6ff0"
+    },
+    {
+      "path": "build/example-qualification/20261002/camera-reset/compile.log",
+      "bytes": 4327,
+      "sha256": "c7d8836b505870655dc013e115e5ebb0548f016c5fb81c420dc65c196048479d"
+    },
+    {
+      "path": "build/example-qualification/20261002/camera-reset/baseline.log",
+      "bytes": 1252,
+      "sha256": "0d833c4ec93376236f62b73706cfa1540ad48e288b99eabc33975c050839a7fd"
+    },
+    {
+      "path": "build/example-qualification/20261002/camera-reset/build.txt",
+      "bytes": 9598,
+      "sha256": "93354b9c0aa4876c092b99ad34a45bd6c06d9c9461d68c7ef0b1b2bab9069d9b"
+    },
+    {
+      "path": "build/example-qualification/20261002/camera-reset/repaired-build.txt",
+      "bytes": 585,
+      "sha256": "8b57a374f1bc9b8ea0a290f60b2c0aba82af7d242bd638f4e378c3198a76bd78"
+    },
+    {
+      "path": "build/example-qualification/20261002/camera-reset/checks.txt",
+      "bytes": 784,
+      "sha256": "df8c4da0adeb7b7a4cba7bdb8f30e854fee600cbd35a48bce2407c95dd172312"
+    },
+    {
+      "path": "build/example-qualification/20261002/camera-reset/ctest-console.txt",
+      "bytes": 784,
+      "sha256": "df8c4da0adeb7b7a4cba7bdb8f30e854fee600cbd35a48bce2407c95dd172312"
+    },
+    {
+      "path": "build/example-qualification/20261002/camera-reset/initial-last-test.txt",
+      "bytes": 4458,
+      "sha256": "69d21b2403de2ec9f5c26f90b5d71b3fcbb3a50dedfe862479bbedfe80883889"
+    },
+    {
+      "path": "build/example-qualification/20261002/camera-reset/segment-fixture-manifest.json",
+      "bytes": 6183,
+      "sha256": "84d68606024828dcee97fe63a1452242b45a1301246625a228844bfb971254db"
+    },
+    {
+      "path": "build/example-qualification/20261002/camera-reset/segment-fixture-compile.log",
+      "bytes": 4362,
+      "sha256": "f0be1083657949a1578c7156a7c5270f81e0a4a2e6c0f327b012a73790b03e16"
+    },
+    {
+      "path": "build/example-qualification/20261002/camera-reset/segment-fixture-run.log",
+      "bytes": 359,
+      "sha256": "e2fb39698493c703d153276fe9b79307e67bc4901075426b6576c7de9fe0c384"
+    },
+    {
+      "path": "build/example-qualification/20261002/camera-reset/corrected-registered-manifest.json",
+      "bytes": 4349,
+      "sha256": "d4046e06087485b164af455d943b136b61bf7451ece2885688d6389cdac32311"
+    },
+    {
+      "path": "build/example-qualification/20261002/camera-reset/corrected-registered-build.txt",
+      "bytes": 460,
+      "sha256": "272877dea39aafbf314605213523ca2954674039b1b78f58591501f408bceb55"
+    },
+    {
+      "path": "build/example-qualification/20261002/camera-reset/corrected-registered-ctest.txt",
+      "bytes": 292,
+      "sha256": "dd1874883240b488418e899fc9f6fec6734e570d83c337b3af806ac05ae3fa5b"
+    },
+    {
+      "path": "build/example-qualification/20261002/camera-reset/corrected-registered-last-test.txt",
+      "bytes": 1271,
+      "sha256": "693f881f93b340f5be7ac0e44afac4d0a3c4b972e3483f02d21f722041276fd3"
+    }
+  ],
+  "checks": {
+    "CameraReset": {
+      "status": "pass",
+      "seconds": 0.23
+    },
+    "OpenFramesCameraAliases": {
+      "status": "pass",
+      "seconds": 0.04,
+      "reused": true
+    },
+    "SegmentArc": {
+      "status": "pass",
+      "seconds": 0.63,
+      "reused": true
+    },
+    "SegmentCameras": {
+      "status": "pass",
+      "seconds": 0.54,
+      "reused": true
+    }
+  },
+  "corrections": [
+    "First test compile used nonexistent MainWindow.scriptEditor accessor; corrected to findChild(scriptEditor), then successful build before checks.",
+    "First new test fixture named provider arc owner while referencing Scout.Arc; corrected only new test to SetOrbitProvider:99 0 1 Arc. Expected [31,-2,53] retained. Three passing affected checks reused."
+  ],
+  "native": {
+    "session": {
+      "app": "/home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a",
+      "startup": "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt",
+      "script": "/home/dan/GIT/GMAT-Qt/build/example-qualification/20261002/camera-reset/owned-native/owned-camera-reset.script",
+      "app_sha256": "8d791a3dbab4cbd3f0d9870e16c602f92fd9dc6e8dc0036b3a832c0211a2f907",
+      "original_startup_sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a",
+      "clone_startup_sha256": "b395fcc9551db7f38e47b84e3af05fbadfc040f8316f7a600d1929152caaa849",
+      "startup_change": "OUTPUT_PATH value only",
+      "artifacts": "/home/dan/GIT/GMAT-Qt/build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_",
+      "seconds": 600,
+      "screen": [
+        1600,
+        1200
+      ],
+      "wm_command": [
+        "/tmp/gmat-isolated-x11/wm/usr/bin/openbox",
+        "--sm-disable",
+        "--config-file",
+        "/tmp/gmat-isolated-x11/openbox.xml"
+      ],
+      "limits": "Own X11/software GL input and rendering only; GNOME/Wayland/portal and hardware-driver acceptance remain open",
+      "display": ":2",
+      "qpa": "xcb",
+      "software_gl": true,
+      "processes": {
+        "xvfb": 2737811,
+        "wm": 2737820,
+        "application": 2737823
+      },
+      "closed": true,
+      "exit_codes": {
+        "xvfb": 0,
+        "wm": 0,
+        "application": 0
+      }
+    },
+    "readback": {
+      "canvas_roi": [
+        280,
+        200,
+        1597,
+        1008
+      ],
+      "checks": {
+        "primary_button_equals_space": true,
+        "primary_button_equals_settled_rotation_space": true,
+        "primary_current_differs_default": true,
+        "settled_rotation_differs_default": true,
+        "named_current_differs_default": true,
+        "whole_report_byte_identical": true,
+        "mission_calculation_section_byte_identical": true,
+        "saved_primary_default_eye": [
+          0,
+          -30000,
+          0
+        ],
+        "saved_named_default_eye": [
+          -30000,
+          -30000,
+          0
+        ]
+      },
+      "report": {
+        "bytes": 420,
+        "sha256": "5d8d83790efa877f1b5222abceea472c3e0a6e55835cc85c0bd3b3387367fc67"
+      },
+      "owned_process_exits": {
+        "xvfb": 0,
+        "wm": 0,
+        "application": 0
+      },
+      "helper_exit": 1,
+      "helper_exit_reason": "Detected normal owned app exit0 after File Exit; cleanup complete",
+      "limits": "Private X11/software GL; this is operation and scene readback, not host/GPU or independent geometry/engine qualification"
+    },
+    "raw_files": [
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/actions.jsonl",
+        "bytes": 8110,
+        "sha256": "76bf553350f924b51baea21e233253970c726b3e75d40da9b325ab7ae29110b0"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/application.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/gmat_startup_isolated.txt",
+        "bytes": 10371,
+        "sha256": "b395fcc9551db7f38e47b84e3af05fbadfc040f8316f7a600d1929152caaa849"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/original-startup.txt",
+        "bytes": 10260,
+        "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/output/GmatLog.txt",
+        "bytes": 2003,
+        "sha256": "989c651c3efae9990c3c07627b5ad1c3a28b7fe9cbcbeeefb4faca0fab27a887"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/output/reset-state.txt",
+        "bytes": 420,
+        "sha256": "5d8d83790efa877f1b5222abceea472c3e0a6e55835cc85c0bd3b3387367fc67"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/001-01-initial-build.png",
+        "bytes": 252787,
+        "sha256": "d7d0d9f1e0f9b8bdf977d603e78d1a5919cee23c980ea31ebc23a7d9426c176b"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/002-02-one-run-current-view.png",
+        "bytes": 287055,
+        "sha256": "8c9b7007a693bb22e578ce1a5b1b7d7163ad86eb7736c6e582ec851a92827cde"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/003-03-primary-default-reset-button.png",
+        "bytes": 391396,
+        "sha256": "30940553e149d350d5a83aeaa7cf773df8d09249d1e30aad58ce4f27cf5f1150"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/004-04-primary-current-script-view.png",
+        "bytes": 287666,
+        "sha256": "5e51b624398e48f60e5c3dfbffb324b91ff1dddd21563d9473daf73a78daf232"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/005-05-primary-user-rotation.png",
+        "bytes": 287055,
+        "sha256": "8c9b7007a693bb22e578ce1a5b1b7d7163ad86eb7736c6e582ec851a92827cde"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/006-06-primary-default-space.png",
+        "bytes": 390757,
+        "sha256": "305c6b9aec85d21d065ea67a2c47456b65a0ae8a0951649d13754352f8bca56b"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/007-07-primary-user-rotation-settled.png",
+        "bytes": 326909,
+        "sha256": "227f450e37f82ee635a635615d4350d9147e7c668c9f8e11c8d9c58a78107914"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/008-08-primary-space-after-rotation.png",
+        "bytes": 390757,
+        "sha256": "305c6b9aec85d21d065ea67a2c47456b65a0ae8a0951649d13754352f8bca56b"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/009-09-camera-chooser.png",
+        "bytes": 319837,
+        "sha256": "bf9798b22f876d22f732313ac4fad6b74ae2ca0b0df1fed7f5247c858039f250"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/010-10-named-current-script-view.png",
+        "bytes": 284259,
+        "sha256": "ca2921f0e61788333091c7a8ba0ca08b4681a0c31ea98f97df96fd84889412fd"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/011-11-named-default-space.png",
+        "bytes": 266026,
+        "sha256": "1606e815011020d544ff8ed9659ca63144c2908b83b01724b08343a4ee5b4e39"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/012-12-save-converted.png",
+        "bytes": 266026,
+        "sha256": "1606e815011020d544ff8ed9659ca63144c2908b83b01724b08343a4ee5b4e39"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/013-13-file-save-menu.png",
+        "bytes": 203483,
+        "sha256": "c2e47544e9fdbe7e6383dd5f8bee87096c0d99a82666b25df7d3dfb83433620c"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/014-14-converted-source-saved.png",
+        "bytes": 207134,
+        "sha256": "e37c3f859bba3ff154122d66022258e12ceb74dbf6464da3d2d45b46ad57d86c"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/015-15-file-exit-menu.png",
+        "bytes": 207160,
+        "sha256": "17a5a4db6284815b5f0025cfebb5eed5ef44f72e5a13ceca4b029f75870be769"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/016-16-save-settled.png",
+        "bytes": 266203,
+        "sha256": "b2e50f1f8e46ca2cdf67fcdd04c605b3cde3a71bd6127b1f23159df8cdb8b2e1"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/screenshots/017-17-exit-menu.png",
+        "bytes": 263157,
+        "sha256": "56de2683d020624772d2de6571c94f723f26e480c2cf7f055c7213173de5f401"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/session.json",
+        "bytes": 1292,
+        "sha256": "7647632fdb9bd0af4e5288f690702d9c9f58175ea54362b29e8e1ac10870b28a"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/settings/GMAT/GMAT Qt 6.ini",
+        "bytes": 1068,
+        "sha256": "7e3ae7ec236c379f6a12c4cdd61c4647bc10f66f5926a06f5c4060a8aae89963"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/wm.log",
+        "bytes": 105,
+        "sha256": "21d489e69ca9281a7566d0dce6ad924b6a0699215675f569b2c7821cf279eda7"
+      },
+      {
+        "path": "build/example-qualification/20261002/camera-reset/owned-native/native/isolated-x11-kjdvkj9_/xvfb.log",
+        "bytes": 264,
+        "sha256": "18b994563c61904f959cb44346126933ebd488bf232ed5ab5e7f9fab0cd38b2c"
+      }
+    ]
+  },
+  "committed_artifacts": [
+    {
+      "path": "doc/DevelopersDocs/Qt6ParityValidation/camera-reset-20261002.baseline.txt",
+      "bytes": 1252,
+      "sha256": "0d833c4ec93376236f62b73706cfa1540ad48e288b99eabc33975c050839a7fd"
+    },
+    {
+      "path": "doc/DevelopersDocs/Qt6ParityValidation/camera-reset-20261002.checks.txt",
+      "bytes": 292,
+      "sha256": "dd1874883240b488418e899fc9f6fec6734e570d83c337b3af806ac05ae3fa5b"
+    },
+    {
+      "path": "doc/DevelopersDocs/Qt6ParityValidation/camera-reset-20261002.owned.script",
+      "bytes": 1310,
+      "sha256": "415e77192e5f95e147515707823a4e73f21d6f7bccdd7a7ef09d8132e8073e8c"
+    },
+    {
+      "path": "doc/DevelopersDocs/Qt6ParityValidation/camera-reset-20261002.converted.script",
+      "bytes": 3614,
+      "sha256": "84a6c1ef2264604cefde12325f7e500e6001bf9017e7172e5742c623fb2759b1"
+    },
+    {
+      "path": "doc/DevelopersDocs/Qt6ParityValidation/camera-reset-20261002.report.txt",
+      "bytes": 420,
+      "sha256": "5d8d83790efa877f1b5222abceea472c3e0a6e55835cc85c0bd3b3387367fc67"
+    },
+    {
+      "path": "doc/DevelopersDocs/Qt6ParityValidation/camera-reset-20261002.readback.json",
+      "bytes": 1008,
+      "sha256": "1dd1c9d3e439738a3abba8bf6148442d5920a91c900691af482412e3236abf0d"
+    }
+  ],
+  "limits": [
+    "Live host testing remains stopped. Mutter null Wayland event-resource fault established; GMAT client attribution, repaired host and physical GPU acceptance unproven.",
+    "No completed tutorial, corpus, audit or unrelated passing check repeated.",
+    "Private owned presentation run does not qualify independent orbital physics, other camera regimes or full replacement acceptance. Windows/macOS/MATLAB remain deferred."
+  ]
+}

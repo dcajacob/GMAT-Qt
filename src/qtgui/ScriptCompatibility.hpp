@@ -12,6 +12,12 @@ QtScriptConversion convertOpenFramesViews(const QString &source);
 #include <QVector>
 #include <array>
 #include <optional>
+// The legacy Reset view destination is independent of the saved Current pose.
+struct QtCameraReset {
+   QString reference,target,automaticTrajectory,automaticBody,segmentFrame;
+   std::array<double,3> eye{0,-1,0},center{},up{0,0,1};
+   bool bodyRelative=false,lookAtRotation=false,shortestAngle=false;
+};
 struct QtCameraPreset {
    QString name,reference,target;
    QString automaticTrajectory;
@@ -22,6 +28,7 @@ struct QtCameraPreset {
    double fieldOfView=45;
    bool bodyRelative=false;
    bool lookAtRotation=false, shortestAngle=false;
+   std::optional<QtCameraReset> reset;
 };
 struct QtVectorSetting {
    QString name,source,destination,label="DefaultVector";
@@ -43,6 +50,7 @@ struct QtCameraSetting {
    QString automaticTrajectory;
    QString automaticBody;
    QString segmentFrame;
+   std::optional<QtCameraReset> reset;
    QMap<QString,bool> objectLabels,objectTrajectories,objectCenters,objectEndpoints,objectAxes,objectGrids,objectXYPlanes,objectVelocities;
    QMap<QString,quint32> objectMarkerSizes;
    QMap<QString,double> objectLineWidths;

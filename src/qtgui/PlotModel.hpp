@@ -20,6 +20,7 @@ struct PlotViewState
    bool fit=false,perspective=false;
    double fieldOfView=50;
    QString camera;
+   bool reset=false;
 };
 struct PlotPoint
 {
@@ -108,6 +109,13 @@ struct PlotCamera
    std::array<double,3> eye{},target{},up{0,0,1};
    bool solver=false;
 };
+struct PlotCameraReset
+{
+   std::deque<PlotCamera> cameras;
+   QString automaticTrajectory;
+   double automaticRadius=0;
+   QString automaticBody,segmentFrame;
+};
 struct PlotCameraView
 {
    QString name;
@@ -118,6 +126,7 @@ struct PlotCameraView
    double automaticRadius=0;
    QString automaticBody;
    QString segmentFrame;
+   std::optional<PlotCameraReset> reset;
 };
 struct PlotAxisOptions
 {
@@ -154,7 +163,8 @@ struct PlotModel
    StarCatalog starCatalog;
    bool constellationsEnabled=false,constellationCatalogLoaded=false;
    ConstellationCatalog constellationCatalog;
-   bool scriptedCamera=false, fitCamera=false;
+   bool scriptedCamera=false, fitCamera=false, resetCamera=false;
+   std::optional<PlotCameraReset> resetView;
    std::optional<PlotViewState> userView;
    bool perspective=false;
    double fieldOfView=50;

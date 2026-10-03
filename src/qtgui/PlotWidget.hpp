@@ -15,6 +15,7 @@ public:
    explicit PlotCanvas(std::shared_ptr<PlotModel> data, QWidget *parent = nullptr);
    void fit();
    void scriptView();
+   void resetView();
    void restoreView(const PlotViewState &state);
    void setFrame(quint64 value);
    quint64 frame() const { return visibleFrame; }

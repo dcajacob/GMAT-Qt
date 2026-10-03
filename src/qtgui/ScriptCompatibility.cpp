@@ -164,6 +164,75 @@ QString qtObjectFontPositionsJson(const QMap<QString,QString> &positions)
    return QString::fromUtf8(QJsonDocument(objectFontPositionsJson(positions)).toJson(QJsonDocument::Compact));
 }
 
+namespace {
+QJsonObject resetJson(const QtCameraReset &reset)
+{
+   auto vector=[](const auto &value) { return QJsonArray{value[0],value[1],value[2]}; };
+   return {{"reference",reset.reference},{"target",reset.target},{"automaticTrajectory",reset.automaticTrajectory},
+      {"automaticBody",reset.automaticBody},{"segmentFrame",reset.segmentFrame},{"eye",vector(reset.eye)},
+      {"center",vector(reset.center)},{"up",vector(reset.up)},{"bodyRelative",reset.bodyRelative},
+      {"lookAtRotation",reset.lookAtRotation},{"shortestAngle",reset.shortestAngle}};
+}
+QtCameraReset resetSetting(const QJsonValue &input)
+{
+   if (!input.isObject()) throw std::runtime_error("Camera reset must be an object");
+   const auto value=input.toObject(); QtCameraReset reset;
+   const QSet<QString> fields={"reference","target","automaticTrajectory","automaticBody","segmentFrame","eye","center","up","bodyRelative","lookAtRotation","shortestAngle"};
+   for (auto it=value.begin();it!=value.end();++it) if (!fields.contains(it.key())) throw std::runtime_error("Unsupported camera reset field");
+   const QRegularExpression identifier("^[A-Za-z][A-Za-z0-9_]*$");
+   for (auto item:{qMakePair(QString("reference"),&reset.reference),qMakePair(QString("target"),&reset.target),
+      qMakePair(QString("automaticTrajectory"),&reset.automaticTrajectory),qMakePair(QString("automaticBody"),&reset.automaticBody)}) {
+      if (!value.value(item.first).isString()) throw std::runtime_error("Camera reset references must be strings");
+      *item.second=value.value(item.first).toString();
+      if (!item.second->isEmpty() && !identifier.match(*item.second).hasMatch()) throw std::runtime_error("Invalid camera reset reference");
+   }
+   if (!value.value("segmentFrame").isString()) throw std::runtime_error("Camera reset segment must be a string");
+   reset.segmentFrame=value.value("segmentFrame").toString();
+   if (!reset.segmentFrame.isEmpty() && (!QRegularExpression("^[A-Za-z][A-Za-z0-9_]*\\.[A-Za-z][A-Za-z0-9_]*$").match(reset.segmentFrame).hasMatch() ||
+       reset.reference!=reset.segmentFrame.section('.',0,0) || !reset.automaticTrajectory.isEmpty())) throw std::runtime_error("Invalid camera reset segment");
+   for (auto item:{qMakePair(QString("eye"),&reset.eye),qMakePair(QString("center"),&reset.center),qMakePair(QString("up"),&reset.up)}) {
+      const auto array=value.value(item.first).toArray();
+      if (array.size()!=3) throw std::runtime_error("Camera reset pose needs three numbers");
+      for (int axis=0;axis<3;++axis) {
+         if (!array[axis].isDouble() || !std::isfinite(array[axis].toDouble())) throw std::runtime_error("Camera reset pose must be finite");
+         (*item.second)[axis]=array[axis].toDouble();
+      }
+   }
+   for (auto item:{qMakePair(QString("bodyRelative"),&reset.bodyRelative),qMakePair(QString("lookAtRotation"),&reset.lookAtRotation),qMakePair(QString("shortestAngle"),&reset.shortestAngle)}) {
+      if (!value.value(item.first).isBool()) throw std::runtime_error("Camera reset modes must be booleans");
+      *item.second=value.value(item.first).toBool();
+   }
+   if (!reset.automaticBody.isEmpty() && (reset.automaticBody!=reset.reference || reset.automaticBody=="CoordinateSystem" || !reset.automaticTrajectory.isEmpty())) throw std::runtime_error("Invalid automatic reset body");
+   if (!reset.automaticTrajectory.isEmpty() && (reset.bodyRelative || !reset.reference.isEmpty() || (!reset.target.isEmpty() && !reset.lookAtRotation))) throw std::runtime_error("Invalid automatic reset trajectory");
+   if ((reset.bodyRelative && (reset.reference.isEmpty() || reset.reference=="CoordinateSystem")) || (reset.lookAtRotation && reset.target.isEmpty())) throw std::runtime_error("Camera reset needs its body or LookAt reference");
+   const double up=std::hypot(reset.up[0],reset.up[1],reset.up[2]),distance=std::hypot(reset.eye[0]-reset.center[0],reset.eye[1]-reset.center[1],reset.eye[2]-reset.center[2]);
+   if (!std::isfinite(up) || up<1e-12 || !std::isfinite(distance) || (reset.target.isEmpty() && distance<1e-9)) throw std::runtime_error("Camera reset needs a nonzero up and distinct eye/center");
+   return reset;
+}
+QtCameraReset legacyReset(const QMap<QString,QString> &values,const QString &name)
+{
+   QtCameraReset reset;
+   const auto frame=values.value("ViewFrame","CoordinateSystem");
+   const bool segment=frame.contains('.'),trajectory=values.value("ViewTrajectory")=="On";
+   const bool body=frame!="CoordinateSystem" && (!trajectory || segment);
+   if (segment) reset.segmentFrame=frame;
+   if (body) reset.reference=frame.section('.',0,0);
+   reset.target=values.value("LookAtFrame"); reset.lookAtRotation=!reset.target.isEmpty();
+   reset.shortestAngle=values.value("ShortestAngle","Off")=="On";
+   reset.bodyRelative=body && values.value("InertialFrame","Off")=="Off";
+   if (values.value("SetDefaultLocation")=="On") {
+      for (auto component:{qMakePair(QString("Eye"),&reset.eye),qMakePair(QString("Center"),&reset.center),qMakePair(QString("Up"),&reset.up)})
+         if (values.contains("Default"+component.first) && !vectorValue(values.value("Default"+component.first),*component.second))
+            throw std::runtime_error((name+": invalid default reset camera "+component.first+" vector").toStdString());
+   } else {
+      reset.eye={0,-30000,0};
+      if (body) reset.automaticBody=frame.section('.',0,0);
+      else reset.automaticTrajectory=frame;
+   }
+   return resetSetting(resetJson(reset));
+}
+}
+
 QtScriptConversion convertOpenFramesViews(const QString &source)
 {
    QtScriptConversion result; result.script=source;
@@ -486,6 +555,8 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
          result.notes.append(plot+": exact camera up vector retained in Qt metadata; the base viewer uses "+signedAxis+".");
       }
       cameraSetting.primaryName=view;
+      try { cameraSetting.reset=legacyReset(values,view); }
+      catch (const std::exception &error) { result.error=QString::fromUtf8(error.what()); return result; }
       for (int index=1;index<viewNames.size();++index) {
          QtCameraPreset preset; preset.name=viewNames[index];
          const auto extra=properties.value(preset.name);
@@ -513,6 +584,8 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
             }
          } else if ((!segment && trajectory) || extraFrame=="CoordinateSystem") preset.automaticTrajectory=extraFrame;
          else { preset.automaticBody=extraObject; result.notes.append(preset.name+(segment ? ": automatic segment camera uses empty frame bounds." : ": automatic body camera uses the rendered body/model bounds.")); }
+         try { preset.reset=legacyReset(extra,preset.name); }
+         catch (const std::exception &error) { result.error=QString::fromUtf8(error.what()); return result; }
          cameraSetting.views.append(preset);
          if (segment) result.notes.append(preset.name+": segment camera follows the first retained named arc and clamps to its endpoint; automatic framing uses the empty segment-frame bounds.");
          if (preset.automaticTrajectory=="CoordinateSystem") result.notes.append(preset.name+": automatic origin framing retains the OpenFrames default radius and viewport-aware distance.");
@@ -544,6 +617,7 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
 QString qtCameraDirective(const QString &plot,const QtCameraSetting &setting)
 {
    QJsonObject object{{"plot",plot},{"perspective",setting.perspective},{"fieldOfView",setting.fieldOfView}};
+   if (setting.reset) object.insert("reset",resetJson(*setting.reset));
    if (setting.up) object.insert("up",QJsonArray{(*setting.up)[0],(*setting.up)[1],(*setting.up)[2]});
    if (setting.bodyRelative) object.insert("bodyRelative",true);
    if (setting.lookAtRotation) { object.insert("lookAtRotation",true); object.insert("shortestAngle",setting.shortestAngle); }
@@ -580,6 +654,7 @@ QString qtCameraDirective(const QString &plot,const QtCameraSetting &setting)
          QJsonObject named{{"name",view.name},{"reference",view.reference},{"target",view.target},
             {"eye",vector(view.eye)},{"center",vector(view.center)},{"up",vector(view.up)},{"automaticTrajectory",view.automaticTrajectory},{"automaticBody",view.automaticBody},
             {"perspective",view.perspective},{"fieldOfView",view.fieldOfView},{"bodyRelative",view.bodyRelative},{"lookAtRotation",view.lookAtRotation},{"shortestAngle",view.shortestAngle}};
+         if (view.reset) named.insert("reset",resetJson(*view.reset));
          if (!view.segmentFrame.isEmpty()) named.insert("segmentFrame",view.segmentFrame);
          views.append(named);
       }
@@ -602,6 +677,7 @@ QMap<QString,QtCameraSetting> qtCameraSettings(const QString &source)
           !object.value("perspective").isBool() || !std::isfinite(fov) || fov<1 || fov>150 || result.contains(name))
          throw std::runtime_error("Invalid or duplicate GMAT-Qt-Camera comment: expected a plot name, perspective boolean and fieldOfView from 1 to 150 degrees");
       QtCameraSetting setting{object.value("perspective").toBool(),fov};
+      if (object.contains("reset")) setting.reset=resetSetting(object.value("reset"));
       if (object.contains("up")) {
          const auto array=object.value("up").toArray();
          std::array<double,3> up{};
@@ -709,6 +785,7 @@ QMap<QString,QtCameraSetting> qtCameraSettings(const QString &source)
          };
          for (const auto &item:object.value("views").toArray()) {
             const auto value=item.toObject(); QtCameraPreset view;
+            if (value.contains("reset")) view.reset=resetSetting(value.value("reset"));
             view.name=value.value("name").toString(); view.reference=value.value("reference").toString(); view.target=value.value("target").toString();
             view.automaticTrajectory=value.value("automaticTrajectory").toString();
             view.automaticBody=value.value("automaticBody").toString();

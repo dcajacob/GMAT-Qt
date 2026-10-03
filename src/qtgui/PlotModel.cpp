@@ -38,7 +38,8 @@ void PlotModel::clear()
    regularArcs.clear(); nextRegularArc=0;
    cameras.clear();
    for (auto &vector:vectors) vector.samples.clear();
-   for (auto &view:cameraViews) view.cameras.clear();
+   if (resetView) resetView->cameras.clear();
+   for (auto &view:cameraViews) { view.cameras.clear(); if (view.reset) view.reset->cameras.clear(); }
 }
 void PlotModel::breakLines()
 {
@@ -49,7 +50,9 @@ void PlotModel::trim()
    maxPoints = std::max(1, maxPoints);
    for (auto &vector:vectors) while (vector.samples.size()>static_cast<size_t>(maxPoints)) vector.samples.pop_front();
    while (cameras.size()>static_cast<size_t>(maxPoints)) cameras.pop_front();
-   for (auto &view:cameraViews) while (view.cameras.size()>static_cast<size_t>(maxPoints)) view.cameras.pop_front();
+   auto trimCamera=[&](std::deque<PlotCamera> &history) { while (history.size()>static_cast<size_t>(maxPoints)) history.pop_front(); };
+   if (resetView) trimCamera(resetView->cameras);
+   for (auto &view:cameraViews) { trimCamera(view.cameras); if (view.reset) trimCamera(view.reset->cameras); }
    for (auto &curve : curves) {
       while (curve.points.size() > static_cast<size_t>(maxPoints)) curve.points.pop_front();
       if (!curve.points.empty()) curve.points.front().connect = false;

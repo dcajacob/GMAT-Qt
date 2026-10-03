@@ -25,6 +25,7 @@
 #include <QGuiApplication>
 #include <QResizeEvent>
 #include <QAction>
+#include <QShortcut>
 #include <QFileDialog>
 #include <QLabel>
 #include <QMouseEvent>
@@ -89,6 +90,7 @@ PlotCanvas::PlotCanvas(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
 {
    setMinimumSize(200, 140);
    setMouseTracking(true);
+   if (data->kind==PlotModel::Kind::Orbit) setFocusPolicy(Qt::StrongFocus);
    setToolTip("Wheel: zoom · Drag: rotate orbit or pan chart · Shift-drag: pan orbit · Double-click: fit");
    if (data->kind==PlotModel::Kind::Orbit && QGuiApplication::platformName()!="offscreen" && QGuiApplication::platformName()!="minimal")
       renderer=new OrbitRenderer(data,this);
@@ -98,7 +100,7 @@ PlotCanvas::PlotCanvas(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
 void PlotCanvas::refresh()
 {
    if (data->kind==PlotModel::Kind::Orbit) data->userView=PlotViewState{zoom,yaw,pitch,pan,data->fitCamera,data->perspective,data->fieldOfView,
-      data->cameraViews.isEmpty() ? QString() : data->cameraViews[data->selectedCamera].name};
+      data->cameraViews.isEmpty() ? QString() : data->cameraViews[data->selectedCamera].name,data->resetCamera};
    QStringList details{data->title};
    if (!data->xLabel.isEmpty()) details << "X: "+data->xLabel;
    if (!data->yLabel.isEmpty()) details << "Y: "+data->yLabel;
@@ -112,13 +114,20 @@ void PlotCanvas::resizeEvent(QResizeEvent *event) { QWidget::resizeEvent(event);
 void PlotCanvas::fit() { zoom = 1; pan = {}; data->fitCamera=true; refresh(); }
 void PlotCanvas::scriptView() {
    if (!data->scriptedCamera) return;
+   zoom=1; pan={}; yaw=0; pitch=0; data->fitCamera=false; data->resetCamera=false; refresh();
+}
+void PlotCanvas::resetView()
+{
+   if (!data->scriptedCamera) { yaw=.55; pitch=.45; fit(); return; }
+   const bool named=data->selectedCamera>0 && data->selectedCamera<data->cameraViews.size();
+   data->resetCamera=named ? data->cameraViews[data->selectedCamera].reset.has_value() : data->resetView.has_value();
    zoom=1; pan={}; yaw=0; pitch=0; data->fitCamera=false; refresh();
 }
 void PlotCanvas::restoreView(const PlotViewState &state)
 {
    // Copy because refresh replaces data->userView, which can own the argument.
    const auto saved=state;
-   zoom=saved.zoom; yaw=saved.yaw; pitch=saved.pitch; pan=saved.pan; data->fitCamera=saved.fit;
+   zoom=saved.zoom; yaw=saved.yaw; pitch=saved.pitch; pan=saved.pan; data->fitCamera=saved.fit; data->resetCamera=saved.reset;
    for (int i=0;i<data->cameraViews.size();++i) if (data->cameraViews[i].name==saved.camera) { data->selectedCamera=i; break; }
    data->perspective=saved.perspective; data->fieldOfView=saved.fieldOfView;
    if (!data->cameraViews.isEmpty()) { data->cameraViews[data->selectedCamera].perspective=saved.perspective; data->cameraViews[data->selectedCamera].fieldOfView=saved.fieldOfView; }
@@ -127,7 +136,7 @@ void PlotCanvas::restoreView(const PlotViewState &state)
 void PlotCanvas::setFrame(quint64 value) { visibleFrame = value; refresh(); }
 void PlotCanvas::zoomBy(double steps) { zoom = std::clamp(zoom * std::pow(1.15, steps), 0.02, 200.0); refresh(); }
 void PlotCanvas::setViewAngles(double azimuth, double elevation) { yaw = azimuth; pitch = elevation; refresh(); }
-void PlotCanvas::mousePressEvent(QMouseEvent *event) { lastMouse = event->position(); }
+void PlotCanvas::mousePressEvent(QMouseEvent *event) { lastMouse = event->position(); if (data->kind==PlotModel::Kind::Orbit) setFocus(Qt::MouseFocusReason); }
 void PlotCanvas::mouseMoveEvent(QMouseEvent *event)
 {
    const auto delta = event->position() - lastMouse; lastMouse = event->position();
@@ -623,6 +632,12 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
       auto *scriptView=bar->addAction("Script view");
       scriptView->setToolTip("Restore the scripted camera, tracking and scale");
       connect(scriptView,&QAction::triggered,drawing,&PlotCanvas::scriptView);
+      auto *resetView=bar->addAction("Reset view"); resetView->setObjectName("orbitResetView");
+      resetView->setToolTip("Reset the selected camera to its default pose (Space in the plot)");
+      auto *resetShortcut=new QShortcut(QKeySequence(Qt::Key_Space),drawing); resetShortcut->setObjectName("orbitResetShortcut");
+      resetShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+      connect(resetShortcut,&QShortcut::activated,resetView,&QAction::trigger);
+      connect(resetView,&QAction::triggered,drawing,&PlotCanvas::resetView);
       auto *sunlight=bar->addAction("Sunlight"); sunlight->setCheckable(true); sunlight->setChecked(data->sunlight);
       sunlight->setToolTip("Use the mission's Sun position; turn off for lighting from the camera");
       connect(sunlight,&QAction::toggled,this,[this](bool checked) { data->sunlight=checked; drawing->refresh(); });

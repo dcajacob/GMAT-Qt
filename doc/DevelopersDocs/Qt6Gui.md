@@ -2378,3 +2378,24 @@ the mission directory and then the configured FOV fallback using existing engine
 lookup rules. Accepted first-use creation retains the ordinary engine default
 when no FOV path was configured. [Focused path evidence](Qt6ParityValidation/custom-fov-paths-20261002.md)
 records this bounded lifecycle and its remaining limits.
+
+
+### Resetting the selected plot camera
+
+**Reset view** restores the selected camera's Default pose. Press **Space** while
+the plot canvas has focus for the same operation. For converted OpenFrames views,
+Default is retained separately from Current; **Script view** restores the initial
+Current pose. Reset clears your mouse rotation, zoom and pan while retaining the
+selected projection. Converted views without a stored Default use their legacy
+automatic framing. Cameras without separate reset metadata restore their scripted
+pose; ordinary unscripted plots reset their viewing angles and fit.
+Closing and reopening the retained Output view keeps its reset state.
+[Focused and private-input evidence](Qt6ParityValidation/camera-reset-20261002.md)
+records the supported cases and host/GPU limits.
+
+The [relative-file FOV workflow](Qt6ParityValidation/custom-fov-file-native-20261002.md)
+also has actual creation, Imager selection, Save/reopen and report evidence.
+The rebuilt event tutorial directs SPICE leap-second kernel selection to startup
+`LSK_FILE`; `LEAP_SECS_FILE` separately selects the time table. SolarSystem's panel
+has no leap-second kernel input. This wording correction retains the completed
+tutorial ledger without claiming an additional settings-panel operation.

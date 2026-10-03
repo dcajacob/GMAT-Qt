@@ -105,6 +105,7 @@ QJsonObject camera(QJsonObject value,const Names &names)
       for (auto it=names.cbegin();it!=names.cend();++it) if (map.contains(it.key())) { const auto setting=map.take(it.key()); map.insert(it.value(),setting); }
       value[key]=map;
    }
+   if (value.contains("reset")) value["reset"]=camera(value.value("reset").toObject(),names);
    if (value.contains("views")) {
       QJsonArray views; for (const auto &entry:value.value("views").toArray()) views.append(camera(entry.toObject(),names)); value["views"]=views;
    }

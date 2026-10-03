@@ -1,0 +1,39 @@
+{
+  "canvas_roi": [
+    280,
+    200,
+    1597,
+    1008
+  ],
+  "checks": {
+    "primary_button_equals_space": true,
+    "primary_button_equals_settled_rotation_space": true,
+    "primary_current_differs_default": true,
+    "settled_rotation_differs_default": true,
+    "named_current_differs_default": true,
+    "whole_report_byte_identical": true,
+    "mission_calculation_section_byte_identical": true,
+    "saved_primary_default_eye": [
+      0,
+      -30000,
+      0
+    ],
+    "saved_named_default_eye": [
+      -30000,
+      -30000,
+      0
+    ]
+  },
+  "report": {
+    "bytes": 420,
+    "sha256": "5d8d83790efa877f1b5222abceea472c3e0a6e55835cc85c0bd3b3387367fc67"
+  },
+  "owned_process_exits": {
+    "xvfb": 0,
+    "wm": 0,
+    "application": 0
+  },
+  "helper_exit": 1,
+  "helper_exit_reason": "Detected normal owned app exit0 after File Exit; cleanup complete",
+  "limits": "Private X11/software GL; this is operation and scene readback, not host/GPU or independent geometry/engine qualification"
+}

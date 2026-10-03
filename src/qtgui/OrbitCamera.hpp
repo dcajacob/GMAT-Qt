@@ -32,8 +32,14 @@ inline OrbitCameraBasis orbitCamera(const PlotModel &model,quint64 frame,double 
    osg::Vec3d up(std::cos(pitch)*std::sin(yaw),std::cos(pitch)*std::cos(yaw),-std::sin(pitch));
    osg::Vec3d outward=right^up;
    osg::Vec3d automaticOrigin,automaticRight(1,0,0),automaticUp(0,0,1),automaticOutward(0,-1,0);
+   const PlotCameraReset *reset=nullptr;
+   if (model.resetCamera) {
+      if (model.selectedCamera>0 && model.selectedCamera<model.cameraViews.size()) {
+         const auto &view=model.cameraViews[model.selectedCamera]; if (view.reset) reset=&*view.reset;
+      } else if (model.resetView) reset=&*model.resetView;
+   }
    const PlotCamera *camera=nullptr;
-   const auto &history=model.selectedCamera>0 && model.selectedCamera<model.cameraViews.size()
+   const auto &history=reset ? reset->cameras : model.selectedCamera>0 && model.selectedCamera<model.cameraViews.size()
       ? model.cameraViews[model.selectedCamera].cameras : model.cameras;
    if (model.scriptedCamera) for (const auto &sample:history) if (sample.frame<=frame) camera=&sample;
    if (camera) {
@@ -68,13 +74,13 @@ inline OrbitCameraBasis orbitCamera(const PlotModel &model,quint64 frame,double 
       const double radius=bounds && !bounds->empty ? extent : extent+target.length();
       distance=radius*1.1/std::sin(std::min(halfVertical,halfHorizontal));
    }
-   const auto trajectory=model.selectedCamera>0 && model.selectedCamera<model.cameraViews.size()
+   const auto trajectory=reset ? reset->automaticTrajectory : model.selectedCamera>0 && model.selectedCamera<model.cameraViews.size()
       ? model.cameraViews[model.selectedCamera].automaticTrajectory : model.automaticTrajectory;
-   const auto automaticRadius=model.selectedCamera>0 && model.selectedCamera<model.cameraViews.size()
+   const auto automaticRadius=reset ? reset->automaticRadius : model.selectedCamera>0 && model.selectedCamera<model.cameraViews.size()
       ? model.cameraViews[model.selectedCamera].automaticRadius : model.automaticRadius;
-   const auto body=model.selectedCamera>0 && model.selectedCamera<model.cameraViews.size()
+   const auto body=reset ? reset->automaticBody : model.selectedCamera>0 && model.selectedCamera<model.cameraViews.size()
       ? model.cameraViews[model.selectedCamera].automaticBody : model.automaticBody;
-   const auto segment=model.selectedCamera>0 && model.selectedCamera<model.cameraViews.size()
+   const auto segment=reset ? reset->segmentFrame : model.selectedCamera>0 && model.selectedCamera<model.cameraViews.size()
       ? model.cameraViews[model.selectedCamera].segmentFrame : model.segmentFrame;
    if (!model.fitCamera && (segment.isEmpty() || camera) && (!trajectory.isEmpty() || !body.isEmpty())) {
       OrbitSceneBounds path;

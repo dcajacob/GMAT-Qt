@@ -1,0 +1,49 @@
+% OpenFrames viewer conversion for Qt. Review these visual differences before saving:
+% Display: exact camera up vector retained in Qt metadata; the base viewer uses Z.
+% EarthView: camera follows the object position using plot-frame axes.
+% Display: camera selector retains 2 named views.
+% Owned camera-reset presentation case; no shipped source.
+Create Spacecraft Scout;
+Create ForceModel Gravity;
+Gravity.PrimaryBodies = {};
+Gravity.PointMasses = {Earth};
+Create Propagator Prop;
+Prop.FM = Gravity;
+Prop.InitialStepSize = 5;
+Prop.MaxStep = 5;
+Create ReportFile Evidence;
+Evidence.Filename = 'reset-state.txt';
+Create OrbitView Display; % Converted from OpenFramesInterface for Qt
+Display.Add = {Scout, Earth};
+% Qt conversion: Create OpenFramesView Primary EarthView;
+% Qt conversion: Display.View = {Primary, EarthView};
+% Qt conversion: Primary.ViewFrame = CoordinateSystem;
+% Qt conversion: Primary.SetDefaultLocation = On;
+% Qt conversion: Primary.DefaultEye = [0 -30000 0];
+% Qt conversion: Primary.DefaultCenter = [0 0 0];
+% Qt conversion: Primary.DefaultUp = [0 0 1];
+% Qt conversion: Primary.SetCurrentLocation = On;
+% Qt conversion: Primary.CurrentEye = [30000 -20000 20000];
+% Qt conversion: Primary.CurrentCenter = [0 0 0];
+% Qt conversion: Primary.CurrentUp = [0 0 1];
+% Qt conversion: EarthView.ViewFrame = Earth;
+% Qt conversion: EarthView.InertialFrame = On;
+% Qt conversion: EarthView.SetDefaultLocation = On;
+% Qt conversion: EarthView.DefaultEye = [-30000 -30000 0];
+% Qt conversion: EarthView.DefaultCenter = [0 0 0];
+% Qt conversion: EarthView.DefaultUp = [0 0 1];
+% Qt conversion: EarthView.SetCurrentLocation = On;
+% Qt conversion: EarthView.CurrentEye = [-20000 10000 25000];
+% Qt conversion: EarthView.CurrentCenter = [0 0 0];
+% Qt conversion: EarthView.CurrentUp = [0 0 1];
+GMAT Display.ViewPointReference = [0 0 0];
+GMAT Display.ViewDirection = [0 0 0];
+GMAT Display.ViewPointVector = [30000 -20000 20000];
+GMAT Display.ViewDirection = [0 0 0];
+GMAT Display.ViewUpAxis = Z;
+% GMAT-Qt-Camera {"fieldOfView":45,"objectAxes":{"Earth":false,"Scout":false},"objectCenters":{"Earth":true,"Scout":true},"objectEndpoints":{"Earth":true,"Scout":true},"objectFontPositions":{"Earth":"Top-Right","Scout":"Top-Right"},"objectFontSizes":{"Earth":14,"Scout":14},"objectGrids":{"Earth":false,"Scout":false},"objectLabels":{"Earth":true,"Scout":true},"objectLineWidths":{"Earth":2,"Scout":2},"objectMarkerSizes":{"Earth":10,"Scout":10},"objectTrajectories":{"Earth":true,"Scout":true},"objectVelocities":{"Earth":false,"Scout":false},"objectXYPlanes":{"Earth":false,"Scout":false},"perspective":true,"plot":"Display","primaryName":"Primary","reset":{"automaticBody":"","automaticTrajectory":"","bodyRelative":false,"center":[0,0,0],"eye":[0,-30000,0],"lookAtRotation":false,"reference":"","segmentFrame":"","shortestAngle":false,"target":"","up":[0,0,1]},"up":[0,0,1],"views":[{"automaticBody":"","automaticTrajectory":"","bodyRelative":false,"center":[0,0,0],"eye":[-20000,10000,25000],"fieldOfView":45,"lookAtRotation":false,"name":"EarthView","perspective":true,"reference":"Earth","reset":{"automaticBody":"","automaticTrajectory":"","bodyRelative":false,"center":[0,0,0],"eye":[-30000,-30000,0],"lookAtRotation":false,"reference":"Earth","segmentFrame":"","shortestAngle":false,"target":"","up":[0,0,1]},"shortestAngle":false,"target":"","up":[0,0,1]}]}
+GMAT Display.ViewUpCoordinateSystem = EarthMJ2000Eq;
+BeginMissionSequence;
+Report Evidence Scout.ElapsedSecs Scout.X Scout.Y Scout.Z;
+Propagate Prop(Scout) {Scout.ElapsedSecs = 30};
+Report Evidence Scout.ElapsedSecs Scout.X Scout.Y Scout.Z;

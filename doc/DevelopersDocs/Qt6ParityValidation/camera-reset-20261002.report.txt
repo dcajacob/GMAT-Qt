@@ -1,0 +1,4 @@
+Scout.ElapsedSecs         Scout.X                   Scout.Y                   Scout.Z                   
+0                         7100                      0                         1300                      
+Scout.ElapsedSecs         Scout.X                   Scout.Y                   Scout.Z                   
+30.00000009778887         7096.616290726005         220.4649834231342         1329.375683437601         

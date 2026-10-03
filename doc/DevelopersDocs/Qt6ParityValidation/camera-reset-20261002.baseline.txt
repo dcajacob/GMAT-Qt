@@ -1,0 +1,6 @@
+Script view restores Current, not configured Default=1
+Current selected=1 separate Default reset data absent=1 Reset action absent=1 Fit retains rotation=1
+Actions:  |  | Fit | Camera… | Display… | Script view | Sunlight | Save image… | Keep projection | Start | Play | Latest
+% GMAT-Qt-Camera {"fieldOfView":45,"objectAxes":{"Earth":false},"objectCenters":{"Earth":true},"objectEndpoints":{"Earth":true},"objectFontPositions":{"Earth":"Top-Right"},"objectFontSizes":{"Earth":14},"objectGrids":{"Earth":false},"objectLabels":{"Earth":true},"objectLineWidths":{"Earth":2},"objectMarkerSizes":{"Earth":10},"objectTrajectories":{"Earth":true},"objectVelocities":{"Earth":false},"objectXYPlanes":{"Earth":false},"perspective":true,"plot":"Display","primaryName":"Primary","up":[0,1,0],"views":[{"automaticBody":"","automaticTrajectory":"","bodyRelative":true,"center":[0,0,0],"eye":[401,-502,603],"fieldOfView":45,"lookAtRotation":false,"name":"Secondary","perspective":true,"reference":"Earth","shortestAngle":false,"target":"","up":[0,0,1]}]}
+OBSERVED unchanged baseline: separate legacy Default reset destination discarded; existing Script view restores Current only; source/calculation comments retained. No mission or native desktop run.
+EXIT 0

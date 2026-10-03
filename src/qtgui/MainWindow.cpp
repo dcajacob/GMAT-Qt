@@ -1819,7 +1819,7 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
          const auto settings=qtCameraSettings(expectedScript);
          if (settings.contains(name)) {
             auto setting=settings.value(name);
-            setting.segmentFrame.clear();
+            setting.segmentFrame.clear(); setting.reset.reset();
             if (!setting.automaticTrajectory.isEmpty() || !setting.automaticBody.isEmpty()) {
                if (!setting.automaticBody.isEmpty()) setting.bodyRelative=false;
                setting.automaticTrajectory.clear(); setting.automaticBody.clear(); setting.centerOffset.reset(); setting.lookAtRotation=false;

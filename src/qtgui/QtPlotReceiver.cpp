@@ -29,6 +29,12 @@ namespace {
 QString text(const std::string &value) { return QString::fromStdString(value); }
 QColor rgb(UnsignedInt color) { return QColor::fromRgb(static_cast<QRgb>(color & 0xffffff)); }
 constexpr double degrees = 57.2957795130823208768;
+std::deque<PlotCamera> &cameraHistory(PlotModel &data,int index)
+{
+   if (index>=0) return index==0 ? data.cameras : data.cameraViews[index].cameras;
+   const int selected=-index-1;
+   return selected==0 ? data.resetView->cameras : data.cameraViews[selected].reset->cameras;
+}
 }
 void QtPlotReceiver::validateCameraReferences(const QMap<QString,QtCameraSetting> &settings)
 {
@@ -124,7 +130,7 @@ void QtPlotReceiver::validateCameraReferences(const QMap<QString,QtCameraSetting
              plot->GetStringParameter("ViewPointVectorType")!="Vector")
             throw std::runtime_error((it.key()+": relative camera needs a vector ViewPointVector; body-relative mode also needs an object ViewPointReference").toStdString());
       }
-      for (const auto &view:it->views) {
+      auto validateView=[&](const auto &view) {
       validateSegment(view.segmentFrame);
       validateTrajectory(view.automaticTrajectory);
       validateBody(view.automaticBody);
@@ -132,9 +138,11 @@ void QtPlotReceiver::validateCameraReferences(const QMap<QString,QtCameraSetting
          if (name.isEmpty() || name=="CoordinateSystem") continue;
          auto *object=moderator->GetConfiguredObject(name.toStdString());
          if (!object) object=moderator->GetSolarSystemInUse()->GetBody(name.toStdString());
-         if (!dynamic_cast<SpacePoint *>(object)) throw std::runtime_error((it.key()+" camera "+view.name+": unknown space point "+name).toStdString());
+         if (!dynamic_cast<SpacePoint *>(object)) throw std::runtime_error((it.key()+" camera: unknown space point "+name).toStdString());
       }
-      }
+      };
+      if (it->reset) validateView(*it->reset);
+      for (const auto &view:it->views) { validateView(view); if (view.reset) validateView(*view.reset); }
    }
 }
 QtPlotReceiver::QtPlotReceiver(QMdiArea *area) : workspace(area) {}
@@ -267,9 +275,16 @@ QtPlotReceiver::Entry &QtPlotReceiver::create(const std::string &name, PlotModel
             static_cast<double>(static_cast<float>(12*GmatSolarSystemDefaults::PLANET_EQUATORIAL_RADIUS[GmatSolarSystemDefaults::EARTH]))) : 0.0;
       };
       entry.data->automaticRadius=automaticRadius(setting);
+      const auto resetHistory=[&](const QtCameraReset &reset) {
+         return PlotCameraReset{{},reset.automaticTrajectory,automaticRadius(reset),reset.automaticBody,reset.segmentFrame};
+      };
+      if (setting.reset) entry.data->resetView=resetHistory(*setting.reset);
       if (!setting.views.isEmpty()) {
          entry.data->cameraViews.append({setting.primaryName.isEmpty() ? QString("Script camera") : setting.primaryName,setting.perspective,setting.fieldOfView,{},setting.automaticTrajectory,automaticRadius(setting),setting.automaticBody,setting.segmentFrame});
-         for (const auto &view:setting.views) entry.data->cameraViews.append({view.name,view.perspective,view.fieldOfView,{},view.automaticTrajectory,automaticRadius(view),view.automaticBody,view.segmentFrame});
+         for (const auto &view:setting.views) {
+            entry.data->cameraViews.append({view.name,view.perspective,view.fieldOfView,{},view.automaticTrajectory,automaticRadius(view),view.automaticBody,view.segmentFrame});
+            if (view.reset) entry.data->cameraViews.back().reset=resetHistory(*view.reset);
+         }
       }
    }
    show(text(name));
@@ -363,6 +378,9 @@ void QtPlotReceiver::SetGlObject(const std::string &name,const StringArray &name
    if (!setting.automaticBody.isEmpty()) entry->data->automaticRadius=cameraRadius(setting.automaticBody,setting.segmentFrame);
    for (int index=0;index<setting.views.size();++index) if (!setting.views[index].automaticBody.isEmpty())
       entry->data->cameraViews[index+1].automaticRadius=cameraRadius(setting.views[index].automaticBody,setting.views[index].segmentFrame);
+   if (setting.reset && !setting.reset->automaticBody.isEmpty()) entry->data->resetView->automaticRadius=cameraRadius(setting.reset->automaticBody,setting.reset->segmentFrame);
+   for (int index=0;index<setting.views.size();++index) if (setting.views[index].reset && !setting.views[index].reset->automaticBody.isEmpty())
+      entry->data->cameraViews[index+1].reset->automaticRadius=cameraRadius(setting.views[index].reset->automaticBody,setting.views[index].reset->segmentFrame);
    for (size_t i=0;i<names.size();++i) {
       auto &curve=entry->data->curves[static_cast<int>(i)]; curve.name=text(names[i]);
       const auto setting=cameraSettings.value(text(name));
@@ -504,7 +522,7 @@ bool QtPlotReceiver::UpdateGlPlot(const std::string &name,const std::string &,co
    auto &data=*entry->data; if (!entry->arcMetadataOnly) ++data.frame;
    auto storeCamera=[&](int index,PlotCamera camera) {
       if (entry->arcMetadataOnly) { entry->preparedArcCameras[index]=camera; return; }
-      auto &history=index==0 ? data.cameras : data.cameraViews[index].cameras;
+      auto &history=cameraHistory(data,index);
       history.push_back(camera);
       while (history.size()>static_cast<size_t>(data.maxPoints)) history.pop_front();
    };
@@ -600,11 +618,10 @@ bool QtPlotReceiver::UpdateGlPlot(const std::string &name,const std::string &,co
          storeCamera(0,camera);
       } catch (BaseException &) { warn(name,"unresolved scripted camera (using available camera or manual view)"); }
       catch (const std::exception &) { warn(name,"invalid scripted camera (using available camera or manual view)"); }
-      for (int index=0;index<settings.views.size();++index) {
-         const auto &view=settings.views[index];
-         if (view.segmentFrame.isEmpty()==segmentPass) continue;
+      auto captureView=[&](const auto &view,int key,const QString &label) {
+         if (view.segmentFrame.isEmpty()==segmentPass) return;
          const auto *pose=segmentPass ? segmentPoint(view.segmentFrame) : nullptr;
-         if (segmentPass && !pose) continue; // Named segment has not arrived yet.
+         if (segmentPass && !pose) return; // Named segment has not arrived yet.
          try {
             auto findObject=[&](const QString &objectName) -> SpacePoint * {
                if (objectName.isEmpty() || objectName=="CoordinateSystem") return nullptr;
@@ -636,8 +653,13 @@ bool QtPlotReceiver::UpdateGlPlot(const std::string &name,const std::string &,co
                throw std::runtime_error("Unrenderable camera coordinates");
             if (std::hypot(camera.eye[0]-camera.target[0],camera.eye[1]-camera.target[1],camera.eye[2]-camera.target[2])<1e-9)
                throw std::runtime_error("Camera eye and target coincide");
-            storeCamera(index+1,camera);
-         } catch (...) { warn(name,("unresolved camera "+view.name+" (using its available history or manual view)").toStdString()); }
+            storeCamera(key,camera);
+         } catch (...) { warn(name,("unresolved camera "+label+" (using its available history or manual view)").toStdString()); }
+      };
+      if (settings.reset) captureView(*settings.reset,-1,settings.primaryName+" default");
+      for (int index=0;index<settings.views.size();++index) {
+         const auto &view=settings.views[index]; captureView(view,index+1,view.name);
+         if (view.reset) captureView(*view.reset,-index-2,view.name+" default");
       }
    }
    };
@@ -855,7 +877,7 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
       for (auto &arcs:entry->data->regularArcs) if (!arcs.isEmpty()) arcs.back().finalized=true;
       for (auto it=entry->preparedArcCameras.cbegin();it!=entry->preparedArcCameras.cend();++it) {
          auto camera=it.value(); camera.frame=entry->data->frame; camera.solver=false;
-         auto &history=it.key()==0 ? entry->data->cameras : entry->data->cameraViews[it.key()].cameras;
+         auto &history=cameraHistory(*entry->data,it.key());
          if (!history.empty() && history.back().frame==camera.frame && !history.back().solver) history.back()=camera;
          else history.push_back(camera);
          while (history.size()>static_cast<size_t>(entry->data->maxPoints)) history.pop_front();
@@ -867,7 +889,7 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
    else if (action=="PenDown") entry->data->penDown=true;
    else if (action=="ToggleOff") { entry->data->active=false; entry->data->breakLines(); }
    else if (action=="ToggleOn") entry->data->active=true;
-   else if (action=="ClearObjects") { entry->dataAvailability.reset(); entry->arcProvider.clear(); entry->provider.clear(); entry->arcTrial=false; entry->arcMetadataOnly=false; entry->data->regularArcs.clear(); entry->data->nextRegularArc=0; entry->arcPublishedPoses.clear(); entry->preparedArcCameras.clear(); entry->bufferedArcCameras.clear(); entry->replayArcCameras.clear(); entry->replayArcCamera=false; entry->objects.clear(); entry->points.clear(); entry->data->curves.clear(); entry->data->cameras.clear(); for (auto &vector:entry->data->vectors) vector.samples.clear(); for (auto &view:entry->data->cameraViews) view.cameras.clear(); }
+   else if (action=="ClearObjects") { entry->dataAvailability.reset(); entry->arcProvider.clear(); entry->provider.clear(); entry->arcTrial=false; entry->arcMetadataOnly=false; entry->data->regularArcs.clear(); entry->data->nextRegularArc=0; entry->arcPublishedPoses.clear(); entry->preparedArcCameras.clear(); entry->bufferedArcCameras.clear(); entry->replayArcCameras.clear(); entry->replayArcCamera=false; entry->objects.clear(); entry->points.clear(); entry->data->curves.clear(); entry->data->cameras.clear(); for (auto &vector:entry->data->vectors) vector.samples.clear(); if (entry->data->resetView) entry->data->resetView->cameras.clear(); for (auto &view:entry->data->cameraViews) { view.cameras.clear(); if (view.reset) view.reset->cameras.clear(); } }
    else if (action=="ClearSolverData") {
       entry->dataAvailability.reset();
       auto clearSolver=[](std::deque<PlotCamera> &cameras) {
@@ -876,7 +898,8 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
       for (auto &vector:entry->data->vectors)
          vector.samples.erase(std::remove_if(vector.samples.begin(),vector.samples.end(),[](const PlotVectorSample &sample) { return sample.source.solver; }),vector.samples.end());
       clearSolver(entry->data->cameras);
-      for (auto &view:entry->data->cameraViews) clearSolver(view.cameras);
+      if (entry->data->resetView) clearSolver(entry->data->resetView->cameras);
+      for (auto &view:entry->data->cameraViews) { clearSolver(view.cameras); if (view.reset) clearSolver(view.reset->cameras); }
       for (auto &curve:entry->data->curves) {
          curve.points.erase(std::remove_if(curve.points.begin(),curve.points.end(),[](const PlotPoint &point) { return point.solver; }),curve.points.end());
          curve.breakNext=true;

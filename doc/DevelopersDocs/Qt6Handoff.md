@@ -1203,3 +1203,31 @@ byte-identical and util changes for an additive read-only path-definition getter
 No numerical algorithm, new native scene or host test changed. Exact boresight,
 other recorded domain/external limits and host/GPU/client-attribution gates remain
 unqualified. Live host testing stays stopped; full qualification is not claimed.
+
+
+## Separate Default camera reset and current evidence — 2026-10-02
+
+[The camera reset record](Qt6ParityValidation/camera-reset-20261002.md)
+implements the actual missing legacy Reset-to-Default operation; existing Script
+view already restores Current. Separate primary/named Default metadata, history
+and retained reset state survive translation, replay and source transactions.
+Toolbar Reset and scoped Space pass the new 0.23 s check and one actual-input
+private X11 case. Three affected passing camera checks are reused. Its full
+420-byte report remains identical across camera actions, the saved calculation
+section is byte-identical and normal owned app/WM/Xvfb exits are 0/0/0.
+Build/accessor and test fixture corrections remain recorded.
+
+Current app is 6,075,296 bytes / SHA8d791a3d…; base/util/startup are unchanged from
+the FOV path repair. [Native relative-file FOV](Qt6ParityValidation/custom-fov-file-native-20261002.md)
+adds actual creation/Imager/Save/reopen/run/report evidence at its recorded
+SHA02d7711e… runtime; its helper-induced SIGTERM is explicit. The earlier shared
+resource creation/Clone Help and F1 evidence stays accepted without a repeat.
+[Rebuilt event Help](Qt6ParityValidation/event-help-startup-kernels-20261002.md)
+corrects the obsolete panel kernel instruction and validates the installed page
+and startup link without rerunning a completed tutorial.
+
+All nine acceptance gates remain in the current map. Live host testing stays
+stopped. Mutter's NULL Wayland event-resource fault is established; GMAT client
+attribution, safe/repaired host condition and physical GPU acceptance remain
+unproven. Broader recorded scientific/external limits and deferred platforms
+remain visible. Full qualification is not claimed.
