@@ -24,6 +24,30 @@
 #include <QTextBrowser>
 #include <QVBoxLayout>
 
+// Keep script attachments in the browser's URL history while rendering their
+// literal contents rather than interpreting them as HTML.
+class HelpBrowser final : public QTextBrowser
+{
+public:
+   using QTextBrowser::QTextBrowser;
+   QVariant loadResource(int type,const QUrl &url) override
+   {
+      const auto suffix=QFileInfo(url.path()).suffix().toLower();
+      if (type==QTextDocument::HtmlResource && url.isLocalFile() && (suffix=="script" || suffix=="gmf")) {
+         QFile file(url.toLocalFile());
+         if (!file.open(QIODevice::ReadOnly)) return {};
+         const auto bytes=file.readAll();
+         QStringDecoder decoder(QStringDecoder::Utf8,QStringConverter::Flag::Stateless);
+         const QString contents=decoder(bytes);
+         if (file.error()!=QFileDevice::NoError || decoder.hasError()) return {};
+         // A span prevents Qt from discarding a boundary newline inside <pre>.
+         return QString("<html><head><meta charset=\"utf-8\"></head><body><pre><span>"+
+                        contents.toHtmlEscaped()+"</span></pre></body></html>");
+      }
+      return QTextBrowser::loadResource(type,url);
+   }
+};
+
 static QUrl helpUrl(const QString &topic)
 {
    QSettings settings;
@@ -63,7 +87,7 @@ HelpDialog::HelpDialog(const QString &topic,QWidget *parent) : QDialog(parent)
       if (!requested.isEmpty() && !QDesktopServices::openUrl(requested)) status->setText("Cannot open this help page in the browser.");
    });
    navigation->addStretch(); layout->addLayout(navigation);
-   browser=new QTextBrowser(this); browser->setObjectName("helpBrowser");
+   browser=new HelpBrowser(this); browser->setObjectName("helpBrowser");
    browser->setOpenLinks(false); browser->setOpenExternalLinks(false); layout->addWidget(browser,1);
    connect(browser,&QTextBrowser::backwardAvailable,back,&QPushButton::setEnabled);
    connect(browser,&QTextBrowser::forwardAvailable,forward,&QPushButton::setEnabled);
@@ -82,6 +106,10 @@ HelpDialog::HelpDialog(const QString &topic,QWidget *parent) : QDialog(parent)
    shortcut(QKeySequence::FindNext,[this] { find(); }); shortcut(QKeySequence::FindPrevious,[this] { find(true); });
    auto *buttons=new QDialogButtonBox(QDialogButtonBox::Close,this); layout->addWidget(buttons);
    connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);
+   // Return in Find must not also activate a navigation or Close button.
+   for (auto *value:findChildren<QPushButton *>()) {
+      value->setAutoDefault(false); value->setDefault(false);
+   }
    openTopic(topic);
 }
 void HelpDialog::openTopic(const QString &topic)

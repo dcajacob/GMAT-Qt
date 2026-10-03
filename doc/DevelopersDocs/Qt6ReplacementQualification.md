@@ -8782,8 +8782,7 @@ SHA2c15ffe7… application.
 
 [Coordinate Rename and initial window size](Qt6ParityValidation/axis-command-usability-20261003.md)
 resolve native ACE/Lunar/older-Mars failures on GUI-created forwarded axis fields
-and LEO's compressed new command child. Current installed app SHA483ed090… is
-rebuilt; AxisRename0.25s, CommandGeometry0.25s, ResourceRename0.63s and affected
+and LEO's compressed new command child. At this checkpoint the installed app SHA483ed090… was rebuilt; AxisRename0.25s, CommandGeometry0.25s, ResourceRename0.63s and affected
 WorkspaceReachability0.36s pass. Actual ACE F2 Rename also succeeds. Original
 fixture failures and their corrections are explicit; no numerical engine changed.
 The nine acceptance gates, host/GPU stop, external inputs/domain limits and
@@ -8798,3 +8797,8 @@ full replacement qualification or repeat the completed audit/tutorial corpus.
 [Lunar Transfer](Qt6ParityValidation/help-lunar-transfer-20261003.md) remains HOLD and unpublished. Original and one changed LOI finite-difference perturbation case both miss ECC0±1e-5 at the25-iteration bound; final Moon-inertial inclination is about88.07°, short of an exact90° guarantee. Original targets, force models, attempts and results remain preserved. Its incidental early ECC sample-line access is disclosed; the later deliberate comparison followed the original run/reopen freeze. The full seven-additional-chapter requirement therefore remains unmet.
 
 L2 remains held, two MATLAB chapters deferred and two legacy optimizer chapters unresolved. The nine original acceptance gates remain authoritative in the [current map](Qt6ParityValidation/current-acceptance-20261002.md). Live host testing stays stopped; Mutter's NULL Wayland-resource fault is established, while GMAT attribution, safe host condition and physical GPU acceptance remain unproven. External-input/domain limits and Windows/macOS/MATLAB deferrals remain. Full Linux qualification is not claimed.
+
+
+## Readable Help attachments and Return search — 2026-10-03
+
+[Help usability verification](Qt6ParityValidation/help-attachments-20261003.md) closes two actual new-publication blockers: linked script line/markup loss and Return also activating default Back. Local script/function text retains literal contents, URLs and history; Find stays on its document. Actual GmatQt is rebuilt at6,146,632 bytes / SHA12a9dddf…; new HelpAttachments0.06s and affected Help0.46s pass. A fresh private actual-input display/Return/Back/Forward retry closes normally0/0/0. All failed baselines and intermediate runtime identities remain. No numerical engine/mission or live-host test changed; the nine original gates and held/external/deferred requirements remain.

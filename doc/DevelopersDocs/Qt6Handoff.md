@@ -18,6 +18,10 @@ brief, not proof of qualification. Recheck the repository before making changes.
 4. Make concrete fixes, validate them, record their evidence, and rebuild the
    actual application. Do not stop at another inventory or proposed plan.
 
+## Current installed application — 2026-10-03
+
+GmatQt is rebuilt at **6,146,632 bytes / SHA12a9dddf…**. [Help attachment and Find Return verification](Qt6ParityValidation/help-attachments-20261003.md) closes the actual linked-script whitespace/markup and default-Back-on-Return usability defects, with affected checks and private actual input/normal0/0/0 exit evidence. Base/util/startup are unchanged. [Offline Help publication](Qt6ParityValidation/help-publication-20261003.md) now includes eighteen tutorial chapters. Earlier numerical walkthroughs remain bound to their recorded runtime; they were not repeated for these Help changes.
+
 ## Current local Rename follow-up — 2026-10-03
 
 The blanket include/function Rename ban is repaired for provably unrelated
@@ -33,8 +37,7 @@ host testing remains stopped. Keep all nine original acceptance gates.
 [Single-step propagation](Qt6ParityValidation/single-step-20261003.md) is available
 in the primary form and by removing all stopping rows. Typed command controls
 scroll. [Coordinate Rename and new-window size](Qt6ParityValidation/axis-command-usability-20261003.md)
-repair further actual walkthrough blockers; installed app SHA483ed090… is rebuilt
-and directly affected checks pass. [Implicit Earth gravity](Qt6ParityValidation/implicit-gravity-20261003.md)
+repair further actual walkthrough blockers; their app SHA483ed090… was rebuilt and directly affected checks passed. The current Help follow-up above records the later runtime. [Implicit Earth gravity](Qt6ParityValidation/implicit-gravity-20261003.md)
 retains the existing Earth field during paired force edits. Six of seven additional usable source walkthroughs are complete and published; [installed Help verification](Qt6ParityValidation/help-publication-20261003.md) covers their pages, links and illustrations. [Lunar Transfer](Qt6ParityValidation/help-lunar-transfer-20261003.md) remains HOLD after its original and one solver-setting variant missed ECC0±1e-5. Its final inclination is about88.07°, not proof of exact90° capture. Use the current [walkthrough ledger](Qt6TutorialWalkthrough.md) and individual runtime receipts, including its early-access disclosure.
 Original twelve published passes and all nine gates remain intact; host/GPU stops
 and external/deferred chapter dispositions remain visible.
