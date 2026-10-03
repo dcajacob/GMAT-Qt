@@ -2412,3 +2412,10 @@ normal size during initial maximized-sibling restoration and remain bounded to
 the workspace. Later manual sizes remain intact.
 [Focused checks and separate native evidence](Qt6ParityValidation/axis-command-usability-20261003.md)
 record these additional walkthrough-discovered usability repairs.
+
+
+### Additional offline Help walkthroughs
+
+Tutorials now includes eighteen chapters: the original twelve plus Creating a Report, Force Models, Formation Rendezvous, LEO Station Keeping (both parts), ACE Station Keeping and Mars B-Plane Targeting (Legacy Walkthrough). The older Mars title distinguishes it from the modern chapter. All new chapter/subsection local links, illustration paths and script attachments have installed verification. The Propagate Help page describes Single step, accepting an empty stopping-condition list, multiple groups and scrolling fields.
+
+[Publication evidence](Qt6ParityValidation/help-publication-20261003.md) and the [walkthrough ledger](Qt6TutorialWalkthrough.md) retain each bounded GUI pass and its scientific limitations. Lunar remains unpublished after two capture-target failures; L2 is held, and MATLAB/legacy optimizer chapters retain their dependency dispositions. This does not close the nine replacement acceptance gates or host/GPU qualification.

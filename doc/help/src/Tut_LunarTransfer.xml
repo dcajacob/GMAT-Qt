@@ -9,6 +9,18 @@
          xmlns:db="http://docbook.org/ns/docbook">
   <title>Lunar Transfer</title>
 
+  <note>
+    <para>Linux Qt 6 qualification is on hold for this source lesson. An
+    independent GUI construction on 3 October 2026 did not reach the lunar
+    eccentricity goal of zero with a tolerance of 0.00001 in 25 iterations.
+    A second case changing only the LOI finite-difference perturbation from
+    0.0001 to 0.000001 also missed that goal. Both cases used the
+    EarthToMoon.BdotT goal below and measured a Moon-inertial inclination
+    of about 88.07 degrees after the final propagation; these results do
+    not establish an exactly 90-degree polar orbit. The instructions,
+    targets and figures are retained for further qualification.</para>
+  </note>
+
   <section>
     <title>Objective and Overview</title>
 	

@@ -24,8 +24,7 @@ The blanket include/function Rename ban is repaired for provably unrelated
 literal dependencies; see [safe local Rename](Qt6ParityValidation/safe-local-rename-20261003.md).
 Affected or unresolved external files still require coordinated script editing.
 The actual rebuilt app, focused check and private F2/Undo/Redo/Save/reopen/known
-report are verified. Seven additional Help walkthroughs are being independently
-constructed; publish each only after verified completion. L2 remains held,
+report are verified. Six additional Help walkthroughs are complete and published, for eighteen tutorial chapters; Lunar remains held after two cases missed its capture tolerance. The full seven-additional-chapter requirement remains unmet. L2 remains held,
 MATLAB and unresolved optimizer chapters remain deferred/unresolved, and live
 host testing remains stopped. Keep all nine original acceptance gates.
 
@@ -36,10 +35,7 @@ in the primary form and by removing all stopping rows. Typed command controls
 scroll. [Coordinate Rename and new-window size](Qt6ParityValidation/axis-command-usability-20261003.md)
 repair further actual walkthrough blockers; installed app SHA483ed090… is rebuilt
 and directly affected checks pass. [Implicit Earth gravity](Qt6ParityValidation/implicit-gravity-20261003.md)
-retains the existing Earth field during paired force edits. Six of seven additional
-usable source walkthroughs are complete; Lunar Transfer is
-being completed independently. Use the current [walkthrough ledger](Qt6TutorialWalkthrough.md)
-and individual runtime receipts. Publication waits for installed Help readback.
+retains the existing Earth field during paired force edits. Six of seven additional usable source walkthroughs are complete and published; [installed Help verification](Qt6ParityValidation/help-publication-20261003.md) covers their pages, links and illustrations. [Lunar Transfer](Qt6ParityValidation/help-lunar-transfer-20261003.md) remains HOLD after its original and one solver-setting variant missed ECC0±1e-5. Its final inclination is about88.07°, not proof of exact90° capture. Use the current [walkthrough ledger](Qt6TutorialWalkthrough.md) and individual runtime receipts, including its early-access disclosure.
 Original twelve published passes and all nine gates remain intact; host/GPU stops
 and external/deferred chapter dispositions remain visible.
 

@@ -66,4 +66,18 @@
 
   <xi:include href="Tut_Simulate_and_Estimate_Inter_Spacecraft_Tracking.xml"
               xpointer="element(/1)"/>
+
+  <!-- Additional completed Qt GUI walkthroughs; original order retained. -->
+
+  <xi:include href="Tut_CreatingReport.xml"/>
+
+  <xi:include href="Tut_ForceModels.xml"/>
+
+  <xi:include href="Tut_FormationRendezvous.xml"/>
+
+  <xi:include href="Tut_LEOStationKeeping.xml"/>
+
+  <xi:include href="Tut_ACEStationKeeping.xml"/>
+
+  <xi:include href="Tut_MarsB-PlaneTargeting.xml"/>
 </part>

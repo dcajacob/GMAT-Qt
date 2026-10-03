@@ -1,6 +1,6 @@
 # Qt 6 Help tutorial walkthrough qualification
 
-## Scope and current state — 2026-10-02
+## Scope and current state — 2026-10-03
 
 The user requested this as the next qualification phase after the current Linux
 replacement work: follow the Help tutorials as a person using GMAT would, build
@@ -9,7 +9,7 @@ them. Shipped tutorial mission scripts are reserved for comparison afterward.
 This extends the existing goal; it does not replace its unfinished acceptance
 requirements. Windows, macOS and MATLAB remain deferred.
 
-**All twelve published tutorials are Passed for bounded private actual-input construction.** See
+**The installed Help now publishes eighteen qualified tutorial chapters: the original twelve plus six additional walks.** Their bounded passes and scientific limitations are retained. [Publication verification](Qt6ParityValidation/help-publication-20261003.md) binds the rebuilt offline book and actual navigation. The original twelve passes follow; see
 [Tutorial 1](Qt6ParityValidation/help-tutorial-01-20261002.md),
 [Tutorial 2](Qt6ParityValidation/help-tutorial-02-20261002.md),
 [Tutorial 3](Qt6ParityValidation/help-tutorial-03-20261002.md),
@@ -104,9 +104,7 @@ or links against the source. Reading an inventory is not a completed tutorial.
 
 ## Published tutorial sequence
 
-All twelve published tutorials are **Passed** with the bounded evidence linked
-below. Numbering follows
-the Tutorials part of the Help.
+The original twelve published tutorials remain **Passed** with the bounded evidence linked below. The six added chapters follow them in the Help and are recorded in the next table. Book chapter numbering includes preceding non-tutorial chapters.
 
 | # | Chapter source and title | Prerequisites and staged coverage |
 |---|---|---|
@@ -135,10 +133,7 @@ not establish tutorial 5's interactive workflow.
 The [availability audit](Qt6ParityValidation/help-extra-chapters-20261002.md)
 retains the original twelve source chapters outside the Tutorials book and their
 195 image references. The user-approved follow-up independently constructs seven
-usable chapters before publication. Six walkthroughs are now complete; one
-remain in progress. The original twelve published tutorial passes above are
-preserved and were not rerun. Until the book is rebuilt and its installed pages
-verified, these remain qualified source chapters awaiting publication.
+usable chapters before publication. Six walkthroughs are complete and now published; Lunar remains **HOLD** after its original and one solver-setting variant missed the capture tolerance. Thus the full seven-chapter requirement remains unmet. The original twelve passes are preserved and were not rerun. [Publication verification](Qt6ParityValidation/help-publication-20261003.md) covers the installed six chapters, subsections, local links, illustrations and attachments.
 
 | Chapter source | Current disposition |
 |---|---|
@@ -147,7 +142,7 @@ verified, these remain qualified source chapters awaiting publication.
 | `Tut_FormationRendezvous.xml` | **Passed** — [independent GUI construction/run/reopen](Qt6ParityValidation/help-formation-rendezvous-20261003.md), four spacecraft, two separately converged position/velocity targets, twenty Report commands and fresh source readback before comparison. This is not simultaneous six-state docking. |
 | `Tut_LEOStationKeeping.xml` | **Passed** — [Parts1/2 actual-input construction/run/reopen](Qt6ParityValidation/help-leo-station-keeping-20261003.md), both ten-day histories and105 converged targets, frozen before reference comparison; the342km condition is a correction trigger, not a minimum-altitude guarantee. |
 | `Tut_ACEStationKeeping.xml` | **Passed** — [independent GUI construction/run/reopen](Qt6ParityValidation/help-ace-station-keeping-20261003.md), seven converged targets, eight finite report records and two viewers; full comparison followed freeze. Original missing link and retained early attempts are explicit. |
-| `Tut_LunarTransfer.xml` | **In progress** — independent resource/viewer/target construction, literal EarthToMoon.BdotT goal retained. No walkthrough pass claimed yet. |
+| `Tut_LunarTransfer.xml` | **HOLD, unpublished** — [actual GUI construction, two runs and fresh reopens](Qt6ParityValidation/help-lunar-transfer-20261003.md). Both original and one perturbation-only variant missed ECC0±1e-5 after25 iterations; final Moon-inertial inclination is about88.07°, rather than an exact90° guarantee. Incidental early ECC sample-line access is disclosed. No walkthrough pass is claimed. |
 | `Tut_MarsB-PlaneTargeting.xml` | **Passed with explicit frame/coast interpretation** — [older chapter actual-input walk](Qt6ParityValidation/help-mars-b-plane-legacy-20261003.md), two converged targets, original nine finite report rows and fresh reopen; changed-output-only diagnostic confirms the final Mars ellipse. Separate from the already-passed modern tutorial. |
 | `Tut_L2Transfer.xml` | **Held** — original two sign brackets miss the required L2 plane; bounded failure/domain evidence retained, no ephemeris extension or objective change. |
 | `Tut_MATLAB.xml` | **Deferred** — Running GMAT Scripts from MATLAB. |
@@ -155,8 +150,7 @@ verified, these remain qualified source chapters awaiting publication.
 | `Tut_AlgebraicOptimization.xml` | **Unresolved legacy optimizer identity/dependency** — not a walkthrough pass. |
 | `Tut_MinFuelLunarTransfer.xml` | **Unresolved legacy optimizer identity/dependency** — not a walkthrough pass. |
 
-Each completed walkthrough freezes its own GUI-authored mission, result and fresh
-readback before reading a supplied script. Differences remain documented instead
+Each of the six completed additional walkthroughs froze its own GUI-authored mission, result and fresh readback before supplied-script comparison. Lunar retained an incidental early ECC-only sample access; its deliberate comparison followed the first result/readback freeze, and it remains held. Differences remain documented instead
 of retrofitting the construction to the reference. Original attempt failures,
 bounded stops and per-session app identities remain in the ignored artifact tree.
 [Implicit Earth gravity](Qt6ParityValidation/implicit-gravity-20261003.md),

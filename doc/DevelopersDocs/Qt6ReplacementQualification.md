@@ -8789,3 +8789,12 @@ fixture failures and their corrections are explicit; no numerical engine changed
 The nine acceptance gates, host/GPU stop, external inputs/domain limits and
 Windows/macOS/MATLAB deferrals remain in force. These changes do not establish
 full replacement qualification or repeat the completed audit/tutorial corpus.
+
+
+## Six additional Help chapters published; Lunar held — 2026-10-03
+
+[Publication verification](Qt6ParityValidation/help-publication-20261003.md) records a successful build-qt-help build and installed18-chapter Tutorials book, preserving the original12 order/passes and adding only the six independently completed walks. All24 new chapter/subsection pages,327 local references,93 illustration references and four script attachments resolve. Single-page/chunk attachment URLs are separately correct; actual private GUI navigation supplements the filesystem checks. No completed mission or unaffected passing test was rerun for publication.
+
+[Lunar Transfer](Qt6ParityValidation/help-lunar-transfer-20261003.md) remains HOLD and unpublished. Original and one changed LOI finite-difference perturbation case both miss ECC0±1e-5 at the25-iteration bound; final Moon-inertial inclination is about88.07°, short of an exact90° guarantee. Original targets, force models, attempts and results remain preserved. Its incidental early ECC sample-line access is disclosed; the later deliberate comparison followed the original run/reopen freeze. The full seven-additional-chapter requirement therefore remains unmet.
+
+L2 remains held, two MATLAB chapters deferred and two legacy optimizer chapters unresolved. The nine original acceptance gates remain authoritative in the [current map](Qt6ParityValidation/current-acceptance-20261002.md). Live host testing stays stopped; Mutter's NULL Wayland-resource fault is established, while GMAT attribution, safe host condition and physical GPU acceptance remain unproven. External-input/domain limits and Windows/macOS/MATLAB deferrals remain. Full Linux qualification is not claimed.
