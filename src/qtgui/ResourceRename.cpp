@@ -57,7 +57,15 @@ Field field(GmatBase &object,const QString &path)
    for (int i=0;i<object.GetOwnedObjectCount();++i) {
       auto *owned=object.GetOwnedObject(i); if (!owned) continue;
       QString prefix=QString::fromStdString(object.BuildPropertyName(owned))+'.';
-      if (object.IsOfType("CoordinateSystem") && owned->IsOfType("AxisSystem")) prefix="Axes.";
+      if (object.IsOfType("CoordinateSystem") && owned->IsOfType("AxisSystem")) {
+         prefix="Axes.";
+         // CoordinateSystem forwards its owned axis properties in authored
+         // source (Rot.XAxis/Primary), including GUI-created settings. Resolve
+         // their actual typed owner; enum directions remain literal values.
+         if (!path.startsWith(prefix)) {
+            const auto found=field(*owned,path); if (found.owner) return found;
+         }
+      }
       if (path.startsWith(prefix)) { const auto found=field(*owned,path.mid(prefix.size())); if (found.owner) return found; }
    }
    return {};

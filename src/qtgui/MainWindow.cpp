@@ -172,18 +172,26 @@ void keepWorkspaceWindowReachable(QMdiArea *workspace,QMdiSubWindow *child)
 }
 void showNewWorkspaceWindow(QMdiArea *workspace,QMdiSubWindow *child)
 {
+   const auto initialSize=child->size();
+   const bool configurationPanel=child->property("configurationPanel").toBool();
    child->show();
    // Configuration panels are created with a normal size. Do not inherit the
    // active script's maximized state and later restore an unclamped position.
-   if (child->property("configurationPanel").toBool() && child->isMaximized()) child->showNormal();
+   if (configurationPanel && child->isMaximized()) child->showNormal();
+   if (configurationPanel && !child->isMinimized() && !child->isMaximized()) child->resize(initialSize);
    // Keep new controls reachable when Qt's cascade position leaves the viewport.
    keepWorkspaceWindowReachable(workspace,child);
    // An active maximized script can briefly maximize the new child, then Qt
    // restores its original geometry during deferred initialization. Bound that
    // final normal geometry too, without altering an explicit min/max state.
    const QPointer<QMdiSubWindow> guarded=child;
-   QTimer::singleShot(0,child,[workspace,guarded] {
-      if (guarded && guarded->isVisible()) keepWorkspaceWindowReachable(workspace,guarded);
+   QTimer::singleShot(0,child,[workspace,guarded,initialSize,configurationPanel] {
+      if (!guarded || !guarded->isVisible()) return;
+      // Qt can restore a small fallback geometry after inheriting a maximized
+      // sibling. Preserve the caller's initial usable size once at creation;
+      // later activation and manual resizing retain their existing behavior.
+      if (configurationPanel && !guarded->isMinimized() && !guarded->isMaximized()) guarded->resize(initialSize);
+      keepWorkspaceWindowReachable(workspace,guarded);
    });
 }
 // wx assigns display names while populating the mission tree. Qt keeps its

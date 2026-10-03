@@ -2402,3 +2402,13 @@ The rebuilt event tutorial directs SPICE leap-second kernel selection to startup
 `LSK_FILE`; `LEAP_SECS_FILE` separately selects the time table. SolarSystem's panel
 has no leap-second kernel input. This wording correction retains the completed
 tutorial ledger without claiming an additional settings-panel operation.
+
+
+GUI-created coordinate systems can participate in local Rename even when their
+owned axis settings are authored as `Frame.XAxis`, `Frame.Primary` and
+`Frame.Secondary`. Axis direction literals are retained; configured object
+references are renamed. New command/resource windows preserve their requested
+normal size during initial maximized-sibling restoration and remain bounded to
+the workspace. Later manual sizes remain intact.
+[Focused checks and separate native evidence](Qt6ParityValidation/axis-command-usability-20261003.md)
+record these additional walkthrough-discovered usability repairs.

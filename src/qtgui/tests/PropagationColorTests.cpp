@@ -44,6 +44,8 @@ static void sourceCases()
    }
    PropagationColorDialog only("Propagate P(Sat) {OrbitColor = Red}; % one step"); only.findChild<QCheckBox *>("propagationColorOverride")->setChecked(false);
    require(only.statement()=="Propagate P(Sat) ; % one step","Sole color removal left empty braces or lost comment");
+   PropagationColorDialog options("Propagate P(Sat) {StopTolerance = 1e-8, OrbitColor = Blue}; % one step"); options.findChild<QCheckBox *>("propagationColorOverride")->setChecked(false);
+   require(options.statement()=="Propagate P(Sat) ; % one step","Removing a SingleStep color left invalid inactive-tolerance braces or lost comment");
    PropagationColorDialog step("Propagate P(Sat); % one step"); step.findChild<QCheckBox *>("propagationColorOverride")->setChecked(true); step.findChild<QLineEdit *>("propagationColorValue")->setText("Blue");
    require(step.statement()=="Propagate P(Sat) {OrbitColor = Blue}; % one step","One-step color insertion lost command/comment");
    PropagationColorDialog mapped("Propagate P(Sat) {Sat.ElapsedSecs = 60,\n OrbitColor = [10 % keep RGB comment\n20 30],\n StopTolerance = 1e-8}; % tail");

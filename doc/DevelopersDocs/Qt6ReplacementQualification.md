@@ -8770,3 +8770,22 @@ Rename test passes in 0.62 s and an actual-input F2/Undo/Redo/Save/reopen/run ca
 reports the independent value10 with external files unchanged and exits0/0/0.
 The nine acceptance gates remain in progress; no host/GPU or scientific-wide
 qualification is claimed.
+
+
+## Actual walkthrough usability repairs — 2026-10-03
+
+[Single-step propagation](Qt6ParityValidation/single-step-20261003.md) adds the
+ordinary no-stopping-condition operation, preserves source mapping for classified
+options-only commands, and keeps typed controls reachable with scrolling. Its
+focused known ±600-second checks and affected color check pass on their bound
+SHA2c15ffe7… application.
+
+[Coordinate Rename and initial window size](Qt6ParityValidation/axis-command-usability-20261003.md)
+resolve native ACE/Lunar/older-Mars failures on GUI-created forwarded axis fields
+and LEO's compressed new command child. Current installed app SHA483ed090… is
+rebuilt; AxisRename0.25s, CommandGeometry0.25s, ResourceRename0.63s and affected
+WorkspaceReachability0.36s pass. Actual ACE F2 Rename also succeeds. Original
+fixture failures and their corrections are explicit; no numerical engine changed.
+The nine acceptance gates, host/GPU stop, external inputs/domain limits and
+Windows/macOS/MATLAB deferrals remain in force. These changes do not establish
+full replacement qualification or repeat the completed audit/tutorial corpus.
