@@ -1,5 +1,15 @@
 # Current Linux Qt acceptance reconciliation — 2026-10-02
 
+## Playback layout — 2026-10-05
+
+[Compact playback controls](playback-layout-20261005.md) group transport, mode, speed arrows/multiplier
+and a bounded simulation-rate field above a full-width timeline. Wide viewers
+use two playback rows; tiled viewers wrap whole groups. Actual-widget previews
+at225% scaling and two affected playback checks pass. GmatQt is rebuilt at
+**6,750,008 bytes / SHA e78e6ad9…**; base/util/startup are
+unchanged. No numerical example or host session was repeated. Full qualification
+and existing host/scientific limits remain open.
+
 ## Failing-example resolution — 2026-10-05
 
 The [complete27-row resolution](failing-examples-20261005.md) records six recovered execution completions:

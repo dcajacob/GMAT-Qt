@@ -615,6 +615,64 @@ void PlotCanvas::paintEvent(QPaintEvent *)
    }
 }
 
+// Keep playback controls together at desktop widths, and wrap whole groups
+// when a viewer is tiled. Font-based size hints also account for desktop scaling.
+class PlotPlaybackPanel final : public QWidget
+{
+public:
+   explicit PlotPlaybackPanel(QWidget *parent) : QWidget(parent), grid(new QGridLayout(this))
+   {
+      grid->setContentsMargins(6,2,6,4); grid->setHorizontalSpacing(10); grid->setVerticalSpacing(4);
+      grid->setSizeConstraint(QLayout::SetNoConstraint);
+      grid->setColumnStretch(4,1);
+   }
+   void configure(QWidget *buttons,QWidget *mode,QWidget *speed,QWidget *rate,QWidget *timeline)
+   {
+      groups={buttons,mode,speed,rate}; position=timeline; arrange();
+   }
+   QSize minimumSizeHint() const override
+   {
+      int width=0;
+      for (auto *group:groups) if (!group->isHidden()) width=std::max(width,group->minimumSizeHint().width());
+      return {width+12,grid->minimumSize().height()};
+   }
+protected:
+   void resizeEvent(QResizeEvent *event) override { QWidget::resizeEvent(event); arrange(); }
+   bool event(QEvent *event) override
+   {
+      const bool result=QWidget::event(event);
+      if (event->type()==QEvent::LayoutRequest) arrange();
+      return result;
+   }
+private:
+   QGridLayout *grid;
+   QVector<QWidget *> groups;
+   QWidget *position=nullptr;
+   int rows=0;
+   void arrange()
+   {
+      if (!position) return;
+      const auto hint=[this](int index) { return groups[index]->isHidden() ? 0 : groups[index]->sizeHint().width(); };
+      const int available=width()-12;
+      const int wanted=available>=hint(0)+hint(1)+hint(2)+hint(3)+30 ? 1 :
+         available>=std::max(hint(0)+hint(2),hint(1)+hint(3))+10 ? 2 : 3;
+      if (wanted==rows) return;
+      rows=wanted;
+      for (auto *group:groups) grid->removeWidget(group);
+      grid->removeWidget(position);
+      if (rows==1) {
+         for (int i=0;i<groups.size();++i) grid->addWidget(groups[i],0,i,Qt::AlignLeft);
+      } else {
+         grid->addWidget(groups[0],0,0,1,2,Qt::AlignLeft);
+         grid->addWidget(groups[2],0,2,1,2,Qt::AlignLeft);
+         grid->addWidget(groups[1],1,0,1,rows==2 ? 2 : 4,Qt::AlignLeft);
+         grid->addWidget(groups[3],rows==2 ? 1 : 2,rows==2 ? 2 : 0,1,rows==2 ? 2 : 4,Qt::AlignLeft);
+      }
+      grid->addWidget(position,rows,0,1,5);
+      updateGeometry();
+   }
+};
+
 PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWidget(parent), data(std::move(model))
 {
    historyGeneration=data->historyGeneration;
@@ -763,15 +821,17 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
       if (simulationClock && simulationRequested) simulationRequested(SimulationCommand::Mode,replayMode->currentData().toInt()); else updateReplayFrame();
    });
    if (data->kind != PlotModel::Kind::XY) {
-      auto *transport=new QWidget(this); transportControls=transport; transport->setObjectName("plotPlaybackControls");
-      auto *transportLayout=new QVBoxLayout(transport); transportLayout->setContentsMargins(4,0,4,2); transportLayout->setSpacing(2);
-      auto *buttons=new QHBoxLayout; buttons->setSpacing(2); transportLayout->addLayout(buttons);
-      auto *position=new QHBoxLayout; position->setSpacing(6); transportLayout->addLayout(position);
+      auto *transport=new PlotPlaybackPanel(this); transportControls=transport; transport->setObjectName("plotPlaybackControls");
+      auto *buttonGroup=new QWidget(transport);
+      auto *buttons=new QHBoxLayout(buttonGroup); buttons->setContentsMargins(0,0,0,0); buttons->setSpacing(2);
+      auto *positionRow=new QWidget(transport);
+      auto *position=new QHBoxLayout(positionRow); position->setContentsMargins(0,0,0,0); position->setSpacing(8);
       layout->addWidget(transport);
-      auto addPlaybackAction=[&](QStyle::StandardPixmap icon,const QString &text) {
+      auto addPlaybackAction=[&](QStyle::StandardPixmap icon,const QString &text,QHBoxLayout *row=nullptr) {
          auto *action=new QAction(style()->standardIcon(icon),text,transport);
          auto *button=new QToolButton(transport); button->setDefaultAction(action);
-         button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon); buttons->addWidget(button);
+         button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon); button->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed);
+         (row ? row : buttons)->addWidget(button);
          return action;
       };
       auto *start=addPlaybackAction(QStyle::SP_MediaSkipBackward,"Start"); start->setObjectName("plotReplayStart");
@@ -794,12 +854,15 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
       position->addWidget(timeline,1); timeline->show();
       replayPosition=new QLabel("Latest",transport); replayPosition->setObjectName("plotReplayPosition");
       replayPosition->setMinimumWidth(replayPosition->fontMetrics().horizontalAdvance("Latest")+8); position->addWidget(replayPosition);
-      auto *speed=new QComboBox(transport); playbackSpeed=speed; speed->setObjectName("plotReplaySpeed"); speed->setAccessibleName("Playback speed");
+      auto *speedGroup=new QWidget(transport);
+      auto *speedLayout=new QHBoxLayout(speedGroup); speedLayout->setContentsMargins(0,0,0,0); speedLayout->setSpacing(2);
+      auto *speed=new QComboBox(transport); speed->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed); playbackSpeed=speed; speed->setObjectName("plotReplaySpeed"); speed->setAccessibleName("Playback speed");
       speed->setToolTip("Playback speed relative to a three-second sweep of recorded history");
       for (double rate:{0.25,0.5,1.,2.,4.}) speed->addItem(QString::number(rate)+QString::fromUtf8("×"),rate);
       speed->setCurrentIndex(2);
-      auto *slower=addPlaybackAction(QStyle::SP_ArrowLeft,"Slower"); slower->setObjectName("plotReplaySlower");
-      auto *faster=addPlaybackAction(QStyle::SP_ArrowRight,"Faster"); faster->setObjectName("plotReplayFaster");
+      auto *slower=addPlaybackAction(QStyle::SP_ArrowLeft,"Slower",speedLayout); slower->setObjectName("plotReplaySlower");
+      speedLayout->addWidget(speed);
+      auto *faster=addPlaybackAction(QStyle::SP_ArrowRight,"Faster",speedLayout); faster->setObjectName("plotReplayFaster");
       slower->setToolTip("Decrease playback speed"); faster->setToolTip("Increase playback speed");
       for (auto *button:transport->findChildren<QToolButton *>())
          if (button->defaultAction()==slower || button->defaultAction()==faster) {
@@ -813,12 +876,14 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
       };
       connect(speed,&QComboBox::currentIndexChanged,this,syncSpeed); syncSpeed();
       connect(speed,&QComboBox::currentIndexChanged,this,[this,speed] { if (simulationClock && simulationRequested) simulationRequested(SimulationCommand::Multiplier,speed->currentData().toDouble()); });
-      // Mode and speed get their own row to preserve narrow tiled plots.
-      auto *options=new QHBoxLayout; options->setSpacing(3); transportLayout->addLayout(options);
-      replayMode->show(); options->addWidget(replayMode); options->addStretch(); options->addWidget(speed);
-      simulationRateRow=new QWidget(transport); auto *rateLayout=new QHBoxLayout(simulationRateRow); rateLayout->setContentsMargins(0,0,0,0);
-      rateLayout->addWidget(new QLabel("Simulation s/s",simulationRateRow)); simulationRate=new QLineEdit(simulationRateRow); simulationRate->setObjectName("plotSimulationRate");
-      simulationRate->setAccessibleName("Simulation seconds per wall second"); rateLayout->addWidget(simulationRate); transportLayout->addWidget(simulationRateRow); simulationRateRow->hide();
+      replayMode->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed); replayMode->show();
+      simulationRateRow=new QWidget(transport); auto *rateLayout=new QHBoxLayout(simulationRateRow); rateLayout->setContentsMargins(0,0,0,0); rateLayout->setSpacing(6);
+      auto *rateLabel=new QLabel("Simulation s/s",simulationRateRow); rateLayout->addWidget(rateLabel);
+      simulationRate=new QLineEdit(simulationRateRow); simulationRate->setObjectName("plotSimulationRate");
+      simulationRate->setFixedWidth(simulationRate->fontMetrics().horizontalAdvance("-123456.789")+20);
+      simulationRate->setAccessibleName("Simulation seconds per wall second"); rateLabel->setBuddy(simulationRate);
+      rateLayout->addWidget(simulationRate); simulationRateRow->hide();
+      transport->configure(buttonGroup,replayMode,speedGroup,simulationRateRow,positionRow);
       connect(simulationRate,&QLineEdit::editingFinished,this,[this] {
          bool ok=false; const double rate=simulationRate->text().toDouble(&ok);
          if (ok && std::isfinite(rate) && simulationRequested) simulationRequested(SimulationCommand::Rate,rate);

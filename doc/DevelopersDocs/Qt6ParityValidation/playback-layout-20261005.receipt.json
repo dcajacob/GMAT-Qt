@@ -1,0 +1,366 @@
+{
+  "scope": "Playback layout only; compact grouped controls and full-width timeline, responsive tiled rows and 225% scaled synthetic actual-widget previews. Existing controls/signals/modes/rates untouched. No numerical mission or host/hardware acceptance claim.",
+  "runtime": [
+    {
+      "path": "src/qtgui/PlotWidget.cpp",
+      "sha256": "6cf896da39c49a6dacea27f56017ce2f63cb821ba7fee26fa65db130d80edf17",
+      "bytes": 78604
+    },
+    {
+      "path": "application/bin/GmatQt",
+      "sha256": "e78e6ad9b27bec4c5f1fa80c060c60e6e76e211d827bc78f9ffbcc878efed865",
+      "bytes": 6750008
+    },
+    {
+      "path": "application/bin/libGmatBase.so.R2026a",
+      "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e",
+      "bytes": 25040656
+    },
+    {
+      "path": "application/bin/libGmatUtil.so.R2026a",
+      "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8",
+      "bytes": 2929904
+    },
+    {
+      "path": "application/bin/gmat_startup_qt.txt",
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a",
+      "bytes": 10260
+    }
+  ],
+  "geometry": [
+    {
+      "actualWidth": 1200,
+      "controls": [
+        {
+          "height": 24,
+          "name": "",
+          "width": 62,
+          "x": 6,
+          "y": 2
+        },
+        {
+          "height": 24,
+          "name": "",
+          "width": 68,
+          "x": 70,
+          "y": 2
+        },
+        {
+          "height": 24,
+          "name": "",
+          "width": 70,
+          "x": 140,
+          "y": 2
+        },
+        {
+          "height": 17,
+          "name": "plotTimeline",
+          "width": 1101,
+          "x": 6,
+          "y": 31
+        },
+        {
+          "height": 17,
+          "name": "plotReplayPosition",
+          "width": 79,
+          "x": 1115,
+          "y": 31
+        },
+        {
+          "height": 23,
+          "name": "",
+          "width": 24,
+          "x": 364,
+          "y": 3
+        },
+        {
+          "height": 25,
+          "name": "plotReplaySpeed",
+          "width": 61,
+          "x": 390,
+          "y": 2
+        },
+        {
+          "height": 23,
+          "name": "",
+          "width": 24,
+          "x": 453,
+          "y": 3
+        },
+        {
+          "height": 25,
+          "name": "plotSimulationRate",
+          "width": 89,
+          "x": 573,
+          "y": 2
+        },
+        {
+          "height": 25,
+          "name": "plotReplayMode",
+          "width": 134,
+          "x": 220,
+          "y": 2
+        }
+      ],
+      "controlsHeight": 52,
+      "image": "/home/dan/GIT/GMAT-Qt/build/example-qualification/20261005/playback-layout/playback-1200-0.png",
+      "rateWidth": 89,
+      "requestedWidth": 1200
+    },
+    {
+      "actualWidth": 600,
+      "controls": [
+        {
+          "height": 24,
+          "name": "",
+          "width": 62,
+          "x": 6,
+          "y": 2
+        },
+        {
+          "height": 24,
+          "name": "",
+          "width": 68,
+          "x": 70,
+          "y": 2
+        },
+        {
+          "height": 24,
+          "name": "",
+          "width": 70,
+          "x": 140,
+          "y": 2
+        },
+        {
+          "height": 17,
+          "name": "plotTimeline",
+          "width": 501,
+          "x": 6,
+          "y": 60
+        },
+        {
+          "height": 17,
+          "name": "plotReplayPosition",
+          "width": 79,
+          "x": 515,
+          "y": 60
+        },
+        {
+          "height": 23,
+          "name": "",
+          "width": 24,
+          "x": 220,
+          "y": 3
+        },
+        {
+          "height": 25,
+          "name": "plotReplaySpeed",
+          "width": 61,
+          "x": 246,
+          "y": 2
+        },
+        {
+          "height": 23,
+          "name": "",
+          "width": 24,
+          "x": 309,
+          "y": 3
+        },
+        {
+          "height": 25,
+          "name": "plotSimulationRate",
+          "width": 89,
+          "x": 306,
+          "y": 31
+        },
+        {
+          "height": 25,
+          "name": "plotReplayMode",
+          "width": 134,
+          "x": 6,
+          "y": 31
+        }
+      ],
+      "controlsHeight": 81,
+      "image": "/home/dan/GIT/GMAT-Qt/build/example-qualification/20261005/playback-layout/playback-600-1.png",
+      "rateWidth": 89,
+      "requestedWidth": 600
+    },
+    {
+      "actualWidth": 380,
+      "controls": [
+        {
+          "height": 24,
+          "name": "",
+          "width": 57,
+          "x": 6,
+          "y": 2
+        },
+        {
+          "height": 24,
+          "name": "",
+          "width": 57,
+          "x": 65,
+          "y": 2
+        },
+        {
+          "height": 24,
+          "name": "",
+          "width": 56,
+          "x": 124,
+          "y": 2
+        },
+        {
+          "height": 17,
+          "name": "plotTimeline",
+          "width": 281,
+          "x": 6,
+          "y": 60
+        },
+        {
+          "height": 17,
+          "name": "plotReplayPosition",
+          "width": 79,
+          "x": 295,
+          "y": 60
+        },
+        {
+          "height": 23,
+          "name": "",
+          "width": 24,
+          "x": 190,
+          "y": 3
+        },
+        {
+          "height": 25,
+          "name": "plotReplaySpeed",
+          "width": 61,
+          "x": 216,
+          "y": 2
+        },
+        {
+          "height": 23,
+          "name": "",
+          "width": 24,
+          "x": 279,
+          "y": 3
+        },
+        {
+          "height": 25,
+          "name": "plotSimulationRate",
+          "width": 89,
+          "x": 276,
+          "y": 31
+        },
+        {
+          "height": 25,
+          "name": "plotReplayMode",
+          "width": 134,
+          "x": 6,
+          "y": 31
+        }
+      ],
+      "controlsHeight": 81,
+      "image": "/home/dan/GIT/GMAT-Qt/build/example-qualification/20261005/playback-layout/playback-380-2.png",
+      "rateWidth": 89,
+      "requestedWidth": 380
+    },
+    {
+      "actualWidth": 1200,
+      "controls": [
+        {
+          "height": 24,
+          "name": "",
+          "width": 62,
+          "x": 6,
+          "y": 2
+        },
+        {
+          "height": 24,
+          "name": "",
+          "width": 68,
+          "x": 70,
+          "y": 2
+        },
+        {
+          "height": 24,
+          "name": "",
+          "width": 70,
+          "x": 140,
+          "y": 2
+        },
+        {
+          "height": 17,
+          "name": "plotTimeline",
+          "width": 1101,
+          "x": 6,
+          "y": 31
+        },
+        {
+          "height": 17,
+          "name": "plotReplayPosition",
+          "width": 79,
+          "x": 1115,
+          "y": 31
+        },
+        {
+          "height": 23,
+          "name": "",
+          "width": 24,
+          "x": 364,
+          "y": 3
+        },
+        {
+          "height": 25,
+          "name": "plotReplaySpeed",
+          "width": 61,
+          "x": 390,
+          "y": 2
+        },
+        {
+          "height": 23,
+          "name": "",
+          "width": 24,
+          "x": 453,
+          "y": 3
+        },
+        {
+          "height": 25,
+          "name": "plotSimulationRate",
+          "width": 89,
+          "x": 573,
+          "y": 2
+        },
+        {
+          "height": 25,
+          "name": "plotReplayMode",
+          "width": 134,
+          "x": 220,
+          "y": 2
+        }
+      ],
+      "controlsHeight": 52,
+      "image": "/home/dan/GIT/GMAT-Qt/build/example-qualification/20261005/playback-layout/playback-1200-3.png",
+      "rateWidth": 89,
+      "requestedWidth": 1200
+    }
+  ],
+  "checks": [
+    "QtGui.InterpolatedPlayback passed 0.08s",
+    "QtGui.PlaybackOptionsRuntime passed 0.23s",
+    "All visible captured controls contained at 1200/600/380 logical widths; wide layout restored when enlarged."
+  ],
+  "screenshots": [
+    {
+      "path": "playback-layout-20261005-wide.png",
+      "sha256": "1406d1ca11ab2320e9731c5cf82c399c2b22e9e2afa350972a6d4a2aa5d88055"
+    },
+    {
+      "path": "playback-layout-20261005-tiled.png",
+      "sha256": "77aebbfe17fe1f00b715701b74f7b652cc52632ed65961ed9397e626036ee1aa"
+    }
+  ],
+  "first_helper_correction": "Temporary synthetic preview initially used vector push_back for PlotModel QMap curves; corrected the helper to indexed access. Production code compiled and both affected checks passed first try.",
+  "build_command": "cmake --build build/linux-gui --target GmatQt GmatQtInterpolatedPlaybackTests GmatQtPlaybackOptionsRuntimeTests --parallel 8",
+  "test_command": "ctest --test-dir build/linux-gui -R '^QtGui\\.(InterpolatedPlayback|PlaybackOptionsRuntime)$' --output-on-failure"
+}
