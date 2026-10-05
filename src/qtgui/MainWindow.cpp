@@ -1579,7 +1579,7 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
    const auto name=QString::fromStdString(resource.GetName());
    QMap<QString,QString> changes=requested;
    if (changes.isEmpty()) return applyModelScript(expectedScript);
-   const QStringList objectDrawingKeys={"@QtPlayback","@QtStars","@QtSensorMasks","@QtAxesLabels","@QtFrameLabel","@QtObjectLabels","@QtObjectTrajectories","@QtObjectCenters","@QtObjectEndpoints","@QtObjectMarkerSizes","@QtObjectLineWidths","@QtObjectFontSizes","@QtObjectFontPositions","@QtObjectAxes","@QtObjectGrids","@QtObjectXYPlanes","@QtObjectVelocities","@QtObjectSegmentLabels"};
+   const QStringList objectDrawingKeys={"@QtObjectModelFiles","@QtPlayback","@QtStars","@QtSensorMasks","@QtAxesLabels","@QtFrameLabel","@QtObjectLabels","@QtObjectTrajectories","@QtObjectCenters","@QtObjectEndpoints","@QtObjectMarkerSizes","@QtObjectLineWidths","@QtObjectFontSizes","@QtObjectFontPositions","@QtObjectAxes","@QtObjectGrids","@QtObjectXYPlanes","@QtObjectVelocities","@QtObjectSegmentLabels"};
    const bool objectDrawing=std::any_of(objectDrawingKeys.cbegin(),objectDrawingKeys.cend(),[&](const auto &key) { return changes.contains(key); });
    if (objectDrawing && !object->IsOfType("OrbitView")) return "Object drawing settings belong to an OrbitView.";
    if (changes.contains("@QtStars")) try {
@@ -1865,7 +1865,7 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
                   if (std::find(objects.begin(),objects.end(),it.key().toStdString())==objects.end()) it=flags.erase(it); else ++it;
                }
             };
-            prune(setting.objectLabels); prune(setting.objectTrajectories); prune(setting.objectCenters); prune(setting.objectEndpoints); prune(setting.objectMarkerSizes); prune(setting.objectLineWidths); prune(setting.objectFontSizes); prune(setting.objectFontPositions); prune(setting.objectAxes); prune(setting.objectGrids); prune(setting.objectXYPlanes); prune(setting.objectVelocities); prune(setting.objectSegmentLabels);
+            prune(setting.objectModelFiles); prune(setting.objectLabels); prune(setting.objectTrajectories); prune(setting.objectCenters); prune(setting.objectEndpoints); prune(setting.objectMarkerSizes); prune(setting.objectLineWidths); prune(setting.objectFontSizes); prune(setting.objectFontPositions); prune(setting.objectAxes); prune(setting.objectGrids); prune(setting.objectXYPlanes); prune(setting.objectVelocities); prune(setting.objectSegmentLabels);
             candidate=setQtCameraSetting(candidate,name,setting);
          }
       }
@@ -1890,6 +1890,7 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
          if (changes.contains("@QtSensorMasks")) setting.sensorMasks=qtSensorMasks(changes.value("@QtSensorMasks"));
          if (changes.contains("@QtAxesLabels")) setting.axesLabels=qtDrawingFlag(changes.value("@QtAxesLabels"));
          if (changes.contains("@QtFrameLabel")) setting.frameLabel=qtDrawingFlag(changes.value("@QtFrameLabel"));
+         if (changes.contains("@QtObjectModelFiles")) setting.objectModelFiles=qtObjectModelFiles(changes.value("@QtObjectModelFiles"));
          if (changes.contains("@QtObjectLabels")) setting.objectLabels=qtObjectFlags(changes.value("@QtObjectLabels"));
          if (changes.contains("@QtObjectTrajectories")) setting.objectTrajectories=qtObjectFlags(changes.value("@QtObjectTrajectories"));
          if (changes.contains("@QtObjectCenters")) setting.objectCenters=qtObjectFlags(changes.value("@QtObjectCenters"));

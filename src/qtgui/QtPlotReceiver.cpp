@@ -30,6 +30,7 @@
 #include <QTableWidget>
 #include <QHeaderView>
 #include <QFileInfo>
+#include <QDir>
 #include <algorithm>
 #include <cmath>
 
@@ -179,6 +180,7 @@ void QtPlotReceiver::validateCameraReferences(const QMap<QString,QtCameraSetting
       for (const auto &name:it->objectLineWidths.keys()) validateTrajectory(name,false);
       for (const auto &name:it->objectFontSizes.keys()) validateTrajectory(name,false);
       for (const auto &name:it->objectFontPositions.keys()) validateTrajectory(name,false);
+      for (const auto &name:it->objectModelFiles.keys()) validateTrajectory(name,false);
       auto validateSegment=[&](const QString &frame) {
          if (frame.isEmpty()) return;
          const auto objectName=frame.section('.',0,0),provider=frame.section('.',1,1);
@@ -587,6 +589,10 @@ void QtPlotReceiver::SetGlObject(const std::string &name,const StringArray &name
       curve.importedLineWidth=setting.objectLineWidths.contains(curve.name) ? std::optional<double>(setting.objectLineWidths.value(curve.name)) : std::nullopt;
       curve.importedFontSize=setting.objectFontSizes.contains(curve.name) ? std::optional<quint32>(setting.objectFontSizes.value(curve.name)) : std::nullopt;
       curve.importedFontPosition=setting.objectFontPositions.value(curve.name);
+      // SetGlObject can refresh an existing plot after its override is cleared.
+      // Snapshot every asset field anew before applying this plot's override.
+      curve.radius=0; curve.texturePath.clear(); curve.modelPath.clear(); curve.modelOverride=false;
+      curve.modelOffset={0,0,0}; curve.modelRotation={0,0,0}; curve.modelScale=1;
       if (i<points.size() && points[i]) {
          curve.color=rgb(points[i]->GetCurrentOrbitColor());
          if (auto *body=dynamic_cast<CelestialBody *>(points[i])) {
@@ -612,6 +618,17 @@ void QtPlotReceiver::SetGlObject(const std::string &name,const StringArray &name
             }
             curve.modelScale=spacecraft->GetRealParameter(spacecraft->GetParameterID("ModelScale"));
          }
+      }
+      const auto overrideFile=setting.objectModelFiles.value(curve.name);
+      if (!overrideFile.isEmpty()) {
+         auto *files=FileManager::Instance();
+         const bool body=i<points.size() && dynamic_cast<CelestialBody *>(points[i]);
+         const auto resolved=files->FindPath(overrideFile.toStdString(),body ? "BODY_3D_MODEL_PATH" : "SPACECRAFT_MODEL_FILE",true,false,false);
+         // Preserve missing overrides for the renderer's diagnostic/fallback.
+         // Freeze their candidate path as well; replay does not query the engine.
+         const auto working=text(files->GetGmatWorkingDirectory());
+         curve.modelPath=QFileInfo(resolved.empty() ? (QFileInfo(overrideFile).isAbsolute() || working.isEmpty() ? overrideFile : QDir(working).filePath(overrideFile)) : text(resolved)).absoluteFilePath();
+         curve.modelOverride=true; curve.modelOffset={0,0,0}; curve.modelRotation={0,0,0}; curve.modelScale=1;
       }
    }
    entry->data->sensorMasks.clear();

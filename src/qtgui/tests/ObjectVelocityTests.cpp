@@ -42,7 +42,7 @@ int main(int argc,char **argv)
       require(converted.script.contains("% Qt conversion: Display.DrawVelocity = [true];") && !converted.notes.join('\n').contains("DrawVelocity: retained as a comment"),"Velocity source/warning disposition incorrect");
       require(qtCameraSettings(qtCameraDirective("Display",setting)).value("Display").objectVelocities==setting.objectVelocities,"Named velocities did not round trip");
       const auto reset=convertOpenFramesViews(legacy+"Display.Add = {Earth, Sat};\nDisplay.DrawVelocity = [true false true];\n");
-      require(reset.error.isEmpty() && qtCameraSettings(reset.script).value("Display").objectVelocities==QMap<QString,bool>{{"Earth",true},{"Sat",false}},"Velocity Add reset/reordering/excess-prefix behavior differs from OF");
+      require(reset.error.isEmpty() && qtCameraSettings(reset.script).value("Display").objectVelocities==QMap<QString,bool>{{"Sat",true},{"Earth",false}},"Repeated scripted Add changed velocity order/excess-prefix behavior");
       const auto malformed=legacy+"Display.DrawVelocity = [maybe];\n"; const auto rejected=convertOpenFramesViews(malformed);
       require(!rejected.error.isEmpty() && rejected.script==malformed,"Malformed velocity flags changed source");
       for (const auto type:{"Relative Velocity","Thrust Vector"}) {

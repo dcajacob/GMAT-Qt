@@ -8979,3 +8979,28 @@ remains active unmet scope. All nine gates, held scientific/external dependencie
 deferred Windows/macOS/MATLAB and stopped live-host testing remain in force.
 GMAT client attribution and host/physical-GPU acceptance remain unproven.
 Full replacement qualification is not claimed.
+
+
+## Per-plot model files and actual Add script ordering — 2026-10-04
+
+[Model-file evidence](Qt6ParityValidation/model-drawing-20261004.md) closes the
+previous checkpoint's active DrawModelFile operation at a bounded scope: pending
+Models/Browse/Use resource controls; actual cyclic scalar/array import; strict
+source/Undo/Rename/creation/reopen transactions; independent spacecraft/body/station
+snapshots; native raw geometry, identity transforms, cache reload and missing-file
+fallback. QPainter remains a sphere/marker approximation. The interpreter-route
+review also repairs repeated Add as append-with-defaults-for-new-objects, superseding
+historical reset assertions based on a direct whole-list helper.
+
+Four new/fourteen directly affected checks pass across recorded builds. Final GmatQt
+is rebuilt at 6,740,736 bytes / SHA ab87e2e4…; only editor/layout checks were repeated
+after the initial dialog was enlarged. Private llvmpipe pixels and unchanged retained
+sample bytes are not host/GPU qualification. Base/util/startup remain unchanged.
+No completed audit, tutorial, shipped example or unrelated passing check was repeated.
+
+Actual cyclic ordering of repeated/partial DrawFontPosition arrays remains a required
+source-fidelity follow-up; existing ordinary font controls/pixels have bounded scope.
+All nine gates, held scientific/external cases and deferred Windows/macOS/MATLAB stay
+explicit. Live host testing remains stopped; Mutter's null Wayland resource evidence
+does not establish GMAT client attribution or host/physical-GPU acceptance.
+Full replacement qualification is not claimed.

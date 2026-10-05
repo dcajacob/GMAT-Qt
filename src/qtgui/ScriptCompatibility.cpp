@@ -1,6 +1,7 @@
 #include "ScriptCompatibility.hpp"
 #include "RgbColor.hpp"
 #include "BaseException.hpp"
+#include "StringUtil.hpp"
 #include <QMap>
 #include <QSet>
 #include <QRegularExpression>
@@ -108,6 +109,55 @@ QJsonObject objectFontPositionsJson(const QMap<QString,QString> &values)
 {
    QJsonObject result; for (auto it=values.cbegin();it!=values.cend();++it) result.insert(it.key(),it.value()); return result;
 }
+QMap<QString,QString> objectModelFiles(const QJsonValue &value)
+{
+   if (!value.isObject()) throw std::runtime_error("Per-object model files must be objects of named path strings");
+   QMap<QString,QString> result; const auto values=value.toObject();
+   const QRegularExpression identifier("^[A-Za-z][A-Za-z0-9_]*$");
+   for (auto it=values.begin();it!=values.end();++it) {
+      if (!identifier.match(it.key()).hasMatch() || !it.value().isString())
+         throw std::runtime_error("Per-object model files need valid object names and path strings");
+      // A blank file restores the resource model, including its transform.
+      if (!it.value().toString().isEmpty()) result[it.key()]=it.value().toString();
+   }
+   return result;
+}
+QJsonObject objectModelFilesJson(const QMap<QString,QString> &values)
+{
+   QJsonObject result;
+   const QRegularExpression identifier("^[A-Za-z][A-Za-z0-9_]*$");
+   for (auto it=values.cbegin();it!=values.cend();++it) {
+      if (!identifier.match(it.key()).hasMatch()) throw std::runtime_error("Per-object model files need valid object names");
+      if (!it.value().isEmpty()) result.insert(it.key(),it.value());
+   }
+   return result;
+}
+QStringList legacyStringArrayValues(const QString &value)
+{
+   StringArray entries;
+   const bool array=value.startsWith('{') && value.endsWith('}');
+   if (!array && (value.startsWith('{') || value.endsWith('}')))
+      throw std::runtime_error("expected a string or braced string list");
+   if (array) {
+      // Match Interpreter::SetProperty's shared STRINGARRAY/OBJECTARRAY
+      // tokenization. Each item reaches a scalar/indexed setter rather than
+      // a whole-list setter. Quoted commas/spaces and backslashes survive.
+      if (value.contains('\'')) entries=GmatStringUtil::SeparateByComma(GmatStringUtil::RemoveOuterString(value.toStdString(),"{","}"));
+      else entries=GmatStringUtil::SeparateBrackets(value.toStdString(),"{}"," ,");
+   } else entries.push_back(value.toStdString());
+   QStringList result;
+   for (const auto &entry:entries) {
+      auto path=GmatStringUtil::Trim(GmatStringUtil::RemoveEnclosingString(entry,"{}"));
+      if (path.empty()) continue; // {} and empty unquoted tokens are no-ops.
+      if ((path.front()=='\'' || path.back()=='\'') &&
+          (path.size()<2 || path.front()!='\'' || path.back()!='\''))
+         throw std::runtime_error("a quoted string needs both enclosing quotes");
+      // The legacy interpreter removes one enclosing quote pair only. It
+      // does not decode doubled apostrophes or backslash escape sequences.
+      result.append(QString::fromStdString(GmatStringUtil::RemoveEnclosingString(path,"'")));
+   }
+   return result;
+}
 QString formatVector(const std::array<double,3> &value)
 {
    return QString("[%1 %2 %3]").arg(QString::number(value[0],'g',17),QString::number(value[1],'g',17),QString::number(value[2],'g',17));
@@ -123,6 +173,17 @@ QMap<QString,bool> qtObjectFlags(const QString &json)
 QString qtObjectFlagsJson(const QMap<QString,bool> &flags)
 {
    return QString::fromUtf8(QJsonDocument(objectFlagsJson(flags)).toJson(QJsonDocument::Compact));
+}
+
+QMap<QString,QString> qtObjectModelFiles(const QString &json)
+{
+   QJsonParseError error; const auto document=QJsonDocument::fromJson(json.toUtf8(),&error);
+   if (error.error!=QJsonParseError::NoError || !document.isObject()) throw std::runtime_error("Invalid per-object model files: expected named path strings");
+   return objectModelFiles(document.object());
+}
+QString qtObjectModelFilesJson(const QMap<QString,QString> &files)
+{
+   return QString::fromUtf8(QJsonDocument(objectModelFilesJson(files)).toJson(QJsonDocument::Compact));
 }
 
 QMap<QString,quint32> qtObjectSizes(const QString &json)
@@ -368,8 +429,9 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
       maskSettings.insert(it.key(),mask);
    }
    QMap<QString,QtCameraSetting> displaySettings;
+   QMap<QString,QStringList> plottedNames;
    for (auto it=types.cbegin();it!=types.cend();++it) if (it.value()=="OpenFramesInterface") {
-      QStringList names; int fontPositionIndex=0; auto &display=displaySettings[it.key()];
+      QStringList names; int fontPositionIndex=0,modelFileIndex=0; auto &display=displaySettings[it.key()];
       QString solverMode="All"; int solverCount=1;
       auto &stars=display.stars.emplace();
       auto &playback=display.playback.emplace(); playback.timeScale=3600; playback.showToolbar=true;
@@ -453,12 +515,34 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
                if (!duplicate) display.sensorMasks.append(mask);
             }
          } else if (property=="Add") {
-            const auto list=QRegularExpression("^\\{\\s*([A-Za-z][A-Za-z0-9_]*(?:[\\s,]+[A-Za-z][A-Za-z0-9_]*)*)?\\s*\\}$").match(value);
-            if (!list.hasMatch()) { result.error=it.key()+": invalid Add list for per-object display settings."; return result; }
-            names=list.captured(1).split(QRegularExpression("[\\s,]+"),Qt::SkipEmptyParts); names.removeDuplicates();
-            // OF Add resets the ordered object list and its display defaults.
-            display.objectLabels.clear(); display.objectTrajectories.clear(); display.objectCenters.clear(); display.objectEndpoints.clear(); display.objectMarkerSizes.clear(); display.objectLineWidths.clear(); display.objectFontSizes.clear(); display.objectFontPositions.clear(); display.objectAxes.clear(); display.objectGrids.clear(); display.objectXYPlanes.clear(); display.objectVelocities.clear(); display.objectSegmentLabels.clear();
-            for (const auto &name:names) { display.objectLabels[name]=true; display.objectTrajectories[name]=true; display.objectCenters[name]=true; display.objectEndpoints[name]=true; display.objectMarkerSizes[name]=10; display.objectLineWidths[name]=2; display.objectFontSizes[name]=14; display.objectFontPositions[name]="Top-Right"; display.objectAxes[name]=false; display.objectGrids[name]=false; display.objectXYPlanes[name]=false; display.objectVelocities[name]=false; display.objectSegmentLabels[name]=false; }
+            QStringList additions;
+            try { additions=legacyStringArrayValues(value); }
+            catch (BaseException &error) { result.error=it.key()+".Add: "+QString::fromStdString(error.GetFullMessage()); return result; }
+            catch (const std::exception &error) { result.error=it.key()+".Add: "+QString::fromUtf8(error.what()); return result; }
+            // Interpreter sends each OBJECTARRAY item to the indexed setter.
+            // The actual OF/OrbitView script route appends unique names. It
+            // does not call the separate whole-list setters that clear state.
+            for (const auto &name:additions) {
+               if (name.isEmpty()) continue;
+               if (!vectorIdentifier.match(name).hasMatch()) { result.error=it.key()+".Add: expected SpacePoint names."; return result; }
+               if (names.contains(name)) continue;
+               names.append(name);
+               display.objectLabels[name]=true; display.objectTrajectories[name]=true; display.objectCenters[name]=true; display.objectEndpoints[name]=true; display.objectMarkerSizes[name]=10; display.objectLineWidths[name]=2; display.objectFontSizes[name]=14; display.objectFontPositions[name]="Top-Right"; display.objectAxes[name]=false; display.objectGrids[name]=false; display.objectXYPlanes[name]=false; display.objectVelocities[name]=false; display.objectSegmentLabels[name]=false;
+            }
+         } else if (property=="DrawModelFile") {
+            QStringList files;
+            try { files=legacyStringArrayValues(value); }
+            catch (BaseException &error) { result.error=it.key()+".DrawModelFile: "+QString::fromStdString(error.GetFullMessage()); return result; }
+            catch (const std::exception &error) { result.error=it.key()+".DrawModelFile: "+QString::fromUtf8(error.what()); return result; }
+            for (const auto &file:files) {
+               if (names.isEmpty() || modelFileIndex>=names.size()) {
+                  result.error=it.key()+".DrawModelFile: no selected object at the legacy scalar model-file index; the original script is unchanged."; return result;
+               }
+               if (file.isEmpty()) display.objectModelFiles.remove(names[modelFileIndex]);
+               else display.objectModelFiles[names[modelFileIndex]]=file;
+               // This counter survives additional Add assignments.
+               modelFileIndex=(modelFileIndex+1)%names.size();
+            }
          } else if (property=="DrawLabel" || property=="DrawTrajectory" || property=="DrawCenterPoint" || property=="DrawEndPoints" || property=="DrawAxes" || property=="DrawGrid" || property=="DrawXYPlane" || property=="DrawVelocity" || property=="DrawUsePropLabel") {
             if (!value.startsWith('[') || !value.endsWith(']')) { result.error=it.key()+"."+property+": expected a bracketed true/false array."; return result; }
             const auto flags=value.mid(1,value.size()-2).trimmed().split(QRegularExpression("[\\s,]+"),Qt::SkipEmptyParts);
@@ -508,6 +592,7 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
       try { (void)qtStars(qtStarsJson(display.stars)); (void)qtPlayback(qtPlaybackJson(display.playback)); }
       catch (const std::exception &error) { result.error=it.key()+": "+QString::fromUtf8(error.what()); return result; }
       if (solverMode=="LastN") display.solverLastN=solverCount;
+      plottedNames[it.key()]=names;
    }
    const QSet<QString> common={"Add","CoordinateSystem","DrawObject","SolverIterations","Maximized","ShowPlot","Size","UpperLeft",
       "RelativeZOrder","Axes","XYPlane","EclipticPlane","EnableStars","StarCount","EnableConstellations",
@@ -534,7 +619,7 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
          output.append("% Qt conversion: "+lines[i]);
          result.notes.append(name+".SolverIterLastN: source-ordered count retained when LastN is selected; zero is unlimited.");
       } else if (types[name]=="OpenFramesInterface" && common.contains(key)) output.append(lines[i]);
-      else if (types[name]=="OpenFramesInterface" && (key=="DrawLabel" || key=="DrawTrajectory" || key=="DrawCenterPoint" || key=="DrawEndPoints" || key=="DrawMarkerSize" || key=="DrawLineWidth" || key=="DrawFontSize" || key=="DrawFontPosition" || key=="DrawAxes" || key=="DrawGrid" || key=="DrawXYPlane" || key=="DrawVelocity" || key=="DrawUsePropLabel" || key=="AxesLabels" || key=="FrameLabel")) {
+      else if (types[name]=="OpenFramesInterface" && (key=="DrawLabel" || key=="DrawTrajectory" || key=="DrawCenterPoint" || key=="DrawEndPoints" || key=="DrawMarkerSize" || key=="DrawLineWidth" || key=="DrawFontSize" || key=="DrawFontPosition" || key=="DrawAxes" || key=="DrawGrid" || key=="DrawXYPlane" || key=="DrawVelocity" || key=="DrawUsePropLabel" || key=="DrawModelFile" || key=="AxesLabels" || key=="FrameLabel")) {
          output.append("% Qt conversion: "+lines[i]);
          result.notes.append(name+"."+key+((key=="AxesLabels" || key=="FrameLabel") ? ": coordinate label setting retained in Qt metadata." : ": independent per-object drawing retained in Qt metadata."));
       } else {
@@ -576,8 +661,7 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
          }
          const auto viewSettings=properties.value(viewName);
          if (viewSettings.value("ViewTrajectory")=="On" && viewSettings.value("ViewFrame","CoordinateSystem")!="CoordinateSystem") {
-            auto objects=properties[plot].value("Add"); objects.remove('{'); objects.remove('}');
-            if (!objects.split(QRegularExpression("[\\s,]+"),Qt::SkipEmptyParts).contains(viewSettings.value("ViewFrame").section('.',0,0))) {
+            if (!plottedNames.value(plot).contains(viewSettings.value("ViewFrame").section('.',0,0))) {
                result.error=viewName+": trajectory frame must name an object in "+plot+".Add or CoordinateSystem."; return result;
             }
          }
@@ -601,6 +685,7 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
       cameraSetting.objectGrids=displaySettings.value(plot).objectGrids;
       cameraSetting.objectXYPlanes=displaySettings.value(plot).objectXYPlanes;
       cameraSetting.objectVelocities=displaySettings.value(plot).objectVelocities;
+      cameraSetting.objectModelFiles=displaySettings.value(plot).objectModelFiles;
       cameraSetting.objectSegmentLabels=displaySettings.value(plot).objectSegmentLabels;
       cameraSetting.axesLabels=displaySettings.value(plot).axesLabels;
       cameraSetting.frameLabel=displaySettings.value(plot).frameLabel;
@@ -749,6 +834,8 @@ QString qtCameraDirective(const QString &plot,const QtCameraSetting &setting)
    if (!setting.objectLineWidths.isEmpty()) object.insert("objectLineWidths",objectWidthsJson(setting.objectLineWidths));
    if (!setting.objectFontSizes.isEmpty()) object.insert("objectFontSizes",objectSizesJson(setting.objectFontSizes));
    if (!setting.objectFontPositions.isEmpty()) object.insert("objectFontPositions",objectFontPositionsJson(setting.objectFontPositions));
+   const auto modelFiles=objectModelFilesJson(setting.objectModelFiles);
+   if (!modelFiles.isEmpty()) object.insert("objectModelFiles",modelFiles);
    if (!setting.sensorMasks.isEmpty()) object.insert("sensorMasks",QJsonDocument::fromJson(qtSensorMasksJson(setting.sensorMasks).toUtf8()).array());
    if (!setting.vectors.isEmpty()) {
       QJsonArray vectors;
@@ -894,6 +981,7 @@ QMap<QString,QtCameraSetting> qtCameraSettings(const QString &source)
       if (object.contains("objectLineWidths")) setting.objectLineWidths=objectWidths(object.value("objectLineWidths"));
       if (object.contains("objectFontSizes")) setting.objectFontSizes=objectFontSizes(object.value("objectFontSizes"));
       if (object.contains("objectFontPositions")) setting.objectFontPositions=objectFontPositions(object.value("objectFontPositions"));
+      if (object.contains("objectModelFiles")) setting.objectModelFiles=objectModelFiles(object.value("objectModelFiles"));
       if (object.contains("segmentFrame")) {
          setting.segmentFrame=object.value("segmentFrame").toString();
          if (!QRegularExpression("^[A-Za-z][A-Za-z0-9_]*\\.[A-Za-z][A-Za-z0-9_]*$").match(setting.segmentFrame).hasMatch() || object.contains("automaticTrajectory"))
@@ -1002,7 +1090,11 @@ QString setQtCameraSetting(const QString &source,const QString &plot,const QtCam
    auto matches=line.globalMatch(source);
    while (matches.hasNext()) {
       const auto match=matches.next();
-      if (qtCameraSettings(match.captured()).contains(plot)) {
+      const auto existing=qtCameraSettings(match.captured());
+      if (existing.contains(plot)) {
+         // Preserve the authored bytes of a semantic no-op, including explicit
+         // empty model defaults that normalize out of canonical metadata.
+         if (qtCameraDirective(plot,existing.value(plot))==directive) return source;
          auto result=source; result.replace(match.capturedStart(),match.capturedLength(),directive); return result;
       }
    }

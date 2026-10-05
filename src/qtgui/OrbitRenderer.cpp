@@ -201,11 +201,12 @@ struct OrbitRenderer::Scene
       osg::ref_ptr<osg::MatrixTransform> body=new osg::MatrixTransform;
       QString texture,modelPath;
       osg::ref_ptr<osg::MatrixTransform> modelPose=new osg::MatrixTransform;
-      bool modelLoaded=false;
+      bool modelLoaded=false,modelOverride=false;
       double radius=-1,assetExtent=1;
       Curve() { root->addChild(track); root->addChild(body); root->addChild(markers); }
    };
    static osg::Matrixd modelTransform(const PlotCurve &source) {
+      if (source.modelOverride) return osg::Matrixd::identity();
       const auto &r=source.modelRotation,&offset=source.modelOffset;
       constexpr double radians=3.14159265358979323846/180;
       const double scale=source.modelScale*(source.radius==0 ? 1000 : 1);
@@ -254,17 +255,17 @@ struct OrbitRenderer::Scene
    void prepareCurve(int key,const PlotCurve &source) {
       auto added=curves.try_emplace(key); auto &curve=added.first->second;
       if (added.second) root->addChild(curve.root);
-         if (curve.radius!=source.radius || curve.texture!=source.texturePath || curve.modelPath!=source.modelPath) {
+         if (curve.radius!=source.radius || curve.texture!=source.texturePath || curve.modelPath!=source.modelPath || curve.modelOverride!=source.modelOverride) {
             curve.body->removeChildren(0,curve.body->getNumChildren());
             if (source.name=="Sun") curve.body->getOrCreateStateSet()->setMode(GL_LIGHTING,osg::StateAttribute::OFF);
             curve.modelPose->removeChildren(0,curve.modelPose->getNumChildren());
             curve.modelLoaded=false;
             if (!source.modelPath.isEmpty()) {
-               auto model=readModel(source.modelPath,source.radius==0);
+               auto model=readModel(source.modelPath,source.radius==0 && !source.modelOverride);
                if (model) { curve.modelPose->addChild(model); curve.body->addChild(curve.modelPose); curve.modelLoaded=true; curve.assetExtent=model->getBound().center().length()+model->getBound().radius(); }
             }
             if (source.radius>0 && !curve.modelLoaded) curve.body->addChild(sphere(source.radius,source.texturePath,source.color));
-            curve.radius=source.radius; curve.texture=source.texturePath; curve.modelPath=source.modelPath;
+            curve.radius=source.radius; curve.texture=source.texturePath; curve.modelPath=source.modelPath; curve.modelOverride=source.modelOverride;
          }
    }
    void synchronize(int width,int height,double pixelRatio) {
@@ -281,8 +282,8 @@ struct OrbitRenderer::Scene
             objects.insert(source.name,{sphere.center(),sphere.radius()>0 ? sphere.radius() : 1});
          } else objects.insert(source.name,{{},source.radius>0 ? source.radius : 1});
          if (!source.drawsContent()) continue;
-         const double scale=std::abs(source.modelScale)*(source.radius==0 ? 1000 : 1);
-         const double offset=std::hypot(source.modelOffset[0],source.modelOffset[1],source.modelOffset[2]);
+         const double scale=source.modelOverride ? 1 : std::abs(source.modelScale)*(source.radius==0 ? 1000 : 1);
+         const double offset=source.modelOverride ? 0 : std::hypot(source.modelOffset[0],source.modelOffset[1],source.modelOffset[2]);
          const double radius=prepared.modelLoaded ? prepared.assetExtent*scale+offset*(source.radius==0 ? scale : 1) : source.radius;
          const double guideRadius=orbitObjectGuideRadius(source,prepared.modelLoaded ? prepared.modelPose->getBound().radius() : 0)*(source.objectXYPlane ? 15 : source.objectGrid ? 1 : 0);
          const double visibleRadius=std::max(source.showObject ? radius : 0,guideRadius);

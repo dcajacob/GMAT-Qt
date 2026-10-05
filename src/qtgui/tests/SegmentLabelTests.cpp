@@ -102,7 +102,7 @@ int main(int argc,char **argv)
       require(imported.objectSegmentLabels==QMap<QString,bool>{{"Sat",true},{"Earth",false}},"Default/prefix segment flags lost");
       require(!converted.notes.join('\n').contains("DrawUsePropLabel: retained as a comment"),"Active labels still warned unsupported");
       const auto reset=convertOpenFramesViews(legacy+"Display.Add = {Earth, Sat};\nDisplay.DrawUsePropLabel = [true];\n");
-      require(qtCameraSettings(reset.script).value("Display").objectSegmentLabels==QMap<QString,bool>{{"Earth",true},{"Sat",false}},"Source-ordered Add reset lost");
+      require(qtCameraSettings(reset.script).value("Display").objectSegmentLabels==QMap<QString,bool>{{"Sat",true},{"Earth",false}},"Repeated scripted Add changed segment-label order/prefix retention");
       const auto invalid=legacy+"Display.DrawUsePropLabel = [maybe];\n";
       require(!convertOpenFramesViews(invalid).error.isEmpty() && convertOpenFramesViews(invalid).script==invalid,"Invalid flag altered source");
       QTemporaryDir files; require(files.isValid(),"Private fixture directory unavailable");

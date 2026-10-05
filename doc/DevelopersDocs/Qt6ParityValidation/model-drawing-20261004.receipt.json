@@ -1,0 +1,315 @@
+{
+  "baselineCommit": "7e83ebe4c7530bbfbd2f963260963c1530a3439d",
+  "branch": "codex/qt6-gui",
+  "initialRuntime": {
+    "application/bin/GmatQt": {
+      "bytes": 6718016,
+      "sha256": "6cfca8433843a301c4bc73b9481ad5b41a56473a6950733ad5c2ab6ed58496d2"
+    },
+    "application/bin/libGmatBase.so": {
+      "bytes": 25040656,
+      "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e"
+    },
+    "application/bin/libGmatUtil.so": {
+      "bytes": 2929904,
+      "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+    },
+    "application/bin/gmat_startup_qt.txt": {
+      "bytes": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    }
+  },
+  "build01": {
+    "baselineCommit": "7e83ebe4c7530bbfbd2f963260963c1530a3439d",
+    "branch": "codex/qt6-gui",
+    "buildExit": 0,
+    "testExit": 0,
+    "liveHostTested": false,
+    "files": {
+      "application/bin/GmatQt": {
+        "bytes": 6740736,
+        "sha256": "00bfd6ee01d3754adfacfd4c83835a2b1e9f6483a171674ce59cfdfced52d66d"
+      },
+      "application/bin/libGmatBase.so": {
+        "bytes": 25040656,
+        "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e"
+      },
+      "application/bin/libGmatUtil.so": {
+        "bytes": 2929904,
+        "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+      },
+      "application/bin/gmat_startup_qt.txt": {
+        "bytes": 10260,
+        "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+      },
+      "build/linux-gui/src/qtgui/GmatQtModelDrawingBackendTests": {
+        "bytes": 6788528,
+        "sha256": "0cf87d3f8c27f4f6abede2b0ee774be582fd23757156f327faa72e61fd40c71c"
+      },
+      "build/linux-gui/src/qtgui/GmatQtModelDrawingEditorTests": {
+        "bytes": 6797264,
+        "sha256": "2706edb293b0be085f4bd19abf8f5264aad8a97e0f3710684466edfd4c8200c1"
+      },
+      "build/linux-gui/src/qtgui/GmatQtModelDrawingRuntimeTests": {
+        "bytes": 6798472,
+        "sha256": "e9ed8d7f0d75d87e04ab93ff0f9b435753abc464dcad6315ec26fd8ee4e7471c"
+      },
+      "build/linux-gui/src/qtgui/GmatQtModelDrawingRenderingTests": {
+        "bytes": 490680,
+        "sha256": "9ba468878d28a866b56040eea0a6752cd24eaf6c67859010b7a77154ffea0c6e"
+      }
+    },
+    "tests": [
+      {
+        "name": "QtGui.NativeOrbit",
+        "seconds": "3.6723",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.ResourceRename",
+        "seconds": "0.641482",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.NativeModelDrawing",
+        "seconds": "1.46448",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.ConvertedVisibility",
+        "seconds": "0.8386",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.ObjectAxes",
+        "seconds": "0.252447",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.ObjectGuides",
+        "seconds": "0.320137",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.ObjectVelocity",
+        "seconds": "0.335529",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.FontMetadata",
+        "seconds": "0.0659036",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.ConvertedFonts",
+        "seconds": "0.829195",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.ConvertedWidths",
+        "seconds": "0.793844",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.ConvertedMarkers",
+        "seconds": "0.724187",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.ObjectDrawingLayout",
+        "seconds": "0.178422",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.ModelDrawingBackend",
+        "seconds": "0.236395",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.ModelDrawingEditor",
+        "seconds": "0.411222",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.ModelDrawingRuntime",
+        "seconds": "0.201568",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.SegmentLabels",
+        "seconds": "0.471339",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.OpenFramesSyntax",
+        "seconds": "0.143374",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.OrbitSetup",
+        "seconds": "1.52048",
+        "status": "PASS"
+      }
+    ]
+  },
+  "build02": {
+    "baselineCommit": "7e83ebe4c7530bbfbd2f963260963c1530a3439d",
+    "branch": "codex/qt6-gui",
+    "buildExit": 0,
+    "testExit": 0,
+    "liveHostTested": false,
+    "files": {
+      "application/bin/GmatQt": {
+        "bytes": 6740736,
+        "sha256": "ab87e2e42e143cb22417c48e34877d7ef3a2e7657e2399c42ed2b4e6ff63f0d7"
+      },
+      "application/bin/libGmatBase.so": {
+        "bytes": 25040656,
+        "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e"
+      },
+      "application/bin/libGmatUtil.so": {
+        "bytes": 2929904,
+        "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+      },
+      "application/bin/gmat_startup_qt.txt": {
+        "bytes": 10260,
+        "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+      },
+      "build/linux-gui/src/qtgui/GmatQtModelDrawingBackendTests": {
+        "bytes": 6788528,
+        "sha256": "0cf87d3f8c27f4f6abede2b0ee774be582fd23757156f327faa72e61fd40c71c"
+      },
+      "build/linux-gui/src/qtgui/GmatQtModelDrawingEditorTests": {
+        "bytes": 6797264,
+        "sha256": "a71994cb8f3323ea3de47361d0a9b1ea6a9447118de7531f3d6105125c956a54"
+      },
+      "build/linux-gui/src/qtgui/GmatQtModelDrawingRuntimeTests": {
+        "bytes": 6798472,
+        "sha256": "e9ed8d7f0d75d87e04ab93ff0f9b435753abc464dcad6315ec26fd8ee4e7471c"
+      },
+      "build/linux-gui/src/qtgui/GmatQtModelDrawingRenderingTests": {
+        "bytes": 490680,
+        "sha256": "9ba468878d28a866b56040eea0a6752cd24eaf6c67859010b7a77154ffea0c6e"
+      }
+    },
+    "tests": [
+      {
+        "name": "QtGui.ObjectDrawingLayout",
+        "seconds": "0.203096",
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.ModelDrawingEditor",
+        "seconds": "0.415367",
+        "status": "PASS"
+      }
+    ]
+  },
+  "implementationFiles": {
+    "src/qtgui/CMakeLists.txt": {
+      "bytes": 58424,
+      "sha256": "3fa2c19c30eb9d85ac78da95597a9c9386573a309d1fbf0e70d410ce25e51e98"
+    },
+    "src/qtgui/MainWindow.cpp": {
+      "bytes": 186567,
+      "sha256": "724b58a8d4985e28ff524f0ba057c486c5ade534a852a8f788c5e0f88614f3fa"
+    },
+    "src/qtgui/OrbitObjectDrawingDialog.cpp": {
+      "bytes": 17591,
+      "sha256": "07b9138654ac9a5b1ddbcacf3887856a0283c525de8e6ebb6138a6130c2c1a31"
+    },
+    "src/qtgui/OrbitObjectDrawingDialog.hpp": {
+      "bytes": 541,
+      "sha256": "d2098a8a76870340fcd6b5faf6065bf816c336cb33eafdd1b8a2b4ea76b3e26e"
+    },
+    "src/qtgui/OrbitRenderer.cpp": {
+      "bytes": 49766,
+      "sha256": "d54d4242c56843e110242362fff5d5d18c8b2f8ca989b34184ab410f2828d64f"
+    },
+    "src/qtgui/PlotModel.hpp": {
+      "bytes": 9328,
+      "sha256": "589bc0a1ead78d8cb98a1a5e6cbcf623666fd518af7b1527f7d6af0f6504762a"
+    },
+    "src/qtgui/QtPlotReceiver.cpp": {
+      "bytes": 102920,
+      "sha256": "548c8f60ead7da3042bc27edbccf46d42d71626b9039d22419bd9a733ce844a1"
+    },
+    "src/qtgui/ResourceEditor.cpp": {
+      "bytes": 133758,
+      "sha256": "d8a3f0a0327a33c31f6cfd5b2ccb0ec236c0b8ccfcdefb04b5cedca98429ae4e"
+    },
+    "src/qtgui/ResourceRename.cpp": {
+      "bytes": 27485,
+      "sha256": "70e4ebab309eeec0d409003f14fbeeb0e7c5ee5f654c43a2db5fbbbdb2e98717"
+    },
+    "src/qtgui/ScriptCompatibility.cpp": {
+      "bytes": 94470,
+      "sha256": "ab23e843331b0c3415141d0c277d33c66bda22a2439fd8dd9e5781584e317449"
+    },
+    "src/qtgui/ScriptCompatibility.hpp": {
+      "bytes": 4951,
+      "sha256": "170180c43565eef8873c3399f5007f65e0fc8f9a2805b4d88127e989c46b70bb"
+    },
+    "src/qtgui/tests/ConvertedVisibilityTests.cpp": {
+      "bytes": 80397,
+      "sha256": "3b17845fae36dfb6fa79d442f65a83bcc53605f829e6a0e51ecd925a24d7d57e"
+    },
+    "src/qtgui/tests/ModelDrawingBackendTests.cpp": {
+      "bytes": 13170,
+      "sha256": "c964b3a6c1172e5a8b4e25cec237cd14a218d6dfc30ce5b1bd20f389d67be401"
+    },
+    "src/qtgui/tests/ModelDrawingEditorTests.cpp": {
+      "bytes": 14070,
+      "sha256": "d1fa5e1880c682b72c9d541890d27858d5c4d9f79d2bbbbc70bf34f0653d6e0e"
+    },
+    "src/qtgui/tests/ModelDrawingRenderingTests.cpp": {
+      "bytes": 14906,
+      "sha256": "7877dd690b9718b935d8c65a07a3c8ddf8fe044d455787da10c21cc5db5107db"
+    },
+    "src/qtgui/tests/ModelDrawingRuntimeTests.cpp": {
+      "bytes": 16050,
+      "sha256": "ba188d59eed02e7b072c4188390ffa09fb5ca6c3d4cced6a393b38aa8d5e4842"
+    },
+    "src/qtgui/tests/ObjectAxesTests.cpp": {
+      "bytes": 7977,
+      "sha256": "d4f74cebbe0702dfde44bba33eaabf92c534686387c6692cb223c0b9560550b7"
+    },
+    "src/qtgui/tests/ObjectGuidesTests.cpp": {
+      "bytes": 12195,
+      "sha256": "222cbfa22c28c3b75afe29936d9233313870205aeab2a9d32f89df158da39f4c"
+    },
+    "src/qtgui/tests/ObjectVelocityTests.cpp": {
+      "bytes": 16698,
+      "sha256": "722d777b019b8c64c879efe844070e65e5aae8a28b9b0ebf9a9a53308fb3f99d"
+    },
+    "src/qtgui/tests/SegmentLabelTests.cpp": {
+      "bytes": 14699,
+      "sha256": "3c918886aa25d2aa641e1bb5549bd8e7020084fbed41ae2d4fa745f2c23836b7"
+    }
+  },
+  "sourceContract": {
+    "/home/dan/GIT/OpenFramesInterface/src/base/subscriber/OpenFramesInterface.cpp": "3674716e61175f3d20f02c98408ab72e1c77b9f3c9e2f0b37d97f4c1b0514ddf",
+    "/home/dan/GIT/OpenFramesInterface/src/base/subscriber/SpacePointOptions.cpp": "7c6b38ee2a11361b2dd86f5a92c4e5923f75e108a01c7042694c9c68d1693ae5",
+    "/home/dan/GIT/OpenFramesInterface/src/gui/subscriber/OFSpaceObject.cpp": "a160cdc96ed2a4a766a900842c5b88569bfdddcff509c9b4f3028e9545879f3f",
+    "/home/dan/GIT/OpenFramesInterface/src/gui/subscriber/wx/OFScene.cpp": "6daf7ee34c943b124dc9f2c35086c7aa97a67a2967dd60f849a9727e4fccb156",
+    "/home/dan/GIT/OpenFramesInterface/src/gui/subscriber/wx/OFConfigurationPanel.cpp": "7a0083fe870ac0b76b3181f3ab133c28b5df18365681c7bd6da78201b06e5f57",
+    "/home/dan/GIT/OpenFramesInterface/dep/OpenFrames-git/src/Model.cpp": "7035eae47693eb9a1ee62aef047c30e27dbab070d56750b454fa6bfef8525678",
+    "/home/dan/GIT/GMAT-Qt/src/base/interpreter/Interpreter.cpp": "581e249ca7a5dd654a7ec43af8b6a2ece60291892de5f889ff151cb2b8638450",
+    "/home/dan/GIT/GMAT-Qt/src/gmatutil/util/StringUtil.cpp": "57265d7a60cd527195682b74e56ba600cbc3b3d3ef810286b3e3ea6c40ec18bf"
+  },
+  "distinctPassingChecks": 18,
+  "newChecks": 4,
+  "affectedExistingChecks": 14,
+  "fullQualificationClaimed": false,
+  "liveHostTesting": "stopped",
+  "hostGpuAccepted": false,
+  "gmatCrashAttribution": "unproven",
+  "remainingSourceRequirement": "actual cyclic script ordering of repeated/partial DrawFontPosition arrays",
+  "notes": [
+    "First build and all 18 selected checks passed.",
+    "Visual review found clipping at initial 560x380 Models dialog; changed initial height to 520 within screen bounds.",
+    "Final build and only affected ModelDrawingEditor/ObjectDrawingLayout checks passed.",
+    "Native checks bind build01; final application differs only in the initial drawing-dialog height.",
+    "No numerical mission was newly propagated; focused affected synthetic checks retain their existing reference comparisons."
+  ]
+}

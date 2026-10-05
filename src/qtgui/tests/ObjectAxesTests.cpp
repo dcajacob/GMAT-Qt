@@ -33,7 +33,7 @@ int main(int argc,char **argv)
       require(setting.objectAxes.value("Sat") && !setting.objectAxes.value("Earth",true),"Axes prefix/default values lost");
       require(qtCameraSettings(qtCameraDirective("Display",setting)).value("Display").objectAxes==setting.objectAxes,"Axes serialization lost named flags");
       const auto reset=convertOpenFramesViews(legacy+"GMAT Display.Add = {Earth, Sat};\nGMAT Display.DrawAxes = [false true true];\n");
-      require(reset.error.isEmpty() && qtCameraSettings(reset.script).value("Display").objectAxes==QMap<QString,bool>{{"Earth",false},{"Sat",true}},"Axes Add reset/excess prefix behavior differs from OF");
+      require(reset.error.isEmpty() && qtCameraSettings(reset.script).value("Display").objectAxes==QMap<QString,bool>{{"Sat",false},{"Earth",true}},"Repeated scripted Add changed axes order/excess-prefix behavior");
       const auto bad=QString(legacy).replace("[true]","[maybe]"); const auto rejected=convertOpenFramesViews(bad);
       require(!rejected.error.isEmpty() && rejected.script==bad,"Invalid axes conversion changed source");
       bool invalid=false; try { qtCameraSettings("% GMAT-Qt-Camera {\"plot\":\"Display\",\"perspective\":false,\"fieldOfView\":50,\"objectAxes\":{\"Sat\":1}}\n"); } catch (std::exception &) { invalid=true; }
@@ -76,6 +76,6 @@ int main(int argc,char **argv)
       require(!window.applyResourceChanges("Display",{{"@QtObjectAxes","{\"Missing\":true}"}},edited).isEmpty() && editor->toPlainText()==edited,"Invalid axes member did not roll back");
       require(window.saveScriptTo(files.filePath("axes-α.script")) && window.loadScript(files.filePath("axes-α.script")) && window.buildScript() && editor->toPlainText()==edited,"Axes Unicode round trip failed");
       require(window.applyResourceChanges("Display",{{"Add","Earth"}},edited).isEmpty() && !qtCameraSettings(editor->toPlainText()).value("Display").objectAxes.contains("Sat"),"Removed object kept stale axes");
-      std::cout<<"PASS per-object axes conversion/defaults/Add reset, typed maps, retained pose/radius/rotation, fallback visibility/replay/clipping, actual pending controls/Cancel/retained Apply, exact source/Undo/Redo/Unicode reopen and named pruning; no numerical mission or native desktop test.\n";
+      std::cout<<"PASS per-object axes conversion/defaults/scripted Add retention, typed maps, retained pose/radius/rotation, fallback visibility/replay/clipping, actual pending controls/Cancel/retained Apply, exact source/Undo/Redo/Unicode reopen and named pruning; no numerical mission or native desktop test.\n";
    } catch (const std::exception &error) { std::cerr<<error.what()<<'\n'; return 1; }
 }

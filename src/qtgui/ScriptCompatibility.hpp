@@ -83,10 +83,14 @@ struct QtCameraSetting {
    QMap<QString,double> objectLineWidths;
    QMap<QString,quint32> objectFontSizes;
    QMap<QString,QString> objectFontPositions;
+   // Empty/absent per-plot model paths inherit the resource model and transform.
+   QMap<QString,QString> objectModelFiles;
    std::optional<bool> axesLabels,frameLabel;
    // Presence selects LastN display retention; zero keeps unlimited trials.
    std::optional<int> solverLastN;
 };
+QMap<QString,QString> qtObjectModelFiles(const QString &json);
+QString qtObjectModelFilesJson(const QMap<QString,QString> &files);
 QMap<QString,quint32> qtObjectFontSizes(const QString &json);
 QMap<QString,QString> qtObjectFontPositions(const QString &json);
 QString qtObjectFontPositionsJson(const QMap<QString,QString> &positions);

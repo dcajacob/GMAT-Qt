@@ -10,6 +10,9 @@
 #include <QComboBox>
 #include <QLineEdit>
 #include <QTabWidget>
+#include <QFileDialog>
+#include <QHBoxLayout>
+#include <QPushButton>
 #include <stdexcept>
 #include <cmath>
 #include <limits>
@@ -23,7 +26,7 @@ OrbitObjectDrawingDialog::OrbitObjectDrawingDialog(const QStringList &names,cons
 {
    setObjectName("orbitObjectDrawingDialog"); setWindowTitle("Object drawing");
    auto *layout=new QVBoxLayout(this);
-   auto *help=new QLabel("Choose each object's paths, labels, markers and body guides. Velocity shows a segment at every recorded object sample, using a 1000-second scale in the display coordinate system; Default hides these segments. Axes, latitude/longitude grid and local XY plane follow recorded position and attitude; Default hides them. The local XY plane extends to 15 object radii. These are separate from the plot-wide Grid and XY plane settings. Default uses normal viewer choices: width 1 pixel and marker size 10 pixels. Show labels is the label master switch. Orbit-view setup controls models/bodies. Label style uses pixel sizes (0 hides the label); Default uses the viewer font and placement. Segment labels identify every regular propagation segment and are separate from the object-name Label choice; Default hides segment labels. OK keeps edits pending until Apply.",this);
+   auto *help=new QLabel("Choose each object's paths, labels, markers and body guides. Velocity shows a segment at every recorded object sample, using a 1000-second scale in the display coordinate system; Default hides these segments. Axes, latitude/longitude grid and local XY plane follow recorded position and attitude; Default hides them. The local XY plane extends to 15 object radii. These are separate from the plot-wide Grid and XY plane settings. Default uses normal viewer choices: width 1 pixel and marker size 10 pixels. Show labels is the label master switch. Orbit-view setup controls model/body visibility; the Models tab supplies per-plot file overrides. Label style uses pixel sizes (0 hides the label); Default uses the viewer font and placement. Segment labels identify every regular propagation segment and are separate from the object-name Label choice; Default hides segment labels. OK keeps edits pending until Apply.",this);
    help->setWordWrap(true); layout->addWidget(help);
    objects=new QTableWidget(names.size(),5,this); objects->setObjectName("orbitObjectDrawing");
    objects->setHorizontalHeaderLabels({"Object","Trajectory","Label","Width (px)","Velocity"}); objects->verticalHeader()->hide();
@@ -91,6 +94,26 @@ OrbitObjectDrawingDialog::OrbitObjectDrawingDialog(const QStringList &names,cons
          guides->setCellWidget(row,column,choice);
       }
    }
+   auto *modelPage=new QWidget(this); auto *modelLayout=new QVBoxLayout(modelPage); modelLayout->setContentsMargins(0,0,0,0);
+   auto *modelHelp=new QLabel("A file override uses the model's native units, scale 1, and zero translation and rotation. Leave blank to use the resource model and its transforms. Show models/bodies in Orbit-view setup controls visibility separately. Missing or unreadable overrides remain editable and are reported when loaded.",modelPage);
+   modelHelp->setWordWrap(true); modelLayout->addWidget(modelHelp);
+   modelFiles=new QTableWidget(names.size(),2,modelPage); modelFiles->setObjectName("orbitObjectModels"); modelFiles->setHorizontalHeaderLabels({"Object","Model file override"}); modelFiles->verticalHeader()->hide(); configureTableColumns(modelFiles,{10,30}); modelLayout->addWidget(modelFiles,1);
+   for (int row=0;row<names.size();++row) {
+      const auto name=names[row]; auto *item=new QTableWidgetItem(name); item->setFlags(item->flags()&~Qt::ItemIsEditable); modelFiles->setItem(row,0,item);
+      auto *controls=new QWidget(modelFiles); auto *line=new QHBoxLayout(controls); line->setContentsMargins(0,0,0,0);
+      auto *file=new QLineEdit(controls); file->setObjectName("orbitDrawing_modelFile_"+name); file->setPlaceholderText("Resource model");
+      file->setToolTip("A nonempty file overrides the model only in this plot, using its native units and identity transform. Blank uses the resource model and its transforms.");
+      if (drawing) file->setText(drawing->objectModelFiles.value(name));
+      auto *browse=new QPushButton("Browse…",controls); browse->setObjectName("orbitDrawing_modelBrowse_"+name);
+      auto *reset=new QPushButton("Use resource",controls); reset->setObjectName("orbitDrawing_modelReset_"+name); reset->setToolTip("Clear this plot's override and use the resource model.");
+      line->addWidget(file,1); line->addWidget(browse); line->addWidget(reset); modelFiles->setCellWidget(row,1,controls);
+      connect(reset,&QPushButton::clicked,file,&QLineEdit::clear);
+      connect(browse,&QPushButton::clicked,this,[this,file,name] {
+         QFileDialog picker(this,"Choose model for "+name,file->text()); picker.setObjectName("orbitDrawingModelFileDialog"); picker.setFileMode(QFileDialog::ExistingFile);
+         picker.setNameFilters({"3D models (*.3ds *.3DS *.obj *.OBJ *.osg *.osgt *.osgb *.ive)","All files (*)"});
+         if (picker.exec()==QDialog::Accepted && !picker.selectedFiles().isEmpty()) file->setText(picker.selectedFiles().first());
+      });
+   }
    auto *framePage=new QWidget(this); auto *frameLayout=new QFormLayout(framePage);
    auto *frameHelp=new QLabel("These labels describe the display coordinate system. Axes labels show X, Y and Z when Axes is On; Default is On. Reference frame labels the origin, even when Axes is Off; Default is Off. Both are independent of the object Show labels switch.",framePage);
    frameHelp->setWordWrap(true); frameLayout->addRow(frameHelp);
@@ -99,11 +122,11 @@ OrbitObjectDrawingDialog::OrbitObjectDrawingDialog(const QStringList &names,cons
    axesLabels->setCurrentText(qtDrawingFlagText(drawing ? drawing->axesLabels : std::nullopt));
    frameLabel->setCurrentText(qtDrawingFlagText(drawing ? drawing->frameLabel : std::nullopt));
    frameLayout->addRow("Axes labels",axesLabels); frameLayout->addRow("Reference frame",frameLabel);
-   auto *tabs=new QTabWidget(this); tabs->setObjectName("orbitDrawingTabs"); tabs->addTab(objects,"Paths and labels"); tabs->addTab(markers,"Markers"); tabs->addTab(fonts,"Label style"); tabs->addTab(guides,"Body guides"); tabs->addTab(framePage,"Frame labels"); layout->addWidget(tabs,1);
+   auto *tabs=new QTabWidget(this); tabs->setObjectName("orbitDrawingTabs"); tabs->addTab(objects,"Paths and labels"); tabs->addTab(markers,"Markers"); tabs->addTab(fonts,"Label style"); tabs->addTab(guides,"Body guides"); tabs->addTab(modelPage,"Models"); tabs->addTab(framePage,"Frame labels"); layout->addWidget(tabs,1);
    auto *status=new QLabel(this); status->setObjectName("orbitDrawingStatus"); status->setWordWrap(true); layout->addWidget(status);
    auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,this); layout->addWidget(buttons);
    connect(buttons,&QDialogButtonBox::accepted,this,[this,status] { try { settings(); accept(); } catch (const std::exception &error) { status->setText(QString::fromUtf8(error.what())); } }); connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);
-   resize(560,std::min(380,QGuiApplication::primaryScreen()->availableGeometry().height()-80)); fitTableColumns(objects); fitTableColumns(markers); fitTableColumns(fonts); fitTableColumns(guides);
+   resize(560,std::min(520,QGuiApplication::primaryScreen()->availableGeometry().height()-80)); fitTableColumns(objects); fitTableColumns(markers); fitTableColumns(fonts); fitTableColumns(guides); fitTableColumns(modelFiles);
 }
 QMap<QString,QString> OrbitObjectDrawingDialog::settings() const
 {
@@ -154,5 +177,11 @@ QMap<QString,QString> OrbitObjectDrawingDialog::settings() const
       const auto *choice=qobject_cast<QComboBox *>(guides->cellWidget(row,column));
       if (choice->currentIndex()) (column==1 ? axes : column==2 ? grids : planes).insert(guides->item(row,0)->text(),choice->currentIndex()==1);
    }
-   return {{"@QtAxesLabels",axesLabels->currentText()},{"@QtFrameLabel",frameLabel->currentText()},{"@QtObjectSegmentLabels",qtObjectFlagsJson(segmentLabels)},{"@QtObjectVelocities",qtObjectFlagsJson(velocities)},{"@QtObjectAxes",qtObjectFlagsJson(axes)},{"@QtObjectGrids",qtObjectFlagsJson(grids)},{"@QtObjectXYPlanes",qtObjectFlagsJson(planes)},{"@QtObjectLabels",qtObjectFlagsJson(labels)},{"@QtObjectTrajectories",qtObjectFlagsJson(trajectories)},{"@QtObjectCenters",qtObjectFlagsJson(centers)},{"@QtObjectEndpoints",qtObjectFlagsJson(endpoints)},{"@QtObjectMarkerSizes",qtObjectSizesJson(sizes)},{"@QtObjectLineWidths",qtObjectWidthsJson(widths)},{"@QtObjectFontSizes",qtObjectSizesJson(fontSizes)},{"@QtObjectFontPositions",qtObjectFontPositionsJson(fontPositions)}};
+   QMap<QString,QString> models;
+   for (int row=0;row<modelFiles->rowCount();++row) {
+      const auto name=modelFiles->item(row,0)->text(); const auto path=modelFiles->cellWidget(row,1)->findChild<QLineEdit *>("orbitDrawing_modelFile_"+name)->text();
+      if (!path.isEmpty()) models[name]=path;
+   }
+   const auto modelJson=qtObjectModelFilesJson(models); qtObjectModelFiles(modelJson);
+   return {{"@QtObjectModelFiles",modelJson},{"@QtAxesLabels",axesLabels->currentText()},{"@QtFrameLabel",frameLabel->currentText()},{"@QtObjectSegmentLabels",qtObjectFlagsJson(segmentLabels)},{"@QtObjectVelocities",qtObjectFlagsJson(velocities)},{"@QtObjectAxes",qtObjectFlagsJson(axes)},{"@QtObjectGrids",qtObjectFlagsJson(grids)},{"@QtObjectXYPlanes",qtObjectFlagsJson(planes)},{"@QtObjectLabels",qtObjectFlagsJson(labels)},{"@QtObjectTrajectories",qtObjectFlagsJson(trajectories)},{"@QtObjectCenters",qtObjectFlagsJson(centers)},{"@QtObjectEndpoints",qtObjectFlagsJson(endpoints)},{"@QtObjectMarkerSizes",qtObjectSizesJson(sizes)},{"@QtObjectLineWidths",qtObjectWidthsJson(widths)},{"@QtObjectFontSizes",qtObjectSizesJson(fontSizes)},{"@QtObjectFontPositions",qtObjectFontPositionsJson(fontPositions)}};
 }

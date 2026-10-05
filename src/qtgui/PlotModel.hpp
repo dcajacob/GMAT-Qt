@@ -89,6 +89,8 @@ struct PlotCurve
    double radius = 0;
    QString texturePath;
    QString modelPath;
+   // A per-plot file override uses native asset dimensions and identity pose.
+   bool modelOverride = false;
    std::array<double,3> modelOffset = {0,0,0}, modelRotation = {0,0,0};
    double modelScale = 1;
    int width = 1, markerSize = 4;

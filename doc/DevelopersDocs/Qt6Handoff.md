@@ -20,8 +20,17 @@ brief, not proof of qualification. Recheck the repository before making changes.
 
 ## Current installed application — 2026-10-04
 
-GmatQt is rebuilt at **6,718,016 bytes / SHA 6cfca843…**.
-[Saved playback options](Qt6ParityValidation/playback-options-20261004.md) now implement
+GmatQt is rebuilt at **6,740,736 bytes / SHA ab87e2e4…**.
+[Per-plot model files](Qt6ParityValidation/model-drawing-20261004.md) now implement
+DrawModelFile import and a pending Models/Browse/Use resource page, per-plot frozen
+assets, native raw dimensions and identity transforms, cache reload and safe fallback.
+The actual script-route Add correction preserves existing objects/settings and only
+initializes newly appended names. Four new/fourteen directly affected checks pass
+across the recorded builds; final editor/layout checks follow the initial-size repair.
+Mesh pixels are native-only; the existing QPainter approximation remains explicit.
+Base/util/Qt startup are unchanged, and the original checkout is untouched.
+
+The preceding [Saved playback options](Qt6ParityValidation/playback-options-20261004.md) now implement
 PlaybackTimeScale, TimeSyncParent and ShowToolbar, pending source edits, shared
 absolute-epoch clocks, per-object arc sampling and reachable toolbar restoration.
 Eight new and five directly affected checks pass over the recorded builds, including
@@ -89,9 +98,14 @@ source review as an unimplemented queue. LastN's decorative-listener cleanup
 limit remains explicit; it is not a claim of every legacy listener behavior.
 The subsequently identified sensor-mask operation and native-vector pixel gap
 now have the bounded evidence above. Star options are also implemented. The
-concrete remaining OF source preference is **per-plot DrawModelFile**. Saved
-PlaybackTimeScale, TimeSyncParent and ShowToolbar now have the bounded evidence
-above, superseding those entries in the [star-options continuation queue](Qt6ParityValidation/star-options-20261004.md#concrete-remaining-of-operations).
+per-plot DrawModelFile operation now has the bounded model-file evidence above.
+Saved PlaybackTimeScale, TimeSyncParent and ShowToolbar also have bounded evidence,
+superseding those entries in the [star-options continuation queue](Qt6ParityValidation/star-options-20261004.md#concrete-remaining-of-operations).
+The actual interpreter-route review exposed a separate remaining requirement:
+**cyclic script ordering for repeated/partial DrawFontPosition arrays**. Ordinary
+font controls/pixels retain their recorded scope; do not treat that as complete
+string-array source fidelity. Repeated Add now follows actual append semantics,
+superseding older direct-helper reset assumptions for script conversion.
 Ordinary/global history sweep and shared absolute-epoch playback remain distinct;
 compact raw endpoints do not reconstruct every discarded propagation state. Device VR/MSAA and inactive AxesLength remain separate. Keep
 all nine gates, held scientific cases and external dependencies in scope.

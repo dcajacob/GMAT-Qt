@@ -36,7 +36,7 @@ int main(int argc,char **argv)
       require(retained.objectGrids==setting.objectGrids && retained.objectXYPlanes==setting.objectXYPlanes,"Named guide metadata round trip failed");
       const auto reset=convertOpenFramesViews(legacy+"GMAT Display.Add = {Earth, Sat};\nGMAT Display.DrawGrid = [false true true];\nGMAT Display.DrawXYPlane = [true];\n");
       const auto after=qtCameraSettings(reset.script).value("Display");
-      require(reset.error.isEmpty() && after.objectGrids==QMap<QString,bool>{{"Earth",false},{"Sat",true}} && after.objectXYPlanes==QMap<QString,bool>{{"Earth",true},{"Sat",false}},"Guide Add reset/reordering/excess-prefix semantics differ from OF");
+      require(reset.error.isEmpty() && after.objectGrids==QMap<QString,bool>{{"Sat",false},{"Earth",true}} && after.objectXYPlanes==QMap<QString,bool>{{"Sat",true},{"Earth",true}},"Repeated scripted Add changed guide order/prefix retention");
       for (const QString field:{"DrawGrid","DrawXYPlane"}) {
          const auto bad=QString(legacy)+"GMAT Display."+field+" = [maybe];\n"; const auto rejected=convertOpenFramesViews(bad);
          require(!rejected.error.isEmpty() && rejected.script==bad,"Malformed guide flags changed original source");

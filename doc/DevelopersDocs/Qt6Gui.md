@@ -2566,3 +2566,20 @@ If a toolbar is hidden, **Show toolbar** restores both local control strips.
 survives viewer reopen; the saved preference applies when a new subscriber is
 created. [Focused evidence and remaining limits](Qt6ParityValidation/playback-options-20261004.md)
 retain all host/GPU and full-qualification boundaries.
+
+
+### Per-plot model files
+
+Open an OrbitView, choose **Object drawing…**, then the **Models** tab. Each Add
+object offers a model-file path and **Browse…**. **Use resource** clears the override
+and restores that object's resource model and transforms. OK keeps edits pending
+until Apply. Cancel, Undo/Redo, Save/reopen and Rename preserve the source transaction.
+
+A nonempty override is local to that plot and uses the file's native dimensions,
+scale 1, zero translation and zero rotation. It bypasses the resource spacecraft
+normalization/display sizing convention. **Show models/bodies** in Orbit-view setup
+controls visibility separately. Relative paths use the script folder and configured
+model fallback. Missing files remain editable and load with a warning and ordinary
+body/marker fallback. Model meshes require the native renderer; the fallback viewer
+uses spheres/markers. [Focused evidence and remaining limits](Qt6ParityValidation/model-drawing-20261004.md)
+retain the stopped-host and full-qualification boundaries.
