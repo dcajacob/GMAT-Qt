@@ -2460,3 +2460,15 @@ configured object and source. Unsupported names and duplicates stay pending for
 correction. [Focused verification](Qt6ParityValidation/transmitter-solvefors-20261004.md)
 records source recovery and the rebuilt runtime without repeating an estimation
 mission or claiming host/GPU qualification.
+
+
+### Receiver error-model selection — 2026-10-04
+
+Receiver creation/editing now exposes **ErrorModels** with ordered selection of
+existing ErrorModel resources. Clear selection removes the explicit list and
+restores the empty default on Apply. The form rejects missing/wrong-type names,
+duplicate names and multiple models for the same measurement type. Selection
+remains pending until parent Create/Apply; Cancel/discard preserves configured
+settings. [Focused evidence](Qt6ParityValidation/receiver-error-models-20261004.md)
+records exact source/file recovery, Rename/Undo and the rebuilt runtime without
+claiming new GPS measurement or host/GPU qualification.

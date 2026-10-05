@@ -424,6 +424,10 @@ QVector<ResourceProperty> resourceProperties(GmatBase &object)
             if (field.name=="Type") field.choices=trackingMeasurementTypes();
             if (field.name=="SolveFors") field.references={"Bias","PassBiases"};
          }
+         if (object.GetTypeName()=="Receiver" && field.name=="ErrorModels") {
+            field.references.clear();
+            for (const auto &name:Moderator::Instance()->GetListOfObjects(Gmat::ERROR_MODEL)) field.references.append(QString::fromStdString(name));
+         }
          if (object.GetTypeName()=="Transmitter" && field.name=="SolveFors") field.references={"FrequencyBias"};
          if (object.IsOfType("FirstOrderGaussMarkov") && field.name=="SolveFor") field.choices={"Cd","AtmosDensityScaleFactor"};
          if (object.IsOfType("ThrustHistoryFile") && field.name=="AddThrustSegment") {
@@ -624,6 +628,7 @@ bool isResourceList(GmatBase &object, const QString &name)
    const bool supported=isResourceFileList(object,name) || (name=="Add" && (type=="OrbitView" || type=="GroundTrack" || type=="GroundTrackPlot" || type=="ReportFile" || type=="Formation")) ||
       (type=="Barycenter" && name=="BodyNames") ||
       (object.IsOfType("GroundStation") && (name=="ErrorModels" || name=="AddHardware")) ||
+      (type=="Receiver" && name=="ErrorModels") ||
       ((object.IsOfType("Spacecraft") || object.IsOfType("ErrorModel") || type=="Transmitter") && name=="SolveFors") ||
       (object.IsOfType("Simulator") && name=="AddData") ||
       (object.IsOfType("Estimator") && name=="Measurements") ||
@@ -667,6 +672,7 @@ QString replaceResourceList(GmatBase &object, const QString &block, const QStrin
    static const QRegularExpression arrayElement("^[A-Za-z_][A-Za-z0-9_]*\\(\\s*[1-9][0-9]*\\s*,\\s*[1-9][0-9]*\\s*\\)$");
    const bool reportParameters=(object.GetTypeName()=="ReportFile" && name=="Add") || (object.GetTypeName()=="XYPlot" && name=="YVariables");
    const bool files=isResourceFileList(object,name);
+   QSet<QString> receiverMeasurementTypes;
    QStringList entries;
    if (!value.trimmed().isEmpty()) {
       for (const auto &part : (files ? value.split('\n',Qt::SkipEmptyParts) : splitResourceReferences(value))) {
@@ -712,7 +718,7 @@ QString replaceResourceList(GmatBase &object, const QString &block, const QStrin
             auto *body=Moderator::Instance()->GetConfiguredObject(entry.toStdString());
             if (!body || !body->IsOfType("CelestialBody") || body->GetName()!=entry.toStdString()) throw std::runtime_error("Select existing celestial bodies for the barycenter.");
          }
-         const QString expectedType=(object.IsOfType("GroundStation") && name=="ErrorModels") ? "ErrorModel" :
+         const QString expectedType=((object.IsOfType("GroundStation") || object.GetTypeName()=="Receiver") && name=="ErrorModels") ? "ErrorModel" :
             (object.IsOfType("ThrustHistoryFile") && name=="AddThrustSegment") ? "ThrustSegment" :
             (object.IsOfType("ThrustSegment") && name=="MassSource") ? "FuelTank" :
             (object.IsOfType("GroundStation") && name=="AddHardware") ? "Hardware" :
@@ -721,6 +727,11 @@ QString replaceResourceList(GmatBase &object, const QString &block, const QStrin
          if (!expectedType.isEmpty()) {
             auto *referenceObject=Moderator::Instance()->GetConfiguredObject(entry.toStdString());
             if (!referenceObject || !referenceObject->IsOfType(expectedType.toStdString())) throw std::runtime_error(("Select existing "+expectedType+" resources for "+name+".").toStdString());
+            if (object.GetTypeName()=="Receiver" && name=="ErrorModels" && !entries.contains(entry)) {
+               const auto measurement=QString::fromStdString(referenceObject->GetStringParameter("Type"));
+               if (receiverMeasurementTypes.contains(measurement)) throw std::runtime_error("Select only one receiver error model per measurement type.");
+               receiverMeasurementTypes.insert(measurement);
+            }
          }
          if (object.IsOfType("ThrustSegment") && name=="SolveFors" && !QStringList{"ThrustScaleFactor","ThrustAngle1","ThrustAngle2"}.contains(entry))
             throw std::runtime_error("Select a thrust scale factor or thrust angle solve-for.");
@@ -755,7 +766,7 @@ QString replaceResourceList(GmatBase &object, const QString &block, const QStrin
    QString result=block;
    // Empty spacecraft hardware lists are defaults, omitted by the engine's
    // serializer. Explicit {} is interpreted as a hardware name in these fields.
-   const bool omitEmpty=object.GetTypeName()=="ReportFile" || object.GetTypeName()=="XYPlot" || (object.IsOfType("GroundStation") && (name=="AddHardware" || name=="ErrorModels")) || (object.IsOfType("FiniteBurn") && name=="Thrusters") || (object.IsOfType("Spacecraft") &&
+   const bool omitEmpty=object.GetTypeName()=="ReportFile" || object.GetTypeName()=="XYPlot" || (object.GetTypeName()=="Receiver" && name=="ErrorModels") || (object.IsOfType("GroundStation") && (name=="AddHardware" || name=="ErrorModels")) || (object.IsOfType("FiniteBurn") && name=="Thrusters") || (object.IsOfType("Spacecraft") &&
       QSet<QString>{"Tanks","Thrusters","AddHardware","AddPlates"}.contains(name));
    if (!matches.hasNext()) {
       if (entries.isEmpty() && omitEmpty) return result;

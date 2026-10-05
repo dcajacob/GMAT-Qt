@@ -8865,3 +8865,16 @@ are unchanged. No estimation mission or completed audit was repeated. This
 exact-type operation retains all nine gates, dependency dispositions and the
 live-host stop. Host/GPU acceptance and GMAT crash attribution remain unproven;
 Windows/macOS/MATLAB remain deferred and full qualification is not claimed.
+
+
+## Receiver error-model control and remaining OF operations — 2026-10-04
+
+[Receiver error-model evidence](Qt6ParityValidation/receiver-error-models-20261004.md)
+records the reproduced omission and passing0.41s actual-form check for ordered
+selection, clear/restore, validation, source/file recovery and Rename/Undo. GmatQt
+is rebuilt at 6,235,016 bytes / SHA 2ef7d511…; base/util/Qt startup are unchanged.
+No completed estimation/GPS mission or unaffected suite was repeated.
+The separate [OF source review](Qt6ParityValidation/of-remaining-controls-20261004.md)
+identifies active LastN retention and axes/frame labels as remaining operations.
+All nine gates and dependency dispositions remain; live-host testing stays
+stopped and full qualification is not claimed.

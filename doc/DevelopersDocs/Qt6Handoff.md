@@ -20,7 +20,12 @@ brief, not proof of qualification. Recheck the repository before making changes.
 
 ## Current installed application — 2026-10-04
 
-GmatQt is rebuilt at **6,230,920 bytes / SHA ca4f6f60…**.
+GmatQt is rebuilt at **6,235,016 bytes / SHA 2ef7d511…**.
+[Receiver ErrorModels](Qt6ParityValidation/receiver-error-models-20261004.md)
+now supports ordered selection, clearing and reference/source recovery in creation
+and editing. The missing-control baseline is reproduced; its new focused check
+passes in 0.41 s, including duplicate measurement-type rejection and Rename/Undo.
+Base/util/Qt startup remain unchanged. The earlier
 [Transmitter SolveFors](Qt6ParityValidation/transmitter-solvefors-20261004.md)
 now exposes the supported FrequencyBias/empty list in creation and editing.
 The missing-control baseline is reproduced; the focused actual-form check passes
@@ -40,6 +45,17 @@ retains its reproduced failure and original runtime evidence. Earlier
 remains bound to its original runtime. [Offline Help publication](Qt6ParityValidation/help-publication-20261003.md)
 includes eighteen tutorial chapters. Numerical walkthroughs remain bound to
 their recorded runtimes and were not repeated for the Help repairs.
+
+## Next concrete OF operations — 2026-10-04
+
+The [targeted source review](Qt6ParityValidation/of-remaining-controls-20261004.md)
+identifies two still-active gaps: LastN solver-trajectory retention and independent
+AxesLabels/FrameLabel controls/rendering. LastN currently converts to an enum that
+OrbitView rejects. Preserve the legacy per-object trajectory-count and accepted
+pass cleanup semantics; a warning or mapping LastN to Current is not completion.
+Coordinate labels can use Qt metadata and shared overlays without engine changes.
+These requirements are explicit in the current acceptance map. Do not reopen
+completed audits or resume live-host testing to investigate them.
 
 ## Current local Rename follow-up — 2026-10-03
 

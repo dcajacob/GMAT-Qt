@@ -1,0 +1,151 @@
+gmat-receiver-baseline-20261004.log
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start 56: QtGui.ReceiverErrorModels
+1/1 Test #56: QtGui.ReceiverErrorModels ........***Failed    0.20 sec
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+FAIL Writable receiver ErrorModels GUI control is omitted
+
+
+0% tests passed, 1 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.20 sec*proc (1 test)
+
+Total Test time (real) =   0.20 sec
+
+The following tests FAILED:
+	 56 - QtGui.ReceiverErrorModels (Failed)                qt-gui
+Errors while running CTest
+
+gmat-receiver-fixed-20261004.log
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start 56: QtGui.ReceiverErrorModels
+1/1 Test #56: QtGui.ReceiverErrorModels ........***Failed    0.34 sec
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+FAIL Empty list must serialize by omission and reconstruct empty
+
+
+0% tests passed, 1 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.34 sec*proc (1 test)
+
+Total Test time (real) =   0.34 sec
+
+The following tests FAILED:
+	 56 - QtGui.ReceiverErrorModels (Failed)                qt-gui
+Errors while running CTest
+
+gmat-receiver-clear-diagnostic-20261004.log
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start 56: QtGui.ReceiverErrorModels
+1/1 Test #56: QtGui.ReceiverErrorModels ........***Failed    0.37 sec
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+Clear status: Apply validates changes and updates the mission script.
+Models:
+Source:
+Create Receiver Rx;
+% retain exact unrelated source α
+Create Antenna Dish;
+Create ErrorModel PositionError RangeError AlternatePositionError;
+AlternatePositionError.Type = 'GPS_PosVec';
+PositionError.Type = 'GPS_PosVec';
+PositionError.Bias = 2.5000; % retained position bias
+RangeError.Type = 'Range_Skin';
+RangeError.Bias = 1.2500; % retained range bias
+Create Variable Keep;
+Keep = 7; % retained value
+Rx.PrimaryAntenna = Dish;
+
+BeginMissionSequence;
+Keep = Keep + 2; % retained mission expression
+FAIL Empty list must serialize by omission and reconstruct empty
+
+
+0% tests passed, 1 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.37 sec*proc (1 test)
+
+Total Test time (real) =   0.37 sec
+
+The following tests FAILED:
+	 56 - QtGui.ReceiverErrorModels (Failed)                qt-gui
+Errors while running CTest
+
+gmat-receiver-final-20261004.log
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start 56: QtGui.ReceiverErrorModels
+1/1 Test #56: QtGui.ReceiverErrorModels ........   Passed    0.41 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.41 sec*proc (1 test)
+
+Total Test time (real) =   0.42 sec
+
+Final detailed CTest output
+Start testing: Oct 04 21:52 MDT
+----------------------------------------------------------
+56/158 Testing: QtGui.ReceiverErrorModels
+56/158 Test: QtGui.ReceiverErrorModels
+Command: "/usr/bin/python3" "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtReceiverErrorModelTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+Directory: /home/dan/GIT/GMAT-Qt/application/bin
+"QtGui.ReceiverErrorModels" start time: Oct 04 21:52 MDT
+Output:
+----------------------------------------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+PASS actual Receiver creator and visible ErrorModels picker; existing typed references and order; pending/parent Cancel; reorder/empty-by-omission/restore Apply; wrong-type/missing/duplicate rollback; exact unrelated UTF-8 source and model settings; one-transaction Undo/Redo; Save/reopen; ErrorModel Rename/Undo reference readback. Offscreen configuration only; no sandbox/GPS measurement or numerical mission qualification.
+<end of output>
+Test time =   0.41 sec
+----------------------------------------------------------
+Test Passed.
+"QtGui.ReceiverErrorModels" end time: Oct 04 21:52 MDT
+"QtGui.ReceiverErrorModels" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 04 21:52 MDT
+
+qt-gui =   0.41 sec*proc

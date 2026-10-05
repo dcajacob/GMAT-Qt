@@ -1,0 +1,108 @@
+gmat-receiver-build-baseline-20261004.log
+[0/1] Re-running CMake...
+-- *** Creating 64-bit GMAT Build System. Please ensure that 64-bit versions of all dependencies are available. ***
+-- Found CSPICE: /home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/cspice/linux/cspice64
+-- Found F2C: /home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/cspice/linux/cspice64/include
+-- Could NOT find Matlab (missing: Matlab_ROOT_DIR Matlab_INCLUDE_DIRS Matlab_MEX_LIBRARY Matlab_MEX_EXTENSION Matlab_MX_LIBRARY MAIN_PROGRAM MX_LIBRARY ENG_LIBRARY MAT_LIBRARY) (found version "NOTFOUND")
+CMake Warning at CMakeLists.txt:301 (MESSAGE):
+  Matlab NOT FOUND.  Set Matlab_ROOT_DIR to the path to Matlab and ensure you
+  have a working license.
+
+
+==============================
+Setting up install directory structure for GMAT
+-- Will install GMAT to /home/dan/GIT/GMAT-Qt/GMAT-R2026a-Linux-x64
+==============================
+GMAT util setup
+==============================
+GMAT base setup
+-- Use F2C version of MSISE.
+==============================
+GMAT Console setup
+-- Found Python3: /usr/bin/python3 (found version "3.14.4") found components: Interpreter
+==============================
+GMAT SWIG setup (for Python 3.14)
+-- Found Python3: /usr/include/python3.14 (found suitable exact version "3.14.4") found components: Development Development.Module Development.Embed
+==============================
+GMAT DataInterface Plugin setup
+==============================
+GMAT EphemPropagator Plugin setup
+==============================
+GMAT EKF Plugin setup
+==============================
+GMAT Estimation Plugin setup
+==============================
+GMAT EventLocator Plugin setup
+==============================
+GMAT External Force Model Plugin setup (for Python 3.14)
+==============================
+GMAT ExtraPropagators Plugin setup
+==============================
+GMAT Formation Plugin setup
+==============================
+GMAT GmatFunction Plugin setup
+==============================
+GMAT Msise00 Plugin setup
+==============================
+GMAT NewParameter Plugin setup
+==============================
+GMAT PolyhedronGravity Plugin setup
+==============================
+GMAT ProductionPropagators Plugin setup
+==============================
+GMAT PythonInterface Plugin setup (for Python 3.14)
+==============================
+GMAT SaveCommand Plugin setup
+==============================
+GMAT ScriptTools Plugin setup
+==============================
+GMAT Station Plugin setup
+==============================
+GMAT ThrustFile Plugin setup
+==============================
+GMAT TLE Propagator Plugin setup
+==============================
+GMAT Yukon Optimizer Plugin setup
+==============================
+STATION SWIG setup (for Python 3.14)
+==============================
+ESTIMATION SWIG setup (for Python 3.14)
+======================================
+Skipping the OVtoOFI Plugin:
+OpenFramesInterface is not being built
+=======================================
+==============================
+Setting up wxWidgets install instructions for GMAT
+-- Configuring done (1.2s)
+-- Generating done (0.3s)
+-- Build files have been written to: /home/dan/GIT/GMAT-Qt/build/linux-gui
+[1/4] cd /home/dan/GIT/GMAT-Qt/build/linux-gui && /usr/bin/cmake -E make_directory /home/dan/GIT/GMAT-Qt/application/bin && /usr/bin/cmake -E copy_if_different /home/dan/GIT/GMAT-Qt/build/linux-gui/qt-startup/Release/gmat_startup_qt.txt /home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt
+[2/4] Building CXX object src/qtgui/CMakeFiles/GmatQtReceiverErrorModelTests.dir/tests/ReceiverErrorModelTests.cpp.o
+[3/4] Linking CXX executable src/qtgui/GmatQtReceiverErrorModelTests
+
+gmat-receiver-build-fixed-20261004.log
+[1/6] cd /home/dan/GIT/GMAT-Qt/build/linux-gui && /usr/bin/cmake -E make_directory /home/dan/GIT/GMAT-Qt/application/bin && /usr/bin/cmake -E copy_if_different /home/dan/GIT/GMAT-Qt/build/linux-gui/qt-startup/Release/gmat_startup_qt.txt /home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt
+[2/6] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/ResourceProperties.cpp.o
+[3/6] Linking CXX static library src/qtgui/libGmatQtFrontend.a
+[4/6] Linking CXX executable /home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a
+[5/6] Creating executable symlink /home/dan/GIT/GMAT-Qt/application/bin/GmatQt
+[6/6] Linking CXX executable src/qtgui/GmatQtReceiverErrorModelTests
+
+gmat-receiver-build-validated-20261004.log
+[1/7] cd /home/dan/GIT/GMAT-Qt/build/linux-gui && /usr/bin/cmake -E make_directory /home/dan/GIT/GMAT-Qt/application/bin && /usr/bin/cmake -E copy_if_different /home/dan/GIT/GMAT-Qt/build/linux-gui/qt-startup/Release/gmat_startup_qt.txt /home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt
+[2/7] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/ResourceProperties.cpp.o
+[3/7] Linking CXX static library src/qtgui/libGmatQtFrontend.a
+[4/7] Linking CXX executable /home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a
+[5/7] Creating executable symlink /home/dan/GIT/GMAT-Qt/application/bin/GmatQt
+[6/7] Building CXX object src/qtgui/CMakeFiles/GmatQtReceiverErrorModelTests.dir/tests/ReceiverErrorModelTests.cpp.o
+[7/7] Linking CXX executable src/qtgui/GmatQtReceiverErrorModelTests
+
+gmat-receiver-build-diagnostic-20261004.log
+[1/3] cd /home/dan/GIT/GMAT-Qt/build/linux-gui && /usr/bin/cmake -E make_directory /home/dan/GIT/GMAT-Qt/application/bin && /usr/bin/cmake -E copy_if_different /home/dan/GIT/GMAT-Qt/build/linux-gui/qt-startup/Release/gmat_startup_qt.txt /home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt
+[2/3] Building CXX object src/qtgui/CMakeFiles/GmatQtReceiverErrorModelTests.dir/tests/ReceiverErrorModelTests.cpp.o
+[3/3] Linking CXX executable src/qtgui/GmatQtReceiverErrorModelTests
+
+gmat-receiver-build-expectation-20261004.log
+[1/3] cd /home/dan/GIT/GMAT-Qt/build/linux-gui && /usr/bin/cmake -E make_directory /home/dan/GIT/GMAT-Qt/application/bin && /usr/bin/cmake -E copy_if_different /home/dan/GIT/GMAT-Qt/build/linux-gui/qt-startup/Release/gmat_startup_qt.txt /home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt
+[2/3] Building CXX object src/qtgui/CMakeFiles/GmatQtReceiverErrorModelTests.dir/tests/ReceiverErrorModelTests.cpp.o
+[3/3] Linking CXX executable src/qtgui/GmatQtReceiverErrorModelTests
