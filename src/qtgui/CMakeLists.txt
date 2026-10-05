@@ -106,9 +106,15 @@ endif()
 if(GMAT_QT_BUILD_TESTS)
    add_executable(GmatQtOrbitRendererTests tests/OrbitRendererTests.cpp)
    target_link_libraries(GmatQtOrbitRendererTests PRIVATE GmatQtFrontend)
+   add_executable(GmatQtNativeVectorRenderingTests tests/NativeVectorRenderingTests.cpp)
+   target_link_libraries(GmatQtNativeVectorRenderingTests PRIVATE GmatQtFrontend)
    if(UNIX AND NOT APPLE)
       find_program(QT_XVFB_RUN xvfb-run)
       if(QT_XVFB_RUN)
+         add_test(NAME QtGui.NativeVectors COMMAND ${QT_XVFB_RUN} -a
+            ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 QT_SCALE_FACTOR=1
+            $<TARGET_FILE:GmatQtNativeVectorRenderingTests>)
+         set_tests_properties(QtGui.NativeVectors PROPERTIES LABELS qt-gui TIMEOUT 60)
          add_test(NAME QtGui.NativeOrbit COMMAND ${QT_XVFB_RUN} -a
             ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
             $<TARGET_FILE:GmatQtOrbitRendererTests>)
@@ -650,6 +656,7 @@ if(GMAT_QT_BUILD_TESTS)
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
       DEPENDS GmatQt GmatQtWindowTests GmatQtFileTests GmatQtWorkflowTests GmatQtMissionTests GmatQtPlotTests GmatQtOrbitRendererTests GmatQtCompatibilityTests GmatQtAtmosphereTests GmatQtStationTests GmatQtEventLocatorTests GmatQtPlotSetupTests GmatQtOrbitSetupTests GmatQtThrusterTests GmatQtBurnTests GmatQtEphemerisTests GmatQtDynamicDataTests GmatQtCalculatedPointTests GmatQtDataInterfaceTests GmatQtEstimationTests GmatQtComparisonTests GmatQtThrustFileTests GmatQtScriptEditingTests GmatQtExternalForceTests GmatQtPolyhedronTests
       USES_TERMINAL VERBATIM)
+   add_dependencies(check-qt GmatQtNativeVectorRenderingTests)
    add_dependencies(check-qt GmatQtPythonPathTests GmatQtFileThrustCardinalityTests GmatQtCameraResetTests GmatQtPropagationSingleStepTests GmatQtWhileTemplateTests)
    add_dependencies(check-qt GmatQtKalmanTests GmatQtInspectionTests GmatQtParameterTests GmatQtPathTests GmatQtSolarSystemTests GmatQtCelestialBodyTests)
    add_dependencies(check-qt GmatQtCovarianceTests GmatQtForceSourceTests GmatQtForceSelectorTests GmatQtGravityBodyTests)

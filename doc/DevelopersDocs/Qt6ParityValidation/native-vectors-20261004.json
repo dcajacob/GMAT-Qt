@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-04",
+  "source_head": "42dc8940dc7d3361cd269f0fbe5f5a78bb2a241b",
+  "scope": "New native vector pixels check only; no production changes or mission reruns",
+  "artifacts": {
+    "application/bin/GmatQt": {
+      "bytes": 6306584,
+      "sha256": "e48df911a0fc09622a1dc87071fe78eef7dee790bd6d41161b8ff9a848883a83"
+    },
+    "application/bin/libGmatBase.so": {
+      "bytes": 25040656,
+      "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e"
+    },
+    "application/bin/libGmatUtil.so": {
+      "bytes": 2929904,
+      "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+    },
+    "application/bin/gmat_startup_qt.txt": {
+      "bytes": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    },
+    "src/qtgui/tests/NativeVectorRenderingTests.cpp": {
+      "bytes": 11798,
+      "sha256": "fe80ba90df91dfc933b2386c2ef601468caa4fcdaa8ac217c9487a0558739121"
+    },
+    "src/qtgui/OrbitRenderer.cpp": {
+      "bytes": 44979,
+      "sha256": "727e10338fce3805120522da8e55c8214de3e2cd73eb3b362ce9539568c766b1"
+    },
+    "src/qtgui/PlotWidget.cpp": {
+      "bytes": 65554,
+      "sha256": "7208ab9cfa9fe9c925f17e94b1815e8e32f978549838cc78d344d33425a98dce"
+    }
+  }
+}

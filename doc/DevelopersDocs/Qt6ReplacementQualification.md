@@ -8911,3 +8911,16 @@ All nine gates and held/dependency dispositions remain authoritative; no broad
 completed audit/tutorial/corpus was repeated. Live host testing stays stopped,
 GMAT attribution and host/physical-GPU acceptance remain unproven, Windows/macOS/
 MATLAB remain deferred, and full qualification is not claimed.
+
+
+## Native vector rendering evidence — 2026-10-04
+
+[Native-vector evidence](Qt6ParityValidation/native-vectors-20261004.md) now verifies
+Relative Position and Body-Fixed shafts/heads, Auto/Manual length, color, labels,
+replay and invalid/removal behavior using independent projected pixel positions.
+The new private Xvfb/llvmpipe check passes1.50s. App/base/util/startup remain unchanged;
+no production change, mission or old passing suite was repeated. The prior native
+vector pixel pending disposition is superseded at this bounded scope. Active
+sensor-mask conversion, editing and display remain a newly identified operation.
+Host/GPU acceptance and GMAT client attribution remain unproven; live-host testing
+is stopped, all nine gates stay visible and full qualification is not claimed.

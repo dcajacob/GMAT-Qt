@@ -1,0 +1,38 @@
+UpdateCTestConfiguration  from :/home/dan/GIT/GMAT-Qt/build/linux-gui/DartConfiguration.tcl
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 1
+    Start 1: QtGui.NativeVectors
+
+1: Test command: /usr/bin/xvfb-run "-a" "/usr/bin/cmake" "-E" "env" "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1" "QT_SCALE_FACTOR=1" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtNativeVectorRenderingTests"
+1: Working Directory: /home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui
+1: Test timeout computed to be: 60
+1: Private xcb OpenGL renderer: llvmpipe (LLVM 21.1.8, 256 bits)
+1: relative-manual: color pixels=169, blank differences=169
+1: relative-manual replay: color pixels=174, blank differences=174
+1: relative-auto: color pixels=60, blank differences=60
+1: relative-auto replay: color pixels=60, blank differences=60
+1: body-manual: color pixels=166, blank differences=166
+1: body-manual replay: color pixels=168, blank differences=168
+1: body-auto: color pixels=59, blank differences=59
+1: body-auto replay: color pixels=60, blank differences=60
+1: relative recolored: color pixels=169, blank differences=169
+1: combined relative: color pixels=174, blank differences=342
+1: combined body: color pixels=168, blank differences=342
+1: PASS native Relative Position/Body-Fixed shafts and heads, Auto/Manual analytic lengths, color/labels, recorded replay, invalid hiding/removal and unchanged retained data. Private Xvfb/software GL only; no host/GPU qualification.
+1/1 Test #1: QtGui.NativeVectors ..............   Passed    1.50 sec
+
+The following tests passed:
+	QtGui.NativeVectors
+
+100% tests passed, 0 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   1.50 sec*proc (1 test)
+
+Total Test time (real) =   1.50 sec

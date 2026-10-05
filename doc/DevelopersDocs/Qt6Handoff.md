@@ -29,6 +29,12 @@ and accepted spacecraft samples. Base SHA 5d455c6b… includes only an added opt
 display lifecycle callback; util/Qt startup are unchanged. Decorative-listener
 cleanup distribution remains an explicit parity limit.
 
+[Native vector pixels](Qt6ParityValidation/native-vectors-20261004.md) now pass a
+new 1.50 s private Xvfb/llvmpipe check for both supported vector modes, lengths,
+labels and replay. Application/base/util/startup are unchanged. A targeted source
+comparison also identifies active OF sensor-mask conversion, controls and display
+as the next concrete operation to implement.
+
 The following evidence remains bound to its earlier runtimes.
 [Coordinate labels](Qt6ParityValidation/coordinate-labels-20261004.md) now expose
 independent XYZ/origin-name controls, conversion and native/fallback rendering.
