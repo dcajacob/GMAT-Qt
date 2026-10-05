@@ -424,6 +424,7 @@ QVector<ResourceProperty> resourceProperties(GmatBase &object)
             if (field.name=="Type") field.choices=trackingMeasurementTypes();
             if (field.name=="SolveFors") field.references={"Bias","PassBiases"};
          }
+         if (object.GetTypeName()=="Transmitter" && field.name=="SolveFors") field.references={"FrequencyBias"};
          if (object.IsOfType("FirstOrderGaussMarkov") && field.name=="SolveFor") field.choices={"Cd","AtmosDensityScaleFactor"};
          if (object.IsOfType("ThrustHistoryFile") && field.name=="AddThrustSegment") {
             field.references.clear();
@@ -623,7 +624,7 @@ bool isResourceList(GmatBase &object, const QString &name)
    const bool supported=isResourceFileList(object,name) || (name=="Add" && (type=="OrbitView" || type=="GroundTrack" || type=="GroundTrackPlot" || type=="ReportFile" || type=="Formation")) ||
       (type=="Barycenter" && name=="BodyNames") ||
       (object.IsOfType("GroundStation") && (name=="ErrorModels" || name=="AddHardware")) ||
-      ((object.IsOfType("Spacecraft") || object.IsOfType("ErrorModel")) && name=="SolveFors") ||
+      ((object.IsOfType("Spacecraft") || object.IsOfType("ErrorModel") || type=="Transmitter") && name=="SolveFors") ||
       (object.IsOfType("Simulator") && name=="AddData") ||
       (object.IsOfType("Estimator") && name=="Measurements") ||
       (object.IsOfType("ThrustHistoryFile") && name=="AddThrustSegment") ||
@@ -723,6 +724,8 @@ QString replaceResourceList(GmatBase &object, const QString &block, const QStrin
          }
          if (object.IsOfType("ThrustSegment") && name=="SolveFors" && !QStringList{"ThrustScaleFactor","ThrustAngle1","ThrustAngle2"}.contains(entry))
             throw std::runtime_error("Select a thrust scale factor or thrust angle solve-for.");
+         if (object.GetTypeName()=="Transmitter" && name=="SolveFors" && entry!="FrequencyBias")
+            throw std::runtime_error("Select FrequencyBias as the transmitter solve-for, or clear the list.");
          if (entries.contains(entry)) throw std::runtime_error("Each list entry must be unique");
          entries.append(entry);
       }

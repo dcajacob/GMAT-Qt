@@ -2449,3 +2449,14 @@ provider label. Solver trials do not create regular segment labels. Compact
 endpoints survive trimming, while intermediate placement approximates the
 available collected geometry. [Focused evidence and runtime limits](Qt6ParityValidation/segment-labels-20261004.md)
 retain the unchanged numerical report and explicit host/GPU qualification stop.
+
+
+### Transmitter solve-for selection — 2026-10-04
+
+Transmitter creation and editing expose **SolveFors** with a FrequencyBias
+selector. Clear the selection for an empty solve-for list. OK in the selector
+keeps changes pending until parent Create/Apply; Cancel/discard preserves the
+configured object and source. Unsupported names and duplicates stay pending for
+correction. [Focused verification](Qt6ParityValidation/transmitter-solvefors-20261004.md)
+records source recovery and the rebuilt runtime without repeating an estimation
+mission or claiming host/GPU qualification.

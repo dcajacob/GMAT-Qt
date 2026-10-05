@@ -8853,3 +8853,15 @@ No completed corpus/tutorial/audit was repeated. All nine gates and dependency
 limits remain authoritative. Live host testing stays stopped; GMAT attribution,
 host repair and physical-GPU acceptance are unproven. Windows/macOS/MATLAB remain
 deferred, and full qualification is not claimed.
+
+
+## Transmitter resource solve-for control — 2026-10-04
+
+[Transmitter SolveFors evidence](Qt6ParityValidation/transmitter-solvefors-20261004.md)
+records the reproduced missing-control failure and 0.32 s passing actual-form
+check for FrequencyBias/empty-list creation, editing, rollback and source/file
+recovery. GmatQt is rebuilt at 6,230,920 bytes / SHA ca4f6f60…; base/util/Qt startup
+are unchanged. No estimation mission or completed audit was repeated. This
+exact-type operation retains all nine gates, dependency dispositions and the
+live-host stop. Host/GPU acceptance and GMAT crash attribution remain unproven;
+Windows/macOS/MATLAB remain deferred and full qualification is not claimed.

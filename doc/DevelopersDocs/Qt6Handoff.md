@@ -20,7 +20,12 @@ brief, not proof of qualification. Recheck the repository before making changes.
 
 ## Current installed application — 2026-10-04
 
-GmatQt is rebuilt at **6,230,920 bytes / SHA f2a52efa…**.
+GmatQt is rebuilt at **6,230,920 bytes / SHA ca4f6f60…**.
+[Transmitter SolveFors](Qt6ParityValidation/transmitter-solvefors-20261004.md)
+now exposes the supported FrequencyBias/empty list in creation and editing.
+The missing-control baseline is reproduced; the focused actual-form check passes
+in 0.32 s, including rollback, Undo/Redo and Save/reopen. No numerical mission
+or previously passing suite was repeated for this exact-type form change.
 [Propagation segment labels](Qt6ParityValidation/segment-labels-20261004.md)
 close the active OF Label Segments operation with conversion, resource controls,
 accepted arc identity and native/fallback replay labels. Eight directly relevant

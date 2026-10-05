@@ -1,0 +1,109 @@
+
+gmat-transmitter-baseline-20261004.log
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start 56: QtGui.TransmitterSolveFors
+1/1 Test #56: QtGui.TransmitterSolveFors .......***Failed    0.15 sec
+This plugin does not support propagateSizeHints()
+FAIL Antenna/variable fixture did not build
+
+
+0% tests passed, 1 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.15 sec*proc (1 test)
+
+Total Test time (real) =   0.16 sec
+
+The following tests FAILED:
+	 56 - QtGui.TransmitterSolveFors (Failed)               qt-gui
+Errors while running CTest
+
+gmat-transmitter-diagnostic-20261004.log
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start 56: QtGui.TransmitterSolveFors
+1/1 Test #56: QtGui.TransmitterSolveFors .......***Failed    0.16 sec
+This plugin does not support propagateSizeHints()
+FAIL Antenna/variable fixture did not build
+
+
+0% tests passed, 1 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.16 sec*proc (1 test)
+
+Total Test time (real) =   0.16 sec
+
+The following tests FAILED:
+	 56 - QtGui.TransmitterSolveFors (Failed)               qt-gui
+Errors while running CTest
+
+gmat-transmitter-control-baseline-20261004.log
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start 56: QtGui.TransmitterSolveFors
+1/1 Test #56: QtGui.TransmitterSolveFors .......***Failed    0.19 sec
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+FAIL Writable transmitter SolveFors GUI control is omitted
+
+
+0% tests passed, 1 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.19 sec*proc (1 test)
+
+Total Test time (real) =   0.19 sec
+
+The following tests FAILED:
+	 56 - QtGui.TransmitterSolveFors (Failed)               qt-gui
+Errors while running CTest
+
+gmat-transmitter-fixed-20261004.log
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start 56: QtGui.TransmitterSolveFors
+1/1 Test #56: QtGui.TransmitterSolveFors .......   Passed    0.32 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.32 sec*proc (1 test)
+
+Total Test time (real) =   0.32 sec
+
+Final detailed CTest output
+Start testing: Oct 04 21:41 MDT
+----------------------------------------------------------
+56/157 Testing: QtGui.TransmitterSolveFors
+56/157 Test: QtGui.TransmitterSolveFors
+Command: "/usr/bin/python3" "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtTransmitterSolveForTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+Directory: /home/dan/GIT/GMAT-Qt/application/bin
+"QtGui.TransmitterSolveFors" start time: Oct 04 21:41 MDT
+Output:
+----------------------------------------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+PASS actual Transmitter creator and visible SolveFors picker; pending/parent Cancel; FrequencyBias and empty-list Apply; invalid/duplicate rollback; exact unrelated UTF-8 source; one-transaction Undo/Redo; Save/reopen. Offscreen only, no numerical/estimation mission.
+<end of output>
+Test time =   0.32 sec
+----------------------------------------------------------
+Test Passed.
+"QtGui.TransmitterSolveFors" end time: Oct 04 21:41 MDT
+"QtGui.TransmitterSolveFors" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 04 21:41 MDT
+
+qt-gui =   0.32 sec*proc
