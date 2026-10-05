@@ -1,3 +1,5 @@
+% Historical demonstration: 23 June 2020, using the bundled dated TLE subset.
+% See ../../TLE/README.md for source provenance and current-time restrictions.
 % TLE Propagation Demonstration
 %
 % Scripted at Thinking Systems, Inc.
@@ -38,28 +40,28 @@ ISS.DateFormat      = 'UTCGregorian'
 NUSTAR.DateFormat   = 'UTCGregorian' 
 TIMED.DateFormat    = 'UTCGregorian' 
 
-MMS1.EphemerisName     = '../../TLE/active.txt'
-MMS2.EphemerisName     = '../../TLE/active.txt'
-MMS3.EphemerisName     = '../../TLE/active.txt'
-MMS4.EphemerisName     = '../../TLE/active.txt'
-TDRS3.EphemerisName    = '../../TLE/active.txt'
-TDRS5.EphemerisName    = '../../TLE/active.txt'
-TDRS6.EphemerisName    = '../../TLE/active.txt'
-TDRS7.EphemerisName    = '../../TLE/active.txt'
-TDRS8.EphemerisName    = '../../TLE/active.txt'
-TDRS9.EphemerisName    = '../../TLE/active.txt'
-TDRS10.EphemerisName   = '../../TLE/active.txt'
-TDRS11.EphemerisName   = '../../TLE/active.txt'
-TDRS12.EphemerisName   = '../../TLE/active.txt'
-TDRS13.EphemerisName   = '../../TLE/active.txt'
-TERRA.EphemerisName    = '../../TLE/active.txt'
-AQUA.EphemerisName     = '../../TLE/active.txt'
-AURA.EphemerisName     = '../../TLE/active.txt'
-LANDSAT7.EphemerisName = '../../TLE/active.txt'
-LANDSAT8.EphemerisName = '../../TLE/active.txt'
-ISS.EphemerisName      = '../../TLE/active.txt'
-NUSTAR.EphemerisName   = '../../TLE/active.txt'
-TIMED.EphemerisName    = '../../TLE/active.txt'
+MMS1.EphemerisName     = '../../TLE/ExampleSatellites-2020-06-23.txt'
+MMS2.EphemerisName     = '../../TLE/ExampleSatellites-2020-06-23.txt'
+MMS3.EphemerisName     = '../../TLE/ExampleSatellites-2020-06-23.txt'
+MMS4.EphemerisName     = '../../TLE/ExampleSatellites-2020-06-23.txt'
+TDRS3.EphemerisName    = '../../TLE/ExampleSatellites-2020-06-23.txt'
+TDRS5.EphemerisName    = '../../TLE/ExampleSatellites-2020-06-23.txt'
+TDRS6.EphemerisName    = '../../TLE/ExampleSatellites-2020-06-23.txt'
+TDRS7.EphemerisName    = '../../TLE/ExampleSatellites-2020-06-23.txt'
+TDRS8.EphemerisName    = '../../TLE/ExampleSatellites-2020-06-23.txt'
+TDRS9.EphemerisName    = '../../TLE/ExampleSatellites-2020-06-23.txt'
+TDRS10.EphemerisName   = '../../TLE/ExampleSatellites-2020-06-23.txt'
+TDRS11.EphemerisName   = '../../TLE/ExampleSatellites-2020-06-23.txt'
+TDRS12.EphemerisName   = '../../TLE/ExampleSatellites-2020-06-23.txt'
+TDRS13.EphemerisName   = '../../TLE/ExampleSatellites-2020-06-23.txt'
+TERRA.EphemerisName    = '../../TLE/ExampleSatellites-2020-06-23.txt'
+AQUA.EphemerisName     = '../../TLE/ExampleSatellites-2020-06-23.txt'
+AURA.EphemerisName     = '../../TLE/ExampleSatellites-2020-06-23.txt'
+LANDSAT7.EphemerisName = '../../TLE/ExampleSatellites-2020-06-23.txt'
+LANDSAT8.EphemerisName = '../../TLE/ExampleSatellites-2020-06-23.txt'
+ISS.EphemerisName      = '../../TLE/ExampleSatellites-2020-06-23.txt'
+NUSTAR.EphemerisName   = '../../TLE/ExampleSatellites-2020-06-23.txt'
+TIMED.EphemerisName    = '../../TLE/ExampleSatellites-2020-06-23.txt'
 
 MMS1.Id     = 'MMS 1'
 MMS2.Id     = 'MMS 2'                   
@@ -136,7 +138,7 @@ Create String now format
 BeginMissionSequence;
 
 format = 'UTCGregorian';
-now = '12 Dec 2019 12:00:00.000'
+now = '23 Jun 2020 00:00:00.000'
 
 % For real time display, optionally download a fresh active data file and 
 % uncomment the next line.

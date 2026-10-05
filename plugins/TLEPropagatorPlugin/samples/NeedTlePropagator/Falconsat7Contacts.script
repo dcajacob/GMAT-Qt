@@ -1,3 +1,5 @@
+% Historical demonstration: 23 June 2020, using the bundled dated TLE subset.
+% See ../../TLE/README.md for source provenance and current-time restrictions.
 % GMAT script showing station contact between Colorado 
 % Springs and Falconsat-7
 %
@@ -11,7 +13,7 @@
 %---------- Spacecraft
 %----------------------------------------
 Create Spacecraft FalconSat7;
-FalconSat7.EphemerisName = '../../TLE/active.txt';
+FalconSat7.EphemerisName = '../../TLE/ExampleSatellites-2020-06-23.txt';
 FalconSat7.Id = 'FALCONSAT-7';
 
 
@@ -92,10 +94,9 @@ Create String now format;
 %---------- Mission Sequence
 %----------------------------------------
 BeginMissionSequence;
-format = 'TAIModJulian';
-[now] = SystemTime(format);
-
-FalconSat7.Epoch = now;
+% FalconSat-7 reentered in 2021; this is a historical contact demonstration.
+FalconSat7.DateFormat = UTCGregorian;
+FalconSat7.Epoch = '23 Jun 2020 00:00:00.000';
 
 For I = 1:1:4320;
    Propagate TleProp(FalconSat7);

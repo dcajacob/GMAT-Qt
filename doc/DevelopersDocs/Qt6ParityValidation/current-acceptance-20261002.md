@@ -1,5 +1,20 @@
 # Current Linux Qt acceptance reconciliation — 2026-10-02
 
+## Failing-example resolution — 2026-10-05
+
+The [complete27-row resolution](failing-examples-20261005.md) records six recovered execution completions:
+three explicitly historical June2020 TLE demonstrations and three unchanged
+optimizer examples, including both full20-window scans. All original failures,
+timeouts, first mixed-epoch attempt and runtime/source identities remain retained.
+Seventeen absent/deferred-component builds, two intentional Step1 Stops,
+Starlink historical inputs and the L2 event-domain failure have explicit causes
+and required actions. Yukon completes all20 windows and reports convergence,
+but its last printed physical residuals do not establish nominal feasibility.
+Four earlier passing sources changed before this task; their old results are
+retained at their original hashes rather than claimed as current-source proof.
+No application/core/startup change or rebuild was needed. The original checkout
+was untouched; this work does not close host/scientific/full GUI acceptance.
+
 Current checkout: `/home/dan/GIT/GMAT-Qt`, `codex/qt6-gui`. The user-requested separate checkout is the implementation/runtime location. The original checkout is untouched. This maps the nine original acceptance gates to current bounded evidence and remaining requirements. The [original gates and detailed workflow/plugin inventory](../Qt6ReplacementQualification.md#acceptance-gates) remain authoritative. Dated appendices retain historical failures and pending states; this current snapshot is the continuation guide, not an assertion of full qualification.
 
 Latest host increment, 2026-10-05: the user authorized bounded live-host tests, superseding the former stop for this session. [Native host evidence](live-host-20261005.md) now establishes physical Intel/i915 rendering and actual popup/creation/Help/GTK chooser observations with unchanged app identities, no observed new GPU fault/core and the same surviving GNOME process. Complete lifecycle (viewer close/reopen, distinct resize, minimized-window recovery and normal interactive exit) remains unqualified; helper failures/time bounds and owned SIGTERM cleanup are preserved. Historical crash attribution, scientific/dependency holds and all nine gates remain open. Earlier stopped/blocked wording is historical and does not negate this authorized increment.

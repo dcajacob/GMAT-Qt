@@ -1,3 +1,5 @@
+% Historical demonstration: 23 June 2020, using the bundled dated TLE subset.
+% See ../../TLE/README.md for source provenance and current-time restrictions.
 %General Mission Analysis Tool(GMAT) Script
 %Created: 2019-11-23 12:07:38
 
@@ -8,7 +10,7 @@
 
 Create Spacecraft FalconSat3;
 GMAT FalconSat3.DateFormat = UTCGregorian;
-GMAT FalconSat3.Epoch = '08 Nov 2019 12:00:00.000';
+GMAT FalconSat3.Epoch = '23 Jun 2020 00:00:00.000';
 GMAT FalconSat3.CoordinateSystem = EarthMJ2000Eq;
 GMAT FalconSat3.DisplayStateType = Cartesian;
 GMAT FalconSat3.X = 7100;
@@ -24,7 +26,7 @@ GMAT FalconSat3.DragArea = 15;
 GMAT FalconSat3.SRPArea = 1;
 GMAT FalconSat3.SPADDragScaleFactor = 1;
 GMAT FalconSat3.SPADSRPScaleFactor = 1;
-GMAT FalconSat3.EphemerisName = '../../TLE/Active_Nov-09-2019.txt';
+GMAT FalconSat3.EphemerisName = '../../TLE/ExampleSatellites-2020-06-23.txt';
 GMAT FalconSat3.NAIFId = -10019001;
 GMAT FalconSat3.NAIFIdReferenceFrame = -9019001;
 GMAT FalconSat3.OrbitColor = Red;
@@ -53,7 +55,7 @@ GMAT FalconSat3.EulerAngleSequence = '321';
 
 Create Spacecraft FalconSat6;
 GMAT FalconSat6.DateFormat = UTCGregorian;
-GMAT FalconSat6.Epoch = '08 Nov 2019 12:00:00.000';
+GMAT FalconSat6.Epoch = '23 Jun 2020 00:00:00.000';
 GMAT FalconSat6.CoordinateSystem = EarthMJ2000Eq;
 GMAT FalconSat6.DisplayStateType = Cartesian;
 GMAT FalconSat6.X = 7100;
@@ -69,7 +71,7 @@ GMAT FalconSat6.DragArea = 15;
 GMAT FalconSat6.SRPArea = 1;
 GMAT FalconSat6.SPADDragScaleFactor = 1;
 GMAT FalconSat6.SPADSRPScaleFactor = 1;
-GMAT FalconSat6.EphemerisName = '../../TLE/Active_Nov-09-2019.txt';
+GMAT FalconSat6.EphemerisName = '../../TLE/ExampleSatellites-2020-06-23.txt';
 GMAT FalconSat6.NAIFId = -10020001;
 GMAT FalconSat6.NAIFIdReferenceFrame = -9020001;
 GMAT FalconSat6.OrbitColor = Green;
@@ -98,7 +100,7 @@ GMAT FalconSat6.EulerAngleSequence = '321';
 
 Create Spacecraft FalconSat7;
 GMAT FalconSat7.DateFormat = UTCGregorian;
-GMAT FalconSat7.Epoch = '08 Nov 2019 12:00:00.000';
+GMAT FalconSat7.Epoch = '23 Jun 2020 00:00:00.000';
 GMAT FalconSat7.CoordinateSystem = EarthMJ2000Eq;
 GMAT FalconSat7.DisplayStateType = Cartesian;
 GMAT FalconSat7.X = 7100;
@@ -114,7 +116,7 @@ GMAT FalconSat7.DragArea = 15;
 GMAT FalconSat7.SRPArea = 1;
 GMAT FalconSat7.SPADDragScaleFactor = 1;
 GMAT FalconSat7.SPADSRPScaleFactor = 1;
-GMAT FalconSat7.EphemerisName = '../../TLE/Active-2020-06-23.txt';
+GMAT FalconSat7.EphemerisName = '../../TLE/ExampleSatellites-2020-06-23.txt';
 GMAT FalconSat7.NAIFId = -10021001;
 GMAT FalconSat7.NAIFIdReferenceFrame = -9021001;
 GMAT FalconSat7.OrbitColor = Yellow;
@@ -306,7 +308,8 @@ GMAT FalconSat6View1.FOVy = 45;
 
 BeginMissionSequence;
 GMAT format = 'UTCGregorian';
-GMAT [now] = SystemTime(format);
+% Historical elements require a matching epoch; do not reset them to today.
+GMAT now = '23 Jun 2020 00:00:00.000';
 
 GMAT FalconSat7.Epoch = now;
 GMAT FalconSat3.Epoch = now;

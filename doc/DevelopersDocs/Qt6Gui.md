@@ -1,5 +1,20 @@
 # Qt 6 desktop GUI
 
+## Failing-example resolution — 2026-10-05
+
+The [complete27-row resolution](Qt6ParityValidation/failing-examples-20261005.md) records six recovered execution completions:
+three explicitly historical June2020 TLE demonstrations and three unchanged
+optimizer examples, including both full20-window scans. All original failures,
+timeouts, first mixed-epoch attempt and runtime/source identities remain retained.
+Seventeen absent/deferred-component builds, two intentional Step1 Stops,
+Starlink historical inputs and the L2 event-domain failure have explicit causes
+and required actions. Yukon completes all20 windows and reports convergence,
+but its last printed physical residuals do not establish nominal feasibility.
+Four earlier passing sources changed before this task; their old results are
+retained at their original hashes rather than claimed as current-source proof.
+No application/core/startup change or rebuild was needed. The original checkout
+was untouched; this work does not close host/scientific/full GUI acceptance.
+
 The `codex/qt6-gui` branch starts at integration commit `0ef9a8a`, retaining
 the existing PR fixes and their regression infrastructure. The Qt frontend
 links the same GmatBase and GmatUtil libraries. wx-specific behavior fixes
