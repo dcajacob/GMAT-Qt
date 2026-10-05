@@ -2583,3 +2583,15 @@ model fallback. Missing files remain editable and load with a warning and ordina
 body/marker fallback. Model meshes require the native renderer; the fallback viewer
 uses spheres/markers. [Focused evidence and remaining limits](Qt6ParityValidation/model-drawing-20261004.md)
 retain the stopped-host and full-qualification boundaries.
+
+
+### Imported OF list ordering
+
+For imported OF scripts, scalar and braced **View**, **Vector** and **SensorMask**
+assignments append unique selections in source order. An empty list is a no-op;
+use the Qt configuration controls to remove selections. Repeated/partial
+**DrawFontPosition** arrays continue their own cyclic object counter, just like
+scalar assignments. Model-file and font counters are independent. Unsupported
+label placements and dynamic source retain the original text with a precise error.
+[Source-contract and repair receipts](Qt6ParityValidation/of-script-ordering-20261005.md)
+record the bounded qualification and remaining gates.

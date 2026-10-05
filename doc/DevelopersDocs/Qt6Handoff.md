@@ -18,9 +18,18 @@ brief, not proof of qualification. Recheck the repository before making changes.
 4. Make concrete fixes, validate them, record their evidence, and rebuild the
    actual application. Do not stop at another inventory or proposed plan.
 
-## Current installed application — 2026-10-04
+## Current installed application — 2026-10-05
 
-GmatQt is rebuilt at **6,740,736 bytes / SHA ab87e2e4…**.
+GmatQt is rebuilt at **6,740,680 bytes / SHA 78e76365…**.
+[Actual OF script ordering](Qt6ParityValidation/of-script-ordering-20261005.md) repairs
+cyclic DrawFontPosition arrays and append/dedup selection for View/Vector/SensorMask.
+The partial-array defect is reproduced; six relevant checks pass across recorded
+builds, with two stale syntax expectations corrected from the interpreter contract.
+Affected source/UI/runtime checks retain their full numerical-reference comparisons.
+Base/util/startup are unchanged; live host/GPU testing stays stopped.
+
+The preceding model-file checkpoint rebuilt GmatQt at 6,740,736 bytes / SHA ab87e2e4….
+
 [Per-plot model files](Qt6ParityValidation/model-drawing-20261004.md) now implement
 DrawModelFile import and a pending Models/Browse/Use resource page, per-plot frozen
 assets, native raw dimensions and identity transforms, cache reload and safe fallback.
@@ -101,11 +110,12 @@ now have the bounded evidence above. Star options are also implemented. The
 per-plot DrawModelFile operation now has the bounded model-file evidence above.
 Saved PlaybackTimeScale, TimeSyncParent and ShowToolbar also have bounded evidence,
 superseding those entries in the [star-options continuation queue](Qt6ParityValidation/star-options-20261004.md#concrete-remaining-of-operations).
-The actual interpreter-route review exposed a separate remaining requirement:
-**cyclic script ordering for repeated/partial DrawFontPosition arrays**. Ordinary
-font controls/pixels retain their recorded scope; do not treat that as complete
-string-array source fidelity. Repeated Add now follows actual append semantics,
-superseding older direct-helper reset assumptions for script conversion.
+[Actual script ordering](Qt6ParityValidation/of-script-ordering-20261005.md) now closes
+the subsequently identified cyclic DrawFontPosition requirement and corrects ordered
+View/Vector/SensorMask append semantics. This supersedes their direct-helper prefix/
+reset assumptions in older records. Unsupported placements and dynamic/compound
+source retain explicit errors and original text. Repeated Add also follows the actual
+append route. These source repairs do not close host/GPU or scientific/domain gates.
 Ordinary/global history sweep and shared absolute-epoch playback remain distinct;
 compact raw endpoints do not reconstruct every discarded propagation state. Device VR/MSAA and inactive AxesLength remain separate. Keep
 all nine gates, held scientific cases and external dependencies in scope.

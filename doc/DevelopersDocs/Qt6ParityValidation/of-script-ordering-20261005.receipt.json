@@ -1,0 +1,124 @@
+{
+  "baselineCommit": "e7dd2854fc0bdceb49c917f62dfe36ab4465190c",
+  "branch": "codex/qt6-gui",
+  "date": "2026-10-05",
+  "finalFiles": {
+    "application/bin/GmatQt": {
+      "bytes": 6740680,
+      "sha256": "78e763656adfc1956508a7a6527f623e864283423debe1747e65b8894a874a72"
+    },
+    "application/bin/libGmatBase.so": {
+      "bytes": 25040656,
+      "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e"
+    },
+    "application/bin/libGmatUtil.so": {
+      "bytes": 2929904,
+      "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+    },
+    "application/bin/gmat_startup_qt.txt": {
+      "bytes": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    },
+    "build/linux-gui/src/qtgui/GmatQtConvertedVisibilityTests": {
+      "bytes": 7014192,
+      "sha256": "782c88a86250885751d4c2fb972bd52d69fdce4f83711ad19d01ed409e817c74"
+    },
+    "build/linux-gui/src/qtgui/GmatQtSegmentCameraTests": {
+      "bytes": 6809376,
+      "sha256": "4d4274ae153d7c3ff7029c46f75f88f6988dfea182f575c049510ca44d776217"
+    },
+    "build/linux-gui/src/qtgui/GmatQtOpenFramesVectorTests": {
+      "bytes": 6793272,
+      "sha256": "ed370b81d5bf44bc2be9022b67f90d6749df7aa279b3b17648a3bbe042fca067"
+    },
+    "build/linux-gui/src/qtgui/GmatQtSensorMaskBackendTests": {
+      "bytes": 6784808,
+      "sha256": "ea8cc75b1615ab3f53182b72ac1e544d0a5cb8f42d980400d64d82aea89a3b06"
+    }
+  },
+  "testAttempts": {
+    "baseline-test.xml": [
+      {
+        "name": "QtGui.FontMetadata",
+        "seconds": 0.0662397,
+        "status": "FAIL"
+      }
+    ],
+    "tests-01.xml": [
+      {
+        "name": "QtGui.FontMetadata",
+        "seconds": 0.0651927,
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.ConvertedFonts",
+        "seconds": 0.0885048,
+        "status": "FAIL"
+      }
+    ],
+    "tests-02.xml": [
+      {
+        "name": "QtGui.ConvertedFonts",
+        "seconds": 0.898296,
+        "status": "PASS"
+      }
+    ],
+    "tests-03.xml": [
+      {
+        "name": "QtGui.ConvertedFonts",
+        "seconds": 0.810588,
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.SensorMaskBackend",
+        "seconds": 0.32852,
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.SegmentCameras",
+        "seconds": 0.544369,
+        "status": "PASS"
+      },
+      {
+        "name": "QtGui.OpenFramesSyntax",
+        "seconds": 0.071623,
+        "status": "FAIL"
+      },
+      {
+        "name": "QtGui.OpenFramesVectors",
+        "seconds": 0.412276,
+        "status": "PASS"
+      }
+    ],
+    "tests-04.xml": [
+      {
+        "name": "QtGui.OpenFramesSyntax",
+        "seconds": 0.183262,
+        "status": "PASS"
+      }
+    ]
+  },
+  "implementationFiles": {
+    "src/qtgui/ScriptCompatibility.cpp": "919b2cf800a9becbb25345f7f31422a7b1b60e9c9757e4a1b85188a04be488f4",
+    "src/qtgui/tests/ConvertedVisibilityTests.cpp": "1c8119d18bfc6119ae05a429662cd94ec3b194e0065b9859c812e09f107f710f",
+    "src/qtgui/tests/OpenFramesVectorTests.cpp": "2ac41154d7f5b49de35141e9b7943ee1cd4bc8a068df3872514c6227c8900c18",
+    "src/qtgui/tests/SegmentCameraTests.cpp": "d9d0f4971c3b3a29cc942ace4936b33353c8b9b916a6cbe770b7c6af50282722",
+    "src/qtgui/tests/SensorMaskBackendTests.cpp": "2d9a119310a9834ca29f96a7ed935a113d0ef82fa56d54c77c21623666689525"
+  },
+  "sourceContract": {
+    "/home/dan/GIT/OpenFramesInterface/src/base/subscriber/OpenFramesInterface.cpp": "3674716e61175f3d20f02c98408ab72e1c77b9f3c9e2f0b37d97f4c1b0514ddf",
+    "/home/dan/GIT/OpenFramesInterface/src/base/subscriber/SpacePointOptions.hpp": "fa48f7f435ac311193a705e7d356f6cf2679fe9fc1823d876af76daf5add670b",
+    "/home/dan/GIT/GMAT-Qt/src/base/interpreter/Interpreter.cpp": "581e249ca7a5dd654a7ec43af8b6a2ece60291892de5f889ff151cb2b8638450",
+    "/home/dan/GIT/GMAT-Qt/src/gmatutil/util/StringUtil.cpp": "57265d7a60cd527195682b74e56ba600cbc3b3d3ef810286b3e3ea6c40ec18bf"
+  },
+  "bounds": {
+    "liveHostTesting": "stopped",
+    "hostGpuQualified": false,
+    "fullQualification": false,
+    "earlierFontMetadata": "PASS tests-01.xml before fixture-only rebuild; no executable hash was captured at that instant",
+    "earlierSegmentCameras": "PASS tests-03.xml before syntax-fixture-only rebuild; production code unchanged",
+    "finalAppAfterLastProductionBuild": true,
+    "priorAuditsTutorialsCorpusRepeated": false,
+    "newScientificRegimeQualified": false
+  }
+}

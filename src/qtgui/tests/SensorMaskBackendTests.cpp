@@ -48,8 +48,8 @@ static void conversionChecks() {
    require(masks[0].label=="mount α's cone" && masks[0].length==90 && !masks[0].automaticLength && masks[1].automaticLength && masks[1].length==1 && masks[1].label=="DefaultSensorMask","Sensor mask defaults/quoted label/length lost");
    require(script.contains("% Qt conversion: Create OpenFramesSensorMask ConeMask RectMask PolyMask;") && script.contains("% Qt conversion: ConeMask.Label = 'mount α''s cone';"),"Original mask definitions were not retained");
    const auto replaced=converted(source+"Orb.SensorMask = {PolyMask, ConeMask};\nOrb.SensorMask = RectMask;\n");
-   require(names(qtCameraSettings(replaced).value("Orb").sensorMasks)==QStringList{"PolyMask","ConeMask","RectMask"},"Braced mask replacement lost source order");
-   require(qtCameraSettings(converted(source+"Orb.SensorMask = {};\n")).value("Orb").sensorMasks.isEmpty(),"Empty mask selection failed to clear");
+   require(names(qtCameraSettings(replaced).value("Orb").sensorMasks)==QStringList{"ConeMask","RectMask","PolyMask"},"Braced script mask selection lost append order");
+   require(qtCameraSettings(converted(source+"Orb.SensorMask = {};\n")).value("Orb").sensorMasks.size()==3,"Empty script mask selection changed retained masks");
    const auto json=qtSensorMasksJson(masks); require(qtSensorMasksJson(qtSensorMasks(json))==json,"Mask JSON round trip failed");
    for (const auto &bad:QStringList{"ConeMask.Length = 0;","ConeMask.Length = -1;","ConeMask.Length = NaN;","ConeMask.LengthType = Other;","ConeMask.Unknown = 1;","ConeMask.Source = Sat.NamedPropagate;","Orb.SensorMask = Unknown;","Report Values ConeMask;"}) {
       const auto invalid=source+bad+'\n'; const auto result=convertOpenFramesViews(invalid);

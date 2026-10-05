@@ -9004,3 +9004,21 @@ All nine gates, held scientific/external cases and deferred Windows/macOS/MATLAB
 explicit. Live host testing remains stopped; Mutter's null Wayland resource evidence
 does not establish GMAT client attribution or host/physical-GPU acceptance.
 Full replacement qualification is not claimed.
+
+
+## Actual OF script setter ordering — 2026-10-05
+
+[Script-ordering evidence](Qt6ParityValidation/of-script-ordering-20261005.md) closes
+the preceding checkpoint's cyclic DrawFontPosition requirement and fixes repeated
+View/Vector/SensorMask selections as append/dedup rather than direct-helper resets.
+The partial-array defect was reproduced before repair. Six relevant checks pass
+across recorded builds; two stale syntax assertions were corrected from the actual
+interpreter, with every original failure retained. Existing affected font/camera/
+vector/mask numerical references stay unchanged; no engine algorithm was rewritten.
+
+Actual GmatQt is rebuilt at 6,740,680 bytes / SHA 78e76365…; base/util/startup remain
+byte-identical. Earlier passes remain bound to their recorded source/test builds.
+No completed audit, tutorial, shipped mission corpus or unrelated passing test was
+repeated. All nine gates, held scientific/external dependencies and deferred platforms
+remain explicit. Live host testing is stopped; GMAT client attribution and host/GPU
+acceptance remain unproven. Full replacement qualification is not claimed.

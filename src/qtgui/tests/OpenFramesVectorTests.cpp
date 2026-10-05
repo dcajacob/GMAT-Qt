@@ -69,8 +69,8 @@ static void conversion(const QString &startup)
    const QString setup="Create Spacecraft Sat;\nCreate OpenFramesInterface Display;\nDisplay.Add = {Sat, Earth};\nCreate OpenFramesVector A B;\nA.SourceObject = Sat;\nA.VectorType = 'Relative Position';\nA.DestinationObject = Sun;\nB.SourceObject = Earth;\nB.VectorColor = 'Yellow';\nDisplay.Vector = A;\nDisplay.Vector = {B, , A, B};\nDisplay.Vector = A;\n";
    const auto converted=convertOpenFramesViews(setup+"BeginMissionSequence;\n"); require(converted.error.isEmpty(),qPrintable(converted.error));
    const auto list=qtCameraSettings(converted.script).value("Display").vectors;
-   require(list.size()==2 && list[0].name=="B" && list[1].name=="A" && list[0].type=="Body-Fixed" && list[0].color==0xffff00 && list[0].label=="DefaultVector","Vector list clear/append/dedup, color or BF defaults differ from OF");
-   require(qtCameraSettings(convertOpenFramesViews(setup+"Display.Vector = {};\nBeginMissionSequence;\n").script).value("Display").vectors.isEmpty(),"Empty vector list did not clear selected arrows");
+   require(list.size()==2 && list[0].name=="A" && list[1].name=="B" && list[1].type=="Body-Fixed" && list[1].color==0xffff00 && list[1].label=="DefaultVector","Script vector append/dedup order, color or BF defaults differ from OF");
+   require(qtCameraSettings(convertOpenFramesViews(setup+"Display.Vector = {};\nBeginMissionSequence;\n").script).value("Display").vectors.size()==2,"Empty script vector list changed selected arrows");
    for (const auto &bad:QStringList{
          setup+"A.VectorType = 'Thrust Vector';\nBeginMissionSequence;\n",
          setup+"A.VectorLengthType = Manual;\nA.VectorLength = 0;\nBeginMissionSequence;\n",

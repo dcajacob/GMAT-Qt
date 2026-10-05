@@ -48,9 +48,9 @@ static void syntaxTests(const QString &startup)
    auto ordered=prefix+declarations+"Display.View = Far;\nDisplay.View = Close;\nDisplay.View = {First, , Close, First,};\nDisplay.View = Far;\nDisplay.View = Close;\n"+mission;
    const auto combined=convertOpenFramesViews(ordered); require(combined.error.isEmpty(),qPrintable(combined.error));
    const auto selection=qtCameraSettings(combined.script).value("Display");
-   require(selection.primaryName=="First" && selection.views.size()==2 && selection.views[0].name=="Close" && selection.views[1].name=="Far","Array clear/scalar append/dedup semantics differ from OF AddView");
+   require(selection.primaryName=="Far" && selection.views.size()==2 && selection.views[0].name=="Close" && selection.views[1].name=="First","Script array/scalar append/dedup semantics differ from OF AddView");
    const auto cleared=convertOpenFramesViews(prefix+declarations+"Display.View = First;\nDisplay.View = {};\n"+mission);
-   require(cleared.error.isEmpty() && qtCameraSettings(cleared.script).value("Display").primaryName.isEmpty(),"Empty braced View did not clear the old camera selection");
+   require(cleared.error.isEmpty() && qtCameraSettings(cleared.script).value("Display").primaryName=="First","Empty script View changed the existing camera selection");
    const auto noSemicolons=convertOpenFramesViews(QString(input).replace("Create OpenFramesView First Close Far;","Create OpenFramesView First Close Far").replace("Create OpenFramesInterface Display Other;","Create OpenFramesInterface Display Other"));
    require(noSemicolons.error.isEmpty() && noSemicolons.plots==2,"Optional declaration semicolon changed accepted grouped syntax");
    const auto repeatedInput=prefix+QString(declarations).replace(";","; ;")+"Display.View = {First, , Close, Far};; % duplicate terminators\n"+mission;
@@ -61,9 +61,11 @@ static void syntaxTests(const QString &startup)
    for (const auto &bad:QStringList{QString(input).replace("Display.Add = {Earth};","Display.Add = {Earth};; Value = 4;"),QString(input).replace("Display.View = {First, , Close, Far};","Display.View = 'First;';;"),QString(input).replace(mission,"BeginMissionSequence;\nDisplay.View = First;;\nValue = Value + 2;\n")}) {
       const auto rejected=convertOpenFramesViews(bad); require(!rejected.error.isEmpty() && rejected.script==bad,"Empty terminator support stripped a quoted/compound or dynamic viewer statement");
    }
-   for (const auto &bad:QStringList{QString(input).replace("First Close Far;","First First;"),QString(input).replace("First Close Far;","First, Close;"),QString(input).replace("{First, , Close, Far}","{First Close}"),QString(input).replace("{First, , Close, Far}","{First, Missing}"),QString(input).replace("{First, , Close, Far}","[First]")}) {
+   for (const auto &bad:QStringList{QString(input).replace("First Close Far;","First First;"),QString(input).replace("First Close Far;","First, Close;"),QString(input).replace("{First, , Close, Far}","{First, Missing}"),QString(input).replace("{First, , Close, Far}","[First]")}) {
       const auto rejected=convertOpenFramesViews(bad); require(!rejected.error.isEmpty() && rejected.script==bad,"Invalid grouped/view syntax silently changed original source");
    }
+   const auto spaced=convertOpenFramesViews(QString(input).replace("{First, , Close, Far}","{First Close}"));
+   require(spaced.error.isEmpty() && qtCameraSettings(spaced.script).value("Display").primaryName=="First" && qtCameraSettings(spaced.script).value("Display").views.size()==1 && qtCameraSettings(spaced.script).value("Display").views.front().name=="Close","Interpreter whitespace-separated view list was rejected or lost its order");
    const auto samples=QDir(QFileInfo(startup).absolutePath()).absoluteFilePath("../samples");
    const auto geo=QString::fromUtf8(read(QDir(samples).filePath("Ex_GEOTransfer.script")));
    const auto geoConverted=convertOpenFramesViews(geo); require(geoConverted.error.isEmpty(),qPrintable(geoConverted.error));
@@ -74,7 +76,7 @@ static void syntaxTests(const QString &startup)
    const auto flybyCameras=qtCameraSettings(flybyConverted.script);
    const QString flybyAdd="OFI_OrbitView1.Add              = {emsat, Earth, Mars};;";
    require(flyby.contains(flybyAdd) && flybyConverted.script.contains(flybyAdd) && flybyConverted.plots==2 && flybyCameras.value("OFI_OrbitView1").primaryName=="Orbit_View" && flybyCameras.value("OFI_OrbitView2").primaryName=="Orbit_View" && flybyConverted.script.endsWith(flyby.mid(flyby.indexOf("BeginMissionSequence;"))),"Actual IntegratedFlyby conversion rejected empty terminator or changed Add/cameras/mission source");
-   std::cout<<"PASS grouped OF display/view identities, scalar append/list reset/blank and duplicate entries, trailing empty statements with original lines/comments and compound/dynamic rejection, actual GEOTransfer and IntegratedFlyby static conversion. Required vector sample conversion is covered by OpenFramesVectors. No engine initialization, mission, pixels or native desktop test.\n";
+   std::cout<<"PASS grouped OF display/view identities, scalar/list append, empty no-op and duplicate entries, trailing empty statements with original lines/comments and compound/dynamic rejection, actual GEOTransfer and IntegratedFlyby static conversion. Required vector sample conversion is covered by OpenFramesVectors. No engine initialization, mission, pixels or native desktop test.\n";
 
 }
 int main(int argc,char **argv)

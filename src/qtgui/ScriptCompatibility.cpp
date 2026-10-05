@@ -485,10 +485,11 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
             if (flag!="On" && flag!="Off") { result.error=it.key()+"."+property+": expected On or Off."; return result; }
             (property=="AxesLabels" ? display.axesLabels : display.frameLabel)=flag=="On";
          } else if (property=="Vector") {
-            const bool array=value.startsWith('{') && value.endsWith('}');
-            if (!array && !vectorIdentifier.match(value).hasMatch()) { result.error=it.key()+".Vector: expected a vector name or braced list."; return result; }
-            if (array) display.vectors.clear();
-            const auto selected=array ? value.mid(1,value.size()-2).split(',') : QStringList{value};
+            QStringList selected;
+            try { selected=legacyStringArrayValues(value); }
+            catch (BaseException &error) { result.error=it.key()+".Vector: "+QString::fromStdString(error.GetFullMessage()); return result; }
+            catch (const std::exception &error) { result.error=it.key()+".Vector: "+QString::fromUtf8(error.what()); return result; }
+            // OBJECTARRAY script setters append, including braced selections.
             for (auto vectorName:selected) {
                vectorName=vectorName.trimmed(); if (vectorName.isEmpty()) continue;
                if (!vectorIdentifier.match(vectorName).hasMatch() || !vectorSettings.contains(vectorName)) { result.error=it.key()+".Vector: unknown OpenFramesVector "+vectorName+"."; return result; }
@@ -500,10 +501,11 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
                if (!duplicate) display.vectors.append(vector);
             }
          } else if (property=="SensorMask") {
-            const bool array=value.startsWith('{') && value.endsWith('}');
-            if (!array && !vectorIdentifier.match(value).hasMatch()) { result.error=it.key()+".SensorMask: expected a mask name or braced list."; return result; }
-            if (array) display.sensorMasks.clear();
-            const auto selected=array ? value.mid(1,value.size()-2).split(',') : QStringList{value};
+            QStringList selected;
+            try { selected=legacyStringArrayValues(value); }
+            catch (BaseException &error) { result.error=it.key()+".SensorMask: "+QString::fromStdString(error.GetFullMessage()); return result; }
+            catch (const std::exception &error) { result.error=it.key()+".SensorMask: "+QString::fromUtf8(error.what()); return result; }
+            // OBJECTARRAY script setters append, including braced selections.
             for (auto maskName:selected) {
                maskName=maskName.trimmed(); if (maskName.isEmpty()) continue;
                if (!vectorIdentifier.match(maskName).hasMatch() || !maskSettings.contains(maskName)) { result.error=it.key()+".SensorMask: unknown OpenFramesSensorMask "+maskName+"."; return result; }
@@ -572,21 +574,18 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
                if (i<names.size()) (property=="DrawFontSize" ? display.objectFontSizes : display.objectMarkerSizes)[names[i]]=static_cast<quint32>(size);
             }
          } else if (property=="DrawFontPosition") {
-            const bool array=value.startsWith('{') && value.endsWith('}');
-            if (!array && (value.startsWith('{') || value.endsWith('}'))) { result.error=it.key()+".DrawFontPosition: malformed position array."; return result; }
-            const auto inner=array ? value.mid(1,value.size()-2).trimmed() : value;
-            const auto positions=inner.isEmpty() && array ? QStringList() : inner.split(',');
-            if (!array && (positions.size()!=1 || names.isEmpty() || fontPositionIndex>=names.size())) { result.error=it.key()+".DrawFontPosition: no selected object for the scalar position."; return result; }
-            for (int i=0;i<positions.size();++i) {
-               // OF's string-array setter applies only the selected prefix.
-               if (array && i>=names.size()) break;
-               auto position=positions[i].trimmed();
-               if (position.startsWith('\'') && position.endsWith('\'') && position.size()>=2) position=position.mid(1,position.size()-2);
+            QStringList positions;
+            try { positions=legacyStringArrayValues(value); }
+            catch (BaseException &error) { result.error=it.key()+".DrawFontPosition: "+QString::fromStdString(error.GetFullMessage()); return result; }
+            catch (const std::exception &error) { result.error=it.key()+".DrawFontPosition: "+QString::fromUtf8(error.what()); return result; }
+            for (const auto &position:positions) {
+               if (names.isEmpty() || fontPositionIndex>=names.size()) { result.error=it.key()+".DrawFontPosition: no selected object for the scalar position."; return result; }
                if (!QStringList{"Top-Right","Top-Left","Bottom-Right","Bottom-Left"}.contains(position)) { result.error=it.key()+".DrawFontPosition: choose Top-Right, Top-Left, Bottom-Right or Bottom-Left; original source retained."; return result; }
-               const int index=array ? i : fontPositionIndex;
-               if (index<names.size()) display.objectFontPositions[names[index]]=position;
+               // Script STRINGARRAY entries all reach the scalar setter. A
+               // braced assignment continues this counter just like a scalar.
+               display.objectFontPositions[names[fontPositionIndex]]=position;
+               fontPositionIndex=(fontPositionIndex+1)%names.size();
             }
-            if (!array) fontPositionIndex=(fontPositionIndex+1)%names.size();
          }
       }
       try { (void)qtStars(qtStarsJson(display.stars)); (void)qtPlayback(qtPlaybackJson(display.playback)); }
@@ -639,12 +638,12 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
       for (auto line=settings.cbegin();line!=settings.cend();++line) {
          if (line->first!=plot || line->second!="View") continue;
          const auto value=assignment.match(codePart(lines[line.key()])).captured(3).trimmed();
-         const bool array=value.startsWith('{') && value.endsWith('}');
-         if (!array && !identifier.match(value).hasMatch()) { result.error=plot+": invalid camera view list."; return result; }
-         // OpenFramesInterface::SetStringParameter(VIEW) clears a braced list,
-         // while scalar settings append. AddView ignores blanks and duplicates.
-         if (array) viewNames.clear();
-         const auto entries=array ? value.mid(1,value.size()-2).split(',') : QStringList{value};
+         QStringList entries;
+         try { entries=legacyStringArrayValues(value); }
+         catch (BaseException &error) { result.error=plot+".View: "+QString::fromStdString(error.GetFullMessage()); return result; }
+         catch (const std::exception &error) { result.error=plot+".View: "+QString::fromUtf8(error.what()); return result; }
+         // The indexed script setter appends unique views. A direct whole-list
+         // helper has different clearing semantics and is not the script route.
          for (auto entry:entries) {
             entry=entry.trimmed(); if (entry.isEmpty()) continue;
             if (!identifier.match(entry).hasMatch()) { result.error=plot+": invalid camera view list."; return result; }
