@@ -75,17 +75,17 @@ public:
       const PlotCurve *curve;
       quint64 through;
       std::deque<PlotPoint>::const_iterator point;
-      bool tip=false,done=false;
+      bool simulation=false,tip=false,done=false;
       void finishRaw() {
          if (point==curve->points.end() || point->frame>through) {
-            tip=curve->replayPose && curve->replayPose->frame==through;
+            tip=simulation ? curve->simulationPose.has_value() : curve->replayPose && curve->replayPose->frame==through;
             done=!tip;
          }
       }
    public:
       Iterator(const PlotCurve &value,quint64 frame,bool end=false)
-         : curve(&value),through(frame),point(value.points.begin()),done(end) { if (!done) finishRaw(); }
-      const PlotPoint &operator*() const { return tip ? *curve->replayPose : *point; }
+         : curve(&value),through(value.simulationActive && frame==std::numeric_limits<quint64>::max() ? (value.simulationCursor ? value.simulationCursor->before : 0) : frame),point(value.points.begin()),simulation(value.simulationActive && frame==std::numeric_limits<quint64>::max()),done(end) { if (!done) finishRaw(); }
+      const PlotPoint &operator*() const { return tip ? (simulation ? *curve->simulationPose : *curve->replayPose) : *point; }
       Iterator &operator++() { if (tip) done=true; else { ++point; finishRaw(); } return *this; }
       bool operator!=(const Iterator &other) const { return done!=other.done; }
    };

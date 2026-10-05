@@ -372,10 +372,22 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
       QStringList names; int fontPositionIndex=0; auto &display=displaySettings[it.key()];
       QString solverMode="All"; int solverCount=1;
       auto &stars=display.stars.emplace();
+      auto &playback=display.playback.emplace(); playback.timeScale=3600; playback.showToolbar=true;
       for (auto line=settings.cbegin();line!=settings.cend();++line) {
          if (line->first!=it.key()) continue;
          const auto property=line->second,value=assignment.match(codePart(lines[line.key()])).captured(3).trimmed();
-         if (property=="StarSettings") {
+         if (property=="PlaybackTimeScale") {
+            bool ok=false; const auto scale=value.toDouble(&ok);
+            if (!ok || !std::isfinite(scale)) { result.error=it.key()+".PlaybackTimeScale: expected a finite simulated-seconds-per-wall-second scale."; return result; }
+            playback.timeScale=scale;
+         } else if (property=="TimeSyncParent") {
+            playback.syncParent=stringValue(value);
+            if ((!playback.syncParent.isEmpty() && !vectorIdentifier.match(playback.syncParent).hasMatch()) || playback.syncParent==it.key()) { result.error=it.key()+".TimeSyncParent: choose another plot name or an empty string for independent clock time."; return result; }
+         } else if (property=="ShowToolbar") {
+            const auto flag=value.toLower();
+            if (flag!="true" && flag!="false") { result.error=it.key()+".ShowToolbar: expected true or false."; return result; }
+            playback.showToolbar=flag=="true";
+         } else if (property=="StarSettings") {
             stars.preset=stringValue(value);
             if (!QStringList{"Monitor","Printer","Virtual Reality","Custom"}.contains(stars.preset)) { result.error=it.key()+".StarSettings: choose Monitor, Printer, Virtual Reality or Custom."; return result; }
          } else if (property=="StarCatalog") {
@@ -493,7 +505,7 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
             if (!array) fontPositionIndex=(fontPositionIndex+1)%names.size();
          }
       }
-      try { (void)qtStars(qtStarsJson(display.stars)); }
+      try { (void)qtStars(qtStarsJson(display.stars)); (void)qtPlayback(qtPlaybackJson(display.playback)); }
       catch (const std::exception &error) { result.error=it.key()+": "+QString::fromUtf8(error.what()); return result; }
       if (solverMode=="LastN") display.solverLastN=solverCount;
    }
@@ -527,7 +539,8 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
          result.notes.append(name+"."+key+((key=="AxesLabels" || key=="FrameLabel") ? ": coordinate label setting retained in Qt metadata." : ": independent per-object drawing retained in Qt metadata."));
       } else {
          output.append("% Qt conversion: "+lines[i]);
-         if (types[name]=="OpenFramesInterface" && QStringList{"StarSettings","StarCatalog","MinStarMag","MaxStarMag","MinStarPixels","MaxStarPixels","MinStarDimRatio"}.contains(key)) result.notes.append(name+"."+key+": preset/custom star options retained in Qt metadata.");
+         if (types[name]=="OpenFramesInterface" && QStringList{"PlaybackTimeScale","TimeSyncParent","ShowToolbar"}.contains(key)) result.notes.append(name+"."+key+": clock synchronization and toolbar settings retained in Qt metadata.");
+         else if (types[name]=="OpenFramesInterface" && QStringList{"StarSettings","StarCatalog","MinStarMag","MaxStarMag","MinStarPixels","MaxStarPixels","MinStarDimRatio"}.contains(key)) result.notes.append(name+"."+key+": preset/custom star options retained in Qt metadata.");
          else if (types[name]=="OpenFramesInterface" && key=="SensorMask") result.notes.append(name+".SensorMask: FOV-backed sensor masks retained in Qt metadata.");
          else if (types[name]=="OpenFramesInterface" && key=="Vector") result.notes.append(name+".Vector: source/destination pointing, body-fixed pose, color/label and Auto/Manual length retained in Qt metadata.");
          else if (types[name]=="OpenFramesInterface" && key!="View") result.notes.append(name+"."+key+": retained as a comment; no direct Qt equivalent.");
@@ -579,6 +592,7 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
       cameraSetting.vectors=displaySettings.value(plot).vectors;
       cameraSetting.sensorMasks=displaySettings.value(plot).sensorMasks;
       cameraSetting.stars=displaySettings.value(plot).stars;
+      cameraSetting.playback=displaySettings.value(plot).playback;
       cameraSetting.objectLabels=displaySettings.value(plot).objectLabels;
       cameraSetting.objectTrajectories=displaySettings.value(plot).objectTrajectories;
       cameraSetting.objectCenters=displaySettings.value(plot).objectCenters;
@@ -709,6 +723,10 @@ QString qtCameraDirective(const QString &plot,const QtCameraSetting &setting)
    if (setting.frameLabel) object.insert("frameLabel",*setting.frameLabel);
    if (setting.solverLastN) object.insert("solverLastN",*setting.solverLastN);
    if (setting.stars) object.insert("stars",QJsonDocument::fromJson(qtStarsJson(setting.stars).toUtf8()).object());
+   if (setting.playback) {
+      const auto playback=qtPlaybackJson(setting.playback);
+      if (playback!="null") object.insert("playback",QJsonDocument::fromJson(playback.toUtf8()).object());
+   }
    if (setting.reset) object.insert("reset",resetJson(*setting.reset));
    if (setting.up) object.insert("up",QJsonArray{(*setting.up)[0],(*setting.up)[1],(*setting.up)[2]});
    if (setting.bodyRelative) object.insert("bodyRelative",true);
@@ -774,6 +792,14 @@ QMap<QString,QtCameraSetting> qtCameraSettings(const QString &source)
       for (const auto &key:QStringList{"axesLabels","frameLabel"}) if (object.contains(key)) {
          if (!object.value(key).isBool()) throw std::runtime_error("Coordinate label settings must be booleans");
          (key=="axesLabels" ? setting.axesLabels : setting.frameLabel)=object.value(key).toBool();
+      }
+      if (object.contains("playback")) {
+         if (object.value("playback").isNull()) setting.playback.reset();
+         else {
+            if (!object.value("playback").isObject()) throw std::runtime_error("Plot playback must be an object or null");
+            setting.playback=qtPlayback(QString::fromUtf8(QJsonDocument(object.value("playback").toObject()).toJson(QJsonDocument::Compact)));
+            if (setting.playback && setting.playback->syncParent==name) throw std::runtime_error("A plot cannot synchronize playback with itself");
+         }
       }
       if (object.contains("stars")) {
          if (object.value("stars").isNull()) setting.stars.reset();
@@ -1117,4 +1143,37 @@ QString qtStarsJson(const std::optional<QtStarSetting> &setting)
    if (!setting) return "null";
    return QString::fromUtf8(QJsonDocument(QJsonObject{{"preset",setting->preset},{"catalog",setting->catalog},{"customCount",setting->customCount},
       {"minMagnitude",setting->minMagnitude},{"maxMagnitude",setting->maxMagnitude},{"minPixels",setting->minPixels},{"maxPixels",setting->maxPixels},{"minDimRatio",setting->minDimRatio}}).toJson(QJsonDocument::Compact));
+}
+
+std::optional<QtPlaybackSetting> qtPlayback(const QString &json)
+{
+   if (json.trimmed()=="null") return {};
+   QJsonParseError error; const auto document=QJsonDocument::fromJson(json.toUtf8(),&error);
+   if (error.error!=QJsonParseError::NoError || !document.isObject()) throw std::runtime_error("Playback options must be a JSON object or null");
+   const auto value=document.object(); const QSet<QString> fields={"timeScale","syncParent","showToolbar"};
+   for (auto field=value.constBegin();field!=value.constEnd();++field) if (!fields.contains(field.key())) throw std::runtime_error("Unsupported playback options field");
+   if (!value.contains("timeScale") || !value.contains("syncParent") || !value.contains("showToolbar") || !value.value("syncParent").isString())
+      throw std::runtime_error("Playback options require a scale or null, a parent string, and a toolbar boolean or null");
+   QtPlaybackSetting setting;
+   if (!value.value("timeScale").isNull()) {
+      if (!value.value("timeScale").isDouble() || !std::isfinite(value.value("timeScale").toDouble())) throw std::runtime_error("Playback scale must be a finite signed number or null");
+      setting.timeScale=value.value("timeScale").toDouble();
+   }
+   if (!value.value("showToolbar").isNull()) {
+      if (!value.value("showToolbar").isBool()) throw std::runtime_error("Playback toolbar setting must be boolean or null");
+      setting.showToolbar=value.value("showToolbar").toBool();
+   }
+   setting.syncParent=value.value("syncParent").toString();
+   if (!setting.syncParent.isEmpty() && (!setting.timeScale || !QRegularExpression("^[A-Za-z][A-Za-z0-9_]*$").match(setting.syncParent).hasMatch()))
+      throw std::runtime_error("A playback parent requires a clock scale and a valid plot name");
+   if (!setting.timeScale && setting.syncParent.isEmpty() && !setting.showToolbar) return {};
+   return setting;
+}
+QString qtPlaybackJson(const std::optional<QtPlaybackSetting> &setting)
+{
+   if (!setting) return "null";
+   if (setting->timeScale && !std::isfinite(*setting->timeScale)) throw std::runtime_error("Playback scale must be finite");
+   if (!setting->timeScale && setting->syncParent.isEmpty() && !setting->showToolbar) return "null";
+   return QString::fromUtf8(QJsonDocument(QJsonObject{{"timeScale",setting->timeScale ? QJsonValue(*setting->timeScale) : QJsonValue(QJsonValue::Null)},
+      {"syncParent",setting->syncParent},{"showToolbar",setting->showToolbar ? QJsonValue(*setting->showToolbar) : QJsonValue(QJsonValue::Null)}}).toJson(QJsonDocument::Compact));
 }

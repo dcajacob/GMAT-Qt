@@ -19,8 +19,9 @@ inline QVector<OrbitSegmentLabel> orbitSegmentLabels(const PlotModel &model,cons
    const auto found=model.regularArcs.constFind(curve.name);
    if (found==model.regularArcs.cend()) return {};
    const auto *recorded=orbitObjectPose(curve,frame);
-   if (!model.replayCursor && !recorded) return {};
-   const double epoch=model.replayCursor ? model.replayCursor->epoch : recorded->epoch;
+   const bool simulation=model.simulationEpoch && frame==std::numeric_limits<quint64>::max();
+   if (!simulation && !model.replayCursor && !recorded) return {};
+   const double epoch=simulation ? *model.simulationEpoch : model.replayCursor ? model.replayCursor->epoch : recorded->epoch;
    if (!PlotModel::usableValue(epoch)) return {};
    auto usable=[](const PlotPoint &point) {
       return !point.solver && PlotModel::usableValue(point.epoch) && PlotModel::usableOrbitPosition(point.x,point.y,point.z);

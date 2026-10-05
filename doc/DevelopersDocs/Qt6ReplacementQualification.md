@@ -8958,3 +8958,24 @@ with source evidence in the linked continuation queue. Keep all nine gates,
 held scientific/external cases, deferred platforms/MATLAB and the stopped live-host
 testing boundary. GMAT client attribution and host/physical-GPU acceptance remain
 unproven. Full qualification is not claimed.
+
+
+## Saved simulation-clock and toolbar options — 2026-10-04
+
+[Playback-option evidence](Qt6ParityValidation/playback-options-20261004.md) now covers
+PlaybackTimeScale, TimeSyncParent and ShowToolbar, superseding those three pending
+preferences in the preceding checkpoint. Pending source controls, parent validation,
+Rename, shared absolute epochs, signed/zero rates, both sampling modes and reachable
+toolbar restoration have eight new/five directly affected passing checks across
+the recorded builds. Private native/fallback pixels and a new backward/forward
+mission validate the presentation path; the complete 315-byte report and retained
+sample serialization remain identical through playback. The finite historical
+camera query regression and test-fixture corrections are recorded with first failures.
+
+GmatQt is rebuilt at 6,718,016 bytes / SHA 6cfca843…; base/util/startup
+are unchanged. Qt retains progressive history and compact raw endpoints, without
+claiming a reconstruction of every discarded trajectory sample. Per-plot DrawModelFile
+remains active unmet scope. All nine gates, held scientific/external dependencies,
+deferred Windows/macOS/MATLAB and stopped live-host testing remain in force.
+GMAT client attribution and host/physical-GPU acceptance remain unproven.
+Full replacement qualification is not claimed.

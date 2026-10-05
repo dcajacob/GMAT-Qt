@@ -31,6 +31,7 @@
 #include "OrbitObjectDrawingDialog.hpp"
 #include "OrbitSensorMaskDialog.hpp"
 #include "OrbitStarOptionsDialog.hpp"
+#include "OrbitPlaybackOptionsDialog.hpp"
 #include "ThrusterDialog.hpp"
 #include "BurnDialog.hpp"
 #include "EphemerisDialog.hpp"
@@ -455,7 +456,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       auto initial=qtResourcePreviewShared(object.Clone());
       if (orbit) {
          const auto setting=qtCameraSettings(script).value(QString::fromStdString(object.GetName()));
-         const QMap<QString,QString> originalDrawing={{"@QtStars",qtStarsJson(setting.stars)},{"@QtSensorMasks",qtSensorMasksJson(setting.sensorMasks)},{"@QtAxesLabels",qtDrawingFlagText(setting.axesLabels)},{"@QtFrameLabel",qtDrawingFlagText(setting.frameLabel)},{"@QtObjectLabels",qtObjectFlagsJson(setting.objectLabels)},{"@QtObjectTrajectories",qtObjectFlagsJson(setting.objectTrajectories)},{"@QtObjectCenters",qtObjectFlagsJson(setting.objectCenters)},{"@QtObjectEndpoints",qtObjectFlagsJson(setting.objectEndpoints)},{"@QtObjectMarkerSizes",qtObjectSizesJson(setting.objectMarkerSizes)},{"@QtObjectLineWidths",qtObjectWidthsJson(setting.objectLineWidths)},{"@QtObjectFontSizes",qtObjectSizesJson(setting.objectFontSizes)},{"@QtObjectFontPositions",qtObjectFontPositionsJson(setting.objectFontPositions)},{"@QtObjectAxes",qtObjectFlagsJson(setting.objectAxes)},{"@QtObjectGrids",qtObjectFlagsJson(setting.objectGrids)},{"@QtObjectXYPlanes",qtObjectFlagsJson(setting.objectXYPlanes)},{"@QtObjectVelocities",qtObjectFlagsJson(setting.objectVelocities)},{"@QtObjectSegmentLabels",qtObjectFlagsJson(setting.objectSegmentLabels)}};
+         const QMap<QString,QString> originalDrawing={{"@QtPlayback",qtPlaybackJson(setting.playback)},{"@QtStars",qtStarsJson(setting.stars)},{"@QtSensorMasks",qtSensorMasksJson(setting.sensorMasks)},{"@QtAxesLabels",qtDrawingFlagText(setting.axesLabels)},{"@QtFrameLabel",qtDrawingFlagText(setting.frameLabel)},{"@QtObjectLabels",qtObjectFlagsJson(setting.objectLabels)},{"@QtObjectTrajectories",qtObjectFlagsJson(setting.objectTrajectories)},{"@QtObjectCenters",qtObjectFlagsJson(setting.objectCenters)},{"@QtObjectEndpoints",qtObjectFlagsJson(setting.objectEndpoints)},{"@QtObjectMarkerSizes",qtObjectSizesJson(setting.objectMarkerSizes)},{"@QtObjectLineWidths",qtObjectWidthsJson(setting.objectLineWidths)},{"@QtObjectFontSizes",qtObjectSizesJson(setting.objectFontSizes)},{"@QtObjectFontPositions",qtObjectFontPositionsJson(setting.objectFontPositions)},{"@QtObjectAxes",qtObjectFlagsJson(setting.objectAxes)},{"@QtObjectGrids",qtObjectFlagsJson(setting.objectGrids)},{"@QtObjectXYPlanes",qtObjectFlagsJson(setting.objectXYPlanes)},{"@QtObjectVelocities",qtObjectFlagsJson(setting.objectVelocities)},{"@QtObjectSegmentLabels",qtObjectFlagsJson(setting.objectSegmentLabels)}};
          auto *drawing=new QPushButton("Object drawing…",this); drawing->setObjectName("editOrbitDrawing"); layout->addWidget(drawing);
          connect(drawing,&QPushButton::clicked,this,[this,originalDrawing,drawing] {
             try {
@@ -488,9 +489,33 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
                OrbitObjectDrawingDialog dialog(names,labels,trajectories,this,&markers); if (dialog.exec()!=QDialog::Accepted) return;
                const auto values=dialog.settings();
                for (auto it=values.cbegin();it!=values.cend();++it) { if (it.value()==originalDrawing.value(it.key())) objectDrawingEdits.remove(it.key()); else objectDrawingEdits.insert(it.key(),it.value()); }
-               const bool pending=std::any_of(objectDrawingEdits.keyBegin(),objectDrawingEdits.keyEnd(),[](const QString &key) { return key!="@QtSensorMasks" && key!="@QtStars"; });
+               const bool pending=std::any_of(objectDrawingEdits.keyBegin(),objectDrawingEdits.keyEnd(),[](const QString &key) { return key!="@QtSensorMasks" && key!="@QtStars" && key!="@QtPlayback"; });
                drawing->setText(pending ? "Object drawing… (pending)" : "Object drawing…");
                reportStatus(pending ? "Object drawing is pending. Apply keeps the drawing choices." : "Object drawing is unchanged.");
+            } catch (BaseException &error) { reportStatus(QString::fromStdString(error.GetFullMessage())); }
+            catch (const std::exception &error) { reportStatus(QString::fromUtf8(error.what())); }
+         });
+         auto *playback=new QPushButton("Playback options…",this); playback->setObjectName("editPlaybackOptions"); layout->addWidget(playback);
+         connect(playback,&QPushButton::clicked,this,[this,originalDrawing,playback,script,name=QString::fromStdString(object.GetName())] {
+            try {
+               const QString key="@QtPlayback"; const auto cameras=qtCameraSettings(script); QStringList parents;
+               for (const auto &candidate:Moderator::Instance()->GetListOfObjects(Gmat::SUBSCRIBER)) {
+                  auto *plot=Moderator::Instance()->GetConfiguredObject(candidate);
+                  const auto parent=QString::fromStdString(candidate); if (!plot || !plot->IsOfType("OrbitView") || parent==name) continue;
+                  QString ancestor=parent; QSet<QString> visited; bool descendant=false;
+                  while (!ancestor.isEmpty() && !visited.contains(ancestor)) {
+                     if (ancestor==name) { descendant=true; break; } visited.insert(ancestor);
+                     const auto setting=cameras.value(ancestor); ancestor=setting.playback ? setting.playback->syncParent : QString();
+                  }
+                  if (!descendant) parents.append(parent);
+               }
+               parents.sort();
+               OrbitPlaybackOptionsDialog dialog(qtPlayback(objectDrawingEdits.value(key,originalDrawing.value(key))),parents,this);
+               if (dialog.exec()!=QDialog::Accepted) return;
+               const auto value=qtPlaybackJson(dialog.settings());
+               if (value==originalDrawing.value(key)) objectDrawingEdits.remove(key); else objectDrawingEdits.insert(key,value);
+               const bool pending=objectDrawingEdits.contains(key); playback->setText(pending ? "Playback options… (pending)" : "Playback options…");
+               reportStatus(pending ? "Playback options are pending. Apply keeps the playback clock and toolbar preference." : "Playback options are unchanged.");
             } catch (BaseException &error) { reportStatus(QString::fromStdString(error.GetFullMessage())); }
             catch (const std::exception &error) { reportStatus(QString::fromUtf8(error.what())); }
          });
@@ -1589,7 +1614,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
          // Drawing edits may predate a pending object removal in Orbit setup.
          for (auto it=objectDrawingEdits.cbegin();it!=objectDrawingEdits.cend();++it) {
             auto prune=[&](auto &values) { for (auto item=values.begin();item!=values.end();) { if (!selected.contains(item.key())) item=values.erase(item); else ++item; } };
-            if (it.key()=="@QtAxesLabels" || it.key()=="@QtFrameLabel" || it.key()=="@QtSensorMasks" || it.key()=="@QtStars") changes.insert(it.key(),it.value());
+            if (it.key()=="@QtAxesLabels" || it.key()=="@QtFrameLabel" || it.key()=="@QtSensorMasks" || it.key()=="@QtStars" || it.key()=="@QtPlayback") changes.insert(it.key(),it.value());
             else if (it.key()=="@QtObjectMarkerSizes") { auto values=qtObjectSizes(it.value()); prune(values); changes.insert(it.key(),qtObjectSizesJson(values)); }
             else if (it.key()=="@QtObjectLineWidths") { auto values=qtObjectWidths(it.value()); prune(values); changes.insert(it.key(),qtObjectWidthsJson(values)); }
             else if (it.key()=="@QtObjectFontSizes") { auto values=qtObjectFontSizes(it.value()); prune(values); changes.insert(it.key(),qtObjectSizesJson(values)); }

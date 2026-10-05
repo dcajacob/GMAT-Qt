@@ -15,6 +15,7 @@
 #include <functional>
 #include "PlotWidget.hpp"
 #include "PlotInterpolation.hpp"
+#include "PlotEpochPlayback.hpp"
 #include <QSignalBlocker>
 #include "OrbitRenderer.hpp"
 #include "OrbitLabels.hpp"
@@ -138,9 +139,15 @@ void PlotCanvas::restoreView(const PlotViewState &state)
    if (!data->cameraViews.isEmpty()) { data->cameraViews[data->selectedCamera].perspective=saved.perspective; data->cameraViews[data->selectedCamera].fieldOfView=saved.fieldOfView; }
    refresh();
 }
-void PlotCanvas::setFrame(quint64 value) { plotSetReplayCursor(*data,{}); visibleFrame = value; refresh(); }
+void PlotCanvas::setFrame(quint64 value) { plotSetSimulationEpoch(*data,std::nullopt,PlotReplayMode::PropagationSteps); plotSetReplayCursor(*data,{}); visibleFrame = value; refresh(); }
+void PlotCanvas::setSimulationEpoch(std::optional<double> epoch,PlotReplayMode mode)
+{
+   plotSetSimulationEpoch(*data,epoch,mode);
+   visibleFrame=std::numeric_limits<quint64>::max();
+   refresh();
+}
 void PlotCanvas::setReplayCursor(const PlotReplayCursor &cursor) {
-   plotSetReplayCursor(*data,cursor); visibleFrame=cursor.before; refresh();
+   plotSetSimulationEpoch(*data,std::nullopt,PlotReplayMode::InterpolatedSteps); plotSetReplayCursor(*data,cursor); visibleFrame=cursor.before; refresh();
 }
 void PlotCanvas::zoomBy(double steps) { zoom = std::clamp(zoom * std::pow(1.15, steps), 0.02, 200.0); refresh(); }
 void PlotCanvas::setViewAngles(double azimuth, double elevation) { yaw = azimuth; pitch = elevation; refresh(); }
@@ -612,7 +619,15 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
 {
    historyGeneration=data->historyGeneration;
    auto *layout = new QVBoxLayout(this); layout->setContentsMargins(0,0,0,0);
-   auto *bar = new QToolBar(this); layout->addWidget(bar);
+   auto *bar = new QToolBar(this); plotToolbar=bar;
+   restoreToolbar=new QToolButton(this); restoreToolbar->setObjectName("plotRestoreToolbar");
+   restoreToolbar->setText("Show plot toolbar"); restoreToolbar->setAccessibleName("Show plot toolbar");
+   restoreToolbar->hide(); layout->addWidget(restoreToolbar,0,Qt::AlignLeft);
+   connect(restoreToolbar,&QToolButton::clicked,this,[this] { setPlotToolbarVisible(true); if (toolbarVisibilityChanged) toolbarVisibilityChanged(true); });
+   auto *toggleToolbar=new QAction("Show plot toolbar",this); toggleToolbar->setObjectName("plotToggleToolbar");
+   toggleToolbar->setShortcut(QKeySequence("Ctrl+Shift+T")); toggleToolbar->setShortcutContext(Qt::WidgetWithChildrenShortcut); addAction(toggleToolbar);
+   connect(toggleToolbar,&QAction::triggered,this,[this] { const bool show=plotToolbar->isHidden(); setPlotToolbarVisible(show); if (toolbarVisibilityChanged) toolbarVisibilityChanged(show); });
+ layout->addWidget(bar);
    drawing = new PlotCanvas(data,this);
    auto *fit = bar->addAction("Fit"); connect(fit,&QAction::triggered,drawing,&PlotCanvas::fit);
    if (data->kind==PlotModel::Kind::Orbit) {
@@ -744,10 +759,11 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
    replayMode->setAccessibleName("Playback mode");
    replayMode->hide();
    connect(replayMode,&QComboBox::currentIndexChanged,this,[this] {
-      if (replayRequested) replayRequested(); updateReplayFrame();
+      if (replayRequested) replayRequested();
+      if (simulationClock && simulationRequested) simulationRequested(SimulationCommand::Mode,replayMode->currentData().toInt()); else updateReplayFrame();
    });
    if (data->kind != PlotModel::Kind::XY) {
-      auto *transport=new QWidget(this); transport->setObjectName("plotPlaybackControls");
+      auto *transport=new QWidget(this); transportControls=transport; transport->setObjectName("plotPlaybackControls");
       auto *transportLayout=new QVBoxLayout(transport); transportLayout->setContentsMargins(4,0,4,2); transportLayout->setSpacing(2);
       auto *buttons=new QHBoxLayout; buttons->setSpacing(2); transportLayout->addLayout(buttons);
       auto *position=new QHBoxLayout; position->setSpacing(6); transportLayout->addLayout(position);
@@ -764,20 +780,21 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
       replay->setToolTip("Play or pause recorded history; resumes from the current position");
       auto *latest=addPlaybackAction(QStyle::SP_MediaSkipForward,"Latest"); latest->setObjectName("plotReplayLatest");
       latest->setToolTip("Stop playback and follow the latest available data");
-      connect(start,&QAction::triggered,this,[this] { if (replayRequested) replayRequested(); replay->setChecked(false); timeline->setValue(0); });
-      connect(latest,&QAction::triggered,this,[this] { if (replayRequested) replayRequested(); replay->setChecked(false); timeline->setValue(1000); });
+      connect(start,&QAction::triggered,this,[this] { if (replayRequested) replayRequested(); if (simulationClock && simulationRequested) { simulationRequested(SimulationCommand::Start,0); return; } replay->setChecked(false); timeline->setValue(0); });
+      connect(latest,&QAction::triggered,this,[this] { if (replayRequested) replayRequested(); if (simulationClock && simulationRequested) { simulationRequested(SimulationCommand::Latest,0); return; } replay->setChecked(false); timeline->setValue(1000); });
       connect(replay,&QAction::triggered,this,[this] { if (replayRequested) replayRequested(); });
       connect(replay,&QAction::toggled,this,[this](bool checked) {
          replay->setText(checked ? "Pause" : "Play");
          replay->setIcon(style()->standardIcon(checked ? QStyle::SP_MediaPause : QStyle::SP_MediaPlay));
-         if (checked) { if (timeline->value()==1000) timeline->setValue(0); timer->start(); } else timer->stop();
+         if (simulationClock && simulationRequested) { timer->stop(); simulationRequested(SimulationCommand::Play,checked); }
+         else if (checked) { if (timeline->value()==1000) timeline->setValue(0); timer->start(); } else timer->stop();
       });
       timeline->setToolTip("Position within retained mission history"); timeline->setAccessibleName("Playback position");
       timeline->setMinimumWidth(100); timeline->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Preferred);
       position->addWidget(timeline,1); timeline->show();
       replayPosition=new QLabel("Latest",transport); replayPosition->setObjectName("plotReplayPosition");
       replayPosition->setMinimumWidth(replayPosition->fontMetrics().horizontalAdvance("Latest")+8); position->addWidget(replayPosition);
-      auto *speed=new QComboBox(transport); speed->setObjectName("plotReplaySpeed"); speed->setAccessibleName("Playback speed");
+      auto *speed=new QComboBox(transport); playbackSpeed=speed; speed->setObjectName("plotReplaySpeed"); speed->setAccessibleName("Playback speed");
       speed->setToolTip("Playback speed relative to a three-second sweep of recorded history");
       for (double rate:{0.25,0.5,1.,2.,4.}) speed->addItem(QString::number(rate)+QString::fromUtf8("×"),rate);
       speed->setCurrentIndex(2);
@@ -795,20 +812,54 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
          slower->setEnabled(speed->currentIndex()>0); faster->setEnabled(speed->currentIndex()+1<speed->count());
       };
       connect(speed,&QComboBox::currentIndexChanged,this,syncSpeed); syncSpeed();
+      connect(speed,&QComboBox::currentIndexChanged,this,[this,speed] { if (simulationClock && simulationRequested) simulationRequested(SimulationCommand::Multiplier,speed->currentData().toDouble()); });
       // Mode and speed get their own row to preserve narrow tiled plots.
       auto *options=new QHBoxLayout; options->setSpacing(3); transportLayout->addLayout(options);
       replayMode->show(); options->addWidget(replayMode); options->addStretch(); options->addWidget(speed);
+      simulationRateRow=new QWidget(transport); auto *rateLayout=new QHBoxLayout(simulationRateRow); rateLayout->setContentsMargins(0,0,0,0);
+      rateLayout->addWidget(new QLabel("Simulation s/s",simulationRateRow)); simulationRate=new QLineEdit(simulationRateRow); simulationRate->setObjectName("plotSimulationRate");
+      simulationRate->setAccessibleName("Simulation seconds per wall second"); rateLayout->addWidget(simulationRate); transportLayout->addWidget(simulationRateRow); simulationRateRow->hide();
+      connect(simulationRate,&QLineEdit::editingFinished,this,[this] {
+         bool ok=false; const double rate=simulationRate->text().toDouble(&ok);
+         if (ok && std::isfinite(rate) && simulationRequested) simulationRequested(SimulationCommand::Rate,rate);
+         else if (simulationClock) { simulationRate->setText(QString::number(simulationClock->rate,'g',17)); simulationRate->setToolTip("Enter a finite signed rate; zero holds the clock."); }
+      });
       connect(timer,&QTimer::timeout,this,[this,speed,remainder=0.]() mutable {
          const double advance=10*speed->currentData().toDouble()+remainder;
          const int steps=static_cast<int>(advance); remainder=advance-steps;
          timeline->setValue(std::min(1000,timeline->value()+steps));
          if (timeline->value()==1000) replay->setChecked(false);
       });
-      connect(timeline,&QSlider::sliderPressed,this,[this] { if (replayRequested) replayRequested(); replay->setChecked(false); });
+      connect(timeline,&QSlider::sliderPressed,this,[this] { if (replayRequested) replayRequested(); if (simulationClock && simulationRequested) simulationRequested(SimulationCommand::Play,0); else replay->setChecked(false); });
 
    }
-   connect(timeline,&QSlider::valueChanged,this,[this] { if (replayRequested) replayRequested(); updateReplayFrame(); });
+   connect(timeline,&QSlider::valueChanged,this,[this] { if (replayRequested) replayRequested(); if (simulationClock && simulationRequested) simulationRequested(SimulationCommand::Seek,timeline->value()/1000.); else updateReplayFrame(); });
    layout->addWidget(drawing,1);
+}
+void PlotWidget::setPlotToolbarVisible(bool visible)
+{
+   plotToolbar->setVisible(visible);
+   if (transportControls) transportControls->setVisible(visible);
+   restoreToolbar->setVisible(!visible);
+}
+void PlotWidget::setSimulationClock(const std::optional<PlotSimulationClocks::State> &state,const QString &root)
+{
+   simulationClock=state;
+   if (simulationRateRow) simulationRateRow->setVisible(state.has_value());
+   if (!state) return;
+   timer->stop();
+   if (replay) { const QSignalBlocker block(replay); replay->setChecked(state->playing); replay->setText(state->playing ? "Pause" : "Play"); replay->setIcon(style()->standardIcon(state->playing ? QStyle::SP_MediaPause : QStyle::SP_MediaPlay)); }
+   if (playbackSpeed) { const QSignalBlocker block(playbackSpeed); playbackSpeed->setCurrentIndex(playbackSpeed->findData(state->multiplier)); playbackSpeed->setToolTip("Multiplier of the shared simulation clock rate");
+      if (auto *slower=findChild<QAction *>("plotReplaySlower")) slower->setEnabled(playbackSpeed->currentIndex()>0);
+      if (auto *faster=findChild<QAction *>("plotReplayFaster")) faster->setEnabled(playbackSpeed->currentIndex()+1<playbackSpeed->count()); }
+   if (simulationRate && !simulationRate->hasFocus()) simulationRate->setText(QString::number(state->rate,'g',17));
+   if (simulationRate) simulationRate->setToolTip("Shared clock: "+root+". Negative runs backward; zero holds. Editing resumes with multiplier 1×.");
+   setSharedReplayMode(static_cast<PlotReplayMode>(state->mode));
+   const QSignalBlocker block(timeline);
+   timeline->setValue(state->hasRange && state->maximum>state->minimum ? qRound(1000*(state->epoch-state->minimum)/(state->maximum-state->minimum)) : 0);
+   timeline->setToolTip("Absolute A1MJD interval of clock "+root);
+   if (replayPosition) replayPosition->setText(state->hasRange ? QString::number(state->epoch,'f',6) : "No epoch");
+   drawing->setSimulationEpoch(state->hasRange ? std::optional(state->epoch) : std::nullopt,static_cast<PlotReplayMode>(state->mode));
 }
 void PlotWidget::setSharedReplayMode(PlotReplayMode mode)
 {
@@ -818,13 +869,15 @@ void PlotWidget::setSharedReplayMode(PlotReplayMode mode)
 void PlotWidget::setSharedReplayPosition(int value)
 {
    timer->stop();
-   if (replay) replay->setChecked(false);
+   if (replay) { const QSignalBlocker stop(replay); replay->setChecked(false); replay->setText("Play"); replay->setIcon(style()->standardIcon(QStyle::SP_MediaPlay)); }
+   drawing->setSimulationEpoch(std::nullopt,static_cast<PlotReplayMode>(replayMode->currentData().toInt()));
    const QSignalBlocker block(timeline);
    timeline->setValue(std::clamp(value,0,1000));
    updateReplayFrame();
 }
 void PlotWidget::updateReplayFrame()
 {
+   if (simulationClock && data->simulationEpoch) { drawing->setSimulationEpoch(*data->simulationEpoch,static_cast<PlotReplayMode>(replayMode->currentData().toInt())); return; }
    const int value=timeline->value();
    if (replayPosition) replayPosition->setText(value==1000 ? "Latest" : QString::number(value/10.)+"%");
    if (value==1000) { drawing->setFrame(std::numeric_limits<quint64>::max()); return; }

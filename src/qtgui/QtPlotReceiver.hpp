@@ -1,6 +1,8 @@
 #pragma once
 #include "PlotReceiver.hpp"
 #include "PlotModel.hpp"
+#include "PlotSimulationClock.hpp"
+#include <QElapsedTimer>
 #include "OrbitTrialHistory.hpp"
 #include "ScriptCompatibility.hpp"
 #include <QMap>
@@ -15,6 +17,7 @@ class QMdiArea;
 class QMdiSubWindow;
 class QTableWidget;
 class PlotWidget;
+class QTimer;
 class QtPlotReceiver final : public PlotReceiver
 {
 public:
@@ -27,6 +30,8 @@ public:
    void setReplayMode(PlotReplayMode mode);
    PlotReplayMode replayMode() const { return sharedReplayMode; }
    void releaseSharedReplay();
+   std::optional<PlotSimulationClocks::State> simulationClock(const QString &name) const;
+   void advanceSimulationClocks(double seconds);
    std::optional<int> replayPosition() const { return sharedReplayPosition; }
    static void validateCameraReferences(const QMap<QString,QtCameraSetting> &settings);
    QStringList names() const;
@@ -216,6 +221,8 @@ private:
       bool automaticGeometry = false;
       QRect automaticRect;
       bool useInitialView = true;
+      bool toolbarVisible = true;
+      bool rawClockPublication = false;
       QString provider;
       // Consumed by one real UpdateGlPlot. Arc-camera preparation can read
       // this publication's matching mask without consuming the real sample.
@@ -237,6 +244,13 @@ private:
       if (auto *entry = find(name)) for (auto it=entry->data->curves.begin(); it!=entry->data->curves.end(); ++it)
          if (index < 0 || it.key()==index) fn(it.value());
    }
+   void configureSimulationClocks();
+   void syncSimulationClock(const QString &name);
+   void simulationCommand(const QString &name,int command,double value);
+   void updateSimulationTimer();
+   PlotSimulationClocks simulationClocks;
+   QTimer *simulationTimer=nullptr;
+   QElapsedTimer simulationElapsed;
    QMdiArea *workspace;
    QMap<QString, Entry> entries;
    std::optional<int> sharedReplayPosition;

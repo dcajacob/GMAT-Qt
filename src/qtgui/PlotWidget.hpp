@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include "PlotModel.hpp"
+#include "PlotSimulationClock.hpp"
 #include <QWidget>
 #include <QStringList>
 #include <memory>
@@ -9,6 +10,9 @@ class QSlider;
 class QComboBox;
 class QTimer;
 class QLabel;
+class QLineEdit;
+class QToolBar;
+class QToolButton;
 class OrbitRenderer;
 class PlotCanvas final : public QWidget
 {
@@ -20,6 +24,7 @@ public:
    void restoreView(const PlotViewState &state);
    void setFrame(quint64 value);
    void setReplayCursor(const PlotReplayCursor &cursor);
+   void setSimulationEpoch(std::optional<double> epoch,PlotReplayMode mode);
    quint64 frame() const { return visibleFrame; }
    double zoomFactor() const { return zoom; }
    void zoomBy(double wheelSteps);
@@ -47,6 +52,12 @@ public:
    void refresh();
    void setSharedReplayPosition(int value);
    void setSharedReplayMode(PlotReplayMode mode);
+   enum class SimulationCommand { Seek, Play, Start, Latest, Rate, Multiplier, Mode };
+   std::function<void(SimulationCommand,double)> simulationRequested;
+   std::function<void(bool)> toolbarVisibilityChanged;
+   void setSimulationClock(const std::optional<PlotSimulationClocks::State> &state,const QString &root={});
+   void setPlotToolbarVisible(bool visible);
+
    std::function<void()> replayRequested;
    std::function<void()> skyRequested;
    void restoreView(const PlotViewState &state);
@@ -61,6 +72,13 @@ private:
    QSlider *timeline;
    QTimer *timer;
    QComboBox *replayMode;
+   QComboBox *playbackSpeed=nullptr;
+   QLineEdit *simulationRate=nullptr;
+   QWidget *simulationRateRow=nullptr,*transportControls=nullptr;
+   QToolBar *plotToolbar=nullptr;
+   QToolButton *restoreToolbar=nullptr;
+   std::optional<PlotSimulationClocks::State> simulationClock;
+
 
    QAction *replay=nullptr;
    QLabel *replayPosition=nullptr;

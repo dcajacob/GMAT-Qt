@@ -67,6 +67,11 @@ struct PlotCurve
    std::deque<PlotPoint> points;
    // Transient display pose; never part of retained numerical samples/exports.
    std::optional<PlotPoint> replayPose;
+   // Absolute-clock presentation state; raw points remain untouched.
+   bool simulationActive=false,simulationRegularArc=false;
+   quint64 simulationArc=0;
+   std::optional<PlotPoint> simulationPose;
+   std::optional<PlotReplayCursor> simulationCursor;
    QVector<quint64> breaks;
    bool breakNext = true, visible = true, lines = true, markers = false;
    bool showObject = true;
@@ -115,6 +120,9 @@ struct PlotVector
    std::array<double,3> start{},direction{1,0,0};
    std::deque<PlotVectorSample> samples;
    std::optional<PlotVectorSample> replaySample;
+   bool simulationActive=false,simulationRegularArc=false;
+   quint64 simulationArc=0;
+   std::optional<PlotVectorSample> simulationSample;
 };
 // Frozen geometry in source body coordinates. Boundary vectors have unit
 // axial depth, not unit Euclidean length; a positive length scales the cone.
@@ -127,11 +135,24 @@ struct PlotSensorMask
    std::array<double,3> origin{},axis{0,0,-1};
    QVector<std::array<double,3>> boundary;
 };
+// Frozen camera inputs permit independently selected absolute-epoch references
+// to be combined without keeping engine object pointers alive.
+struct PlotCameraGeometry
+{
+   QString reference,positionReference,target;
+   PlotPoint referencePose,positionPose,targetPose;
+   std::array<double,3> position{},center{},up{0,0,1};
+   double positionScale=1;
+   bool bodyRelative=false,lookAtRotation=false,shortestAngle=false,centerOnReference=false;
+};
 struct PlotCamera
 {
    quint64 frame=0;
    std::array<double,3> eye{},target{},up{0,0,1};
    bool solver=false;
+   std::optional<double> epoch;
+   QString reference,targetReference,provider;
+   std::optional<PlotCameraGeometry> geometry;
 };
 struct PlotCameraReset
 {
@@ -219,6 +240,11 @@ struct PlotModel
    QMap<QString,QVector<PlotRegularArc>> regularArcs;
    double lastEpoch = 0;
    std::optional<PlotReplayCursor> replayCursor;
+   std::optional<double> simulationEpoch;
+   PlotReplayMode simulationMode=PlotReplayMode::InterpolatedSteps;
+   QMap<int,PlotCamera> simulationCameras;
+   QMap<int,quint64> simulationCameraArcs;
+   QMap<QString,QPair<quint64,bool>> simulationCameraReferenceArcs;
    void append(int curve, double x, double y, double z = 0, double epoch = 0,
                bool drawing = true, bool solver = false, double high = 0, double low = 0);
    void clear();

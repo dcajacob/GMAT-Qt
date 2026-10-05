@@ -2536,3 +2536,33 @@ An unchanged imported preset does not rewrite the source's ordinary count.
 [Focused evidence](Qt6ParityValidation/star-options-20261004.md) includes catalog coordinates,
 size/brightness/body occlusion, source recovery and the remaining qualification
 limits. No host/GPU or VR-device acceptance is implied.
+
+
+### Saved playback clocks and toolbars — 2026-10-04
+
+OrbitView / Advanced / **Playback options…** selects **Qt history sweep** or
+**Simulation clock**, a synchronization parent and default/shown/hidden toolbar.
+OK keeps changes pending until Apply. Imported OF interfaces start with the legacy
+3600 simulated seconds per real second, independent clock and shown toolbar.
+Ordinary Qt scripts retain the existing history sweep unless a clock is selected.
+
+A simulation clock plays in absolute A1MJD time. Use **Slower** / **Faster** and the
+0.25×–4× selector to scale playback, or enter a signed rate in **Simulation s/s**.
+Negative rates play backward; zero holds. A rate edit resets the multiplier to 1×.
+Play from a paused endpoint restarts from the applicable opposite endpoint, then
+clamps at the end. Propagation steps selects available recorded samples;
+Interpolated steps blends connected recorded geometry. Sparse/trimmed histories
+can use frozen raw endpoints; this is display interpolation, not new propagation.
+
+Synchronized plots share their ultimate parent's time, speed, sampling mode and
+pause state. Each object resolves that epoch against its own recorded trajectory.
+The most recent regular publisher supplies its own time envelope; solver trials
+leave it unchanged. Closing/reopening a viewer retains the clock. The main-window
+**All plots** controls still perform the independent percentage history sweep;
+using them pauses local clocks, and a local clock action restores epoch playback.
+
+If a toolbar is hidden, **Show toolbar** restores both local control strips.
+`Ctrl+Shift+T` also toggles them while that viewer has focus. Live restoration
+survives viewer reopen; the saved preference applies when a new subscriber is
+created. [Focused evidence and remaining limits](Qt6ParityValidation/playback-options-20261004.md)
+retain all host/GPU and full-qualification boundaries.

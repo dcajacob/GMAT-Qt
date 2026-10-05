@@ -1,0 +1,310 @@
+{
+  "date": "2026-10-04",
+  "branch": "codex/qt6-gui",
+  "baseline_commit": "c1c5f3d6e1503676aae2f1e5ada9f567e4af162d",
+  "before": {
+    "application/bin/GmatQt": {
+      "bytes": 6507840,
+      "sha256": "43f5541028cb3a63977dcbae9551cab47a8e69cd7b04f3a9d2bd178309b5745c"
+    },
+    "application/bin/libGmatBase.so": {
+      "bytes": 25040656,
+      "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e"
+    },
+    "application/bin/libGmatUtil.so": {
+      "bytes": 2929904,
+      "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+    },
+    "application/bin/gmat_startup_qt.txt": {
+      "bytes": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    }
+  },
+  "after": {
+    "application/bin/GmatQt": {
+      "bytes": 6718016,
+      "sha256": "6cfca8433843a301c4bc73b9481ad5b41a56473a6950733ad5c2ab6ed58496d2"
+    },
+    "application/bin/libGmatBase.so": {
+      "bytes": 25040656,
+      "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e"
+    },
+    "application/bin/libGmatUtil.so": {
+      "bytes": 2929904,
+      "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+    },
+    "application/bin/gmat_startup_qt.txt": {
+      "bytes": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    }
+  },
+  "source": {
+    "src/qtgui/CMakeLists.txt": {
+      "bytes": 56767,
+      "sha256": "a5e58dd6a9793276d865305a5f528775065f6d03ef273885d26480e08cd57453"
+    },
+    "src/qtgui/MainWindow.cpp": {
+      "bytes": 186375,
+      "sha256": "017ce01ecf63ce3a462d5ccbf71547d88c9af57b2d4dd68043d7655bed092ec9"
+    },
+    "src/qtgui/OrbitCamera.hpp": {
+      "bytes": 7396,
+      "sha256": "9945050f4d757e7601064b8b4e4527d92d91b9496dd90f5a8e6354108b401506"
+    },
+    "src/qtgui/OrbitObjectAxes.hpp": {
+      "bytes": 1628,
+      "sha256": "34ccb3e8a07365d0b4dd963efff3eaf6dc30758c425a6afb8db72a8e900599df"
+    },
+    "src/qtgui/OrbitPlaybackOptionsDialog.cpp": {
+      "bytes": 4778,
+      "sha256": "9679f536f1b06ec8d9942a840ca9cebe3e4c82dd2c65acae977a3e18a93e6422"
+    },
+    "src/qtgui/OrbitPlaybackOptionsDialog.hpp": {
+      "bytes": 435,
+      "sha256": "d24aaeadeba787c34f3498685861c44ac1e2bfa72dda51f2ac814c7dc9e3f5d1"
+    },
+    "src/qtgui/OrbitSegmentLabels.hpp": {
+      "bytes": 3465,
+      "sha256": "f21653b887d1cb3022132dc6376cc8e539de054f63289eae32a7910f2a85538e"
+    },
+    "src/qtgui/OrbitVectors.hpp": {
+      "bytes": 4163,
+      "sha256": "2f6d400a28195576ebf862d6e974786e40833439b655e892f2b235f7b0266fce"
+    },
+    "src/qtgui/PlotEpochPlayback.hpp": {
+      "bytes": 17494,
+      "sha256": "a7f87df5d7cff3f896709fa73c42e5fda033bd57962133ae6d338a01db9e7e61"
+    },
+    "src/qtgui/PlotInterpolation.hpp": {
+      "bytes": 6621,
+      "sha256": "a1e0118f798f299668f247577d9e5a39da8b72ce863d20c665b8d91dfb6e2f35"
+    },
+    "src/qtgui/PlotModel.cpp": {
+      "bytes": 6782,
+      "sha256": "09df7f04875410d7967364e2a1f9ccbbfc8873a0fd7deead6ce3ff768bec37f3"
+    },
+    "src/qtgui/PlotModel.hpp": {
+      "bytes": 9218,
+      "sha256": "d2b823a2e7191a82dba874f9b1b98044ad279ee2da98ec6c625687e2ee5eef7e"
+    },
+    "src/qtgui/PlotSimulationClock.hpp": {
+      "bytes": 5568,
+      "sha256": "57b20c3016ad4d5c00e60673af7339062a7312169b238a75af3c9fe6fa9036b7"
+    },
+    "src/qtgui/PlotWidget.cpp": {
+      "bytes": 75819,
+      "sha256": "4b48e1bc07d51dae2b7b1eefeb7f6bb1abe1b453a8b84ea7a0949b762b683d60"
+    },
+    "src/qtgui/PlotWidget.hpp": {
+      "bytes": 3541,
+      "sha256": "f1b2bff8fdd002a50992b29886e0c5b51ca58ee539bbd712d3a39506fee32b32"
+    },
+    "src/qtgui/QtPlotReceiver.cpp": {
+      "bytes": 101529,
+      "sha256": "19cbce84ccdacdc095b5121c650177fa5af230f9227dfee32d91a7236892d968"
+    },
+    "src/qtgui/QtPlotReceiver.hpp": {
+      "bytes": 14240,
+      "sha256": "10b65ccc57584be6586a5cb788c41a41da7ac15501bc4744ce5ee3516f67aeaa"
+    },
+    "src/qtgui/ResourceEditor.cpp": {
+      "bytes": 133357,
+      "sha256": "8fd2669038017c6e50752134be45ce99792281c4fa4d45253065da4392734c78"
+    },
+    "src/qtgui/ResourceRename.cpp": {
+      "bytes": 27466,
+      "sha256": "4e1c674d650fea19a5bf3c6a213cd8dbdfa5fb6e92e9a7572c30923ea024060c"
+    },
+    "src/qtgui/ScriptCompatibility.cpp": {
+      "bytes": 89576,
+      "sha256": "5db6cf1581ca3d83bdba059da0fb1cdedb6de3c678a2dc43edc979f661cca55f"
+    },
+    "src/qtgui/ScriptCompatibility.hpp": {
+      "bytes": 4695,
+      "sha256": "9c8225e41259c253c7da5b0f35751057e9beb691127207a7095b7df388321ffb"
+    },
+    "src/qtgui/tests/ClockArcCaptureTests.cpp": {
+      "bytes": 10693,
+      "sha256": "56f2266f3fc054861d89cc9aca09ea455aa88d05c90347a6aab62d22ae0a95ab"
+    },
+    "src/qtgui/tests/EpochPlaybackRenderingTests.cpp": {
+      "bytes": 9044,
+      "sha256": "2ab1d7e00c4dd588f883ffdceb08b84330f0b5a5391a3220b19c070166db4b91"
+    },
+    "src/qtgui/tests/EpochPlaybackTests.cpp": {
+      "bytes": 13721,
+      "sha256": "010d39470a6ba106c6473afc4364f7352e8f032e88364597a22444939be28148"
+    },
+    "src/qtgui/tests/PlaybackOptionsBackendTests.cpp": {
+      "bytes": 9598,
+      "sha256": "59c395719157fba1ade2be9278e7fe992b2274ea929158a474ead52c32f144c3"
+    },
+    "src/qtgui/tests/PlaybackOptionsEditorTests.cpp": {
+      "bytes": 13824,
+      "sha256": "6906155eae4b3bce4c2feccc899c22c5bdf405d217ab167943867988881ecbb4"
+    },
+    "src/qtgui/tests/PlaybackOptionsRuntimeTests.cpp": {
+      "bytes": 17266,
+      "sha256": "80c266178cd9814175a750ffef3c937ebd05fbfe58f4e164179011d89052ed36"
+    },
+    "src/qtgui/tests/SimulationClockTests.cpp": {
+      "bytes": 10905,
+      "sha256": "9d0c976cfecc70ad08bd9009e2288f6eaf9fb32763e685f92932e6cd7d63c3ea"
+    }
+  },
+  "tests": {
+    "QtGui.NativeInterpolatedPlayback": {
+      "status": "Passed",
+      "seconds": 0.51,
+      "log": "tests-01.log"
+    },
+    "QtGui.ResourceRename": {
+      "status": "Passed",
+      "seconds": 0.71,
+      "log": "tests-01.log"
+    },
+    "QtGui.SharedPlayback": {
+      "status": "Passed",
+      "seconds": 0.22,
+      "log": "tests-01.log"
+    },
+    "QtGui.InterpolatedPlayback": {
+      "status": "Passed",
+      "seconds": 0.08,
+      "log": "tests-01.log"
+    },
+    "QtGui.NativeEpochPlayback": {
+      "status": "Passed",
+      "seconds": 0.59,
+      "log": "tests-02.log"
+    },
+    "QtGui.PlaybackOptionsBackend": {
+      "status": "Passed",
+      "seconds": 0.22,
+      "log": "tests-01.log"
+    },
+    "QtGui.PlaybackOptionsEditor": {
+      "status": "Passed",
+      "seconds": 0.38,
+      "log": "tests-01.log"
+    },
+    "QtGui.PlaybackOptionsRuntime": {
+      "status": "Passed",
+      "seconds": 0.21,
+      "log": "tests-02.log"
+    },
+    "QtGui.SimulationClock": {
+      "status": "Passed",
+      "seconds": 0.02,
+      "log": "clock-test-03.log"
+    },
+    "QtGui.EpochPlaybackRendering": {
+      "status": "Passed",
+      "seconds": 0.22,
+      "log": "tests-02.log"
+    },
+    "QtGui.EpochPlayback": {
+      "status": "Passed",
+      "seconds": 0.03,
+      "log": "tests-02.log"
+    },
+    "QtGui.ClockArcCapture": {
+      "status": "Passed",
+      "seconds": 0.27,
+      "log": "tests-02.log"
+    },
+    "QtGui.UnplottedBodyCameras": {
+      "status": "Passed",
+      "seconds": 0.3,
+      "log": "tests-02.log"
+    }
+  },
+  "comparisons": {
+    "final/clock-arc-before.report": {
+      "before": {
+        "bytes": 315,
+        "sha256": "23abd23a9c5f9ff70a7a9381f4182d6ceb3cac5daf1f59660a9ac5560a72559c"
+      },
+      "after": {
+        "bytes": 315,
+        "sha256": "23abd23a9c5f9ff70a7a9381f4182d6ceb3cac5daf1f59660a9ac5560a72559c"
+      },
+      "equal": true
+    },
+    "final/clock-arc-raw-before.bin": {
+      "before": {
+        "bytes": 1484,
+        "sha256": "73262f8b769c1bbd7ad8e4c498e16159b7cd34e84f656f731a03c8a998061c97"
+      },
+      "after": {
+        "bytes": 1484,
+        "sha256": "73262f8b769c1bbd7ad8e4c498e16159b7cd34e84f656f731a03c8a998061c97"
+      },
+      "equal": true
+    }
+  },
+  "scope": "Eight new and five directly affected tests across recorded builds. First failures retained. No completed audit, tutorial or example corpus repeated. Offscreen/private Xvfb llvmpipe only; host/GPU and GMAT attribution remain unproven.",
+  "limitations": [
+    "Qt progressive history is preserved; compact raw endpoints do not reproduce every unretained propagation state.",
+    "DrawModelFile remains an unmet OF per-plot preference.",
+    "Live host testing stopped; Windows/macOS/MATLAB deferred; all nine acceptance gates remain authoritative."
+  ],
+  "executables": {
+    "build/linux-gui/src/qtgui/GmatQtInterpolatedPlaybackTests": {
+      "bytes": 867728,
+      "sha256": "08820e65c9ff260f3e9701e372fb285cfb1cf895ff239330bcb83127b21b8cfe"
+    },
+    "build/linux-gui/src/qtgui/GmatQtResourceRenameTests": {
+      "bytes": 6803480,
+      "sha256": "1e83f5ed1c39f30dba437b64f26c3dd81b97c6d040b3c03e5c101ebf05dadfb0"
+    },
+    "build/linux-gui/src/qtgui/GmatQtSharedPlaybackTests": {
+      "bytes": 6749616,
+      "sha256": "0f8a7a9d905c965f477ac484019d25198918a50a51d987ee3665a51e498c6643"
+    },
+    "build/linux-gui/src/qtgui/GmatQtEpochPlaybackRenderingTests": {
+      "bytes": 889048,
+      "sha256": "d9ed5cf7a735020d096cc32ae77d8bddc2b818e20798fe0be634370c57adbfd1"
+    },
+    "build/linux-gui/src/qtgui/GmatQtPlaybackOptionsBackendTests": {
+      "bytes": 6744456,
+      "sha256": "cb58995dbb494a5e3753054d27a0f7927dbd8bf71c611721de60dd4755445ef2"
+    },
+    "build/linux-gui/src/qtgui/GmatQtPlaybackOptionsEditorTests": {
+      "bytes": 6766640,
+      "sha256": "5bdeff54150657258a1821fc16215ef8def5d2238c5c9581031b391bc9195ccd"
+    },
+    "build/linux-gui/src/qtgui/GmatQtPlaybackOptionsRuntimeTests": {
+      "bytes": 6771704,
+      "sha256": "1fd1b074a5db79cd436d8c3f629cd7f5966c06cd4fd7ed7bf44ebcbde206fd31"
+    },
+    "build/linux-gui/src/qtgui/GmatQtSimulationClockTests": {
+      "bytes": 85112,
+      "sha256": "5fb4c2ce33d8c24cde272d7d4216b010660dde99ab019d05037ce0743787cdc0"
+    },
+    "build/linux-gui/src/qtgui/GmatQtEpochPlaybackTests": {
+      "bytes": 301464,
+      "sha256": "595160fdd3841e8021095776d010c7368694d6230b707127595baba61368c74e"
+    },
+    "build/linux-gui/src/qtgui/GmatQtClockArcCaptureTests": {
+      "bytes": 6749624,
+      "sha256": "8dcb327620e2747a489519ab09ae06dd58270984bb4cb3bdb56dfad8d4e95ead"
+    },
+    "build/linux-gui/src/qtgui/GmatQtUnplottedBodyCameraTests": {
+      "bytes": 6748224,
+      "sha256": "c95c7f673ed0fca1e5f11bffce24d195786b6c75a55f997d806d8b46913a3331"
+    }
+  },
+  "verification_builds": {
+    "tests-01.log": "build-02.log; prior to the explicit finite-frame helper and paused endpoint corrections",
+    "clock-arc-test-01.log": "build-03.log",
+    "unplotted-camera-test-01.log": "build-02.log (failure retained)",
+    "tests-02.log": "build-04.log (final application)",
+    "clock-test-03.log": "build-05.log (pure-test fixture only; application unchanged)"
+  },
+  "unchanged_engine_and_startup": true,
+  "raw_archive": {
+    "bytes": 169704,
+    "sha256": "23290238d5d8de5eea936b83e99b9a53c9aa9b77b2eaf8aff1427b105ffc4335"
+  }
+}

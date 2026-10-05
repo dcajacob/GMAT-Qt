@@ -287,6 +287,11 @@ QJsonObject camera(QJsonObject value,const Names &names)
          vectors.append(vector);
       } value["vectors"]=vectors;
    }
+   if (value.value("playback").isObject()) {
+      auto playback=value.value("playback").toObject();
+      if (playback.contains("syncParent")) playback["syncParent"]=reference(playback.value("syncParent").toString(),names);
+      value["playback"]=playback;
+   }
    if (value.contains("sensorMasks")) {
       QJsonArray masks; for (const auto &entry:value.value("sensorMasks").toArray()) {
          auto mask=entry.toObject();

@@ -42,6 +42,8 @@ add_library(GmatQtFrontend STATIC MainWindow.cpp MainWindow.hpp MainWindowDocume
    OrbitObjectDrawingDialog.cpp OrbitObjectDrawingDialog.hpp
    OrbitSensorMaskDialog.cpp OrbitSensorMaskDialog.hpp
    OrbitStarOptionsDialog.cpp OrbitStarOptionsDialog.hpp
+   OrbitPlaybackOptionsDialog.cpp OrbitPlaybackOptionsDialog.hpp
+   PlotEpochPlayback.hpp PlotSimulationClock.hpp
    ThrusterDialog.cpp ThrusterDialog.hpp
    BurnDialog.cpp BurnDialog.hpp
    EphemerisDialog.cpp EphemerisDialog.hpp
@@ -214,6 +216,27 @@ if(GMAT_QT_BUILD_TESTS)
    add_executable(GmatQtTransmitterSolveForTests tests/TransmitterSolveForTests.cpp)
    target_link_libraries(GmatQtTransmitterSolveForTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtTransmitterSolveForTests GmatQt)
+   add_executable(GmatQtPlaybackOptionsBackendTests tests/PlaybackOptionsBackendTests.cpp)
+   target_link_libraries(GmatQtPlaybackOptionsBackendTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtPlaybackOptionsBackendTests GmatQt)
+   add_executable(GmatQtPlaybackOptionsEditorTests tests/PlaybackOptionsEditorTests.cpp)
+   target_link_libraries(GmatQtPlaybackOptionsEditorTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtPlaybackOptionsEditorTests GmatQt)
+   add_executable(GmatQtPlaybackOptionsRuntimeTests tests/PlaybackOptionsRuntimeTests.cpp)
+   target_link_libraries(GmatQtPlaybackOptionsRuntimeTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtPlaybackOptionsRuntimeTests GmatQt)
+   add_executable(GmatQtSimulationClockTests tests/SimulationClockTests.cpp)
+   target_link_libraries(GmatQtSimulationClockTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtSimulationClockTests GmatQt)
+   add_executable(GmatQtEpochPlaybackRenderingTests tests/EpochPlaybackRenderingTests.cpp)
+   target_link_libraries(GmatQtEpochPlaybackRenderingTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtEpochPlaybackRenderingTests GmatQt)
+   add_executable(GmatQtClockArcCaptureTests tests/ClockArcCaptureTests.cpp)
+   target_link_libraries(GmatQtClockArcCaptureTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtClockArcCaptureTests GmatQt)
+   add_executable(GmatQtEpochPlaybackTests tests/EpochPlaybackTests.cpp)
+   target_link_libraries(GmatQtEpochPlaybackTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtEpochPlaybackTests GmatQt)
    add_executable(GmatQtStarOptionsBackendTests tests/StarOptionsBackendTests.cpp)
    target_link_libraries(GmatQtStarOptionsBackendTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtStarOptionsBackendTests GmatQt)
@@ -503,6 +526,10 @@ if(GMAT_QT_BUILD_TESTS)
          ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
          $<TARGET_FILE:GmatQtSegmentLabelTests> --native)
       set_tests_properties(QtGui.NativeSegmentLabels PROPERTIES LABELS qt-gui TIMEOUT 60)
+      add_test(NAME QtGui.NativeEpochPlayback COMMAND ${QT_XVFB_RUN} -a
+         ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 QT_SCALE_FACTOR=1
+         $<TARGET_FILE:GmatQtEpochPlaybackRenderingTests> --native)
+      set_tests_properties(QtGui.NativeEpochPlayback PROPERTIES LABELS qt-gui TIMEOUT 60)
       add_test(NAME QtGui.NativeInterpolatedPlayback COMMAND ${QT_XVFB_RUN} -a
          ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
          $<TARGET_FILE:GmatQtInterpolatedPlaybackTests> --native)
@@ -568,6 +595,13 @@ if(GMAT_QT_BUILD_TESTS)
    set_tests_properties(QtGui.OrbitDataAvailability PROPERTIES TIMEOUT 60)
    add_qt_test(QtGui.ReceiverErrorModels GmatQtReceiverErrorModelTests "${qt_test_startup}")
    add_qt_test(QtGui.TransmitterSolveFors GmatQtTransmitterSolveForTests "${qt_test_startup}")
+   add_qt_test(QtGui.PlaybackOptionsBackend GmatQtPlaybackOptionsBackendTests "${qt_test_startup}")
+   add_qt_test(QtGui.PlaybackOptionsEditor GmatQtPlaybackOptionsEditorTests "${qt_test_startup}")
+   add_qt_test(QtGui.PlaybackOptionsRuntime GmatQtPlaybackOptionsRuntimeTests "${qt_test_startup}")
+   add_qt_test(QtGui.SimulationClock GmatQtSimulationClockTests)
+   add_qt_test(QtGui.EpochPlaybackRendering GmatQtEpochPlaybackRenderingTests)
+   add_qt_test(QtGui.ClockArcCapture GmatQtClockArcCaptureTests "${qt_test_startup}")
+   add_qt_test(QtGui.EpochPlayback GmatQtEpochPlaybackTests)
    add_qt_test(QtGui.StarOptionsBackend GmatQtStarOptionsBackendTests "${qt_test_startup}")
    add_qt_test(QtGui.StarOptionsEditor GmatQtStarOptionsEditorTests "${qt_test_startup}")
    add_qt_test(QtGui.StarStyleRendering GmatQtStarStyleRenderingTests)
@@ -690,6 +724,7 @@ if(GMAT_QT_BUILD_TESTS)
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
       DEPENDS GmatQt GmatQtWindowTests GmatQtFileTests GmatQtWorkflowTests GmatQtMissionTests GmatQtPlotTests GmatQtOrbitRendererTests GmatQtCompatibilityTests GmatQtAtmosphereTests GmatQtStationTests GmatQtEventLocatorTests GmatQtPlotSetupTests GmatQtOrbitSetupTests GmatQtThrusterTests GmatQtBurnTests GmatQtEphemerisTests GmatQtDynamicDataTests GmatQtCalculatedPointTests GmatQtDataInterfaceTests GmatQtEstimationTests GmatQtComparisonTests GmatQtThrustFileTests GmatQtScriptEditingTests GmatQtExternalForceTests GmatQtPolyhedronTests
       USES_TERMINAL VERBATIM)
+   add_dependencies(check-qt GmatQtPlaybackOptionsBackendTests GmatQtPlaybackOptionsEditorTests GmatQtPlaybackOptionsRuntimeTests GmatQtSimulationClockTests GmatQtEpochPlaybackTests GmatQtEpochPlaybackRenderingTests GmatQtClockArcCaptureTests)
    add_dependencies(check-qt GmatQtStarOptionsBackendTests GmatQtStarOptionsEditorTests GmatQtStarStyleRenderingTests)
    add_dependencies(check-qt GmatQtNativeVectorRenderingTests GmatQtSensorMaskBackendTests GmatQtSensorMaskEditorTests GmatQtSensorMaskRenderingTests)
    add_dependencies(check-qt GmatQtPythonPathTests GmatQtFileThrustCardinalityTests GmatQtCameraResetTests GmatQtPropagationSingleStepTests GmatQtWhileTemplateTests)

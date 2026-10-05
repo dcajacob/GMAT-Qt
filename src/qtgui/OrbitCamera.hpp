@@ -46,6 +46,11 @@ inline OrbitCameraBasis orbitCamera(const PlotModel &model,quint64 frame,double 
    const auto interpolated=model.replayCursor && model.replayCursor->before==frame
       ? plotInterpolatedCamera(history,*model.replayCursor) : std::optional<PlotCamera>{};
    if (interpolated) camera=&*interpolated;
+   if (model.simulationEpoch && frame==std::numeric_limits<quint64>::max()) {
+      const int key=reset ? (model.selectedCamera>0 ? -model.selectedCamera-1 : -1) : model.selectedCamera;
+      const auto found=model.simulationCameras.constFind(key);
+      camera=found==model.simulationCameras.cend() ? nullptr : &*found;
+   }
    if (camera) {
       target.set(camera->target[0],camera->target[1],camera->target[2]);
       outward.set(camera->eye[0]-target.x(),camera->eye[1]-target.y(),camera->eye[2]-target.z());

@@ -53,6 +53,15 @@ struct QtStarSetting {
 };
 std::optional<QtStarSetting> qtStars(const QString &json);
 QString qtStarsJson(const std::optional<QtStarSetting> &setting);
+// Optional rate preserves ordinary Qt history sweep for toolbar-only edits.
+// A present rate is simulated seconds per wall second; empty parent is clock time.
+struct QtPlaybackSetting {
+   std::optional<double> timeScale;
+   QString syncParent;
+   std::optional<bool> showToolbar;
+};
+std::optional<QtPlaybackSetting> qtPlayback(const QString &json);
+QString qtPlaybackJson(const std::optional<QtPlaybackSetting> &setting);
 struct QtCameraSetting {
    bool perspective=false; double fieldOfView=50;
    std::optional<std::array<double,3>> up;
@@ -61,6 +70,7 @@ struct QtCameraSetting {
    QVector<QtVectorSetting> vectors;
    QVector<QtSensorMaskSetting> sensorMasks;
    std::optional<QtStarSetting> stars;
+   std::optional<QtPlaybackSetting> playback;
    bool bodyRelative=false;
    bool lookAtRotation=false, shortestAngle=false;
    std::optional<std::array<double,3>> centerOffset;

@@ -10,6 +10,7 @@ struct OrbitVectorArrow
 };
 inline const PlotVectorSample *orbitVectorSample(const PlotVector &vector,quint64 frame)
 {
+   if (vector.simulationActive && frame==std::numeric_limits<quint64>::max()) return vector.simulationSample && vector.simulationSample->valid ? &*vector.simulationSample : nullptr;
    if (vector.replaySample && vector.replaySample->source.frame==frame)
       return vector.replaySample->valid ? &*vector.replaySample : nullptr;
    const PlotVectorSample *sample=nullptr;

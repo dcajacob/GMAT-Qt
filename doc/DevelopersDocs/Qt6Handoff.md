@@ -20,13 +20,19 @@ brief, not proof of qualification. Recheck the repository before making changes.
 
 ## Current installed application — 2026-10-04
 
-GmatQt is rebuilt at **6,507,840 bytes / SHA 43f55410…**.
-[Star options](Qt6ParityValidation/star-options-20261004.md) now implement preset/custom
-conversion, pending controls, source/catalog recovery and native/fallback skies.
-Four new and three directly affected checks pass over the recorded builds.
-Pending count/form synchronization and final LastN count carry-through are repaired;
-original failures and test-fixture corrections remain recorded. Base/util/Qt startup
-and the original star catalog are unchanged. The original checkout is untouched.
+GmatQt is rebuilt at **6,718,016 bytes / SHA 6cfca843…**.
+[Saved playback options](Qt6ParityValidation/playback-options-20261004.md) now implement
+PlaybackTimeScale, TimeSyncParent and ShowToolbar, pending source edits, shared
+absolute-epoch clocks, per-object arc sampling and reachable toolbar restoration.
+Eight new and five directly affected checks pass over the recorded builds, including
+private native/fallback pixels and one new short backward/forward mission with an
+unchanged complete report and retained samples. The finite historical camera query
+regression is repaired; first failures and fixture corrections remain recorded.
+Base/util/Qt startup stay unchanged. The original checkout is untouched.
+
+The preceding [Star options](Qt6ParityValidation/star-options-20261004.md) retain
+four new and three affected passes, pending form/count repair and LastN carry-through
+at their recorded runtime. Those checks were not repeated for playback options.
 
 The preceding [sensor masks](Qt6ParityValidation/sensor-masks-20261004.md)
 retain four new/three affected passes and their complete byte-identical 131-byte
@@ -83,11 +89,11 @@ source review as an unimplemented queue. LastN's decorative-listener cleanup
 limit remains explicit; it is not a claim of every legacy listener behavior.
 The subsequently identified sensor-mask operation and native-vector pixel gap
 now have the bounded evidence above. Star options are also implemented. The
-concrete remaining OF source preferences are **PlaybackTimeScale, TimeSyncParent,
-ShowToolbar and per-plot DrawModelFile**; their active consumers and exact current
-translation boundaries are recorded in the [star-options continuation queue](Qt6ParityValidation/star-options-20261004.md#concrete-remaining-of-operations).
-Existing Qt replay/speed/resource model controls do not establish those saved
-source semantics. Device VR/MSAA and inactive AxesLength remain separate. Keep
+concrete remaining OF source preference is **per-plot DrawModelFile**. Saved
+PlaybackTimeScale, TimeSyncParent and ShowToolbar now have the bounded evidence
+above, superseding those entries in the [star-options continuation queue](Qt6ParityValidation/star-options-20261004.md#concrete-remaining-of-operations).
+Ordinary/global history sweep and shared absolute-epoch playback remain distinct;
+compact raw endpoints do not reconstruct every discarded propagation state. Device VR/MSAA and inactive AxesLength remain separate. Keep
 all nine gates, held scientific cases and external dependencies in scope.
 Host/GPU acceptance and GMAT client attribution remain unverified, with live
 host testing stopped. Do not repeat completed audits/tutorials/examples or

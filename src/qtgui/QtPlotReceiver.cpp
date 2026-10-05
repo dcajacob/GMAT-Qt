@@ -7,6 +7,8 @@
 #include <locale>
 #include "TableColumns.hpp"
 #include "PlotWidget.hpp"
+#include "PlotEpochPlayback.hpp"
+#include <QTimer>
 #include "BodyFixedPoint.hpp"
 #include "CelestialBody.hpp"
 #include "Spacecraft.hpp"
@@ -96,6 +98,22 @@ void QtPlotReceiver::validateCameraReferences(const QMap<QString,QtCameraSetting
 {
    auto *moderator=Moderator::Instance();
    for (auto it=settings.cbegin();it!=settings.cend();++it) {
+      if (it->playback) {
+         (void)qtPlayback(qtPlaybackJson(it->playback));
+         auto *plot=moderator->GetConfiguredObject(it.key().toStdString());
+         if (!plot || !plot->IsOfType("OrbitView")) throw std::runtime_error("Playback options require an OrbitView");
+         QSet<QString> seen; QString current=it.key();
+         while (settings.contains(current) && settings.value(current).playback) {
+            if (seen.contains(current)) throw std::runtime_error("Playback synchronization parents form a cycle");
+            seen.insert(current);
+            const auto parent=settings.value(current).playback->syncParent;
+            if (parent.isEmpty()) break;
+            auto *object=moderator->GetConfiguredObject(parent.toStdString());
+            if (!object || !object->IsOfType("OrbitView"))
+               throw std::runtime_error((current+": playback parent must be an existing OrbitView: "+parent).toStdString());
+            current=parent;
+         }
+      }
       auto validateTrajectory=[&](const QString &name,bool allowRoot=true) {
          if (name.isEmpty()) return;
          auto *plot=moderator->GetConfiguredObject(it.key().toStdString());
@@ -225,8 +243,66 @@ void QtPlotReceiver::validateCameraReferences(const QMap<QString,QtCameraSetting
       for (const auto &view:it->views) { validateView(view); if (view.reset) validateView(*view.reset); }
    }
 }
-QtPlotReceiver::QtPlotReceiver(QMdiArea *area) : workspace(area) {}
-QtPlotReceiver::~QtPlotReceiver() { changed = {}; replayChanged = {}; clear(); }
+QtPlotReceiver::QtPlotReceiver(QMdiArea *area) : workspace(area)
+{
+   simulationTimer=new QTimer(area); simulationTimer->setObjectName("plotSimulationTimer"); simulationTimer->setInterval(30);
+   QObject::connect(simulationTimer,&QTimer::timeout,area,[this] {
+      const double seconds=simulationElapsed.nsecsElapsed()/1e9; simulationElapsed.restart();
+      advanceSimulationClocks(seconds);
+   });
+}
+QtPlotReceiver::~QtPlotReceiver() { delete simulationTimer; simulationTimer=nullptr; changed = {}; replayChanged = {}; clear(); }
+std::optional<PlotSimulationClocks::State> QtPlotReceiver::simulationClock(const QString &name) const
+{
+   return entries.contains(name) && simulationClocks.enabled(name) ? std::optional(simulationClocks.state(name)) : std::nullopt;
+}
+void QtPlotReceiver::configureSimulationClocks()
+{
+   // Configure the complete saved graph before any subscriber window arrives.
+   // A plain OrbitView referenced as parent supplies the legacy 3600 s/s root.
+   for (auto it=cameraSettings.cbegin();it!=cameraSettings.cend();++it) {
+      const auto setting=it->playback;
+      simulationClocks.configure(it.key(),setting ? setting->timeScale : std::nullopt,setting ? setting->syncParent : QString());
+   }
+}
+void QtPlotReceiver::syncSimulationClock(const QString &name)
+{
+   for (const auto &member:simulationClocks.members(name)) {
+      auto *entry=find(member.toStdString()); if (!entry) continue;
+      const auto state=simulationClocks.state(member);
+      if (entry->widget) entry->widget->setSimulationClock(state,simulationClocks.root(member));
+      else plotSetSimulationEpoch(*entry->data,state.hasRange ? std::optional(state.epoch) : std::nullopt,static_cast<PlotReplayMode>(state.mode));
+   }
+}
+void QtPlotReceiver::updateSimulationTimer()
+{
+   if (!simulationTimer) return;
+   if (simulationClocks.playing()) {
+      if (!simulationTimer->isActive()) { simulationElapsed.start(); simulationTimer->start(); }
+   } else simulationTimer->stop();
+}
+void QtPlotReceiver::advanceSimulationClocks(double seconds)
+{
+   for (const auto &root:simulationClocks.advance(seconds)) syncSimulationClock(root);
+   updateSimulationTimer();
+}
+void QtPlotReceiver::simulationCommand(const QString &name,int command,double value)
+{
+   if (!simulationClocks.enabled(name)) return;
+   releaseSharedReplay();
+   using Command=PlotWidget::SimulationCommand;
+   const auto state=simulationClocks.state(name);
+   switch (static_cast<Command>(command)) {
+      case Command::Seek: simulationClocks.setPlaying(name,false); simulationClocks.seek(name,state.minimum+std::clamp(value,0.,1.)*(state.maximum-state.minimum)); break;
+      case Command::Start: simulationClocks.setPlaying(name,false); simulationClocks.seek(name,state.minimum); break;
+      case Command::Latest: simulationClocks.setPlaying(name,false); simulationClocks.seek(name,state.maximum); break;
+      case Command::Play: simulationClocks.setPlaying(name,value!=0); break;
+      case Command::Rate: simulationClocks.setRate(name,value); break;
+      case Command::Multiplier: simulationClocks.setMultiplier(name,value); break;
+      case Command::Mode: simulationClocks.setMode(name,static_cast<int>(value)); break;
+   }
+   syncSimulationClock(name); updateSimulationTimer();
+}
 bool QtPlotReceiver::hasReplayDisplays() const
 {
    for (const auto &entry:entries) if (entry.data->kind!=PlotModel::Kind::Table) return true;
@@ -234,6 +310,8 @@ bool QtPlotReceiver::hasReplayDisplays() const
 }
 void QtPlotReceiver::setReplayPosition(int value)
 {
+   simulationClocks.pauseAll(); updateSimulationTimer();
+   for (auto &entry:entries) plotSetSimulationEpoch(*entry.data,std::nullopt,sharedReplayMode);
    sharedReplayPosition=std::clamp(value,0,1000);
    for (auto &entry:entries) if (entry.widget) {
       entry.widget->setSharedReplayMode(sharedReplayMode);
@@ -244,6 +322,7 @@ void QtPlotReceiver::setReplayPosition(int value)
 void QtPlotReceiver::setReplayMode(PlotReplayMode mode)
 {
    sharedReplayMode=mode;
+   for (auto it=entries.cbegin();it!=entries.cend();++it) if (simulationClocks.enabled(it.key())) simulationClocks.setMode(it.key(),static_cast<int>(mode));
    for (auto &entry:entries) if (entry.widget) {
       entry.widget->setSharedReplayMode(mode);
       if (sharedReplayPosition) entry.widget->setSharedReplayPosition(*sharedReplayPosition);
@@ -267,6 +346,7 @@ void QtPlotReceiver::clear(bool resetViews)
    if (resetViews) savedViews.clear();
    for (auto &entry : entries) if (entry.window) delete entry.window.data();
    entries.clear(); warnings.clear(); sharedReplayPosition.reset();
+   simulationClocks.clear(); updateSimulationTimer();
    if (replayChanged) replayChanged();
    if (changed) changed();
 }
@@ -278,6 +358,7 @@ void QtPlotReceiver::missionFinished()
    for (auto &entry:entries) {
       if (entry.data->kind!=PlotModel::Kind::Orbit && entry.data->kind!=PlotModel::Kind::GroundTrack) continue;
       entry.data->endOfRun=true;
+      if (!sharedReplayPosition && simulationClocks.enabled(entry.data->title)) syncSimulationClock(entry.data->title);
       refresh(entry,true);
    }
 }
@@ -316,7 +397,13 @@ bool QtPlotReceiver::show(const QString &name)
          entry.widget=new PlotWidget(entry.data);
          entry.widget->replayRequested=[this] { releaseSharedReplay(); };
          entry.widget->skyRequested=[this,name] { if (auto *current=find(name.toStdString())) loadSkyCatalogs(*current,name.toStdString()); };
-         entry.widget->setSharedReplayMode(sharedReplayMode);
+         entry.widget->setPlotToolbarVisible(entry.toolbarVisible);
+         entry.widget->toolbarVisibilityChanged=[this,name](bool visible) { if (auto *current=find(name.toStdString())) current->toolbarVisible=visible; };
+         if (simulationClocks.enabled(name)) {
+            entry.widget->simulationRequested=[this,name](PlotWidget::SimulationCommand command,double value) { simulationCommand(name,static_cast<int>(command),value); };
+            entry.widget->setSimulationClock(simulationClocks.state(name),simulationClocks.root(name));
+         }
+         if (!simulationClocks.enabled(name) || sharedReplayPosition) entry.widget->setSharedReplayMode(sharedReplayMode);
          if (sharedReplayPosition) entry.widget->setSharedReplayPosition(*sharedReplayPosition);
          entry.widget->setProtectedPaths([this] { return protectedPaths ? protectedPaths() : QStringList(); });
          if (saveProjection) entry.widget->setProjectionSaver([this,name](bool perspective,double fov) { return saveProjection(name,perspective,fov); });
@@ -381,6 +468,12 @@ QtPlotReceiver::Entry &QtPlotReceiver::create(const std::string &name, PlotModel
          }
       }
    }
+   if (kind==PlotModel::Kind::Orbit) {
+      configureSimulationClocks();
+      const auto setting=cameraSettings.value(text(name)).playback;
+      entry.toolbarVisible=setting ? setting->showToolbar.value_or(true) : true;
+      if (!cameraSettings.contains(text(name))) simulationClocks.configure(text(name),std::nullopt);
+   }
    show(text(name));
    const auto bounds=workspace->viewport()->rect();
    const int width=std::clamp(static_cast<int>((w>0 && w<=1 ? w : .6)*bounds.width()),200,std::max(200,bounds.width()));
@@ -434,7 +527,11 @@ bool QtPlotReceiver::remove(const std::string &name)
 {
    auto it=entries.find(text(name)); if (it==entries.end()) return false;
    if (it->data->kind==PlotModel::Kind::Orbit && it->data->userView) savedViews.insert(it.key(),*it->data->userView);
-   if (it->window) delete it->window.data(); entries.erase(it); if (changed) changed(); return true;
+   if (it->window) delete it->window.data(); entries.erase(it);
+   bool groupSurvives=false;
+   for (const auto &member:simulationClocks.members(text(name))) if (entries.contains(member)) { groupSurvives=true; break; }
+   simulationClocks.discard(text(name),groupSurvives); updateSimulationTimer();
+   if (changed) changed(); return true;
 }
 void QtPlotReceiver::warn(const std::string &name, const std::string &option)
 {
@@ -639,6 +736,8 @@ bool QtPlotReceiver::UpdateGlPlot(const std::string &name,const std::string &,co
    };
    auto &data=*entry->data; if (!entry->arcMetadataOnly) ++data.frame;
    auto storeCamera=[&](int index,PlotCamera camera) {
+      if (!camera.epoch) camera.epoch=epoch;
+      if (camera.provider.isEmpty()) camera.provider=entry->provider;
       if (entry->arcMetadataOnly) { entry->preparedArcCameras[index]=camera; return; }
       auto &history=cameraHistory(data,index);
       history.push_back(camera);
@@ -700,9 +799,23 @@ bool QtPlotReceiver::UpdateGlPlot(const std::string &name,const std::string &,co
             return std::array<double,3>{world[0],world[1],world[2]};
          };
       };
+      auto frozenPose=[&](const std::array<double,3> &position) {
+         PlotPoint point; point.x=position[0]; point.y=position[1]; point.z=position[2];
+         point.epoch=epoch; point.frame=data.frame; point.solver=solving; point.provider=entry->provider; point.connect=true;
+         return point;
+      };
+      auto frozenRotation=[&](PlotPoint &point,SpacePoint *object,const std::array<double,3> &origin,const std::array<double,3> &target,const PlotPoint *pose) {
+         const auto rotate=transform(object,origin,target,false,false,pose);
+         for (int column=0;column<3;++column) {
+            std::array<double,3> basis{}; basis[column]=1; const auto axis=rotate(basis);
+            for (int row=0;row<3;++row) point.bodyToView[row*3+column]=axis[row];
+         }
+      };
       const auto *primaryPose=segmentPass ? segmentPoint(settings.segmentFrame) : nullptr;
       if (settings.segmentFrame.isEmpty()!=segmentPass && (!segmentPass || primaryPose)) try {
          PlotCamera camera; camera.frame=data.frame; camera.solver=solving;
+         if (!entry->referenceIsVector && entry->cameraReference) camera.reference=text(entry->cameraReference->GetName());
+         camera.targetReference=settings.lookAtRotation ? camera.reference : (!entry->directionIsVector && entry->cameraDirection ? text(entry->cameraDirection->GetName()) : QString());
          const auto reference=primaryPose ? std::array<double,3>{primaryPose->x,primaryPose->y,primaryPose->z} : resolve(entry->referenceIsVector,entry->cameraReference,entry->referenceVector);
          const auto target=primaryPose && !settings.lookAtRotation ? reference : resolve(entry->directionIsVector,entry->cameraDirection,entry->directionVector);
          if ((settings.bodyRelative || settings.lookAtRotation) && !entry->positionIsVector)
@@ -733,6 +846,19 @@ bool QtPlotReceiver::UpdateGlPlot(const std::string &name,const std::string &,co
             throw std::runtime_error("Unrenderable camera coordinates");
          if (std::hypot(camera.eye[0]-camera.target[0],camera.eye[1]-camera.target[1],camera.eye[2]-camera.target[2])<1e-9)
             throw std::runtime_error("Camera eye and target coincide");
+         PlotCameraGeometry geometry;
+         geometry.reference=primaryPose ? QString() : camera.reference;
+         geometry.target=(primaryPose && !settings.lookAtRotation) || entry->directionIsVector || !entry->cameraDirection ? QString() : text(entry->cameraDirection->GetName());
+         geometry.referencePose=frozenPose(reference); geometry.targetPose=frozenPose(target);
+         geometry.position=resolve(entry->positionIsVector,entry->cameraPosition,entry->positionVector);
+         geometry.positionPose=frozenPose(geometry.position);
+         if (!entry->positionIsVector && entry->cameraPosition) geometry.positionReference=text(entry->cameraPosition->GetName());
+         geometry.positionScale=entry->cameraScale; geometry.center=settings.centerOffset.value_or(std::array<double,3>{});
+         geometry.up=settings.bodyRelative || settings.lookAtRotation ? entry->upVector : camera.up;
+         geometry.bodyRelative=settings.bodyRelative; geometry.lookAtRotation=settings.lookAtRotation;
+         geometry.shortestAngle=settings.shortestAngle; geometry.centerOnReference=settings.lookAtRotation;
+         if (settings.bodyRelative) frozenRotation(geometry.referencePose,entry->cameraReference,reference,target,primaryPose);
+         camera.geometry=geometry;
          storeCamera(0,camera);
       } catch (BaseException &) { warn(name,"unresolved scripted camera (using available camera or manual view)"); }
       catch (const std::exception &) { warn(name,"invalid scripted camera (using available camera or manual view)"); }
@@ -760,6 +886,7 @@ bool QtPlotReceiver::UpdateGlPlot(const std::string &name,const std::string &,co
             const auto orient=transform(reference,origin,target,view.lookAtRotation,view.shortestAngle,view.bodyRelative ? pose : nullptr);
             const auto eye=orient(view.eye),center=orient(view.center);
             PlotCamera camera; camera.frame=data.frame; camera.solver=solving;
+            camera.reference=view.reference; camera.targetReference=view.lookAtRotation || view.target.isEmpty() ? view.reference : view.target;
             camera.up=orient(view.up);
             for (int axis=0;axis<3;++axis) {
                camera.eye[axis]=origin[axis]+eye[axis];
@@ -771,6 +898,15 @@ bool QtPlotReceiver::UpdateGlPlot(const std::string &name,const std::string &,co
                throw std::runtime_error("Unrenderable camera coordinates");
             if (std::hypot(camera.eye[0]-camera.target[0],camera.eye[1]-camera.target[1],camera.eye[2]-camera.target[2])<1e-9)
                throw std::runtime_error("Camera eye and target coincide");
+            PlotCameraGeometry geometry;
+            geometry.reference=pose || view.reference=="CoordinateSystem" ? QString() : view.reference;
+            geometry.target=view.target=="CoordinateSystem" ? QString() : view.target;
+            geometry.referencePose=frozenPose(origin); geometry.targetPose=frozenPose(target);
+            geometry.position=view.eye; geometry.center=view.center; geometry.up=view.up;
+            geometry.bodyRelative=view.bodyRelative; geometry.lookAtRotation=view.lookAtRotation;
+            geometry.shortestAngle=view.shortestAngle; geometry.centerOnReference=view.lookAtRotation || view.target.isEmpty();
+            if (view.bodyRelative) frozenRotation(geometry.referencePose,reference,origin,target,pose);
+            camera.geometry=geometry;
             storeCamera(key,camera);
          } catch (...) { warn(name,("unresolved camera "+label+" (using its available history or manual view)").toStdString()); }
       };
@@ -860,7 +996,7 @@ bool QtPlotReceiver::UpdateGlPlot(const std::string &name,const std::string &,co
          point.regularArc=arcs->back().id;
    }
    if (data.kind==PlotModel::Kind::Orbit && data.active) for (auto &vector:data.vectors) {
-      PlotVectorSample sample; sample.source.frame=data.frame; sample.source.epoch=epoch; sample.source.solver=solving;
+      PlotVectorSample sample; sample.source.frame=data.frame; sample.source.epoch=epoch; sample.source.solver=solving; sample.source.provider=entry->provider;
       try {
          auto findObject=[&](const QString &objectName) -> SpacePoint * {
             for (auto *point:entry->points) if (point && text(point->GetName())==objectName) return point;
@@ -919,6 +1055,16 @@ bool QtPlotReceiver::UpdateGlPlot(const std::string &name,const std::string &,co
    updateCameras(true);
    entry->replayArcCamera=false; entry->replayArcCameras.clear();
    if (cameraSettings.value(text(name)).solverLastN) entry->trialHistory.observe(data);
+   if (!solving && simulationClocks.enabled(text(name))) {
+      bool published=false;
+      for (const auto &curve:data.curves) if (!curve.points.empty() && curve.points.back().frame==data.frame &&
+          std::find(names.begin(),names.end(),curve.name.toStdString())!=names.end()) { published=true; break; }
+      if (published) {
+         if (!entry->rawClockPublication) simulationClocks.publish(text(name),epoch);
+         if (!sharedReplayPosition) syncSimulationClock(text(name));
+         updateSimulationTimer();
+      }
+   }
    if (update) refresh(*entry,true); return true;
 }
 bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &action)
@@ -956,6 +1102,7 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
       return true;
    }
    if (action=="NeedsOrbitArcMetadata") {
+      if (simulationClocks.enabled(text(name))) return true;
       const auto setting=cameraSettings.value(text(name));
       if (setting.solverLastN) return true;
       for (bool enabled:setting.objectSegmentLabels) if (enabled) return true;
@@ -964,6 +1111,7 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
       return false;
    }
    if (action.compare(0,18,"NeedsOrbitArcPose:")==0) {
+      if (simulationClocks.enabled(text(name))) return true;
       const auto object=text(action.substr(18));
       const auto setting=cameraSettings.value(text(name));
       if (setting.objectSegmentLabels.value(object,false)) return true;
@@ -991,7 +1139,11 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
       if (!PlotModel::usableOrbitPosition(pose.x,pose.y,pose.z) || !PlotModel::usableValue(pose.epoch)) return false;
       pose.frame=entry->data->frame; pose.provider=entry->provider;
       entry->arcPublishedPoses[text(object)]=pose;
-      recordRegularArcPose(*entry->data,text(object),entry->arcProvider,entry->provider,pose); return true;
+      recordRegularArcPose(*entry->data,text(object),entry->arcProvider,entry->provider,pose);
+      if (simulationClocks.enabled(text(name))) {
+         entry->rawClockPublication=true; simulationClocks.publish(text(name),pose.epoch); updateSimulationTimer();
+      }
+      return true;
    }
    if (action=="PrepareOrbitArcCameras") {
       // Bodies have no spacecraft publisher arrays. Capture their label endpoints
@@ -1004,7 +1156,7 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
          bool hasPublishedSpacecraft=false;
          for (bool present:entry->dataAvailability->objects) hasPublishedSpacecraft=hasPublishedSpacecraft || present;
          for (auto *object:entry->points) {
-            if (!object || object->IsOfType(Gmat::SPACECRAFT) || !setting.objectSegmentLabels.value(text(object->GetName()),false)) continue;
+            if (!object || object->IsOfType(Gmat::SPACECRAFT) || (!setting.objectSegmentLabels.value(text(object->GetName()),false) && !simulationClocks.enabled(text(name)))) continue;
             if (entry->view && entry->view->GetOriginName()==object->GetName() && entry->view->AreAxesOfType("BodyFixedAxes")) continue;
             try {
                auto state=object->GetMJ2000State(epoch);
@@ -1015,6 +1167,17 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
                if (!PlotModel::usableOrbitPosition(state[0],state[1],state[2])) continue;
                PlotPoint pose; pose.epoch=epoch; pose.frame=entry->data->frame; pose.provider=entry->provider;
                pose.x=state[0]; pose.y=state[1]; pose.z=state[2];
+               if (simulationClocks.enabled(text(name))) {
+                  Rmatrix33 viewToBase;
+                  if (entry->view) { entry->view->ToBaseSystem(A1Mjd(epoch),Rvector6(),true); viewToBase=entry->view->GetLastRotationMatrix(); }
+                  const auto rotation=viewToBase.Transpose()*object->GetAttitude(epoch);
+                  for (int row=0;row<3;++row) for (int column=0;column<3;++column) {
+                     pose.bodyToView[row*3+column]=rotation(row,column); pose.inertialToView[row*3+column]=viewToBase(column,row);
+                  }
+                  pose.viewVelocity={state[3],state[4],state[5]};
+                  pose.hasVelocity=std::all_of(pose.viewVelocity.begin(),pose.viewVelocity.end(),PlotModel::usableValue);
+               }
+
                auto &arcs=entry->data->regularArcs[text(object->GetName())];
                if (arcs.isEmpty()) recordRegularArcPose(*entry->data,text(object->GetName()),entry->arcProvider,hasPublishedSpacecraft ? entry->provider : QString(),pose);
                else {
@@ -1061,7 +1224,7 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
    else if (action=="PenDown") entry->data->penDown=true;
    else if (action=="ToggleOff") { entry->data->active=false; entry->data->breakLines(); }
    else if (action=="ToggleOn") entry->data->active=true;
-   else if (action=="ClearObjects") { entry->trialHistory.clear(); entry->dataAvailability.reset(); entry->arcProvider.clear(); entry->provider.clear(); entry->arcTrial=false; entry->arcMetadataOnly=false; entry->data->regularArcs.clear(); entry->data->nextRegularArc=0; entry->arcPublishedPoses.clear(); entry->preparedArcCameras.clear(); entry->bufferedArcCameras.clear(); entry->replayArcCameras.clear(); entry->replayArcCamera=false; entry->objects.clear(); entry->points.clear(); entry->data->sensorMasks.clear(); entry->data->curves.clear(); entry->data->cameras.clear(); for (auto &vector:entry->data->vectors) vector.samples.clear(); if (entry->data->resetView) entry->data->resetView->cameras.clear(); for (auto &view:entry->data->cameraViews) { view.cameras.clear(); if (view.reset) view.reset->cameras.clear(); } }
+   else if (action=="ClearObjects") { entry->rawClockPublication=false; simulationClocks.reset(text(name)); syncSimulationClock(text(name)); updateSimulationTimer(); entry->trialHistory.clear(); entry->dataAvailability.reset(); entry->arcProvider.clear(); entry->provider.clear(); entry->arcTrial=false; entry->arcMetadataOnly=false; entry->data->regularArcs.clear(); entry->data->nextRegularArc=0; entry->arcPublishedPoses.clear(); entry->preparedArcCameras.clear(); entry->bufferedArcCameras.clear(); entry->replayArcCameras.clear(); entry->replayArcCamera=false; entry->objects.clear(); entry->points.clear(); entry->data->sensorMasks.clear(); entry->data->curves.clear(); entry->data->cameras.clear(); for (auto &vector:entry->data->vectors) vector.samples.clear(); if (entry->data->resetView) entry->data->resetView->cameras.clear(); for (auto &view:entry->data->cameraViews) { view.cameras.clear(); if (view.reset) view.reset->cameras.clear(); } }
    else if (action=="ClearSolverData") {
       entry->dataAvailability.reset();
       if (cameraSettings.value(text(name)).solverLastN) {
@@ -1082,7 +1245,7 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
          curve.breakNext=true;
       }
    } else if (action=="IgnoreTimeSequence") entry->ignoreTimeSequence=true;
-   else if (action=="ClearData") { entry->trialHistory.clear(); entry->dataAvailability.reset(); entry->arcProvider.clear(); entry->provider.clear(); entry->arcTrial=false; entry->arcMetadataOnly=false; entry->arcPublishedPoses.clear(); entry->preparedArcCameras.clear(); entry->bufferedArcCameras.clear(); entry->replayArcCameras.clear(); entry->replayArcCamera=false; entry->data->clear(); entry->solverBreaks.clear(); entry->solverScope.clear(); }
+   else if (action=="ClearData") { entry->rawClockPublication=false; simulationClocks.reset(text(name)); syncSimulationClock(text(name)); updateSimulationTimer(); entry->trialHistory.clear(); entry->dataAvailability.reset(); entry->arcProvider.clear(); entry->provider.clear(); entry->arcTrial=false; entry->arcMetadataOnly=false; entry->arcPublishedPoses.clear(); entry->preparedArcCameras.clear(); entry->bufferedArcCameras.clear(); entry->replayArcCameras.clear(); entry->replayArcCamera=false; entry->data->clear(); entry->solverBreaks.clear(); entry->solverScope.clear(); }
    else { warn(name,action); return false; }
    refresh(*entry,true); return true;
 }

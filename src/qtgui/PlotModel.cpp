@@ -33,11 +33,11 @@ void PlotModel::append(int index, double x, double y, double z, double epoch,
 }
 void PlotModel::clear()
 {
-   for (auto &curve : curves) { curve.points.clear(); curve.replayPose.reset(); curve.breaks.clear(); curve.breakNext = true; }
+   for (auto &curve : curves) { curve.points.clear(); curve.replayPose.reset(); curve.simulationActive=false; curve.simulationPose.reset(); curve.simulationCursor.reset(); curve.simulationArc=0; curve.simulationRegularArc=false; curve.breaks.clear(); curve.breakNext = true; }
    frame = 0; pendingUpdates = 0; endOfRun=false; ++historyGeneration;
    regularArcs.clear(); nextRegularArc=0;
-   cameras.clear(); replayCursor.reset();
-   for (auto &vector:vectors) { vector.samples.clear(); vector.replaySample.reset(); }
+   cameras.clear(); replayCursor.reset(); simulationEpoch.reset(); simulationCameras.clear(); simulationCameraArcs.clear(); simulationCameraReferenceArcs.clear();
+   for (auto &vector:vectors) { vector.samples.clear(); vector.replaySample.reset(); vector.simulationActive=false; vector.simulationSample.reset(); vector.simulationArc=0; vector.simulationRegularArc=false; }
    if (resetView) resetView->cameras.clear();
    for (auto &view:cameraViews) { view.cameras.clear(); if (view.reset) view.reset->cameras.clear(); }
 }
@@ -62,6 +62,8 @@ QVector<PlotOrbitMarker> PlotModel::orbitMarkers(const PlotCurve &curve,quint64 
 {
    QVector<PlotOrbitMarker> result;
    if (!curve.visible || curve.orbitMarkerSize==0 || (!curve.centerMarker && !curve.endpointMarkers)) return result;
+   const bool simulation=curve.simulationActive && through==std::numeric_limits<quint64>::max();
+   if (simulation) through=curve.simulationCursor ? curve.simulationCursor->before : 0;
    const auto first=firstVisibleFrame(curve,through);
    const PlotPoint *start=nullptr,*last=nullptr;
    auto ends=[&] { if (curve.endpointMarkers && start) { result.append({start,true}); if (last!=start) result.append({last,true}); } };
@@ -70,14 +72,16 @@ QVector<PlotOrbitMarker> PlotModel::orbitMarkers(const PlotCurve &curve,quint64 
       if (!last || !point.connect || point.provider!=last->provider) { ends(); start=&point; }
       last=&point;
    }
-   if (curve.replayPose && curve.replayPose->frame==through) {
-      last=&*curve.replayPose; if (!start) start=last;
+   const auto &tip=simulation ? curve.simulationPose : curve.replayPose;
+   if (tip && (simulation || tip->frame==through)) {
+      last=&*tip; if (!start) start=last;
    }
    ends(); if (curve.centerMarker && last) result.append({last,false});
    return result;
 }
 quint64 PlotModel::firstVisibleFrame(const PlotCurve &curve,quint64 through) const
 {
+   if (curve.simulationActive && through==std::numeric_limits<quint64>::max()) through=curve.simulationCursor ? curve.simulationCursor->before : 0;
    if (kind==Kind::XY || redrawPoints<=0 || (endOfRun && through>=frame)) return 0;
    // wx uses endIndex - NumPointsToRedraw: retain the preceding endpoint
    // so the requested number of recent segments can still be connected.
