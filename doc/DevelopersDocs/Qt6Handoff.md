@@ -100,6 +100,12 @@ their recorded runtimes and were not repeated for the Help repairs.
 
 ## Requirement-level review — 2026-10-05
 
+Continuation is now blocked after three consecutive reviews of the same
+unchanged conditions. The full goal is incomplete; no acceptance gate is waived.
+No additional ordinary frontend omission or affected change was established.
+Resume requires meaningful new evidence or a condition permitting progress;
+live host testing stays stopped.
+
 The [remaining nine-gate review](Qt6ParityValidation/remaining-gates-20261005.md)
 checks current artifact identities against the latest receipt and separates
 completed bounded operations from host, scientific and external requirements.
