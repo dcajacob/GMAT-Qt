@@ -3,6 +3,7 @@
 #include <QMap>
 #include <QStringList>
 class QTableWidget;
+class QComboBox;
 struct QtCameraSetting;
 class OrbitObjectDrawingDialog final : public QDialog
 {
@@ -11,4 +12,5 @@ public:
    QMap<QString,QString> settings() const;
 private:
    QTableWidget *objects,*markers,*fonts,*guides;
+   QComboBox *axesLabels,*frameLabel;
 };

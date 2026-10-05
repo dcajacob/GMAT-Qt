@@ -8878,3 +8878,17 @@ The separate [OF source review](Qt6ParityValidation/of-remaining-controls-202610
 identifies active LastN retention and axes/frame labels as remaining operations.
 All nine gates and dependency dispositions remain; live-host testing stays
 stopped and full qualification is not claimed.
+
+
+## Independent coordinate-label operations — 2026-10-04
+
+[Coordinate-label evidence](Qt6ParityValidation/coordinate-labels-20261004.md)
+closes active AxesLabels/FrameLabel conversion, pending controls and native/
+fallback rendering. Four directly affected checks pass, including a corrected
+Apply path, exact source/file recovery and a byte-identical new short report.
+GmatQt is rebuilt at 6,260,520 bytes / SHA e823c522…; base/util/Qt startup remain
+unchanged. No completed audit/tutorial/corpus or unaffected suite was repeated.
+LastN remains an active implementation requirement. All nine gates and external/
+held scientific dispositions remain; live host testing stays stopped, GMAT
+attribution and host/physical-GPU acceptance are unproven, Windows/macOS/MATLAB
+remain deferred, and full qualification is not claimed.

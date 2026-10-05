@@ -2472,3 +2472,15 @@ remains pending until parent Create/Apply; Cancel/discard preserves configured
 settings. [Focused evidence](Qt6ParityValidation/receiver-error-models-20261004.md)
 records exact source/file recovery, Rename/Undo and the rebuilt runtime without
 claiming new GPS measurement or host/GPU qualification.
+
+
+### Coordinate-system labels — 2026-10-04
+
+OrbitView / Advanced / Object drawing / **Frame labels** provides independent
+**Axes labels** and **Reference frame** choices. Default shows X/Y/Z when Axes
+is On, while the origin's coordinate-system name is hidden. Set Reference frame
+On to show it even with axes hidden. These controls are independent of Show
+labels for objects. Choices stay pending until Apply and survive Save/reopen;
+Default removes the explicit override. The same settings convert from OF
+AxesLabels/FrameLabel and appear in both renderers. [Focused evidence](Qt6ParityValidation/coordinate-labels-20261004.md)
+retains source/report invariance and the explicit host/GPU qualification limit.

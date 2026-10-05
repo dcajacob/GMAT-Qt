@@ -453,7 +453,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       auto initial=qtResourcePreviewShared(object.Clone());
       if (orbit) {
          const auto setting=qtCameraSettings(script).value(QString::fromStdString(object.GetName()));
-         const QMap<QString,QString> originalDrawing={{"@QtObjectLabels",qtObjectFlagsJson(setting.objectLabels)},{"@QtObjectTrajectories",qtObjectFlagsJson(setting.objectTrajectories)},{"@QtObjectCenters",qtObjectFlagsJson(setting.objectCenters)},{"@QtObjectEndpoints",qtObjectFlagsJson(setting.objectEndpoints)},{"@QtObjectMarkerSizes",qtObjectSizesJson(setting.objectMarkerSizes)},{"@QtObjectLineWidths",qtObjectWidthsJson(setting.objectLineWidths)},{"@QtObjectFontSizes",qtObjectSizesJson(setting.objectFontSizes)},{"@QtObjectFontPositions",qtObjectFontPositionsJson(setting.objectFontPositions)},{"@QtObjectAxes",qtObjectFlagsJson(setting.objectAxes)},{"@QtObjectGrids",qtObjectFlagsJson(setting.objectGrids)},{"@QtObjectXYPlanes",qtObjectFlagsJson(setting.objectXYPlanes)},{"@QtObjectVelocities",qtObjectFlagsJson(setting.objectVelocities)},{"@QtObjectSegmentLabels",qtObjectFlagsJson(setting.objectSegmentLabels)}};
+         const QMap<QString,QString> originalDrawing={{"@QtAxesLabels",qtDrawingFlagText(setting.axesLabels)},{"@QtFrameLabel",qtDrawingFlagText(setting.frameLabel)},{"@QtObjectLabels",qtObjectFlagsJson(setting.objectLabels)},{"@QtObjectTrajectories",qtObjectFlagsJson(setting.objectTrajectories)},{"@QtObjectCenters",qtObjectFlagsJson(setting.objectCenters)},{"@QtObjectEndpoints",qtObjectFlagsJson(setting.objectEndpoints)},{"@QtObjectMarkerSizes",qtObjectSizesJson(setting.objectMarkerSizes)},{"@QtObjectLineWidths",qtObjectWidthsJson(setting.objectLineWidths)},{"@QtObjectFontSizes",qtObjectSizesJson(setting.objectFontSizes)},{"@QtObjectFontPositions",qtObjectFontPositionsJson(setting.objectFontPositions)},{"@QtObjectAxes",qtObjectFlagsJson(setting.objectAxes)},{"@QtObjectGrids",qtObjectFlagsJson(setting.objectGrids)},{"@QtObjectXYPlanes",qtObjectFlagsJson(setting.objectXYPlanes)},{"@QtObjectVelocities",qtObjectFlagsJson(setting.objectVelocities)},{"@QtObjectSegmentLabels",qtObjectFlagsJson(setting.objectSegmentLabels)}};
          auto *drawing=new QPushButton("Object drawing…",this); drawing->setObjectName("editOrbitDrawing"); layout->addWidget(drawing);
          connect(drawing,&QPushButton::clicked,this,[this,originalDrawing,drawing] {
             try {
@@ -470,6 +470,8 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
                }
                const auto labels=qtObjectFlags(objectDrawingEdits.value("@QtObjectLabels",originalDrawing.value("@QtObjectLabels"))),trajectories=qtObjectFlags(objectDrawingEdits.value("@QtObjectTrajectories",originalDrawing.value("@QtObjectTrajectories")));
                QtCameraSetting markers;
+               markers.axesLabels=qtDrawingFlag(objectDrawingEdits.value("@QtAxesLabels",originalDrawing.value("@QtAxesLabels")));
+               markers.frameLabel=qtDrawingFlag(objectDrawingEdits.value("@QtFrameLabel",originalDrawing.value("@QtFrameLabel")));
                markers.objectCenters=qtObjectFlags(objectDrawingEdits.value("@QtObjectCenters",originalDrawing.value("@QtObjectCenters")));
                markers.objectEndpoints=qtObjectFlags(objectDrawingEdits.value("@QtObjectEndpoints",originalDrawing.value("@QtObjectEndpoints")));
                markers.objectAxes=qtObjectFlags(objectDrawingEdits.value("@QtObjectAxes",originalDrawing.value("@QtObjectAxes")));
@@ -1499,7 +1501,8 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
          // Drawing edits may predate a pending object removal in Orbit setup.
          for (auto it=objectDrawingEdits.cbegin();it!=objectDrawingEdits.cend();++it) {
             auto prune=[&](auto &values) { for (auto item=values.begin();item!=values.end();) { if (!selected.contains(item.key())) item=values.erase(item); else ++item; } };
-            if (it.key()=="@QtObjectMarkerSizes") { auto values=qtObjectSizes(it.value()); prune(values); changes.insert(it.key(),qtObjectSizesJson(values)); }
+            if (it.key()=="@QtAxesLabels" || it.key()=="@QtFrameLabel") changes.insert(it.key(),it.value());
+            else if (it.key()=="@QtObjectMarkerSizes") { auto values=qtObjectSizes(it.value()); prune(values); changes.insert(it.key(),qtObjectSizesJson(values)); }
             else if (it.key()=="@QtObjectLineWidths") { auto values=qtObjectWidths(it.value()); prune(values); changes.insert(it.key(),qtObjectWidthsJson(values)); }
             else if (it.key()=="@QtObjectFontSizes") { auto values=qtObjectFontSizes(it.value()); prune(values); changes.insert(it.key(),qtObjectSizesJson(values)); }
             else if (it.key()=="@QtObjectFontPositions") { auto values=qtObjectFontPositions(it.value()); prune(values); changes.insert(it.key(),qtObjectFontPositionsJson(values)); }

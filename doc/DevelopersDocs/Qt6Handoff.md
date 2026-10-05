@@ -20,7 +20,12 @@ brief, not proof of qualification. Recheck the repository before making changes.
 
 ## Current installed application — 2026-10-04
 
-GmatQt is rebuilt at **6,235,016 bytes / SHA 2ef7d511…**.
+GmatQt is rebuilt at **6,260,520 bytes / SHA e823c522…**.
+[Coordinate labels](Qt6ParityValidation/coordinate-labels-20261004.md) now expose
+independent XYZ/origin-name controls, conversion and native/fallback rendering.
+Four affected checks pass after an Apply-map repair; a new short fixture keeps
+its complete numerical report byte-identical. Base/util/Qt startup are unchanged.
+The preceding runtime's
 [Receiver ErrorModels](Qt6ParityValidation/receiver-error-models-20261004.md)
 now supports ordered selection, clearing and reference/source recovery in creation
 and editing. The missing-control baseline is reproduced; its new focused check
@@ -49,12 +54,12 @@ their recorded runtimes and were not repeated for the Help repairs.
 ## Next concrete OF operations — 2026-10-04
 
 The [targeted source review](Qt6ParityValidation/of-remaining-controls-20261004.md)
-identifies two still-active gaps: LastN solver-trajectory retention and independent
-AxesLabels/FrameLabel controls/rendering. LastN currently converts to an enum that
+identifies LastN solver-trajectory retention as the remaining active gap after
+the coordinate-label repair above. LastN currently converts to an enum that
 OrbitView rejects. Preserve the legacy per-object trajectory-count and accepted
 pass cleanup semantics; a warning or mapping LastN to Current is not completion.
-Coordinate labels can use Qt metadata and shared overlays without engine changes.
-These requirements are explicit in the current acceptance map. Do not reopen
+Coordinate labels now use Qt metadata and shared overlays without engine changes.
+The LastN requirement remains explicit in the current acceptance map. Do not reopen
 completed audits or resume live-host testing to investigate them.
 
 ## Current local Rename follow-up — 2026-10-03

@@ -1,0 +1,36 @@
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start 20: QtGui.NativeCoordinateLabels
+1/4 Test #20: QtGui.NativeCoordinateLabels .....   Passed    0.46 sec
+    Start 55: QtGui.ObjectDrawingLayout
+2/4 Test #55: QtGui.ObjectDrawingLayout ........   Passed    0.18 sec
+    Start 59: QtGui.CoordinateLabels
+3/4 Test #59: QtGui.CoordinateLabels ...........***Failed    0.35 sec
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+Invalid per-object display flags: expected named boolean values
+
+    Start 60: QtGui.SegmentLabels
+4/4 Test #60: QtGui.SegmentLabels ..............   Passed    0.39 sec
+
+75% tests passed, 1 tests failed out of 4
+
+Label Time Summary:
+qt-gui    =   1.38 sec*proc (4 tests)
+
+Total Test time (real) =   1.39 sec
+
+The following tests FAILED:
+	 59 - QtGui.CoordinateLabels (Failed)                   qt-gui
+Errors while running CTest
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start 59: QtGui.CoordinateLabels
+1/1 Test #59: QtGui.CoordinateLabels ...........   Passed    0.42 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.42 sec*proc (1 test)
+
+Total Test time (real) =   0.42 sec

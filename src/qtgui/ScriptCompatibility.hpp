@@ -56,6 +56,7 @@ struct QtCameraSetting {
    QMap<QString,double> objectLineWidths;
    QMap<QString,quint32> objectFontSizes;
    QMap<QString,QString> objectFontPositions;
+   std::optional<bool> axesLabels,frameLabel;
 };
 QMap<QString,quint32> qtObjectFontSizes(const QString &json);
 QMap<QString,QString> qtObjectFontPositions(const QString &json);
@@ -73,3 +74,6 @@ QString removeQtCameraSetting(const QString &source,const QString &plot);
 QString setQtCameraSetting(const QString &source,const QString &plot,const QtCameraSetting &setting);
 QString arrayExpressions(const QString &source,const QString &name);
 QString setArrayExpressions(const QString &source,const QString &name,const QString &cells,int rows,int columns);
+
+std::optional<bool> qtDrawingFlag(const QString &value);
+QString qtDrawingFlagText(std::optional<bool> value);

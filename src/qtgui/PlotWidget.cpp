@@ -19,6 +19,7 @@
 #include "OrbitRenderer.hpp"
 #include "OrbitLabels.hpp"
 #include "OrbitSegmentLabels.hpp"
+#include "OrbitCoordinateLabels.hpp"
 #include "OrbitCamera.hpp"
 #include "OrbitObjectAxes.hpp"
 #include "OrbitObjectGuides.hpp"
@@ -284,10 +285,9 @@ void PlotCanvas::paintEvent(QPaintEvent *)
    }
    if (orbit && data->axes) {
       const QColor colors[] = {QColor(235,90,80),QColor(100,215,135),QColor(105,150,255)};
-      const char *names[] = {"X","Y","Z"};
       for (int i=0;i<3;++i) {
          PlotPoint p; if (i==0) p.x=extent; if (i==1) p.y=extent; if (i==2) p.z=extent;
-         const auto end=screen(project(p)); painter.setPen(colors[i]); painter.drawLine(screen(project(PlotPoint{})),end); painter.drawText(end+QPointF(4,-4),names[i]);
+         const auto end=screen(project(p)); painter.setPen(colors[i]); painter.drawLine(screen(project(PlotPoint{})),end);
       }
    }
    if (orbit) {
@@ -451,6 +451,9 @@ void PlotCanvas::paintEvent(QPaintEvent *)
             painter.setPen(curve.color); painter.setBrush(data->wireframe || curve.wireframeObject ? QBrush(Qt::NoBrush) : QBrush(gradient)); painter.drawEllipse(pixel,radius,radius);
          } else { painter.setBrush(object.a->color); painter.drawEllipse(pixel,3.5,3.5); }
       }
+      painter.setPen(foreground);
+      for (const auto &label:orbitCoordinateLabels(*data,extent))
+         if (perspectiveScale(label.pose)>0) painter.drawText(screen(project(label.pose))+QPointF(4,-4),label.text);
       if (data->labels) for (const auto &vector:data->vectors) if (!vector.label.isEmpty())
          if (const auto arrow=orbitVectorArrow(*data,vector,visibleFrame)) {
             PlotPoint point; point.x=arrow->end.x(); point.y=arrow->end.y(); point.z=arrow->end.z();

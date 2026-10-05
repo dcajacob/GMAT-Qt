@@ -30,6 +30,7 @@
 #include <osg/Uniform>
 #include "OrbitLabels.hpp"
 #include "OrbitSegmentLabels.hpp"
+#include "OrbitCoordinateLabels.hpp"
 #include <osg/ComputeBoundsVisitor>
 #include <osg/LightSource>
 #include <osg/Depth>
@@ -215,6 +216,7 @@ struct OrbitRenderer::Scene
    osg::ref_ptr<osg::Program> markerShaders[2]={markerProgram(false),markerProgram(true)};
    osg::ref_ptr<osg::Program> widthShader=wideLineProgram();
    double nativeLineWidthLimit=1;
+   double coordinateAxisExtent=1;
    double zoom=1,yaw=.55,pitch=.45;
    QPointF pan;
    quint64 frame=std::numeric_limits<quint64>::max();
@@ -288,6 +290,7 @@ struct OrbitRenderer::Scene
          if (const auto arrow=orbitVectorArrow(*model,vector,sample,&objects)) for (const auto &point:{arrow->start,arrow->end}) {
             extent=std::max(extent,point.length()); bounds.include(point.x(),point.y(),point.z(),0);
          }
+      coordinateAxisExtent=extent;
       // Preserve the orbit controls and stable replay framing in either projection.
       const double aspect=double(width)/height;
       const auto camera=orbitCamera(*model,frame,yaw,pitch,extent,aspect,&bounds,&objects);
@@ -677,6 +680,15 @@ void OrbitRenderer::drawOverlay(QPainter &painter)
 {
    painter.setPen(QColor(220,225,235));
    painter.drawText(QRectF(10,height()-28,width()-20,22),Qt::AlignCenter,scene->model->coordinates+" · km");
+   {
+      const auto projection=scene->viewer.getCamera()->getViewMatrix()*scene->viewer.getCamera()->getProjectionMatrix();
+      for (const auto &label:orbitCoordinateLabels(*scene->model,scene->coordinateAxisExtent)) {
+         const auto &pose=label.pose;
+         const auto clip=osg::Vec4d(pose.x,pose.y,pose.z,1)*projection;
+         if (clip.w()<=0 || std::abs(clip.x())>clip.w() || std::abs(clip.y())>clip.w() || std::abs(clip.z())>clip.w()) continue;
+         painter.drawText(QPointF((clip.x()/clip.w()+1)*width()/2+4,(1-clip.y()/clip.w())*height()/2-4),label.text);
+      }
+   }
    if (scene->model->labels) {
       const auto projection=scene->viewer.getCamera()->getViewMatrix()*scene->viewer.getCamera()->getProjectionMatrix();
       for (const auto &curve:scene->model->curves) {

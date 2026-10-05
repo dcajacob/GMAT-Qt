@@ -1579,7 +1579,7 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
    const auto name=QString::fromStdString(resource.GetName());
    QMap<QString,QString> changes=requested;
    if (changes.isEmpty()) return applyModelScript(expectedScript);
-   const QStringList objectDrawingKeys={"@QtObjectLabels","@QtObjectTrajectories","@QtObjectCenters","@QtObjectEndpoints","@QtObjectMarkerSizes","@QtObjectLineWidths","@QtObjectFontSizes","@QtObjectFontPositions","@QtObjectAxes","@QtObjectGrids","@QtObjectXYPlanes","@QtObjectVelocities","@QtObjectSegmentLabels"};
+   const QStringList objectDrawingKeys={"@QtAxesLabels","@QtFrameLabel","@QtObjectLabels","@QtObjectTrajectories","@QtObjectCenters","@QtObjectEndpoints","@QtObjectMarkerSizes","@QtObjectLineWidths","@QtObjectFontSizes","@QtObjectFontPositions","@QtObjectAxes","@QtObjectGrids","@QtObjectXYPlanes","@QtObjectVelocities","@QtObjectSegmentLabels"};
    const bool objectDrawing=std::any_of(objectDrawingKeys.cbegin(),objectDrawingKeys.cend(),[&](const auto &key) { return changes.contains(key); });
    if (objectDrawing && !object->IsOfType("OrbitView")) return "Object drawing settings belong to an OrbitView.";
    QMap<QString,QString> external;
@@ -1852,6 +1852,8 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
       }
       if (objectDrawing) {
          auto setting=qtCameraSettings(candidate).value(name);
+         if (changes.contains("@QtAxesLabels")) setting.axesLabels=qtDrawingFlag(changes.value("@QtAxesLabels"));
+         if (changes.contains("@QtFrameLabel")) setting.frameLabel=qtDrawingFlag(changes.value("@QtFrameLabel"));
          if (changes.contains("@QtObjectLabels")) setting.objectLabels=qtObjectFlags(changes.value("@QtObjectLabels"));
          if (changes.contains("@QtObjectTrajectories")) setting.objectTrajectories=qtObjectFlags(changes.value("@QtObjectTrajectories"));
          if (changes.contains("@QtObjectCenters")) setting.objectCenters=qtObjectFlags(changes.value("@QtObjectCenters"));

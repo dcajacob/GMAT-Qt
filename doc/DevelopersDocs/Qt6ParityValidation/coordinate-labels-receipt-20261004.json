@@ -1,0 +1,22 @@
+{
+  "app": {
+    "path": "/home/dan/GIT/GMAT-Qt/application/bin/GmatQt",
+    "bytes": 6260520,
+    "sha256": "e823c522d793e1c7004123f8bfb994732339b9ffea460c4b3946ac7e71e9f9ab"
+  },
+  "base": {
+    "path": "/home/dan/GIT/GMAT-Qt/application/bin/libGmatBase.so",
+    "bytes": 25040656,
+    "sha256": "2082a341f5f123e81bad362972cd2b28a0a4753047ae51b5c09609e246be430c"
+  },
+  "util": {
+    "path": "/home/dan/GIT/GMAT-Qt/application/bin/libGmatUtil.so",
+    "bytes": 2929904,
+    "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+  },
+  "qt_startup": {
+    "path": "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt",
+    "bytes": 10260,
+    "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+  }
+}

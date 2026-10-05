@@ -4,6 +4,7 @@
 #include "Moderator.hpp"
 #include "GmatBase.hpp"
 #include <QVBoxLayout>
+#include <QFormLayout>
 #include <QTableWidget>
 #include <QHeaderView>
 #include <QComboBox>
@@ -90,7 +91,15 @@ OrbitObjectDrawingDialog::OrbitObjectDrawingDialog(const QStringList &names,cons
          guides->setCellWidget(row,column,choice);
       }
    }
-   auto *tabs=new QTabWidget(this); tabs->setObjectName("orbitDrawingTabs"); tabs->addTab(objects,"Paths and labels"); tabs->addTab(markers,"Markers"); tabs->addTab(fonts,"Label style"); tabs->addTab(guides,"Body guides"); layout->addWidget(tabs,1);
+   auto *framePage=new QWidget(this); auto *frameLayout=new QFormLayout(framePage);
+   auto *frameHelp=new QLabel("These labels describe the display coordinate system. Axes labels show X, Y and Z when Axes is On; Default is On. Reference frame labels the origin, even when Axes is Off; Default is Off. Both are independent of the object Show labels switch.",framePage);
+   frameHelp->setWordWrap(true); frameLayout->addRow(frameHelp);
+   axesLabels=new QComboBox(framePage); axesLabels->setObjectName("orbitDrawing_axesLabels"); axesLabels->addItems({"Default","On","Off"});
+   frameLabel=new QComboBox(framePage); frameLabel->setObjectName("orbitDrawing_frameLabel"); frameLabel->addItems({"Default","On","Off"});
+   axesLabels->setCurrentText(qtDrawingFlagText(drawing ? drawing->axesLabels : std::nullopt));
+   frameLabel->setCurrentText(qtDrawingFlagText(drawing ? drawing->frameLabel : std::nullopt));
+   frameLayout->addRow("Axes labels",axesLabels); frameLayout->addRow("Reference frame",frameLabel);
+   auto *tabs=new QTabWidget(this); tabs->setObjectName("orbitDrawingTabs"); tabs->addTab(objects,"Paths and labels"); tabs->addTab(markers,"Markers"); tabs->addTab(fonts,"Label style"); tabs->addTab(guides,"Body guides"); tabs->addTab(framePage,"Frame labels"); layout->addWidget(tabs,1);
    auto *status=new QLabel(this); status->setObjectName("orbitDrawingStatus"); status->setWordWrap(true); layout->addWidget(status);
    auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,this); layout->addWidget(buttons);
    connect(buttons,&QDialogButtonBox::accepted,this,[this,status] { try { settings(); accept(); } catch (const std::exception &error) { status->setText(QString::fromUtf8(error.what())); } }); connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);
@@ -145,5 +154,5 @@ QMap<QString,QString> OrbitObjectDrawingDialog::settings() const
       const auto *choice=qobject_cast<QComboBox *>(guides->cellWidget(row,column));
       if (choice->currentIndex()) (column==1 ? axes : column==2 ? grids : planes).insert(guides->item(row,0)->text(),choice->currentIndex()==1);
    }
-   return {{"@QtObjectSegmentLabels",qtObjectFlagsJson(segmentLabels)},{"@QtObjectVelocities",qtObjectFlagsJson(velocities)},{"@QtObjectAxes",qtObjectFlagsJson(axes)},{"@QtObjectGrids",qtObjectFlagsJson(grids)},{"@QtObjectXYPlanes",qtObjectFlagsJson(planes)},{"@QtObjectLabels",qtObjectFlagsJson(labels)},{"@QtObjectTrajectories",qtObjectFlagsJson(trajectories)},{"@QtObjectCenters",qtObjectFlagsJson(centers)},{"@QtObjectEndpoints",qtObjectFlagsJson(endpoints)},{"@QtObjectMarkerSizes",qtObjectSizesJson(sizes)},{"@QtObjectLineWidths",qtObjectWidthsJson(widths)},{"@QtObjectFontSizes",qtObjectSizesJson(fontSizes)},{"@QtObjectFontPositions",qtObjectFontPositionsJson(fontPositions)}};
+   return {{"@QtAxesLabels",axesLabels->currentText()},{"@QtFrameLabel",frameLabel->currentText()},{"@QtObjectSegmentLabels",qtObjectFlagsJson(segmentLabels)},{"@QtObjectVelocities",qtObjectFlagsJson(velocities)},{"@QtObjectAxes",qtObjectFlagsJson(axes)},{"@QtObjectGrids",qtObjectFlagsJson(grids)},{"@QtObjectXYPlanes",qtObjectFlagsJson(planes)},{"@QtObjectLabels",qtObjectFlagsJson(labels)},{"@QtObjectTrajectories",qtObjectFlagsJson(trajectories)},{"@QtObjectCenters",qtObjectFlagsJson(centers)},{"@QtObjectEndpoints",qtObjectFlagsJson(endpoints)},{"@QtObjectMarkerSizes",qtObjectSizesJson(sizes)},{"@QtObjectLineWidths",qtObjectWidthsJson(widths)},{"@QtObjectFontSizes",qtObjectSizesJson(fontSizes)},{"@QtObjectFontPositions",qtObjectFontPositionsJson(fontPositions)}};
 }

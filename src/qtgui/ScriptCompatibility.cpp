@@ -355,7 +355,11 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
       for (auto line=settings.cbegin();line!=settings.cend();++line) {
          if (line->first!=it.key()) continue;
          const auto property=line->second,value=assignment.match(codePart(lines[line.key()])).captured(3).trimmed();
-         if (property=="Vector") {
+         if (property=="AxesLabels" || property=="FrameLabel") {
+            const auto flag=stringValue(value);
+            if (flag!="On" && flag!="Off") { result.error=it.key()+"."+property+": expected On or Off."; return result; }
+            (property=="AxesLabels" ? display.axesLabels : display.frameLabel)=flag=="On";
+         } else if (property=="Vector") {
             const bool array=value.startsWith('{') && value.endsWith('}');
             if (!array && !vectorIdentifier.match(value).hasMatch()) { result.error=it.key()+".Vector: expected a vector name or braced list."; return result; }
             if (array) display.vectors.clear();
@@ -442,9 +446,9 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
       if (!settings.contains(i)) { output.append(lines[i]); continue; }
       const auto name=settings[i].first,key=settings[i].second;
       if (types[name]=="OpenFramesInterface" && common.contains(key)) output.append(lines[i]);
-      else if (types[name]=="OpenFramesInterface" && (key=="DrawLabel" || key=="DrawTrajectory" || key=="DrawCenterPoint" || key=="DrawEndPoints" || key=="DrawMarkerSize" || key=="DrawLineWidth" || key=="DrawFontSize" || key=="DrawFontPosition" || key=="DrawAxes" || key=="DrawGrid" || key=="DrawXYPlane" || key=="DrawVelocity" || key=="DrawUsePropLabel")) {
+      else if (types[name]=="OpenFramesInterface" && (key=="DrawLabel" || key=="DrawTrajectory" || key=="DrawCenterPoint" || key=="DrawEndPoints" || key=="DrawMarkerSize" || key=="DrawLineWidth" || key=="DrawFontSize" || key=="DrawFontPosition" || key=="DrawAxes" || key=="DrawGrid" || key=="DrawXYPlane" || key=="DrawVelocity" || key=="DrawUsePropLabel" || key=="AxesLabels" || key=="FrameLabel")) {
          output.append("% Qt conversion: "+lines[i]);
-         result.notes.append(name+"."+key+": independent per-object drawing retained in Qt metadata.");
+         result.notes.append(name+"."+key+((key=="AxesLabels" || key=="FrameLabel") ? ": coordinate label setting retained in Qt metadata." : ": independent per-object drawing retained in Qt metadata."));
       } else {
          output.append("% Qt conversion: "+lines[i]);
          if (types[name]=="OpenFramesInterface" && key=="Vector") result.notes.append(name+".Vector: source/destination pointing, body-fixed pose, color/label and Auto/Manual length retained in Qt metadata.");
@@ -504,6 +508,8 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
       cameraSetting.objectXYPlanes=displaySettings.value(plot).objectXYPlanes;
       cameraSetting.objectVelocities=displaySettings.value(plot).objectVelocities;
       cameraSetting.objectSegmentLabels=displaySettings.value(plot).objectSegmentLabels;
+      cameraSetting.axesLabels=displaySettings.value(plot).axesLabels;
+      cameraSetting.frameLabel=displaySettings.value(plot).frameLabel;
       cameraSetting.objectMarkerSizes=displaySettings.value(plot).objectMarkerSizes;
       cameraSetting.objectLineWidths=displaySettings.value(plot).objectLineWidths;
       cameraSetting.objectFontSizes=displaySettings.value(plot).objectFontSizes;
@@ -618,6 +624,8 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
 QString qtCameraDirective(const QString &plot,const QtCameraSetting &setting)
 {
    QJsonObject object{{"plot",plot},{"perspective",setting.perspective},{"fieldOfView",setting.fieldOfView}};
+   if (setting.axesLabels) object.insert("axesLabels",*setting.axesLabels);
+   if (setting.frameLabel) object.insert("frameLabel",*setting.frameLabel);
    if (setting.reset) object.insert("reset",resetJson(*setting.reset));
    if (setting.up) object.insert("up",QJsonArray{(*setting.up)[0],(*setting.up)[1],(*setting.up)[2]});
    if (setting.bodyRelative) object.insert("bodyRelative",true);
@@ -679,6 +687,10 @@ QMap<QString,QtCameraSetting> qtCameraSettings(const QString &source)
           !object.value("perspective").isBool() || !std::isfinite(fov) || fov<1 || fov>150 || result.contains(name))
          throw std::runtime_error("Invalid or duplicate GMAT-Qt-Camera comment: expected a plot name, perspective boolean and fieldOfView from 1 to 150 degrees");
       QtCameraSetting setting{object.value("perspective").toBool(),fov};
+      for (const auto &key:QStringList{"axesLabels","frameLabel"}) if (object.contains(key)) {
+         if (!object.value(key).isBool()) throw std::runtime_error("Coordinate label settings must be booleans");
+         (key=="axesLabels" ? setting.axesLabels : setting.frameLabel)=object.value(key).toBool();
+      }
       if (object.contains("reset")) setting.reset=resetSetting(object.value("reset"));
       if (object.contains("up")) {
          const auto array=object.value("up").toArray();
@@ -928,4 +940,16 @@ QString setArrayExpressions(const QString &source,const QString &name,const QStr
    const auto position=mission.capturedEnd();
    result.insert(position,(position && source[position-1]!='\n' ? "\n" : "")+replacement);
    return result;
+}
+
+std::optional<bool> qtDrawingFlag(const QString &value)
+{
+   if (value=="Default") return std::nullopt;
+   if (value=="On") return true;
+   if (value=="Off") return false;
+   throw std::runtime_error("Choose Default, On or Off for coordinate labels");
+}
+QString qtDrawingFlagText(std::optional<bool> value)
+{
+   return value ? (*value ? "On" : "Off") : "Default";
 }

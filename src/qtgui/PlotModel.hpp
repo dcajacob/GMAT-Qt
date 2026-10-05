@@ -168,6 +168,7 @@ struct PlotModel
    QImage map;
    bool grid = true, legend = true, labels = true, penDown = true, active = true;
    bool axes = true;
+   bool axesLabels=true,frameLabel=false;
    bool xyPlane=false,eclipticPlane=false,wireframe=false,sunLine=false;
    bool footprints=false;
    bool sunlight = true;

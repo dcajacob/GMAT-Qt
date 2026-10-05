@@ -454,6 +454,8 @@ void QtPlotReceiver::SetGl3dDrawingOption(const std::string &name,bool labels,bo
       auto &data=*entry->data;
       entry->useInitialView=useInitial;
       data.labels=labels; data.axes=axes; data.grid=grid;
+      const auto drawing=cameraSettings.value(text(name));
+      data.axesLabels=drawing.axesLabels.value_or(true); data.frameLabel=drawing.frameLabel.value_or(false);
       data.xyPlane=xy; data.eclipticPlane=ec; data.wireframe=wire; data.sunLine=sun;
       data.constellationsEnabled=constellations;
       data.starsEnabled=stars; data.starCount=static_cast<int>(std::clamp<Integer>(count,0,std::numeric_limits<int>::max()));
