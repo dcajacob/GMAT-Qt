@@ -1,0 +1,33 @@
+UpdateCTestConfiguration  from :/home/dan/GIT/GMAT-Qt/build/linux-gui/DartConfiguration.tcl
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 62
+    Start 62: QtGui.SensorMaskEditor
+
+62: Test command: /usr/bin/python3 "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtSensorMaskEditorTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+62: Working Directory: /home/dan/GIT/GMAT-Qt/application/bin
+62: Test timeout computed to be: 60
+62: This plugin does not support propagateSizeHints()
+62: Sensor editor build failed:
+62: Invalid primary camera name
+1/1 Test #62: QtGui.SensorMaskEditor ...........***Failed    0.25 sec
+This plugin does not support propagateSizeHints()
+Sensor editor build failed:
+Invalid primary camera name
+
+
+0% tests passed, 1 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.25 sec*proc (1 test)
+
+Total Test time (real) =   0.25 sec
+
+The following tests FAILED:
+	 62 - QtGui.SensorMaskEditor (Failed)                   qt-gui
+Errors while running CTest

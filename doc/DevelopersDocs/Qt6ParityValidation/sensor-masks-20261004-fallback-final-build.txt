@@ -1,0 +1,2 @@
+[1/2] Building CXX object src/qtgui/CMakeFiles/GmatQtSensorMaskRenderingTests.dir/tests/SensorMaskRenderingTests.cpp.o
+[2/2] Linking CXX executable src/qtgui/GmatQtSensorMaskRenderingTests

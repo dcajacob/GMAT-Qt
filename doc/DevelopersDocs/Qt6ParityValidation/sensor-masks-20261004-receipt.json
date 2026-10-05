@@ -1,0 +1,297 @@
+{
+  "date": "2026-10-04",
+  "source_base": "de0ed4e2ad7672a13dd3feb3e92ed329d0bf2d49",
+  "scope": "Linux offscreen and private Xvfb software GL; no host/GPU qualification",
+  "runtime": {
+    "application/bin/GmatQt": {
+      "bytes": 6432232,
+      "sha256": "d27a4103f7916d313870ca3ac4512d9fdde832f8800507dc311bd5e3b9d22052"
+    },
+    "application/bin/libGmatBase.so": {
+      "bytes": 25040656,
+      "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e"
+    },
+    "application/bin/libGmatUtil.so": {
+      "bytes": 2929904,
+      "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+    },
+    "application/bin/gmat_startup_qt.txt": {
+      "bytes": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    }
+  },
+  "source": {
+    "src/qtgui/CMakeLists.txt": {
+      "bytes": 52489,
+      "sha256": "1590d38248651fa46a33fa5c61e53dc00a6810e131ebceff8fce76506631d98e"
+    },
+    "src/qtgui/MainWindow.cpp": {
+      "bytes": 185292,
+      "sha256": "b957ea2dec20e3a75693e4c929b708ac84d12d6a1ec34812874c2fd76dbf8917"
+    },
+    "src/qtgui/OrbitRenderer.cpp": {
+      "bytes": 47278,
+      "sha256": "11924b2392bdc7df17b840573b81a4764750d45bf50625c34edd749d36d4a877"
+    },
+    "src/qtgui/PlotModel.hpp": {
+      "bytes": 7716,
+      "sha256": "65c5318023acb27468a4fa7be47aeade16eb37dae7ff2ec60a95517b8e206552"
+    },
+    "src/qtgui/PlotWidget.cpp": {
+      "bytes": 68676,
+      "sha256": "e45448fb9c1610c456df4a9d72fcabfc21416da94a7745128198cefc593d9fa2"
+    },
+    "src/qtgui/QtPlotReceiver.cpp": {
+      "bytes": 88509,
+      "sha256": "a1531db70b65d9502e1c1d0ddb8463b06a3eb29d5da1a2cf26ae2ba0eee9ce8e"
+    },
+    "src/qtgui/ResourceEditor.cpp": {
+      "bytes": 126597,
+      "sha256": "827ffa3df967d4bcb90fa240ddbe981d2248e140b2c0918652614637f6d8fd35"
+    },
+    "src/qtgui/ResourceRename.cpp": {
+      "bytes": 27202,
+      "sha256": "d8acd77af17b05230e32daf29730053c3dab42df2b9fb813930e9461fdde26cd"
+    },
+    "src/qtgui/ScriptCompatibility.cpp": {
+      "bytes": 78701,
+      "sha256": "7ec51dd13437934e567f6f2d5dc8a83a85f307401b8c5a3e6dfc40a2cfccd25e"
+    },
+    "src/qtgui/ScriptCompatibility.hpp": {
+      "bytes": 3788,
+      "sha256": "1592a0ff025c7830c121a8b347cf104c9fb1699f60154d40ab09c2613b7c84d1"
+    },
+    "src/qtgui/OrbitSensorMaskDialog.cpp": {
+      "bytes": 6490,
+      "sha256": "920faf0bce9db0a59c5b145e867398de8eef55e19d6236b11f268a47dcd964ac"
+    },
+    "src/qtgui/OrbitSensorMaskDialog.hpp": {
+      "bytes": 436,
+      "sha256": "564240c52f5c1e7e8b08873c885d4cdff07056263c547d4c7097292d9be67cf8"
+    },
+    "src/qtgui/OrbitSensorMasks.hpp": {
+      "bytes": 2517,
+      "sha256": "2af17e14f1187807cd7a81d4c2df425fe2b751bea51edf25cc6fcd16cfc147a9"
+    },
+    "src/qtgui/tests/SensorMaskBackendTests.cpp": {
+      "bytes": 12888,
+      "sha256": "4f43b2ed3f153870508e67c00d2eff052531851c002b3060477175b154d6d202"
+    },
+    "src/qtgui/tests/SensorMaskEditorTests.cpp": {
+      "bytes": 17621,
+      "sha256": "383da3c445407f77a9c046030363e1252842b3039582b855029110f354e5c206"
+    },
+    "src/qtgui/tests/SensorMaskRenderingTests.cpp": {
+      "bytes": 11772,
+      "sha256": "68ec99bcaef8aa1e574f45819443f2756837834088e35a601587a963fd2154c8"
+    }
+  },
+  "raw_artifacts": {
+    "build-final.txt": {
+      "bytes": 6553,
+      "sha256": "d1419af7fde110ee39f46d0d4aaf15f36a7de2a409be58bb9a4c5c776bce59f9"
+    },
+    "build-first.txt": {
+      "bytes": 8197,
+      "sha256": "2dd0764e14c56cc97160f92f8f86e54dbf36a533d2b67e827e5fa7acea25a052"
+    },
+    "checks-first.txt": {
+      "bytes": 7702,
+      "sha256": "1a50aeed90a19ccf9a495daafb447fcdfffb3e94b17df6ae8aad67570f8f7918"
+    },
+    "editor-applied.script": {
+      "bytes": 1396,
+      "sha256": "7b703632f0422ababf5ed9694695f14365bace347041dc9c1941c09c74d618a9"
+    },
+    "editor-build-failure.script": {
+      "bytes": 1164,
+      "sha256": "36d5699c05153426b7ae4a8bd27888e381d43618a800202932a6917053af285d"
+    },
+    "editor-build-failure.txt": {
+      "bytes": 27,
+      "sha256": "bcc97db10c3f6b90da47a0f624a95517b2ff37bf45fa04a294465bc762a6280d"
+    },
+    "editor-diagnostic-build.txt": {
+      "bytes": 475,
+      "sha256": "a8ca37a80f45a677ec032f154581b7757aacda8c755a782d92ee90c7672dd917"
+    },
+    "editor-diagnostic-failure.txt": {
+      "bytes": 1337,
+      "sha256": "8d6a3d423b96b43ff74b579b4acd610b0e7cdd837ba622bda0c35e812d764037"
+    },
+    "editor-diagnostic.txt": {
+      "bytes": 1337,
+      "sha256": "8d6a3d423b96b43ff74b579b4acd610b0e7cdd837ba622bda0c35e812d764037"
+    },
+    "editor-final-build.txt": {
+      "bytes": 475,
+      "sha256": "a8ca37a80f45a677ec032f154581b7757aacda8c755a782d92ee90c7672dd917"
+    },
+    "editor-final-ctest.txt": {
+      "bytes": 2008,
+      "sha256": "e7ae0fe10263fa0c08d8c1384312e2b975f1507f995c3720ab07e2f434cac45a"
+    },
+    "editor-final.txt": {
+      "bytes": 2008,
+      "sha256": "e7ae0fe10263fa0c08d8c1384312e2b975f1507f995c3720ab07e2f434cac45a"
+    },
+    "editor-initial.script": {
+      "bytes": 1160,
+      "sha256": "268c274fd2b07068f988acf544c579e0f2a5672a93d11236cc05d5fa029dbe54"
+    },
+    "editor-pending-dialog.png": {
+      "bytes": 45175,
+      "sha256": "2ca574507650995327cce95134a818a88205843091cfdf18068026b8d1db7e39"
+    },
+    "editor-renamed.script": {
+      "bytes": 1424,
+      "sha256": "34f5c07eb8cc36850f7a971dd4dad19277eb082a9b7e2f93567037d60eca77bf"
+    },
+    "fallback-blank.png": {
+      "bytes": 3890,
+      "sha256": "a3649af1a5028ceca0e190b8f3ce455f85a865693c8b3a82bfb02a1cf7785b8c"
+    },
+    "fallback-conical.png": {
+      "bytes": 11669,
+      "sha256": "cf9c047c1d942e54f70710a61fe2df7786961f189ebead21e4b77ae3be04b34c"
+    },
+    "fallback-custom.png": {
+      "bytes": 6612,
+      "sha256": "e3983befc8da6007d644ca7710032be5aa9bcef8bdaf16a56ff369931644d3fd"
+    },
+    "fallback-final-build.txt": {
+      "bytes": 189,
+      "sha256": "d9b92b59472f6f3d72f21ee579d1d81b9a05d0005decb62e228b9702c0aaf263"
+    },
+    "fallback-final.txt": {
+      "bytes": 300,
+      "sha256": "c9b9ed022b13579c6fe3ff36b505502f3b1f6cf8123b5d39b9c4ec956708a4c7"
+    },
+    "fallback-first-failure.png": {
+      "bytes": 7588,
+      "sha256": "32cc3fe323a97eb879747ecbcc2634eb18f1c1fa3da7bb66e5c04d4b40194a54"
+    },
+    "fallback-label.png": {
+      "bytes": 8924,
+      "sha256": "23e03d3c9b37968167f8324caf1e757b43f4d01dfa01f372776b9e9fd01c39c6"
+    },
+    "fallback-rectangle-auto.png": {
+      "bytes": 5132,
+      "sha256": "7f8d2536359ff094634f2cab895668ace2d8fb81a0d3c2a5c6a5e70cd159db52"
+    },
+    "fallback-rectangle-faint.png": {
+      "bytes": 5351,
+      "sha256": "a08cf36347ccca070ebad8d359b13e992236d1fa16c42ef5c7a093f178d4903a"
+    },
+    "fallback-rectangle-interpolated.png": {
+      "bytes": 7173,
+      "sha256": "660c8802b67a2098e8bd85467b852aa07f566be1d49586722041b8d88a966296"
+    },
+    "fallback-rectangle-manual.png": {
+      "bytes": 7588,
+      "sha256": "32cc3fe323a97eb879747ecbcc2634eb18f1c1fa3da7bb66e5c04d4b40194a54"
+    },
+    "fallback-rectangle-no-edges.png": {
+      "bytes": 6073,
+      "sha256": "801e199e2f902a93f377faaf8219f1e59abf45836bacac751298670540b050c8"
+    },
+    "fallback-rectangle-replay.png": {
+      "bytes": 7327,
+      "sha256": "f7abcc74fc0fed663f6cbf49aead21a001058e6e198f0892a6bd9c6ea95a4917"
+    },
+    "first-ctest-failures.txt": {
+      "bytes": 7702,
+      "sha256": "1a50aeed90a19ccf9a495daafb447fcdfffb3e94b17df6ae8aad67570f8f7918"
+    },
+    "mask-free.report": {
+      "bytes": 131,
+      "sha256": "c122bfc4ca5060f14ab0ad5fbe7e9fdf110cbda79217becc1ea34f0964e86502"
+    },
+    "mask-free.script": {
+      "bytes": 3502,
+      "sha256": "c6b17f151c432c473c64dd42bbe67044f3cb7fff2be70564bc54af8be22f6c88"
+    },
+    "native-blank.png": {
+      "bytes": 4271,
+      "sha256": "a5a84e8adb13499aa55857d6f1990171d9b033282e7787bdbe8321aafa4f754e"
+    },
+    "native-conical.png": {
+      "bytes": 4818,
+      "sha256": "dadf4dbb65c0cd1ec4382c9476b9ebd6f495e955a4c5793f9b2e65bbeacc50bc"
+    },
+    "native-custom.png": {
+      "bytes": 4915,
+      "sha256": "4e99b236a84b1a00103e98c684929910154c9e667796b8d03bebe45c9ed7c054"
+    },
+    "native-label.png": {
+      "bytes": 6371,
+      "sha256": "a58381a22e1ec7995cad44666eef989def0dcf5407d7a4bb709d3d58719df332"
+    },
+    "native-rectangle-auto.png": {
+      "bytes": 4690,
+      "sha256": "49f1387de9c97f4d15b199f5e723af3e6ec668fb289eb09f1a1164ee754b9bd7"
+    },
+    "native-rectangle-faint.png": {
+      "bytes": 4824,
+      "sha256": "5cdb5314bba11d19cdf4b9775e09056a5eeaf8ceddce6a0026bbec0f9eb324f3"
+    },
+    "native-rectangle-interpolated.png": {
+      "bytes": 5149,
+      "sha256": "b681edb8a73846e445cfc0430bef7bbdc94e171a5cef2700387c6e311a56a05f"
+    },
+    "native-rectangle-manual.png": {
+      "bytes": 5159,
+      "sha256": "792d58476b4ae3b3d48cb1744cb07624ac20a21db3b2cf715a4df1348c1105cb"
+    },
+    "native-rectangle-no-edges.png": {
+      "bytes": 4857,
+      "sha256": "8f2c13bc0d0e3c39fac2889053f47d3b96d36c3125b3bf865f974f27dffb13dc"
+    },
+    "native-rectangle-replay.png": {
+      "bytes": 5077,
+      "sha256": "f45d25a0f2b8b6d582f71fc0565148125e46f2b7e658847b2f5dbd2af51a17f2"
+    },
+    "sensor-masks.report": {
+      "bytes": 131,
+      "sha256": "c122bfc4ca5060f14ab0ad5fbe7e9fdf110cbda79217becc1ea34f0964e86502"
+    },
+    "sensor-masks.script": {
+      "bytes": 4018,
+      "sha256": "25121210d0b8507434d1825fc11733a23996f0d87fd410ae03f4e60e61c2d642"
+    }
+  },
+  "checks": {
+    "QtGui.SensorMaskBackend": {
+      "seconds": 0.32,
+      "result": "PASS"
+    },
+    "QtGui.SensorMaskEditor": {
+      "seconds": 0.46,
+      "result": "PASS"
+    },
+    "QtGui.SensorMaskRendering": {
+      "seconds": 0.8,
+      "result": "PASS"
+    },
+    "QtGui.NativeSensorMasks": {
+      "seconds": 1.04,
+      "result": "PASS"
+    },
+    "QtGui.NativeVectors": {
+      "seconds": 1.41,
+      "result": "PASS"
+    },
+    "QtGui.ResourceRename": {
+      "seconds": 0.65,
+      "result": "PASS"
+    },
+    "QtGui.OpenFramesVectors": {
+      "seconds": 0.44,
+      "result": "PASS"
+    }
+  },
+  "raw_archive": {
+    "bytes": 158919,
+    "sha256": "ee78bbb3e9422573381382cfdad086e3c0a4cecadd535f18f99f3f4703a97ead"
+  }
+}

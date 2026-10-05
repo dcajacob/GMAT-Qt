@@ -1,0 +1,116 @@
+UpdateCTestConfiguration  from :/home/dan/GIT/GMAT-Qt/build/linux-gui/DartConfiguration.tcl
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 1
+    Start  1: QtGui.NativeVectors
+
+1: Test command: /usr/bin/xvfb-run "-a" "/usr/bin/cmake" "-E" "env" "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1" "QT_SCALE_FACTOR=1" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtNativeVectorRenderingTests"
+1: Working Directory: /home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui
+1: Test timeout computed to be: 60
+1: Private xcb OpenGL renderer: llvmpipe (LLVM 21.1.8, 256 bits)
+1: relative-manual: color pixels=169, blank differences=169
+1: relative-manual replay: color pixels=174, blank differences=174
+1: relative-auto: color pixels=60, blank differences=60
+1: relative-auto replay: color pixels=60, blank differences=60
+1: body-manual: color pixels=166, blank differences=166
+1: body-manual replay: color pixels=168, blank differences=168
+1: body-auto: color pixels=59, blank differences=59
+1: body-auto replay: color pixels=60, blank differences=60
+1: relative recolored: color pixels=169, blank differences=169
+1: combined relative: color pixels=174, blank differences=342
+1: combined body: color pixels=168, blank differences=342
+1: PASS native Relative Position/Body-Fixed shafts and heads, Auto/Manual analytic lengths, color/labels, recorded replay, invalid hiding/removal and unchanged retained data. Private Xvfb/software GL only; no host/GPU qualification.
+1/7 Test  #1: QtGui.NativeVectors ..............   Passed    1.41 sec
+test 18
+    Start 18: QtGui.ResourceRename
+
+18: Test command: /usr/bin/python3 "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtResourceRenameTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+18: Working Directory: /home/dan/GIT/GMAT-Qt/application/bin
+18: Test timeout computed to be: 60
+18: This plugin does not support propagateSizeHints()
+18: This plugin does not support propagateSizeHints()
+18: This plugin does not support raise()
+18: This plugin does not support grabbing the keyboard
+18: This plugin does not support propagateSizeHints()
+18: This plugin does not support propagateSizeHints()
+18: PASS safe main-only Rename with unrelated/nested literal includes and aliased/nested GMFs, known reports12/10, exact atomic Undo/Redo/Unicode reopen, include-owned refusal, old/proposed/companion-FM reference guards, missing/unreadable/dynamic/cyclic/unresolved dependencies, unchanged external file bytes and rejected model/source/Undo.
+18: PASS actual Rename/F2/context popup destruction, Cancel/correction/protection/source literals, typed resource and dependent frame references, nested commands/array indices/formulas/markers, PropSetup owned FM, Qt metadata, exact Undo/Redo/Unicode reopen and independent calculation; external documents explicitly deferred.
+2/7 Test #18: QtGui.ResourceRename .............   Passed    0.65 sec
+test 21
+    Start 21: QtGui.NativeSensorMasks
+
+21: Test command: /usr/bin/xvfb-run "-a" "/usr/bin/cmake" "-E" "env" "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1" "QT_SCALE_FACTOR=1" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtSensorMaskRenderingTests" "--native"
+21: Working Directory: /home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui
+21: Test timeout computed to be: 60
+21: Private OpenGL renderer: llvmpipe (LLVM 21.1.8, 256 bits)
+21: PASS sensor-mask axial geometry, mount/body rotation, Auto/Manual bounds, rectangular/conical/custom sides, alpha, white outline/radial edges, independent label, recorded/interpolated replay, absent/hidden/removal and frozen data. Private Xvfb/software GL only.
+3/7 Test #21: QtGui.NativeSensorMasks ..........   Passed    1.04 sec
+test 61
+    Start 61: QtGui.SensorMaskBackend
+
+61: Test command: /usr/bin/python3 "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtSensorMaskBackendTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+61: Working Directory: /home/dan/GIT/GMAT-Qt/application/bin
+61: Test timeout computed to be: 60
+61: This plugin does not support propagateSizeHints()
+61: PASS mask declarations/order/defaults/strict JSON/source rejection, three FOV shapes, axial mount/color/Auto bounds/global references, invalid reference recovery, replay/Output/replaced-engine lifetime and identical new complete 20-second report (131 bytes).
+4/7 Test #61: QtGui.SensorMaskBackend ..........   Passed    0.32 sec
+test 62
+    Start 62: QtGui.SensorMaskEditor
+
+62: Test command: /usr/bin/python3 "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtSensorMaskEditorTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+62: Working Directory: /home/dan/GIT/GMAT-Qt/application/bin
+62: Test timeout computed to be: 60
+62: This plugin does not support propagateSizeHints()
+62: Sensor editor build failed:
+62:
+5/7 Test #62: QtGui.SensorMaskEditor ...........***Failed    0.17 sec
+This plugin does not support propagateSizeHints()
+Sensor editor build failed:
+
+
+test 63
+    Start 63: QtGui.SensorMaskRendering
+
+63: Test command: /usr/bin/python3 "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtSensorMaskRenderingTests"
+63: Working Directory: /home/dan/GIT/GMAT-Qt/application/bin
+63: Environment variables:
+63:  QT_SCALE_FACTOR=1
+63: Test timeout computed to be: 60
+63: Rectangular base outline absent at analytic near-edge midpoint
+6/7 Test #63: QtGui.SensorMaskRendering ........***Failed    0.28 sec
+Rectangular base outline absent at analytic near-edge midpoint
+
+test 71
+    Start 71: QtGui.OpenFramesVectors
+
+71: Test command: /usr/bin/python3 "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtOpenFramesVectorTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+71: Working Directory: /home/dan/GIT/GMAT-Qt/application/bin
+71: Test timeout computed to be: 60
+71: This plugin does not support propagateSizeHints()
+71: This plugin does not support propagateSizeHints()
+71: PASS: all three regular shipped vector conversions; original mission/source and independent numerical report; scalar/list selection, Relative Position/Body-Fixed, named/RGB color and labels, Auto/Manual lengths, model bounds, hidden Sun/Luna endpoints in inertial/rotating frames, replay after engine replacement, retention/clear and fallback colored shaft/head replay. Unsupported/dynamic vectors remain precise errors. Offscreen only; native renderer pixels not exercised.
+7/7 Test #71: QtGui.OpenFramesVectors ..........   Passed    0.44 sec
+
+The following tests passed:
+	QtGui.NativeVectors
+	QtGui.ResourceRename
+	QtGui.NativeSensorMasks
+	QtGui.SensorMaskBackend
+	QtGui.OpenFramesVectors
+
+71% tests passed, 2 tests failed out of 7
+
+Label Time Summary:
+qt-gui    =   4.32 sec*proc (7 tests)
+
+Total Test time (real) =   4.32 sec
+
+The following tests FAILED:
+	 62 - QtGui.SensorMaskEditor (Failed)                   qt-gui
+	 63 - QtGui.SensorMaskRendering (Failed)                qt-gui
+Errors while running CTest

@@ -116,6 +116,17 @@ struct PlotVector
    std::deque<PlotVectorSample> samples;
    std::optional<PlotVectorSample> replaySample;
 };
+// Frozen geometry in source body coordinates. Boundary vectors have unit
+// axial depth, not unit Euclidean length; a positive length scales the cone.
+struct PlotSensorMask
+{
+   QString name,source,hardware,label;
+   bool automaticLength=true,drawEdges=true;
+   double length=1,sourceRadius=1;
+   QColor color=Qt::white;
+   std::array<double,3> origin{},axis{0,0,-1};
+   QVector<std::array<double,3>> boundary;
+};
 struct PlotCamera
 {
    quint64 frame=0;
@@ -184,6 +195,7 @@ struct PlotModel
    double fieldOfView=50;
    std::deque<PlotCamera> cameras;
    QVector<PlotVector> vectors;
+   QVector<PlotSensorMask> sensorMasks;
    QVector<PlotCameraView> cameraViews; // Index zero uses the standard scripted history above.
    int selectedCamera=0;
    QString automaticTrajectory;

@@ -10,6 +10,12 @@
 #include "BodyFixedPoint.hpp"
 #include "CelestialBody.hpp"
 #include "Spacecraft.hpp"
+#include "Hardware.hpp"
+#include "FieldOfView.hpp"
+#include "ConicalFOV.hpp"
+#include "RectangularFOV.hpp"
+#include "CustomFOV.hpp"
+#include <osg/Matrixd>
 #include "SolarSystem.hpp"
 #include "FileManager.hpp"
 #include "CoordinateConverter.hpp"
@@ -29,6 +35,56 @@ namespace {
 QString text(const std::string &value) { return QString::fromStdString(value); }
 QColor rgb(UnsignedInt color) { return QColor::fromRgb(static_cast<QRgb>(color & 0xffffff)); }
 constexpr double degrees = 57.2957795130823208768;
+PlotSensorMask sensorMaskGeometry(const QtSensorMaskSetting &definition)
+{
+   auto *moderator=Moderator::Instance();
+   auto *hardware=dynamic_cast<Hardware *>(moderator->GetConfiguredObject(definition.hardware.toStdString()));
+   if (!hardware) throw std::runtime_error((definition.name+": unknown sensor Hardware "+definition.hardware).toStdString());
+   const auto fovName=hardware->GetRefObjectName(Gmat::FIELD_OF_VIEW);
+   auto *fov=dynamic_cast<FieldOfView *>(moderator->GetConfiguredObject(fovName));
+   if (!fov) throw std::runtime_error((definition.name+": Hardware needs a FieldOfView").toStdString());
+   PlotSensorMask mask; mask.name=definition.name; mask.source=definition.source; mask.hardware=definition.hardware;
+   mask.label=definition.label; mask.automaticLength=definition.automaticLength; mask.length=definition.length;
+   mask.color=rgb(fov->GetColor()); mask.color.setAlpha(static_cast<int>(fov->GetAlpha()));
+   auto *source=moderator->GetConfiguredObject(definition.source.toStdString());
+   if (!source && moderator->GetSolarSystemInUse()) source=moderator->GetSolarSystemInUse()->GetBody(definition.source.toStdString());
+   if (auto *body=dynamic_cast<CelestialBody *>(source)) mask.sourceRadius=body->GetEquatorialRadius();
+   const auto location=hardware->GetLocation(),direction=hardware->GetDirection(),second=hardware->GetSecondDirection();
+   osg::Vec3d forward(direction[0],direction[1],direction[2]),up(second[0],second[1],second[2]);
+   auto finite=[](const osg::Vec3d &value) { return std::isfinite(value.x()) && std::isfinite(value.y()) && std::isfinite(value.z()); };
+   if (!finite(forward) || !finite(up) || !std::isfinite(forward.length()) || !std::isfinite(up.length()) || forward.normalize()<1e-12 || up.normalize()<1e-12 || (forward^up).length()<1e-12)
+      throw std::runtime_error((definition.name+": Hardware direction and second direction must form a finite nondegenerate mount").toStdString());
+   osg::Matrixd mount; mount.makeLookAt(osg::Vec3d(),forward,up);
+   const auto rotation=mount.getRotate().inverse();
+   const auto axis=rotation*osg::Vec3d(0,0,-1);
+   mask.axis={axis.x(),axis.y(),axis.z()};
+   for (int i=0;i<3;++i) mask.origin[i]=location[i];
+   if (!PlotModel::usableOrbitPosition(mask.origin[0],mask.origin[1],mask.origin[2])) throw std::runtime_error((definition.name+": Hardware location is not renderable").toStdString());
+   auto vertex=[&](double x,double y) {
+      const auto body=rotation*osg::Vec3d(x,y,-1);
+      if (!PlotModel::usableOrbitPosition(body.x(),body.y(),body.z())) throw std::runtime_error((definition.name+": FOV boundary is not renderable").toStdString());
+      mask.boundary.append({body.x(),body.y(),body.z()});
+   };
+   if (auto *conical=dynamic_cast<ConicalFOV *>(fov)) {
+      mask.drawEdges=false; const auto angles=conical->GetMaskConeAngles();
+      if (angles.GetSize()!=1) throw std::runtime_error((definition.name+": ConicalFOV has no cone angle").toStdString());
+      const double radius=std::tan(angles[0]);
+      for (int i=0;i<120;++i) { const double clock=6.2831853071795864769*i/120; vertex(radius*std::cos(clock),radius*std::sin(clock)); }
+   } else if (auto *rectangular=dynamic_cast<RectangularFOV *>(fov)) {
+      const double width=std::tan(rectangular->GetAngleWidth()),height=std::tan(rectangular->GetAngleHeight());
+      vertex(width,height); vertex(-width,height); vertex(-width,-height); vertex(width,-height);
+   } else if (auto *custom=dynamic_cast<CustomFOV *>(fov)) {
+      // Initialize only a detached copy. Its copy constructor has no path side
+      // effect, and file/interpolated mask angles are frozen before Run/replay.
+      CustomFOV copy(*custom);
+      if (!copy.Initialize()) throw std::runtime_error((definition.name+": CustomFOV did not initialize").toStdString());
+      const auto cones=copy.GetMaskConeAngles(),clocks=copy.GetMaskClockAngles();
+      if (cones.GetSize()!=clocks.GetSize() || cones.GetSize()<3) throw std::runtime_error((definition.name+": CustomFOV needs paired cone/clock vertices").toStdString());
+      for (int i=0;i<cones.GetSize();++i) { const auto radius=std::tan(cones[i]); vertex(radius*std::cos(clocks[i]),radius*std::sin(clocks[i])); }
+   } else throw std::runtime_error((definition.name+": supported mask shapes are ConicalFOV, RectangularFOV and CustomFOV").toStdString());
+   return mask;
+}
+
 std::deque<PlotCamera> &cameraHistory(PlotModel &data,int index)
 {
    if (index>=0) return index==0 ? data.cameras : data.cameraViews[index].cameras;
@@ -60,6 +116,16 @@ void QtPlotReceiver::validateCameraReferences(const QMap<QString,QtCameraSetting
          if (!object) object=moderator->GetSolarSystemInUse()->GetBody(name.toStdString());
          if (!dynamic_cast<SpacePoint *>(object)) throw std::runtime_error((it.key()+": automatic body camera needs a space point: "+name).toStdString());
       };
+      for (const auto &mask:it->sensorMasks) {
+         validateTrajectory(mask.source,false);
+         auto *source=moderator->GetConfiguredObject(mask.source.toStdString());
+         if (!source) source=moderator->GetSolarSystemInUse()->GetBody(mask.source.toStdString());
+         if (!dynamic_cast<SpacePoint *>(source)) throw std::runtime_error((mask.name+": sensor mask source must be a plotted space point").toStdString());
+         // Imported masks may use global Hardware lookup, as OFScene does.
+         // The UI can offer the source's attached Hardware/FOV pairs without
+         // imposing that narrower picker restriction on valid imported masks.
+         (void)sensorMaskGeometry(mask);
+      }
       for (const auto &vector:it->vectors) {
          for (const auto &name:vector.type=="Body-Fixed" ? QStringList{vector.source} : QStringList{vector.source,vector.destination}) {
             auto *plot=moderator->GetConfiguredObject(it.key().toStdString());
@@ -437,6 +503,12 @@ void QtPlotReceiver::SetGlObject(const std::string &name,const StringArray &name
             curve.modelScale=spacecraft->GetRealParameter(spacecraft->GetParameterID("ModelScale"));
          }
       }
+   }
+   entry->data->sensorMasks.clear();
+   if (entry->data->kind==PlotModel::Kind::Orbit) for (const auto &definition:setting.sensorMasks) {
+      try { entry->data->sensorMasks.append(sensorMaskGeometry(definition)); }
+      catch (BaseException &error) { warn(name,(definition.name+": "+text(error.GetFullMessage())+" (mask hidden)").toStdString()); }
+      catch (const std::exception &error) { warn(name,(definition.name+": "+QString::fromUtf8(error.what())+" (mask hidden)").toStdString()); }
    }
 }
 void QtPlotReceiver::SetGlCoordSystem(const std::string &name,CoordinateSystem *internal,CoordinateSystem *view,CoordinateSystem *viewUp)
@@ -961,7 +1033,7 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
    else if (action=="PenDown") entry->data->penDown=true;
    else if (action=="ToggleOff") { entry->data->active=false; entry->data->breakLines(); }
    else if (action=="ToggleOn") entry->data->active=true;
-   else if (action=="ClearObjects") { entry->trialHistory.clear(); entry->dataAvailability.reset(); entry->arcProvider.clear(); entry->provider.clear(); entry->arcTrial=false; entry->arcMetadataOnly=false; entry->data->regularArcs.clear(); entry->data->nextRegularArc=0; entry->arcPublishedPoses.clear(); entry->preparedArcCameras.clear(); entry->bufferedArcCameras.clear(); entry->replayArcCameras.clear(); entry->replayArcCamera=false; entry->objects.clear(); entry->points.clear(); entry->data->curves.clear(); entry->data->cameras.clear(); for (auto &vector:entry->data->vectors) vector.samples.clear(); if (entry->data->resetView) entry->data->resetView->cameras.clear(); for (auto &view:entry->data->cameraViews) { view.cameras.clear(); if (view.reset) view.reset->cameras.clear(); } }
+   else if (action=="ClearObjects") { entry->trialHistory.clear(); entry->dataAvailability.reset(); entry->arcProvider.clear(); entry->provider.clear(); entry->arcTrial=false; entry->arcMetadataOnly=false; entry->data->regularArcs.clear(); entry->data->nextRegularArc=0; entry->arcPublishedPoses.clear(); entry->preparedArcCameras.clear(); entry->bufferedArcCameras.clear(); entry->replayArcCameras.clear(); entry->replayArcCamera=false; entry->objects.clear(); entry->points.clear(); entry->data->sensorMasks.clear(); entry->data->curves.clear(); entry->data->cameras.clear(); for (auto &vector:entry->data->vectors) vector.samples.clear(); if (entry->data->resetView) entry->data->resetView->cameras.clear(); for (auto &view:entry->data->cameraViews) { view.cameras.clear(); if (view.reset) view.reset->cameras.clear(); } }
    else if (action=="ClearSolverData") {
       entry->dataAvailability.reset();
       if (cameraSettings.value(text(name)).solverLastN) {

@@ -38,12 +38,20 @@ struct QtVectorSetting {
    double length=1;
    std::array<double,3> start{},direction{1,0,0};
 };
+struct QtSensorMaskSetting {
+   QString name,source,hardware,label="DefaultSensorMask";
+   bool automaticLength=true;
+   double length=1;
+};
+QVector<QtSensorMaskSetting> qtSensorMasks(const QString &json);
+QString qtSensorMasksJson(const QVector<QtSensorMaskSetting> &masks);
 struct QtCameraSetting {
    bool perspective=false; double fieldOfView=50;
    std::optional<std::array<double,3>> up;
    QString primaryName;
    QVector<QtCameraPreset> views;
    QVector<QtVectorSetting> vectors;
+   QVector<QtSensorMaskSetting> sensorMasks;
    bool bodyRelative=false;
    bool lookAtRotation=false, shortestAngle=false;
    std::optional<std::array<double,3>> centerOffset;

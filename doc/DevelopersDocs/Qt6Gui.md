@@ -2500,3 +2500,20 @@ OF conversion preserves the source-order count rules. The numerical subscriber
 uses All while the viewer handles LastN history. [Focused evidence and limits](Qt6ParityValidation/lastn-20261004.md)
 record unchanged full reports/accepted states, cleanup semantics, the decorative
 listener distribution limit and the continuing host/GPU qualification stop.
+
+
+### Sensor masks — 2026-10-04
+
+OrbitView / Advanced / **Sensor masks…** edits an ordered list of named FOV displays.
+Add a row, choose a plotted source and hardware with a configured field of view,
+then set its label and Auto/Manual length. Auto uses the source's native model
+bound when available, its body radius or a 1 km point fallback. Manual length is
+in kilometres along the boresight. OK stays pending until Apply; Cancel/discard,
+Undo/Redo and Save/reopen preserve the expected source transaction.
+
+Conical, rectangular and custom masks use the hardware's position and pointing,
+FOV color/opacity, white boundaries and an independent label. Both renderers follow
+recorded and interpolated source pose. Remove/reassign masks before removing their
+source from Add. Imported global hardware references are supported. This draws FOV
+geometry and does not calculate visibility or a surface footprint. [Focused evidence](Qt6ParityValidation/sensor-masks-20261004.md)
+records exact source/report preservation and the continuing host/GPU limits.

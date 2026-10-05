@@ -1,0 +1,99 @@
+[0/1] Re-running CMake...
+-- *** Creating 64-bit GMAT Build System. Please ensure that 64-bit versions of all dependencies are available. ***
+-- Found CSPICE: /home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/cspice/linux/cspice64
+-- Found F2C: /home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/cspice/linux/cspice64/include
+-- Could NOT find Matlab (missing: Matlab_ROOT_DIR Matlab_INCLUDE_DIRS Matlab_MEX_LIBRARY Matlab_MEX_EXTENSION Matlab_MX_LIBRARY MAIN_PROGRAM MX_LIBRARY ENG_LIBRARY MAT_LIBRARY) (found version "NOTFOUND")
+CMake Warning at CMakeLists.txt:301 (MESSAGE):
+  Matlab NOT FOUND.  Set Matlab_ROOT_DIR to the path to Matlab and ensure you
+  have a working license.
+
+
+==============================
+Setting up install directory structure for GMAT
+-- Will install GMAT to /home/dan/GIT/GMAT-Qt/GMAT-R2026a-Linux-x64
+==============================
+GMAT util setup
+==============================
+GMAT base setup
+-- Use F2C version of MSISE.
+==============================
+GMAT Console setup
+-- Found Python3: /usr/bin/python3 (found version "3.14.4") found components: Interpreter
+==============================
+GMAT SWIG setup (for Python 3.14)
+-- Found Python3: /usr/include/python3.14 (found suitable exact version "3.14.4") found components: Development Development.Module Development.Embed
+==============================
+GMAT DataInterface Plugin setup
+==============================
+GMAT EphemPropagator Plugin setup
+==============================
+GMAT EKF Plugin setup
+==============================
+GMAT Estimation Plugin setup
+==============================
+GMAT EventLocator Plugin setup
+==============================
+GMAT External Force Model Plugin setup (for Python 3.14)
+==============================
+GMAT ExtraPropagators Plugin setup
+==============================
+GMAT Formation Plugin setup
+==============================
+GMAT GmatFunction Plugin setup
+==============================
+GMAT Msise00 Plugin setup
+==============================
+GMAT NewParameter Plugin setup
+==============================
+GMAT PolyhedronGravity Plugin setup
+==============================
+GMAT ProductionPropagators Plugin setup
+==============================
+GMAT PythonInterface Plugin setup (for Python 3.14)
+==============================
+GMAT SaveCommand Plugin setup
+==============================
+GMAT ScriptTools Plugin setup
+==============================
+GMAT Station Plugin setup
+==============================
+GMAT ThrustFile Plugin setup
+==============================
+GMAT TLE Propagator Plugin setup
+==============================
+GMAT Yukon Optimizer Plugin setup
+==============================
+STATION SWIG setup (for Python 3.14)
+==============================
+ESTIMATION SWIG setup (for Python 3.14)
+======================================
+Skipping the OVtoOFI Plugin:
+OpenFramesInterface is not being built
+=======================================
+==============================
+Setting up wxWidgets install instructions for GMAT
+-- Configuring done (1.4s)
+-- Generating done (0.3s)
+-- Build files have been written to: /home/dan/GIT/GMAT-Qt/build/linux-gui
+[1/21] cd /home/dan/GIT/GMAT-Qt/build/linux-gui && /usr/bin/cmake -E make_directory /home/dan/GIT/GMAT-Qt/application/bin && /usr/bin/cmake -E copy_if_different /home/dan/GIT/GMAT-Qt/build/linux-gui/qt-startup/Release/gmat_startup_qt.txt /home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt
+[2/21] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/MainWindowDocuments.cpp.o
+[3/21] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/FolderRunDialog.cpp.o
+[4/21] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/CelestialBodyPanel.cpp.o
+[5/21] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/MainWindow.cpp.o
+[6/21] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/ResourceForm.cpp.o
+[7/21] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/ResourceEditor.cpp.o
+[8/21] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/ResourceRename.cpp.o
+[9/21] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/ScriptCompatibility.cpp.o
+FAILED: [code=1] src/qtgui/CMakeFiles/GmatQtFrontend.dir/ScriptCompatibility.cpp.o
+/usr/bin/c++ -DGMAT_QT_OSG_PLUGIN_DIR=\"/home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/OpenFramesInterface/dep/OpenSceneGraph-git/installed/lib/osgPlugins-3.6.5\" -DLINUX_MAC -DNO_GCC_PRAGMA -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_OPENGLWIDGETS_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DUNICODE -DUSE_64_BIT_LONGS -D_UNICODE -D__USE_SPICE__ -I/home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/OpenFramesInterface/dep/OpenSceneGraph-git/installed/include -I/home/dan/GIT/GMAT-Qt/src/qtgui -I/home/dan/GIT/GMAT-Qt/src/base/api -I/home/dan/GIT/GMAT-Qt/src/base/asset -I/home/dan/GIT/GMAT-Qt/src/base/attitude -I/home/dan/GIT/GMAT-Qt/src/base/burn -I/home/dan/GIT/GMAT-Qt/src/base/command -I/home/dan/GIT/GMAT-Qt/src/base/configs -I/home/dan/GIT/GMAT-Qt/src/base/coordsystem -I/home/dan/GIT/GMAT-Qt/src/base/event -I/home/dan/GIT/GMAT-Qt/src/base/executive -I/home/dan/GIT/GMAT-Qt/src/base/factory -I/home/dan/GIT/GMAT-Qt/src/base/factory/guicomponents -I/home/dan/GIT/GMAT-Qt/src/base/forcemodel -I/home/dan/GIT/GMAT-Qt/src/base/forcemodel/harmonic -I/home/dan/GIT/GMAT-Qt/src/base/foundation -I/home/dan/GIT/GMAT-Qt/src/base/function -I/home/dan/GIT/GMAT-Qt/src/base/hardware -I/home/dan/GIT/GMAT-Qt/src/base/include -I/home/dan/GIT/GMAT-Qt/src/base/interface -I/home/dan/GIT/GMAT-Qt/src/base/interpreter -I/home/dan/GIT/GMAT-Qt/src/base/math -I/home/dan/GIT/GMAT-Qt/src/base/parameter -I/home/dan/GIT/GMAT-Qt/src/base/plugin -I/home/dan/GIT/GMAT-Qt/src/base/propagator -I/home/dan/GIT/GMAT-Qt/src/base/solarsys -I/home/dan/GIT/GMAT-Qt/src/base/solver -I/home/dan/GIT/GMAT-Qt/src/base/spice -I/home/dan/GIT/GMAT-Qt/src/base/spacecraft -I/home/dan/GIT/GMAT-Qt/src/base/stopcond -I/home/dan/GIT/GMAT-Qt/src/base/subscriber -I/home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/cspice/linux/cspice64/include -I/home/dan/GIT/GMAT-Qt/src/gmatutil/include -I/home/dan/GIT/GMAT-Qt/src/gmatutil/util -I/home/dan/GIT/GMAT-Qt/src/gmatutil/util/datawriter -I/home/dan/GIT/GMAT-Qt/src/gmatutil/util/interpolator -I/home/dan/GIT/GMAT-Qt/src/gmatutil/util/matrixoperations -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -isystem /usr/include/x86_64-linux-gnu/qt6/QtOpenGLWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtOpenGL -fno-strict-aliasing -fPIC -O3 -std=c++17 -MD -MT src/qtgui/CMakeFiles/GmatQtFrontend.dir/ScriptCompatibility.cpp.o -MF src/qtgui/CMakeFiles/GmatQtFrontend.dir/ScriptCompatibility.cpp.o.d -o src/qtgui/CMakeFiles/GmatQtFrontend.dir/ScriptCompatibility.cpp.o -c /home/dan/GIT/GMAT-Qt/src/qtgui/ScriptCompatibility.cpp
+/home/dan/GIT/GMAT-Qt/src/qtgui/ScriptCompatibility.cpp: In function ‘QVector<QtSensorMaskSetting> qtSensorMasks(const QString&)’:
+/home/dan/GIT/GMAT-Qt/src/qtgui/ScriptCompatibility.cpp:1034:29: error: ‘const class QJsonObject’ has no member named ‘cbegin’; did you mean ‘begin’?
+ 1034 |       for (auto field=value.cbegin();field!=value.cend();++field) if (!fields.contains(field.key())) throw std::runtime_error("Unsupported sensor mask metadata field");
+      |                             ^~~~~~
+      |                             begin
+/home/dan/GIT/GMAT-Qt/src/qtgui/ScriptCompatibility.cpp:1034:51: error: ‘const class QJsonObject’ has no member named ‘cend’; did you mean ‘end’?
+ 1034 |       for (auto field=value.cbegin();field!=value.cend();++field) if (!fields.contains(field.key())) throw std::runtime_error("Unsupported sensor mask metadata field");
+      |                                                   ^~~~
+      |                                                   end
+[10/21] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/VisualModelDialog.cpp.o
+ninja: build stopped: subcommand failed.

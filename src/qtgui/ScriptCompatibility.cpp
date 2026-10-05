@@ -237,7 +237,7 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
 {
    QtScriptConversion result; result.script=source;
    const auto lines=source.split('\n');
-   const QRegularExpression declaration("^Create\\s+(OpenFramesInterface|OpenFramesView|OpenFramesVector)\\s+([A-Za-z][A-Za-z0-9_]*(?:\\s+[A-Za-z][A-Za-z0-9_]*)*)\\s*;?$");
+   const QRegularExpression declaration("^Create\\s+(OpenFramesInterface|OpenFramesView|OpenFramesVector|OpenFramesSensorMask)\\s+([A-Za-z][A-Za-z0-9_]*(?:\\s+[A-Za-z][A-Za-z0-9_]*)*)\\s*;?$");
    QMap<QString,QString> types;
    QMap<QString,QMap<QString,QString>> properties;
    for (int i=0;i<lines.size();++i) {
@@ -292,7 +292,7 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
          // unrecognized continuation. Subscriber Toggle commands remain valid.
          for (auto it=types.cbegin();it!=types.cend();++it) {
             const QRegularExpression reference("\\b"+QRegularExpression::escape(it.key())+"\\b");
-            if (reference.match(code).hasMatch() && (it.value()=="OpenFramesView" || it.value()=="OpenFramesVector")) {
+            if (reference.match(code).hasMatch() && (it.value()=="OpenFramesView" || it.value()=="OpenFramesVector" || it.value()=="OpenFramesSensorMask")) {
                result.error=QString("Line %1: %2 %3 is referenced outside a supported viewer setting.").arg(i+1).arg(it.value(),it.key()); return result;
             }
          }
@@ -349,6 +349,24 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
       catch (BaseException &) { result.error=it.key()+".VectorColor: expected a GMAT color name or an RGB integer triplet from 0 to 255."; return result; }
       vectorSettings.insert(it.key(),vector);
    }
+   QMap<QString,QtSensorMaskSetting> maskSettings;
+   for (auto it=types.cbegin();it!=types.cend();++it) if (it.value()=="OpenFramesSensorMask") {
+      const auto values=properties.value(it.key()); QtSensorMaskSetting mask; mask.name=it.key();
+      const QSet<QString> supported={"Source","Hardware","Label","LengthType","Length"};
+      for (auto property=values.cbegin();property!=values.cend();++property) if (!supported.contains(property.key())) {
+         result.error=it.key()+"."+property.key()+": unsupported OpenFramesSensorMask field; original source retained."; return result;
+      }
+      mask.source=stringValue(values.value("Source")); mask.hardware=stringValue(values.value("Hardware"));
+      mask.label=stringValue(values.value("Label","DefaultSensorMask"));
+      const auto lengthType=stringValue(values.value("LengthType","Auto"));
+      if (lengthType!="Auto" && lengthType!="Manual") { result.error=it.key()+".LengthType: choose Auto or Manual."; return result; }
+      mask.automaticLength=lengthType=="Auto";
+      bool valid=false; mask.length=values.value("Length","1").toDouble(&valid);
+      if (!valid || !std::isfinite(mask.length) || mask.length<=0 || mask.length>std::numeric_limits<float>::max()) {
+         result.error=it.key()+".Length: expected a finite positive axial length within the renderer's range."; return result;
+      }
+      maskSettings.insert(it.key(),mask);
+   }
    QMap<QString,QtCameraSetting> displaySettings;
    for (auto it=types.cbegin();it!=types.cend();++it) if (it.value()=="OpenFramesInterface") {
       QStringList names; int fontPositionIndex=0; auto &display=displaySettings[it.key()];
@@ -384,6 +402,21 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
                }
                bool duplicate=false; for (const auto &existing:display.vectors) if (existing.name==vectorName) duplicate=true;
                if (!duplicate) display.vectors.append(vector);
+            }
+         } else if (property=="SensorMask") {
+            const bool array=value.startsWith('{') && value.endsWith('}');
+            if (!array && !vectorIdentifier.match(value).hasMatch()) { result.error=it.key()+".SensorMask: expected a mask name or braced list."; return result; }
+            if (array) display.sensorMasks.clear();
+            const auto selected=array ? value.mid(1,value.size()-2).split(',') : QStringList{value};
+            for (auto maskName:selected) {
+               maskName=maskName.trimmed(); if (maskName.isEmpty()) continue;
+               if (!vectorIdentifier.match(maskName).hasMatch() || !maskSettings.contains(maskName)) { result.error=it.key()+".SensorMask: unknown OpenFramesSensorMask "+maskName+"."; return result; }
+               const auto mask=maskSettings.value(maskName);
+               if (!vectorIdentifier.match(mask.source).hasMatch() || !vectorIdentifier.match(mask.hardware).hasMatch()) {
+                  result.error=mask.name+": selected mask requires a bare Source object and Hardware name."; return result;
+               }
+               bool duplicate=false; for (const auto &existing:display.sensorMasks) if (existing.name==maskName) duplicate=true;
+               if (!duplicate) display.sensorMasks.append(mask);
             }
          } else if (property=="Add") {
             const auto list=QRegularExpression("^\\{\\s*([A-Za-z][A-Za-z0-9_]*(?:[\\s,]+[A-Za-z][A-Za-z0-9_]*)*)?\\s*\\}$").match(value);
@@ -470,7 +503,8 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
          result.notes.append(name+"."+key+((key=="AxesLabels" || key=="FrameLabel") ? ": coordinate label setting retained in Qt metadata." : ": independent per-object drawing retained in Qt metadata."));
       } else {
          output.append("% Qt conversion: "+lines[i]);
-         if (types[name]=="OpenFramesInterface" && key=="Vector") result.notes.append(name+".Vector: source/destination pointing, body-fixed pose, color/label and Auto/Manual length retained in Qt metadata.");
+         if (types[name]=="OpenFramesInterface" && key=="SensorMask") result.notes.append(name+".SensorMask: FOV-backed sensor masks retained in Qt metadata.");
+         else if (types[name]=="OpenFramesInterface" && key=="Vector") result.notes.append(name+".Vector: source/destination pointing, body-fixed pose, color/label and Auto/Manual length retained in Qt metadata.");
          else if (types[name]=="OpenFramesInterface" && key!="View") result.notes.append(name+"."+key+": retained as a comment; no direct Qt equivalent.");
       }
    }
@@ -518,6 +552,7 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
       }
       QtCameraSetting cameraSetting{true,fov};
       cameraSetting.vectors=displaySettings.value(plot).vectors;
+      cameraSetting.sensorMasks=displaySettings.value(plot).sensorMasks;
       cameraSetting.objectLabels=displaySettings.value(plot).objectLabels;
       cameraSetting.objectTrajectories=displaySettings.value(plot).objectTrajectories;
       cameraSetting.objectCenters=displaySettings.value(plot).objectCenters;
@@ -669,6 +704,7 @@ QString qtCameraDirective(const QString &plot,const QtCameraSetting &setting)
    if (!setting.objectLineWidths.isEmpty()) object.insert("objectLineWidths",objectWidthsJson(setting.objectLineWidths));
    if (!setting.objectFontSizes.isEmpty()) object.insert("objectFontSizes",objectSizesJson(setting.objectFontSizes));
    if (!setting.objectFontPositions.isEmpty()) object.insert("objectFontPositions",objectFontPositionsJson(setting.objectFontPositions));
+   if (!setting.sensorMasks.isEmpty()) object.insert("sensorMasks",QJsonDocument::fromJson(qtSensorMasksJson(setting.sensorMasks).toUtf8()).array());
    if (!setting.vectors.isEmpty()) {
       QJsonArray vectors;
       for (const auto &vector:setting.vectors) vectors.append(QJsonObject{
@@ -745,6 +781,10 @@ QMap<QString,QtCameraSetting> qtCameraSettings(const QString &source)
          setting.centerOffset=center;
       }
       const QRegularExpression identifier("^[A-Za-z][A-Za-z0-9_]*$");
+      if (object.contains("sensorMasks")) {
+         if (!object.value("sensorMasks").isArray()) throw std::runtime_error("Plot sensorMasks must be an array");
+         setting.sensorMasks=qtSensorMasks(QString::fromUtf8(QJsonDocument(object.value("sensorMasks").toArray()).toJson(QJsonDocument::Compact)));
+      }
       if (object.contains("vectors")) {
          if (!object.value("vectors").isArray()) throw std::runtime_error("Plot vectors must be an array");
          QSet<QString> names;
@@ -979,4 +1019,37 @@ std::optional<bool> qtDrawingFlag(const QString &value)
 QString qtDrawingFlagText(std::optional<bool> value)
 {
    return value ? (*value ? "On" : "Off") : "Default";
+}
+
+QVector<QtSensorMaskSetting> qtSensorMasks(const QString &json)
+{
+   QJsonParseError error; const auto document=QJsonDocument::fromJson(json.toUtf8(),&error);
+   if (error.error!=QJsonParseError::NoError || !document.isArray()) throw std::runtime_error("Sensor masks must be a JSON array");
+   QVector<QtSensorMaskSetting> result; QSet<QString> names;
+   const QRegularExpression identifier("^[A-Za-z][A-Za-z0-9_]*$");
+   const QSet<QString> fields={"name","source","hardware","label","automaticLength","length"};
+   for (const auto &item:document.array()) {
+      if (!item.isObject()) throw std::runtime_error("A sensor mask must be an object");
+      const auto value=item.toObject();
+      for (auto field=value.constBegin();field!=value.constEnd();++field) if (!fields.contains(field.key())) throw std::runtime_error("Unsupported sensor mask metadata field");
+      QtSensorMaskSetting mask;
+      for (auto pair:{qMakePair(QString("name"),&mask.name),qMakePair(QString("source"),&mask.source),qMakePair(QString("hardware"),&mask.hardware),qMakePair(QString("label"),&mask.label)}) {
+         if (!value.value(pair.first).isString()) throw std::runtime_error("Sensor mask name, source, hardware and label must be strings");
+         *pair.second=value.value(pair.first).toString();
+      }
+      if (!identifier.match(mask.name).hasMatch() || names.contains(mask.name) || !identifier.match(mask.source).hasMatch() || !identifier.match(mask.hardware).hasMatch())
+         throw std::runtime_error("Sensor masks need unique valid names and bare source/hardware names");
+      mask.length=value.value("length").toDouble(-1);
+      if (!value.value("automaticLength").isBool() || !value.value("length").isDouble() || !std::isfinite(mask.length) || mask.length<=0 || mask.length>std::numeric_limits<float>::max())
+         throw std::runtime_error("Sensor mask length must be finite and positive, with a boolean automaticLength mode");
+      mask.automaticLength=value.value("automaticLength").toBool();
+      names.insert(mask.name); result.append(mask);
+   }
+   return result;
+}
+QString qtSensorMasksJson(const QVector<QtSensorMaskSetting> &masks)
+{
+   QJsonArray result;
+   for (const auto &mask:masks) result.append(QJsonObject{{"name",mask.name},{"source",mask.source},{"hardware",mask.hardware},{"label",mask.label},{"automaticLength",mask.automaticLength},{"length",mask.length}});
+   return QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact));
 }

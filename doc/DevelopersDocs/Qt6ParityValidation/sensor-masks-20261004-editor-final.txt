@@ -1,0 +1,37 @@
+UpdateCTestConfiguration  from :/home/dan/GIT/GMAT-Qt/build/linux-gui/DartConfiguration.tcl
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 62
+    Start 62: QtGui.SensorMaskEditor
+
+62: Test command: /usr/bin/python3 "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtSensorMaskEditorTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+62: Working Directory: /home/dan/GIT/GMAT-Qt/application/bin
+62: Test timeout computed to be: 60
+62: This plugin does not support propagateSizeHints()
+62: This plugin does not support propagateSizeHints()
+62: This plugin does not support propagateSizeHints()
+62: This plugin does not support propagateSizeHints()
+62: This plugin does not support propagateSizeHints()
+62: This plugin does not support propagateSizeHints()
+62: This plugin does not support propagateSizeHints()
+62: This plugin does not support propagateSizeHints()
+62: This plugin does not support propagateSizeHints()
+62: This plugin does not support propagateSizeHints()
+62: This plugin does not support propagateSizeHints()
+62: PASS actual sensor-mask controls: imported/pending Cancel and parent discard, Add/Edit/Up/Down/Remove with Auto/Manual lengths, parent Apply/atomic Undo/Redo, unchanged unrelated source/settings, Unicode Save/reopen, empty-list removal, source/hardware Rename with literal preservation, and invalid-reference Apply rollback. No mission or host/GPU qualification.
+1/1 Test #62: QtGui.SensorMaskEditor ...........   Passed    0.46 sec
+
+The following tests passed:
+	QtGui.SensorMaskEditor
+
+100% tests passed, 0 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.46 sec*proc (1 test)
+
+Total Test time (real) =   0.48 sec

@@ -20,20 +20,24 @@ brief, not proof of qualification. Recheck the repository before making changes.
 
 ## Current installed application — 2026-10-04
 
-GmatQt is rebuilt at **6,306,584 bytes / SHA e48df911…**.
-[LastN solver retention](Qt6ParityValidation/lastn-20261004.md) now has conversion,
-primary/setup controls, per-object finalized history limits and replay cleanup.
-Its new focused check passes in 0.51 s and the directly affected All/Current/None
-regression passes in 1.37 s. A short new targeter has byte-identical complete reports
-and accepted spacecraft samples. Base SHA 5d455c6b… includes only an added opt-in
-display lifecycle callback; util/Qt startup are unchanged. Decorative-listener
-cleanup distribution remains an explicit parity limit.
+GmatQt is rebuilt at **6,432,232 bytes / SHA d27a4103…**.
+[Sensor masks](Qt6ParityValidation/sensor-masks-20261004.md) now have active
+conversion, ordered pending controls, reference recovery and native/fallback
+FOV display following recorded/interpolated source pose. Four new and three
+directly affected checks pass; a complete new 131-byte report stays byte-identical.
+Original compile/test-fixture failures and corrections remain recorded.
+Base/util/Qt startup are unchanged from LastN. The original checkout is untouched.
 
-[Native vector pixels](Qt6ParityValidation/native-vectors-20261004.md) now pass a
-new 1.50 s private Xvfb/llvmpipe check for both supported vector modes, lengths,
-labels and replay. Application/base/util/startup are unchanged. A targeted source
-comparison also identifies active OF sensor-mask conversion, controls and display
-as the next concrete operation to implement.
+[Native vector pixels](Qt6ParityValidation/native-vectors-20261004.md) previously
+passed their new 1.50 s private Xvfb/llvmpipe check. The sensor-mask renderer change
+also passes the directly affected check in 1.41 s; its earlier evidence remains
+bound to the earlier runtime. No host/GPU acceptance is implied.
+
+[LastN solver retention](Qt6ParityValidation/lastn-20261004.md) retains its
+conversion, controls, per-object finalized limits and replay cleanup evidence:
+new 0.51s and affected SolverPlots1.37s passes, byte-identical full report and
+accepted samples, plus the explicit decorative-listener cleanup limit.
+Its base SHA 5d455c6b… added only an opt-in display lifecycle callback.
 
 The following evidence remains bound to its earlier runtimes.
 [Coordinate labels](Qt6ParityValidation/coordinate-labels-20261004.md) now expose
@@ -73,7 +77,9 @@ now have bounded implementations: independent coordinate labels and LastN solver
 retention. Use their current evidence above instead of treating that earlier
 source review as an unimplemented queue. LastN's decorative-listener cleanup
 limit remains explicit; it is not a claim of every legacy listener behavior.
-Keep all nine gates, held scientific cases and external dependencies in scope.
+The subsequently identified sensor-mask operation and native-vector pixel gap
+now have the bounded evidence above. Keep all nine gates, held scientific cases
+and external dependencies in scope.
 Host/GPU acceptance and GMAT client attribution remain unverified, with live
 host testing stopped. Do not repeat completed audits/tutorials/examples or
 passing tests without a concrete affected change, or turn this into a numerical

@@ -287,6 +287,13 @@ QJsonObject camera(QJsonObject value,const Names &names)
          vectors.append(vector);
       } value["vectors"]=vectors;
    }
+   if (value.contains("sensorMasks")) {
+      QJsonArray masks; for (const auto &entry:value.value("sensorMasks").toArray()) {
+         auto mask=entry.toObject();
+         for (const auto *key:{"source","hardware"}) if (mask.contains(key)) mask[key]=reference(mask.value(key).toString(),names);
+         masks.append(mask);
+      } value["sensorMasks"]=masks;
+   }
    return value;
 }
 }

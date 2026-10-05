@@ -25,6 +25,7 @@
 #include "OrbitObjectGuides.hpp"
 #include "OrbitVelocity.hpp"
 #include "OrbitVectors.hpp"
+#include "OrbitSensorMasks.hpp"
 #include <QGuiApplication>
 #include <QResizeEvent>
 #include <QAction>
@@ -206,6 +207,13 @@ void PlotCanvas::paintEvent(QPaintEvent *)
       if (const auto arrow=orbitVectorArrow(*data,vector,sample)) for (const auto &point:{arrow->start,arrow->end}) {
          extent=std::max(extent,point.length()); bounds.include(point.x(),point.y(),point.z(),0);
       }
+   if (orbit) for (const auto &mask:data->sensorMasks) if (const auto geometry=orbitSensorMaskGeometry(*data,mask,PlotPoint{})) {
+      double radius=std::max(geometry->origin.length(),geometry->end.length());
+      for (const auto &point:geometry->boundary) radius=std::max(radius,point.length());
+      for (const auto &source:data->curves) if (source.name==mask.source) for (const auto &pose:source.points) {
+         extent=std::max(extent,std::hypot(pose.x,pose.y,pose.z)+radius); bounds.include(pose.x,pose.y,pose.z,radius);
+      }
+   }
    const auto camera=orbitCamera(*data,visibleFrame,yaw,pitch,extent,area.width()/area.height(),&bounds);
    auto perspectiveScale=[&](const PlotPoint &point) {
       const auto relative=osg::Vec3d(point.x,point.y,point.z)-camera.target;
@@ -426,6 +434,39 @@ void PlotCanvas::paintEvent(QPaintEvent *)
          };
          line(arrow->start,arrow->end); for (const auto &wing:arrow->arrow) line(arrow->end,wing);
       }
+      for (const auto &mask:data->sensorMasks) if (const auto geometry=orbitSensorMaskGeometry(*data,mask,visibleFrame)) {
+         vectorCurves.emplace_back(); auto &curve=vectorCurves.back();
+         auto point=[&](const osg::Vec3d &position,QColor color) -> const PlotPoint * {
+            PlotPoint p; p.x=position.x(); p.y=position.y(); p.z=position.z(); p.color=color; clippedPoints.push_back(p); return &clippedPoints.back();
+         };
+         auto eyeDepth=[&](const osg::Vec3d &p) { return camera.distance-(p-camera.target)*camera.outward-1e-6; };
+         auto line=[&](osg::Vec3d a,osg::Vec3d b) {
+            if (data->perspective) {
+               const double da=eyeDepth(a),db=eyeDepth(b); if (da<0 && db<0) return;
+               if (da<0 || db<0) { const auto clip=a+(b-a)*(da/(da-db)); if (da<0) a=clip; else b=clip; }
+            }
+            const auto *pa=point(a,Qt::white),*pb=point(b,Qt::white);
+            objects.append({(depth(*pa)+depth(*pb))/2,&curve,pa,pb,0,true});
+         };
+         for (int i=0;i<geometry->boundary.size();++i) {
+            const auto &a=geometry->boundary[i],&b=geometry->boundary[(i+1)%geometry->boundary.size()];
+            std::vector<osg::Vec3d> polygon={geometry->origin,a,b};
+            if (data->perspective) {
+               std::vector<osg::Vec3d> clipped; auto previous=polygon.back(); auto da=eyeDepth(previous);
+               for (const auto &current:polygon) {
+                  const auto db=eyeDepth(current);
+                  if ((da>=0)!=(db>=0)) clipped.push_back(previous+(current-previous)*(da/(da-db)));
+                  if (db>=0) clipped.push_back(current); previous=current; da=db;
+               }
+               polygon=std::move(clipped);
+            }
+            for (size_t j=1;j+1<polygon.size();++j) {
+               const auto *pa=point(polygon[0],mask.color),*pb=point(polygon[j],mask.color),*pc=point(polygon[j+1],mask.color);
+               objects.append({(depth(*pa)+depth(*pb)+depth(*pc))/3,&curve,pa,pb,0,true,pc});
+            }
+            line(a,b); if (mask.drawEdges) line(geometry->origin,a);
+         }
+      }
       std::stable_sort(objects.begin(),objects.end(),[](const Primitive &a,const Primitive &b) { return a.depth<b.depth; });
       for (const auto &object:objects) {
          const auto &curve=*object.curve;
@@ -458,6 +499,12 @@ void PlotCanvas::paintEvent(QPaintEvent *)
          if (const auto arrow=orbitVectorArrow(*data,vector,visibleFrame)) {
             PlotPoint point; point.x=arrow->end.x(); point.y=arrow->end.y(); point.z=arrow->end.z();
             if (perspectiveScale(point)>0) { painter.setPen(vector.color); painter.drawText(screen(project(point))+QPointF(4,-4),vector.label); }
+         }
+      painter.setPen(Qt::white);
+      for (const auto &mask:data->sensorMasks) if (!mask.label.isEmpty())
+         if (const auto geometry=orbitSensorMaskGeometry(*data,mask,visibleFrame)) {
+            PlotPoint point; point.x=geometry->end.x(); point.y=geometry->end.y(); point.z=geometry->end.z();
+            if (perspectiveScale(point)>0) painter.drawText(screen(project(point))+QPointF(4,-4),mask.label);
          }
       if (data->labels) for (const auto &curve:data->curves) if (curve.visible && curve.objectAxes) {
          const auto *pose=orbitObjectPose(curve,visibleFrame); if (!pose) continue;

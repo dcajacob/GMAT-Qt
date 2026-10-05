@@ -8924,3 +8924,21 @@ vector pixel pending disposition is superseded at this bounded scope. Active
 sensor-mask conversion, editing and display remain a newly identified operation.
 Host/GPU acceptance and GMAT client attribution remain unproven; live-host testing
 is stopped, all nine gates stay visible and full qualification is not claimed.
+
+
+## Sensor-mask operations — 2026-10-04
+
+[Sensor-mask evidence](Qt6ParityValidation/sensor-masks-20261004.md) closes the active
+OF declaration/conversion, ordered pending editor and FOV display operation for
+ConicalFOV, RectangularFOV and CustomFOV. Four new and three directly affected
+checks pass, including independent native/fallback pixels, interpolated replay,
+reference Rename/recovery and a byte-identical complete new 131-byte report.
+Compile and new-test fixture corrections remain preserved. Source removal requires
+first removing or reassigning dependent masks; numerical visibility is unchanged.
+
+GmatQt is rebuilt at 6,432,232 bytes / SHA d27a4103…; base/util/Qt startup stay
+unchanged. No completed audit/tutorial/example corpus reran. The nine original
+gates remain authoritative, live-host testing remains stopped, and GMAT attribution
+plus host/physical-GPU acceptance remain unproven. Held scientific/external-data
+and deferred Windows/macOS/MATLAB dispositions remain explicit. Full qualification
+is not claimed.

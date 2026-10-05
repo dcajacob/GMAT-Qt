@@ -5,6 +5,7 @@
 #include "OrbitVelocity.hpp"
 #include <osg/PolygonOffset>
 #include "OrbitVectors.hpp"
+#include "OrbitSensorMasks.hpp"
 #include "PlotInterpolation.hpp"
 #include <osg/PolygonMode>
 #include <osg/BlendFunc>
@@ -290,6 +291,15 @@ struct OrbitRenderer::Scene
          if (const auto arrow=orbitVectorArrow(*model,vector,sample,&objects)) for (const auto &point:{arrow->start,arrow->end}) {
             extent=std::max(extent,point.length()); bounds.include(point.x(),point.y(),point.z(),0);
          }
+      for (const auto &mask:model->sensorMasks) if (const auto geometry=orbitSensorMaskGeometry(*model,mask,PlotPoint{},&objects)) {
+         // A body-centered sphere covers every attitude during replay without
+         // rebuilding the full cone for each retained propagation point.
+         double radius=std::max(geometry->origin.length(),geometry->end.length());
+         for (const auto &point:geometry->boundary) radius=std::max(radius,point.length());
+         for (const auto &source:model->curves) if (source.name==mask.source) for (const auto &pose:source.points) {
+            extent=std::max(extent,std::hypot(pose.x,pose.y,pose.z)+radius); bounds.include(pose.x,pose.y,pose.z,radius);
+         }
+      }
       coordinateAxisExtent=extent;
       // Preserve the orbit controls and stable replay framing in either projection.
       const double aspect=double(width)/height;
@@ -457,6 +467,16 @@ struct OrbitRenderer::Scene
       for (const auto &vector:model->vectors) if (const auto arrow=orbitVectorArrow(*model,vector,frame,&vectorBounds)) {
          const osg::Vec4 tint(float(vector.color.redF()),float(vector.color.greenF()),float(vector.color.blueF()),float(vector.color.alphaF()));
          line(arrow->start,arrow->end,tint); for (const auto &wing:arrow->arrow) line(arrow->end,wing,tint);
+      }
+      for (const auto &mask:model->sensorMasks) if (const auto geometry=orbitSensorMaskGeometry(*model,mask,frame,&objects)) {
+         const auto &c=mask.color; const osg::Vec4 fill(float(c.redF()),float(c.greenF()),float(c.blueF()),float(c.alphaF()));
+         for (int i=0;i<geometry->boundary.size();++i) {
+            const auto &a=geometry->boundary[i],&b=geometry->boundary[(i+1)%geometry->boundary.size()];
+            // OF leaves edge/base colors at the frame's opaque white default;
+            // FieldOfView color and alpha control the translucent sides only.
+            line(a,b,{1,1,1,1}); if (mask.drawEdges) line(geometry->origin,a,{1,1,1,1});
+            for (const auto &point:{geometry->origin,a,b}) { planePositions->push_back(point); planeColors->push_back(fill); }
+         }
       }
       guideGeometry->setVertexArray(guidePositions);
       guideGeometry->setColorArray(guideColors,osg::Array::BIND_PER_VERTEX);
@@ -726,6 +746,16 @@ void OrbitRenderer::drawOverlay(QPainter &painter)
             if (clip.w()<=0 || std::abs(clip.x())>clip.w() || std::abs(clip.y())>clip.w() || std::abs(clip.z())>clip.w()) continue;
             painter.setPen(vector.color);
             painter.drawText(QPointF((clip.x()/clip.w()+1)*width()/2+4,(1-clip.y()/clip.w())*height()/2-4),vector.label);
+         }
+   }
+   {
+      const auto projection=scene->viewer.getCamera()->getViewMatrix()*scene->viewer.getCamera()->getProjectionMatrix();
+      painter.setPen(Qt::white);
+      for (const auto &mask:scene->model->sensorMasks) if (!mask.label.isEmpty())
+         if (const auto geometry=orbitSensorMaskGeometry(*scene->model,mask,scene->frame,&scene->vectorBounds)) {
+            const auto &point=geometry->end; const auto clip=osg::Vec4d(point.x(),point.y(),point.z(),1)*projection;
+            if (clip.w()<=0 || std::abs(clip.x())>clip.w() || std::abs(clip.y())>clip.w() || std::abs(clip.z())>clip.w()) continue;
+            painter.drawText(QPointF((clip.x()/clip.w()+1)*width()/2+4,(1-clip.y()/clip.w())*height()/2-4),mask.label);
          }
    }
    if (scene->model->legend) {
