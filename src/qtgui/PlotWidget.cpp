@@ -18,6 +18,7 @@
 #include <QSignalBlocker>
 #include "OrbitRenderer.hpp"
 #include "OrbitLabels.hpp"
+#include "OrbitSegmentLabels.hpp"
 #include "OrbitCamera.hpp"
 #include "OrbitObjectAxes.hpp"
 #include "OrbitObjectGuides.hpp"
@@ -461,9 +462,11 @@ void PlotCanvas::paintEvent(QPaintEvent *)
          for (int axis=0;axis<3;++axis) { PlotPoint p=*pose; p.x=axes[axis].end.x(); p.y=axes[axis].end.y(); p.z=axes[axis].end.z(); if (perspectiveScale(p)>0) painter.drawText(screen(project(p))+QPointF(4,-4),QString(QChar('X'+axis))); }
       }
       if (data->labels) for (const auto &curve:data->curves) {
-         if (!curve.drawsLabel()) continue;
-         const PlotPoint *last=orbitObjectPose(curve,visibleFrame);
-         if (last && perspectiveScale(*last)>0) { painter.setPen(foreground); drawOrbitLabel(painter,screen(project(*last)),curve); }
+         auto label=[&](const PlotPoint &pose,const QString &text) {
+            if (perspectiveScale(pose)>0) { painter.setPen(foreground); drawOrbitLabel(painter,screen(project(pose)),curve,text); }
+         };
+         if (curve.drawsLabel()) if (const auto *pose=orbitObjectPose(curve,visibleFrame)) label(*pose,curve.name);
+         for (const auto &segment:orbitSegmentLabels(*data,curve,visibleFrame)) label(segment.pose,segment.name);
       }
    }
    if (!orbit) for (const auto &curve : data->curves) {

@@ -18,16 +18,17 @@ brief, not proof of qualification. Recheck the repository before making changes.
 4. Make concrete fixes, validate them, record their evidence, and rebuild the
    actual application. Do not stop at another inventory or proposed plan.
 
-## Current installed application — 2026-10-03
+## Current installed application — 2026-10-04
 
-GmatQt is rebuilt at **6,187,872 bytes / SHAe126f7a1…**.
+GmatQt is rebuilt at **6,230,920 bytes / SHA f2a52efa…**.
+[Propagation segment labels](Qt6ParityValidation/segment-labels-20261004.md)
+close the active OF Label Segments operation with conversion, resource controls,
+accepted arc identity and native/fallback replay labels. Eight directly relevant
+checks pass after a standalone dialog initialization guard. A short new fixture
+has byte-identical complete numerical reports; base/util/Qt startup are unchanged.
 [Two animation modes and speed buttons](Qt6ParityValidation/interpolated-playback-20261003.md)
-add default uniform simulation-time interpolation within connected forward
-segments, retained Propagation steps and shared/local Slower/Faster buttons.
-Seven relevant checks pass, including private Xvfb software rendering. One
-affected Mars B Plane run verifies connected timing and unchanged raw histories
-with a byte-identical solver report. Disconnected resets remain immediate jumps;
-host/GPU acceptance remains open. Base/util/startup are unchanged.
+retain their earlier seven-check and source-matched Mars evidence. No completed
+audit, tutorial or corpus was repeated. Host/GPU acceptance remains open.
 [The earlier segment-pause repair](Qt6ParityValidation/playback-segment-gaps-20261003.md)
 retains its reproduced failure and original runtime evidence. Earlier
 [Help attachment and Find Return evidence](Qt6ParityValidation/help-attachments-20261003.md)

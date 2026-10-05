@@ -31,7 +31,7 @@ int main(int argc,char **argv)
       const auto setting=qtCameraSettings(converted.script).value("Display");
       require(setting.objectGrids==QMap<QString,bool>{{"Sat",true},{"Earth",false}} && setting.objectXYPlanes==QMap<QString,bool>{{"Sat",false},{"Earth",true}},"Per-object guide prefix/defaults lost");
       require(!converted.script.contains("Display.Grid =") && converted.script.contains("GMAT Display.XYPlane = Off;") && converted.script.contains("% Qt conversion: GMAT Display.DrawGrid = [true];"),"Body guides changed global guide settings or lost original source");
-      require(converted.notes.join('\n').contains("DrawUsePropLabel: retained as a comment"),"Unsupported propagation-label warning disappeared");
+      require(!converted.notes.join('\n').contains("DrawUsePropLabel: retained as a comment") && qtCameraSettings(converted.script).value("Display").objectSegmentLabels.value("Sat"),"Propagation labels were not retained as active metadata");
       const auto retained=qtCameraSettings(qtCameraDirective("Display",setting)).value("Display");
       require(retained.objectGrids==setting.objectGrids && retained.objectXYPlanes==setting.objectXYPlanes,"Named guide metadata round trip failed");
       const auto reset=convertOpenFramesViews(legacy+"GMAT Display.Add = {Earth, Sat};\nGMAT Display.DrawGrid = [false true true];\nGMAT Display.DrawXYPlane = [true];\n");

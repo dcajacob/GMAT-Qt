@@ -1,0 +1,211 @@
+
+gmat-segment-label-build-20261004.log
+[0/1] Re-running CMake...
+-- *** Creating 64-bit GMAT Build System. Please ensure that 64-bit versions of all dependencies are available. ***
+-- Found CSPICE: /home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/cspice/linux/cspice64
+-- Found F2C: /home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/cspice/linux/cspice64/include
+-- Could NOT find Matlab (missing: Matlab_ROOT_DIR Matlab_INCLUDE_DIRS Matlab_MEX_LIBRARY Matlab_MEX_EXTENSION Matlab_MX_LIBRARY MAIN_PROGRAM MX_LIBRARY ENG_LIBRARY MAT_LIBRARY) (found version "NOTFOUND")
+CMake Warning at CMakeLists.txt:301 (MESSAGE):
+  Matlab NOT FOUND.  Set Matlab_ROOT_DIR to the path to Matlab and ensure you
+  have a working license.
+
+
+==============================
+Setting up install directory structure for GMAT
+-- Will install GMAT to /home/dan/GIT/GMAT-Qt/GMAT-R2026a-Linux-x64
+==============================
+GMAT util setup
+==============================
+GMAT base setup
+-- Use F2C version of MSISE.
+==============================
+GMAT Console setup
+-- Found Python3: /usr/bin/python3 (found version "3.14.4") found components: Interpreter
+==============================
+GMAT SWIG setup (for Python 3.14)
+-- Found Python3: /usr/include/python3.14 (found suitable exact version "3.14.4") found components: Development Development.Module Development.Embed
+==============================
+GMAT DataInterface Plugin setup
+==============================
+GMAT EphemPropagator Plugin setup
+==============================
+GMAT EKF Plugin setup
+==============================
+GMAT Estimation Plugin setup
+==============================
+GMAT EventLocator Plugin setup
+==============================
+GMAT External Force Model Plugin setup (for Python 3.14)
+==============================
+GMAT ExtraPropagators Plugin setup
+==============================
+GMAT Formation Plugin setup
+==============================
+GMAT GmatFunction Plugin setup
+==============================
+GMAT Msise00 Plugin setup
+==============================
+GMAT NewParameter Plugin setup
+==============================
+GMAT PolyhedronGravity Plugin setup
+==============================
+GMAT ProductionPropagators Plugin setup
+==============================
+GMAT PythonInterface Plugin setup (for Python 3.14)
+==============================
+GMAT SaveCommand Plugin setup
+==============================
+GMAT ScriptTools Plugin setup
+==============================
+GMAT Station Plugin setup
+==============================
+GMAT ThrustFile Plugin setup
+==============================
+GMAT TLE Propagator Plugin setup
+==============================
+GMAT Yukon Optimizer Plugin setup
+==============================
+STATION SWIG setup (for Python 3.14)
+==============================
+ESTIMATION SWIG setup (for Python 3.14)
+======================================
+Skipping the OVtoOFI Plugin:
+OpenFramesInterface is not being built
+=======================================
+==============================
+Setting up wxWidgets install instructions for GMAT
+-- Configuring done (1.3s)
+-- Generating done (0.3s)
+-- Build files have been written to: /home/dan/GIT/GMAT-Qt/build/linux-gui
+[1/29] cd /home/dan/GIT/GMAT-Qt/build/linux-gui && /usr/bin/cmake -E make_directory /home/dan/GIT/GMAT-Qt/application/bin && /usr/bin/cmake -E copy_if_different /home/dan/GIT/GMAT-Qt/build/linux-gui/qt-startup/Release/gmat_startup_qt.txt /home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt
+[2/29] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/MainWindowDocuments.cpp.o
+[3/29] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/FolderRunDialog.cpp.o
+[4/29] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/CelestialBodyPanel.cpp.o
+[5/29] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/MainWindow.cpp.o
+[6/29] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/ResourceRename.cpp.o
+[7/29] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/ResourceEditor.cpp.o
+[8/29] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/VisualModelDialog.cpp.o
+[9/29] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/ScriptCompatibility.cpp.o
+[10/29] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/OrbitObjectDrawingDialog.cpp.o
+[11/29] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/PlotPlaybackControls.cpp.o
+[12/29] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/PlotModel.cpp.o
+[13/29] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/OrbitRenderer.cpp.o
+/home/dan/GIT/GMAT-Qt/src/qtgui/OrbitRenderer.cpp: In function ‘osg::ref_ptr<osg::Image> {anonymous}::readTexture(const QString&)’:
+/home/dan/GIT/GMAT-Qt/src/qtgui/OrbitRenderer.cpp:92:86: warning: ‘QImage QImage::mirrored(bool, bool) &&’ is deprecated: Use flipped(Qt::Orientations) instead [-Wdeprecated-declarations]
+   92 |    const QImage pixels=QImage(path).convertToFormat(QImage::Format_RGBA8888).mirrored();
+      |                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+In file included from /usr/include/x86_64-linux-gnu/qt6/QtGui/QImage:1,
+                 from /home/dan/GIT/GMAT-Qt/src/qtgui/PlotModel.hpp:3,
+                 from /home/dan/GIT/GMAT-Qt/src/qtgui/OrbitRenderer.hpp:2,
+                 from /home/dan/GIT/GMAT-Qt/src/qtgui/OrbitRenderer.cpp:1:
+/usr/include/x86_64-linux-gnu/qt6/QtGui/qimage.h:223:26: note: declared here
+  223 |     [[nodiscard]] QImage mirrored(bool horizontally = false, bool vertically = true) &&
+      |                          ^~~~~~~~
+[14/29] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/PlotWidget.cpp.o
+[15/29] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/QtPlotReceiver.cpp.o
+[16/29] Linking CXX static library src/qtgui/libGmatQtFrontend.a
+[17/29] Linking CXX executable /home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a
+[18/29] Creating executable symlink /home/dan/GIT/GMAT-Qt/application/bin/GmatQt
+[19/29] Building CXX object src/qtgui/CMakeFiles/GmatQtObjectGuidesTests.dir/tests/ObjectGuidesTests.cpp.o
+[20/29] Building CXX object src/qtgui/CMakeFiles/GmatQtSegmentLabelTests.dir/tests/SegmentLabelTests.cpp.o
+FAILED: [code=1] src/qtgui/CMakeFiles/GmatQtSegmentLabelTests.dir/tests/SegmentLabelTests.cpp.o
+/usr/bin/c++ -DLINUX_MAC -DNO_GCC_PRAGMA -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_OPENGLWIDGETS_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DUNICODE -DUSE_64_BIT_LONGS -D_UNICODE -D__USE_SPICE__ -I/home/dan/GIT/GMAT-Qt/src/qtgui -I/home/dan/GIT/GMAT-Qt/src/base/api -I/home/dan/GIT/GMAT-Qt/src/base/asset -I/home/dan/GIT/GMAT-Qt/src/base/attitude -I/home/dan/GIT/GMAT-Qt/src/base/burn -I/home/dan/GIT/GMAT-Qt/src/base/command -I/home/dan/GIT/GMAT-Qt/src/base/configs -I/home/dan/GIT/GMAT-Qt/src/base/coordsystem -I/home/dan/GIT/GMAT-Qt/src/base/event -I/home/dan/GIT/GMAT-Qt/src/base/executive -I/home/dan/GIT/GMAT-Qt/src/base/factory -I/home/dan/GIT/GMAT-Qt/src/base/factory/guicomponents -I/home/dan/GIT/GMAT-Qt/src/base/forcemodel -I/home/dan/GIT/GMAT-Qt/src/base/forcemodel/harmonic -I/home/dan/GIT/GMAT-Qt/src/base/foundation -I/home/dan/GIT/GMAT-Qt/src/base/function -I/home/dan/GIT/GMAT-Qt/src/base/hardware -I/home/dan/GIT/GMAT-Qt/src/base/include -I/home/dan/GIT/GMAT-Qt/src/base/interface -I/home/dan/GIT/GMAT-Qt/src/base/interpreter -I/home/dan/GIT/GMAT-Qt/src/base/math -I/home/dan/GIT/GMAT-Qt/src/base/parameter -I/home/dan/GIT/GMAT-Qt/src/base/plugin -I/home/dan/GIT/GMAT-Qt/src/base/propagator -I/home/dan/GIT/GMAT-Qt/src/base/solarsys -I/home/dan/GIT/GMAT-Qt/src/base/solver -I/home/dan/GIT/GMAT-Qt/src/base/spice -I/home/dan/GIT/GMAT-Qt/src/base/spacecraft -I/home/dan/GIT/GMAT-Qt/src/base/stopcond -I/home/dan/GIT/GMAT-Qt/src/base/subscriber -I/home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/cspice/linux/cspice64/include -I/home/dan/GIT/GMAT-Qt/src/gmatutil/include -I/home/dan/GIT/GMAT-Qt/src/gmatutil/util -I/home/dan/GIT/GMAT-Qt/src/gmatutil/util/datawriter -I/home/dan/GIT/GMAT-Qt/src/gmatutil/util/interpolator -I/home/dan/GIT/GMAT-Qt/src/gmatutil/util/matrixoperations -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -isystem /usr/include/x86_64-linux-gnu/qt6/QtOpenGLWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtOpenGL -fno-strict-aliasing -fPIC -O3 -std=c++17 -MD -MT src/qtgui/CMakeFiles/GmatQtSegmentLabelTests.dir/tests/SegmentLabelTests.cpp.o -MF src/qtgui/CMakeFiles/GmatQtSegmentLabelTests.dir/tests/SegmentLabelTests.cpp.o.d -o src/qtgui/CMakeFiles/GmatQtSegmentLabelTests.dir/tests/SegmentLabelTests.cpp.o -c /home/dan/GIT/GMAT-Qt/src/qtgui/tests/SegmentLabelTests.cpp
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/SegmentLabelTests.cpp: In lambda function:
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/SegmentLabelTests.cpp:141:32: error: invalid use of incomplete type ‘class QDialog’
+  141 |                auto *sat=dialog->findChild<QComboBox *>("orbitDrawing_segmentLabel_Sat"),*earth=dialog->findChild<QComboBox *>("orbitDrawing_segmentLabel_Earth");
+      |                                ^~
+In file included from /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qwidget.h:9,
+                 from /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qmainwindow.h:9,
+                 from /usr/include/x86_64-linux-gnu/qt6/QtWidgets/QMainWindow:1,
+                 from /home/dan/GIT/GMAT-Qt/src/qtgui/MainWindow.hpp:2,
+                 from /home/dan/GIT/GMAT-Qt/src/qtgui/tests/SegmentLabelTests.cpp:1:
+/usr/include/x86_64-linux-gnu/qt6/QtGui/qwindowdefs.h:20:7: note: forward declaration of ‘class QDialog’
+   20 | class QDialog;
+      |       ^~~~~~~
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/SegmentLabelTests.cpp:141:54: error: expected primary-expression before ‘*’ token
+  141 |                auto *sat=dialog->findChild<QComboBox *>("orbitDrawing_segmentLabel_Sat"),*earth=dialog->findChild<QComboBox *>("orbitDrawing_segmentLabel_Earth");
+      |                                                      ^
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/SegmentLabelTests.cpp:141:55: error: expected primary-expression before ‘>’ token
+  141 |                auto *sat=dialog->findChild<QComboBox *>("orbitDrawing_segmentLabel_Sat"),*earth=dialog->findChild<QComboBox *>("orbitDrawing_segmentLabel_Earth");
+      |                                                       ^
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/SegmentLabelTests.cpp:142:31: error: ‘earth’ was not declared in this scope
+  142 |                require(sat && earth && sat->isEnabled() && earth->isEnabled() && sat->currentText()=="On" && earth->currentText()=="On","Segment controls failed readback");
+      |                               ^~~~~
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/SegmentLabelTests.cpp:143:50: error: invalid use of incomplete type ‘class QDialog’
+  143 |                sat->setCurrentText("Off"); dialog->findChild<QDialogButtonBox *>()->button(accept ? QDialogButtonBox::Ok : QDialogButtonBox::Cancel)->click();
+      |                                                  ^~
+/usr/include/x86_64-linux-gnu/qt6/QtGui/qwindowdefs.h:20:7: note: forward declaration of ‘class QDialog’
+   20 | class QDialog;
+      |       ^~~~~~~
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/SegmentLabelTests.cpp:143:79: error: expected primary-expression before ‘*’ token
+  143 |                sat->setCurrentText("Off"); dialog->findChild<QDialogButtonBox *>()->button(accept ? QDialogButtonBox::Ok : QDialogButtonBox::Cancel)->click();
+      |                                                                               ^
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/SegmentLabelTests.cpp:143:80: error: expected primary-expression before ‘>’ token
+  143 |                sat->setCurrentText("Off"); dialog->findChild<QDialogButtonBox *>()->button(accept ? QDialogButtonBox::Ok : QDialogButtonBox::Cancel)->click();
+      |                                                                                ^
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/SegmentLabelTests.cpp:143:82: error: expected primary-expression before ‘)’ token
+  143 |                sat->setCurrentText("Off"); dialog->findChild<QDialogButtonBox *>()->button(accept ? QDialogButtonBox::Ok : QDialogButtonBox::Cancel)->click();
+      |                                                                                  ^
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/SegmentLabelTests.cpp:144:81: error: invalid use of incomplete type ‘class QDialog’
+  144 |             } catch (...) { failure=std::current_exception(); if (dialog) dialog->reject(); }
+      |                                                                                 ^~
+/usr/include/x86_64-linux-gnu/qt6/QtGui/qwindowdefs.h:20:7: note: forward declaration of ‘class QDialog’
+   20 | class QDialog;
+      |       ^~~~~~~
+In file included from /usr/include/x86_64-linux-gnu/qt6/QtGui/qwindowdefs.h:8:
+/usr/include/x86_64-linux-gnu/qt6/QtCore/qobjectdefs.h: In instantiation of ‘struct QtPrivate::HasQ_OBJECT_Macro<QDialog>’:
+/usr/include/x86_64-linux-gnu/qt6/QtCore/qobject.h:160:62:   required from ‘T QObject::findChild(QAnyStringView, Qt::FindChildOptions) const [with T = QDialog*; Qt::FindChildOptions = QFlags<Qt::FindChildOption>]’
+  160 |         static_assert(QtPrivate::HasQ_OBJECT_Macro<ObjType>::Value,
+      |                                                              ^~~~~
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/SegmentLabelTests.cpp:138:53:   required from here
+  138 |             auto *dialog=panel->findChild<QDialog *>("orbitObjectDrawingDialog");
+      |                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/x86_64-linux-gnu/qt6/QtCore/qobjectdefs.h:739:37: error: incomplete type ‘QDialog’ used in nested name specifier
+  739 |         enum { Value =  sizeof(test(&Object::qt_metacall)) == sizeof(int) };
+      |                                     ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qwidget.h:10:
+/usr/include/x86_64-linux-gnu/qt6/QtCore/qobject.h: In instantiation of ‘T QObject::findChild(QAnyStringView, Qt::FindChildOptions) const [with T = QDialog*; Qt::FindChildOptions = QFlags<Qt::FindChildOption>]’:
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/SegmentLabelTests.cpp:138:53:   required from here
+  138 |             auto *dialog=panel->findChild<QDialog *>("orbitObjectDrawingDialog");
+      |                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/x86_64-linux-gnu/qt6/QtCore/qobject.h:160:62: error: static assertion failed: No Q_OBJECT in the class passed to QObject::findChild
+  160 |         static_assert(QtPrivate::HasQ_OBJECT_Macro<ObjType>::Value,
+      |                                                              ^~~~~
+/usr/include/x86_64-linux-gnu/qt6/QtCore/qobject.h:160:62: note: ‘QtPrivate::HasQ_OBJECT_Macro<QDialog>::Value’ evaluates to false
+/usr/include/x86_64-linux-gnu/qt6/QtCore/qobject.h:162:74: error: incomplete type ‘ObjType’ {aka ‘QDialog’} used in nested name specifier
+  162 |         return static_cast<T>(qt_qFindChild_helper(this, aName, ObjType::staticMetaObject, options));
+      |                                                                          ^~~~~~~~~~~~~~~~
+[21/29] Building CXX object src/qtgui/CMakeFiles/GmatQtConvertedVisibilityTests.dir/tests/ConvertedVisibilityTests.cpp.o
+ninja: build stopped: subcommand failed.
+
+gmat-segment-label-build-fixed-20261004.log
+[1/9] cd /home/dan/GIT/GMAT-Qt/build/linux-gui && /usr/bin/cmake -E make_directory /home/dan/GIT/GMAT-Qt/application/bin && /usr/bin/cmake -E copy_if_different /home/dan/GIT/GMAT-Qt/build/linux-gui/qt-startup/Release/gmat_startup_qt.txt /home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt
+[2/9] Building CXX object src/qtgui/CMakeFiles/GmatQtSegmentArcTests.dir/tests/SegmentArcTests.cpp.o
+[3/9] Building CXX object src/qtgui/CMakeFiles/GmatQtSegmentLabelTests.dir/tests/SegmentLabelTests.cpp.o
+[4/9] Linking CXX executable src/qtgui/GmatQtObjectGuidesTests
+[5/9] Linking CXX executable src/qtgui/GmatQtConvertedVisibilityTests
+[6/9] Linking CXX executable src/qtgui/GmatQtSegmentLabelTests
+[7/9] Building CXX object src/qtgui/CMakeFiles/GmatQtSegmentCameraTests.dir/tests/SegmentCameraTests.cpp.o
+[8/9] Linking CXX executable src/qtgui/GmatQtSegmentArcTests
+[9/9] Linking CXX executable src/qtgui/GmatQtSegmentCameraTests
+
+gmat-segment-label-build-final-20261004.log
+[1/10] cd /home/dan/GIT/GMAT-Qt/build/linux-gui && /usr/bin/cmake -E make_directory /home/dan/GIT/GMAT-Qt/application/bin && /usr/bin/cmake -E copy_if_different /home/dan/GIT/GMAT-Qt/build/linux-gui/qt-startup/Release/gmat_startup_qt.txt /home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt
+[2/10] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/QtPlotReceiver.cpp.o
+[3/10] Linking CXX static library src/qtgui/libGmatQtFrontend.a
+[4/10] Linking CXX executable /home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a
+[5/10] Creating executable symlink /home/dan/GIT/GMAT-Qt/application/bin/GmatQt
+[6/10] Linking CXX executable src/qtgui/GmatQtObjectGuidesTests
+[7/10] Linking CXX executable src/qtgui/GmatQtConvertedVisibilityTests
+[8/10] Linking CXX executable src/qtgui/GmatQtSegmentArcTests
+[9/10] Linking CXX executable src/qtgui/GmatQtSegmentLabelTests
+[10/10] Linking CXX executable src/qtgui/GmatQtSegmentCameraTests
+
+gmat-segment-label-build-guard-20261004.log
+[1/7] cd /home/dan/GIT/GMAT-Qt/build/linux-gui && /usr/bin/cmake -E make_directory /home/dan/GIT/GMAT-Qt/application/bin && /usr/bin/cmake -E copy_if_different /home/dan/GIT/GMAT-Qt/build/linux-gui/qt-startup/Release/gmat_startup_qt.txt /home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt
+[2/7] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/OrbitObjectDrawingDialog.cpp.o
+[3/7] Linking CXX static library src/qtgui/libGmatQtFrontend.a
+[4/7] Linking CXX executable /home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a
+[5/7] Creating executable symlink /home/dan/GIT/GMAT-Qt/application/bin/GmatQt
+[6/7] Linking CXX executable src/qtgui/GmatQtConvertedVisibilityTests
+[7/7] Linking CXX executable src/qtgui/GmatQtSegmentLabelTests

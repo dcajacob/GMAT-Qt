@@ -1579,7 +1579,7 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
    const auto name=QString::fromStdString(resource.GetName());
    QMap<QString,QString> changes=requested;
    if (changes.isEmpty()) return applyModelScript(expectedScript);
-   const QStringList objectDrawingKeys={"@QtObjectLabels","@QtObjectTrajectories","@QtObjectCenters","@QtObjectEndpoints","@QtObjectMarkerSizes","@QtObjectLineWidths","@QtObjectFontSizes","@QtObjectFontPositions","@QtObjectAxes","@QtObjectGrids","@QtObjectXYPlanes","@QtObjectVelocities"};
+   const QStringList objectDrawingKeys={"@QtObjectLabels","@QtObjectTrajectories","@QtObjectCenters","@QtObjectEndpoints","@QtObjectMarkerSizes","@QtObjectLineWidths","@QtObjectFontSizes","@QtObjectFontPositions","@QtObjectAxes","@QtObjectGrids","@QtObjectXYPlanes","@QtObjectVelocities","@QtObjectSegmentLabels"};
    const bool objectDrawing=std::any_of(objectDrawingKeys.cbegin(),objectDrawingKeys.cend(),[&](const auto &key) { return changes.contains(key); });
    if (objectDrawing && !object->IsOfType("OrbitView")) return "Object drawing settings belong to an OrbitView.";
    QMap<QString,QString> external;
@@ -1846,7 +1846,7 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
                   if (std::find(objects.begin(),objects.end(),it.key().toStdString())==objects.end()) it=flags.erase(it); else ++it;
                }
             };
-            prune(setting.objectLabels); prune(setting.objectTrajectories); prune(setting.objectCenters); prune(setting.objectEndpoints); prune(setting.objectMarkerSizes); prune(setting.objectLineWidths); prune(setting.objectFontSizes); prune(setting.objectFontPositions); prune(setting.objectAxes); prune(setting.objectGrids); prune(setting.objectXYPlanes); prune(setting.objectVelocities);
+            prune(setting.objectLabels); prune(setting.objectTrajectories); prune(setting.objectCenters); prune(setting.objectEndpoints); prune(setting.objectMarkerSizes); prune(setting.objectLineWidths); prune(setting.objectFontSizes); prune(setting.objectFontPositions); prune(setting.objectAxes); prune(setting.objectGrids); prune(setting.objectXYPlanes); prune(setting.objectVelocities); prune(setting.objectSegmentLabels);
             candidate=setQtCameraSetting(candidate,name,setting);
          }
       }
@@ -1859,6 +1859,7 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
          if (changes.contains("@QtObjectAxes")) setting.objectAxes=qtObjectFlags(changes.value("@QtObjectAxes"));
          if (changes.contains("@QtObjectGrids")) setting.objectGrids=qtObjectFlags(changes.value("@QtObjectGrids"));
          if (changes.contains("@QtObjectXYPlanes")) setting.objectXYPlanes=qtObjectFlags(changes.value("@QtObjectXYPlanes"));
+         if (changes.contains("@QtObjectSegmentLabels")) setting.objectSegmentLabels=qtObjectFlags(changes.value("@QtObjectSegmentLabels"));
          if (changes.contains("@QtObjectVelocities")) setting.objectVelocities=qtObjectFlags(changes.value("@QtObjectVelocities"));
          if (changes.contains("@QtObjectMarkerSizes")) setting.objectMarkerSizes=qtObjectSizes(changes.value("@QtObjectMarkerSizes"));
          if (changes.contains("@QtObjectLineWidths")) setting.objectLineWidths=qtObjectWidths(changes.value("@QtObjectLineWidths"));

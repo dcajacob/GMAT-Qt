@@ -29,6 +29,7 @@
 #include <osg/Shader>
 #include <osg/Uniform>
 #include "OrbitLabels.hpp"
+#include "OrbitSegmentLabels.hpp"
 #include <osg/ComputeBoundsVisitor>
 #include <osg/LightSource>
 #include <osg/Depth>
@@ -679,13 +680,14 @@ void OrbitRenderer::drawOverlay(QPainter &painter)
    if (scene->model->labels) {
       const auto projection=scene->viewer.getCamera()->getViewMatrix()*scene->viewer.getCamera()->getProjectionMatrix();
       for (const auto &curve:scene->model->curves) {
-         if (!curve.drawsLabel()) continue;
-         const auto *last=orbitObjectPose(curve,scene->frame);
-         if (!last) continue;
-         const auto clip=osg::Vec4d(last->x,last->y,last->z,1)*projection;
-         if (clip.w()<=0 || std::abs(clip.x())>clip.w() || std::abs(clip.y())>clip.w() || std::abs(clip.z())>clip.w()) continue;
-         const osg::Vec3d ndc(clip.x()/clip.w(),clip.y()/clip.w(),clip.z()/clip.w());
-         drawOrbitLabel(painter,QPointF((ndc.x()+1)*width()/2,(1-ndc.y())*height()/2),curve);
+         auto label=[&](const PlotPoint &pose,const QString &text) {
+            const auto clip=osg::Vec4d(pose.x,pose.y,pose.z,1)*projection;
+            if (clip.w()<=0 || std::abs(clip.x())>clip.w() || std::abs(clip.y())>clip.w() || std::abs(clip.z())>clip.w()) return;
+            const osg::Vec3d ndc(clip.x()/clip.w(),clip.y()/clip.w(),clip.z()/clip.w());
+            drawOrbitLabel(painter,QPointF((ndc.x()+1)*width()/2,(1-ndc.y())*height()/2),curve,text);
+         };
+         if (curve.drawsLabel()) if (const auto *pose=orbitObjectPose(curve,scene->frame)) label(*pose,curve.name);
+         for (const auto &segment:orbitSegmentLabels(*scene->model,curve,scene->frame)) label(segment.pose,segment.name);
       }
    }
    if (scene->model->labels) {

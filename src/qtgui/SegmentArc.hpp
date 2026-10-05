@@ -33,13 +33,16 @@ inline void recordRegularArcPose(PlotModel &model,const QString &object,const QS
          }
          if (!connected) continue;
          // OF retains the original segment name and unions command identities.
-         for (int i=first+1;i<arcs.size();++i) arcs[first].providers.unite(arcs[i].providers);
+         for (int i=first+1;i<arcs.size();++i) {
+            arcs[first].providers.unite(arcs[i].providers);
+            arcs[first].members.unite(arcs[i].members);
+         }
          arcs[first].last=arcs.back().last;
          arcs.resize(first+1); arcs.back().finalized=false; break;
       }
    }
    if (arcs.isEmpty() || arcs.back().finalized) {
-      PlotRegularArc arc; arc.id=++model.nextRegularArc; arc.name=name;
+      PlotRegularArc arc; arc.id=++model.nextRegularArc; arc.members.insert(arc.id); arc.name=name;
       arc.providers.insert(provider); arc.first=arc.last=pose; arcs.append(arc); return;
    }
    auto &arc=arcs.back(); const int direction=arcDirection(arc);

@@ -76,6 +76,7 @@ void QtPlotReceiver::validateCameraReferences(const QMap<QString,QtCameraSetting
       for (const auto &name:it->objectAxes.keys()) validateTrajectory(name,false);
       for (const auto &name:it->objectGrids.keys()) validateTrajectory(name,false);
       for (const auto &name:it->objectXYPlanes.keys()) validateTrajectory(name,false);
+      for (const auto &name:it->objectSegmentLabels.keys()) validateTrajectory(name,false);
       for (const auto &name:it->objectVelocities.keys()) validateTrajectory(name,false);
       for (const auto &name:it->objectMarkerSizes.keys()) validateTrajectory(name,false);
       for (const auto &name:it->objectLineWidths.keys()) validateTrajectory(name,false);
@@ -405,6 +406,7 @@ void QtPlotReceiver::SetGlObject(const std::string &name,const StringArray &name
       curve.objectGrid=setting.objectGrids.value(curve.name,false);
       curve.objectXYPlane=setting.objectXYPlanes.value(curve.name,false);
       curve.objectVelocity=setting.objectVelocities.value(curve.name,false);
+      curve.segmentLabels=setting.objectSegmentLabels.value(curve.name,false);
       curve.orbitMarkerSize=setting.objectMarkerSizes.value(curve.name,10);
       curve.importedLineWidth=setting.objectLineWidths.contains(curve.name) ? std::optional<double>(setting.objectLineWidths.value(curve.name)) : std::nullopt;
       curve.importedFontSize=setting.objectFontSizes.contains(curve.name) ? std::optional<quint32>(setting.objectFontSizes.value(curve.name)) : std::nullopt;
@@ -749,8 +751,12 @@ bool QtPlotReceiver::UpdateGlPlot(const std::string &name,const std::string &,co
          }
       }
    }
-   for (auto &curve:data.curves) if (!curve.points.empty() && curve.points.back().frame==data.frame)
-      curve.points.back().provider=entry->provider;
+   for (auto &curve:data.curves) if (!curve.points.empty() && curve.points.back().frame==data.frame) {
+      auto &point=curve.points.back(); point.provider=entry->provider;
+      const auto arcs=data.regularArcs.constFind(curve.name);
+      if (!solving && arcs!=data.regularArcs.cend() && !arcs->isEmpty() && arcs->back().providers.contains(entry->arcProvider))
+         point.regularArc=arcs->back().id;
+   }
    if (data.kind==PlotModel::Kind::Orbit && data.active) for (auto &vector:data.vectors) {
       PlotVectorSample sample; sample.source.frame=data.frame; sample.source.epoch=epoch; sample.source.solver=solving;
       try {
@@ -833,6 +839,7 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
    }
    if (action=="NeedsOrbitArcMetadata") {
       const auto setting=cameraSettings.value(text(name));
+      for (bool enabled:setting.objectSegmentLabels) if (enabled) return true;
       if (!setting.segmentFrame.isEmpty()) return true;
       for (const auto &view:setting.views) if (!view.segmentFrame.isEmpty()) return true;
       return false;
@@ -840,6 +847,7 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
    if (action.compare(0,18,"NeedsOrbitArcPose:")==0) {
       const auto object=text(action.substr(18));
       const auto setting=cameraSettings.value(text(name));
+      if (setting.objectSegmentLabels.value(object,false)) return true;
       if (setting.segmentFrame.section('.',0,0)==object) return true;
       for (const auto &view:setting.views) if (view.segmentFrame.section('.',0,0)==object) return true;
       return false;
@@ -867,6 +875,37 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
       recordRegularArcPose(*entry->data,text(object),entry->arcProvider,entry->provider,pose); return true;
    }
    if (action=="PrepareOrbitArcCameras") {
+      // Bodies have no spacecraft publisher arrays. Capture their label endpoints
+      // at the same raw publication epoch, before collection/MaxPlotPoints, using
+      // the ordinary view conversion. Their regular trajectories merge under the
+      // first provider name, as in OF; trials never acquire regular labels.
+      if (!entry->arcTrial && entry->dataAvailability) {
+         const auto setting=cameraSettings.value(text(name));
+         const double epoch=entry->dataAvailability->epoch;
+         bool hasPublishedSpacecraft=false;
+         for (bool present:entry->dataAvailability->objects) hasPublishedSpacecraft=hasPublishedSpacecraft || present;
+         for (auto *object:entry->points) {
+            if (!object || object->IsOfType(Gmat::SPACECRAFT) || !setting.objectSegmentLabels.value(text(object->GetName()),false)) continue;
+            if (entry->view && entry->view->GetOriginName()==object->GetName() && entry->view->AreAxesOfType("BodyFixedAxes")) continue;
+            try {
+               auto state=object->GetMJ2000State(epoch);
+               if (entry->internal && entry->view && entry->internal!=entry->view) {
+                  Rvector6 converted; CoordinateConverter converter;
+                  converter.Convert(epoch,state,entry->internal,converted,entry->view); state=converted;
+               }
+               if (!PlotModel::usableOrbitPosition(state[0],state[1],state[2])) continue;
+               PlotPoint pose; pose.epoch=epoch; pose.frame=entry->data->frame; pose.provider=entry->provider;
+               pose.x=state[0]; pose.y=state[1]; pose.z=state[2];
+               auto &arcs=entry->data->regularArcs[text(object->GetName())];
+               if (arcs.isEmpty()) recordRegularArcPose(*entry->data,text(object->GetName()),entry->arcProvider,hasPublishedSpacecraft ? entry->provider : QString(),pose);
+               else {
+                  auto &arc=arcs.front(); arc.providers.insert(entry->arcProvider);
+                  if (pose.epoch<arc.first.epoch) arc.first=pose;
+                  if (pose.epoch>arc.last.epoch) arc.last=pose;
+               }
+            } catch (...) { warn(name,"unavailable body segment label position (retaining its available history)"); }
+         }
+      }
       if (entry->arcTrial || entry->arcPublishedPoses.isEmpty()) return true;
       StringArray objects; RealArray x,y,z,empty;
       double epoch=0;

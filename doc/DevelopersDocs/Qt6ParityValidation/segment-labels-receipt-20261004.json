@@ -1,0 +1,32 @@
+{
+  "app": {
+    "path": "/home/dan/GIT/GMAT-Qt/application/bin/GmatQt",
+    "bytes": 6230920,
+    "sha256": "f2a52efae004c20287fae85cca18bfb9f35e1934f4c0ef2cd2c573909ef84aba"
+  },
+  "base": {
+    "path": "/home/dan/GIT/GMAT-Qt/application/bin/libGmatBase.so",
+    "bytes": 25040656,
+    "sha256": "2082a341f5f123e81bad362972cd2b28a0a4753047ae51b5c09609e246be430c"
+  },
+  "util": {
+    "path": "/home/dan/GIT/GMAT-Qt/application/bin/libGmatUtil.so",
+    "bytes": 2929904,
+    "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+  },
+  "qt_startup": {
+    "path": "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt",
+    "bytes": 10260,
+    "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+  },
+  "label_report": {
+    "path": "/home/dan/GIT/GMAT-Qt/build/linux-gui/segment-labels-20261004/raw/labels.report",
+    "bytes": 210,
+    "sha256": "614fffa0db7e1c87566a5e4b743217ff3c4ba02f32845b2b72552f6416be87f8"
+  },
+  "reference_report": {
+    "path": "/home/dan/GIT/GMAT-Qt/build/linux-gui/segment-labels-20261004/raw/reference.report",
+    "bytes": 210,
+    "sha256": "614fffa0db7e1c87566a5e4b743217ff3c4ba02f32845b2b72552f6416be87f8"
+  }
+}

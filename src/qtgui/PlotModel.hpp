@@ -48,6 +48,7 @@ struct PlotPoint
    // Actual publisher velocity (km/s) in the same view frame as x/y/z.
    std::array<double,3> viewVelocity{};
    bool hasVelocity=false;
+   quint64 regularArc = 0; // Accepted propagation arc identity; zero for trials/unassigned samples.
 };
 // Regular trajectory identity is independent of collected/trimmed points.
 struct PlotRegularArc
@@ -57,6 +58,7 @@ struct PlotRegularArc
    QSet<QString> providers;
    PlotPoint first,last;
    bool finalized=false;
+   QSet<quint64> members; // IDs retained by collected samples when connected arcs merge.
 };
 struct PlotCurve
 {
@@ -69,6 +71,7 @@ struct PlotCurve
    bool breakNext = true, visible = true, lines = true, markers = false;
    bool showObject = true;
    std::optional<bool> importedLabel;
+   bool segmentLabels=false;
    bool centerMarker=false,endpointMarkers=false,objectAxes=false,objectGrid=false,objectXYPlane=false,objectVelocity=false;
    quint32 orbitMarkerSize=10;
    std::optional<double> importedLineWidth;
@@ -76,7 +79,7 @@ struct PlotCurve
    QString importedFontPosition;
    double orbitLineWidth() const { return importedLineWidth.value_or(width); }
    bool drawsLabel() const { return visible && importedLabel.value_or(showObject); }
-   bool drawsContent() const { return visible && (lines || markers || showObject || centerMarker || endpointMarkers || objectAxes || objectGrid || objectXYPlane || objectVelocity || importedLabel.value_or(false)); }
+   bool drawsContent() const { return visible && (lines || markers || showObject || centerMarker || endpointMarkers || objectAxes || objectGrid || objectXYPlane || objectVelocity || segmentLabels || importedLabel.value_or(false)); }
    bool wireframeObject = false;
    double radius = 0;
    QString texturePath;

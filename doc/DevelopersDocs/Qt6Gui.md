@@ -2435,3 +2435,17 @@ Tutorials now includes eighteen chapters: the original twelve plus Creating a Re
 [Publication evidence](Qt6ParityValidation/help-publication-20261003.md) and the [walkthrough ledger](Qt6TutorialWalkthrough.md) retain each bounded GUI pass and its scientific limitations. Lunar remains unpublished after two capture-target failures; L2 is held, and MATLAB/legacy optimizer chapters retain their dependency dispositions. This does not close the nine replacement acceptance gates or host/GPU qualification.
 
 Local Help script/function attachments display as read-only literal text with line breaks and indentation. Back/Forward keeps their file URLs; Enter in Find searches the current page without activating another dialog button. [Focused and actual-input evidence](Qt6ParityValidation/help-attachments-20261003.md) records the repair and rebuilt runtime. Viewing an attachment does not import or run it.
+
+
+### Propagation segment labels — 2026-10-04
+
+OrbitView / Advanced / Object drawing / Label style now includes **Segment
+labels** (Default/On/Off) for space points. Default hides them. This converts
+legacy `DrawUsePropLabel`, independently of object-name Label, model and path
+visibility. Show labels remains the master; font size and placement apply.
+Each accepted regular spacecraft segment follows its own retained trajectory
+at the replay epoch, clamping outside its range; bodies use the merged first
+provider label. Solver trials do not create regular segment labels. Compact
+endpoints survive trimming, while intermediate placement approximates the
+available collected geometry. [Focused evidence and runtime limits](Qt6ParityValidation/segment-labels-20261004.md)
+retain the unchanged numerical report and explicit host/GPU qualification stop.

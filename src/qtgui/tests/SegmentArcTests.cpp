@@ -128,7 +128,7 @@ int main(int argc,char **argv)
          "StopTime = Sat.A1ModJulian + 30 / 86400;\nPropagate 'A' P(Sat) {Sat.A1ModJulian = StopTime};\n"+state+
          "StopTime = Sat.A1ModJulian + 30 / 86400;\nPropagate 'B' P(Sat) {Sat.A1ModJulian = StopTime};\n"+state+"EndFor;\n";
       model=compare({},connected,{}); const auto connectedRows=rows(bytes(report)); const auto &joined=model->regularArcs.value("Sat");
-      require(connectedRows.size()==4 && joined.size()==1 && joined[0].name=="A" && joined[0].providers.size()==2 && joined[0].finalized,"Connected A-B-A did not preserve the first regular arc identity");
+      require(connectedRows.size()==4 && joined.size()==1 && joined[0].name=="A" && joined[0].providers.size()==2 && joined[0].members.size()==2 && joined[0].finalized,"Connected A-B-A did not preserve the first regular arc identity");
       endpoint(joined[0].last,connectedRows.back()); camera(*model,joined[0].last);
       // A trial-only first pass must not acquire the named camera. The accepted
       // pass's skipped endpoint and pose remain after the plot deque is trimmed.

@@ -8838,3 +8838,18 @@ original nine acceptance gates remain authoritative; live host testing is
 stopped, GMAT crash attribution and host/physical GPU acceptance are unproven,
 and held/external/domain plus Windows/macOS/MATLAB limits remain explicit.
 Full qualification is not claimed.
+
+
+## Active OF segment-label operation — 2026-10-04
+
+[Segment-label evidence](Qt6ParityValidation/segment-labels-20261004.md) closes
+DrawUsePropLabel conversion and the Label Segments resource operation, with
+native/fallback replay labels for accepted arcs and merged body trajectories.
+Eight relevant checks pass, including a bounded standalone initialization repair;
+a new short two-segment fixture has a byte-identical complete report. GmatQt is
+rebuilt at 6,230,920 bytes / SHA f2a52efa…; base/util/Qt startup are unchanged.
+Retained geometry remains a display approximation after decimation/trimming.
+No completed corpus/tutorial/audit was repeated. All nine gates and dependency
+limits remain authoritative. Live host testing stays stopped; GMAT attribution,
+host repair and physical-GPU acceptance are unproven. Windows/macOS/MATLAB remain
+deferred, and full qualification is not claimed.

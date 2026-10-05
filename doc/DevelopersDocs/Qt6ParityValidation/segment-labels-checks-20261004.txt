@@ -1,0 +1,49 @@
+
+gmat-segment-label-checks-20261004.log
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start 20: QtGui.NativeSegmentLabels
+1/8 Test #20: QtGui.NativeSegmentLabels ........   Passed    0.71 sec
+    Start 39: QtGui.ObjectGuides
+2/8 Test #39: QtGui.ObjectGuides ...............   Passed    0.35 sec
+    Start 48: QtGui.FontRendering
+3/8 Test #48: QtGui.FontRendering ..............***Failed    0.54 sec
+
+    Start 49: QtGui.ConvertedFonts
+4/8 Test #49: QtGui.ConvertedFonts .............   Passed    0.81 sec
+    Start 54: QtGui.ObjectDrawingLayout
+5/8 Test #54: QtGui.ObjectDrawingLayout ........***Failed    0.37 sec
+
+    Start 56: QtGui.SegmentLabels
+6/8 Test #56: QtGui.SegmentLabels ..............   Passed    0.44 sec
+    Start 57: QtGui.SegmentArc
+7/8 Test #57: QtGui.SegmentArc .................   Passed    0.60 sec
+    Start 58: QtGui.SegmentCameras
+8/8 Test #58: QtGui.SegmentCameras .............   Passed    0.52 sec
+
+75% tests passed, 2 tests failed out of 8
+
+Label Time Summary:
+qt-gui    =   4.34 sec*proc (8 tests)
+
+Total Test time (real) =   4.35 sec
+
+The following tests FAILED:
+	 48 - QtGui.FontRendering (Failed)                      qt-gui
+	 54 - QtGui.ObjectDrawingLayout (Failed)                qt-gui
+Errors while running CTest
+
+gmat-segment-label-guard-checks-20261004.log
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start 48: QtGui.FontRendering
+1/3 Test #48: QtGui.FontRendering ..............   Passed    0.19 sec
+    Start 54: QtGui.ObjectDrawingLayout
+2/3 Test #54: QtGui.ObjectDrawingLayout ........   Passed    0.18 sec
+    Start 56: QtGui.SegmentLabels
+3/3 Test #56: QtGui.SegmentLabels ..............   Passed    0.40 sec
+
+100% tests passed, 0 tests failed out of 3
+
+Label Time Summary:
+qt-gui    =   0.77 sec*proc (3 tests)
+
+Total Test time (real) =   0.78 sec
