@@ -1,0 +1,103 @@
+{
+  "date": "2026-10-05T06:47:08.256279+00:00",
+  "sourceCommit": "053e28d411c19ed735d8b10ec51b14b275908c17",
+  "branch": "codex/qt6-gui",
+  "inspection": "read-only sources, current acceptance map and retained evidence; no new numerical, GUI or regression test",
+  "files": {
+    "application/bin/GmatQt": {
+      "bytes": 6740680,
+      "sha256": "78e763656adfc1956508a7a6527f623e864283423debe1747e65b8894a874a72"
+    },
+    "application/bin/libGmatBase.so": {
+      "bytes": 25040656,
+      "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e"
+    },
+    "application/bin/libGmatUtil.so": {
+      "bytes": 2929904,
+      "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+    },
+    "application/bin/gmat_startup_qt.txt": {
+      "bytes": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    },
+    "src/qtgui/ScriptCompatibility.cpp": {
+      "bytes": 94307,
+      "sha256": "919b2cf800a9becbb25345f7f31422a7b1b60e9c9757e4a1b85188a04be488f4"
+    },
+    "src/qtgui/OrbitRenderer.cpp": {
+      "bytes": 49766,
+      "sha256": "d54d4242c56843e110242362fff5d5d18c8b2f8ca989b34184ab410f2828d64f"
+    },
+    "src/base/subscriber/OrbitPlot.cpp": {
+      "bytes": 101380,
+      "sha256": "dada82fbdbbc26e382d6986fcc1c8274777c3466c85fd2deaa327b36102331d1"
+    },
+    "src/base/subscriber/OrbitView.cpp": {
+      "bytes": 76699,
+      "sha256": "28c24f69f27c5a32012736766321f4b1247e354863fdbf559f86c974fb874326"
+    },
+    "doc/DevelopersDocs/Qt6ReplacementQualification.md": {
+      "bytes": 653661,
+      "sha256": "156d6749559f3a2f6f478f8bdb4ed1995accf7f02196095babc8cec8524d7375"
+    },
+    "doc/DevelopersDocs/Qt6TutorialWalkthrough.md": {
+      "bytes": 19781,
+      "sha256": "37d6f09259d22be0f0a74a4db27140b8f373b294117c261823e723a09597bda6"
+    },
+    "doc/DevelopersDocs/Qt6ParityValidation/current-acceptance-20261002.md": {
+      "bytes": 25759,
+      "sha256": "f9e77ae0a33c085cef09996d9e970128ed6777afb77a320e4bdb1dc5a844dea7"
+    },
+    "doc/DevelopersDocs/Qt6ParityValidation/of-script-ordering-20261005.receipt.json": {
+      "bytes": 4443,
+      "sha256": "8e31be98bfaa66642c4192c26ec02d895347e1d881a837901845df461a0edccd"
+    },
+    "doc/DevelopersDocs/Qt6ParityValidation/help-lunar-transfer-20261003.md": {
+      "bytes": 10516,
+      "sha256": "15bda43e92d1c02a3abb0a89d0a6b537e516c3460741ab4a932f1403bdc93a4b"
+    },
+    "doc/DevelopersDocs/Qt6ParityValidation/l2-tutorial-bracket-2026-10-02.md": {
+      "bytes": 6624,
+      "sha256": "e81909cc2bf32bdecec97552e6eeb7016e210e570cb50668d94008f8758c9751"
+    },
+    "doc/DevelopersDocs/Qt6ParityValidation/shipped-examples-20261002.md": {
+      "bytes": 15367,
+      "sha256": "62606b4fd36b10ccd1a31a8b9480481c1ecaf3a0fd23e7c067488baea4fcced7"
+    },
+    "doc/DevelopersDocs/Qt6ParityValidation/multi-thrust-live-20261002.md": {
+      "bytes": 13836,
+      "sha256": "26abcc6c21dc3426f0346632dcf0843b2ed7381df35e685fc6e6e07950d6ada5"
+    },
+    "doc/DevelopersDocs/Qt6ParityValidation/compositor-popup-null-resource-20261002.md": {
+      "bytes": 4410,
+      "sha256": "5e2a1b201f0fea9600ab44f177c023cb137abbd67832d32335500c8b85e99064"
+    },
+    "doc/DevelopersDocs/Qt6Handoff.md": {
+      "bytes": 87505,
+      "sha256": "732d3972ed6eb69f8c319f95ec3813ae9e7bcbb99615890a896a58e11beb1054"
+    },
+    "doc/DevelopersDocs/Qt6ParityValidation/remaining-gates-20261005.md": {
+      "bytes": 8959,
+      "sha256": "0fbeee28c45f944f591ace0b854d2018504a697b77dc34b8d448235806c85611"
+    }
+  },
+  "latestRuntimeReceiptMatches": {
+    "application/bin/GmatQt": true,
+    "application/bin/libGmatBase.so": true,
+    "application/bin/libGmatUtil.so": true,
+    "application/bin/gmat_startup_qt.txt": true
+  },
+  "bounds": {
+    "applicationChanged": false,
+    "completedAuditsRepeated": false,
+    "tutorialsRepeated": false,
+    "examplesRepeated": false,
+    "passingTestsRepeated": false,
+    "liveHostTesting": "stopped",
+    "hostGpuQualified": false,
+    "gmatCrashClientAttributionProven": false,
+    "fullQualification": false,
+    "originalGates": 9,
+    "checkedOriginalGates": 0
+  }
+}

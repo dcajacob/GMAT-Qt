@@ -98,6 +98,16 @@ remains bound to its original runtime. [Offline Help publication](Qt6ParityValid
 includes eighteen tutorial chapters. Numerical walkthroughs remain bound to
 their recorded runtimes and were not repeated for the Help repairs.
 
+## Requirement-level review — 2026-10-05
+
+The [remaining nine-gate review](Qt6ParityValidation/remaining-gates-20261005.md)
+checks current artifact identities against the latest receipt and separates
+completed bounded operations from host, scientific and external requirements.
+No new ordinary frontend omission was established; no application, test or
+numerical run was changed or repeated. All nine original gates stay unchecked.
+Full qualification still needs safe host acceptance and resolution of the held
+scientific/external cases; diagnosed restrictions do not count as implemented parity.
+
 ## Remaining qualification scope — 2026-10-04
 
 The two concrete gaps from the [targeted source review](Qt6ParityValidation/of-remaining-controls-20261004.md)
