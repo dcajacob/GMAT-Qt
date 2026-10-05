@@ -1,0 +1,652 @@
+{
+  "date": "2026-10-05",
+  "sourceCommit": "f45d0d54",
+  "authorization": "User authorized bounded live-host tests: Yeah, go for it",
+  "artifactDirectory": "/tmp/gmat-host-20261005-9iwsm1aj",
+  "runtime": {
+    "application/bin/GmatQt": {
+      "bytes": 6740680,
+      "sha256": "78e763656adfc1956508a7a6527f623e864283423debe1747e65b8894a874a72"
+    },
+    "application/bin/libGmatBase.so": {
+      "bytes": 25040656,
+      "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e"
+    },
+    "application/bin/libGmatUtil.so": {
+      "bytes": 2929904,
+      "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+    },
+    "application/bin/gmat_startup_qt.txt": {
+      "bytes": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    }
+  },
+  "host": {
+    "gnomeShellPid": 399961,
+    "gnomeShellStartTicks": "38989406",
+    "gnomeMutter": "50.1 / 50.1-0ubuntu2.4",
+    "kernel": "7.0.0-1014-oem",
+    "mesa": "26.0.8-1ubuntu0.3",
+    "qtWayland": "6.10.2+dfsg-7",
+    "session": "native Wayland",
+    "gpu": "Intel Iris Xe / i915 / 0000:00:02.0 / renderD128",
+    "monitorLogical": [
+      1536,
+      960
+    ],
+    "monitorCapturedPixels": [
+      3456,
+      2160
+    ],
+    "scale": 2.25
+  },
+  "smoke": {
+    "command": [
+      "/home/dan/GIT/GMAT-Qt/application/bin/GmatQt",
+      "--startup",
+      "/tmp/gmat-host-20261005-9iwsm1aj/startup.txt",
+      "--settings-dir",
+      "/tmp/gmat-host-20261005-9iwsm1aj/settings",
+      "--run",
+      "--screenshot",
+      "/tmp/gmat-host-20261005-9iwsm1aj/screenshots/01-smoke.png",
+      "/tmp/gmat-host-20261005-9iwsm1aj/host.script"
+    ],
+    "pid": 3872055,
+    "exit": 0,
+    "seconds": 1.2668119040317833,
+    "environment": {
+      "QT_QPA_PLATFORM": "wayland",
+      "softwareOverridesRemoved": true
+    },
+    "imageExists": true
+  },
+  "renderEngineEvidence": {
+    "beforeNanoseconds": 49074324,
+    "afterNanoseconds": 113747764,
+    "increaseNanoseconds": 64673440,
+    "source": "attempt06-actions.jsonl; two owned GPU snapshots"
+  },
+  "results": {
+    "hardwareOrbitGroundXY": "observed",
+    "resourcePopupAndCreationDialog": "observed after pointer calibration",
+    "creationF1Help": "observed Spacecraft topic",
+    "nativeGtkChooserCancelAndOpen": "observed owned file reopened; F5 mission completed",
+    "sharedSpeedButtons": "observed selector change in retained input trees",
+    "viewerClose": "observed in attempt05; absent HostOrbit before Output tab",
+    "viewerReopen": "not conclusively verified; later frame presence does not prove preceding close",
+    "maximizeRestore": "owned frame geometry changed 1469x890 -> 1311x871 -> 1469x890 in attempt07; scope bounded",
+    "resize": "keys delivered; a distinct resize result not established",
+    "minimizeRestore": "minimize removed owned active state; restore failed to identify/select owned card",
+    "normalInteractiveExit": "not established; guards/time bounds used owned SIGTERM cleanup",
+    "newGpuFault": "none observed in scoped kernel journal",
+    "newCompositorCrash": "none observed; same pid/starttime and scoped core list empty",
+    "historicalGmatClientAttribution": "unproven",
+    "fullHostQualification": false,
+    "fullReplacementQualification": false
+  },
+  "bounds": {
+    "applicationChanged": false,
+    "rebuilt": false,
+    "unchangedPassingSuitesRepeated": false,
+    "completedAuditsTutorialsExamplesRepeated": false,
+    "newDiagnosticMission": true,
+    "scientificRegimeQualified": false,
+    "msaaEnabled": false,
+    "globalSecuritySettingsChanged": false,
+    "gnomeOverviewAfterCleanup": false,
+    "preexistingOriginalCheckoutProcessTouched": false
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "final": {
+        "shellBefore": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "shellAfter": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "appExit": null,
+        "end": "2026-10-05T17:05:15.261494+00:00"
+      },
+      "errorFile": "attempt01-worker-error.txt"
+    },
+    {
+      "attempt": 2,
+      "final": {
+        "shellBefore": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "shellAfter": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "appExit": -15,
+        "end": "2026-10-05T17:07:34.594831+00:00"
+      },
+      "errorFile": null
+    },
+    {
+      "attempt": 3,
+      "final": {
+        "shellBefore": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "shellAfter": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "appExit": -15,
+        "end": "2026-10-05T17:12:24.554111+00:00"
+      },
+      "errorFile": null
+    },
+    {
+      "attempt": 4,
+      "final": {
+        "shellBefore": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "shellAfter": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "appExit": -15,
+        "end": "2026-10-05T17:17:07.133475+00:00"
+      },
+      "errorFile": "attempt04-worker-error.txt"
+    },
+    {
+      "attempt": 5,
+      "final": {
+        "shellBefore": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "shellAfter": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "appExit": -15,
+        "end": "2026-10-05T17:22:48.623884+00:00"
+      },
+      "errorFile": "attempt05-worker-error.txt"
+    },
+    {
+      "attempt": 6,
+      "final": {
+        "shellBefore": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "shellAfter": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "appExit": -15,
+        "end": "2026-10-05T17:24:34.042083+00:00"
+      },
+      "errorFile": "attempt06-worker-error.txt"
+    },
+    {
+      "attempt": 7,
+      "final": {
+        "shellBefore": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "shellAfter": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "appExit": -15,
+        "end": "2026-10-05T17:27:13.031412+00:00"
+      },
+      "errorFile": "attempt07-worker-error.txt"
+    },
+    {
+      "attempt": 8,
+      "final": {
+        "shellBefore": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "shellAfter": [
+          [
+            "399961",
+            "38989406"
+          ]
+        ],
+        "appExit": -15,
+        "end": "2026-10-05T17:30:14.527206+00:00"
+      },
+      "errorFile": "worker-error.txt"
+    }
+  ],
+  "evidenceFiles": {
+    "compositor-coredumps.txt": {
+      "bytes": 20,
+      "sha256": "e2407dad5480fe176681b503a643685b72e70da34e81a34efea3aef9c6dabb21"
+    },
+    "compositor-window.txt": {
+      "bytes": 105,
+      "sha256": "15d2e0d0deab79172160052ae76e7afbed5693336e80ec861cc5578767489fa2"
+    },
+    "kernel-complete.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "restore-worker.log": {
+      "bytes": 55295,
+      "sha256": "a4adcfcea907d249c6b10fca4d3e1ed32aed6ad463c6da1052cb9a8a2a3edf34"
+    },
+    "restore-commands.jsonl": {
+      "bytes": 205,
+      "sha256": "b0b66952528e99ab17060113aa49109aa61ee220d04c872796a466fa5d235330"
+    },
+    "attempt07-window-commands.jsonl": {
+      "bytes": 352,
+      "sha256": "001783524ebe937b0f897e20195607011dcb4345da2d1bb99035c076b76837d7"
+    },
+    "attempt07-window-worker.log": {
+      "bytes": 131367,
+      "sha256": "c8bb68223c6ae90d837374e63ec0f745991d103ae1ad44a5909a07d6f5826200"
+    },
+    "attempt07-kernel-window.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "attempt07-worker-error.txt": {
+      "bytes": 389,
+      "sha256": "f05d4e0f023c9f45947ecf3d9c90a465c59c0f91b43bdee0964a25ab3017ab2c"
+    },
+    "attempt07-worker-final.json": {
+      "bytes": 203,
+      "sha256": "b7400f21214d11df1357095f2f9ec10d6b6fc3b8376bb571e60a5c355905280b"
+    },
+    "attempt07-actions.jsonl": {
+      "bytes": 737397,
+      "sha256": "6954acb38b92bc2be5bedde5646164acbf043d1d44425ae84f421dd9b3b715a3"
+    },
+    "attempt07-initial-tree.json": {
+      "bytes": 41810,
+      "sha256": "b0c3ab63be8c0ac26e0412afa01f7531b7687bb238b454a1202e098a2d78d6d9"
+    },
+    "attempt07-interactive-initial.json": {
+      "bytes": 499,
+      "sha256": "6cab2f2b3b08c843764983abd6723217297e004892291a4d4f89b499c9d3ecd9"
+    },
+    "attempt07-interactive.log": {
+      "bytes": 139,
+      "sha256": "4cdd0e2972bdc22361df4770172dc421fbbadcc332924f8761cd504d650b530c"
+    },
+    "attempt07-host-worker.py": {
+      "bytes": 9937,
+      "sha256": "471176d07b4748103cf209ff1b60096d8fad10489e0b16993b7e4a23750331d2"
+    },
+    "window-worker.log": {
+      "bytes": 131367,
+      "sha256": "c8bb68223c6ae90d837374e63ec0f745991d103ae1ad44a5909a07d6f5826200"
+    },
+    "window-commands.jsonl": {
+      "bytes": 352,
+      "sha256": "001783524ebe937b0f897e20195607011dcb4345da2d1bb99035c076b76837d7"
+    },
+    "attempt06-lifecycle-commands.jsonl": {
+      "bytes": 922,
+      "sha256": "9a3a912a29f0a2be4487dfc302f5d90e333f4e704ebd59db7f17c1acc85a3a95"
+    },
+    "attempt06-lifecycle-worker.log": {
+      "bytes": 373042,
+      "sha256": "685da376842aa60ce39e1dac44620bf85bdc0308c8a4583b06ea7ce1e745261b"
+    },
+    "attempt06-kernel-window.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "attempt06-worker-error.txt": {
+      "bytes": 389,
+      "sha256": "f05d4e0f023c9f45947ecf3d9c90a465c59c0f91b43bdee0964a25ab3017ab2c"
+    },
+    "attempt06-worker-final.json": {
+      "bytes": 203,
+      "sha256": "853af962482962c63d87b0cc9f588242d8cfcb84e1aa857efe92b96747ccb9ee"
+    },
+    "attempt06-actions.jsonl": {
+      "bytes": 610622,
+      "sha256": "7c01190e6558376f1fa166674deca69d066ea81dab8e1b69e47b28d348e25eb1"
+    },
+    "attempt06-initial-tree.json": {
+      "bytes": 59792,
+      "sha256": "fb5d30ee329f13610cf9cd872116a182297891f2256826baf8783ee6c2f031a5"
+    },
+    "attempt06-interactive-initial.json": {
+      "bytes": 499,
+      "sha256": "e718a41064f4333bb9eb43c5851560b70591a542a4fb913bb0afa9cf3112c599"
+    },
+    "attempt06-interactive.log": {
+      "bytes": 139,
+      "sha256": "4cdd0e2972bdc22361df4770172dc421fbbadcc332924f8761cd504d650b530c"
+    },
+    "attempt06-host-worker.py": {
+      "bytes": 9945,
+      "sha256": "35715ed99a9af5ed62a0b6f21bc93f2d78ce6d3d6bdfd5ced02beecf5ed607c4"
+    },
+    "lifecycle-worker.log": {
+      "bytes": 373042,
+      "sha256": "685da376842aa60ce39e1dac44620bf85bdc0308c8a4583b06ea7ce1e745261b"
+    },
+    "lifecycle-commands.jsonl": {
+      "bytes": 922,
+      "sha256": "9a3a912a29f0a2be4487dfc302f5d90e333f4e704ebd59db7f17c1acc85a3a95"
+    },
+    "attempt05-kernel-window.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "attempt05-worker-error.txt": {
+      "bytes": 510,
+      "sha256": "6f477aeab754da9571c32538b8119c7bdfc510f748484b38b936a315b85d390a"
+    },
+    "attempt05-worker-final.json": {
+      "bytes": 203,
+      "sha256": "2610e2109c187c89b0f44a9c3c6bad7f5baaeeec0d5e675af6581fdbe52f0a2c"
+    },
+    "attempt05-actions.jsonl": {
+      "bytes": 242036,
+      "sha256": "7e9711fe30ea4b59f476f426f840a0d7ec82e107c1630933f232e2c8a9b4c9e4"
+    },
+    "attempt05-initial-tree.json": {
+      "bytes": 37338,
+      "sha256": "84f6144886050801f6c7a10eadec7f7f4e041f879502b8948fe95ef96a838181"
+    },
+    "attempt05-interactive-initial.json": {
+      "bytes": 499,
+      "sha256": "3ea82fa0d661543f04d5922f34a1564e16c12631f640ed162e1d2a7ebc719546"
+    },
+    "attempt05-interactive.log": {
+      "bytes": 139,
+      "sha256": "4cdd0e2972bdc22361df4770172dc421fbbadcc332924f8761cd504d650b530c"
+    },
+    "attempt05-host-worker.py": {
+      "bytes": 9408,
+      "sha256": "c48fd936ac4b54a95ac0ad6710acc269d540b3470e544e39e62097e8f14c23f6"
+    },
+    "gpu-before.json": {
+      "bytes": 2587,
+      "sha256": "f9f69be3c943c4694fe052987a77b5448df7b35f948dd2e4192725708e2ffc67"
+    },
+    "attempt04-kernel-window.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "attempt04-worker-error.txt": {
+      "bytes": 534,
+      "sha256": "f172f1d4a8e0ccd457cb7c23e6c3ee75773896ea4cd56f270b116fa98fe3e58e"
+    },
+    "attempt04-worker-final.json": {
+      "bytes": 203,
+      "sha256": "7c4e4b976364692c34520933c58c27a2da176a40de7a663b125279f63b632f18"
+    },
+    "attempt04-actions.jsonl": {
+      "bytes": 129442,
+      "sha256": "7f03bed8fe4701a6228972b69bc2a3911107cf7778a97cf004410a52e6a6eb00"
+    },
+    "attempt04-initial-tree.json": {
+      "bytes": 37338,
+      "sha256": "84f6144886050801f6c7a10eadec7f7f4e041f879502b8948fe95ef96a838181"
+    },
+    "attempt04-interactive-initial.json": {
+      "bytes": 499,
+      "sha256": "670d0fda4c8462345f5e1228fbf88c332929a1bca7e76feab068776d7255dd5f"
+    },
+    "attempt04-interactive.log": {
+      "bytes": 630,
+      "sha256": "c3ec79f91e29c04073aeddbea49c0a249e390d0ad32b358bd54899f863487dcc"
+    },
+    "attempt04-host-worker.py": {
+      "bytes": 9291,
+      "sha256": "4468493215f4422d6b6fc8cce48926dd109fc1a667c75ca162fd7e1b45e95ee8"
+    },
+    "create-accessibility.json": {
+      "bytes": 34601,
+      "sha256": "cd2bac636ebe83fd34cebaaa6caae707ab64901649d9e9a51ded1e1ac8feadf6"
+    },
+    "attempt03-kernel-window.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "attempt03-worker-final.json": {
+      "bytes": 203,
+      "sha256": "807e62907e71936ea98c61a4bfebe61932a2b36f68cb3b59d58d80df6e870033"
+    },
+    "attempt03-actions.jsonl": {
+      "bytes": 61872,
+      "sha256": "32efc5ae78b1b385cf6f861d22c5bfbce3716cb2b1c434abb6bc2a0c233ea4c2"
+    },
+    "attempt03-initial-tree.json": {
+      "bytes": 37338,
+      "sha256": "84f6144886050801f6c7a10eadec7f7f4e041f879502b8948fe95ef96a838181"
+    },
+    "attempt03-interactive-initial.json": {
+      "bytes": 446,
+      "sha256": "c5626dea490bb7704e39fff0eb0a0a881fcb01c53f3f32257bccaa0bf3347d02"
+    },
+    "attempt03-interactive.log": {
+      "bytes": 139,
+      "sha256": "4cdd0e2972bdc22361df4770172dc421fbbadcc332924f8761cd504d650b530c"
+    },
+    "attempt03-host-worker.py": {
+      "bytes": 9179,
+      "sha256": "7e4ca37fe0703e76c52ea5d6ed8932cfcf3b52066724248503d6c04979696baf"
+    },
+    "capture-owned.py": {
+      "bytes": 2236,
+      "sha256": "3f20d5f230e1db1bdc7081881cfc9d9ab0dcec717e0f1e7929e62189e8728bcf"
+    },
+    "initial-tree.json": {
+      "bytes": 41810,
+      "sha256": "b0c3ab63be8c0ac26e0412afa01f7531b7687bb238b454a1202e098a2d78d6d9"
+    },
+    "attempt02-kernel-window.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "attempt02-worker-final.json": {
+      "bytes": 203,
+      "sha256": "233206ac68ac4db8a063b475062628ef69e9166de8b4db2de282081830723dc9"
+    },
+    "attempt02-actions.jsonl": {
+      "bytes": 148,
+      "sha256": "61722f7cfe2a31af2563c01831c8a0a45aff584415f113e249877096758adb2e"
+    },
+    "attempt02-interactive-initial.json": {
+      "bytes": 446,
+      "sha256": "29b64f6c35a9eea417dc88ad45eeb21490d51a1fb7566b036061e7ff1b91e9fc"
+    },
+    "attempt02-interactive.log": {
+      "bytes": 278,
+      "sha256": "adb9fb43f49c5c199497d41fbf37bedd17aa03102d68a25ce1e50ddf2deb1a96"
+    },
+    "attempt02-host-worker.py": {
+      "bytes": 9070,
+      "sha256": "2e8d966a07ffe9243e06e3046aa1e0b8a4a28c567f1ae57956178d1f73afc22e"
+    },
+    "actions.jsonl": {
+      "bytes": 788118,
+      "sha256": "9781147aef85a86fd0c06e8000a86954f75e9a579f62ab4286f7d31ee6f5f315"
+    },
+    "interactive-initial.json": {
+      "bytes": 499,
+      "sha256": "275f41cf7035fe72a5e1b8b9c0125398e00724af63842a11ad5873462fa83956"
+    },
+    "kernel-window.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "interactive.log": {
+      "bytes": 139,
+      "sha256": "4cdd0e2972bdc22361df4770172dc421fbbadcc332924f8761cd504d650b530c"
+    },
+    "attempt01-worker-final.json": {
+      "bytes": 204,
+      "sha256": "2661ec7568e25ff2f186ce53178633fe9934a392649a295bde0e3340b479564a"
+    },
+    "attempt01-worker-error.txt": {
+      "bytes": 372,
+      "sha256": "ba72527b0c8660754273595a0948474bb395560c911a4b46375275f473dfa631"
+    },
+    "attempt01-host-worker.py": {
+      "bytes": 9064,
+      "sha256": "ff3d651031b5ce264c910513559a100ccb7cb453cf00b589f26efdba1f1840b9"
+    },
+    "worker-final.json": {
+      "bytes": 203,
+      "sha256": "82e71251a2a1733058977a67dbf6e5ba00d13d11cc1262f45a2be00d919d2272"
+    },
+    "worker-error.txt": {
+      "bytes": 376,
+      "sha256": "156140131c40db8a75164de47d6a601ee3a59004dac0bf20e18bf6383ecc72a5"
+    },
+    "host-worker.py": {
+      "bytes": 10855,
+      "sha256": "7eb462e8e009c0093d56a72f31484e0526668d0a67e932abffcda7c2f81fdb17"
+    },
+    "smoke.json": {
+      "bytes": 546,
+      "sha256": "6a0ab39a011f7be968d4b20d55f661b45b1e3608ffd8d0b6b6bfed7ba678d834"
+    },
+    "smoke.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "preflight.json": {
+      "bytes": 2353,
+      "sha256": "0201b1f5291c5123b3336f34d763fb3fe2b9cb9cbb159d8385c92d9298872e28"
+    },
+    "preflight.py": {
+      "bytes": 1738,
+      "sha256": "c2826a2fbcb365abcb59d2e877fed74d655c47083a0181bedaecc7326321fdf7"
+    },
+    "prepared.json": {
+      "bytes": 844,
+      "sha256": "e6c46cde57189d7c5935c6677d61b8f5e411969dd0e6fedb240c81539c35f27e"
+    },
+    "original-startup.txt": {
+      "bytes": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    },
+    "startup.txt": {
+      "bytes": 10290,
+      "sha256": "033419adbab38e7088789e8952d3a2fd995356ceef9a8bd041a921a60a2722f2"
+    },
+    "host.script": {
+      "bytes": 971,
+      "sha256": "431d79d35f088ac60ef4a910648487ddda3fdca21e5791c0f05a3266ad90b72f"
+    },
+    "output/host-state.txt": {
+      "bytes": 210,
+      "sha256": "97cc7c36ec4de8312e0f9a578ff3c3116c154f75f4648b1a259bfce585ca6b8b"
+    },
+    "screenshots/01-smoke.png": {
+      "bytes": 771734,
+      "sha256": "f66bf71040a3c07c72e448e0ef2a0618366f6260686ce44ac1f5a280e49a50d7"
+    },
+    "screenshots/02-interactive-xy.png": {
+      "bytes": 105805,
+      "sha256": "c6a4ed7edd3397ac25020c9985eee7690ed5b65f20d4339788e37bec9de09b6e"
+    },
+    "screenshots/03-resource-popup.png": {
+      "bytes": 737042,
+      "sha256": "9adfa7f6340e165f4f695941b2bd4cd5f12e2570ba50647a3a8a32400cd7c682"
+    },
+    "screenshots/04-calibrated-main.png": {
+      "bytes": 709052,
+      "sha256": "a37764ccdc2a6ce69496f62ccaf89a49aef866538d2e627e3d5156197ee410d9"
+    },
+    "screenshots/05-resource-context.png": {
+      "bytes": 709052,
+      "sha256": "a37764ccdc2a6ce69496f62ccaf89a49aef866538d2e627e3d5156197ee410d9"
+    },
+    "screenshots/06-pointer.png": {
+      "bytes": 711245,
+      "sha256": "fed1e2b24b0a63861f52634fe0cc5aebec0c2a48fdfb9a51217a1a3d7447143b"
+    },
+    "screenshots/07-category-popup.png": {
+      "bytes": 709352,
+      "sha256": "6161feccb561585a78b5d5dc227f1b23408cdd8896e3153040ef5dd28cdbcd2c"
+    },
+    "screenshots/08-category-right-popup.png": {
+      "bytes": 724663,
+      "sha256": "d6dd61cf23aa3f8bbdd7b17563d7ea275c4fdc9316302426898edb80b5ff1925"
+    },
+    "screenshots/09-create-dialog.png": {
+      "bytes": 691267,
+      "sha256": "2d873ea7e683fe3ebaecf0225544858a28447e4a8aa471e0f7f6cd807c75ff44"
+    },
+    "screenshots/10-create-help.png": {
+      "bytes": 790671,
+      "sha256": "0b6b23bff9871d7f706ef8a79e61a17f965e4e82d62b5a095925f717ab85b676"
+    },
+    "screenshots/14-after-chooser-run.png": {
+      "bytes": 741360,
+      "sha256": "0ee3e748f774fddd097c5e28078e8c518e18ea66d9833fc133a4c567f399b661"
+    },
+    "screenshots/15-hardware-playback.png": {
+      "bytes": 751683,
+      "sha256": "25b5539194c42f7f3f5c29c61cd8891e2c72d8b9578a52b8082accc636260d3d"
+    },
+    "screenshots/17-final-render.png": {
+      "bytes": 684367,
+      "sha256": "ac19c38bdfc17a90c270b90a6e6ac7c3e9893a1e75d03e8ccba8c0602d7cbb0d"
+    },
+    "screenshots/18-viewer-reopened.png": {
+      "bytes": 561149,
+      "sha256": "fee4918aacbec2c2060f3e534f8fd49d840a9428d730beb3f9b8ddd97c77a886"
+    },
+    "screenshots/chooser-owned-file-list.png": {
+      "bytes": 57543,
+      "sha256": "2f4a6475c8a3309d55ed49fda3ff9d28e951435279e197a153cb337f223047c4"
+    }
+  },
+  "archive": {
+    "bytes": 9429755,
+    "sha256": "f8527da6abf0e1cc3414d0cbdc1d7818787df8facd2e0cd20050f686084e5e04"
+  }
+}

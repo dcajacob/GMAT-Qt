@@ -2595,3 +2595,15 @@ scalar assignments. Model-file and font counters are independent. Unsupported
 label placements and dynamic source retain the original text with a precise error.
 [Source-contract and repair receipts](Qt6ParityValidation/of-script-ordering-20261005.md)
 record the bounded qualification and remaining gates.
+
+## Actual host qualification increment — 2026-10-05
+
+The user authorized bounded live-host testing. [Native-Wayland host evidence](Qt6ParityValidation/live-host-20261005.md)
+now records real Intel/i915 rendering and actual category-popup, creation Help and
+GTK chooser input, without a new observed compositor/GPU fault. The application's
+own DRM engine counters increased during drawing/playback; no software renderer
+substitution is claimed. Helper calibration and failed lifecycle attempts are
+preserved. Complete minimized-window recovery, distinct resize, viewer close/reopen
+and normal interactive exit remain unqualified. No application code changed or
+rebuild was required. Older host-stop statements retain historical checkpoint scope;
+full replacement qualification and historical crash attribution remain open.

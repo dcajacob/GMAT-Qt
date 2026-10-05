@@ -14,6 +14,14 @@ Historical appendices retain the state at their recorded checkpoint; their old
 pending phrases are not the current test queue. The original gates below stay
 visible and are not blanket-marked complete by tutorial or private-desktop passes.
 
+## Authorized physical-host increment — 2026-10-05
+
+[Native host results](Qt6ParityValidation/live-host-20261005.md) supersede the
+previous lack of physical-GPU and actual host popup/chooser observations at their
+precise scope. The user authorized this bounded session; it produced no observed
+new compositor/GPU fault. Remaining lifecycle/helper limits and historical crash
+attribution remain explicit. No gate below is blanket marked complete.
+
 ## Acceptance gates
 
 - [ ] Audit each wx workflow below against Qt; implement missing user operations

@@ -18,6 +18,23 @@ brief, not proof of qualification. Recheck the repository before making changes.
 4. Make concrete fixes, validate them, record their evidence, and rebuild the
    actual application. Do not stop at another inventory or proposed plan.
 
+## Current host authorization and evidence — 2026-10-05
+
+The user authorized bounded live-host testing with “Yeah, go for it”, superseding
+its previous stop for this session. [Actual host results](Qt6ParityValidation/live-host-20261005.md)
+now include native-Wayland physical Intel/i915 rendering, actual category-popup /
+creation / F1 Help and GTK chooser input. Scoped kernel/core checks show no new
+GPU fault or compositor crash, and the same GNOME process survives. Historical
+GMAT client attribution and a Mutter repair remain unproved. Minimize/restore,
+complete viewer close/reopen, distinct resize and normal interactive exit are
+still unqualified because the owned helper could not conclusively observe/target
+them. All attempts, calibration errors and owned SIGTERM cleanup are retained;
+none is relabeled as an application crash or a passing complete host gate.
+No app/source/build change or completed audit/test/example/tutorial repeat occurred.
+All nine original gates and scientific/external holds remain in scope. Older
+“live host testing stopped” and blocked-continuation statements below describe
+those historical checkpoints, not this newly authorized test session.
+
 ## Current installed application — 2026-10-05
 
 GmatQt is rebuilt at **6,740,680 bytes / SHA 78e76365…**.
