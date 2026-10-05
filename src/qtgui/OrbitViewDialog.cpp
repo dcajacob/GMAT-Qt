@@ -47,10 +47,25 @@ BooleanArray drawFlags(const QString &value,int count)
    return result;
 }
 }
+std::optional<int> orbitSolverLastN(const QString &value)
+{
+   const auto text=value.trimmed();
+   if (text.isEmpty()) return std::nullopt;
+   bool valid=false; const int count=text.toInt(&valid);
+   if (!valid || count<0 || !QRegularExpression("^[+]?[0-9]+$").match(text).hasMatch())
+      throw std::runtime_error("LastN count must be a nonnegative integer.");
+   return count;
+}
 QSet<QString> applyOrbitViewProperties(GmatBase &plot,const QMap<QString,QString> &values)
 {
    QSet<QString> applied;
    if (!plot.IsOfType("OrbitView")) return applied;
+   if (values.contains("@QtSolverLastN")) { orbitSolverLastN(values.value("@QtSolverLastN")); applied.insert("@QtSolverLastN"); }
+   if (values.contains("SolverIterations")) {
+      const auto mode=values.value("SolverIterations");
+      if (!QStringList{"All","Current","None","LastN"}.contains(mode)) throw std::runtime_error("Choose All, Current, None or LastN solver iterations.");
+      setResourceProperty(plot,"SolverIterations",mode=="LastN" ? "All" : mode); applied.insert("SolverIterations");
+   }
    if (values.contains("Add") || values.contains("DrawObject")) {
       const auto oldNames=plot.GetStringArrayParameter("Add"); BooleanArray oldFlags;
       for (const auto &name:oldNames) oldFlags.push_back(static_cast<OrbitPlot &>(plot).GetShowObject(name));
@@ -169,7 +184,10 @@ OrbitViewDialog::OrbitViewDialog(GmatBase &plot,const QMap<QString,QString> &pen
    auto *drawing=new QGroupBox("Drawing and data",content); auto *form=new QFormLayout(drawing); groups->addWidget(drawing);
    const QMap<QString,QString> flagLabels={{"ShowPlot","Show plot"},{"ShowLabels","Show labels"},{"WireFrame","Wireframe"},{"EclipticPlane","Ecliptic plane"},{"XYPlane","XY plane"},{"Axes","Axes"},{"Grid","Grid"},{"SunLine","Sun line"},{"UseInitialView","Reset to script camera on each run"},{"EnableStars","Stars"},{"EnableConstellations","Constellations"}};
    for (auto it=flagLabels.cbegin();it!=flagLabels.cend();++it) { auto *check=new QCheckBox(it.value(),drawing); check->setObjectName("orbit_"+it.key()); check->setChecked(initial.value(it.key())=="true" || initial.value(it.key())=="On"); flags.insert(it.key(),check); form->addRow(check); }
-   auto *solver=new QComboBox(drawing); solver->setObjectName("orbit_SolverIterations"); solver->addItems(fields.value("SolverIterations").choices); solver->setCurrentText(initial.value("SolverIterations")); choices.insert("SolverIterations",solver); form->addRow("Solver iterations",solver);
+   auto *solver=new QComboBox(drawing); solver->setObjectName("orbit_SolverIterations"); solver->addItems(fields.value("SolverIterations").choices); if (solver->findText("LastN")<0) solver->addItem("LastN"); solver->setCurrentText(initial.value("SolverIterations")); choices.insert("SolverIterations",solver); form->addRow("Solver iterations",solver);
+   solverLastN=new QSpinBox(drawing); solverLastN->setObjectName("orbit_SolverIterLastN"); solverLastN->setRange(0,std::numeric_limits<int>::max()); solverLastN->setValue(orbitSolverLastN(initial.value("@QtSolverLastN")).value_or(1));
+   solverLastN->setToolTip("LastN retains up to twice N finalized solver trajectories per plotted object. 0 retains all solver trajectories."); form->addRow("LastN count (0 = all)",solverLastN);
+   connect(solver,&QComboBox::currentTextChanged,this,[this](const QString &mode) { solverLastN->setEnabled(mode=="LastN"); }); solverLastN->setEnabled(solver->currentText()=="LastN");
    const QMap<QString,QString> countLabels={{"DataCollectFrequency","Collect every N samples"},{"UpdatePlotFrequency","Update every N samples"},{"MaxPlotPoints","Maximum retained points"},{"NumPointsToRedraw","Recent segments to redraw (0 = all)"},{"StarCount","Star count"}};
    for (auto it=countLabels.cbegin();it!=countLabels.cend();++it) { auto *spin=new QSpinBox(drawing); spin->setObjectName("orbit_"+it.key()); spin->setRange(it.key()=="NumPointsToRedraw" ? 0 : 1,std::numeric_limits<int>::max()); spin->setValue(initial.value(it.key()).toInt()); counts.insert(it.key(),spin); form->addRow(it.value(),spin); }
    connect(flags.value("EnableStars"),&QCheckBox::toggled,counts.value("StarCount"),&QSpinBox::setEnabled); counts.value("StarCount")->setEnabled(flags.value("EnableStars")->isChecked());
@@ -201,6 +219,7 @@ QMap<QString,QString> OrbitViewDialog::settings() const
       result.insert(it.key(),value);
    }
    for (auto it=choices.cbegin();it!=choices.cend();++it) result.insert(it.key(),it.value()->currentText());
+   result.insert("@QtSolverLastN",choices.value("SolverIterations")->currentText()=="LastN" ? QString::number(solverLastN->value()) : QString());
    for (auto it=flags.cbegin();it!=flags.cend();++it) { const bool boolean=it.key()=="ShowPlot" || it.key()=="ShowLabels"; result.insert(it.key(),it.value()->isChecked() ? (boolean ? "true" : "On") : (boolean ? "false" : "Off")); }
    for (auto it=counts.cbegin();it!=counts.cend();++it) result.insert(it.key(),QString::number(it.value()->value())); result.insert("ViewScaleFactor",scale->text().trimmed()); return result;
 }

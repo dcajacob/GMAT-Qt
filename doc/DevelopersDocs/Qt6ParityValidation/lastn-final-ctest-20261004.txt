@@ -1,0 +1,24 @@
+Start testing: Oct 04 22:10 MDT
+----------------------------------------------------------
+59/161 Testing: QtGui.LastNSolver
+59/161 Test: QtGui.LastNSolver
+Command: "/usr/bin/python3" "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtLastNSolverTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+Directory: /home/dan/GIT/GMAT-Qt/application/bin
+"QtGui.LastNSolver" start time: Oct 04 22:10 MDT
+Output:
+----------------------------------------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+All trial points=78; LastN2=6; accepted=12; report rows=15
+PASS source-ordered LastN conversion/count validation, grouped history lifecycle, actual pending controls/Apply/rollback/Undo/Redo/Unicode reopen/Rename, replay/Output reopening and identical complete new DC report.
+<end of output>
+Test time =   0.51 sec
+----------------------------------------------------------
+Test Passed.
+"QtGui.LastNSolver" end time: Oct 04 22:10 MDT
+"QtGui.LastNSolver" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 04 22:10 MDT
+
+qt-gui =   0.51 sec*proc

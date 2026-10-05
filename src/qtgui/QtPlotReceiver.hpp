@@ -1,6 +1,7 @@
 #pragma once
 #include "PlotReceiver.hpp"
 #include "PlotModel.hpp"
+#include "OrbitTrialHistory.hpp"
 #include "ScriptCompatibility.hpp"
 #include <QMap>
 #include <QPointer>
@@ -224,6 +225,7 @@ private:
       QMap<QString,PlotPoint> arcPublishedPoses;
       QMap<int,PlotCamera> preparedArcCameras, replayArcCameras;
       QMap<int,QMap<int,PlotCamera>> bufferedArcCameras;
+      OrbitTrialHistory trialHistory;
    };
    Entry *find(const std::string &name);
    Entry &create(const std::string &name, PlotModel::Kind kind, Real x, Real y, Real w, Real h, bool maximized);

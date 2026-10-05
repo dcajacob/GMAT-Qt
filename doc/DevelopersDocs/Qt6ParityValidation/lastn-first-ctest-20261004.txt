@@ -1,0 +1,49 @@
+Start testing: Oct 04 22:09 MDT
+----------------------------------------------------------
+59/161 Testing: QtGui.LastNSolver
+59/161 Test: QtGui.LastNSolver
+Command: "/usr/bin/python3" "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtLastNSolverTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+Directory: /home/dan/GIT/GMAT-Qt/application/bin
+"QtGui.LastNSolver" start time: Oct 04 22:09 MDT
+Output:
+----------------------------------------------------------
+This plugin does not support propagateSizeHints()
+New All reference failed
+<end of output>
+Test time =   0.20 sec
+----------------------------------------------------------
+Test Failed.
+"QtGui.LastNSolver" end time: Oct 04 22:09 MDT
+"QtGui.LastNSolver" time elapsed: 00:00:00
+----------------------------------------------------------
+
+145/161 Testing: QtGui.SolverPlots
+145/161 Test: QtGui.SolverPlots
+Command: "/usr/bin/python3" "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtSolverPlotTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+Directory: /home/dan/GIT/GMAT-Qt/application/bin
+"QtGui.SolverPlots" start time: Oct 04 22:09 MDT
+Output:
+----------------------------------------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+Orb Current points=50 all=140
+Ground Current points=35 all=140
+XY Current points=35 all=140
+Orb None points=35 all=140
+Ground None points=35 all=140
+XY None points=35 all=140
+Orb All points=140 all=140
+Ground All points=140 all=140
+XY All points=140 all=140
+Differential corrector: PASS: GUI All/Current/None/All solver plot modes, exact Undo/Redo and Unicode save/reopen, independent solver/geodetic reports and objective, accepted histories/target colors/camera tracking, native/fallback rendering, replay and immediate close/reopen
+<end of output>
+Test time =   1.37 sec
+----------------------------------------------------------
+Test Passed.
+"QtGui.SolverPlots" end time: Oct 04 22:09 MDT
+"QtGui.SolverPlots" time elapsed: 00:00:01
+----------------------------------------------------------
+
+End testing: Oct 04 22:09 MDT
+
+qt-gui =   1.57 sec*proc

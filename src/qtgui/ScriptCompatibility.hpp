@@ -57,6 +57,8 @@ struct QtCameraSetting {
    QMap<QString,quint32> objectFontSizes;
    QMap<QString,QString> objectFontPositions;
    std::optional<bool> axesLabels,frameLabel;
+   // Presence selects LastN display retention; zero keeps unlimited trials.
+   std::optional<int> solverLastN;
 };
 QMap<QString,quint32> qtObjectFontSizes(const QString &json);
 QMap<QString,QString> qtObjectFontPositions(const QString &json);

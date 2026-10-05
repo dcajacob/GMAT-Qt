@@ -20,7 +20,16 @@ brief, not proof of qualification. Recheck the repository before making changes.
 
 ## Current installed application — 2026-10-04
 
-GmatQt is rebuilt at **6,260,520 bytes / SHA e823c522…**.
+GmatQt is rebuilt at **6,306,584 bytes / SHA e48df911…**.
+[LastN solver retention](Qt6ParityValidation/lastn-20261004.md) now has conversion,
+primary/setup controls, per-object finalized history limits and replay cleanup.
+Its new focused check passes in 0.51 s and the directly affected All/Current/None
+regression passes in 1.37 s. A short new targeter has byte-identical complete reports
+and accepted spacecraft samples. Base SHA 5d455c6b… includes only an added opt-in
+display lifecycle callback; util/Qt startup are unchanged. Decorative-listener
+cleanup distribution remains an explicit parity limit.
+
+The following evidence remains bound to its earlier runtimes.
 [Coordinate labels](Qt6ParityValidation/coordinate-labels-20261004.md) now expose
 independent XYZ/origin-name controls, conversion and native/fallback rendering.
 Four affected checks pass after an Apply-map repair; a new short fixture keeps
@@ -51,16 +60,18 @@ remains bound to its original runtime. [Offline Help publication](Qt6ParityValid
 includes eighteen tutorial chapters. Numerical walkthroughs remain bound to
 their recorded runtimes and were not repeated for the Help repairs.
 
-## Next concrete OF operations — 2026-10-04
+## Remaining qualification scope — 2026-10-04
 
-The [targeted source review](Qt6ParityValidation/of-remaining-controls-20261004.md)
-identifies LastN solver-trajectory retention as the remaining active gap after
-the coordinate-label repair above. LastN currently converts to an enum that
-OrbitView rejects. Preserve the legacy per-object trajectory-count and accepted
-pass cleanup semantics; a warning or mapping LastN to Current is not completion.
-Coordinate labels now use Qt metadata and shared overlays without engine changes.
-The LastN requirement remains explicit in the current acceptance map. Do not reopen
-completed audits or resume live-host testing to investigate them.
+The two concrete gaps from the [targeted source review](Qt6ParityValidation/of-remaining-controls-20261004.md)
+now have bounded implementations: independent coordinate labels and LastN solver
+retention. Use their current evidence above instead of treating that earlier
+source review as an unimplemented queue. LastN's decorative-listener cleanup
+limit remains explicit; it is not a claim of every legacy listener behavior.
+Keep all nine gates, held scientific cases and external dependencies in scope.
+Host/GPU acceptance and GMAT client attribution remain unverified, with live
+host testing stopped. Do not repeat completed audits/tutorials/examples or
+passing tests without a concrete affected change, or turn this into a numerical
+engine, Mutter or system-upgrade project.
 
 ## Current local Rename follow-up — 2026-10-03
 

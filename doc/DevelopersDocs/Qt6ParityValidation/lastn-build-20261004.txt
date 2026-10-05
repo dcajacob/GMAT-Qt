@@ -1,0 +1,213 @@
+[0/1] Re-running CMake...
+-- *** Creating 64-bit GMAT Build System. Please ensure that 64-bit versions of all dependencies are available. ***
+-- Found CSPICE: /home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/cspice/linux/cspice64
+-- Found F2C: /home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/cspice/linux/cspice64/include
+-- Could NOT find Matlab (missing: Matlab_ROOT_DIR Matlab_INCLUDE_DIRS Matlab_MEX_LIBRARY Matlab_MEX_EXTENSION Matlab_MX_LIBRARY MAIN_PROGRAM MX_LIBRARY ENG_LIBRARY MAT_LIBRARY) (found version "NOTFOUND")
+CMake Warning at CMakeLists.txt:301 (MESSAGE):
+  Matlab NOT FOUND.  Set Matlab_ROOT_DIR to the path to Matlab and ensure you
+  have a working license.
+
+
+==============================
+Setting up install directory structure for GMAT
+-- Will install GMAT to /home/dan/GIT/GMAT-Qt/GMAT-R2026a-Linux-x64
+==============================
+GMAT util setup
+==============================
+GMAT base setup
+-- Use F2C version of MSISE.
+==============================
+GMAT Console setup
+-- Found Python3: /usr/bin/python3 (found version "3.14.4") found components: Interpreter
+==============================
+GMAT SWIG setup (for Python 3.14)
+-- Found Python3: /usr/include/python3.14 (found suitable exact version "3.14.4") found components: Development Development.Module Development.Embed
+==============================
+GMAT DataInterface Plugin setup
+==============================
+GMAT EphemPropagator Plugin setup
+==============================
+GMAT EKF Plugin setup
+==============================
+GMAT Estimation Plugin setup
+==============================
+GMAT EventLocator Plugin setup
+==============================
+GMAT External Force Model Plugin setup (for Python 3.14)
+==============================
+GMAT ExtraPropagators Plugin setup
+==============================
+GMAT Formation Plugin setup
+==============================
+GMAT GmatFunction Plugin setup
+==============================
+GMAT Msise00 Plugin setup
+==============================
+GMAT NewParameter Plugin setup
+==============================
+GMAT PolyhedronGravity Plugin setup
+==============================
+GMAT ProductionPropagators Plugin setup
+==============================
+GMAT PythonInterface Plugin setup (for Python 3.14)
+==============================
+GMAT SaveCommand Plugin setup
+==============================
+GMAT ScriptTools Plugin setup
+==============================
+GMAT Station Plugin setup
+==============================
+GMAT ThrustFile Plugin setup
+==============================
+GMAT TLE Propagator Plugin setup
+==============================
+GMAT Yukon Optimizer Plugin setup
+==============================
+STATION SWIG setup (for Python 3.14)
+==============================
+ESTIMATION SWIG setup (for Python 3.14)
+======================================
+Skipping the OVtoOFI Plugin:
+OpenFramesInterface is not being built
+=======================================
+==============================
+Setting up wxWidgets install instructions for GMAT
+-- Configuring done (1.2s)
+-- Generating done (0.3s)
+-- Build files have been written to: /home/dan/GIT/GMAT-Qt/build/linux-gui
+[1/64] cd /home/dan/GIT/GMAT-Qt/build/linux-gui && /usr/bin/cmake -E make_directory /home/dan/GIT/GMAT-Qt/application/bin && /usr/bin/cmake -E copy_if_different /home/dan/GIT/GMAT-Qt/build/linux-gui/qt-startup/Release/gmat_startup_qt.txt /home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt
+[2/64] Building CXX object src/base/CMakeFiles/GmatBase.dir/subscriber/OrbitView.cpp.o
+[3/64] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/FolderRunDialog.cpp.o
+[4/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/bin/libGmatBase.so.R2026a
+[5/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/bin/libGmatBase.so
+[6/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libDataInterface.so.R2026a
+[7/64] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/MainWindowDocuments.cpp.o
+[8/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libGmatEstimation.so.R2026a
+[9/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libDataInterface.so
+[10/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libGmatEstimation.so
+[11/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libPythonInterface_py314.so.R2026a
+[12/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libPythonInterface_py314.so
+[13/64] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/ResourceForm.cpp.o
+[14/64] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/ResourceRename.cpp.o
+[15/64] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/ResourceProperties.cpp.o
+[16/64] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/ResourceEditor.cpp.o
+[17/64] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/MainWindow.cpp.o
+[18/64] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/OrbitViewDialog.cpp.o
+[19/64] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/ScriptCompatibility.cpp.o
+[20/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libEphemPropagator.so.R2026a
+[21/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libEKF.so.R2026a
+[22/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libEventLocator.so.R2026a
+[23/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libExternalForceModel_py314.so.R2026a
+[24/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libExtraPropagators.so.R2026a
+[25/64] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/PlotPlaybackControls.cpp.o
+[26/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libFormation.so.R2026a
+[27/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libGmatFunction.so.R2026a
+[28/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libMsise00.so.R2026a
+[29/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libNewParameters.so.R2026a
+[30/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libPolyhedronGravity.so.R2026a
+[31/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libProductionPropagators.so.R2026a
+[32/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libSaveCommand.so.R2026a
+[33/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libScriptTools.so.R2026a
+[34/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libStation.so.R2026a
+[35/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libThrustFile.so.R2026a
+[36/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/thinksys/libTLEPropagator.so.R2026a
+[37/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libEphemPropagator.so
+[38/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libEKF.so
+[39/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libEventLocator.so
+[40/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libExternalForceModel_py314.so
+[41/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libExtraPropagators.so
+[42/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libFormation.so
+[43/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libGmatFunction.so
+[44/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libMsise00.so
+[45/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libNewParameters.so
+[46/64] Linking CXX shared library /home/dan/GIT/GMAT-Qt/application/plugins/libYukonOptimizer.so.R2026a
+[47/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libPolyhedronGravity.so
+[48/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libProductionPropagators.so
+[49/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libSaveCommand.so
+[50/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libScriptTools.so
+[51/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libStation.so
+[52/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libThrustFile.so
+[53/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/thinksys/libTLEPropagator.so
+[54/64] Creating library symlink /home/dan/GIT/GMAT-Qt/application/plugins/libYukonOptimizer.so
+[55/64] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/OrbitObjectDrawingDialog.cpp.o
+[56/64] Building CXX object src/qtgui/CMakeFiles/GmatQtSolverPlotTests.dir/tests/SolverPlotTests.cpp.o
+[57/64] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/QtPlotReceiver.cpp.o
+[58/64] Linking CXX static library src/qtgui/libGmatQtFrontend.a
+[59/64] Linking CXX executable /home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a
+[60/64] Creating executable symlink /home/dan/GIT/GMAT-Qt/application/bin/GmatQt
+[61/64] Linking CXX executable src/qtgui/GmatQtSolverPlotTests
+[62/64] Building CXX object src/qtgui/CMakeFiles/GmatQtLastNSolverTests.dir/tests/LastNSolverTests.cpp.o
+FAILED: [code=1] src/qtgui/CMakeFiles/GmatQtLastNSolverTests.dir/tests/LastNSolverTests.cpp.o
+/usr/bin/c++ -DLINUX_MAC -DNO_GCC_PRAGMA -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_OPENGLWIDGETS_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DUNICODE -DUSE_64_BIT_LONGS -D_UNICODE -D__USE_SPICE__ -I/home/dan/GIT/GMAT-Qt/src/qtgui -I/home/dan/GIT/GMAT-Qt/src/base/api -I/home/dan/GIT/GMAT-Qt/src/base/asset -I/home/dan/GIT/GMAT-Qt/src/base/attitude -I/home/dan/GIT/GMAT-Qt/src/base/burn -I/home/dan/GIT/GMAT-Qt/src/base/command -I/home/dan/GIT/GMAT-Qt/src/base/configs -I/home/dan/GIT/GMAT-Qt/src/base/coordsystem -I/home/dan/GIT/GMAT-Qt/src/base/event -I/home/dan/GIT/GMAT-Qt/src/base/executive -I/home/dan/GIT/GMAT-Qt/src/base/factory -I/home/dan/GIT/GMAT-Qt/src/base/factory/guicomponents -I/home/dan/GIT/GMAT-Qt/src/base/forcemodel -I/home/dan/GIT/GMAT-Qt/src/base/forcemodel/harmonic -I/home/dan/GIT/GMAT-Qt/src/base/foundation -I/home/dan/GIT/GMAT-Qt/src/base/function -I/home/dan/GIT/GMAT-Qt/src/base/hardware -I/home/dan/GIT/GMAT-Qt/src/base/include -I/home/dan/GIT/GMAT-Qt/src/base/interface -I/home/dan/GIT/GMAT-Qt/src/base/interpreter -I/home/dan/GIT/GMAT-Qt/src/base/math -I/home/dan/GIT/GMAT-Qt/src/base/parameter -I/home/dan/GIT/GMAT-Qt/src/base/plugin -I/home/dan/GIT/GMAT-Qt/src/base/propagator -I/home/dan/GIT/GMAT-Qt/src/base/solarsys -I/home/dan/GIT/GMAT-Qt/src/base/solver -I/home/dan/GIT/GMAT-Qt/src/base/spice -I/home/dan/GIT/GMAT-Qt/src/base/spacecraft -I/home/dan/GIT/GMAT-Qt/src/base/stopcond -I/home/dan/GIT/GMAT-Qt/src/base/subscriber -I/home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/cspice/linux/cspice64/include -I/home/dan/GIT/GMAT-Qt/src/gmatutil/include -I/home/dan/GIT/GMAT-Qt/src/gmatutil/util -I/home/dan/GIT/GMAT-Qt/src/gmatutil/util/datawriter -I/home/dan/GIT/GMAT-Qt/src/gmatutil/util/interpolator -I/home/dan/GIT/GMAT-Qt/src/gmatutil/util/matrixoperations -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -isystem /usr/include/x86_64-linux-gnu/qt6/QtOpenGLWidgets -isystem /usr/include/x86_64-linux-gnu/qt6/QtOpenGL -fno-strict-aliasing -fPIC -O3 -std=c++17 -MD -MT src/qtgui/CMakeFiles/GmatQtLastNSolverTests.dir/tests/LastNSolverTests.cpp.o -MF src/qtgui/CMakeFiles/GmatQtLastNSolverTests.dir/tests/LastNSolverTests.cpp.o.d -o src/qtgui/CMakeFiles/GmatQtLastNSolverTests.dir/tests/LastNSolverTests.cpp.o -c /home/dan/GIT/GMAT-Qt/src/qtgui/tests/LastNSolverTests.cpp
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/LastNSolverTests.cpp: In lambda function:
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/LastNSolverTests.cpp:116:113: error: invalid use of incomplete type ‘class QDialog’
+  116 |          QDialog *setup=nullptr; for (auto *dialog:panel->findChildren<QDialog *>("orbitViewDialog")) if (dialog->isWindow() && dialog->isVisible()) setup=dialog;
+      |                                                                                                                 ^~
+In file included from /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qwidget.h:9,
+                 from /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qmainwindow.h:9,
+                 from /usr/include/x86_64-linux-gnu/qt6/QtWidgets/QMainWindow:1,
+                 from /home/dan/GIT/GMAT-Qt/src/qtgui/MainWindow.hpp:2,
+                 from /home/dan/GIT/GMAT-Qt/src/qtgui/tests/LastNSolverTests.cpp:1:
+/usr/include/x86_64-linux-gnu/qt6/QtGui/qwindowdefs.h:20:7: note: forward declaration of ‘class QDialog’
+   20 | class QDialog;
+      |       ^~~~~~~
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/LastNSolverTests.cpp:116:135: error: invalid use of incomplete type ‘class QDialog’
+  116 |          QDialog *setup=nullptr; for (auto *dialog:panel->findChildren<QDialog *>("orbitViewDialog")) if (dialog->isWindow() && dialog->isVisible()) setup=dialog;
+      |                                                                                                                                       ^~
+/usr/include/x86_64-linux-gnu/qt6/QtGui/qwindowdefs.h:20:7: note: forward declaration of ‘class QDialog’
+   20 | class QDialog;
+      |       ^~~~~~~
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/LastNSolverTests.cpp:118:79: error: invalid use of incomplete type ‘class QDialog’
+  118 |             require(setup,"Pending setup dialog missing"); auto *pending=setup->findChild<QSpinBox *>("orbit_SolverIterLastN"); require(pending && pending->value()==2,"Setup did not read pending LastN"); pending->setValue(9);
+      |                                                                               ^~
+/usr/include/x86_64-linux-gnu/qt6/QtGui/qwindowdefs.h:20:7: note: forward declaration of ‘class QDialog’
+   20 | class QDialog;
+      |       ^~~~~~~
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/LastNSolverTests.cpp:118:100: error: expected primary-expression before ‘*’ token
+  118 |             require(setup,"Pending setup dialog missing"); auto *pending=setup->findChild<QSpinBox *>("orbit_SolverIterLastN"); require(pending && pending->value()==2,"Setup did not read pending LastN"); pending->setValue(9);
+      |                                                                                                    ^
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/LastNSolverTests.cpp:118:101: error: expected primary-expression before ‘>’ token
+  118 |             require(setup,"Pending setup dialog missing"); auto *pending=setup->findChild<QSpinBox *>("orbit_SolverIterLastN"); require(pending && pending->value()==2,"Setup did not read pending LastN"); pending->setValue(9);
+      |                                                                                                     ^
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/LastNSolverTests.cpp:119:18: error: invalid use of incomplete type ‘class QDialog’
+  119 |             setup->reject();
+      |                  ^~
+/usr/include/x86_64-linux-gnu/qt6/QtGui/qwindowdefs.h:20:7: note: forward declaration of ‘class QDialog’
+   20 | class QDialog;
+      |       ^~~~~~~
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/LastNSolverTests.cpp:120:78: error: invalid use of incomplete type ‘class QDialog’
+  120 |          } catch (...) { cancelled=std::current_exception(); if (setup) setup->reject(); }
+      |                                                                              ^~
+/usr/include/x86_64-linux-gnu/qt6/QtGui/qwindowdefs.h:20:7: note: forward declaration of ‘class QDialog’
+   20 | class QDialog;
+      |       ^~~~~~~
+In file included from /usr/include/x86_64-linux-gnu/qt6/QtGui/qwindowdefs.h:8:
+/usr/include/x86_64-linux-gnu/qt6/QtCore/qobjectdefs.h: In instantiation of ‘struct QtPrivate::HasQ_OBJECT_Macro<QDialog>’:
+/usr/include/x86_64-linux-gnu/qt6/QtCore/qobject.h:169:62:   required from ‘QList<T> QObject::findChildren(QAnyStringView, Qt::FindChildOptions) const [with T = QDialog*; Qt::FindChildOptions = QFlags<Qt::FindChildOption>]’
+  169 |         static_assert(QtPrivate::HasQ_OBJECT_Macro<ObjType>::Value,
+      |                                                              ^~~~~
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/LastNSolverTests.cpp:116:82:   required from here
+  116 |          QDialog *setup=nullptr; for (auto *dialog:panel->findChildren<QDialog *>("orbitViewDialog")) if (dialog->isWindow() && dialog->isVisible()) setup=dialog;
+      |                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+/usr/include/x86_64-linux-gnu/qt6/QtCore/qobjectdefs.h:739:37: error: incomplete type ‘QDialog’ used in nested name specifier
+  739 |         enum { Value =  sizeof(test(&Object::qt_metacall)) == sizeof(int) };
+      |                                     ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qwidget.h:10:
+/usr/include/x86_64-linux-gnu/qt6/QtCore/qobject.h: In instantiation of ‘QList<T> QObject::findChildren(QAnyStringView, Qt::FindChildOptions) const [with T = QDialog*; Qt::FindChildOptions = QFlags<Qt::FindChildOption>]’:
+/home/dan/GIT/GMAT-Qt/src/qtgui/tests/LastNSolverTests.cpp:116:82:   required from here
+  116 |          QDialog *setup=nullptr; for (auto *dialog:panel->findChildren<QDialog *>("orbitViewDialog")) if (dialog->isWindow() && dialog->isVisible()) setup=dialog;
+      |                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+/usr/include/x86_64-linux-gnu/qt6/QtCore/qobject.h:169:62: error: static assertion failed: No Q_OBJECT in the class passed to QObject::findChildren
+  169 |         static_assert(QtPrivate::HasQ_OBJECT_Macro<ObjType>::Value,
+      |                                                              ^~~~~
+/usr/include/x86_64-linux-gnu/qt6/QtCore/qobject.h:169:62: note: ‘QtPrivate::HasQ_OBJECT_Macro<QDialog>::Value’ evaluates to false
+/usr/include/x86_64-linux-gnu/qt6/QtCore/qobject.h:172:55: error: incomplete type ‘ObjType’ {aka ‘QDialog’} used in nested name specifier
+  172 |         qt_qFindChildren_helper(this, aName, ObjType::staticMetaObject,
+      |                                                       ^~~~~~~~~~~~~~~~
+ninja: build stopped: subcommand failed.
+[1/3] cd /home/dan/GIT/GMAT-Qt/build/linux-gui && /usr/bin/cmake -E make_directory /home/dan/GIT/GMAT-Qt/application/bin && /usr/bin/cmake -E copy_if_different /home/dan/GIT/GMAT-Qt/build/linux-gui/qt-startup/Release/gmat_startup_qt.txt /home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt
+[2/3] Building CXX object src/qtgui/CMakeFiles/GmatQtLastNSolverTests.dir/tests/LastNSolverTests.cpp.o
+[3/3] Linking CXX executable src/qtgui/GmatQtLastNSolverTests
+[1/3] cd /home/dan/GIT/GMAT-Qt/build/linux-gui && /usr/bin/cmake -E make_directory /home/dan/GIT/GMAT-Qt/application/bin && /usr/bin/cmake -E copy_if_different /home/dan/GIT/GMAT-Qt/build/linux-gui/qt-startup/Release/gmat_startup_qt.txt /home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt
+[2/3] Building CXX object src/qtgui/CMakeFiles/GmatQtLastNSolverTests.dir/tests/LastNSolverTests.cpp.o
+[3/3] Linking CXX executable src/qtgui/GmatQtLastNSolverTests

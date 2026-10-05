@@ -2484,3 +2484,19 @@ labels for objects. Choices stay pending until Apply and survive Save/reopen;
 Default removes the explicit override. The same settings convert from OF
 AxesLabels/FrameLabel and appear in both renderers. [Focused evidence](Qt6ParityValidation/coordinate-labels-20261004.md)
 retains source/report invariance and the explicit host/GPU qualification limit.
+
+
+### LastN solver trajectory display — 2026-10-04
+
+OrbitView's primary form and setup dialog offer **LastN** under Solver iterations,
+with an enabled **LastN count (0 = all)** field. The default count is 1. Like the
+legacy viewer, the limit is twice N finalized trajectories per plotted object;
+0 retains all trials subject to Maximum retained points. It is not a count of
+complete solver iterations. Accepted trajectories remain, and in-progress Qt
+samples stay visible. Choose All, Current or None to remove the LastN override.
+Count edits remain pending until Apply and preserve imported camera settings.
+
+OF conversion preserves the source-order count rules. The numerical subscriber
+uses All while the viewer handles LastN history. [Focused evidence and limits](Qt6ParityValidation/lastn-20261004.md)
+record unchanged full reports/accepted states, cleanup semantics, the decorative
+listener distribution limit and the continuing host/GPU qualification stop.

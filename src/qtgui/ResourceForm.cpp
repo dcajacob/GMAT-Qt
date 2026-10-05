@@ -16,6 +16,7 @@
 #include "AttitudeDialog.hpp"
 #include "VisualModelDialog.hpp"
 #include "ResourceProperties.hpp"
+#include "ScriptCompatibility.hpp"
 #include "GmatBase.hpp"
 #include <QDialogButtonBox>
 #include <QPushButton>
@@ -44,7 +45,9 @@ ResourceForm::ResourceForm(GmatBase &object,QWidget *parent,const QString &scrip
    } else if (object.IsOfType("GroundStation")) {
       auto *form=new GroundStationDialog(object,{},this); add("Station",form,[form] { return form->settings(); });
    } else if (type=="OrbitView") {
-      auto *form=new OrbitViewDialog(object,{},this); add("Orbit display",form,[form] { return form->settings(); });
+      QMap<QString,QString> pending;
+      if (const auto count=qtCameraSettings(script).value(QString::fromStdString(object.GetName())).solverLastN) { pending.insert("SolverIterations","LastN"); pending.insert("@QtSolverLastN",QString::number(*count)); }
+      auto *form=new OrbitViewDialog(object,pending,this); add("Orbit display",form,[form] { return form->settings(); });
    } else if (type=="GroundTrack" || type=="GroundTrackPlot") {
       auto *form=new GroundTrackDialog(object,{},this); add("Ground track",form,[form] { return form->settings(); });
    } else if (type=="XYPlot") {

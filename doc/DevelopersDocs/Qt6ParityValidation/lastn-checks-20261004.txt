@@ -1,0 +1,29 @@
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start  59: QtGui.LastNSolver
+1/2 Test  #59: QtGui.LastNSolver ................***Failed    0.20 sec
+This plugin does not support propagateSizeHints()
+New All reference failed
+
+    Start 145: QtGui.SolverPlots
+2/2 Test #145: QtGui.SolverPlots ................   Passed    1.37 sec
+
+50% tests passed, 1 tests failed out of 2
+
+Label Time Summary:
+qt-gui    =   1.57 sec*proc (2 tests)
+
+Total Test time (real) =   1.57 sec
+
+The following tests FAILED:
+	 59 - QtGui.LastNSolver (Failed)                        qt-gui
+Errors while running CTest
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start 59: QtGui.LastNSolver
+1/1 Test #59: QtGui.LastNSolver ................   Passed    0.51 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.51 sec*proc (1 test)
+
+Total Test time (real) =   0.51 sec

@@ -2144,6 +2144,14 @@ bool OrbitView::Distribute(const Real *dat, Integer len)
       }
       if (!arcContext.empty()) {
          PlotInterface::TakeGlAction(instanceName,arcContext);
+         // Optional display lifecycle distinguishes trial finalization from
+         // accepted-pass cleanup; the numerical subscriber mode is unchanged.
+         if (PlotInterface::TakeGlAction(instanceName,"NeedsOrbitSolverLifecycle"))
+         {
+            const std::string state = runstate == Gmat::SOLVING ? "SOLVING" :
+               runstate == Gmat::SOLVEDPASS ? "SOLVEDPASS" : "REGULAR";
+            PlotInterface::TakeGlAction(instanceName,"FinalizeOrbitSolverState:" + state);
+         }
          PlotInterface::TakeGlAction(instanceName,"FinalizeOrbitArc");
       }
       return PlotInterface::RefreshGlPlot(instanceName);

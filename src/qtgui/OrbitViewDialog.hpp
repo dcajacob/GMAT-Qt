@@ -4,6 +4,7 @@
 #include <QSet>
 #include <QString>
 #include <array>
+#include <optional>
 class GmatBase;
 class QComboBox;
 class QLineEdit;
@@ -11,6 +12,7 @@ class QCheckBox;
 class QSpinBox;
 class QListWidget;
 class QLabel;
+std::optional<int> orbitSolverLastN(const QString &value);
 QSet<QString> applyOrbitViewProperties(GmatBase &plot,const QMap<QString,QString> &values);
 QString orbitViewScript(GmatBase &plot);
 void validateOrbitViewProperties(GmatBase &plot);
@@ -28,5 +30,6 @@ private:
    QMap<QString,QSpinBox *> counts;
    QMap<QString,QString> initialSettings;
    QLineEdit *scale;
+   QSpinBox *solverLastN;
    QLabel *error;
 };

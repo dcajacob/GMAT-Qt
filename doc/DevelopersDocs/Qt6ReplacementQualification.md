@@ -8892,3 +8892,22 @@ LastN remains an active implementation requirement. All nine gates and external/
 held scientific dispositions remain; live host testing stays stopped, GMAT
 attribution and host/physical-GPU acceptance are unproven, Windows/macOS/MATLAB
 remain deferred, and full qualification is not claimed.
+
+
+## LastN solver display operation — 2026-10-04
+
+[LastN evidence](Qt6ParityValidation/lastn-20261004.md) records source-order
+conversion, primary/setup count controls, explicit trial lifecycle and per-object
+2×N finalized trajectory retention, with consistent camera/vector/replay cleanup.
+New LastNSolver 0.51 s and the affected All/Current/None SolverPlots 1.37 s checks pass.
+A new short targeter retains the identical complete 15-row report and 12 accepted
+spacecraft points while reducing 78 trial points to 6. Test-only fixture/include
+corrections are retained in the logs. Decorative-listener cleanup distribution
+and visible in-progress Qt samples are explicit presentation/parity limits.
+
+GmatQt is rebuilt at 6,306,584 bytes / SHA e48df911…; base SHA 5d455c6b… changes only
+for the opt-in display lifecycle callback. Util/Qt startup remain unchanged.
+All nine gates and held/dependency dispositions remain authoritative; no broad
+completed audit/tutorial/corpus was repeated. Live host testing stays stopped,
+GMAT attribution and host/physical-GPU acceptance remain unproven, Windows/macOS/
+MATLAB remain deferred, and full qualification is not claimed.

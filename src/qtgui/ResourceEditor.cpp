@@ -493,11 +493,16 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
          });
       }
       auto *button=new QPushButton(orbit ? "Orbit-view setup…" : ground ? "Ground-track setup…" : "XY plot setup…",this); button->setObjectName(orbit ? "editOrbitView" : ground ? "editGroundTrack" : "editXYPlot"); layout->addWidget(button);
-      connect(button,&QPushButton::clicked,this,[this,initial,ground,orbit] {
+      const auto initialSolverLastN=orbit ? qtCameraSettings(script).value(QString::fromStdString(object.GetName())).solverLastN : std::optional<int>();
+      connect(button,&QPushButton::clicked,this,[this,initial,ground,orbit,initialSolverLastN] {
          QMap<QString,QString> pending;
          for (int row=0;row<table->rowCount();++row) {
             const auto *combo=qobject_cast<QComboBox *>(table->cellWidget(row,1));
             pending.insert(table->item(row,0)->text(),combo ? comboValue(combo) : table->item(row,1)->text());
+         }
+         if (orbit) {
+            if (formValues) { const auto primary=formValues(); for (auto it=primary.cbegin();it!=primary.cend();++it) pending.insert(it.key(),it.value()); }
+            else if (initialSolverLastN) { pending.insert("SolverIterations","LastN"); pending.insert("@QtSolverLastN",QString::number(*initialSolverLastN)); }
          }
          QMap<QString,QString> values;
          if (orbit) { OrbitViewDialog dialog(*initial,pending,this); if (dialog.exec()!=QDialog::Accepted) return; values=dialog.settings(); }
@@ -507,6 +512,10 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
             const auto name=table->item(row,0)->text(); if (!values.contains(name)) continue;
             if (auto *combo=qobject_cast<QComboBox *>(table->cellWidget(row,1))) combo->setCurrentText(values.value(name));
             else table->item(row,1)->setText(values.value(name));
+         }
+         if (orbit) {
+            if (auto *mode=findChild<QComboBox *>("orbit_SolverIterations")) mode->setCurrentText(values.value("SolverIterations"));
+            if (auto *count=findChild<QSpinBox *>("orbit_SolverIterLastN")) if (const auto next=orbitSolverLastN(values.value("@QtSolverLastN"))) count->setValue(*next);
          }
       });
    }
@@ -1370,9 +1379,26 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
          label->setText("Edit settings here. Create adds the resource; Cancel discards pending settings.");
    if (!primary->isEmpty()) {
       formValues=[primary] { return primary->values(); };
-      formEdits=[primary] { return primary->changes(); };
       formOriginal=formValues(); formFields=primary->fields();
+      formEdits=[primary,orbit=object.GetTypeName()=="OrbitView",baseline=formOriginal] {
+         auto values=primary->changes();
+         // Unchanged camera controls must not cancel imported view behavior
+         // when only solver retention or another display option was edited.
+         if (orbit) for (auto it=values.begin();it!=values.end();) { if (baseline.contains(it.key()) && it.value()==baseline.value(it.key())) it=values.erase(it); else ++it; }
+         return values;
+      };
       formFields.unite(attitudeNames);
+      if (object.GetTypeName()=="OrbitView") {
+         auto *mode=primary->findChild<QComboBox *>("orbit_SolverIterations");
+         for (int row=0;row<table->rowCount();++row) if (table->item(row,0)->text()=="SolverIterations") {
+            auto *advanced=qobject_cast<QComboBox *>(table->cellWidget(row,1));
+            if (!mode || !advanced) continue;
+            if (advanced->findText("LastN")<0) advanced->addItem("LastN");
+            advanced->setCurrentText(mode->currentText()); original["SolverIterations"]=mode->currentText();
+            connect(mode,&QComboBox::currentTextChanged,this,[advanced](const QString &value) { const QSignalBlocker block(advanced); advanced->setCurrentText(value); });
+            connect(advanced,&QComboBox::currentTextChanged,this,[mode](const QString &value) { mode->setCurrentText(value); });
+         }
+      }
    }
    auto *generic=new QScrollArea(pages); generic->setWidgetResizable(true); generic->setFrameShape(QFrame::NoFrame);
    auto *content=new QWidget(generic); auto *fields=new QFormLayout(content); generic->setWidget(content);

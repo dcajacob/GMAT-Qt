@@ -1,5 +1,10 @@
 # OF LastN solver display: bounded design lead
 
+Later implementation: [coordinate labels](coordinate-labels-20261004.md) and
+[LastN controls/history](lastn-20261004.md) supersede the missing-operation state
+below. This source review remains the historical design rationale; the LastN
+evidence records the precise decorative-listener parity limit.
+
 Read-only source review at GMAT-Qt b2b7c52e on 2026-10-04. No tests, numerical runs or repository edits were performed. This is an active operation to implement, not qualification evidence.
 
 ## Observed gap

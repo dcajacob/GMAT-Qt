@@ -1582,6 +1582,19 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
    const QStringList objectDrawingKeys={"@QtAxesLabels","@QtFrameLabel","@QtObjectLabels","@QtObjectTrajectories","@QtObjectCenters","@QtObjectEndpoints","@QtObjectMarkerSizes","@QtObjectLineWidths","@QtObjectFontSizes","@QtObjectFontPositions","@QtObjectAxes","@QtObjectGrids","@QtObjectXYPlanes","@QtObjectVelocities","@QtObjectSegmentLabels"};
    const bool objectDrawing=std::any_of(objectDrawingKeys.cbegin(),objectDrawingKeys.cend(),[&](const auto &key) { return changes.contains(key); });
    if (objectDrawing && !object->IsOfType("OrbitView")) return "Object drawing settings belong to an OrbitView.";
+   if (changes.contains("@QtSolverLastN") && !object->IsOfType("OrbitView")) return "LastN solver retention belongs to an OrbitView.";
+   const bool solverDrawing=object->IsOfType("OrbitView") && (changes.contains("SolverIterations") || changes.contains("@QtSolverLastN"));
+   std::optional<int> solverLastN;
+   if (solverDrawing) try {
+      const auto mode=changes.value("SolverIterations");
+      const auto count=orbitSolverLastN(changes.value("@QtSolverLastN","1"));
+      if (mode=="LastN" || (!changes.contains("SolverIterations") && !changes.value("@QtSolverLastN").trimmed().isEmpty())) {
+         solverLastN=count;
+         if (!solverLastN) return "Enter a LastN count, or choose All, Current or None.";
+         changes["SolverIterations"]="All";
+      }
+      changes.remove("@QtSolverLastN");
+   } catch (const std::exception &error) { return QString::fromUtf8(error.what()); }
    QMap<QString,QString> external;
    for (auto it=changes.cbegin();it!=changes.cend();++it) if (it.key().startsWith("@ExternalForce.")) external[it.key()]=it.value();
    bool structuralExternal=false;
@@ -1631,7 +1644,7 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
          polyhedronMoves[origin]=row.value("body").toString();
       }
    }
-   if (changes.isEmpty()) return external.isEmpty() ? QString() : externalForceSettingsError(*object,external);
+   if (changes.isEmpty() && !solverDrawing) return external.isEmpty() ? QString() : externalForceSettingsError(*object,external);
    const bool shadows=object->IsOfType("SolarPowerSystem") && changes.size()==1 && changes.contains("ShadowBodies");
    if (shadows) {
       try {
@@ -1847,6 +1860,13 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
                }
             };
             prune(setting.objectLabels); prune(setting.objectTrajectories); prune(setting.objectCenters); prune(setting.objectEndpoints); prune(setting.objectMarkerSizes); prune(setting.objectLineWidths); prune(setting.objectFontSizes); prune(setting.objectFontPositions); prune(setting.objectAxes); prune(setting.objectGrids); prune(setting.objectXYPlanes); prune(setting.objectVelocities); prune(setting.objectSegmentLabels);
+            candidate=setQtCameraSetting(candidate,name,setting);
+         }
+      }
+      if (solverDrawing) {
+         const auto settings=qtCameraSettings(candidate);
+         if (solverLastN || settings.contains(name)) {
+            auto setting=settings.value(name); setting.solverLastN=solverLastN;
             candidate=setQtCameraSetting(candidate,name,setting);
          }
       }

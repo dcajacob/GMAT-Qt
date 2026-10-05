@@ -352,10 +352,21 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
    QMap<QString,QtCameraSetting> displaySettings;
    for (auto it=types.cbegin();it!=types.cend();++it) if (it.value()=="OpenFramesInterface") {
       QStringList names; int fontPositionIndex=0; auto &display=displaySettings[it.key()];
+      QString solverMode="All"; int solverCount=1;
       for (auto line=settings.cbegin();line!=settings.cend();++line) {
          if (line->first!=it.key()) continue;
          const auto property=line->second,value=assignment.match(codePart(lines[line.key()])).captured(3).trimmed();
-         if (property=="AxesLabels" || property=="FrameLabel") {
+         if (property=="SolverIterations") {
+            solverMode=stringValue(value);
+            if (!QStringList{"All","Current","None","LastN"}.contains(solverMode)) { result.error=it.key()+".SolverIterations: choose All, Current, None or LastN."; return result; }
+            if (solverMode=="All" || solverMode=="None") solverCount=0;
+            else if (solverMode=="Current") solverCount=1;
+         } else if (property=="SolverIterLastN") {
+            bool ok=false; const int count=value.toInt(&ok);
+            if (!ok || count<0 || !QRegularExpression("^[+]?[0-9]+$").match(value).hasMatch()) { result.error=it.key()+".SolverIterLastN: expected a nonnegative integer."; return result; }
+            // Legacy setters apply N only while LastN is already selected.
+            if (solverMode=="LastN") solverCount=count;
+         } else if (property=="AxesLabels" || property=="FrameLabel") {
             const auto flag=stringValue(value);
             if (flag!="On" && flag!="Off") { result.error=it.key()+"."+property+": expected On or Off."; return result; }
             (property=="AxesLabels" ? display.axesLabels : display.frameLabel)=flag=="On";
@@ -427,6 +438,7 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
             if (!array) fontPositionIndex=(fontPositionIndex+1)%names.size();
          }
       }
+      if (solverMode=="LastN") display.solverLastN=solverCount;
    }
    const QSet<QString> common={"Add","CoordinateSystem","DrawObject","SolverIterations","Maximized","ShowPlot","Size","UpperLeft",
       "RelativeZOrder","Axes","XYPlane","EclipticPlane","EnableStars","StarCount","EnableConstellations",
@@ -445,7 +457,14 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
       }
       if (!settings.contains(i)) { output.append(lines[i]); continue; }
       const auto name=settings[i].first,key=settings[i].second;
-      if (types[name]=="OpenFramesInterface" && common.contains(key)) output.append(lines[i]);
+      if (types[name]=="OpenFramesInterface" && key=="SolverIterations" && stringValue(assignment.match(codePart(lines[i])).captured(3).trimmed())=="LastN") {
+         output.append("% Qt conversion: "+lines[i]);
+         output.append(name+".SolverIterations = All; % LastN retention is applied by the Qt viewer");
+         result.notes.append(name+".SolverIterations: LastN trajectory retention retained in Qt metadata.");
+      } else if (types[name]=="OpenFramesInterface" && key=="SolverIterLastN") {
+         output.append("% Qt conversion: "+lines[i]);
+         result.notes.append(name+".SolverIterLastN: source-ordered count retained when LastN is selected; zero is unlimited.");
+      } else if (types[name]=="OpenFramesInterface" && common.contains(key)) output.append(lines[i]);
       else if (types[name]=="OpenFramesInterface" && (key=="DrawLabel" || key=="DrawTrajectory" || key=="DrawCenterPoint" || key=="DrawEndPoints" || key=="DrawMarkerSize" || key=="DrawLineWidth" || key=="DrawFontSize" || key=="DrawFontPosition" || key=="DrawAxes" || key=="DrawGrid" || key=="DrawXYPlane" || key=="DrawVelocity" || key=="DrawUsePropLabel" || key=="AxesLabels" || key=="FrameLabel")) {
          output.append("% Qt conversion: "+lines[i]);
          result.notes.append(name+"."+key+((key=="AxesLabels" || key=="FrameLabel") ? ": coordinate label setting retained in Qt metadata." : ": independent per-object drawing retained in Qt metadata."));
@@ -510,6 +529,7 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
       cameraSetting.objectSegmentLabels=displaySettings.value(plot).objectSegmentLabels;
       cameraSetting.axesLabels=displaySettings.value(plot).axesLabels;
       cameraSetting.frameLabel=displaySettings.value(plot).frameLabel;
+      cameraSetting.solverLastN=displaySettings.value(plot).solverLastN;
       cameraSetting.objectMarkerSizes=displaySettings.value(plot).objectMarkerSizes;
       cameraSetting.objectLineWidths=displaySettings.value(plot).objectLineWidths;
       cameraSetting.objectFontSizes=displaySettings.value(plot).objectFontSizes;
@@ -626,6 +646,7 @@ QString qtCameraDirective(const QString &plot,const QtCameraSetting &setting)
    QJsonObject object{{"plot",plot},{"perspective",setting.perspective},{"fieldOfView",setting.fieldOfView}};
    if (setting.axesLabels) object.insert("axesLabels",*setting.axesLabels);
    if (setting.frameLabel) object.insert("frameLabel",*setting.frameLabel);
+   if (setting.solverLastN) object.insert("solverLastN",*setting.solverLastN);
    if (setting.reset) object.insert("reset",resetJson(*setting.reset));
    if (setting.up) object.insert("up",QJsonArray{(*setting.up)[0],(*setting.up)[1],(*setting.up)[2]});
    if (setting.bodyRelative) object.insert("bodyRelative",true);
@@ -690,6 +711,12 @@ QMap<QString,QtCameraSetting> qtCameraSettings(const QString &source)
       for (const auto &key:QStringList{"axesLabels","frameLabel"}) if (object.contains(key)) {
          if (!object.value(key).isBool()) throw std::runtime_error("Coordinate label settings must be booleans");
          (key=="axesLabels" ? setting.axesLabels : setting.frameLabel)=object.value(key).toBool();
+      }
+      if (object.contains("solverLastN")) {
+         const auto count=object.value("solverLastN"); const double n=count.toDouble(-1);
+         if (!count.isDouble() || n<0 || n>std::numeric_limits<int>::max() || std::floor(n)!=n)
+            throw std::runtime_error("LastN solver retention requires a nonnegative integer count");
+         setting.solverLastN=static_cast<int>(n);
       }
       if (object.contains("reset")) setting.reset=resetSetting(object.value("reset"));
       if (object.contains("up")) {
