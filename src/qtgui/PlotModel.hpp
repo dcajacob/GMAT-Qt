@@ -157,6 +157,10 @@ struct PlotAxisOptions
    std::optional<double> minimum,maximum;
    int ticks=5,precision=5;
 };
+// Present only for explicit OF/Qt star options; ordinary Qt style is unchanged.
+struct PlotStarOptions {
+   double minMagnitude=-2,maxMagnitude=6,minPixels=1,maxPixels=10,minDimRatio=.5;
+};
 struct PlotModel
 {
    enum class Kind { Orbit, GroundTrack, XY, Table };
@@ -186,6 +190,8 @@ struct PlotModel
    bool starsEnabled = false, starCatalogLoaded = false;
    int starCount = 7000;
    StarCatalog starCatalog;
+   std::optional<PlotStarOptions> starOptions;
+   bool printBackground=false;
    bool constellationsEnabled=false,constellationCatalogLoaded=false;
    ConstellationCatalog constellationCatalog;
    bool scriptedCamera=false, fitCamera=false, resetCamera=false;

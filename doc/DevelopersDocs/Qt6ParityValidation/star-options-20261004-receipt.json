@@ -1,0 +1,338 @@
+{
+  "date": "2026-10-04",
+  "branch": "codex/qt6-gui",
+  "baseline_commit": "a107d74c2d9715f8c85557dd7ed36447e16e4beb",
+  "before": {
+    "application/bin/GmatQt": {
+      "bytes": 6432232,
+      "sha256": "d27a4103f7916d313870ca3ac4512d9fdde832f8800507dc311bd5e3b9d22052"
+    },
+    "application/bin/libGmatBase.so": {
+      "bytes": 25040656,
+      "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e"
+    },
+    "application/bin/libGmatUtil.so": {
+      "bytes": 2929904,
+      "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+    },
+    "application/bin/gmat_startup_qt.txt": {
+      "bytes": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    },
+    "application/data/graphics/stars/inp_StarCatalog.txt": {
+      "bytes": 1094631,
+      "sha256": "d6b66913176142dd12610fa5c2220f6c0f85e1ed2bd817230cf5619ab8f569f5"
+    },
+    "application/data/graphics/stars/inp_StarsHYGv3.txt": {
+      "bytes": 1297317,
+      "sha256": "d35613305497545936a92d89266f7f6d968245af1a9cf21e2c8943608f60f64f"
+    }
+  },
+  "after": {
+    "application/bin/GmatQt": {
+      "bytes": 6507840,
+      "sha256": "43f5541028cb3a63977dcbae9551cab47a8e69cd7b04f3a9d2bd178309b5745c"
+    },
+    "application/bin/libGmatBase.so": {
+      "bytes": 25040656,
+      "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e"
+    },
+    "application/bin/libGmatUtil.so": {
+      "bytes": 2929904,
+      "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+    },
+    "application/bin/gmat_startup_qt.txt": {
+      "bytes": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    },
+    "application/data/graphics/stars/inp_StarCatalog.txt": {
+      "bytes": 1094631,
+      "sha256": "d6b66913176142dd12610fa5c2220f6c0f85e1ed2bd817230cf5619ab8f569f5"
+    },
+    "application/data/graphics/stars/inp_StarsHYGv3.txt": {
+      "bytes": 1297317,
+      "sha256": "d35613305497545936a92d89266f7f6d968245af1a9cf21e2c8943608f60f64f"
+    }
+  },
+  "production_and_test_sources": {
+    "src/qtgui/CMakeLists.txt": {
+      "bytes": 53939,
+      "sha256": "cc6841980fa982ded1ff0a0e39e7ef6a3de80f5ef0f92b328f7d712c61a4bc29"
+    },
+    "src/qtgui/MainWindow.cpp": {
+      "bytes": 186256,
+      "sha256": "f7ad880655c79106b76ac9bc38613123a81424913a08b02526baa65706c6392d"
+    },
+    "src/qtgui/OrbitRenderer.cpp": {
+      "bytes": 49515,
+      "sha256": "6cb13a576f1e62cc2ef1d82896c96a7cd1fcf3191eb03d204f6ecf378f3c39a0"
+    },
+    "src/qtgui/OrbitStarOptionsDialog.cpp": {
+      "bytes": 5895,
+      "sha256": "dec2c78e08c1032c2fb7eb59d387cf41edf49d8dd0ebd4ea6535abadf73640e5"
+    },
+    "src/qtgui/OrbitStarOptionsDialog.hpp": {
+      "bytes": 537,
+      "sha256": "26c75949a0ebc2dc8c5c4c03609905759bfcc58d692f832f2ea2903b58c14961"
+    },
+    "src/qtgui/OrbitStars.hpp": {
+      "bytes": 3787,
+      "sha256": "f99f5ae5f782bbf8764f0e12e37b8108c1933fe16182176be91944c4a7986c90"
+    },
+    "src/qtgui/PlotModel.hpp": {
+      "bytes": 7985,
+      "sha256": "7869f8335410a14eb32eee0ff924ec65aac3f4d00091db2c81260736127e8baf"
+    },
+    "src/qtgui/PlotWidget.cpp": {
+      "bytes": 70143,
+      "sha256": "94c9f0b5277aa782b82462b766ec979e69272442c7200cc92de8de1b79c69c76"
+    },
+    "src/qtgui/QtPlotReceiver.cpp": {
+      "bytes": 90336,
+      "sha256": "27a57e7e96da7960272e35a949479e45ef817230b00e5a83e14746cd8bb01115"
+    },
+    "src/qtgui/ResourceEditor.cpp": {
+      "bytes": 131019,
+      "sha256": "077ca94379d2e032f03b5fa11500df6efeaba460c7f8e35836479c60e01c44c0"
+    },
+    "src/qtgui/ScriptCompatibility.cpp": {
+      "bytes": 84828,
+      "sha256": "c0d3c6161a9b2ca4c9f23bbeaa933b002d52212bb7be38bd86b1375570793146"
+    },
+    "src/qtgui/ScriptCompatibility.hpp": {
+      "bytes": 4224,
+      "sha256": "b104786d4a147b9ff618ddb625c374695fb26e8a46309b20660db8af70816092"
+    },
+    "src/qtgui/StarCatalog.cpp": {
+      "bytes": 3280,
+      "sha256": "9a7851a029ec347f9246b13612af722bb008e2203fe71b660d3c5d43b57e17be"
+    },
+    "src/qtgui/StarCatalog.hpp": {
+      "bytes": 608,
+      "sha256": "4e319bc5485cc056aa9307981fe2370484fbe0b63e07c6e681f4c04a301c2241"
+    },
+    "src/qtgui/tests/StarOptionsBackendTests.cpp": {
+      "bytes": 10963,
+      "sha256": "8d4536911a1491d2ca09adb1a541665e05e98813c4d2677e61171ca53470e96a"
+    },
+    "src/qtgui/tests/StarOptionsEditorTests.cpp": {
+      "bytes": 20893,
+      "sha256": "2e43fac9b2af01bdf3912d6029d74b8b5fac35ca8b3cd34c1b4ab592e54f1d7d"
+    },
+    "src/qtgui/tests/StarStyleRenderingTests.cpp": {
+      "bytes": 10400,
+      "sha256": "c7d3b60a4ee2ccd9b9e3061e850fa1d8dd59af38d67c563f533b29b82a2ab1d6"
+    }
+  },
+  "raw_archive": {
+    "bytes": 346244,
+    "sha256": "df7aded4f0610725c1f9519dec420210e641de7b75e4b8e9ee6ffa1cfacecd7e"
+  },
+  "raw_files": {
+    "after-first-build.json": {
+      "bytes": 916,
+      "sha256": "8acb3e778aa425fdff0d46b4379d657feb95642ac29804374a90f5f4e185c783"
+    },
+    "after.json": {
+      "bytes": 916,
+      "sha256": "da946f0f648ec3d0b7c3e7a2f9c9aceea299dcc9da93b9bea35156d194c7a39d"
+    },
+    "before.json": {
+      "bytes": 1037,
+      "sha256": "860b7fbeca75921520f7761ef4f0bb7dd927a064b6a3c928ff3053ce977b3065"
+    },
+    "build-first.txt": {
+      "bytes": 7408,
+      "sha256": "3cb6fa5dd6df12df9a3bce9a810a106cc5ba9ff5c77fc94f67e133bc97b4bb29"
+    },
+    "checks-first.txt": {
+      "bytes": 2032,
+      "sha256": "5b75de6c585f367c41cffcd62aca05bb4b9f0e2dd71bd6540e3c5df6a1da004e"
+    },
+    "ctest-first-detail.txt": {
+      "bytes": 8418,
+      "sha256": "cf4d6aed72c9fe668635a2f0b09fdc397911c7df1bfa107555b743c901f6dc21"
+    },
+    "editor-applied.script": {
+      "bytes": 620,
+      "sha256": "6e737bb420d0f1b9e08a3e1949373127239779058e50d3fd2130a958ad394c0c"
+    },
+    "editor-custom-dialog.png": {
+      "bytes": 70222,
+      "sha256": "fcf65ebbf71c6d379698bcf150b6530fd9b622ed6ef25012d3b574bd00463930"
+    },
+    "editor-final-build.txt": {
+      "bytes": 640,
+      "sha256": "91b9072b3770bcd89005ef322cdd1ed6c8d11de74eef19c90a128c03ce1a7e05"
+    },
+    "editor-final-check.txt": {
+      "bytes": 298,
+      "sha256": "1338301ec1435b9edcbbb1747a3220df70046e08ae4ae725d7fc74ab64536aa2"
+    },
+    "editor-final.script": {
+      "bytes": 620,
+      "sha256": "705ea74edb31673c03bd7ea2c0fa2c758723ca01910b9e14ecb9c8253818c96d"
+    },
+    "editor-imported-noop.script": {
+      "bytes": 596,
+      "sha256": "ed1ff2be75d646a4d0cb8d12ef07c34a7adbb2e90b3a7e9c98b637233f68b6d1"
+    },
+    "editor-initial.script": {
+      "bytes": 617,
+      "sha256": "c6f88c6e4416db99f33c80b335c4566169659dac9684d4cd221559bd59b20465"
+    },
+    "editor-lastn-build.txt": {
+      "bytes": 788,
+      "sha256": "c864ac4a50eabeae4c08872e6551dcaba40c4e18acd6cc5ec414eb67c8680893"
+    },
+    "editor-lastn-check.txt": {
+      "bytes": 298,
+      "sha256": "1338301ec1435b9edcbbb1747a3220df70046e08ae4ae725d7fc74ab64536aa2"
+    },
+    "editor-orbit-correction-build.txt": {
+      "bytes": 849,
+      "sha256": "38a447ffdb5659dcb563b79854a8c69410e069e77eca55426da638e84b324214"
+    },
+    "editor-orbit-correction-checks.txt": {
+      "bytes": 1019,
+      "sha256": "1ab87de42440f14e7023a94ddbdc3b19799fc14ece4d80d39a4a02fa38c4a69f"
+    },
+    "editor-orbit-diagnostic-build.txt": {
+      "bytes": 640,
+      "sha256": "91b9072b3770bcd89005ef322cdd1ed6c8d11de74eef19c90a128c03ce1a7e05"
+    },
+    "editor-orbit-diagnostic-checks.txt": {
+      "bytes": 1570,
+      "sha256": "a7e133271a3d8a874269e4cd92a1fd687f9050da2890d64e7311e6afd71be893"
+    },
+    "editor-reopened-dialog.png": {
+      "bytes": 65244,
+      "sha256": "3e17d99b67f7cbbff8a42dada4b72b854881bbb2534e577eab79ea1341597258"
+    },
+    "fallback-custom.png": {
+      "bytes": 3521,
+      "sha256": "d17bd8cf8ab4fd6a6d710ce57d8855dc89dff98598f461c182d43746dfe08a44"
+    },
+    "fallback-dimming-floor.png": {
+      "bytes": 3524,
+      "sha256": "b1ad69159da8859032fde89a4bd4846f9101f7c1877d37ed343868f039d68c0f"
+    },
+    "fallback-ordinary.png": {
+      "bytes": 4157,
+      "sha256": "e026c49fd7290e4b04eaba03ae6afa781507d734183259321ad16461e4e1e88a"
+    },
+    "fallback-printer.png": {
+      "bytes": 4048,
+      "sha256": "42fc6cc312ff24db9d6217625e873db3beb30df00e36f7bd53f43c8ba11a977f"
+    },
+    "fallback-rotated-frame.png": {
+      "bytes": 3595,
+      "sha256": "189b5c8297c661ed99645e6f036a37ae4fe4a32ff3d5a8d876ec65716d5244ba"
+    },
+    "fallback-smaller.png": {
+      "bytes": 3252,
+      "sha256": "47130c2dbcccfd5bf06dc63475d999274a39b7278512b4fcbd63107154f0262d"
+    },
+    "native-custom.png": {
+      "bytes": 3409,
+      "sha256": "9873074faf422aa4930a382c74914fc3e7c17f442687ab14a69ab7b553a399b7"
+    },
+    "native-dimming-floor.png": {
+      "bytes": 3429,
+      "sha256": "9b284a8bfa654169b7c901257d27f7e3530adf1ef106c0d14248fac585a45544"
+    },
+    "native-ordinary.png": {
+      "bytes": 3997,
+      "sha256": "27367952261e28fd227d6b301a0d92f8af8d073e422167a2ba1dc10dc4060386"
+    },
+    "native-printer.png": {
+      "bytes": 3947,
+      "sha256": "c9cd61ec523e147d1b7d11453b669dd0f88a4442e0dfc72df7454cb47fc2004e"
+    },
+    "native-rotated-frame.png": {
+      "bytes": 3511,
+      "sha256": "7f247dda145fc1f07d78d98e3abc0761bb0e14f36d0a325aac290e90394e5ca7"
+    },
+    "native-smaller.png": {
+      "bytes": 3138,
+      "sha256": "07c0c2d86854cd7bb514020adc8162baee47de981fb14f9117aa648da58dffe4"
+    },
+    "orbit-setup-before-diagnostic.cpp": {
+      "bytes": 19372,
+      "sha256": "37389ba3104f56990e09c8de507adb21d47f3bca69ace5ab7fb2f5990d912e11"
+    },
+    "source/src/qtgui/CMakeLists.txt": {
+      "bytes": 53939,
+      "sha256": "cc6841980fa982ded1ff0a0e39e7ef6a3de80f5ef0f92b328f7d712c61a4bc29"
+    },
+    "source/src/qtgui/MainWindow.cpp": {
+      "bytes": 186256,
+      "sha256": "f7ad880655c79106b76ac9bc38613123a81424913a08b02526baa65706c6392d"
+    },
+    "source/src/qtgui/OrbitRenderer.cpp": {
+      "bytes": 49515,
+      "sha256": "6cb13a576f1e62cc2ef1d82896c96a7cd1fcf3191eb03d204f6ecf378f3c39a0"
+    },
+    "source/src/qtgui/OrbitStarOptionsDialog.cpp": {
+      "bytes": 5895,
+      "sha256": "dec2c78e08c1032c2fb7eb59d387cf41edf49d8dd0ebd4ea6535abadf73640e5"
+    },
+    "source/src/qtgui/OrbitStarOptionsDialog.hpp": {
+      "bytes": 537,
+      "sha256": "26c75949a0ebc2dc8c5c4c03609905759bfcc58d692f832f2ea2903b58c14961"
+    },
+    "source/src/qtgui/OrbitStars.hpp": {
+      "bytes": 3787,
+      "sha256": "f99f5ae5f782bbf8764f0e12e37b8108c1933fe16182176be91944c4a7986c90"
+    },
+    "source/src/qtgui/PlotModel.hpp": {
+      "bytes": 7985,
+      "sha256": "7869f8335410a14eb32eee0ff924ec65aac3f4d00091db2c81260736127e8baf"
+    },
+    "source/src/qtgui/PlotWidget.cpp": {
+      "bytes": 70143,
+      "sha256": "94c9f0b5277aa782b82462b766ec979e69272442c7200cc92de8de1b79c69c76"
+    },
+    "source/src/qtgui/QtPlotReceiver.cpp": {
+      "bytes": 90336,
+      "sha256": "27a57e7e96da7960272e35a949479e45ef817230b00e5a83e14746cd8bb01115"
+    },
+    "source/src/qtgui/ResourceEditor.cpp": {
+      "bytes": 131019,
+      "sha256": "077ca94379d2e032f03b5fa11500df6efeaba460c7f8e35836479c60e01c44c0"
+    },
+    "source/src/qtgui/ScriptCompatibility.cpp": {
+      "bytes": 84828,
+      "sha256": "c0d3c6161a9b2ca4c9f23bbeaa933b002d52212bb7be38bd86b1375570793146"
+    },
+    "source/src/qtgui/ScriptCompatibility.hpp": {
+      "bytes": 4224,
+      "sha256": "b104786d4a147b9ff618ddb625c374695fb26e8a46309b20660db8af70816092"
+    },
+    "source/src/qtgui/StarCatalog.cpp": {
+      "bytes": 3280,
+      "sha256": "9a7851a029ec347f9246b13612af722bb008e2203fe71b660d3c5d43b57e17be"
+    },
+    "source/src/qtgui/StarCatalog.hpp": {
+      "bytes": 608,
+      "sha256": "4e319bc5485cc056aa9307981fe2370484fbe0b63e07c6e681f4c04a301c2241"
+    },
+    "source/src/qtgui/tests/StarOptionsBackendTests.cpp": {
+      "bytes": 10963,
+      "sha256": "8d4536911a1491d2ca09adb1a541665e05e98813c4d2677e61171ca53470e96a"
+    },
+    "source/src/qtgui/tests/StarOptionsEditorTests.cpp": {
+      "bytes": 20893,
+      "sha256": "2e43fac9b2af01bdf3912d6029d74b8b5fac35ca8b3cd34c1b4ab592e54f1d7d"
+    },
+    "source/src/qtgui/tests/StarStyleRenderingTests.cpp": {
+      "bytes": 10400,
+      "sha256": "c7d3b60a4ee2ccd9b9e3061e850fa1d8dd59af38d67c563f533b29b82a2ab1d6"
+    },
+    "source-reference.json": {
+      "bytes": 767,
+      "sha256": "4b4c5636376b4be374a509f984574a2be4b3fba31294048a66a48fc2472463a0"
+    }
+  },
+  "qualification": "Four new and three directly affected checks passed over the recorded builds; later editor-only fixes do not repeat unaffected renderer checks. Private software rendering only; all nine acceptance gates remain authoritative, live-host testing stopped, GMAT attribution and physical-GPU acceptance unproven."
+}

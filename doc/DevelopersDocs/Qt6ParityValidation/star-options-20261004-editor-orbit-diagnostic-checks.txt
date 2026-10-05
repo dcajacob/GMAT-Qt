@@ -1,0 +1,40 @@
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start  63: QtGui.StarOptionsEditor
+1/2 Test  #63: QtGui.StarOptionsEditor ..........***Failed    0.25 sec
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+Star Apply changed unrelated source/comments
+
+    Start 153: QtGui.OrbitSetup
+2/2 Test #153: QtGui.OrbitSetup .................***Failed    0.44 sec
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+REOPEN Add=Sat, Earth DrawObject=true false scale=1
+BACKING Add=Luna, Sat, Earth
+BACKING DrawObject=true false false
+BACKING ViewScaleFactor=2
+FAIL: Pending orbit settings lost on reopen
+
+
+0% tests passed, 2 tests failed out of 2
+
+Label Time Summary:
+qt-gui    =   0.69 sec*proc (2 tests)
+
+Total Test time (real) =   0.69 sec
+
+The following tests FAILED:
+	 63 - QtGui.StarOptionsEditor (Failed)                  qt-gui
+	153 - QtGui.OrbitSetup (Failed)                         qt-gui
+Errors while running CTest

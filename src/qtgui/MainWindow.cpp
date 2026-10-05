@@ -1579,9 +1579,15 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
    const auto name=QString::fromStdString(resource.GetName());
    QMap<QString,QString> changes=requested;
    if (changes.isEmpty()) return applyModelScript(expectedScript);
-   const QStringList objectDrawingKeys={"@QtSensorMasks","@QtAxesLabels","@QtFrameLabel","@QtObjectLabels","@QtObjectTrajectories","@QtObjectCenters","@QtObjectEndpoints","@QtObjectMarkerSizes","@QtObjectLineWidths","@QtObjectFontSizes","@QtObjectFontPositions","@QtObjectAxes","@QtObjectGrids","@QtObjectXYPlanes","@QtObjectVelocities","@QtObjectSegmentLabels"};
+   const QStringList objectDrawingKeys={"@QtStars","@QtSensorMasks","@QtAxesLabels","@QtFrameLabel","@QtObjectLabels","@QtObjectTrajectories","@QtObjectCenters","@QtObjectEndpoints","@QtObjectMarkerSizes","@QtObjectLineWidths","@QtObjectFontSizes","@QtObjectFontPositions","@QtObjectAxes","@QtObjectGrids","@QtObjectXYPlanes","@QtObjectVelocities","@QtObjectSegmentLabels"};
    const bool objectDrawing=std::any_of(objectDrawingKeys.cbegin(),objectDrawingKeys.cend(),[&](const auto &key) { return changes.contains(key); });
    if (objectDrawing && !object->IsOfType("OrbitView")) return "Object drawing settings belong to an OrbitView.";
+   if (changes.contains("@QtStars")) try {
+      // The selected Star options snapshot wins when paired with its ordinary
+      // count control, which shares the same pending count in ResourceEditor.
+      const auto stars=qtStars(changes.value("@QtStars"));
+      if (stars) changes["StarCount"]=QString::number(stars->customCount);
+   } catch (const std::exception &error) { return QString::fromUtf8(error.what()); }
    if (changes.contains("@QtSolverLastN") && !object->IsOfType("OrbitView")) return "LastN solver retention belongs to an OrbitView.";
    const bool solverDrawing=object->IsOfType("OrbitView") && (changes.contains("SolverIterations") || changes.contains("@QtSolverLastN"));
    std::optional<int> solverLastN;
@@ -1870,8 +1876,16 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
             candidate=setQtCameraSetting(candidate,name,setting);
          }
       }
+      if (object->IsOfType("OrbitView") && changes.contains("StarCount") && !changes.contains("@QtStars")) {
+         const auto settings=qtCameraSettings(candidate);
+         if (settings.contains(name) && settings.value(name).stars) {
+            auto setting=settings.value(name); setting.stars->customCount=proposed->GetIntegerParameter("StarCount");
+            candidate=setQtCameraSetting(candidate,name,setting);
+         }
+      }
       if (objectDrawing) {
          auto setting=qtCameraSettings(candidate).value(name);
+         if (changes.contains("@QtStars")) setting.stars=qtStars(changes.value("@QtStars"));
          if (changes.contains("@QtSensorMasks")) setting.sensorMasks=qtSensorMasks(changes.value("@QtSensorMasks"));
          if (changes.contains("@QtAxesLabels")) setting.axesLabels=qtDrawingFlag(changes.value("@QtAxesLabels"));
          if (changes.contains("@QtFrameLabel")) setting.frameLabel=qtDrawingFlag(changes.value("@QtFrameLabel"));

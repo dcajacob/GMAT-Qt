@@ -2517,3 +2517,22 @@ recorded and interpolated source pose. Remove/reassign masks before removing the
 source from Add. Imported global hardware references are supported. This draws FOV
 geometry and does not calculate visibility or a surface footprint. [Focused evidence](Qt6ParityValidation/sensor-masks-20261004.md)
 records exact source/report preservation and the continuing host/GPU limits.
+
+
+### Star display options — 2026-10-04
+
+OrbitView / Advanced / **Star options…** selects Qt default, Monitor,
+Virtual Reality, Printer or Custom. Monitor and Virtual Reality use the bundled
+HYGv3 catalog, magnitude range −2 to 6 and a 40,000-star limit; their pixel-size
+and dimming presets differ. Virtual Reality is a display preset. Custom enables
+catalog Browse, count, magnitude range, pixel sizes and minimum dimming ratio.
+Preset changes retain custom values. Printer hides stars on a white background.
+Qt default removes the override and restores ordinary Qt style/catalog behavior.
+
+The primary form's **Stars** checkbox remains the enable control. Its count and
+the custom count share pending edits: the last edited value is retained. OK stays
+pending until Apply; Cancel/discard, Undo/Redo and Save/reopen preserve source.
+An unchanged imported preset does not rewrite the source's ordinary count.
+[Focused evidence](Qt6ParityValidation/star-options-20261004.md) includes catalog coordinates,
+size/brightness/body occlusion, source recovery and the remaining qualification
+limits. No host/GPU or VR-device acceptance is implied.

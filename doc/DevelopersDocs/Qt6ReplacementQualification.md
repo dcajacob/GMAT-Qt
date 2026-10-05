@@ -8942,3 +8942,19 @@ gates remain authoritative, live-host testing remains stopped, and GMAT attribut
 plus host/physical-GPU acceptance remain unproven. Held scientific/external-data
 and deferred Windows/macOS/MATLAB dispositions remain explicit. Full qualification
 is not claimed.
+
+
+## Star display options — 2026-10-04
+
+[Star-option evidence](Qt6ParityValidation/star-options-20261004.md) implements the active
+preset/custom star controls, source-order translation, catalog recovery and
+native/fallback display. Four new and three directly affected checks pass over
+the recorded builds; original accessor/fixture failures, the pending form/count
+repair and retained LastN count correction remain explicit. GmatQt is rebuilt at
+6,507,840 bytes / SHA 43f55410…; base/util/startup/original catalog are unchanged.
+No completed audit/tutorial/corpus is repeated. Remaining active OF translation
+preferences are PlaybackTimeScale, TimeSyncParent, ShowToolbar and DrawModelFile,
+with source evidence in the linked continuation queue. Keep all nine gates,
+held scientific/external cases, deferred platforms/MATLAB and the stopped live-host
+testing boundary. GMAT client attribution and host/physical-GPU acceptance remain
+unproven. Full qualification is not claimed.

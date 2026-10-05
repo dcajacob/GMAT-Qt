@@ -41,6 +41,7 @@ add_library(GmatQtFrontend STATIC MainWindow.cpp MainWindow.hpp MainWindowDocume
    OrbitViewDialog.cpp OrbitViewDialog.hpp
    OrbitObjectDrawingDialog.cpp OrbitObjectDrawingDialog.hpp
    OrbitSensorMaskDialog.cpp OrbitSensorMaskDialog.hpp
+   OrbitStarOptionsDialog.cpp OrbitStarOptionsDialog.hpp
    ThrusterDialog.cpp ThrusterDialog.hpp
    BurnDialog.cpp BurnDialog.hpp
    EphemerisDialog.cpp EphemerisDialog.hpp
@@ -59,7 +60,7 @@ add_library(GmatQtFrontend STATIC MainWindow.cpp MainWindow.hpp MainWindowDocume
    PropagationColorDialog.cpp PropagationColorDialog.hpp
    OrbitRenderer.cpp OrbitRenderer.hpp OrbitVectors.hpp OrbitSensorMasks.hpp
    OrbitCamera.hpp SegmentArc.hpp
-   StarCatalog.cpp StarCatalog.hpp
+   StarCatalog.cpp StarCatalog.hpp OrbitStars.hpp
    PlotPlaybackControls.cpp PlotPlaybackControls.hpp
    PlotModel.cpp PlotModel.hpp PlotWidget.cpp PlotWidget.hpp QtPlotReceiver.cpp QtPlotReceiver.hpp)
 target_link_libraries(GmatQtFrontend PUBLIC Qt6::Widgets Qt6::OpenGLWidgets GmatBase GmatUtil ${OPENSCENEGRAPH_LIBRARIES})
@@ -213,6 +214,14 @@ if(GMAT_QT_BUILD_TESTS)
    add_executable(GmatQtTransmitterSolveForTests tests/TransmitterSolveForTests.cpp)
    target_link_libraries(GmatQtTransmitterSolveForTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtTransmitterSolveForTests GmatQt)
+   add_executable(GmatQtStarOptionsBackendTests tests/StarOptionsBackendTests.cpp)
+   target_link_libraries(GmatQtStarOptionsBackendTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtStarOptionsBackendTests GmatQt)
+   add_executable(GmatQtStarOptionsEditorTests tests/StarOptionsEditorTests.cpp)
+   target_link_libraries(GmatQtStarOptionsEditorTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtStarOptionsEditorTests GmatQt)
+   add_executable(GmatQtStarStyleRenderingTests tests/StarStyleRenderingTests.cpp)
+   target_link_libraries(GmatQtStarStyleRenderingTests PRIVATE GmatQtFrontend)
    add_executable(GmatQtSensorMaskBackendTests tests/SensorMaskBackendTests.cpp)
    target_link_libraries(GmatQtSensorMaskBackendTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtSensorMaskBackendTests GmatQt)
@@ -478,6 +487,10 @@ if(GMAT_QT_BUILD_TESTS)
    add_qt_test(QtGui.FocusUndo GmatQtFocusUndoTests "${qt_test_startup}")
    add_qt_test(QtGui.ResourceVisibility GmatQtResourceVisibilityTests "${qt_test_startup}")
    if(UNIX AND NOT APPLE AND QT_XVFB_RUN)
+      add_test(NAME QtGui.NativeStarStyles COMMAND ${QT_XVFB_RUN} -a
+         ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 QT_SCALE_FACTOR=1
+         $<TARGET_FILE:GmatQtStarStyleRenderingTests> --native)
+      set_tests_properties(QtGui.NativeStarStyles PROPERTIES LABELS qt-gui TIMEOUT 60)
       add_test(NAME QtGui.NativeSensorMasks COMMAND ${QT_XVFB_RUN} -a
          ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 QT_SCALE_FACTOR=1
          $<TARGET_FILE:GmatQtSensorMaskRenderingTests> --native)
@@ -555,6 +568,10 @@ if(GMAT_QT_BUILD_TESTS)
    set_tests_properties(QtGui.OrbitDataAvailability PROPERTIES TIMEOUT 60)
    add_qt_test(QtGui.ReceiverErrorModels GmatQtReceiverErrorModelTests "${qt_test_startup}")
    add_qt_test(QtGui.TransmitterSolveFors GmatQtTransmitterSolveForTests "${qt_test_startup}")
+   add_qt_test(QtGui.StarOptionsBackend GmatQtStarOptionsBackendTests "${qt_test_startup}")
+   add_qt_test(QtGui.StarOptionsEditor GmatQtStarOptionsEditorTests "${qt_test_startup}")
+   add_qt_test(QtGui.StarStyleRendering GmatQtStarStyleRenderingTests)
+   set_tests_properties(QtGui.StarStyleRendering PROPERTIES ENVIRONMENT "QT_SCALE_FACTOR=1")
    add_qt_test(QtGui.SensorMaskBackend GmatQtSensorMaskBackendTests "${qt_test_startup}")
    add_qt_test(QtGui.SensorMaskEditor GmatQtSensorMaskEditorTests "${qt_test_startup}")
    add_qt_test(QtGui.SensorMaskRendering GmatQtSensorMaskRenderingTests)
@@ -673,6 +690,7 @@ if(GMAT_QT_BUILD_TESTS)
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
       DEPENDS GmatQt GmatQtWindowTests GmatQtFileTests GmatQtWorkflowTests GmatQtMissionTests GmatQtPlotTests GmatQtOrbitRendererTests GmatQtCompatibilityTests GmatQtAtmosphereTests GmatQtStationTests GmatQtEventLocatorTests GmatQtPlotSetupTests GmatQtOrbitSetupTests GmatQtThrusterTests GmatQtBurnTests GmatQtEphemerisTests GmatQtDynamicDataTests GmatQtCalculatedPointTests GmatQtDataInterfaceTests GmatQtEstimationTests GmatQtComparisonTests GmatQtThrustFileTests GmatQtScriptEditingTests GmatQtExternalForceTests GmatQtPolyhedronTests
       USES_TERMINAL VERBATIM)
+   add_dependencies(check-qt GmatQtStarOptionsBackendTests GmatQtStarOptionsEditorTests GmatQtStarStyleRenderingTests)
    add_dependencies(check-qt GmatQtNativeVectorRenderingTests GmatQtSensorMaskBackendTests GmatQtSensorMaskEditorTests GmatQtSensorMaskRenderingTests)
    add_dependencies(check-qt GmatQtPythonPathTests GmatQtFileThrustCardinalityTests GmatQtCameraResetTests GmatQtPropagationSingleStepTests GmatQtWhileTemplateTests)
    add_dependencies(check-qt GmatQtKalmanTests GmatQtInspectionTests GmatQtParameterTests GmatQtPathTests GmatQtSolarSystemTests GmatQtCelestialBodyTests)

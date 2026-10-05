@@ -1,0 +1,145 @@
+Start testing: Oct 04 22:51 MDT
+----------------------------------------------------------
+2/170 Testing: QtGui.NativeOrbit
+2/170 Test: QtGui.NativeOrbit
+Command: "/usr/bin/xvfb-run" "-a" "/usr/bin/cmake" "-E" "env" "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtOrbitRendererTests"
+Directory: /home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui
+"QtGui.NativeOrbit" start time: Oct 04 22:51 MDT
+Output:
+----------------------------------------------------------
+Error reading file /tmp/GmatQtOrbitRendererTests-KSLZvf/missing.3ds: file not found
+Qt orbit: could not load model /tmp/GmatQtOrbitRendererTests-KSLZvf/missing.3ds ; using the default body or marker.
+Error reading file /tmp/GmatQtOrbitRendererTests-KSLZvf/missing-body.3ds: file not found
+Qt orbit: could not load model /tmp/GmatQtOrbitRendererTests-KSLZvf/missing-body.3ds ; using the default body or marker.
+Native texture, depth, rotation, resize, model material, Sun illumination, star catalog/camera/replay/occlusion, fallback and lifecycle checks passed
+<end of output>
+Test time =   3.72 sec
+----------------------------------------------------------
+Test Passed.
+"QtGui.NativeOrbit" end time: Oct 04 22:51 MDT
+"QtGui.NativeOrbit" time elapsed: 00:00:03
+----------------------------------------------------------
+
+7/170 Testing: QtGui.SkyControls
+7/170 Test: QtGui.SkyControls
+Command: "/usr/bin/python3" "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtSkyControlsTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+Directory: /home/dan/GIT/GMAT-Qt/application/bin
+"QtGui.SkyControls" start time: Oct 04 22:51 MDT
+Output:
+----------------------------------------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support raise()
+This plugin does not support propagateSizeHints()
+This plugin does not support raise()
+This plugin does not support propagateSizeHints()
+This plugin does not support raise()
+PASS: independent Stars/Constellations display toggles, enabled/disabled initial states, cached re-enable, lazy startup catalog loading, per-view isolation, closed/reopened state, StarCount and unrelated options preserved, source unchanged. Offscreen only.
+<end of output>
+Test time =   0.28 sec
+----------------------------------------------------------
+Test Passed.
+"QtGui.SkyControls" end time: Oct 04 22:51 MDT
+"QtGui.SkyControls" time elapsed: 00:00:00
+----------------------------------------------------------
+
+21/170 Testing: QtGui.NativeStarStyles
+21/170 Test: QtGui.NativeStarStyles
+Command: "/usr/bin/xvfb-run" "-a" "/usr/bin/cmake" "-E" "env" "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1" "QT_SCALE_FACTOR=1" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtStarStyleRenderingTests" "--native"
+Directory: /home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui
+"QtGui.NativeStarStyles" start time: Oct 04 22:51 MDT
+Output:
+----------------------------------------------------------
+Private renderer: llvmpipe (LLVM 21.1.8, 256 bits)
+PASS styled catalog/source order/B-V/RA header, magnitude filter before count, nonlinear pixel/dimming bounds, native/fallback analytic pixels, source-frame replay, translation/zoom behavior, body occlusion, Printer/HUD and frozen source. Private rendering only.
+<end of output>
+Test time =   1.05 sec
+----------------------------------------------------------
+Test Passed.
+"QtGui.NativeStarStyles" end time: Oct 04 22:51 MDT
+"QtGui.NativeStarStyles" time elapsed: 00:00:01
+----------------------------------------------------------
+
+62/170 Testing: QtGui.StarOptionsBackend
+62/170 Test: QtGui.StarOptionsBackend
+Command: "/usr/bin/python3" "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtStarOptionsBackendTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+Directory: /home/dan/GIT/GMAT-Qt/application/bin
+"QtGui.StarOptionsBackend" start time: Oct 04 22:51 MDT
+Output:
+----------------------------------------------------------
+This plugin does not support propagateSizeHints()
+PASS source-ordered presets/custom settings/catalog/strict JSON recovery; ordinary style unchanged; bundled HYG Sirius hours; Monitor/VR/Printer/Custom effective fields; source order/raw fallback and replaced-engine retained data. No numerical mission or host rendering.
+<end of output>
+Test time =   0.29 sec
+----------------------------------------------------------
+Test Passed.
+"QtGui.StarOptionsBackend" end time: Oct 04 22:51 MDT
+"QtGui.StarOptionsBackend" time elapsed: 00:00:00
+----------------------------------------------------------
+
+63/170 Testing: QtGui.StarOptionsEditor
+63/170 Test: QtGui.StarOptionsEditor
+Command: "/usr/bin/python3" "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtStarOptionsEditorTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+Directory: /home/dan/GIT/GMAT-Qt/application/bin
+"QtGui.StarOptionsEditor" start time: Oct 04 22:51 MDT
+Output:
+----------------------------------------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+GmatBase Exception Thrown: Cannot get string parameter with ID 43: "EnableStars" on OrbitView named "Display"
+<end of output>
+Test time =   0.30 sec
+----------------------------------------------------------
+Test Failed.
+"QtGui.StarOptionsEditor" end time: Oct 04 22:51 MDT
+"QtGui.StarOptionsEditor" time elapsed: 00:00:00
+----------------------------------------------------------
+
+64/170 Testing: QtGui.StarStyleRendering
+64/170 Test: QtGui.StarStyleRendering
+Command: "/usr/bin/python3" "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtStarStyleRenderingTests"
+Directory: /home/dan/GIT/GMAT-Qt/application/bin
+"QtGui.StarStyleRendering" start time: Oct 04 22:51 MDT
+Output:
+----------------------------------------------------------
+PASS styled catalog/source order/B-V/RA header, magnitude filter before count, nonlinear pixel/dimming bounds, native/fallback analytic pixels, source-frame replay, translation/zoom behavior, body occlusion, Printer/HUD and frozen source. Private rendering only.
+<end of output>
+Test time =   0.75 sec
+----------------------------------------------------------
+Test Passed.
+"QtGui.StarStyleRendering" end time: Oct 04 22:51 MDT
+"QtGui.StarStyleRendering" time elapsed: 00:00:00
+----------------------------------------------------------
+
+153/170 Testing: QtGui.OrbitSetup
+153/170 Test: QtGui.OrbitSetup
+Command: "/usr/bin/python3" "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/RunTest.py" "/home/dan/GIT/GMAT-Qt/application/bin" "/usr/lib/x86_64-linux-gnu" "/home/dan/GIT/GMAT-Qt/build/linux-gui/src/qtgui/GmatQtOrbitSetupTests" "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt"
+Directory: /home/dan/GIT/GMAT-Qt/application/bin
+"QtGui.OrbitSetup" start time: Oct 04 22:51 MDT
+Output:
+----------------------------------------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+FAIL: Pending orbit settings lost on reopen
+<end of output>
+Test time =   0.46 sec
+----------------------------------------------------------
+Test Failed.
+"QtGui.OrbitSetup" end time: Oct 04 22:51 MDT
+"QtGui.OrbitSetup" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 04 22:51 MDT
+
+qt-gui =   6.85 sec*proc

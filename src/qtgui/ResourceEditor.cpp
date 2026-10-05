@@ -30,6 +30,7 @@
 #include "OrbitViewDialog.hpp"
 #include "OrbitObjectDrawingDialog.hpp"
 #include "OrbitSensorMaskDialog.hpp"
+#include "OrbitStarOptionsDialog.hpp"
 #include "ThrusterDialog.hpp"
 #include "BurnDialog.hpp"
 #include "EphemerisDialog.hpp"
@@ -454,7 +455,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       auto initial=qtResourcePreviewShared(object.Clone());
       if (orbit) {
          const auto setting=qtCameraSettings(script).value(QString::fromStdString(object.GetName()));
-         const QMap<QString,QString> originalDrawing={{"@QtSensorMasks",qtSensorMasksJson(setting.sensorMasks)},{"@QtAxesLabels",qtDrawingFlagText(setting.axesLabels)},{"@QtFrameLabel",qtDrawingFlagText(setting.frameLabel)},{"@QtObjectLabels",qtObjectFlagsJson(setting.objectLabels)},{"@QtObjectTrajectories",qtObjectFlagsJson(setting.objectTrajectories)},{"@QtObjectCenters",qtObjectFlagsJson(setting.objectCenters)},{"@QtObjectEndpoints",qtObjectFlagsJson(setting.objectEndpoints)},{"@QtObjectMarkerSizes",qtObjectSizesJson(setting.objectMarkerSizes)},{"@QtObjectLineWidths",qtObjectWidthsJson(setting.objectLineWidths)},{"@QtObjectFontSizes",qtObjectSizesJson(setting.objectFontSizes)},{"@QtObjectFontPositions",qtObjectFontPositionsJson(setting.objectFontPositions)},{"@QtObjectAxes",qtObjectFlagsJson(setting.objectAxes)},{"@QtObjectGrids",qtObjectFlagsJson(setting.objectGrids)},{"@QtObjectXYPlanes",qtObjectFlagsJson(setting.objectXYPlanes)},{"@QtObjectVelocities",qtObjectFlagsJson(setting.objectVelocities)},{"@QtObjectSegmentLabels",qtObjectFlagsJson(setting.objectSegmentLabels)}};
+         const QMap<QString,QString> originalDrawing={{"@QtStars",qtStarsJson(setting.stars)},{"@QtSensorMasks",qtSensorMasksJson(setting.sensorMasks)},{"@QtAxesLabels",qtDrawingFlagText(setting.axesLabels)},{"@QtFrameLabel",qtDrawingFlagText(setting.frameLabel)},{"@QtObjectLabels",qtObjectFlagsJson(setting.objectLabels)},{"@QtObjectTrajectories",qtObjectFlagsJson(setting.objectTrajectories)},{"@QtObjectCenters",qtObjectFlagsJson(setting.objectCenters)},{"@QtObjectEndpoints",qtObjectFlagsJson(setting.objectEndpoints)},{"@QtObjectMarkerSizes",qtObjectSizesJson(setting.objectMarkerSizes)},{"@QtObjectLineWidths",qtObjectWidthsJson(setting.objectLineWidths)},{"@QtObjectFontSizes",qtObjectSizesJson(setting.objectFontSizes)},{"@QtObjectFontPositions",qtObjectFontPositionsJson(setting.objectFontPositions)},{"@QtObjectAxes",qtObjectFlagsJson(setting.objectAxes)},{"@QtObjectGrids",qtObjectFlagsJson(setting.objectGrids)},{"@QtObjectXYPlanes",qtObjectFlagsJson(setting.objectXYPlanes)},{"@QtObjectVelocities",qtObjectFlagsJson(setting.objectVelocities)},{"@QtObjectSegmentLabels",qtObjectFlagsJson(setting.objectSegmentLabels)}};
          auto *drawing=new QPushButton("Object drawing…",this); drawing->setObjectName("editOrbitDrawing"); layout->addWidget(drawing);
          connect(drawing,&QPushButton::clicked,this,[this,originalDrawing,drawing] {
             try {
@@ -487,9 +488,34 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
                OrbitObjectDrawingDialog dialog(names,labels,trajectories,this,&markers); if (dialog.exec()!=QDialog::Accepted) return;
                const auto values=dialog.settings();
                for (auto it=values.cbegin();it!=values.cend();++it) { if (it.value()==originalDrawing.value(it.key())) objectDrawingEdits.remove(it.key()); else objectDrawingEdits.insert(it.key(),it.value()); }
-               const bool pending=std::any_of(objectDrawingEdits.keyBegin(),objectDrawingEdits.keyEnd(),[](const QString &key) { return key!="@QtSensorMasks"; });
+               const bool pending=std::any_of(objectDrawingEdits.keyBegin(),objectDrawingEdits.keyEnd(),[](const QString &key) { return key!="@QtSensorMasks" && key!="@QtStars"; });
                drawing->setText(pending ? "Object drawing… (pending)" : "Object drawing…");
                reportStatus(pending ? "Object drawing is pending. Apply keeps the drawing choices." : "Object drawing is unchanged.");
+            } catch (BaseException &error) { reportStatus(QString::fromStdString(error.GetFullMessage())); }
+            catch (const std::exception &error) { reportStatus(QString::fromUtf8(error.what())); }
+         });
+         auto *stars=new QPushButton("Star options…",this); stars->setObjectName("editStarOptions"); layout->addWidget(stars);
+         connect(stars,&QPushButton::clicked,this,[this,originalDrawing,stars] {
+            try {
+               const QString key="@QtStars";
+               const auto current=qtStars(objectDrawingEdits.value(key,originalDrawing.value(key)));
+               std::optional<int> pendingCount;
+               for (int row=0;row<table->rowCount();++row) if (table->item(row,0)->text()=="StarCount") {
+                  const auto *choice=qobject_cast<QComboBox *>(table->cellWidget(row,1));
+                  const auto value=choice ? comboValue(choice) : table->item(row,1)->text();
+                  if (!current || objectDrawingEdits.contains(key) || value!=original.value("StarCount")) { bool ok=false; const auto count=value.toInt(&ok); if (!ok || count<=0) throw std::runtime_error("Enter a positive integer star count."); pendingCount=count; }
+               }
+               OrbitStarOptionsDialog dialog(current,this,pendingCount);
+               if (dialog.exec()!=QDialog::Accepted) return;
+               const auto selected=dialog.settings(); const auto value=qtStarsJson(selected);
+               if (value==originalDrawing.value(key)) objectDrawingEdits.remove(key); else objectDrawingEdits.insert(key,value);
+               if (selected && (value!=qtStarsJson(current) || pendingCount.has_value())) for (int row=0;row<table->rowCount();++row) if (table->item(row,0)->text()=="StarCount") {
+                  const auto count=QString::number(selected->customCount);
+                  if (auto *choice=qobject_cast<QComboBox *>(table->cellWidget(row,1))) choice->setCurrentText(count); else table->item(row,1)->setText(count);
+               }
+               const bool pending=objectDrawingEdits.contains(key);
+               stars->setText(pending ? "Star options… (pending)" : "Star options…");
+               reportStatus(pending ? "Star options are pending. Apply keeps the selected display style." : "Star options are unchanged.");
             } catch (BaseException &error) { reportStatus(QString::fromStdString(error.GetFullMessage())); }
             catch (const std::exception &error) { reportStatus(QString::fromUtf8(error.what())); }
          });
@@ -522,7 +548,11 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
             pending.insert(table->item(row,0)->text(),combo ? comboValue(combo) : table->item(row,1)->text());
          }
          if (orbit) {
-            if (formValues) { const auto primary=formValues(); for (auto it=primary.cbegin();it!=primary.cend();++it) pending.insert(it.key(),it.value()); }
+            if (formEdits) {
+               const auto primary=formEdits(); for (auto it=primary.cbegin();it!=primary.cend();++it) pending.insert(it.key(),it.value());
+               // LastN count is metadata and has no Advanced backing row.
+               if (formValues) { const auto current=formValues(); if (current.contains("@QtSolverLastN")) pending.insert("@QtSolverLastN",current.value("@QtSolverLastN")); }
+            }
             else if (initialSolverLastN) { pending.insert("SolverIterations","LastN"); pending.insert("@QtSolverLastN",QString::number(*initialSolverLastN)); }
          }
          QMap<QString,QString> values;
@@ -1410,6 +1440,17 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       };
       formFields.unite(attitudeNames);
       if (object.GetTypeName()=="OrbitView") {
+         // Star options, the primary form and Advanced share the same pending count.
+         auto *starCount=primary->findChild<QSpinBox *>("orbit_StarCount");
+         for (int row=0;starCount && row<table->rowCount();++row) if (table->item(row,0)->text()=="StarCount") {
+            auto *value=table->item(row,1);
+            connect(starCount,&QSpinBox::valueChanged,this,[value](int count) { value->setText(QString::number(count)); });
+            connect(table,&QTableWidget::itemChanged,starCount,[value,starCount](QTableWidgetItem *changed) {
+               if (changed!=value) return;
+               bool ok=false; const auto count=value->text().toInt(&ok);
+               if (ok && count>0) { const QSignalBlocker block(starCount); starCount->setValue(count); }
+            });
+         }
          auto *mode=primary->findChild<QComboBox *>("orbit_SolverIterations");
          for (int row=0;row<table->rowCount();++row) if (table->item(row,0)->text()=="SolverIterations") {
             auto *advanced=qobject_cast<QComboBox *>(table->cellWidget(row,1));
@@ -1548,7 +1589,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
          // Drawing edits may predate a pending object removal in Orbit setup.
          for (auto it=objectDrawingEdits.cbegin();it!=objectDrawingEdits.cend();++it) {
             auto prune=[&](auto &values) { for (auto item=values.begin();item!=values.end();) { if (!selected.contains(item.key())) item=values.erase(item); else ++item; } };
-            if (it.key()=="@QtAxesLabels" || it.key()=="@QtFrameLabel" || it.key()=="@QtSensorMasks") changes.insert(it.key(),it.value());
+            if (it.key()=="@QtAxesLabels" || it.key()=="@QtFrameLabel" || it.key()=="@QtSensorMasks" || it.key()=="@QtStars") changes.insert(it.key(),it.value());
             else if (it.key()=="@QtObjectMarkerSizes") { auto values=qtObjectSizes(it.value()); prune(values); changes.insert(it.key(),qtObjectSizesJson(values)); }
             else if (it.key()=="@QtObjectLineWidths") { auto values=qtObjectWidths(it.value()); prune(values); changes.insert(it.key(),qtObjectWidthsJson(values)); }
             else if (it.key()=="@QtObjectFontSizes") { auto values=qtObjectFontSizes(it.value()); prune(values); changes.insert(it.key(),qtObjectSizesJson(values)); }
@@ -1597,6 +1638,19 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
          } catch (BaseException &error) { reportStatus(QString::fromStdString(error.GetFullMessage())); return; }
          catch (const std::exception &error) { reportStatus(QString::fromUtf8(error.what())); return; }
       }
+      if (changes.contains("@QtStars")) try {
+         auto stars=qtStars(changes.value("@QtStars"));
+         if (stars) {
+            // Orbit setup or Advanced may edit the count after Star options.
+            // Both dialogs share this backing value; the last user edit wins.
+            for (int row=0;row<table->rowCount();++row) if (table->item(row,0)->text()=="StarCount") {
+               const auto *choice=qobject_cast<QComboBox *>(table->cellWidget(row,1));
+               const auto value=choice ? comboValue(choice) : table->item(row,1)->text();
+               bool ok=false; const auto count=value.toInt(&ok); if (!ok || count<=0) throw std::runtime_error("Enter a positive integer star count.");
+               stars->customCount=count; changes["@QtStars"]=qtStarsJson(stars);
+            }
+         }
+      } catch (const std::exception &error) { reportStatus(QString::fromUtf8(error.what())); return; }
       const QString error = apply(changes);
       if (error.isEmpty()) {
          // The workspace replaces this snapshot with the reconstructed model.

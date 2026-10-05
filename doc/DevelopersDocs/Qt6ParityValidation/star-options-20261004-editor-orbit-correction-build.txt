@@ -1,0 +1,8 @@
+[1/8] cd /home/dan/GIT/GMAT-Qt/build/linux-gui && /usr/bin/cmake -E make_directory /home/dan/GIT/GMAT-Qt/application/bin && /usr/bin/cmake -E copy_if_different /home/dan/GIT/GMAT-Qt/build/linux-gui/qt-startup/Release/gmat_startup_qt.txt /home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt
+[2/8] Building CXX object src/qtgui/CMakeFiles/GmatQtFrontend.dir/ResourceEditor.cpp.o
+[3/8] Linking CXX static library src/qtgui/libGmatQtFrontend.a
+[4/8] Linking CXX executable src/qtgui/GmatQtOrbitSetupTests
+[5/8] Linking CXX executable /home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a
+[6/8] Creating executable symlink /home/dan/GIT/GMAT-Qt/application/bin/GmatQt
+[7/8] Building CXX object src/qtgui/CMakeFiles/GmatQtStarOptionsEditorTests.dir/tests/StarOptionsEditorTests.cpp.o
+[8/8] Linking CXX executable src/qtgui/GmatQtStarOptionsEditorTests

@@ -6,6 +6,7 @@
 #include <osg/PolygonOffset>
 #include "OrbitVectors.hpp"
 #include "OrbitSensorMasks.hpp"
+#include "OrbitStars.hpp"
 #include "PlotInterpolation.hpp"
 #include <osg/PolygonMode>
 #include <osg/BlendFunc>
@@ -52,6 +53,13 @@ osg::ref_ptr<osg::Program> markerProgram(bool endpoint)
    program->addShader(new osg::Shader(osg::Shader::VERTEX,"#version 120\nvoid main() { gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex; gl_FrontColor=gl_Color; }"));
    const std::string shape=endpoint ? "float r=length(v); if (r>0.001 && r>abs(v.x*v.y/(r*r))) discard;" : "float r=dot(v,v); if (r>0.25 || r<0.16) discard;";
    program->addShader(new osg::Shader(osg::Shader::FRAGMENT,"#version 120\nvoid main() { vec2 v=gl_PointCoord-vec2(0.5); "+shape+" gl_FragColor=gl_Color; }"));
+   return program;
+}
+osg::ref_ptr<osg::Program> starProgram()
+{
+   auto program=new osg::Program;
+   program->addShader(new osg::Shader(osg::Shader::VERTEX,"#version 120\nvoid main() { gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex; gl_FrontColor=gl_Color; gl_PointSize=gl_Color.a; }"));
+   program->addShader(new osg::Shader(osg::Shader::FRAGMENT,"#version 120\nvoid main() { float alpha=clamp(2.0-4.0*length(gl_PointCoord-vec2(0.5)),0.0,1.0); gl_FragColor=vec4(gl_Color.rgb,alpha); }"));
    return program;
 }
 osg::ref_ptr<osg::Program> wideLineProgram()
@@ -215,7 +223,7 @@ struct OrbitRenderer::Scene
    std::map<int,Curve> curves;
    QMap<QString,OrbitObjectBounds> vectorBounds;
    osg::ref_ptr<osg::Program> markerShaders[2]={markerProgram(false),markerProgram(true)};
-   osg::ref_ptr<osg::Program> widthShader=wideLineProgram();
+   osg::ref_ptr<osg::Program> widthShader=wideLineProgram(),starShader=starProgram();
    double nativeLineWidthLimit=1;
    double coordinateAxisExtent=1;
    double zoom=1,yaw=.55,pitch=.45;
@@ -260,6 +268,7 @@ struct OrbitRenderer::Scene
          }
    }
    void synchronize(int width,int height,double pixelRatio) {
+      viewer.getCamera()->setClearColor(model->printBackground ? osg::Vec4(1,1,1,1) : model->starOptions ? osg::Vec4(0,0,0,1) : osg::Vec4(.015,.025,.045,1));
       double extent=1;
       OrbitSceneBounds bounds;
       QMap<QString,OrbitObjectBounds> objects;
@@ -344,7 +353,23 @@ struct OrbitRenderer::Scene
          const double x=(direction*right)/(forward*tangent*aspect),y=(direction*up)/(forward*tangent);
          return center+right*(x*halfWidth*skyScale)+up*(y*halfHeight*skyScale)-outward*skyOffset;
       };
-      if (model->starsEnabled && model->starCount>0) {
+      if (!model->printBackground && model->starOptions && model->starsEnabled && model->starCount>0) {
+         auto geometry=new osg::Geometry; isolateArrays(geometry);
+         auto positions=new osg::Vec3Array; auto colors=new osg::Vec4Array;
+         for (const auto &star:orbitSkyStars(*model)) {
+            const auto direction=rotateSky(star.direction);
+            if (!orbitSkyProjection(direction,camera,skyTangent,aspect)) continue;
+            positions->push_back(skyPosition(direction));
+            colors->push_back({float(star.color.redF()),float(star.color.greenF()),float(star.color.blueF()),float(star.pixels*pixelRatio)});
+         }
+         geometry->setVertexArray(positions); geometry->setColorArray(colors,osg::Array::BIND_PER_VERTEX);
+         geometry->addPrimitiveSet(new osg::DrawArrays(GL_POINTS,0,positions->size()));
+         auto *state=geometry->getOrCreateStateSet(); state->setAttributeAndModes(starShader,osg::StateAttribute::ON);
+         state->setMode(GL_PROGRAM_POINT_SIZE,osg::StateAttribute::ON);
+         state->setTextureAttributeAndModes(0,new osg::PointSprite,osg::StateAttribute::ON);
+         state->setAttributeAndModes(new osg::BlendFunc(GL_SRC_ALPHA,GL_ONE),osg::StateAttribute::ON);
+         sky->addDrawable(geometry);
+      } else if (!model->printBackground && model->starsEnabled && model->starCount>0) {
          osg::ref_ptr<osg::Vec3Array> positions[5];
          for (auto &group:positions) group=new osg::Vec3Array;
          // Orthographic uses a fixed 50-degree sky; perspective uses the camera
@@ -698,7 +723,8 @@ QImage OrbitRenderer::captureImage()
 }
 void OrbitRenderer::drawOverlay(QPainter &painter)
 {
-   painter.setPen(QColor(220,225,235));
+   const QColor foreground=scene->model->printBackground ? QColor(25,35,45) : QColor(220,225,235);
+   painter.setPen(foreground);
    painter.drawText(QRectF(10,height()-28,width()-20,22),Qt::AlignCenter,scene->model->coordinates+" · km");
    {
       const auto projection=scene->viewer.getCamera()->getViewMatrix()*scene->viewer.getCamera()->getProjectionMatrix();
@@ -730,7 +756,7 @@ void OrbitRenderer::drawOverlay(QPainter &painter)
          const auto &prepared=scene->curves.at(it.key());
          const double radius=prepared.modelLoaded ? prepared.modelPose->getBound().radius() : 0;
          const auto axes=orbitObjectAxes(*pose,orbitObjectAxisRadius(curve,radius));
-         painter.setPen(pose->color);
+         painter.setPen(scene->model->printBackground ? foreground : pose->color);
          for (int axis=0;axis<3;++axis) {
             const auto &p=axes[axis].end; const auto clip=osg::Vec4d(p.x(),p.y(),p.z(),1)*projection;
             if (clip.w()<=0 || std::abs(clip.x())>clip.w() || std::abs(clip.y())>clip.w() || std::abs(clip.z())>clip.w()) continue;
@@ -744,13 +770,13 @@ void OrbitRenderer::drawOverlay(QPainter &painter)
          if (const auto arrow=orbitVectorArrow(*scene->model,vector,scene->frame,&scene->vectorBounds)) {
             const auto &point=arrow->end; const auto clip=osg::Vec4d(point.x(),point.y(),point.z(),1)*projection;
             if (clip.w()<=0 || std::abs(clip.x())>clip.w() || std::abs(clip.y())>clip.w() || std::abs(clip.z())>clip.w()) continue;
-            painter.setPen(vector.color);
+            painter.setPen(scene->model->printBackground ? foreground : vector.color);
             painter.drawText(QPointF((clip.x()/clip.w()+1)*width()/2+4,(1-clip.y()/clip.w())*height()/2-4),vector.label);
          }
    }
    {
       const auto projection=scene->viewer.getCamera()->getViewMatrix()*scene->viewer.getCamera()->getProjectionMatrix();
-      painter.setPen(Qt::white);
+      painter.setPen(scene->model->printBackground ? foreground : QColor(Qt::white));
       for (const auto &mask:scene->model->sensorMasks) if (!mask.label.isEmpty())
          if (const auto geometry=orbitSensorMaskGeometry(*scene->model,mask,scene->frame,&scene->vectorBounds)) {
             const auto &point=geometry->end; const auto clip=osg::Vec4d(point.x(),point.y(),point.z(),1)*projection;
@@ -763,7 +789,7 @@ void OrbitRenderer::drawOverlay(QPainter &painter)
       for (const auto &curve:scene->model->curves) {
          if (!curve.drawsContent()) continue;
          painter.setPen(QPen(curve.color,2)); painter.drawLine(x,20,x+15,20);
-         painter.setPen(QColor(220,225,235)); painter.drawText(x+20,25,curve.name);
+         painter.setPen(foreground); painter.drawText(x+20,25,curve.name);
          x+=34+painter.fontMetrics().horizontalAdvance(curve.name);
       }
    }

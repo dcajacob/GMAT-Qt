@@ -1,0 +1,46 @@
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start   2: QtGui.NativeOrbit
+1/7 Test   #2: QtGui.NativeOrbit ................   Passed    3.72 sec
+    Start   7: QtGui.SkyControls
+2/7 Test   #7: QtGui.SkyControls ................   Passed    0.28 sec
+    Start  21: QtGui.NativeStarStyles
+3/7 Test  #21: QtGui.NativeStarStyles ...........   Passed    1.05 sec
+    Start  62: QtGui.StarOptionsBackend
+4/7 Test  #62: QtGui.StarOptionsBackend .........   Passed    0.29 sec
+    Start  63: QtGui.StarOptionsEditor
+5/7 Test  #63: QtGui.StarOptionsEditor ..........***Failed    0.30 sec
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+GmatBase Exception Thrown: Cannot get string parameter with ID 43: "EnableStars" on OrbitView named "Display"
+
+    Start  64: QtGui.StarStyleRendering
+6/7 Test  #64: QtGui.StarStyleRendering .........   Passed    0.75 sec
+    Start 153: QtGui.OrbitSetup
+7/7 Test #153: QtGui.OrbitSetup .................***Failed    0.46 sec
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+FAIL: Pending orbit settings lost on reopen
+
+
+71% tests passed, 2 tests failed out of 7
+
+Label Time Summary:
+qt-gui    =   6.85 sec*proc (7 tests)
+
+Total Test time (real) =   6.85 sec
+
+The following tests FAILED:
+	 63 - QtGui.StarOptionsEditor (Failed)                  qt-gui
+	153 - QtGui.OrbitSetup (Failed)                         qt-gui
+Errors while running CTest

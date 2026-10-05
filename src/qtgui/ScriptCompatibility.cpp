@@ -371,10 +371,32 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
    for (auto it=types.cbegin();it!=types.cend();++it) if (it.value()=="OpenFramesInterface") {
       QStringList names; int fontPositionIndex=0; auto &display=displaySettings[it.key()];
       QString solverMode="All"; int solverCount=1;
+      auto &stars=display.stars.emplace();
       for (auto line=settings.cbegin();line!=settings.cend();++line) {
          if (line->first!=it.key()) continue;
          const auto property=line->second,value=assignment.match(codePart(lines[line.key()])).captured(3).trimmed();
-         if (property=="SolverIterations") {
+         if (property=="StarSettings") {
+            stars.preset=stringValue(value);
+            if (!QStringList{"Monitor","Printer","Virtual Reality","Custom"}.contains(stars.preset)) { result.error=it.key()+".StarSettings: choose Monitor, Printer, Virtual Reality or Custom."; return result; }
+         } else if (property=="StarCatalog") {
+            stars.catalog=stringValue(value);
+            if (stars.catalog.isEmpty()) { result.error=it.key()+".StarCatalog: expected a nonempty catalog filename."; return result; }
+         } else if (property=="StarCount") {
+            bool ok=false; const auto count=value.toLongLong(&ok);
+            if (!ok || count<=0 || count>std::numeric_limits<int>::max() || !QRegularExpression("^[+]?[0-9]+$").match(value).hasMatch()) { result.error=it.key()+".StarCount: expected a positive integer count within the renderer's range."; return result; }
+            stars.customCount=static_cast<int>(count);
+         } else if (property=="MinStarMag" || property=="MaxStarMag" || property=="MinStarPixels" || property=="MaxStarPixels" || property=="MinStarDimRatio") {
+            bool ok=false; const double number=value.toDouble(&ok);
+            if (!ok || !std::isfinite(number) || std::abs(number)>std::numeric_limits<float>::max()) { result.error=it.key()+"."+property+": expected a finite real value within the renderer's range."; return result; }
+            if ((property=="MinStarMag" && number>20) || (property=="MaxStarMag" && number<stars.minMagnitude) ||
+                (property=="MinStarPixels" && number<=0) || (property=="MaxStarPixels" && number<stars.minPixels) ||
+                (property=="MinStarDimRatio" && (number<0 || number>1))) { result.error=it.key()+"."+property+": violates the legacy source-ordered star bounds."; return result; }
+            if (property=="MinStarMag") stars.minMagnitude=number;
+            else if (property=="MaxStarMag") stars.maxMagnitude=number;
+            else if (property=="MinStarPixels") stars.minPixels=number;
+            else if (property=="MaxStarPixels") stars.maxPixels=number;
+            else stars.minDimRatio=number;
+         } else if (property=="SolverIterations") {
             solverMode=stringValue(value);
             if (!QStringList{"All","Current","None","LastN"}.contains(solverMode)) { result.error=it.key()+".SolverIterations: choose All, Current, None or LastN."; return result; }
             if (solverMode=="All" || solverMode=="None") solverCount=0;
@@ -471,6 +493,8 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
             if (!array) fontPositionIndex=(fontPositionIndex+1)%names.size();
          }
       }
+      try { (void)qtStars(qtStarsJson(display.stars)); }
+      catch (const std::exception &error) { result.error=it.key()+": "+QString::fromUtf8(error.what()); return result; }
       if (solverMode=="LastN") display.solverLastN=solverCount;
    }
    const QSet<QString> common={"Add","CoordinateSystem","DrawObject","SolverIterations","Maximized","ShowPlot","Size","UpperLeft",
@@ -503,7 +527,8 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
          result.notes.append(name+"."+key+((key=="AxesLabels" || key=="FrameLabel") ? ": coordinate label setting retained in Qt metadata." : ": independent per-object drawing retained in Qt metadata."));
       } else {
          output.append("% Qt conversion: "+lines[i]);
-         if (types[name]=="OpenFramesInterface" && key=="SensorMask") result.notes.append(name+".SensorMask: FOV-backed sensor masks retained in Qt metadata.");
+         if (types[name]=="OpenFramesInterface" && QStringList{"StarSettings","StarCatalog","MinStarMag","MaxStarMag","MinStarPixels","MaxStarPixels","MinStarDimRatio"}.contains(key)) result.notes.append(name+"."+key+": preset/custom star options retained in Qt metadata.");
+         else if (types[name]=="OpenFramesInterface" && key=="SensorMask") result.notes.append(name+".SensorMask: FOV-backed sensor masks retained in Qt metadata.");
          else if (types[name]=="OpenFramesInterface" && key=="Vector") result.notes.append(name+".Vector: source/destination pointing, body-fixed pose, color/label and Auto/Manual length retained in Qt metadata.");
          else if (types[name]=="OpenFramesInterface" && key!="View") result.notes.append(name+"."+key+": retained as a comment; no direct Qt equivalent.");
       }
@@ -553,6 +578,7 @@ QtScriptConversion convertOpenFramesViews(const QString &source)
       QtCameraSetting cameraSetting{true,fov};
       cameraSetting.vectors=displaySettings.value(plot).vectors;
       cameraSetting.sensorMasks=displaySettings.value(plot).sensorMasks;
+      cameraSetting.stars=displaySettings.value(plot).stars;
       cameraSetting.objectLabels=displaySettings.value(plot).objectLabels;
       cameraSetting.objectTrajectories=displaySettings.value(plot).objectTrajectories;
       cameraSetting.objectCenters=displaySettings.value(plot).objectCenters;
@@ -682,6 +708,7 @@ QString qtCameraDirective(const QString &plot,const QtCameraSetting &setting)
    if (setting.axesLabels) object.insert("axesLabels",*setting.axesLabels);
    if (setting.frameLabel) object.insert("frameLabel",*setting.frameLabel);
    if (setting.solverLastN) object.insert("solverLastN",*setting.solverLastN);
+   if (setting.stars) object.insert("stars",QJsonDocument::fromJson(qtStarsJson(setting.stars).toUtf8()).object());
    if (setting.reset) object.insert("reset",resetJson(*setting.reset));
    if (setting.up) object.insert("up",QJsonArray{(*setting.up)[0],(*setting.up)[1],(*setting.up)[2]});
    if (setting.bodyRelative) object.insert("bodyRelative",true);
@@ -747,6 +774,13 @@ QMap<QString,QtCameraSetting> qtCameraSettings(const QString &source)
       for (const auto &key:QStringList{"axesLabels","frameLabel"}) if (object.contains(key)) {
          if (!object.value(key).isBool()) throw std::runtime_error("Coordinate label settings must be booleans");
          (key=="axesLabels" ? setting.axesLabels : setting.frameLabel)=object.value(key).toBool();
+      }
+      if (object.contains("stars")) {
+         if (object.value("stars").isNull()) setting.stars.reset();
+         else {
+            if (!object.value("stars").isObject()) throw std::runtime_error("Plot stars must be an object or null");
+            setting.stars=qtStars(QString::fromUtf8(QJsonDocument(object.value("stars").toObject()).toJson(QJsonDocument::Compact)));
+         }
       }
       if (object.contains("solverLastN")) {
          const auto count=object.value("solverLastN"); const double n=count.toDouble(-1);
@@ -1052,4 +1086,35 @@ QString qtSensorMasksJson(const QVector<QtSensorMaskSetting> &masks)
    QJsonArray result;
    for (const auto &mask:masks) result.append(QJsonObject{{"name",mask.name},{"source",mask.source},{"hardware",mask.hardware},{"label",mask.label},{"automaticLength",mask.automaticLength},{"length",mask.length}});
    return QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact));
+}
+
+std::optional<QtStarSetting> qtStars(const QString &json)
+{
+   if (json.trimmed()=="null") return {};
+   QJsonParseError error; const auto document=QJsonDocument::fromJson(json.toUtf8(),&error);
+   if (error.error!=QJsonParseError::NoError || !document.isObject()) throw std::runtime_error("Star options must be a JSON object or null");
+   const auto value=document.object();
+   const QSet<QString> fields={"preset","catalog","customCount","minMagnitude","maxMagnitude","minPixels","maxPixels","minDimRatio"};
+   for (auto field=value.constBegin();field!=value.constEnd();++field) if (!fields.contains(field.key())) throw std::runtime_error("Unsupported star options field");
+   QtStarSetting setting;
+   if (!value.value("preset").isString() || !QStringList{"Monitor","Printer","Virtual Reality","Custom"}.contains(value.value("preset").toString()) ||
+       !value.value("catalog").isString() || value.value("catalog").toString().isEmpty()) throw std::runtime_error("Star options need a valid preset and nonempty raw catalog filename");
+   setting.preset=value.value("preset").toString(); setting.catalog=value.value("catalog").toString();
+   const double count=value.value("customCount").toDouble(-1);
+   if (!value.value("customCount").isDouble() || count<=0 || count>std::numeric_limits<int>::max() || std::floor(count)!=count) throw std::runtime_error("Custom star count must be a positive integer within the renderer's range");
+   setting.customCount=static_cast<int>(count);
+   for (auto field:{qMakePair(QString("minMagnitude"),&setting.minMagnitude),qMakePair(QString("maxMagnitude"),&setting.maxMagnitude),qMakePair(QString("minPixels"),&setting.minPixels),qMakePair(QString("maxPixels"),&setting.maxPixels),qMakePair(QString("minDimRatio"),&setting.minDimRatio)}) {
+      const auto number=value.value(field.first);
+      if (!number.isDouble() || !std::isfinite(number.toDouble()) || std::abs(number.toDouble())>std::numeric_limits<float>::max()) throw std::runtime_error("Star bounds must be finite real values within the renderer's range");
+      *field.second=number.toDouble();
+   }
+   if (setting.minMagnitude>20 || setting.maxMagnitude<setting.minMagnitude || setting.minPixels<=0 || setting.maxPixels<setting.minPixels || setting.minDimRatio<0 || setting.minDimRatio>1)
+      throw std::runtime_error("Star options require min magnitude <= max, positive min pixels <= max, and dim ratio from 0 to 1");
+   return setting;
+}
+QString qtStarsJson(const std::optional<QtStarSetting> &setting)
+{
+   if (!setting) return "null";
+   return QString::fromUtf8(QJsonDocument(QJsonObject{{"preset",setting->preset},{"catalog",setting->catalog},{"customCount",setting->customCount},
+      {"minMagnitude",setting->minMagnitude},{"maxMagnitude",setting->maxMagnitude},{"minPixels",setting->minPixels},{"maxPixels",setting->maxPixels},{"minDimRatio",setting->minDimRatio}}).toJson(QJsonDocument::Compact));
 }

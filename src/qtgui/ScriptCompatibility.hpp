@@ -45,6 +45,14 @@ struct QtSensorMaskSetting {
 };
 QVector<QtSensorMaskSetting> qtSensorMasks(const QString &json);
 QString qtSensorMasksJson(const QVector<QtSensorMaskSetting> &masks);
+// Legacy presets use their own effective values while retaining custom inputs.
+struct QtStarSetting {
+   QString preset="Monitor",catalog="inp_StarsHYGv3.txt";
+   int customCount=40000;
+   double minMagnitude=-2,maxMagnitude=6,minPixels=1,maxPixels=10,minDimRatio=.5;
+};
+std::optional<QtStarSetting> qtStars(const QString &json);
+QString qtStarsJson(const std::optional<QtStarSetting> &setting);
 struct QtCameraSetting {
    bool perspective=false; double fieldOfView=50;
    std::optional<std::array<double,3>> up;
@@ -52,6 +60,7 @@ struct QtCameraSetting {
    QVector<QtCameraPreset> views;
    QVector<QtVectorSetting> vectors;
    QVector<QtSensorMaskSetting> sensorMasks;
+   std::optional<QtStarSetting> stars;
    bool bodyRelative=false;
    bool lookAtRotation=false, shortestAngle=false;
    std::optional<std::array<double,3>> centerOffset;

@@ -116,6 +116,19 @@ void QtPlotReceiver::validateCameraReferences(const QMap<QString,QtCameraSetting
          if (!object) object=moderator->GetSolarSystemInUse()->GetBody(name.toStdString());
          if (!dynamic_cast<SpacePoint *>(object)) throw std::runtime_error((it.key()+": automatic body camera needs a space point: "+name).toStdString());
       };
+      if (it->stars) {
+         auto *plot=moderator->GetConfiguredObject(it.key().toStdString());
+         if (!plot || !plot->IsOfType("OrbitView")) throw std::runtime_error("Star display metadata requires an OrbitView");
+         (void)qtStars(qtStarsJson(it->stars));
+         auto validateCatalog=[](const QString &catalog) {
+            if (FileManager::Instance()->FindPath(catalog.toStdString(),"STAR_PATH",true,true,false).empty())
+               throw std::runtime_error(("Star catalog not found through STAR_PATH: "+catalog).toStdString());
+         };
+         // The legacy catalog setter validates retained custom input even when
+         // a preset currently uses its own catalog; retain its raw spelling.
+         validateCatalog(it->stars->catalog);
+         if (it->stars->preset!="Custom") validateCatalog("inp_StarsHYGv3.txt");
+      }
       for (const auto &mask:it->sensorMasks) {
          validateTrajectory(mask.source,false);
          auto *source=moderator->GetConfiguredObject(mask.source.toStdString());
@@ -531,6 +544,19 @@ void QtPlotReceiver::SetGl3dDrawingOption(const std::string &name,bool labels,bo
       data.xyPlane=xy; data.eclipticPlane=ec; data.wireframe=wire; data.sunLine=sun;
       data.constellationsEnabled=constellations;
       data.starsEnabled=stars; data.starCount=static_cast<int>(std::clamp<Integer>(count,0,std::numeric_limits<int>::max()));
+      data.starOptions.reset(); data.printBackground=false;
+      if (drawing.stars) {
+         const auto &options=*drawing.stars;
+         data.starOptions=PlotStarOptions{};
+         if (options.preset=="Custom") {
+            data.starOptions=PlotStarOptions{options.minMagnitude,options.maxMagnitude,options.minPixels,options.maxPixels,options.minDimRatio};
+            data.starCount=options.customCount;
+         } else {
+            data.starCount=40000;
+            if (options.preset=="Virtual Reality") { data.starOptions->maxPixels=5; data.starOptions->minDimRatio=.1; }
+            if (options.preset=="Printer") { data.printBackground=true; data.starsEnabled=false; }
+         }
+      }
       loadSkyCatalogs(*entry,name);
    }
 }
@@ -548,8 +574,10 @@ void QtPlotReceiver::loadSkyCatalogs(Entry &entry,const std::string &name)
    if (data.starsEnabled && !data.starCatalogLoaded) {
       data.starCatalogLoaded=true;
       try {
-         const auto path=FileManager::Instance()->FindPath("","STAR_FILE",true,false,true);
-         data.starCatalog=StarCatalog::read(text(path));
+         const auto stars=cameraSettings.value(text(name)).stars;
+         const auto path=stars ? FileManager::Instance()->FindPath((stars->preset=="Custom" ? stars->catalog : QString("inp_StarsHYGv3.txt")).toStdString(),"STAR_PATH",true,true,false)
+            : FileManager::Instance()->FindPath("","STAR_FILE",true,false,true);
+         data.starCatalog=StarCatalog::read(text(path),data.starOptions.has_value());
       } catch (BaseException &error) { data.starCatalog.error=text(error.GetFullMessage()); }
       if (!data.starCatalog.error.isEmpty())
          MessageInterface::ShowMessage("Qt OrbitView '%s': cannot load star catalog: %s\n",name.c_str(),data.starCatalog.error.toStdString().c_str());

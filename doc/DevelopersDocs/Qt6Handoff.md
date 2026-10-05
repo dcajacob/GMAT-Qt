@@ -20,13 +20,17 @@ brief, not proof of qualification. Recheck the repository before making changes.
 
 ## Current installed application — 2026-10-04
 
-GmatQt is rebuilt at **6,432,232 bytes / SHA d27a4103…**.
-[Sensor masks](Qt6ParityValidation/sensor-masks-20261004.md) now have active
-conversion, ordered pending controls, reference recovery and native/fallback
-FOV display following recorded/interpolated source pose. Four new and three
-directly affected checks pass; a complete new 131-byte report stays byte-identical.
-Original compile/test-fixture failures and corrections remain recorded.
-Base/util/Qt startup are unchanged from LastN. The original checkout is untouched.
+GmatQt is rebuilt at **6,507,840 bytes / SHA 43f55410…**.
+[Star options](Qt6ParityValidation/star-options-20261004.md) now implement preset/custom
+conversion, pending controls, source/catalog recovery and native/fallback skies.
+Four new and three directly affected checks pass over the recorded builds.
+Pending count/form synchronization and final LastN count carry-through are repaired;
+original failures and test-fixture corrections remain recorded. Base/util/Qt startup
+and the original star catalog are unchanged. The original checkout is untouched.
+
+The preceding [sensor masks](Qt6ParityValidation/sensor-masks-20261004.md)
+retain four new/three affected passes and their complete byte-identical 131-byte
+report at their recorded runtime; they were not repeated for Star options.
 
 [Native vector pixels](Qt6ParityValidation/native-vectors-20261004.md) previously
 passed their new 1.50 s private Xvfb/llvmpipe check. The sensor-mask renderer change
@@ -78,8 +82,13 @@ retention. Use their current evidence above instead of treating that earlier
 source review as an unimplemented queue. LastN's decorative-listener cleanup
 limit remains explicit; it is not a claim of every legacy listener behavior.
 The subsequently identified sensor-mask operation and native-vector pixel gap
-now have the bounded evidence above. Keep all nine gates, held scientific cases
-and external dependencies in scope.
+now have the bounded evidence above. Star options are also implemented. The
+concrete remaining OF source preferences are **PlaybackTimeScale, TimeSyncParent,
+ShowToolbar and per-plot DrawModelFile**; their active consumers and exact current
+translation boundaries are recorded in the [star-options continuation queue](Qt6ParityValidation/star-options-20261004.md#concrete-remaining-of-operations).
+Existing Qt replay/speed/resource model controls do not establish those saved
+source semantics. Device VR/MSAA and inactive AxesLength remain separate. Keep
+all nine gates, held scientific cases and external dependencies in scope.
 Host/GPU acceptance and GMAT client attribution remain unverified, with live
 host testing stopped. Do not repeat completed audits/tutorials/examples or
 passing tests without a concrete affected change, or turn this into a numerical

@@ -26,6 +26,7 @@
 #include "OrbitVelocity.hpp"
 #include "OrbitVectors.hpp"
 #include "OrbitSensorMasks.hpp"
+#include "OrbitStars.hpp"
 #include <QGuiApplication>
 #include <QResizeEvent>
 #include <QAction>
@@ -163,8 +164,8 @@ void PlotCanvas::paintEvent(QPaintEvent *)
    painter.setRenderHint(QPainter::Antialiasing);
    const bool orbit = data->kind == PlotModel::Kind::Orbit;
    const bool ground = data->kind == PlotModel::Kind::GroundTrack;
-   const QColor background = orbit ? QColor(12, 18, 30) : QColor(Qt::white);
-   const QColor foreground = orbit ? QColor(226, 235, 248) : QColor(25, 35, 45);
+   const QColor background = !orbit || data->printBackground ? QColor(Qt::white) : data->starOptions ? QColor(Qt::black) : QColor(12,18,30);
+   const QColor foreground = orbit && !data->printBackground ? QColor(226, 235, 248) : QColor(25, 35, 45);
    painter.fillRect(rect(), background);
    painter.setPen(foreground);
    const auto metrics=painter.fontMetrics();
@@ -275,6 +276,22 @@ void PlotCanvas::paintEvent(QPaintEvent *)
    ymin = cy-dy/2 + offset.y()*dy/area.height(); ymax = ymin+dy;
    auto screen = [&](const QPointF &p) { return QPointF(area.left()+(p.x()-xmin)/(xmax-xmin)*area.width(), area.bottom()-(p.y()-ymin)/(ymax-ymin)*area.height()); };
    painter.save(); painter.setClipRect(area);
+   if (orbit && data->starsEnabled) {
+      const auto rotation=orbitSkyFrame(*data,visibleFrame);
+      const double tangent=data->perspective ? std::tan(std::clamp(data->fieldOfView,1.,150.)*3.14159265358979323846/360)/zoom : .4663076581549986;
+      painter.save(); painter.setPen(Qt::NoPen);
+      for (const auto &star:orbitSkyStars(*data)) if (const auto point=orbitSkyProjection(orbitSkyDirection(star.direction,rotation),camera,tangent,area.width()/area.height())) {
+         const QPointF center(area.center().x()+point->x()*area.width()/2,area.center().y()-point->y()*area.height()/2);
+         const double radius=star.pixels/2;
+         if (data->starOptions) {
+            painter.setCompositionMode(QPainter::CompositionMode_Plus);
+            QRadialGradient gradient(center,radius); auto transparent=star.color; transparent.setAlpha(0);
+            gradient.setColorAt(0,star.color); gradient.setColorAt(.5,star.color); gradient.setColorAt(1,transparent);
+            painter.setBrush(gradient); painter.drawEllipse(center,radius,radius);
+         } else { painter.setBrush(star.color); painter.drawRect(QRectF(center-QPointF(radius,radius),QSizeF(star.pixels,star.pixels))); }
+      }
+      painter.restore();
+   }
    if (ground && !data->map.isNull()) {
       const QPointF a = screen({-180,90}), b = screen({180,-90});
       painter.drawImage(QRectF(a,b), data->map);
@@ -498,9 +515,9 @@ void PlotCanvas::paintEvent(QPaintEvent *)
       if (data->labels) for (const auto &vector:data->vectors) if (!vector.label.isEmpty())
          if (const auto arrow=orbitVectorArrow(*data,vector,visibleFrame)) {
             PlotPoint point; point.x=arrow->end.x(); point.y=arrow->end.y(); point.z=arrow->end.z();
-            if (perspectiveScale(point)>0) { painter.setPen(vector.color); painter.drawText(screen(project(point))+QPointF(4,-4),vector.label); }
+            if (perspectiveScale(point)>0) { painter.setPen(data->printBackground ? foreground : vector.color); painter.drawText(screen(project(point))+QPointF(4,-4),vector.label); }
          }
-      painter.setPen(Qt::white);
+      painter.setPen(data->printBackground ? foreground : QColor(Qt::white));
       for (const auto &mask:data->sensorMasks) if (!mask.label.isEmpty())
          if (const auto geometry=orbitSensorMaskGeometry(*data,mask,visibleFrame)) {
             PlotPoint point; point.x=geometry->end.x(); point.y=geometry->end.y(); point.z=geometry->end.z();
@@ -508,7 +525,7 @@ void PlotCanvas::paintEvent(QPaintEvent *)
          }
       if (data->labels) for (const auto &curve:data->curves) if (curve.visible && curve.objectAxes) {
          const auto *pose=orbitObjectPose(curve,visibleFrame); if (!pose) continue;
-         const auto axes=orbitObjectAxes(*pose,orbitObjectAxisRadius(curve)); painter.setPen(pose->color);
+         const auto axes=orbitObjectAxes(*pose,orbitObjectAxisRadius(curve)); painter.setPen(data->printBackground ? foreground : pose->color);
          for (int axis=0;axis<3;++axis) { PlotPoint p=*pose; p.x=axes[axis].end.x(); p.y=axes[axis].end.y(); p.z=axes[axis].end.z(); if (perspectiveScale(p)>0) painter.drawText(screen(project(p))+QPointF(4,-4),QString(QChar('X'+axis))); }
       }
       if (data->labels) for (const auto &curve:data->curves) {

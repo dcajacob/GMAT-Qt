@@ -1,0 +1,29 @@
+HYG v3 star catalog attribution
+
+inp_StarsHYGv3.txt is the unchanged OpenFramesInterface tabular subset of
+David Nash / Astronexus's HYG v3 star database. Its fields are right ascension
+(hours), declination (degrees), apparent magnitude, B-V color index and name.
+The dataset is based on the Hipparcos, Yale Bright Star and Gliese catalogs.
+
+HYG v3 is licensed under Creative Commons Attribution-ShareAlike 2.5:
+https://creativecommons.org/licenses/by-sa/2.5/
+https://creativecommons.org/licenses/by-sa/2.5/legalcode
+The upstream v3 license notice is at:
+https://github.com/astronexus/HYG-Database/blob/main/hyg/v3/LICENSE.html
+Version-specific licensing is documented at:
+https://github.com/astronexus/HYG-Database/blob/main/hyg/README.md
+
+HYG source and attribution: David Nash / Astronexus
+https://www.astronexus.com/hyg
+https://github.com/astronexus/HYG-Database
+
+This subset is copied without data changes from Emergent Space Technologies'
+OpenFramesInterface data/stars/inp_StarsHYGv3.txt (file history commit
+5aab12f19fb4e67ec121def8448e6f311d498075):
+https://gitlab.com/EmergentSpaceTechnologies/OpenFramesInterface
+It is also byte-identical to OpenFrames Demos/Stars/Stars_HYGv3.txt.
+SHA256: d35613305497545936a92d89266f7f6d968245af1a9cf21e2c8943608f60f64f
+
+GMAT Qt adds this separate display catalog to preserve converted viewer presets.
+The existing inp_StarCatalog.txt and numerical mission data are unchanged.
+The attribution and share-alike terms above apply to this catalog dataset.
