@@ -297,7 +297,9 @@ def relocate_macos(bundle):
         if path.suffix in {'.dylib', '.so'}:
             subprocess.run(['install_name_tool', '-id', '@executable_path/../Frameworks/' + path.name, path], check=True)
     for path in sorted(done, key=lambda p: len(p.parts), reverse=True):
-        subprocess.run(['codesign', '--force', '--sign', '-', path], check=True)
+        if path != binary:
+            subprocess.run(['codesign', '--force', '--sign', '-', path], check=True)
+    run(['codesign', '--force', '--sign', '-', bundle], 'stage-sign')
 
 
 def stage_package(target, qt, osg, prefix):
@@ -333,10 +335,12 @@ def stage_package(target, qt, osg, prefix):
     for path in list(payload.iterdir()):
         if path == bundle or path.name == 'output':
             continue
-        shutil.move(str(path), contents / ('MacOS' if path.name == 'bin' else path.name))
+        name = {'bin': 'MacOS', 'plugins': 'PlugIns'}.get(path.name, path.name)
+        shutil.move(str(path), contents / name)
     startup_path = contents / 'MacOS/gmat_startup_qt.txt'
     startup_path.write_text(re.sub(r'(?m)^OUTPUT_PATH\s*=.*$',
-                                 'OUTPUT_PATH = ../../../output/', startup_path.read_text()))
+                                 'OUTPUT_PATH = ../../../output/', startup_path.read_text())
+                            .replace('../plugins/', '../PlugIns/'))
     binary = contents / 'MacOS/GmatQt'
     copy_file(REPO / 'application/bin/GmatQt', binary)
     binary.chmod(0o755)
@@ -348,7 +352,15 @@ def stage_package(target, qt, osg, prefix):
     for directory in (osg / 'lib').glob('osgPlugins-*'):
         for path in directory.iterdir():
             if path.is_file() and path.name.startswith(('osgdb_3ds.', 'osgdb_obj.', 'osgdb_osg.', 'osgdb_freetype.')):
-                copy_file(path, contents / 'MacOS' / directory.name / path.name)
+                # OSG's native bundle search includes Contents/PlugIns. A dotted
+                # osgPlugins-3.6.5 directory is interpreted as an invalid nested
+                # code bundle by macOS signing, so deploy readers directly here.
+                copy_file(path, contents / 'PlugIns' / path.name)
+    run(['clang++', '-std=c++17', '-arch', 'arm64' if target.endswith('arm64') else 'x86_64',
+         '-mmacosx-version-min=15.0', '-Wl,-headerpad_max_install_names',
+         '-I' + str(osg / 'include'), '-L' + str(osg / 'lib'),
+         REPO / 'tools/preview/ModelReaderProbe.cpp', '-losgDB', '-losg', '-lOpenThreads',
+         '-framework', 'Foundation', '-o', contents / 'MacOS/PackageReaderProbe'], 'reader-probe-build')
     run([qt / 'bin/macdeployqt', bundle, '-always-overwrite'], 'macdeployqt')
     for path in (qt / 'plugins/platforms').glob('*offscreen*.dylib'):
         copy_file(path, contents / 'PlugIns/platforms' / path.name)
@@ -399,6 +411,10 @@ Report Values Sat.ElapsedSecs Sat.X Sat.Y Sat.Z Sat.VX Sat.VY Sat.VZ;
         env['PATH'] = str(executable.parent) + os.pathsep + os.environ.get('SystemRoot', 'C:/Windows') + '/System32'
     run([executable, script, '--run', '--screenshot', LOGS / 'package-probe.png',
          '--settings-dir', ROOT / 'probe-settings'], 'package-probe', env=env, cwd=ROOT)
+    if target.startswith('macos'):
+        reader = executable.parent / 'PackageReaderProbe'
+        run([reader, root, root / 'data/vehicle/models/aura.3ds'], 'model-reader-probe', env=env, cwd=ROOT)
+        reader.unlink()
     rows = report.read_text().strip().splitlines()
     assert len(rows) == 1
     values = list(map(float, rows[0].split(',')))
@@ -414,6 +430,9 @@ Report Values Sat.ElapsedSecs Sat.X Sat.Y Sat.Z Sat.VX Sat.VY Sat.VZ;
               'probe_values': values, 'independent_circle': truth,
               'max_position_error_km': max(errors[:3]), 'max_velocity_error_km_s': max(errors[3:]),
               'scope': 'Packaged executable native startup and point-mass mission; not full GUI or NASA qualification.'}
+    if target.startswith('macos'):
+        result['bundled_3ds_reader'] = {'status': 'passed', 'model': 'data/vehicle/models/aura.3ds',
+                                        'lookup': 'Native bundle plugin path only; SDK paths excluded.'}
     (LOGS / 'package-verification.json').write_text(json.dumps(result, indent=2) + '\n')
     copy_file(LOGS / 'package-verification.json', root / 'PACKAGE-VERIFICATION.json')
     # Remove probe outputs from the reusable application bundle before archiving.
@@ -443,7 +462,7 @@ def main():
     probe(target, payload, executable)
     if sys.platform == 'darwin':
         bundle = payload / 'GMAT-Qt.app'
-        run(['codesign', '--force', '--deep', '--sign', '-', bundle], 'adhoc-sign')
+        run(['codesign', '--force', '--sign', '-', bundle], 'adhoc-sign')
         run(['codesign', '--verify', '--deep', '--strict', bundle], 'verify-signature')
     dist = ROOT / 'dist'
     dist.mkdir(exist_ok=True)
