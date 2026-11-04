@@ -5711,7 +5711,7 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
    // given by other software (aka STK)
    Real roundingPrecision = TIME_ROUNDOFF;
    if (stopper->IsTimeCondition())
-      roundingPrecision = std::min(roundingPrecision,
+      roundingPrecision = (std::min)(roundingPrecision,
             timeAccuracy * stopper->GetTimeMultiplier());
    if (roundingPrecision > 0.0)
       secsToStep = std::floor(secsToStep / roundingPrecision + 0.5) *

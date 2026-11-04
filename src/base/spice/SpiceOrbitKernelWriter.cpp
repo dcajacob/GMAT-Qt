@@ -438,7 +438,7 @@ void SpiceOrbitKernelWriter::WriteSegmentImpl(const A1Mjd &start, const A1Mjd &e
                          preciseFlags->size() != epochs.size())))
       throw UtilityException("SPK precise epoch metadata must align with its state records.");
    if (degree < 1 || states.size() < (static_cast<size_t>(degree) + 1) / 2 ||
-       states.size() > static_cast<size_t>(std::numeric_limits<SpiceInt>::max()))
+       states.size() > static_cast<size_t>((std::numeric_limits<SpiceInt>::max)()))
       throw UtilityException("SPK records must contain enough states for the interpolation degree.");
    if (!std::isfinite(start.Get()) || !std::isfinite(end.Get()))
       throw UtilityException("SPK descriptor epochs must be finite.");

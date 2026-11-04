@@ -4,7 +4,7 @@
 #include <cmath>
 #include <iterator>
 
-thread_local AcceptedStepHistory::Transaction *AcceptedStepHistory::active = nullptr;
+namespace { thread_local AcceptedStepHistory::Transaction *active = nullptr; }
 
 AcceptedStepHistory::Transaction::Transaction(std::vector<Step> &output) :
    previous(active), destination(&output), committed(false)

@@ -34,7 +34,6 @@ public:
    static const Rvector6 *Find(const SpaceObject *object, Real mjd);
    static const Rvector6 *Find(const SpaceObject *object, const GmatTime &epoch);
 private:
-   static thread_local const PlotOriginScope *active;
    const PlotOriginScope *previous;
    const Packet &packet;
    GmatTime epoch;

@@ -68,6 +68,10 @@ Only successful native package probes can reach the private preview release.
 The Windows build is x64; Mac builds cover Apple Silicon and Intel, targeting
 macOS 15 or newer. Mac previews are ad-hoc signed, without Apple notarization.
 
+On Windows, if startup reports a missing VCRUNTIME140 or MSVCP140 library,
+install Microsoft's x64 Visual C++ Redistributable from
+https://aka.ms/vc14/vc_redist.x64.exe and open the application again.
+
 The source is under active acceptance testing. Source-versioned campaign
 passes apply to their recorded builds and cases. They do not certify every
 feature in this snapshot or establish a current Windows/macOS build.

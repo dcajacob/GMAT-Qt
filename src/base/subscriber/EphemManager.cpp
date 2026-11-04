@@ -1131,7 +1131,7 @@ bool EphemManager::GetStationElevationCrossings(
    checkSpice("Station elevation window search");
    const Real elevation = minElevation * GmatMathConstants::RAD_PER_DEG;
    const Real angularRoundoff = 32 * std::numeric_limits<Real>::epsilon() *
-         std::max(1.0, std::abs(elevation));
+         (std::max)(1.0, std::abs(elevation));
    auto apparentState = [&](SpiceDouble time, SpiceDouble *state)
    {
       SpiceDouble lightTime;
@@ -1217,8 +1217,8 @@ bool EphemManager::GetStationElevationCrossings(
       // Check the actual sides beyond GF's root-refinement uncertainty rather
       // than misclassifying that approximation as a rise or set. The usable
       // ephemeris may extend beyond a requested search boundary.
-      const Real probe = std::max(10*SPICE_GF_CNVTOL,
-            32*std::numeric_limits<Real>::epsilon()*std::max(1.0,std::abs(first)));
+      const Real probe = (std::max)(10*SPICE_GF_CNVTOL,
+            32*std::numeric_limits<Real>::epsilon()*(std::max)(1.0,std::abs(first)));
       Integer direction = 0;
       bool twoSided = false;
       for (SpiceInt index=0; index<wncard_c(&available); ++index)

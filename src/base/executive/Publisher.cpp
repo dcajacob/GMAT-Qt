@@ -208,7 +208,7 @@ namespace
    };
 }
 
-thread_local const PlotOriginScope *PlotOriginScope::active = nullptr;
+namespace { thread_local const PlotOriginScope *active = nullptr; }
 
 PlotOriginScope::Packet::Packet(const Real *raw, Integer length, SpaceObject *origin) :
    Packet(raw, length, origin ? std::vector<SpaceObject*>{origin} : std::vector<SpaceObject*>{}) {}
@@ -262,7 +262,7 @@ PlotOriginScope::PlotOriginScope(const Packet &source, const GmatTime &time) :
          }
       }
       if (valid) for (Integer i=0; i<6; ++i)
-         if (!std::isfinite(state[i]) || std::abs(state[i])>=std::numeric_limits<Real>::max())
+         if (!std::isfinite(state[i]) || std::abs(state[i])>=(std::numeric_limits<Real>::max)())
             valid=false;
       if (valid) states.emplace(object,state);
    }

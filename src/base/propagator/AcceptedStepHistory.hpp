@@ -43,7 +43,5 @@ public:
    static bool IsCapturing();
    static void Record(const Propagator *integrator, const PhysicalModel *model,
       Real startSeconds, Real endSeconds, const Real *state, Integer dimension);
-private:
-   static thread_local Transaction *active;
 };
 #endif

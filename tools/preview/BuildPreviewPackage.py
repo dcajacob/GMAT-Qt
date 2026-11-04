@@ -64,17 +64,28 @@ def dependencies(target):
         with tarfile.open(osg_archive) as source:
             source.extractall(DEPS, filter='data')
         osg = DEPS / 'osg'
-        options = ['-DBUILD_OSG_APPLICATIONS=OFF', '-DBUILD_OSG_EXAMPLES=OFF',
+        options = ['-DBUILD_OSG_APPLICATIONS=OFF', '-DBUILD_OSG_EXAMPLES=OFF', '-DWIN32_USE_MP=ON',
                    '-DBUILD_OSG_PLUGINS_BY_DEFAULT=OFF', '-DBUILD_OSG_PLUGIN_3DS=ON',
                    '-DBUILD_OSG_PLUGIN_OBJ=ON', '-DBUILD_OSG_PLUGIN_OSG=ON',
                    '-DBUILD_OSG_PLUGIN_FREETYPE=ON', '-DDYNAMIC_OPENSCENEGRAPH=ON',
                    '-DDYNAMIC_OPENTHREADS=ON', '-DOSG_MSVC_VERSIONED_DLL=OFF',
                    '-DCMAKE_POLICY_VERSION_MINIMUM=3.5', f'-DCMAKE_INSTALL_PREFIX={osg}',
                    f'-DCMAKE_TOOLCHAIN_FILE={vcpkg}/scripts/buildsystems/vcpkg.cmake']
-        run(['cmake', '-S', DEPS / 'OpenSceneGraph-OpenSceneGraph-3.6.5',
-             '-B', DEPS / 'osg-build', '-G', 'Visual Studio 17 2022', '-A', 'x64', *options], 'osg-configure')
-        run(['cmake', '--build', DEPS / 'osg-build', '--config', 'Release', '--parallel', BUILD_JOBS], 'osg-build')
-        run(['cmake', '--install', DEPS / 'osg-build', '--config', 'Release'], 'osg-install')
+        sdk_record = osg / 'preview-sdk-sha256.json'
+        if sdk_record.exists():
+            sdk = json.loads(sdk_record.read_text())
+            assert sdk['source_sha256'] == receipts['OpenSceneGraph']
+            assert all(hashlib.sha256((osg / n).read_bytes()).hexdigest() == h
+                       for n, h in sdk['file_sha256'].items())
+            print('Verified cached Windows graphics SDK', flush=True)
+        else:
+            run(['cmake', '-S', DEPS / 'OpenSceneGraph-OpenSceneGraph-3.6.5',
+                 '-B', DEPS / 'osg-build', '-G', 'Visual Studio 17 2022', '-A', 'x64', *options], 'osg-configure')
+            run(['cmake', '--build', DEPS / 'osg-build', '--config', 'Release', '--parallel', BUILD_JOBS], 'osg-build')
+            run(['cmake', '--install', DEPS / 'osg-build', '--config', 'Release'], 'osg-install')
+            sdk_record.write_text(json.dumps({'source_sha256': receipts['OpenSceneGraph'],
+                'file_sha256': {p.relative_to(osg).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+                                for p in osg.rglob('*') if p.is_file()}}, indent=2) + '\n')
     else:
         run(['brew', 'install', 'qt', 'open-scene-graph', 'xerces-c'], 'brew-install')
         brew = lambda formula: Path(subprocess.check_output(['brew', '--prefix', formula], text=True).strip())

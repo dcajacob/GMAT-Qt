@@ -31,9 +31,18 @@ jobs:
           - runner: macos-15-intel
             platform: macos-x64
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 90
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
+      - name: Restore Windows dependency SDK
+        if: matrix.platform == 'windows-x64' && inputs.reuse_windows_run == '' && inputs.reuse_native_run == ''
+        id: windows-sdk
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/preview-package/deps/osg
+            C:\vcpkg\installed
+          key: gmat-qt-preview-windows-2022-osg365-sdk-v1
       - name: Restore compiled native inputs for packaging retry
         if: inputs.reuse_native_run != '' && (matrix.platform != 'windows-x64' || inputs.reuse_windows_run == '')
         uses: actions/download-artifact@v4
@@ -71,6 +80,14 @@ jobs:
           path: build/preview-package/logs/
           if-no-files-found: warn
           retention-days: 14
+      - name: Preserve completed Windows dependency SDK
+        if: always() && matrix.platform == 'windows-x64' && steps.windows-sdk.outputs.cache-hit != 'true' && hashFiles('build/preview-package/deps/osg/preview-sdk-sha256.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build/preview-package/deps/osg
+            C:\vcpkg\installed
+          key: gmat-qt-preview-windows-2022-osg365-sdk-v1
       - name: Preserve compiled native inputs
         if: always()
         uses: actions/upload-artifact@v4
@@ -108,7 +125,7 @@ jobs:
           cat > release-notes.txt <<'EOF'
           Frozen Qt 6 GMAT preview for exploratory testing.
 
-          Windows: unzip the entire folder, then open bin/GmatQt.exe.
+          Windows: unzip the entire folder, then open bin/GmatQt.exe. If Windows reports a missing VCRUNTIME140 or MSVCP140 library, install Microsoft's x64 Visual C++ Redistributable: https://aka.ms/vc14/vc_redist.x64.exe .
           Mac: unzip and keep the extracted folder together, then open GMAT-Qt.app inside it. Choose arm64 for Apple Silicon or x64 for Intel; macOS 15 or newer. The Mac apps are ad-hoc signed, without Apple notarization.
 
           Optional licensed MATLAB/fmincon and VF13ad components are excluded. Each package passed its bundled native mission probe and independent state comparison. This is a preview; full scientific, platform and NASA acceptance remain incomplete. Source-versioned campaign coverage is 1052/1158.
