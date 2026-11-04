@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import time
 import urllib.request
 import zipfile
 
@@ -51,8 +52,18 @@ def dependencies(target):
              '6.10.2', 'win64_msvc2022_64', '-O', DEPS / 'qt'], 'qt-install')
         qt = DEPS / 'qt/6.10.2/msvc2022_64'
         vcpkg = Path(os.environ['VCPKG_INSTALLATION_ROOT'])
-        run([vcpkg / 'vcpkg.exe', 'install', 'xerces-c:x64-windows',
-             'freetype:x64-windows'], 'vcpkg-install')
+        for attempt in range(1, 4):
+            name = 'vcpkg-install-' + str(attempt)
+            try:
+                run([vcpkg / 'vcpkg.exe', 'install', 'xerces-c:x64-windows',
+                     'freetype:x64-windows'], name)
+                break
+            except RuntimeError:
+                log = (LOGS / (name + '.log')).read_text(errors='replace')
+                if attempt == 3 or not re.search(r'error code 92|HTTP/2 framing', log):
+                    raise
+                print('Retrying the dependency download after an HTTP/2 stream failure', flush=True)
+                time.sleep(10)
         prefix = vcpkg / 'installed/x64-windows'
         toolkit = 'PC_Windows_VisualC_64bit'
         archive = DEPS / 'cspice.zip'
