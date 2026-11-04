@@ -29,6 +29,13 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+      - name: Wait for the existing Windows native build
+        if: matrix.platform == 'windows-x64' && inputs.reuse_windows_run != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REUSE_RUN_ID: ${{ inputs.reuse_windows_run }}
+        run: python tools/preview/WaitForWindowsPackage.py
       - name: Reuse verified Windows package
         if: matrix.platform == 'windows-x64' && inputs.reuse_windows_run != ''
         uses: actions/download-artifact@v4
