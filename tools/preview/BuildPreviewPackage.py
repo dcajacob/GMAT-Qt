@@ -119,6 +119,48 @@ def copy_payload(destination):
     copy_file(REPO / 'TESTING.rst', destination / 'TESTING.rst')
 
 
+def collect_notices(destination, qt, osg, prefix):
+    notices = destination / 'THIRD-PARTY-NOTICES'
+    notices.mkdir(parents=True)
+    download('https://www.gnu.org/licenses/lgpl-3.0.txt', notices / 'LGPL-3.0.txt')
+    download('https://www.gnu.org/licenses/gpl-3.0.txt', notices / 'GPL-3.0.txt')
+    roots = {'Qt': qt, 'OpenSceneGraph': osg, 'Xerces-and-dependencies': prefix,
+             'CSPICE': DEPS / 'cspice'}
+    if os.name == 'nt':
+        roots['OpenSceneGraph-source'] = DEPS / 'OpenSceneGraph-OpenSceneGraph-3.6.5'
+    else:
+        cellar = Path(subprocess.check_output(['brew', '--cellar'], text=True).strip())
+        for formula in cellar.iterdir():
+            if formula.is_dir():
+                for keg in formula.iterdir():
+                    if keg.is_dir():
+                        roots['Homebrew-' + formula.name + '-' + keg.name] = keg
+    accepted = ('license', 'licence', 'copying', 'copyright', 'notice')
+    for label, root in roots.items():
+        if not root.exists():
+            continue
+        candidates = list(root.glob('*'))
+        for folder in ['LICENSES', 'Licenses', 'share/licenses', 'share/doc', 'share', '.brew']:
+            if (root / folder).is_dir():
+                candidates += list((root / folder).rglob('*'))
+        if label == 'OpenSceneGraph-source':
+            candidates += list((root / 'src/osgPlugins/3ds/lib3ds').glob('*.h'))
+        for path in set(candidates):
+            if path.is_file() and (path.name.lower().startswith(accepted) or
+                                   path.parent.name == '.brew' or
+                                   (label == 'OpenSceneGraph-source' and path.name == 'lib3ds.h')):
+                copy_file(path, notices / label / path.relative_to(root))
+    (notices / 'README.txt').write_text(
+        'This preview dynamically links Qt, OpenSceneGraph and Xerces-C.\n'
+        'Installed license notices and Homebrew build recipes are retained here.\n'
+        'Qt source and licensing: https://code.qt.io/cgit/qt/ and https://www.qt.io/licensing/open-source-lgpl-obligations\n'
+        'Windows Qt version: 6.10.2. Mac Qt version and patches are identified by the bundled Homebrew recipe.\n'
+        'OpenSceneGraph source: https://github.com/openscenegraph/OpenSceneGraph/tree/OpenSceneGraph-3.6.5\n'
+        'Xerces-C source: https://xerces.apache.org/xerces-c/\n'
+        'CSPICE toolkit, source and rules: https://naif.jpl.nasa.gov/naif/toolkit.html and https://naif.jpl.nasa.gov/naif/rules.html\n'
+        'Libraries can be replaced with compatible builds. GMAT source and package recipes are in the private GMAT-Qt repository.\n', encoding='utf-8')
+
+
 def macho(path):
     if not path.is_file():
         return False
@@ -138,15 +180,19 @@ def relocate_macos(bundle):
             continue
         done.add(path)
         libraries = subprocess.check_output(['otool', '-L', path], text=True).splitlines()[1:]
+        identities = subprocess.check_output(['otool', '-D', path], text=True).splitlines()[1:]
         for line in libraries:
             old = line.strip().split(' (compatibility version', 1)[0]
+            if old in identities:
+                continue
             if old.startswith(('/System/', '/usr/lib/', '@executable_path/../Frameworks/')):
                 continue
             if old.startswith('@loader_path/'):
                 source = path.parent / old[len('@loader_path/'):]
             elif old.startswith('@rpath/'):
                 # Qt's deploy tool resolves its framework references first.
-                candidates = [frameworks / old[len('@rpath/'):], path.parent / old[len('@rpath/'):]]
+                candidates = [frameworks / old[len('@rpath/'):], path.parent / old[len('@rpath/'):],
+                              binary.parent / old[len('@rpath/'):]]
                 source = next((p for p in candidates if p.exists()), None)
                 if source is None:
                     raise RuntimeError(f'Unresolved runtime dependency {old} in {path}')
@@ -178,6 +224,7 @@ def relocate_macos(bundle):
 def stage_package(target, qt, osg, prefix):
     payload = ROOT / 'staging' / ('GMAT-Qt-' + target)
     copy_payload(payload)
+    collect_notices(payload, qt, osg, prefix)
     suffix = '.dll' if target.startswith('windows') else '.dylib'
     for path in (REPO / 'application/bin').glob('*' + suffix):
         copy_file(path, payload / 'bin' / path.name)
@@ -283,7 +330,7 @@ Report Values Sat.ElapsedSecs Sat.X Sat.Y Sat.Z Sat.VX Sat.VY Sat.VZ;
     (LOGS / 'package-verification.json').write_text(json.dumps(result, indent=2) + '\n')
     copy_file(LOGS / 'package-verification.json', root / 'PACKAGE-VERIFICATION.json')
     # Remove probe outputs from the reusable application bundle before archiving.
-    for path in (root / 'output').glob('*'):
+    for path in (payload / 'output').glob('*'):
         if path.is_file():
             path.unlink()
     return result
