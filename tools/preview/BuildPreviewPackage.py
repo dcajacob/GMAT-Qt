@@ -353,15 +353,22 @@ def stage_package(target, qt, osg, prefix):
         return payload, payload / 'bin/GmatQt.exe'
     bundle = payload / 'GMAT-Qt.app'
     contents = bundle / 'Contents'
-    contents.mkdir(parents=True)
+    resources = contents / 'Resources'
+    resources.mkdir(parents=True)
     for path in list(payload.iterdir()):
         if path == bundle or path.name == 'output':
             continue
-        name = {'bin': 'MacOS', 'plugins': 'PlugIns'}.get(path.name, path.name)
-        shutil.move(str(path), contents / name)
-    startup_path = contents / 'MacOS/gmat_startup_qt.txt'
+        destination = {'bin': contents / 'MacOS', 'plugins': contents / 'PlugIns'}.get(
+            path.name, resources / path.name)
+        shutil.move(str(path), destination)
+    # main.cpp's existing Mac fallback finds this adjacent startup file. Keep
+    # configuration and writable output outside the signed app; all data and
+    # documents belong in Resources, never the code locations within Contents.
+    startup_path = payload / 'gmat_startup_qt.txt'
+    shutil.move(contents / 'MacOS/gmat_startup_qt.txt', startup_path)
+    startup_text = re.sub(r'(?m)^ROOT_PATH\s*=.*$', 'ROOT_PATH = ../Resources/', startup_path.read_text())
     startup_path.write_text(re.sub(r'(?m)^OUTPUT_PATH\s*=.*$',
-                                 'OUTPUT_PATH = ../../../output/', startup_path.read_text())
+                                 'OUTPUT_PATH = ../../../output/', startup_text)
                             .replace('../plugins/', '../PlugIns/'))
     binary = contents / 'MacOS/GmatQt'
     copy_file(REPO / 'application/bin/GmatQt', binary)
@@ -391,7 +398,7 @@ def stage_package(target, qt, osg, prefix):
 
 
 def probe(target, payload, executable):
-    root = payload if target.startswith('windows') else payload / 'GMAT-Qt.app/Contents'
+    root = payload if target.startswith('windows') else payload / 'GMAT-Qt.app/Contents/Resources'
     report = ROOT / 'probe-values.csv'
     radius, mu = 7000., 398600.4415
     script = ROOT / 'probe.script'
@@ -435,7 +442,7 @@ Report Values Sat.ElapsedSecs Sat.X Sat.Y Sat.Z Sat.VX Sat.VY Sat.VZ;
          '--settings-dir', ROOT / 'probe-settings'], 'package-probe', env=env, cwd=ROOT)
     if target.startswith('macos'):
         reader = executable.parent / 'PackageReaderProbe'
-        run([reader, root, root / 'data/vehicle/models/aura.3ds'], 'model-reader-probe', env=env, cwd=ROOT)
+        run([reader, root.parent, root / 'data/vehicle/models/aura.3ds'], 'model-reader-probe', env=env, cwd=ROOT)
         reader.unlink()
     rows = report.read_text().strip().splitlines()
     assert len(rows) == 1
