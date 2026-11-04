@@ -19,6 +19,7 @@ REPO = Path(__file__).resolve().parents[2]
 ROOT = REPO / 'build/preview-package'
 LOGS = ROOT / 'logs'
 DEPS = ROOT / 'deps'
+BUILD_JOBS = str(max(1, min(4, os.cpu_count() or 2)))
 
 
 def run(command, name, *, env=None, cwd=None):
@@ -72,7 +73,7 @@ def dependencies(target):
                    f'-DCMAKE_TOOLCHAIN_FILE={vcpkg}/scripts/buildsystems/vcpkg.cmake']
         run(['cmake', '-S', DEPS / 'OpenSceneGraph-OpenSceneGraph-3.6.5',
              '-B', DEPS / 'osg-build', '-G', 'Visual Studio 17 2022', '-A', 'x64', *options], 'osg-configure')
-        run(['cmake', '--build', DEPS / 'osg-build', '--config', 'Release', '--parallel', '2'], 'osg-build')
+        run(['cmake', '--build', DEPS / 'osg-build', '--config', 'Release', '--parallel', BUILD_JOBS], 'osg-build')
         run(['cmake', '--install', DEPS / 'osg-build', '--config', 'Release'], 'osg-install')
     else:
         run(['brew', 'install', 'qt', 'open-scene-graph', 'xerces-c'], 'brew-install')
@@ -103,7 +104,67 @@ def build(target, qt, osg, prefix):
                     f'-DCMAKE_OSX_ARCHITECTURES={architecture}']
     run(['cmake', '-S', REPO, '-B', ROOT / 'gmat-build', *options], 'gmat-configure')
     run(['cmake', '--build', ROOT / 'gmat-build', '--config', 'Release',
-         '--target', 'GmatQt', '--parallel', '2'], 'gmat-build')
+         '--target', 'GmatQt', '--parallel', BUILD_JOBS], 'gmat-build')
+
+
+def production_tree():
+    data = subprocess.check_output(['git', 'ls-tree', '-r', 'HEAD', '--',
+        'CMakeLists.txt', 'src', 'plugins', 'application', 'depends',
+        'build/cmake_modules', 'build/install'], cwd=REPO)
+    return hashlib.sha256(data).hexdigest()
+
+
+def preserve_native(target, qt, osg, prefix):
+    """Retain exact compiled inputs before any subsequent packaging failure."""
+    paths = {}
+    for root in [REPO / 'application/bin', REPO / 'application/plugins']:
+        for path in root.rglob('*'):
+            if path.is_file() and (path.suffix in {'.dll', '.dylib', '.so', '.exe'} or
+                                   path.name in {'GmatQt', 'gmat_startup_qt.txt'}):
+                paths[path.relative_to(REPO).as_posix()] = path
+    if target.startswith('windows'):
+        for root, arcroot in [(qt, qt.relative_to(REPO)), (osg, osg.relative_to(REPO)),
+                              (prefix / 'bin', DEPS.relative_to(REPO) / 'package-vcpkg/bin'),
+                              (prefix / 'share', DEPS.relative_to(REPO) / 'package-vcpkg/share'),
+                              (DEPS / 'OpenSceneGraph-OpenSceneGraph-3.6.5',
+                               DEPS.relative_to(REPO) / 'OpenSceneGraph-OpenSceneGraph-3.6.5')]:
+            for path in root.rglob('*'):
+                relative = path.relative_to(root)
+                if not path.is_file() or 'include' in relative.parts or path.suffix in {'.pdb', '.lib', '.a'}:
+                    continue
+                if root.name.startswith('OpenSceneGraph-') and not (
+                    path.name.lower().startswith(('license', 'copying', 'copyright')) or path.name == 'lib3ds.h'):
+                    continue
+                paths[(arcroot / relative).as_posix()] = path
+        prefix = DEPS / 'package-vcpkg'
+    metadata = {'platform': target, 'production_tree_sha256': production_tree(),
+        'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+        'qt': str(qt), 'osg': str(osg), 'prefix': str(prefix),
+        'file_sha256': {n: hashlib.sha256(p.read_bytes()).hexdigest() for n,p in paths.items()}}
+    context = ROOT / 'native-build-context.json'
+    context.write_text(json.dumps(metadata, indent=2) + '\n')
+    archive = ROOT / ('native-inputs-' + target + '.tar.gz')
+    with tarfile.open(archive, 'w:gz', compresslevel=1, dereference=True) as out:
+        for name, path in paths.items():
+            out.add(path, arcname=name, recursive=False)
+        out.add(context, arcname=context.relative_to(REPO).as_posix(), recursive=False)
+    print('Preserved native inputs: ' + str(archive), flush=True)
+
+
+def restore_native(target):
+    archive = ROOT / 'reuse-native' / ('native-inputs-' + target + '.tar.gz')
+    if not archive.exists():
+        return None
+    with tarfile.open(archive) as source:
+        metadata = json.load(source.extractfile('build/preview-package/native-build-context.json'))
+        assert metadata['platform'] == target and metadata['production_tree_sha256'] == production_tree()
+        assert all(m.isfile() and not Path(m.name).is_absolute() and '..' not in Path(m.name).parts
+                   for m in source.getmembers())
+        source.extractall(REPO, filter='data')
+    assert all(hashlib.sha256((REPO / n).read_bytes()).hexdigest() == h
+               for n,h in metadata['file_sha256'].items())
+    print('Restored exact native binaries; production tree matches ' + metadata['source_commit'], flush=True)
+    return metadata
 
 
 def copy_payload(destination):
@@ -124,8 +185,11 @@ def copy_payload(destination):
 def collect_notices(destination, qt, osg, prefix):
     notices = destination / 'THIRD-PARTY-NOTICES'
     notices.mkdir(parents=True)
-    download('https://www.gnu.org/licenses/lgpl-3.0.txt', notices / 'LGPL-3.0.txt')
-    download('https://www.gnu.org/licenses/gpl-3.0.txt', notices / 'GPL-3.0.txt')
+    license_root = REPO / 'tools/preview/licenses'
+    for name, record in json.loads((license_root / 'SOURCE.json').read_text()).items():
+        source = license_root / name
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == record['sha256']
+        copy_file(source, notices / name)
     roots = {'Qt': qt, 'OpenSceneGraph': osg, 'Xerces-and-dependencies': prefix,
              'CSPICE': DEPS / 'cspice'}
     if os.name == 'nt':
@@ -182,6 +246,7 @@ def relocate_macos(bundle):
         if path in done:
             continue
         done.add(path)
+        path.chmod(path.stat().st_mode | 0o200)
         libraries = subprocess.check_output(['otool', '-L', path], text=True).splitlines()[1:]
         identities = subprocess.check_output(['otool', '-D', path], text=True).splitlines()[1:]
         for line in libraries:
@@ -278,7 +343,7 @@ def stage_package(target, qt, osg, prefix):
     (contents / 'Info.plist').write_bytes(plistlib.dumps({
         'CFBundleExecutable': 'GmatQt', 'CFBundleIdentifier': 'com.dcajacob.gmat-qt.preview',
         'CFBundleName': 'GMAT-Qt', 'CFBundlePackageType': 'APPL',
-        'CFBundleShortVersionString': '2026.11.04', 'LSMinimumSystemVersion': '15.0',
+        'CFBundleVersion': '20261104', 'CFBundleShortVersionString': '2026.11.04', 'LSMinimumSystemVersion': '15.0',
         'NSHighResolutionCapable': True}))
     for directory in (osg / 'lib').glob('osgPlugins-*'):
         for path in directory.iterdir():
@@ -366,8 +431,14 @@ def main():
     assert target.startswith('windows') or sys.platform == 'darwin'
     LOGS.mkdir(parents=True, exist_ok=True)
     DEPS.mkdir(parents=True, exist_ok=True)
-    qt, osg, prefix = dependencies(target)
-    build(target, qt, osg, prefix)
+    restored = restore_native(target)
+    if restored and target.startswith('windows'):
+        qt, osg, prefix = (Path(restored[n]) for n in ['qt', 'osg', 'prefix'])
+    else:
+        qt, osg, prefix = dependencies(target)
+    if not restored:
+        build(target, qt, osg, prefix)
+        preserve_native(target, qt, osg, prefix)
     payload, executable = stage_package(target, qt, osg, prefix)
     probe(target, payload, executable)
     if sys.platform == 'darwin':

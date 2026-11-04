@@ -8,6 +8,11 @@ on:
         required: false
         default: ''
         type: string
+      reuse_native_run:
+        description: Optional prior run with exact compiled native inputs for packaging-only retries
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -29,6 +34,14 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+      - name: Restore compiled native inputs for packaging retry
+        if: inputs.reuse_native_run != '' && (matrix.platform != 'windows-x64' || inputs.reuse_windows_run == '')
+        uses: actions/download-artifact@v4
+        with:
+          name: native-inputs-${{ matrix.platform }}
+          run-id: ${{ inputs.reuse_native_run }}
+          github-token: ${{ github.token }}
+          path: build/preview-package/reuse-native
       - name: Wait for the existing Windows native build
         if: matrix.platform == 'windows-x64' && inputs.reuse_windows_run != ''
         env:
@@ -58,6 +71,14 @@ jobs:
           path: build/preview-package/logs/
           if-no-files-found: warn
           retention-days: 14
+      - name: Preserve compiled native inputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-inputs-${{ matrix.platform }}
+          path: build/preview-package/native-inputs-*.tar.gz
+          if-no-files-found: ignore
+          retention-days: 3
       - name: Upload verified package
         uses: actions/upload-artifact@v4
         with:
