@@ -391,8 +391,11 @@ def stage_package(target, qt, osg, prefix):
          REPO / 'tools/preview/ModelReaderProbe.cpp', '-losgDB', '-losg', '-lOpenThreads',
          '-framework', 'Foundation', '-o', contents / 'MacOS/PackageReaderProbe'], 'reader-probe-build')
     run([qt / 'bin/macdeployqt', bundle, '-always-overwrite'], 'macdeployqt')
-    for path in (qt / 'plugins/platforms').glob('*offscreen*.dylib'):
-        copy_file(path, contents / 'PlugIns/platforms' / path.name)
+    qtpaths = next(path for path in [qt / 'bin/qtpaths', qt / 'bin/qtpaths6'] if path.is_file())
+    plugin_root = Path(subprocess.check_output([qtpaths, '--query', 'QT_INSTALL_PLUGINS'], text=True).strip())
+    offscreen = plugin_root / 'platforms/libqoffscreen.dylib'
+    assert offscreen.is_file(), f'Qt offscreen plugin is missing from {plugin_root}'
+    copy_file(offscreen, contents / 'PlugIns/platforms' / offscreen.name)
     relocate_macos(bundle)
     return payload, binary
 
