@@ -98,7 +98,9 @@ def build(target, qt, osg, prefix):
     if target.startswith('windows'):
         options += ['-G', 'Visual Studio 17 2022', '-A', 'x64']
     else:
-        options += ['-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0']
+        architecture = 'arm64' if target.endswith('arm64') else 'x86_64'
+        options += ['-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
+                    f'-DCMAKE_OSX_ARCHITECTURES={architecture}']
     run(['cmake', '-S', REPO, '-B', ROOT / 'gmat-build', *options], 'gmat-configure')
     run(['cmake', '--build', ROOT / 'gmat-build', '--config', 'Release',
          '--target', 'GmatQt', '--parallel', '2'], 'gmat-build')
@@ -174,6 +176,7 @@ def relocate_macos(bundle):
     binary = bundle / 'Contents/MacOS/GmatQt'
     queue = [p for p in bundle.rglob('*') if macho(p)]
     done = set()
+    copied_sources = {}
     while queue:
         path = queue.pop()
         if path in done:
@@ -207,10 +210,21 @@ def relocate_macos(bundle):
                 replacement = '@executable_path/../Frameworks/' + str(relative)
             except ValueError:
                 target = frameworks / source.name
+                identity = hashlib.sha256(source.read_bytes()).hexdigest()
                 if target.exists():
-                    assert target.read_bytes() == source.read_bytes(), f'Dependency name collision: {source}'
+                    if target in copied_sources:
+                        assert copied_sources[target] == identity, f'Dependency name collision: {source}'
+                    elif target.read_bytes() != source.read_bytes():
+                        # macdeployqt may already have relocated/stripped this
+                        # library. Its link UUID survives those path changes.
+                        uuids = lambda p: set(re.findall(r'\buuid\s+([A-Fa-f0-9-]+)',
+                            subprocess.check_output(['otool', '-l', p], text=True)))
+                        source_uuids = uuids(source)
+                        assert source_uuids and source_uuids == uuids(target), f'Dependency name collision: {source}'
+                    copied_sources[target] = identity
                 else:
                     copy_file(source, target)
+                    copied_sources[target] = identity
                     target.chmod(0o755)
                     queue.append(target)
                 replacement = '@executable_path/../Frameworks/' + source.name
@@ -243,6 +257,10 @@ def stage_package(target, qt, osg, prefix):
                 shutil.copytree(directory, payload / 'bin' / directory.name, dirs_exist_ok=True)
         run([qt / 'bin/windeployqt.exe', '--release', '--no-translations',
              '--compiler-runtime', payload / 'bin/GmatQt.exe'], 'windeployqt')
+        # The normal desktop platform remains qwindows. Retain the optional
+        # offscreen plugin too so the packaged-binary mission probe is portable.
+        for path in (qt / 'plugins/platforms').glob('*offscreen*.dll'):
+            copy_file(path, payload / 'bin/platforms' / path.name)
         return payload, payload / 'bin/GmatQt.exe'
     bundle = payload / 'GMAT-Qt.app'
     contents = bundle / 'Contents'
@@ -263,8 +281,12 @@ def stage_package(target, qt, osg, prefix):
         'CFBundleShortVersionString': '2026.11.04', 'LSMinimumSystemVersion': '15.0',
         'NSHighResolutionCapable': True}))
     for directory in (osg / 'lib').glob('osgPlugins-*'):
-        shutil.copytree(directory, contents / 'MacOS' / directory.name, dirs_exist_ok=True)
+        for path in directory.iterdir():
+            if path.is_file() and path.name.startswith(('osgdb_3ds.', 'osgdb_obj.', 'osgdb_osg.', 'osgdb_freetype.')):
+                copy_file(path, contents / 'MacOS' / directory.name / path.name)
     run([qt / 'bin/macdeployqt', bundle, '-always-overwrite'], 'macdeployqt')
+    for path in (qt / 'plugins/platforms').glob('*offscreen*.dylib'):
+        copy_file(path, contents / 'PlugIns/platforms' / path.name)
     relocate_macos(bundle)
     return payload, binary
 

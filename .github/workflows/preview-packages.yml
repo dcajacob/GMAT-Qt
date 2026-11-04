@@ -2,15 +2,16 @@ name: Qt preview packages
 
 on:
   workflow_dispatch:
-  push:
-    branches: [codex/stable-qt-preview-20261104]
+    inputs:
+      reuse_windows_run:
+        description: Optional run ID containing a verified Windows package with identical production sources
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
-
-concurrency:
-  group: preview-packages-${{ github.ref }}
-  cancel-in-progress: true
+  actions: read
 
 jobs:
   package:
@@ -28,7 +29,19 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+      - name: Reuse verified Windows package
+        if: matrix.platform == 'windows-x64' && inputs.reuse_windows_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: package-windows-x64
+          run-id: ${{ inputs.reuse_windows_run }}
+          github-token: ${{ github.token }}
+          path: build/preview-package/dist
+      - name: Verify reused Windows source and artifact identities
+        if: matrix.platform == 'windows-x64' && inputs.reuse_windows_run != ''
+        run: python tools/preview/VerifyReusedPackage.py build/preview-package/dist
       - name: Build and verify portable package
+        if: matrix.platform != 'windows-x64' || inputs.reuse_windows_run == ''
         run: python tools/preview/BuildPreviewPackage.py --platform ${{ matrix.platform }}
       - name: Preserve build diagnostics
         if: always()
