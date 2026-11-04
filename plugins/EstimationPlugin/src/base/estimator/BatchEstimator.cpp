@@ -1765,6 +1765,13 @@ void BatchEstimator::SolveNormalEquations(const Rmatrix &infMatrix, Rmatrix &cov
    }
    else
    {
+      // Internal inversion can return finite values for a rank-deficient
+      // normal matrix. Use the same positive-definiteness check as Schur
+      // before accepting a covariance; retain the requested inversion below.
+      Rmatrix testMatrix = reducedInfMatrix;
+      CholeskyFactorization cf;
+      cf.Invert(testMatrix);
+
       try
       {
          reducedCovMatrix = reducedInfMatrix.Inverse();

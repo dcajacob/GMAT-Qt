@@ -1330,6 +1330,7 @@ void TimeSystemConverter::Convert(const std::string &fromType, Real fromMjd,
    #endif
    
    bool isUTC     = false;
+   bool inputLeapSecond = false;
    
    Real fromMjdVal = fromMjd;
    bool convertToModJulian = false;
@@ -1383,6 +1384,14 @@ void TimeSystemConverter::Convert(const std::string &fromType, Real fromMjd,
    if (!ValidateTimeSystem(toSystem))
       throw TimeFormatException
          ("\"" + toSystem + "\" is not a valid time system");
+
+   // Leap status is an output of this call, never caller-supplied state.
+   // UTC text also needs it when the optional output pointer is absent.
+   // Uniform formatting without that pointer must not require a leap table.
+   bool convertedLeapSecond = false;
+   bool *leapStatus = (insideLeapSec ||
+         (toSystem == "UTC" && toFormat == "Gregorian")) ?
+         &convertedLeapSecond : NULL;
    
    //-------------------------------------------------------
    // Compute from time in mjd
@@ -1406,6 +1415,13 @@ void TimeSystemConverter::Convert(const std::string &fromType, Real fromMjd,
       fromStr.c_str());
       #endif
       fromMjdVal = ConvertGregorianToMjd(fromStr);
+      GregorianDate inputDate(fromStr);
+      const std::string inputCalendar = inputDate.GetYMDHMS();
+      // Inspect the original seconds field before Date normalizes a label
+      // such as12:00:60 into12:01:00.
+      inputLeapSecond = inputCalendar.substr(inputCalendar.find('.') + 5, 2) == "60";
+      if (inputLeapSecond && fromSystem != "UTC")
+         throw TimeFormatException("A 60th-second label is only valid in UTC.");
    }
    
    #ifdef DEBUG_TIME_CONVERT
@@ -1417,18 +1433,43 @@ void TimeSystemConverter::Convert(const std::string &fromType, Real fromMjd,
    //-------------------------------------------------------
    // Compute to time in mjd
    //-------------------------------------------------------
-   if (fromType != toType)
+   if (inputLeapSecond)
+   {
+      // Calendar MJD aliases 23:59:60.xxx with next-day 00:00:00.xxx.
+      // Convert the preceding UTC second with the old offset, then advance
+      // one TAI second. Verify a positive leap actually occurs at this label.
+      const Real oneSecond = 1.0 / GmatTimeConstants::SECS_PER_DAY;
+      const Real beforeTai = ConvertToTaiMjd(UTCMJD, fromMjdVal - oneSecond,
+            GmatTimeConstants::JD_JAN_5_1941);
+      const Real afterTai = ConvertToTaiMjd(UTCMJD, fromMjdVal,
+            GmatTimeConstants::JD_JAN_5_1941);
+      if (GmatMathUtil::Abs((afterTai - beforeTai) *
+            GmatTimeConstants::SECS_PER_DAY - 2.0) > 1.0e-5)
+         throw TimeFormatException("Gregorian date '" + fromStr +
+               "' does not identify a positive UTC leap second.");
+      toMjd = ConvertFromTaiMjd(GetTimeTypeID(toSystem), beforeTai + oneSecond,
+            GmatTimeConstants::JD_JAN_5_1941);
+      convertedLeapSecond = true;
+   }
+   else if (fromType != toType)
    {
       Integer fromId = GetTimeTypeID(fromSystem);
       Integer toId = GetTimeTypeID(toSystem);
       toMjd = Convert(fromMjdVal, fromId,
                                          toId, GmatTimeConstants::JD_JAN_5_1941,
-                                         insideLeapSec);
+                                         leapStatus);
    }
    else
    {
       toMjd = fromMjdVal;
+      if (insideLeapSec && fromSystem != "UTC")
+         convertedLeapSecond = IsInLeapSecond(ConvertToTaiMjd(
+               GetTimeTypeID(fromSystem), fromMjdVal,
+               GmatTimeConstants::JD_JAN_5_1941));
    }
+
+   if (insideLeapSec)
+      *insideLeapSec = convertedLeapSecond;
    
    //-------------------------------------------------------
    // Convert to output format
@@ -1451,7 +1492,7 @@ void TimeSystemConverter::Convert(const std::string &fromType, Real fromMjd,
          isUTC = true;
 
       // Figure out if we are in the leap second if the leap sec detector was passed in
-      bool isInLeapSecond = (insideLeapSec != NULL ? *insideLeapSec : false);
+      bool isInLeapSecond = convertedLeapSecond;
       toStr = ConvertMjdToGregorian(toMjd, (isUTC && isInLeapSecond), format);
    }
    
@@ -1476,6 +1517,7 @@ void TimeSystemConverter::Convert(const std::string &fromType, const GmatTime &f
 #endif
 
    bool isUTC = false;
+   bool inputLeapSecond = false;
 
    GmatTime fromMjdVal = fromMjd;
    bool convertToModJulian = false;
@@ -1530,6 +1572,12 @@ void TimeSystemConverter::Convert(const std::string &fromType, const GmatTime &f
       throw TimeFormatException
       ("\"" + toSystem + "\" is not a valid time system");
 
+   // Keep status local even when callers do not request the optional flag.
+   bool convertedLeapSecond = false;
+   bool *leapStatus = (insideLeapSec ||
+         (toSystem == "UTC" && toFormat == "Gregorian")) ?
+         &convertedLeapSecond : NULL;
+
    //-------------------------------------------------------
    // Compute from time in mjd
    //-------------------------------------------------------
@@ -1553,6 +1601,13 @@ void TimeSystemConverter::Convert(const std::string &fromType, const GmatTime &f
          fromStr.c_str());
 #endif
       fromMjdVal = ConvertGregorianToMjdGT(fromStr);
+      GregorianDate inputDate(fromStr);
+      const std::string inputCalendar = inputDate.GetYMDHMS();
+      // Inspect the original seconds field before Date normalizes a label
+      // such as12:00:60 into12:01:00.
+      inputLeapSecond = inputCalendar.substr(inputCalendar.find('.') + 5, 2) == "60";
+      if (inputLeapSecond && fromSystem != "UTC")
+         throw TimeFormatException("A 60th-second label is only valid in UTC.");
    }
 
 #ifdef DEBUG_TIME_CONVERT
@@ -1564,17 +1619,39 @@ void TimeSystemConverter::Convert(const std::string &fromType, const GmatTime &f
    //-------------------------------------------------------
    // Compute to time in mjd
    //-------------------------------------------------------
-   if (fromType != toType)
+   if (inputLeapSecond)
+   {
+      // Preserve the UTC leap label before its calendar MJD alias loses it.
+      const Real oneSecond = 1.0 / GmatTimeConstants::SECS_PER_DAY;
+      const GmatTime beforeTai = ConvertToTaiMjd(UTCMJD,
+            fromMjdVal - oneSecond, GmatTimeConstants::JD_JAN_5_1941);
+      const GmatTime afterTai = ConvertToTaiMjd(UTCMJD, fromMjdVal,
+            GmatTimeConstants::JD_JAN_5_1941);
+      if (GmatMathUtil::Abs((afterTai - beforeTai).GetTimeInSec() - 2.0) > 1.0e-5)
+         throw TimeFormatException("Gregorian date '" + fromStr +
+               "' does not identify a positive UTC leap second.");
+      toMjd = ConvertFromTaiMjd(GetTimeTypeID(toSystem), beforeTai + oneSecond,
+            GmatTimeConstants::JD_JAN_5_1941);
+      convertedLeapSecond = true;
+   }
+   else if (fromType != toType)
    {
       Integer fromId = GetTimeTypeID(fromSystem);
       Integer toId = GetTimeTypeID(toSystem);
       toMjd = Convert(fromMjdVal, fromId,
-         toId, GmatTimeConstants::JD_JAN_5_1941, insideLeapSec);
+         toId, GmatTimeConstants::JD_JAN_5_1941, leapStatus);
    }
    else
    {
       toMjd = fromMjdVal;
+      if (insideLeapSec && fromSystem != "UTC")
+         convertedLeapSecond = IsInLeapSecond(ConvertToTaiMjd(
+               GetTimeTypeID(fromSystem), fromMjdVal,
+               GmatTimeConstants::JD_JAN_5_1941));
    }
+
+   if (insideLeapSec)
+      *insideLeapSec = convertedLeapSecond;
 
    //-------------------------------------------------------
    // Convert to output format
@@ -1596,7 +1673,7 @@ void TimeSystemConverter::Convert(const std::string &fromType, const GmatTime &f
       if ((toTheType == UTCMJD) || (toTheType == UTC))
          isUTC = true;
       // Figure out if we are in the leap second if the leap sec detector was passed in
-      bool isInLeapSecond = (insideLeapSec != NULL ? *insideLeapSec : false);
+      bool isInLeapSecond = convertedLeapSecond;
       toStr = ConvertMjdToGregorian(toMjd.GetMjd(), (isUTC && isInLeapSecond), format);
    }
 

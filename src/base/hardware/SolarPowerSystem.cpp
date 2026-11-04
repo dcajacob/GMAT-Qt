@@ -551,15 +551,16 @@ std::string SolarPowerSystem::GetParameterUnit(const Integer id) const
    switch (id)
    {
    case SOLAR_COEFF1:
-      return "kW?";       // these are TBD
+      // GetPowerGenerated uses r = Sun distance / one AU in its scale factor.
+      return "dimensionless";
    case SOLAR_COEFF2:
-      return "kW?";
+      return "dimensionless";
    case SOLAR_COEFF3:
-      return "kW?";
+      return "dimensionless";
    case SOLAR_COEFF4:
-      return "kW?";
+      return "dimensionless";
    case SOLAR_COEFF5:
-      return "kW?";
+      return "dimensionless";
    default:
       return PowerSystem::GetParameterUnit(id);
    }

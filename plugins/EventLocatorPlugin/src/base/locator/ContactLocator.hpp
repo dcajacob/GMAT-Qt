@@ -40,6 +40,8 @@
 #include "EventLocatorDefs.hpp"
 #include "ContactResult.hpp"
 #include "Imager.hpp"
+#include <map>
+#include <memory>
 
 
 /**
@@ -150,15 +152,24 @@ public:
    virtual GmatBase*    Clone() const;
    virtual void         Copy(const GmatBase* orig);
    virtual bool         Initialize();
+   virtual void         LocateEvents(const std::string &reportNotice = "");
    void                 FormatReportData(Integer &maxColumnWidth, Integer ii, Integer jj, Integer kk, 
                                          Integer iii, std::string s);
    virtual bool         ReportEventData(const std::string &reportNotice = "");
    bool                 ReportEventDataLegacy(const std::string &reportNotice = "");
+   bool                 ReportContactIntervalsData(const std::string &reportNotice);
+   void                 WriteStationEvents();
 
 
    DEFAULT_TO_NO_CLONES
 
 protected:
+   // A worker owns results for one additional target; spacecraft remain sandbox-owned.
+   ContactLocator(const ContactLocator &other, bool copyWorkers);
+   StringArray additionalTargetNames;
+   std::map<std::string, Spacecraft*> additionalTargets;
+   std::vector<std::unique_ptr<ContactLocator>> targetWorkers;
+   bool ReportSingleTargetData(const std::string &reportNotice);
    /// List of stations
    StringArray observerNames;
    /// Collection of observers
@@ -192,6 +203,16 @@ protected:
    std::string reportTemplateFormat = "Legacy";
    // The stored results
    std::vector<ContactResult*> contactResults;
+   /// An omitted selection retains the existing contact-interval behavior.
+   StringArray eventTypes;
+   bool eventTypesExplicit = false;
+   struct StationEvent
+   {
+      std::string observer;
+      Real epoch;
+      bool rise;
+   };
+   std::vector<StationEvent> stationEvents;
 
 
    ////From Intrusion Locator
@@ -218,6 +239,8 @@ protected:
       REPORT_TEMPLATE_FORMAT,
       INTERVAL_STEP,
       REPORT_TIME_FORMAT,
+      EVENT_TYPES,
+      ADDITIONAL_TARGETS,
       ContactLocatorParamCount
     };
 

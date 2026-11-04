@@ -223,7 +223,7 @@ bool PolyhedronBody::LoadBodyShape()
       for (Integer j = 0; j < 3; ++j)
       {
          const Integer from = indices[j], to = indices[j + 1];
-         auto &edge = edges[std::make_pair(std::min(from, to), std::max(from, to))];
+         auto &edge = edges[std::make_pair((std::min)(from, to), (std::max)(from, to))];
          ++edge.first;
          edge.second += from < to ? 1 : -1;
       }

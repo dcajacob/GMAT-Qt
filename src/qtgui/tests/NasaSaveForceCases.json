@@ -1,0 +1,250 @@
+{
+  "schema_version": 1,
+  "scope": "Missing owned force configuration persistence. Direct native child getters and explicit literals; no propagation or independent force/science qualification.",
+  "cases": [
+    {
+      "key": "Gravity",
+      "setup": "Create ForceModel FM;\nFM.PrimaryBodies = {Earth};\nFM.PointMasses = {Luna};\nFM.GravityField.Earth.PotentialFile = 'JGM2.cof';\nFM.GravityField.Earth.Degree = 4;\nFM.GravityField.Earth.Order = 2;\nCreate Propagator Prop;\nProp.FM = FM;\nProp.InitialStepSize = 120;\n",
+      "selected": [
+        "FM",
+        "Prop"
+      ],
+      "objects": [
+        "FM",
+        "Prop"
+      ],
+      "filename": "FM_Prop.data",
+      "definitions": [
+        "Create ForceModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "FM",
+          "owned_types": [
+            "GravityField"
+          ],
+          "field": "Degree",
+          "type": "Integer",
+          "expected": 4
+        },
+        {
+          "object": "FM",
+          "owned_types": [
+            "GravityField"
+          ],
+          "field": "Order",
+          "type": "Integer",
+          "expected": 2
+        },
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        }
+      ]
+    },
+    {
+      "key": "Radiation",
+      "setup": "Create ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = On;\nFM.SRP.Flux = 1400;\nFM.SRP.Nominal_Sun = 150000000;\nCreate Propagator Prop;\nProp.FM = FM;\nProp.InitialStepSize = 120;\n",
+      "selected": [
+        "FM",
+        "Prop"
+      ],
+      "objects": [
+        "FM",
+        "Prop"
+      ],
+      "filename": "FM_Prop.data",
+      "definitions": [
+        "Create ForceModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "FM",
+          "owned_types": [
+            "SolarRadiationPressure"
+          ],
+          "field": "Flux",
+          "type": "Real",
+          "expected": 1400
+        },
+        {
+          "object": "FM",
+          "owned_types": [
+            "SolarRadiationPressure"
+          ],
+          "field": "Nominal_Sun",
+          "type": "Real",
+          "expected": 150000000
+        },
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        }
+      ]
+    },
+    {
+      "key": "DragJR",
+      "setup": "Create ForceModel FM;\nFM.PrimaryBodies = {Earth};\nFM.PointMasses = {Luna};\nFM.GravityField.Earth.Degree = 4;\nFM.GravityField.Earth.Order = 2;\nFM.Drag.AtmosphereModel = JacchiaRoberts;\nFM.Drag.F107 = 160;\nFM.Drag.F107A = 155;\nFM.Drag.MagneticIndex = 4;\nCreate Propagator Prop;\nProp.FM = FM;\nProp.InitialStepSize = 120;\n",
+      "selected": [
+        "FM",
+        "Prop"
+      ],
+      "objects": [
+        "FM",
+        "Prop"
+      ],
+      "filename": "FM_Prop.data",
+      "definitions": [
+        "Create ForceModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "FM",
+          "owned_types": [
+            "DragForce"
+          ],
+          "field": "AtmosphereModel",
+          "type": "Object",
+          "expected": "JacchiaRoberts"
+        },
+        {
+          "object": "FM",
+          "owned_types": [
+            "DragForce"
+          ],
+          "field": "F107",
+          "type": "Real",
+          "expected": 160
+        },
+        {
+          "object": "FM",
+          "owned_types": [
+            "DragForce"
+          ],
+          "field": "F107A",
+          "type": "Real",
+          "expected": 155
+        },
+        {
+          "object": "FM",
+          "owned_types": [
+            "DragForce"
+          ],
+          "field": "MagneticIndex",
+          "type": "Real",
+          "expected": 4
+        },
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        }
+      ]
+    },
+    {
+      "key": "CombinedNRL",
+      "setup": "Create ForceModel FM;\nFM.PrimaryBodies = {Earth};\nFM.PointMasses = {Luna};\nFM.GravityField.Earth.PotentialFile = 'JGM2.cof';\nFM.GravityField.Earth.Degree = 4;\nFM.GravityField.Earth.Order = 2;\nFM.SRP = On;\nFM.SRP.Flux = 1400;\nFM.SRP.Nominal_Sun = 150000000;\nFM.Drag.AtmosphereModel = NRLMSISE00;\nFM.Drag.F107 = 160;\nFM.Drag.F107A = 155;\nFM.Drag.MagneticIndex = 4;\nFM.RelativisticCorrection = On;\nCreate Propagator Prop;\nProp.FM = FM;\nProp.InitialStepSize = 120;\n",
+      "selected": [
+        "FM",
+        "Prop"
+      ],
+      "objects": [
+        "FM",
+        "Prop"
+      ],
+      "filename": "FM_Prop.data",
+      "definitions": [
+        "Create ForceModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "FM",
+          "owned_types": [
+            "GravityField"
+          ],
+          "field": "Degree",
+          "type": "Integer",
+          "expected": 4
+        },
+        {
+          "object": "FM",
+          "owned_types": [
+            "GravityField"
+          ],
+          "field": "Order",
+          "type": "Integer",
+          "expected": 2
+        },
+        {
+          "object": "FM",
+          "owned_types": [
+            "SolarRadiationPressure"
+          ],
+          "field": "Flux",
+          "type": "Real",
+          "expected": 1400
+        },
+        {
+          "object": "FM",
+          "owned_types": [
+            "SolarRadiationPressure"
+          ],
+          "field": "Nominal_Sun",
+          "type": "Real",
+          "expected": 150000000
+        },
+        {
+          "object": "FM",
+          "owned_types": [
+            "DragForce"
+          ],
+          "field": "AtmosphereModel",
+          "type": "Object",
+          "expected": "NRLMSISE00"
+        },
+        {
+          "object": "FM",
+          "owned_types": [
+            "DragForce"
+          ],
+          "field": "F107",
+          "type": "Real",
+          "expected": 160
+        },
+        {
+          "object": "FM",
+          "owned_types": [
+            "DragForce"
+          ],
+          "field": "F107A",
+          "type": "Real",
+          "expected": 155
+        },
+        {
+          "object": "FM",
+          "owned_types": [
+            "DragForce"
+          ],
+          "field": "MagneticIndex",
+          "type": "Real",
+          "expected": 4
+        },
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        }
+      ]
+    }
+  ]
+}

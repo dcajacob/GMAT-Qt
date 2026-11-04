@@ -171,8 +171,9 @@ int main(int argc,char **argv)
          if (messages->toPlainText().contains(QRegularExpression("CurrentCommand:[^\\n]*While"))) { stopTimer.stop(); window.stopMission(); }
       }); stopTimer.start(10); require(window.runMission()==MainWindow::RunResult::Stopped,"Stopped summary fixture did not stop"); compare(summaryState(window.summaryText(node(window,"Propagate","First coast"),"EarthMJ2000Eq")),numbers,0);
       editor->setPlainText(source); require(window.runMission()==MainWindow::RunResult::Completed && read(report)==baseline,"Stopped-run summary recovery failed");
-      // An engine-supported command without a specialized Qt form retains
-      // wx GmatCommandPanel's editable text and transactional validation.
+      // Editable command text retains transactional validation. ClearPlot now
+      // also has a typed form, which can reject a bad reference before Apply's
+      // backend callback; its visible diagnostic is part of the same contract.
       QString generic=source; generic.replace("BeginMissionSequence;","Create XYPlot Trace;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.X};\nTrace.ShowPlot = false;\nBeginMissionSequence;\nClearPlot Trace;");
       editor->setPlainText(generic); require(window.runMission()==MainWindow::RunResult::Completed && read(report)==baseline,"Generic command reference run changed calculations");
       auto snapshot=window.missionSnapshot(); const auto clear=node(window,"ClearPlot"); QString applyError;
@@ -182,6 +183,9 @@ int main(int argc,char **argv)
          },{},{},&owner);
          auto *text=panel.findChild<QPlainTextEdit *>("commandSource"); text->setPlainText("ClearPlot Missing;");
          panel.findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
+         auto *status=panel.findChild<QLabel *>("commandStatus");
+         require(status&&status->text().contains("Missing"),"Invalid plot command omitted its attributable visible diagnostic");
+         if (applyError.isEmpty()) applyError=status->text();
          require(!applyError.isEmpty() && editor->toPlainText()==generic && panel.hasChanges(),"Generic invalid command changed mission or discarded pending text");
          text->setPlainText("MarkPoint Trace;"); panel.findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
          require(applyError.isEmpty() && editor->toPlainText().contains("MarkPoint Trace;"),"Generic command correction did not apply");

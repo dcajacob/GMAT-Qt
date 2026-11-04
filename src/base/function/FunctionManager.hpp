@@ -34,6 +34,7 @@
 #define FunctionManager_hpp
 
 
+#include <memory>
 #include <map>              // for mapping between object names and types
 #include <stack>            // for objectMap and caller stacks
 #include <algorithm>        // for find()
@@ -174,6 +175,11 @@ protected:
    GmatCommand          *fcs;
    /// Call stack of FOSs for nested/recursive function calls
    ObjectMapStack       callStack;
+   // Calls can re-enter the same Function/ObjectMap. Save caller data values,
+   // rather than only the map address. Globals and execution handles retain
+   // their identity outside these value snapshots.
+   typedef std::map<std::string, std::shared_ptr<GmatBase> > LocalObjectState;
+   std::stack<LocalObjectState> savedLocalObjectStates;
    /// Call stack of LOSs for nested/recursive function calls
    ObjectMapStack       losStack;
    /// pointers to the calling function of this function (needs to be a stack 

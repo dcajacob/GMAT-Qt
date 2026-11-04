@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+ <theme><name>Clearlooks</name><font place="ActiveWindow"><name>sans</name><size>9</size><weight>Bold</weight></font></theme>
+ <focus><focusNew>yes</focusNew></focus>
+ <placement><policy>Smart</policy><center>yes</center></placement>
+ <keyboard>
+  <keybind key="A-F4"><action name="Close"/></keybind>
+  <keybind key="A-F9"><action name="Iconify"/></keybind>
+  <keybind key="A-F10"><action name="ToggleMaximizeFull"/></keybind>
+  <keybind key="A-Tab"><action name="NextWindow"/></keybind>
+ </keyboard>
+ <mouse><context name="Titlebar"><mousebind button="Left" action="Drag"><action name="Move"/></mousebind><mousebind button="Left" action="DoubleClick"><action name="ToggleMaximizeFull"/></mousebind></context></mouse>
+</openbox_config>

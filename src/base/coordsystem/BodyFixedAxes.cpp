@@ -1001,6 +1001,35 @@ void BodyFixedAxes::CalculateRotationMatrix(const GmatTime &atEpoch,
                                     R3leftT[p3+2] * R13[2][q];
             }
          }
+         // User-defined pole angles can drift. The velocity transform must
+         // differentiate both pole factors as well as the prime meridian:
+         // d(L M R)/dt = Ldot M R + L Mdot R + L M Rdot.
+         // The existing Rdot term above retains the established spin model.
+         auto *body = static_cast<CelestialBody*>(origin);
+         if (body->IsUserDefined())
+         {
+            const Rvector6 parameters = body->GetOrientationParameters();
+            const Real centurySeconds =
+               GmatTimeConstants::DAYS_PER_JULIAN_CENTURY * SECS_PER_DAY;
+            const Real alphaDot = Rad(parameters[1]) / centurySeconds;
+            const Real tiltDot = -Rad(parameters[3]) / centurySeconds;
+            const Real leftDot[9] = {
+               -alphaDot*Sin(rot1), -alphaDot*Cos(rot1), 0.0,
+                alphaDot*Cos(rot1), -alphaDot*Sin(rot1), 0.0,
+                0.0, 0.0, 0.0};
+            const Real middleDot[9] = {
+               0.0, 0.0, 0.0,
+               0.0, -tiltDot*Sin(rot2), -tiltDot*Cos(rot2),
+               0.0,  tiltDot*Cos(rot2), -tiltDot*Sin(rot2)};
+            for (Integer i = 0; i < 3; ++i)
+               for (Integer j = 0; j < 3; ++j)
+                  for (Integer k = 0; k < 3; ++k)
+                     for (Integer l = 0; l < 3; ++l)
+                        rotDotResult[i][j] +=
+                           (leftDot[3*i+k] * R1middleT[3*k+l] +
+                            R3leftT[3*i+k] * middleDot[3*k+l]) *
+                           R3rightT[3*l+j];
+         }
          rotDotMatrix.Set(rotDotResult[0][0],rotDotResult[0][1],rotDotResult[0][2],
                           rotDotResult[1][0],rotDotResult[1][1],rotDotResult[1][2],
                           rotDotResult[2][0],rotDotResult[2][1],rotDotResult[2][2]);

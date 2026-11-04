@@ -131,6 +131,9 @@ public:
    virtual void         SetSummaryName(const char *sumName);
    virtual void         SetSummaryName(const std::string &sumName);
    virtual std::string  GetSummaryName();
+   // Opt-in presentation of cached A1 modified Julian epochs. Existing summary
+   // APIs and their default four time-system rows retain their output format.
+   std::string          GetSummaryWithA1Epochs(bool entireMission = false) const;
    virtual void         SetSolarSystem(SolarSystem *ss);
    virtual void         SetTriggerManagers(std::vector<TriggerManager*> *trigs);
    virtual void         SetConfiguredObjectMap(ObjectMap *objMap);

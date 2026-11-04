@@ -98,7 +98,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>dimensionless</para>
+                    <para>Weighted-residual RMS numerical units; dimensionless for nonzero covariance weights, observation units for the zero-covariance unit-weight fallback</para>
                   </listitem>
                 </varlistentry>
 
@@ -387,7 +387,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Integer count or order (samples, segments, iterations or polynomial degree as described)</para>
                   </listitem>
                 </varlistentry>
 
@@ -497,7 +497,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Integer count or order (samples, segments, iterations or polynomial degree as described)</para>
                   </listitem>
                 </varlistentry>
 
@@ -725,7 +725,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Integer count or order (samples, segments, iterations or polynomial degree as described)</para>
                   </listitem>
                 </varlistentry>
 
@@ -780,7 +780,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Integer count or order (samples, segments, iterations or polynomial degree as described)</para>
                   </listitem>
                 </varlistentry>
 
@@ -893,7 +893,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Weighted-residual numerical units; dimensionless with nonzero covariance weights, observation units for the zero-covariance unit-weight fallback</para>
                   </listitem>
                 </varlistentry>
 
@@ -948,7 +948,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>dimensionless</para>
+                    <para>Weighted-residual numerical units; dimensionless for nonzero covariance weights, observation units for the zero-covariance unit-weight fallback</para>
                   </listitem>
                 </varlistentry>
 
@@ -1602,6 +1602,8 @@
 
   <refsection>
     <title>Remarks</title>
+
+    <para>OLSEAdditiveConstant uses the weighted-residual scale in the sigma-editing inequality. With a nonzero covariance, sqrt(weight) is reciprocal measurement sigma and the residual is normalized. A zero covariance causes the implementation to use weight one, leaving the observation numerical scale. Mixing observations or zero/nonzero weighting conventions therefore requires deliberate scaling; no automatic physical-unit conversion is performed by this constant.</para>
 
     <refsection>
       <title>Behavior of Convergence Criteria</title>

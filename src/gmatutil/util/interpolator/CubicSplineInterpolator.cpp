@@ -101,6 +101,8 @@ CubicSplineInterpolator::CubicSplineInterpolator
       y[i]  = NULL;
       y2[i] = NULL;
    }
+   if (csi.independent)
+      CopyArrays(csi);
 }
 
 
@@ -121,9 +123,9 @@ CubicSplineInterpolator& CubicSplineInterpolator::operator=
    if (&csi == this)
       return *this;
 
-   CleanupArrays();
-   
-   CopyArrays(csi);
+   Interpolator::operator=(csi);
+   if (csi.independent)
+      CopyArrays(csi);
    lastX = csi.lastX;
    return *this;
 }

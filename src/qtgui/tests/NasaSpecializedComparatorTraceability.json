@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "doc/SystemDocs/Requirements/GMAT Requirements.xlsx": "736847e909ca550731386261073e46a9fa3ac8d78f53f0c37dd5d93b11a85c23",
+    "doc/SystemDocs/Test/Requirements-To-Test Matrix, 2012-05-11 (GMAT Build 2012-05-04).csv": "4693e097b183af76bc7c8dfcc0f62d7696b2e1417c90cb10d0ed4f9577160a97"
+  },
+  "scope": "Original harness SPK/TDM truth comparison capabilities. No GMAT GUI/engine or general format/domain qualification.",
+  "reviews": [
+    {
+      "key": "All Others!E306",
+      "fingerprint": "33441cc1884c4bdf65e56d8fdede619d391fe45944bc1a3427416a8206b5ed87",
+      "applicability": "harness",
+      "rationale": "Reusable two-file truth comparator. Independently specified pass/fail/error, complete metadata/object/coverage identities, all supported record values, declared units/time/frame policy, actual CLI/report/input preservation. SPK is explicitly sampled geometry, not a continuous-error bound; TDM is KVN/XML record comparison, not complete XSD/standard validation or time/unit conversion. Unknown/unsupported inputs error, not pass. No original assertions or product/science changes.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.SpecializedComparatorContracts",
+          "source": "src/qtgui/tests/AcceptanceSpecializedCompareTests.py",
+          "source_sha256": "7afd8412accfe96739449442af7774519aea4166d76627a8ef6651728a4bae17",
+          "anchor": "for key in (306,308):",
+          "checkpoint": "specialized-comparator-306",
+          "expected": {
+            "contracts": 10,
+            "GUI_executions": 0,
+            "runtime_copies": 0
+          },
+          "facets": [
+            "two-file-truth-comparison",
+            "independent-polynomial-or-exact-literal-oracles",
+            "explicit-identity-time-frame-unit-tolerance-policy",
+            "malformed-missing-duplicate-and-unsupported-input-errors",
+            "actual-cli-JSON-HTML-input-preservation"
+          ],
+          "scope": "SPK file",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceSpecializedCompare.py": "84c888727241694573be19fac8cf76f7cc75255c275d8e82c761f62dbe0a84f2",
+            "src/qtgui/tests/AcceptanceCompare.py": "bbfc3792caec8914bf248f9b1833d28f543f38abf674082dfccd8d700833fb79"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E308",
+      "fingerprint": "f886c3f3679b5a985f1b98262467eae334d5851526ea275506eeb7169a7ffd4d",
+      "applicability": "harness",
+      "rationale": "Reusable two-file truth comparator. Independently specified pass/fail/error, complete metadata/object/coverage identities, all supported record values, declared units/time/frame policy, actual CLI/report/input preservation. SPK is explicitly sampled geometry, not a continuous-error bound; TDM is KVN/XML record comparison, not complete XSD/standard validation or time/unit conversion. Unknown/unsupported inputs error, not pass. No original assertions or product/science changes.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.SpecializedComparatorContracts",
+          "source": "src/qtgui/tests/AcceptanceSpecializedCompareTests.py",
+          "source_sha256": "7afd8412accfe96739449442af7774519aea4166d76627a8ef6651728a4bae17",
+          "anchor": "for key in (306,308):",
+          "checkpoint": "specialized-comparator-308",
+          "expected": {
+            "contracts": 10,
+            "GUI_executions": 0,
+            "runtime_copies": 0
+          },
+          "facets": [
+            "two-file-truth-comparison",
+            "independent-polynomial-or-exact-literal-oracles",
+            "explicit-identity-time-frame-unit-tolerance-policy",
+            "malformed-missing-duplicate-and-unsupported-input-errors",
+            "actual-cli-JSON-HTML-input-preservation"
+          ],
+          "scope": "CCSDS-TDM compare",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceSpecializedCompare.py": "84c888727241694573be19fac8cf76f7cc75255c275d8e82c761f62dbe0a84f2",
+            "src/qtgui/tests/AcceptanceCompare.py": "bbfc3792caec8914bf248f9b1833d28f543f38abf674082dfccd8d700833fb79"
+          }
+        }
+      ]
+    }
+  ]
+}

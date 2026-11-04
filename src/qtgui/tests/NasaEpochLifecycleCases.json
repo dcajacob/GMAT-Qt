@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "provenance": {
+    "source": "NasaEpochDefinitionCases.json",
+    "source_sha256": "3e381985f34952a15a079f46cbf34b60ba5a2bd265799e3ac457e28152767aaa",
+    "note": "Reuse existing independent scientific expectations. Lifecycle exact-source fixture uses a canonical16-digit MJD input; high-precision definition/conversion cases remain unchanged.",
+    "original_literal": "21621.02426068298611111111111"
+  },
+  "cases": [
+    {
+      "key": "TAIModJulian",
+      "system": "TAI",
+      "literal": "21621.02426068299",
+      "invalid": [
+        "6115",
+        "58128",
+        "nan"
+      ],
+      "expected": {
+        "A1": 21621.024261080922,
+        "TAI": 21621.024260682985,
+        "UTC": 21621.023890312616,
+        "TT": 21621.024633182988,
+        "TDB": 21621.024633201152
+      },
+      "conversions": [
+        {
+          "format": "A1ModJulian",
+          "system": "A1",
+          "expected_mjd": 21621.024261080922,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "A1Gregorian",
+          "system": "A1",
+          "expected_mjd": 21621.024261080922,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TAIModJulian",
+          "system": "TAI",
+          "expected_mjd": 21621.024260682985,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TAIGregorian",
+          "system": "TAI",
+          "expected_mjd": 21621.024260682985,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "UTCModJulian",
+          "system": "UTC",
+          "expected_mjd": 21621.023890312616,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "UTCGregorian",
+          "system": "UTC",
+          "expected_mjd": 21621.023890312616,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TTModJulian",
+          "system": "TT",
+          "expected_mjd": 21621.024633182988,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TTGregorian",
+          "system": "TT",
+          "expected_mjd": 21621.024633182988,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TDBModJulian",
+          "system": "TDB",
+          "expected_mjd": 21621.024633201152,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "TDBGregorian",
+          "system": "TDB",
+          "expected_mjd": 21621.024633201152,
+          "tolerance_seconds": 0.0005600000000000001
+        }
+      ],
+      "epoch_tolerance_seconds": 2e-06,
+      "gregorian_origin": "1941-01-05T12:00:00",
+      "source_label_mjd": 21621.024260682985
+    }
+  ]
+}

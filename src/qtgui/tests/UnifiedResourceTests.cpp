@@ -1,3 +1,4 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "ResourceEditor.hpp"
 #include "ResourceForm.hpp"
@@ -44,7 +45,7 @@ static void closePanels(MainWindow &window)
 int main(int argc,char **argv)
 {
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv);
-   if (QGuiApplication::platformName()!="offscreen" || argc<2 || argc>3) return 2;
+   if (!acceptanceWidgetPlatform() || argc<2 || argc>3) return 2;
    QApplication::setOrganizationName("GMATTests"); QApplication::setApplicationName("UnifiedResources");
    try {
       TestSettings settings; QTemporaryDir files; require(files.isValid(),"Temporary files unavailable");
@@ -205,7 +206,7 @@ int main(int argc,char **argv)
       closePanels(window); editor->undo(); require(editor->toPlainText()==beforeParameters && window.buildScript(),"Configured array not one Undo");
       creator([&](QDialog *dialog) {
          dialog->findChild<QComboBox *>("resourceType")->setCurrentText("Planet"); dialog->findChild<QLineEdit *>("resourceName")->setText("ConfiguredPlanet");
-         auto *radius=dialog->findChild<QLineEdit *>("resource_EquatorialRadius"); require(radius,"Draft planet radius missing"); radius->setText("500");
+         auto *radius=dialog->findChild<QLineEdit *>("body_EquatorialRadius"); require(radius,"Draft planet radius missing"); radius->setText("500");
          dialog->findChild<QDialogButtonBox *>("resourceCreationButtons")->button(QDialogButtonBox::Ok)->click();
          if (dialog->result()!=QDialog::Accepted) std::cerr << dialog->findChild<QLabel *>("resourceCreationStatus")->text().toStdString() << '\n';
          require(dialog->result()==QDialog::Accepted,"Configured celestial-body draft failed");

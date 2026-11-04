@@ -1,3 +1,4 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "ResourceEditor.hpp"
 #include "ResourcePreview.hpp"
@@ -74,7 +75,7 @@ static void playback(ResourceEditor *panel,bool accept,const std::function<void(
 int main(int argc,char **argv)
 {
    QApplication app(argc,argv); app.setOrganizationName("GMATTests"); app.setApplicationName("PlaybackOptionsEditor");
-   if (argc!=2 || QGuiApplication::platformName()!="offscreen") return 2;
+   if (argc!=2 || !acceptanceWidgetPlatform()) return 2;
    try {
       TestSettings settings; QTemporaryDir files; require(files.isValid(),"Playback editor fixture directory unavailable");
       const auto startup=QFileInfo(argv[1]).absoluteFilePath(); QDir::setCurrent(QFileInfo(startup).absolutePath()); MainWindow window; require(window.initialize(startup),"Playback editor initialization failed"); window.show();

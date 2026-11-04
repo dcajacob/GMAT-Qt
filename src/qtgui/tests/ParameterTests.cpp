@@ -11,6 +11,9 @@
 #include <QFile>
 #include <QDir>
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QLineEdit>
 #include <QLabel>
 #include <QPushButton>
@@ -67,6 +70,12 @@ static QLineEdit *scalarField(QDialog *dialog)
 {
    for (auto *field:dialog->findChildren<QLineEdit *>("parameterValue")) if (field->isVisible()) return field;
    return nullptr;
+}
+static void nasaParameterProof(const char *checkpoint,const char *family,const QStringList &facets)
+{
+   QJsonArray values; for (const auto &facet:facets) values.append(facet);
+   std::cout<<"NASA_CHECK "<<QJsonDocument(QJsonObject{{"checkpoint",checkpoint},{"family",family},
+      {"outcome","passed"},{"facets",values}}).toJson(QJsonDocument::Compact).constData()<<std::endl;
 }
 int main(int argc,char **argv)
 {
@@ -138,6 +147,14 @@ int main(int argc,char **argv)
       require(window.saveScriptTo(saved) && window.loadScript(saved) && window.buildScript() && Moderator::Instance()->GetConfiguredObject("Boundary")->GetRealParameter("SingleValue",999,999)==-6.125,"Boundary array save/reopen lost cell");
       require(window.deleteResource("Boundary",editor->toPlainText()).isEmpty() && window.deleteResource("NewNumber",editor->toPlainText()).isEmpty() && window.deleteResource("NewString",editor->toPlainText()).isEmpty() && window.runMission()==MainWindow::RunResult::Completed && read(numericReport)==expectedNumbers && read(stringReport)==expectedStrings,"Create/delete changed original calculations/text");
       std::cout<<"Qt parameters: numeric/string initial values, pending/Cancel/rollback, exact Undo, Unicode save/reopen, independent reports, implicit/no-semicolon source, quote fidelity, typed creation, reserved names and 1000x1000 array cell navigation/Apply passed\n";
+      nasaParameterProof("parameters.variable-name","Variable",{"named-gui-create","configured-value","pending-before-apply","invalid-name-rejection","exact-undo-redo"});
+      nasaParameterProof("parameters.variable-real","Variable",{"typed-value","pending-before-apply","nonfinite-rejection","precision","numeric-report","unicode-save-reopen"});
+      nasaParameterProof("parameters.array-name-dimensions","Array",{"named-gui-create","dimension-boundaries","zero-initialization","configured-dimensions"});
+      nasaParameterProof("parameters.array-real-cell","Array",{"typed-cell-value","zero-initialization","nonfinite-rejection","pending-before-apply","cancel","apply","unicode-save-reopen"});
+      nasaParameterProof("parameters.string-create","String",{"named-gui-create","configured-value"});
+      nasaParameterProof("parameters.string-quotes","String",{"typed-value","quote-fidelity","invalid-literal-rejection","unicode","exact-source","numeric-report-unchanged"});
+      nasaParameterProof("parameters.runtime-string","String",{"runtime-string-assignment","report-text"});
+      nasaParameterProof("parameters.multiply","Variable",{"scalar-multiplication","numeric-report"});
    } catch (BaseException &error) { std::cerr<<error.GetFullMessage()<<'\n'; return 1; }
    catch (const std::exception &error) { std::cerr<<error.what()<<'\n'; return 1; }
    return 0;

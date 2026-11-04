@@ -30,6 +30,7 @@
 #include "UtilityException.hpp"
 #include "StringUtil.hpp"
 #include "TimeSystemConverter.hpp"
+#include "CcsdsOemB1Text.hpp"
 #include <sstream>
 
 //#define DEBUG_OEM_VALIDATE
@@ -155,12 +156,38 @@ Rvector6 CCSDSOEMSegment::GetState(Real atEpoch)
 //------------------------------------------------------------------------------
 std::string CCSDSOEMSegment::GetMetaDataForWriting()
 {
+   const bool b1 = formatVersion == "1.0";
+   const bool hasInterpolation = !interpolationMethod.empty() && interpolationMethod != UNSET_STRING;
+   if (b1)
+   {
+      for (const auto &field : {
+         std::make_pair("OBJECT_NAME", objectName), {"OBJECT_ID", objectID},
+         {"CENTER_NAME", centerName}, {"REF_FRAME", refFrame},
+         {"TIME_SYSTEM", timeSystem}, {"START_TIME", startTimeStr}, {"STOP_TIME", stopTimeStr}})
+         CcsdsOemB1Text::RequireValue(field.first, field.second);
+      if (!usableStartTimeStr.empty())
+         CcsdsOemB1Text::RequireValue("USEABLE_START_TIME", usableStartTimeStr);
+      if (!usableStopTimeStr.empty())
+         CcsdsOemB1Text::RequireValue("USEABLE_STOP_TIME", usableStopTimeStr);
+      if (hasInterpolation)
+      {
+         CcsdsOemB1Text::RequireValue("INTERPOLATION", interpolationMethod);
+         CcsdsOemB1Text::RequireValue("INTERPOLATION_DEGREE", interpolationDegreeStr);
+      }
+      else if (!interpolationDegreeStr.empty())
+         CcsdsOemB1Text::RequireValue("INTERPOLATION_DEGREE", interpolationDegreeStr);
+   }
    std::stringstream ss("");
    ss << std::endl << "META_START" << std::endl;
    for (unsigned int i = 0; i < metaComments.size(); i++)
-      ss << "COMMENT  " << metaComments[i] << std::endl;
+   {
+      if (b1)
+         ss << CcsdsOemB1Text::Comment(metaComments[i]);
+      else
+         ss << "COMMENT  " << metaComments[i] << std::endl;
+   }
    ss << "OBJECT_NAME          = " << objectName << std::endl;
-   ss << "OBJECT_ID            = " << objectID << std::endl;
+   ss << CcsdsOemB1Text::MetadataLine("OBJECT_ID", objectID);
 
    if (formatVersion == "2.0")
    {
@@ -175,13 +202,30 @@ std::string CCSDSOEMSegment::GetMetaDataForWriting()
 
    ss << "TIME_SYSTEM          = " << timeSystem << std::endl;
    ss << "START_TIME           = " << startTimeStr << std::endl;
-   ss << "USEABLE_START_TIME   = " << usableStartTimeStr << std::endl;
-   ss << "USEABLE_STOP_TIME    = " << usableStopTimeStr << std::endl;
+   if (!b1 || !usableStartTimeStr.empty())
+      ss << "USEABLE_START_TIME   = " << usableStartTimeStr << std::endl;
+   if (!b1 || !usableStopTimeStr.empty())
+      ss << "USEABLE_STOP_TIME    = " << usableStopTimeStr << std::endl;
    ss << "STOP_TIME            = " << stopTimeStr << std::endl;
-   ss << "INTERPOLATION        = " << interpolationMethod << std::endl;
-   ss << "INTERPOLATION_DEGREE = " << interpolationDegreeStr << std::endl;
+   if (!b1 || hasInterpolation)
+      ss << "INTERPOLATION        = " << interpolationMethod << std::endl;
+   if (!b1 || !interpolationDegreeStr.empty())
+      ss << "INTERPOLATION_DEGREE = " << interpolationDegreeStr << std::endl;
    ss << "META_STOP" << std::endl << std::endl;
+   if (b1)
+      CcsdsOemB1Text::CheckLines(ss.str());
    return ss.str();
+}
+
+std::string CCSDSOEMSegment::GetDataComments()
+{
+   if (formatVersion != "1.0")
+      return CCSDSEMSegment::GetDataComments();
+   std::string comments;
+   for (const auto &comment : dataComments)
+      comments += CcsdsOemB1Text::Comment(comment);
+   if (!dataComments.empty()) comments += "\n";
+   return comments;
 }
 
 //------------------------------------------------------------------------------
@@ -229,59 +273,35 @@ bool CCSDSOEMSegment::SetMetaDataForWriting(const std::string &fieldName,
 //------------------------------------------------------------------------------
 bool CCSDSOEMSegment::AddData(Real epoch, Rvector data, bool justCheckDataSize)
 {
-#ifdef DEBUG_ADD_DATA
-   MessageInterface::ShowMessage
-   ("CCSDSOEMSegment::AddData() entered, epoch=%f, justCheckDataSize=%d, "
-      "dataStore.size()=%d\n", epoch, justCheckDataSize, dataStore.size());
-#endif
-   Rvector useData(6, data[0], data[1], data[2], data[3], data[4], data[5]);
-   EpochAndData *newData = new EpochAndData();
-   newData->epoch = epoch;
-   newData->data = useData;
-   
-   bool recordIsValid = true;
-   
-   if (!dataStore.empty())
-   {
-      Real lastEpoch = dataStore.at(dataStore.size() - 1)->epoch;
-      if (epoch == lastEpoch)
-      {
-         if (newData->data == dataStore.at(dataStore.size() - 1)->data)
-         {
-            recordIsValid = false;
-            std::string warnmsg = "WARNING: A repeat epoch was found in an Ephemeris file at epoch: " + std::to_string(epoch) +
-               ". The state data is identical so the second record will be ignored.\n";
-            //Message disabled as it prints too many times. Could be added back if desired. This was never enabled. GMT-7376
-            //MessageInterface::ShowMessage(warnmsg);
-         }
-         else
-         {
-            recordIsValid = false;
-            TimeSystemConverter *theTimeConverter;
-            theTimeConverter = TimeSystemConverter::Instance();
-            std::string errmsg = "";
-
-            std::string time = "";
-            Real temp;
-            theTimeConverter->Convert("A1ModJulian", epoch, "", "UTCGregorian", temp, time, 1);
-
-            errmsg += "Duplicate epochs with different position/velocity data were found within a segment at ";
-            errmsg += time;
-            errmsg += ". Ephemeris data can only be discontinuous at segment boundaries.";
-            throw UtilityException(errmsg);
-         }
-      }
-   }
-   
-   if(recordIsValid)
-      dataStore.push_back(newData);
-
-#ifdef DEBUG_ADD_DATA
-   MessageInterface::ShowMessage("CCSDSOEMSegment::AddData() returning true\n");
-#endif
-   return true;
+   return AddData(GmatTime(epoch), data, justCheckDataSize);
 }
 
+bool CCSDSOEMSegment::AddData(const GmatTime &epoch, Rvector data, bool justCheckDataSize)
+{
+   if (data.GetSize() != 6 && data.GetSize() != 9)
+      throw UtilityException("OEM Cartesian records must contain six or nine data elements.");
+   if (justCheckDataSize)
+      return true;
+   Rvector useData(6, data[0], data[1], data[2], data[3], data[4], data[5]);
+   if (!dataStore.empty())
+   {
+      const auto *last = dataStore.back();
+      const GmatTime lastEpoch = last->hasPrecisionEpoch ? last->preciseEpoch : GmatTime(last->epoch);
+      if (epoch == lastEpoch)
+      {
+         if (useData == last->data)
+            return true;
+         throw UtilityException("Duplicate epochs with different position/velocity data were found within a segment. Ephemeris data can only be discontinuous at segment boundaries.");
+      }
+   }
+   EpochAndData *newData = new EpochAndData();
+   newData->epoch = epoch.GetMjd();
+   newData->preciseEpoch = epoch;
+   newData->hasPrecisionEpoch = true;
+   newData->data = useData;
+   dataStore.push_back(newData);
+   return true;
+}
 
 //------------------------------------------------------------------------------
 // Adds an epoch/data/accel to the dataStore for writing.

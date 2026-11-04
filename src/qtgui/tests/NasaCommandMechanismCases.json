@@ -1,0 +1,624 @@
+{
+  "schema_version": 1,
+  "status": "Prepared recipes; driver execution and coverage qualification pending",
+  "cases": [
+    {
+      "key": "For",
+      "recipe_key": "For",
+      "legacy_object": "For",
+      "guide": "Command_For.xml",
+      "page": "For",
+      "control": "commandField_End",
+      "valid": "4",
+      "edit": "typed",
+      "invalid": [
+        "MissingNASA",
+        "nan",
+        "1 +"
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          8,
+          4
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "For",
+      "guide_sha256": "9a1528c23183289d6f66a3d7ef27c5b3141adbb87b6e4796059e63c528a76e29"
+    },
+    {
+      "key": "IfNoElse",
+      "recipe_key": "IfNoElse",
+      "legacy_object": "If",
+      "guide": "Command_If.xml",
+      "page": "If",
+      "control": "commandField_Condition",
+      "valid": "V > 0",
+      "edit": "typed",
+      "invalid": [
+        "MissingNASA > 0",
+        "V <",
+        "V < > 2"
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          0,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "inline_recipe": {
+        "key": "IfNoElse",
+        "template": "If",
+        "before": "If 'NASA original' V == 0; % keep header\n   V = 2; % NASA body\nEndIf; % keep footer",
+        "after": "If 'NASA original' V > 0; % keep header\n   V = 2; % NASA body\nEndIf; % keep footer",
+        "field": "Condition",
+        "value": "V > 0",
+        "expected": [
+          [
+            0,
+            7
+          ]
+        ]
+      },
+      "title": "If",
+      "guide_sha256": "509041c85b406857363e25ce8a2db9221ef50c48f7891926a2d8111e4a6ac5ea"
+    },
+    {
+      "key": "If",
+      "recipe_key": "If",
+      "legacy_object": "If-Else",
+      "guide": "Command_If.xml",
+      "page": "If",
+      "control": "commandField_Condition",
+      "valid": "V > 0",
+      "edit": "typed",
+      "invalid": [
+        "MissingNASA > 0",
+        "V <",
+        "V < > 2"
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          3,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "If",
+      "guide_sha256": "509041c85b406857363e25ce8a2db9221ef50c48f7891926a2d8111e4a6ac5ea"
+    },
+    {
+      "key": "While",
+      "recipe_key": "While",
+      "legacy_object": "While",
+      "guide": "Command_While.xml",
+      "page": "While",
+      "control": "commandField_Condition",
+      "valid": "V < 4",
+      "edit": "typed",
+      "invalid": [
+        "MissingNASA > 0",
+        "V <",
+        "V < > 2"
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          4,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "While",
+      "guide_sha256": "e9c44893e67900632f9eb12acb5d0e3b6e245fb81d97ff82aeef9e0c2979e41d"
+    },
+    {
+      "key": "Vary",
+      "recipe_key": "Vary",
+      "legacy_object": "Vary",
+      "guide": "Command_Vary.xml",
+      "page": "Vary",
+      "control": "commandField_Initial value",
+      "valid": "2",
+      "edit": "typed",
+      "invalid": [
+        "MissingNASA",
+        "nan",
+        "1 +"
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "Achieve DC(V = 3);\n",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          2,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "Vary",
+      "guide_sha256": "462b5da5bd23c8aa8a39cbdde1d1883ea84fa27ff3cfc033c1620698bdfacf79"
+    },
+    {
+      "key": "VaryOptimize",
+      "recipe_key": "VaryOptimize",
+      "legacy_object": "Vary",
+      "guide": "Command_Vary.xml",
+      "page": "Vary",
+      "control": "commandField_Initial value",
+      "valid": "2",
+      "edit": "typed",
+      "invalid": [
+        "MissingNASA",
+        "nan",
+        "1 +"
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "Minimize Opt(V);\n",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          2,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "Vary",
+      "guide_sha256": "462b5da5bd23c8aa8a39cbdde1d1883ea84fa27ff3cfc033c1620698bdfacf79"
+    },
+    {
+      "key": "Achieve",
+      "recipe_key": "Achieve",
+      "legacy_object": "Achieve",
+      "guide": "Command_Achieve.xml",
+      "page": "Achieve",
+      "control": "commandField_Value",
+      "valid": "3",
+      "edit": "typed",
+      "invalid": [
+        "MissingNASA",
+        "nan",
+        "1 +"
+      ],
+      "wrapper_prefix": "Vary DC(V = 1);\n",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          1,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "Achieve",
+      "guide_sha256": "caddbfabecaeb97df699d9b0e13bf191b684ef931bb14c489c967417000ec2f6"
+    },
+    {
+      "key": "Target",
+      "recipe_key": "Target",
+      "legacy_object": "Target",
+      "guide": "Command_Target.xml",
+      "page": "Target",
+      "control": "commandField_Solver",
+      "valid": "OtherDC",
+      "edit": "source",
+      "invalid": [
+        "MissingSolver",
+        "Sat",
+        "V"
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          1,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "Target",
+      "guide_sha256": "5bc0af57abe949aa0e155320edb5d1d6b445d24feabf569d23c898ae697d1ec8"
+    },
+    {
+      "key": "Optimize",
+      "recipe_key": "Optimize",
+      "legacy_object": "Optimize",
+      "guide": "Command_Optimize.xml",
+      "page": "Optimize",
+      "control": "commandField_Solver",
+      "valid": "OtherOpt",
+      "edit": "source",
+      "invalid": [
+        "MissingSolver",
+        "Sat",
+        "V"
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          1,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "Optimize",
+      "guide_sha256": "163781430a68b206314a397ac61dedecd445409d75b52567def6d1808f2c5cc0"
+    },
+    {
+      "key": "Minimize",
+      "recipe_key": "Minimize",
+      "legacy_object": "Minimize",
+      "guide": "Command_Minimize.xml",
+      "page": "Minimize",
+      "control": "commandField_Objective",
+      "valid": "i",
+      "edit": "typed",
+      "invalid": [
+        "MissingNASA",
+        "Sat",
+        "Truth"
+      ],
+      "wrapper_prefix": "Vary Opt(V = 1);\n",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          1,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "Minimize",
+      "guide_sha256": "e668e941313b326630844b65c09c3c0ca1fb62866bb5d3dc6398b86eac812502"
+    },
+    {
+      "key": "NonlinearConstraint",
+      "recipe_key": "NonlinearConstraint",
+      "legacy_object": "NonlinearConstraint",
+      "guide": "Command_NonlinearConstraint.xml",
+      "page": "NonlinearConstraint",
+      "control": "commandField_Right side",
+      "valid": "2",
+      "edit": "typed",
+      "invalid": [
+        "MissingNASA",
+        "nan",
+        "1 +"
+      ],
+      "wrapper_prefix": "Vary Opt(V = 1);\n",
+      "footer_prefix": "Minimize Opt(V);\n",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          1,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "NonlinearConstraint",
+      "guide_sha256": "6e6648935625b1acd0e4f9255dffbcce7bd0ab1e28e36cd3b28b7f1c03151bce"
+    },
+    {
+      "key": "Propagate",
+      "recipe_key": "Propagate",
+      "legacy_object": "Propagate",
+      "guide": "Command_Propagate.xml",
+      "page": "Propagate",
+      "control": "propagationDuration",
+      "valid": "120",
+      "edit": "typed",
+      "invalid": [
+        "MissingNASA",
+        "nan",
+        "1 +"
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i Sat.ElapsedSecs",
+      "expected": [
+        [
+          0,
+          7,
+          120
+        ]
+      ],
+      "absolute_tolerance": 1e-05,
+      "title": "Propagate",
+      "guide_sha256": "9f03e70a74fe9b447397761e6ae36367023821200830a83c7cd33b827bf590d5"
+    },
+    {
+      "key": "Maneuver",
+      "recipe_key": "Maneuver",
+      "legacy_object": "Maneuver",
+      "guide": "Command_Maneuver.xml",
+      "page": "Maneuver",
+      "control": "commandField_Burn",
+      "valid": "OtherBurn",
+      "edit": "typed",
+      "invalid": [
+        "MissingBurn",
+        "Sat",
+        "Prop"
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "Sat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = 7;\nSat.VZ = 0;\nOtherBurn.CoordinateSystem = Local;\nOtherBurn.Origin = Earth;\nOtherBurn.Axes = MJ2000Eq;\nOtherBurn.Element1 = 0.2;\nOtherBurn.Element2 = -0.1;\nOtherBurn.Element3 = 0.05;\n",
+      "report_parameters": "V i Sat.VX Sat.VY Sat.VZ",
+      "expected": [
+        [
+          0,
+          7,
+          0.2,
+          6.9,
+          0.05
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "Maneuver",
+      "guide_sha256": "48d999a335213bd5c08db078be904d9ecf686896f88dc11b9877a0a53527e224"
+    },
+    {
+      "key": "Report",
+      "recipe_key": "Report",
+      "legacy_object": "Report",
+      "guide": "Command_Report.xml",
+      "page": "Report",
+      "control": "commandField_Parameters",
+      "valid": "i V",
+      "edit": "typed",
+      "invalid": [
+        "MissingParameter",
+        "Sat.NoSuchField",
+        "V(1,2)"
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          7,
+          0
+        ],
+        [
+          0,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "Report",
+      "guide_sha256": "d23caeefd8a4630104b944098535591033131a43fd2b803e057dcb3c0e540b3b"
+    },
+    {
+      "key": "Toggle",
+      "recipe_key": "Toggle",
+      "legacy_object": "Toggle",
+      "guide": "Command_Toggle.xml",
+      "page": "Toggle",
+      "control": "commandField_Subscribers",
+      "valid": "OtherIdle",
+      "edit": "typed",
+      "invalid": [
+        "MissingOutput",
+        "Sat",
+        "V"
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          0,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "Toggle",
+      "guide_sha256": "921e235aecc6caa485185e7ee62fcf74044e8a25659112858a96137f44823b96"
+    },
+    {
+      "key": "Global",
+      "recipe_key": "Global",
+      "legacy_object": "Global",
+      "guide": "Command_Global.xml",
+      "page": "Global",
+      "control": "commandField_Objects",
+      "valid": "i",
+      "edit": "typed",
+      "invalid": [
+        "MissingObject",
+        "V,,i",
+        "("
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          0,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "Global",
+      "guide_sha256": "9d52976e780d5753a8088330ebd3116aaa7c2478e51d4d8a51f6d49183092cf4"
+    },
+    {
+      "key": "PenUp",
+      "recipe_key": "PenUp",
+      "inline_recipe": {
+        "key": "PenUp",
+        "template": "PenUp",
+        "before": "PenUp 'NASA original' Idle; % keep plot",
+        "field": "Subscribers",
+        "value": "OtherIdle",
+        "after": "PenUp 'NASA original' OtherIdle; % keep plot"
+      },
+      "legacy_object": "PenUp",
+      "guide": "Command_PenUpPenDown.xml",
+      "page": "PenUpPenDown",
+      "control": "commandField_Subscribers",
+      "valid": "OtherIdle",
+      "edit": "typed",
+      "invalid": [
+        "MissingPlot",
+        "Truth",
+        "Sat",
+        ""
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          0,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "PenUpPenDown",
+      "guide_sha256": "19a2fad824fc40cd10cfc27e5c21e6dcfe0cd97cb618980edee130937a4b811b"
+    },
+    {
+      "key": "PenDown",
+      "recipe_key": "PenDown",
+      "inline_recipe": {
+        "key": "PenDown",
+        "template": "PenDown",
+        "before": "PenDown 'NASA original' Idle; % keep plot",
+        "field": "Subscribers",
+        "value": "OtherIdle",
+        "after": "PenDown 'NASA original' OtherIdle; % keep plot"
+      },
+      "legacy_object": "PenDown",
+      "guide": "Command_PenUpPenDown.xml",
+      "page": "PenUpPenDown",
+      "control": "commandField_Subscribers",
+      "valid": "OtherIdle",
+      "edit": "typed",
+      "invalid": [
+        "MissingPlot",
+        "Truth",
+        "Sat",
+        ""
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          0,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "PenUpPenDown",
+      "guide_sha256": "19a2fad824fc40cd10cfc27e5c21e6dcfe0cd97cb618980edee130937a4b811b"
+    },
+    {
+      "key": "ClearPlot",
+      "recipe_key": "ClearPlot",
+      "inline_recipe": {
+        "key": "ClearPlot",
+        "template": "ClearPlot",
+        "before": "ClearPlot 'NASA original' Idle; % keep plot",
+        "field": "Subscribers",
+        "value": "OtherIdle",
+        "after": "ClearPlot 'NASA original' OtherIdle; % keep plot"
+      },
+      "legacy_object": "ClearPlot",
+      "guide": "Command_ClearPlot.xml",
+      "page": "ClearPlot",
+      "control": "commandField_Subscribers",
+      "valid": "OtherIdle",
+      "edit": "typed",
+      "invalid": [
+        "MissingPlot",
+        "Truth",
+        "Sat",
+        ""
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          0,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "ClearPlot",
+      "guide_sha256": "b21c9187c27a054d288d37d904dcc935174257ae379f69d79dc335088e5bd143"
+    },
+    {
+      "key": "MarkPoint",
+      "recipe_key": "MarkPoint",
+      "inline_recipe": {
+        "key": "MarkPoint",
+        "template": "MarkPoint",
+        "before": "MarkPoint 'NASA original' Idle; % keep plot",
+        "field": "Subscribers",
+        "value": "OtherIdle",
+        "after": "MarkPoint 'NASA original' OtherIdle; % keep plot"
+      },
+      "legacy_object": "MarkPoint",
+      "guide": "Command_MarkPoint.xml",
+      "page": "MarkPoint",
+      "control": "commandField_Subscribers",
+      "valid": "OtherIdle",
+      "edit": "typed",
+      "invalid": [
+        "MissingPlot",
+        "Truth",
+        "Sat",
+        ""
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          0,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "title": "MarkPoint",
+      "guide_sha256": "c11c2ed7e7885d2cab75970cdebc009fb98ccb7f4a7cd5173712f26ddf436574"
+    }
+  ]
+}

@@ -1,0 +1,447 @@
+{
+  "cases": [
+    {
+      "key": "Normal",
+      "duration": 10,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "20",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 10};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0,
+            -0.0,
+            7.546053287267836,
+            0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0
+          ]
+        ]
+      ],
+      "expected_final": [
+        10,
+        6999.59326879449,
+        75.45907133589762,
+        0,
+        -0.08134545332977548,
+        7.545614827932067,
+        0,
+        9
+      ],
+      "expected_degree": 1,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "ShortArc",
+      "expected_degrees": [
+        1
+      ],
+      "object_id": "GMAT-B1-TEXT",
+      "reject_export": false,
+      "error_fragment": ""
+    },
+    {
+      "key": "IdAt254",
+      "duration": 10,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "20",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 10};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0,
+            -0.0,
+            7.546053287267836,
+            0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0
+          ]
+        ]
+      ],
+      "expected_final": [
+        10,
+        6999.59326879449,
+        75.45907133589762,
+        0,
+        -0.08134545332977548,
+        7.545614827932067,
+        0,
+        9
+      ],
+      "expected_degree": 1,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "ShortArc",
+      "expected_degrees": [
+        1
+      ],
+      "object_id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "reject_export": false,
+      "error_fragment": ""
+    },
+    {
+      "key": "SpacedId",
+      "duration": 10,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "20",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 10};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0,
+            -0.0,
+            7.546053287267836,
+            0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0
+          ]
+        ]
+      ],
+      "expected_final": [
+        10,
+        6999.59326879449,
+        75.45907133589762,
+        0,
+        -0.08134545332977548,
+        7.545614827932067,
+        0,
+        9
+      ],
+      "expected_degree": 1,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "ShortArc",
+      "expected_degrees": [
+        1
+      ],
+      "object_id": "A  B",
+      "reject_export": false,
+      "error_fragment": ""
+    },
+    {
+      "key": "IdOver254",
+      "duration": 10,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "20",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 10};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0,
+            -0.0,
+            7.546053287267836,
+            0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0
+          ]
+        ]
+      ],
+      "expected_final": [
+        10,
+        6999.59326879449,
+        75.45907133589762,
+        0,
+        -0.08134545332977548,
+        7.545614827932067,
+        0,
+        9
+      ],
+      "expected_degree": 1,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "ShortArc",
+      "expected_degrees": [
+        1
+      ],
+      "object_id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "reject_export": true,
+      "error_fragment": "254"
+    },
+    {
+      "key": "UnicodeId",
+      "duration": 10,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "20",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 10};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0,
+            -0.0,
+            7.546053287267836,
+            0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0
+          ]
+        ]
+      ],
+      "expected_final": [
+        10,
+        6999.59326879449,
+        75.45907133589762,
+        0,
+        -0.08134545332977548,
+        7.545614827932067,
+        0,
+        9
+      ],
+      "expected_degree": 1,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "ShortArc",
+      "expected_degrees": [
+        1
+      ],
+      "object_id": "GMAT-\u03a9",
+      "reject_export": true,
+      "error_fragment": "ASCII"
+    },
+    {
+      "key": "EmptyId",
+      "duration": 10,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "20",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 10};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0,
+            -0.0,
+            7.546053287267836,
+            0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0
+          ]
+        ]
+      ],
+      "expected_final": [
+        10,
+        6999.59326879449,
+        75.45907133589762,
+        0,
+        -0.08134545332977548,
+        7.545614827932067,
+        0,
+        9
+      ],
+      "expected_degree": 1,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "ShortArc",
+      "expected_degrees": [
+        1
+      ],
+      "object_id": "",
+      "reject_export": true,
+      "error_fragment": "non-null"
+    },
+    {
+      "key": "BlankId",
+      "duration": 10,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "20",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 10};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0,
+            -0.0,
+            7.546053287267836,
+            0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0
+          ]
+        ]
+      ],
+      "expected_final": [
+        10,
+        6999.59326879449,
+        75.45907133589762,
+        0,
+        -0.08134545332977548,
+        7.545614827932067,
+        0,
+        9
+      ],
+      "expected_degree": 1,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "ShortArc",
+      "expected_degrees": [
+        1
+      ],
+      "object_id": "   ",
+      "reject_export": true,
+      "error_fragment": "non-null"
+    }
+  ],
+  "object_id": "GMAT-B1-TEXT",
+  "test_interface_profile": {
+    "object_name": "Sat",
+    "originator": "GMAT USER",
+    "version": "1.0",
+    "center": "EARTH",
+    "frame": "EME2000",
+    "time_system": "UTC",
+    "implicit_units": [
+      "km",
+      "km/s"
+    ],
+    "sender": "NasaOemTextFieldsTests native GUI exporter",
+    "receiver": "RunOemB1Text independent B-1 checker",
+    "object_ids": [
+      "GMAT-B1-TEXT",
+      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "A  B"
+    ],
+    "file_naming": "Actual private Every state \u0394.oem and retained mission.oem names are agreed for these controlled tests",
+    "exchange": "Local unchanged raw byte file with retained SHA256;no operational mission or retroactive legacy SatId agreement"
+  },
+  "scope": "Original B1 text line/ASCII/non-null obligations only;preserve all original numerical and GUI checks"
+}

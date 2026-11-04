@@ -93,6 +93,15 @@
 class GMAT_API ODEModel : public PhysicalModel
 {
 public:
+   // Optional live dynamics context for object-referenced frame derivatives.
+   // No class-layout or virtual-interface change; unavailable contexts are
+   // distinguishable from a physically zero acceleration.
+   void BindAccelerationContext(Spacecraft *spacecraft, bool activate=false);
+   void ActivateAccelerationContext();
+   static void ForgetAccelerationContext(Spacecraft *spacecraft);
+   static void SuspendAccelerationContext(Spacecraft *spacecraft);
+   static bool GetBoundRelativeAcceleration(SpacePoint *secondary,
+      SpacePoint *primary, const A1Mjd &epoch, Rvector3 &acceleration);
    //--------------------------------------------------------------------------------
    // static methods
    //--------------------------------------------------------------------------------
@@ -271,6 +280,9 @@ public:
    virtual Rmatrix*     GetParameterCovariances(Integer parameterId = -1);
    virtual Covariance*  GetCovariance();
    
+   // Copy a captured force-origin vector into internal J2000-body coordinates.
+   // No live spacecraft, ODE state or epoch is modified.
+   RealArray GetJ2KStateSnapshot(const RealArray &local, const GmatTime &atEpoch) const;
    void                 UpdateInitialData(bool dynamicOnly = false, bool updateEpoch = true);
    void                 ReportEpochData();
    

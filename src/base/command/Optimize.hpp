@@ -58,6 +58,8 @@ public:
    // inherited from GmatBase
    // Method to execute a callback from an external function
    virtual bool        ExecuteCallback();
+   virtual bool        TakeAction(const std::string &action,
+                                 const std::string &actionData = "");
    virtual bool        PutCallbackData(std::string &data);
    virtual bool        PutCallbackRealData(RealArray &data);
    virtual std::string GetCallbackResults();

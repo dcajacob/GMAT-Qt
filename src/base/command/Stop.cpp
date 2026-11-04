@@ -113,6 +113,7 @@ Stop& Stop::operator=(const Stop &stop)
 //------------------------------------------------------------------------------
 bool Stop::Execute()
 {
+   BuildCommandSummary(true);
    throw CommandException(
       "Command Sequence intentionally interrupted by Stop command.\n");
    return true;

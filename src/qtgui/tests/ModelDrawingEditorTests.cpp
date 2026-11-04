@@ -1,3 +1,4 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "ResourceEditor.hpp"
 #include "ResourcePreview.hpp"
@@ -71,7 +72,7 @@ static void browse(QDialog *form,const QString &name,const QString &path,bool ac
 int main(int argc,char **argv)
 {
    QApplication app(argc,argv); app.setOrganizationName("GMATTests"); app.setApplicationName("ModelDrawingEditor");
-   if (argc!=2 || QGuiApplication::platformName()!="offscreen") return 2;
+   if (argc!=2 || !acceptanceWidgetPlatform()) return 2;
    try {
       TestSettings settings; QTemporaryDir files; require(files.isValid(),"Model drawing fixture directory unavailable");
       const auto modelPath=files.filePath("plot model α.obj"); QFile model(modelPath); require(model.open(QIODevice::WriteOnly),"Model fixture unavailable"); model.write("v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n"); model.close();

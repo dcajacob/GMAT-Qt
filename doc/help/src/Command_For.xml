@@ -142,6 +142,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>User-defined loop-variable numerical scale; Start, Increment and End must use the same scale as Index. No physical unit is declared by the For command.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -188,6 +192,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>User-defined loop-variable numerical scale; Start, Increment and End must use the same scale as Index. No physical unit is declared by the For command.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>
@@ -251,6 +259,10 @@
                     <para>GUI</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>User-defined loop-variable numerical scale; Start, Increment and End must use the same scale as Index. No physical unit is declared by the For command.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -298,6 +310,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>User-defined loop-variable numerical scale; Start, Increment and End must use the same scale as Index. No physical unit is declared by the For command.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>

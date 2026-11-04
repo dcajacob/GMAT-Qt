@@ -689,7 +689,7 @@ ThrustAngle1::ThrustAngle1(const ThrustAngle1 &copy)
 ThrustAngle1& ThrustAngle1::operator=(const ThrustAngle1 &right)
 {
    if (this != &right)
-      ThrustAngle1::operator=(right);
+      ThrustSegmentRvector::operator=(right);
 
    return *this;
 }
@@ -708,17 +708,16 @@ ThrustAngle1::~ThrustAngle1()
 //------------------------------------------------------------------------------
 bool ThrustAngle1::Evaluate()
 {
-   const Real* arr = ThrustSegmentData::GetRvector(THRUST_ANGLE_1).GetDataVector();
-   const UnsignedInt size = ThrustSegmentData::GetRvector(THRUST_ANGLE_1).GetSize();
-   for (int i = 0; i < size; i++)
-   {
-      mRvectorValue[i] = arr[i];
-   }
+   // GetRvector returns by value. Own that value through the copy and size
+   // update instead of retaining a pointer into an expired temporary.
+   const Rvector value = ThrustSegmentData::GetRvector(THRUST_ANGLE_1);
+   mVectorSize = value.GetSize();
+   mRvectorValue.SetSize(mVectorSize);
+   mRvectorValue = value;
 
-   if (mRvectorValue[2] == THRUST_REAL_UNDEFINED)
-      return false;
-   else
-      return true;
+   // Preserve the existing third-component undefined sentinel when present;
+   // shorter valid coefficient arrays have no third component to inspect.
+   return mVectorSize < 3 || mRvectorValue[2] != THRUST_REAL_UNDEFINED;
 }
 
 
@@ -731,8 +730,18 @@ bool ThrustAngle1::Evaluate()
  //------------------------------------------------------------------------------
 void ThrustAngle1::SetRvector(Rvector& val)
 {
-   ThrustSegmentData::SetRvector(THRUST_ANGLE_1, val);
-   RvectorVar::SetRvector(val);
+   SetRvector(static_cast<const Rvector&>(val));
+}
+
+void ThrustAngle1::SetRvector(const Rvector& val)
+{
+   // Retain the mutable overload and its existing virtual slot; dispatch from
+   // Parameter/ParameterWrapper uses the inherited const-reference slot.
+   Rvector value(val);
+   ThrustSegmentData::SetRvector(THRUST_ANGLE_1, value);
+   mVectorSize = value.GetSize();
+   mRvectorValue.SetSize(mVectorSize);
+   RvectorVar::SetRvector(value);
 }
 
 
@@ -781,7 +790,7 @@ ThrustAngle2::ThrustAngle2(const ThrustAngle2 &copy)
 ThrustAngle2& ThrustAngle2::operator=(const ThrustAngle2 &right)
 {
    if (this != &right)
-      ThrustAngle2::operator=(right);
+      ThrustSegmentRvector::operator=(right);
 
    return *this;
 }
@@ -800,18 +809,16 @@ ThrustAngle2::~ThrustAngle2()
 //------------------------------------------------------------------------------
 bool ThrustAngle2::Evaluate()
 {
-   const Real* arr = ThrustSegmentData::GetRvector(THRUST_ANGLE_2).GetDataVector();
-   const UnsignedInt size = ThrustSegmentData::GetRvector(THRUST_ANGLE_2).GetSize();
-   for (int i = 0; i < size; i++)
-   {
-      mRvectorValue[i] = arr[i];
-   }
+   // GetRvector returns by value. Own that value through the copy and size
+   // update instead of retaining a pointer into an expired temporary.
+   const Rvector value = ThrustSegmentData::GetRvector(THRUST_ANGLE_2);
+   mVectorSize = value.GetSize();
+   mRvectorValue.SetSize(mVectorSize);
+   mRvectorValue = value;
 
-   //Find out how to correctly copy Rvector over...
-   if (mRvectorValue[2] == THRUST_REAL_UNDEFINED)
-      return false;
-   else
-      return true;
+   // Preserve the existing third-component undefined sentinel when present;
+   // shorter valid coefficient arrays have no third component to inspect.
+   return mVectorSize < 3 || mRvectorValue[2] != THRUST_REAL_UNDEFINED;
 }
 
 
@@ -824,8 +831,18 @@ bool ThrustAngle2::Evaluate()
  //------------------------------------------------------------------------------
 void ThrustAngle2::SetRvector(Rvector& val)
 {
-   ThrustSegmentData::SetRvector(THRUST_ANGLE_2, val);
-   RvectorVar::SetRvector(val);
+   SetRvector(static_cast<const Rvector&>(val));
+}
+
+void ThrustAngle2::SetRvector(const Rvector& val)
+{
+   // Retain the mutable overload and its existing virtual slot; dispatch from
+   // Parameter/ParameterWrapper uses the inherited const-reference slot.
+   Rvector value(val);
+   ThrustSegmentData::SetRvector(THRUST_ANGLE_2, value);
+   mVectorSize = value.GetSize();
+   mRvectorValue.SetSize(mVectorSize);
+   RvectorVar::SetRvector(value);
 }
 
 

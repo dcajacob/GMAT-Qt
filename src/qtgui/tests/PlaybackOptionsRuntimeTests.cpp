@@ -25,6 +25,7 @@
 #include <iostream>
 #include <stdexcept>
 
+#undef near // Legacy Windows memory-model macro conflicts with the assertion helper.
 static void require(bool ok,const char *why) { if (!ok) throw std::runtime_error(why); }
 static void near(double actual,double expected,const char *why) { require(std::abs(actual-expected)<2e-5,why); }
 static PlotWidget *plot(QtPlotReceiver &receiver,const QString &name)

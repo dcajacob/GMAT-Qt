@@ -3585,9 +3585,22 @@ Rvector CelestialBody::GetBodyCartographicCoordinates(const A1Mjd &forTime) cons
             instanceName.c_str(), forTime.Get(), orientationEpoch.Get());
       #endif
 
-      Real d = GetJulianDaysFromTDBEpoch(forTime); // interval in Julian days
+      Real d;
       if (userDefined)
-         d -= GetJulianDaysFromTDBEpoch(orientationEpoch);
+      {
+         // Form the user-relative interval before introducing a large Julian
+         // date offset. Adding/subtracting 2.4 million days first loses timing
+         // precision and can move transformed positions by sub-millimeters.
+         const Real currentTdb = theTimeConverter->Convert(forTime.Get(),
+            TimeSystemConverter::A1MJD, TimeSystemConverter::TDBMJD,
+            GmatTimeConstants::JD_JAN_5_1941);
+         const Real referenceTdb = theTimeConverter->Convert(orientationEpoch.Get(),
+            TimeSystemConverter::A1MJD, TimeSystemConverter::TDBMJD,
+            GmatTimeConstants::JD_JAN_5_1941);
+         d = currentTdb - referenceTdb;
+      }
+      else
+         d = GetJulianDaysFromTDBEpoch(forTime);
 
       Real T = d / GmatTimeConstants::DAYS_PER_JULIAN_CENTURY; // interval in Julian centuries
       
@@ -5540,8 +5553,10 @@ Real CelestialBody::GetJulianDaysFromTDBEpoch(const A1Mjd &forTime) const
    // JD_OF_J2000 (2451545.0) TDB is the reference epoch indicated in
    // Seidelmann et. al. "Report of the IAU/IAGWorking Group on Cartographic
    // Coordinates and Rotational Elements" for use with cartographic data
-   return (mjdTDB + GmatTimeConstants::JD_JAN_5_1941 -
-          GmatTimeConstants::JD_OF_J2000);
+   // Subtract the small epoch offset directly. Forming a full Julian date
+   // first discards fractional-day precision used by the orientation model.
+   return mjdTDB - (GmatTimeConstants::JD_OF_J2000 -
+                   GmatTimeConstants::JD_JAN_5_1941);
 
 }
 

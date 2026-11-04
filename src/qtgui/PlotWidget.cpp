@@ -16,6 +16,8 @@
 #include "PlotWidget.hpp"
 #include "PlotInterpolation.hpp"
 #include "PlotEpochPlayback.hpp"
+#include "PlotPresentation.hpp"
+#include <QToolTip>
 #include <QSignalBlocker>
 #include "OrbitRenderer.hpp"
 #include "OrbitLabels.hpp"
@@ -35,6 +37,8 @@
 #include <QFileDialog>
 #include <QLabel>
 #include <QMouseEvent>
+#include <QKeyEvent>
+#include <QRubberBand>
 #include <QPainter>
 #include <QPainterPath>
 #include <QSaveFile>
@@ -56,7 +60,13 @@
 namespace {
 void drawMarker(QPainter &painter,QPointF p,int type,double size,const QColor &color,bool highlight)
 {
-   painter.save(); painter.setPen(QPen(color,1)); painter.setBrush(Qt::NoBrush);
+   painter.save();
+   // Keep a one-pixel stroke visible when a logical pixel is smaller than a
+   // physical display pixel. Normal and high-DPI marker widths are unchanged.
+   QPen pen(color,1);
+   const auto ratio=painter.device()->devicePixelRatioF();
+   if (ratio>0 && ratio<1) pen.setWidthF(1/ratio);
+   painter.setPen(pen); painter.setBrush(Qt::NoBrush);
    const double r=size/2;
    auto cross=[&] { painter.drawLine(p+QPointF(-r,-r),p+QPointF(r,r)); painter.drawLine(p+QPointF(-r,r),p+QPointF(r,-r)); };
    auto plus=[&] { painter.drawLine(p+QPointF(-r,0),p+QPointF(r,0)); painter.drawLine(p+QPointF(0,-r),p+QPointF(0,r)); };
@@ -96,8 +106,13 @@ PlotCanvas::PlotCanvas(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
 {
    setMinimumSize(200, 140);
    setMouseTracking(true);
-   if (data->kind==PlotModel::Kind::Orbit) setFocusPolicy(Qt::StrongFocus);
-   setToolTip("Wheel: zoom · Drag: rotate orbit or pan chart · Shift-drag: pan orbit · Double-click: fit");
+   if (data->kind==PlotModel::Kind::Orbit || data->kind==PlotModel::Kind::XY) setFocusPolicy(Qt::StrongFocus);
+   if (data->kind==PlotModel::Kind::XY) {
+      selectionBand=new QRubberBand(QRubberBand::Rectangle,this);
+      selectionBand->setObjectName("xyZoomSelection");
+   }
+   standardTooltip="Wheel: zoom · Drag: rotate orbit or pan chart · Shift-drag: pan orbit · Double-click: fit";
+   setToolTip(standardTooltip);
    if (data->kind==PlotModel::Kind::Orbit && QGuiApplication::platformName()!="offscreen" && QGuiApplication::platformName()!="minimal")
       renderer=new OrbitRenderer(data,this);
    if (data->userView) restoreView(*data->userView);
@@ -105,19 +120,26 @@ PlotCanvas::PlotCanvas(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
 }
 void PlotCanvas::refresh()
 {
+   cancelSelection(); xyTransformValid=false;
    if (data->kind==PlotModel::Kind::Orbit) data->userView=PlotViewState{zoom,yaw,pitch,pan,data->fitCamera,data->perspective,data->fieldOfView,
       data->cameraViews.isEmpty() ? QString() : data->cameraViews[data->selectedCamera].name,data->resetCamera};
    QStringList details{data->title};
    if (!data->xLabel.isEmpty()) details << "X: "+data->xLabel;
    if (!data->yLabel.isEmpty()) details << "Y: "+data->yLabel;
    if (data->legend) for (const auto &curve:data->curves) if (curve.visible && (data->kind!=PlotModel::Kind::Orbit || curve.drawsContent())) details << curve.name;
-   details << "Wheel: zoom · Drag: rotate orbit or pan chart · Shift-drag: pan orbit · Double-click: fit";
-   setToolTip(details.join('\n').toHtmlEscaped().replace("\n","<br>"));
+   details << (data->kind==PlotModel::Kind::XY ?
+      "Drag: zoom to region · Shift-drag: pan · Wheel: zoom · Escape: cancel selection · Double-click: fit" :
+      "Wheel: zoom · Drag: rotate orbit or pan chart · Shift-drag: pan orbit · Double-click: fit");
+   standardTooltip=details.join('\n').toHtmlEscaped().replace("\n","<br>");
+   groundTransformValid=false;
+   if (data->kind==PlotModel::Kind::GroundTrack && !groundCoordinates.isEmpty())
+      setAccessibleDescription(plotUtcCaption(*data,visibleFrame)+"\n"+groundCoordinates);
+   else clearGroundReadout();
    if (renderer) renderer->setView(zoom,yaw,pitch,pan,visibleFrame); else update();
 }
 QImage PlotCanvas::captureImage() { return renderer ? renderer->captureImage() : grab().toImage(); }
-void PlotCanvas::resizeEvent(QResizeEvent *event) { QWidget::resizeEvent(event); if (renderer) renderer->setGeometry(rect()); }
-void PlotCanvas::fit() { zoom = 1; pan = {}; data->fitCamera=true; refresh(); }
+void PlotCanvas::resizeEvent(QResizeEvent *event) { cancelSelection(); xyTransformValid=false; groundTransformValid=false; clearGroundReadout(); QWidget::resizeEvent(event); if (renderer) renderer->setGeometry(rect()); }
+void PlotCanvas::fit() { xySelectionView.reset(); zoom = 1; pan = {}; data->fitCamera=true; refresh(); }
 void PlotCanvas::scriptView() {
    if (!data->scriptedCamera) return;
    zoom=1; pan={}; yaw=0; pitch=0; data->fitCamera=false; data->resetCamera=false; refresh();
@@ -151,22 +173,107 @@ void PlotCanvas::setReplayCursor(const PlotReplayCursor &cursor) {
 }
 void PlotCanvas::zoomBy(double steps) { zoom = std::clamp(zoom * std::pow(1.15, steps), 0.02, 200.0); refresh(); }
 void PlotCanvas::setViewAngles(double azimuth, double elevation) { yaw = azimuth; pitch = elevation; refresh(); }
-void PlotCanvas::mousePressEvent(QMouseEvent *event) { lastMouse = event->position(); if (data->kind==PlotModel::Kind::Orbit) setFocus(Qt::MouseFocusReason); }
+void PlotCanvas::cancelSelection()
+{
+   selectionStart.reset();
+   if (selectionBand) selectionBand->hide();
+}
+bool PlotCanvas::event(QEvent *event)
+{
+   if (event->type()==QEvent::Hide || event->type()==QEvent::WindowDeactivate || event->type()==QEvent::UngrabMouse) cancelSelection();
+   return QWidget::event(event);
+}
+void PlotCanvas::keyPressEvent(QKeyEvent *event)
+{
+   if (event->key()==Qt::Key_Escape && selectionStart) { cancelSelection(); event->accept(); return; }
+   QWidget::keyPressEvent(event);
+}
+void PlotCanvas::mousePressEvent(QMouseEvent *event)
+{
+   cancelSelection(); lastMouse=event->position();
+   if (data->kind==PlotModel::Kind::Orbit || data->kind==PlotModel::Kind::XY) setFocus(Qt::MouseFocusReason);
+   if (data->kind==PlotModel::Kind::XY && event->button()==Qt::LeftButton && !(event->modifiers() & Qt::ShiftModifier)) {
+      // Use the mapping actually painted, including local ranges, wheel zoom,
+      // pan, dynamic label gutters and logical pixels at the current DPR.
+      repaint(); bool invertible=false; const auto inverse=xyToCanvas.inverted(&invertible);
+      if (xyTransformValid && invertible && xyViewport.contains(lastMouse)) {
+         selectionStart=lastMouse; selectionViewport=xyViewport; selectionToData=inverse;
+         selectionBand->setGeometry(QRect(lastMouse.toPoint(),QSize())); selectionBand->show();
+      }
+      event->accept(); return;
+   }
+}
 void PlotCanvas::mouseMoveEvent(QMouseEvent *event)
 {
+   if (selectionStart) {
+      if (!(event->buttons() & Qt::LeftButton)) { cancelSelection(); return; }
+      const QPointF end(std::clamp(event->position().x(),selectionViewport.left(),selectionViewport.right()),
+         std::clamp(event->position().y(),selectionViewport.top(),selectionViewport.bottom()));
+      selectionBand->setGeometry(QRectF(*selectionStart,end).normalized().toAlignedRect());
+      event->accept(); return;
+   }
    const auto delta = event->position() - lastMouse; lastMouse = event->position();
-   if (!(event->buttons() & Qt::LeftButton)) return;
+   if (!(event->buttons() & Qt::LeftButton)) {
+      if (data->kind==PlotModel::Kind::GroundTrack) groundReadout(event->position(),event->globalPosition().toPoint());
+      return;
+   }
+   if (data->kind==PlotModel::Kind::XY && !(event->modifiers() & Qt::ShiftModifier)) return;
    if (data->kind == PlotModel::Kind::Orbit && !(event->modifiers() & Qt::ShiftModifier)) {
       yaw = std::remainder(yaw + delta.x() * 0.008, 6.283185307179586);
       pitch = std::remainder(pitch + delta.y() * 0.008, 6.283185307179586);
    } else pan += delta;
    refresh();
 }
+void PlotCanvas::clearGroundReadout()
+{
+   if (!groundCoordinates.isEmpty() && QToolTip::text()==groundCoordinates) QToolTip::hideText();
+   groundCoordinates.clear();
+   setToolTip(standardTooltip);
+   setAccessibleDescription(plotUtcCaption(*data,visibleFrame));
+}
+void PlotCanvas::groundReadout(const QPointF &position,const QPoint &globalPosition)
+{
+   bool invertible=false;
+   const auto inverse=groundToCanvas.inverted(&invertible);
+   const auto coordinates=inverse.map(position);
+   if (!groundTransformValid || !invertible || !groundViewport.contains(position) ||
+       !std::isfinite(coordinates.x()) || !std::isfinite(coordinates.y()) ||
+       coordinates.x() < -180 || coordinates.x() > 180 || coordinates.y() < -90 || coordinates.y() > 90) {
+      clearGroundReadout(); return;
+   }
+   const auto text=QString("Longitude: %1 deg · Latitude: %2 deg")
+      .arg(coordinates.x(),0,'f',6).arg(coordinates.y(),0,'f',6);
+   groundCoordinates=text;
+   setToolTip(text); setAccessibleDescription(plotUtcCaption(*data,visibleFrame)+"\n"+text);
+   QToolTip::showText(globalPosition,text,this);
+}
+void PlotCanvas::mouseReleaseEvent(QMouseEvent *event)
+{
+   if (selectionStart && event->button()==Qt::LeftButton) {
+      const auto region=QRectF(*selectionStart,event->position()).normalized().intersected(selectionViewport);
+      const auto selected=selectionToData.mapRect(region).normalized(); cancelSelection();
+      // Clicks and near-horizontal/vertical drags must not create unstable
+      // ranges. A reversed drag uses the same normalized data rectangle.
+      if (region.width()>6 && region.height()>6 && selected.width()>0 && selected.height()>0 &&
+          std::isfinite(selected.left()) && std::isfinite(selected.right()) &&
+          std::isfinite(selected.top()) && std::isfinite(selected.bottom())) {
+         xySelectionView=selected; zoom=1; pan={}; refresh();
+      }
+      event->accept(); return;
+   }
+   if (data->kind==PlotModel::Kind::GroundTrack) {
+      lastMouse=event->position();
+      repaint(); groundReadout(event->position(),event->globalPosition().toPoint());
+   } else QWidget::mouseReleaseEvent(event);
+}
+void PlotCanvas::leaveEvent(QEvent *event) { clearGroundReadout(); QWidget::leaveEvent(event); }
 void PlotCanvas::mouseDoubleClickEvent(QMouseEvent *) { fit(); }
 void PlotCanvas::wheelEvent(QWheelEvent *event) { zoomBy(event->angleDelta().y() / 120.0); event->accept(); }
 void PlotCanvas::paintEvent(QPaintEvent *)
 {
    if (renderer) return;
+   groundTransformValid=false;
+   xyTransformValid=false;
    QPainter painter(this);
    painter.setRenderHint(QPainter::Antialiasing);
    const bool orbit = data->kind == PlotModel::Kind::Orbit;
@@ -190,7 +297,8 @@ void PlotCanvas::paintEvent(QPaintEvent *)
    const int maxRows=std::max(1,std::min(4,(height()-130)/lineHeight));
    const int rows=std::min(maxRows,(static_cast<int>(legendCurves.size())+columns-1)/columns);
    const int top=32+rows*lineHeight;
-   QRectF area(orbit ? 35 : 74,top,width()-(orbit ? 70 : 100),height()-top-56);
+   const int epochRow=(orbit||ground) ? 22 : 0;
+   QRectF area(orbit ? 35 : 74,top,width()-(orbit ? 70 : 100),height()-top-56-epochRow);
    if (ground && area.width() > 2 * area.height()) { const double w = area.height()*2; area.setLeft(area.center().x()-w/2); area.setWidth(w); }
    if (ground && area.height() > area.width()/2) { const double h = area.width()/2; area.setTop(area.center().y()-h/2); area.setHeight(h); }
    if (area.width() <= 0 || area.height() <= 0) return;
@@ -247,6 +355,7 @@ void PlotCanvas::paintEvent(QPaintEvent *)
          extent = std::max(extent, std::hypot(std::hypot(point.x, point.y), point.z)+curve.radius);
       }
    }
+   const bool xyHasData=!orbit && !ground && std::isfinite(xmin) && std::isfinite(xmax) && std::isfinite(ymin) && std::isfinite(ymax);
    if (orbit) {
       const auto extent=data->perspective ? camera.distance*std::tan(std::clamp(data->fieldOfView,1.0,150.0)*3.14159265358979323846/360) : camera.extent;
       xmin = -extent; xmax = extent; ymin = xmin; ymax = xmax;
@@ -268,6 +377,10 @@ void PlotCanvas::paintEvent(QPaintEvent *)
          }
       };
       limits(data->xAxis,xmin,xmax); limits(data->yAxis,ymin,ymax);
+      if (xySelectionView) {
+         xmin=xySelectionView->left(); xmax=xySelectionView->right();
+         ymin=xySelectionView->top(); ymax=xySelectionView->bottom();
+      }
       int yWidth=0,xWidth=0;
       for (int i=0;i<=data->yAxis.ticks;++i) yWidth=std::max(yWidth,metrics.horizontalAdvance(QString::number(ymin+(ymax-ymin)*i/data->yAxis.ticks,'g',data->yAxis.precision)));
       for (int i=0;i<=data->xAxis.ticks;++i) xWidth=std::max(xWidth,metrics.horizontalAdvance(QString::number(xmin+(xmax-xmin)*i/data->xAxis.ticks,'g',data->xAxis.precision)));
@@ -282,6 +395,21 @@ void PlotCanvas::paintEvent(QPaintEvent *)
    xmin = cx-dx/2 - offset.x()*dx/area.width(); xmax = xmin+dx;
    ymin = cy-dy/2 + offset.y()*dy/area.height(); ymax = ymin+dy;
    auto screen = [&](const QPointF &p) { return QPointF(area.left()+(p.x()-xmin)/(xmax-xmin)*area.width(), area.bottom()-(p.y()-ymin)/(ymax-ymin)*area.height()); };
+   if (!orbit && !ground && xyHasData && xmax>xmin && ymax>ymin) {
+      const double sx=area.width()/(xmax-xmin),sy=area.height()/(ymax-ymin);
+      xyToCanvas=QTransform(sx,0,0,-sy,area.left()-xmin*sx,area.bottom()+ymin*sy);
+      xyViewport=area; xyTransformValid=true;
+   }
+   if (ground) {
+      const double sx=area.width()/(xmax-xmin),sy=area.height()/(ymax-ymin);
+      const QTransform transform(sx,0,0,-sy,area.left()-xmin*sx,area.bottom()+ymin*sy);
+      const bool changed=transform!=groundToCanvas;
+      groundViewport=area; groundToCanvas=transform;
+      groundTransformValid=true;
+      if (changed && !groundCoordinates.isEmpty()) QTimer::singleShot(0,this,[this] {
+         if (!groundCoordinates.isEmpty()) groundReadout(lastMouse,mapToGlobal(lastMouse.toPoint()));
+      });
+   }
    painter.save(); painter.setClipRect(area);
    if (orbit && data->starsEnabled) {
       const auto rotation=orbitSkyFrame(*data,visibleFrame);
@@ -303,7 +431,15 @@ void PlotCanvas::paintEvent(QPaintEvent *)
       const QPointF a = screen({-180,90}), b = screen({180,-90});
       painter.drawImage(QRectF(a,b), data->map);
    }
-   if (data->grid) {
+   if (!orbit) {
+      // Keep boundary data visible: the native plotter paints axes before data.
+      // Draw the complete frame without the data clip, then restore that clip
+      // for curves/markers. A later frame pass would erase valid edge markers.
+      painter.save(); painter.setClipping(false);
+      painter.setPen(foreground); painter.setBrush(Qt::NoBrush);
+      painter.drawRect(area); painter.restore();
+   }
+   if (data->grid && !orbit) {
       painter.setPen(QPen(ground ? QColor(255,255,255,100) : orbit ? QColor(90,110,140,75) : QColor(215,222,231), 1));
       const int nx = ground ? data->longitudeLines : orbit ? 5 : data->xAxis.ticks, ny = ground ? data->latitudeLines : orbit ? 5 : data->yAxis.ticks;
       for (int i=0;i<=nx;++i) {
@@ -386,8 +522,9 @@ void PlotCanvas::paintEvent(QPaintEvent *)
             };
             for (const auto &axis:axes) { line(axis.start,axis.end); for (const auto &wing:axis.arrow) line(axis.end,wing); }
          }
-         if (last && (curve.objectGrid || curve.objectXYPlane)) {
-            const auto geometry=orbitObjectGuides(curve,*last,orbitObjectGuideRadius(curve));
+         const bool celestialGrid=data->grid && curve.showObject && curve.radius>0;
+         if (last && (curve.objectGrid || curve.objectXYPlane || celestialGrid)) {
+            const auto geometry=orbitObjectGuides(curve,*last,orbitObjectGuideRadius(curve),celestialGrid);
             auto point=[&](const osg::Vec3d &position,QColor color) -> const PlotPoint * {
                PlotPoint p; p.x=position.x(); p.y=position.y(); p.z=position.z(); p.color=color; clippedPoints.push_back(p); return &clippedPoints.back();
             };
@@ -583,7 +720,6 @@ void PlotCanvas::paintEvent(QPaintEvent *)
    }
    painter.restore(); painter.setPen(foreground);
    if (!orbit) {
-      painter.drawRect(area);
       const int nx=ground ? 5 : data->xAxis.ticks,ny=ground ? 5 : data->yAxis.ticks;
       for (int i=0;i<=nx;++i) {
          const double x=xmin+(xmax-xmin)*i/nx,xp=area.left()+area.width()*i/nx;
@@ -594,9 +730,14 @@ void PlotCanvas::paintEvent(QPaintEvent *)
          const double y=ymin+(ymax-ymin)*i/ny,yp=area.bottom()-area.height()*i/ny;
          painter.drawText(QRectF(24,yp-10,area.left()-31,20),Qt::AlignRight|Qt::AlignVCenter,QString::number(y,'g',ground ? 5 : data->yAxis.precision));
       }
-      painter.drawText(QRectF(area.left(),height()-28,area.width(),22),Qt::AlignCenter,metrics.elidedText(data->xLabel,Qt::ElideMiddle,static_cast<int>(area.width())));
+      painter.drawText(QRectF(area.left(),height()-28-epochRow,area.width(),22),Qt::AlignCenter,metrics.elidedText(data->xLabel,Qt::ElideMiddle,static_cast<int>(area.width())));
       painter.save(); painter.translate(1,area.center().y()); painter.rotate(-90); painter.drawText(QRectF(-area.height()/2,0,area.height(),20),Qt::AlignCenter,painter.fontMetrics().elidedText(data->yLabel,Qt::ElideRight,static_cast<int>(area.height()))); painter.restore();
-   } else painter.drawText(QRectF(10,height()-28,width()-20,22),Qt::AlignCenter,data->coordinates + " · km");
+   } else painter.drawText(QRectF(10,height()-28-epochRow,width()-20,22),Qt::AlignCenter,data->coordinates + " · km");
+   if (epochRow) {
+      const auto caption=plotUtcCaption(*data,visibleFrame);
+      setAccessibleDescription(caption+(groundCoordinates.isEmpty() ? QString() : "\n"+groundCoordinates));
+      painter.drawText(QRectF(10,height()-28,width()-20,22),Qt::AlignCenter,caption);
+   }
    const int cells=rows*columns, cellWidth=legendWidth/columns;
    for (int i=0;i<std::min(cells,static_cast<int>(legendCurves.size()));++i) {
       const int x=12+(i%columns)*cellWidth, y=28+(i/columns)*lineHeight;
@@ -687,7 +828,7 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
    connect(toggleToolbar,&QAction::triggered,this,[this] { const bool show=plotToolbar->isHidden(); setPlotToolbarVisible(show); if (toolbarVisibilityChanged) toolbarVisibilityChanged(show); });
  layout->addWidget(bar);
    drawing = new PlotCanvas(data,this);
-   auto *fit = bar->addAction("Fit"); connect(fit,&QAction::triggered,drawing,&PlotCanvas::fit);
+   auto *fit = bar->addAction("Fit"); fit->setObjectName("plotFitAction"); connect(fit,&QAction::triggered,drawing,&PlotCanvas::fit);
    if (data->kind==PlotModel::Kind::Orbit) {
       auto *cameraDialog=new QDialog(this); cameraDialog->setObjectName("orbitCameraDialog");
       cameraDialog->setWindowTitle(data->title+" — Camera");
@@ -767,11 +908,16 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
             drawing->refresh();
          });
       }
+      auto *starDisplay=displayDialog->findChild<QCheckBox *>("orbitDisplay_stars");
+      auto *constellationDisplay=displayDialog->findChild<QCheckBox *>("orbitDisplay_constellations");
+      connect(starDisplay,&QCheckBox::toggled,constellationDisplay,&QCheckBox::setEnabled);
+      constellationDisplay->setEnabled(starDisplay->isChecked());
       auto *displayClose=new QDialogButtonBox(QDialogButtonBox::Close,displayDialog); displayLayout->addWidget(displayClose);
       connect(displayClose,&QDialogButtonBox::rejected,displayDialog,&QDialog::reject);
       auto *displayAction=bar->addAction("Display…"); displayAction->setObjectName("orbitDisplayAction");
-      connect(displayAction,&QAction::triggered,this,[this,displayDialog,displayControls] {
+      connect(displayAction,&QAction::triggered,this,[this,displayDialog,displayControls,constellationDisplay] {
          for (const auto &control:displayControls) { const QSignalBlocker block(control.first); control.first->setChecked(data.get()->*control.second); }
+         constellationDisplay->setEnabled(data->starsEnabled);
          displayDialog->show(); displayDialog->raise(); displayDialog->activateWindow();
       });
       displayDialog->resize(410,240);
@@ -1004,6 +1150,13 @@ void PlotWidget::refresh()
    // The retained interval moves as MaxPlotPoints evicts old samples. Resolve
    // the slider against that interval on every update, not only mouse movement.
    updateReplayFrame();
+   // Opt-in, read-only observation of this completed render-update request.
+   // It neither schedules refreshes nor changes data collection or replay.
+   // Dynamic properties avoid a new member, signal, or public widget API.
+   if (property("gmatObserveRefresh").toBool()) {
+      setProperty("gmatLastRefreshFrame",QVariant::fromValue<qulonglong>(data->frame));
+      setProperty("gmatRefreshSerial",property("gmatRefreshSerial").toULongLong()+1);
+   }
 }
 
 void PlotWidget::editPlotStyle()
@@ -1065,7 +1218,7 @@ void PlotWidget::editPlotStyle()
          const auto chosen=QColorDialog::getColor(color->property("selectedColor").value<QColor>(),&dialog,"Curve color");
          if (chosen.isValid()) { color->setProperty("selectedColor",chosen); color->setText(chosen.name()); }
       });
-      apply.append([=,this] {
+      apply.append([=] {
          auto found=data->curves.find(key); if (found==data->curves.end()) return;
          auto &curve=found.value(); const auto chosen=color->property("selectedColor").value<QColor>();
          for (auto &point:curve.points) {

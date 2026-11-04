@@ -31,6 +31,19 @@ static void run(MainWindow &window) { require(window.runMission()==MainWindow::R
 static bool colored(const QImage &image,QPoint at) {
    for (int y=at.y()-3;y<=at.y()+3;++y) for (int x=at.x()-3;x<=at.x()+3;++x) if (image.rect().contains(x,y)) { const auto c=image.pixelColor(x,y); if (c.red()>180 && c.green()<100 && c.blue()<100) return true; } return false;
 }
+// The independent fixture coordinates below are QWidget logical pixels.
+// captureImage intentionally exports physical pixels, including its DPR.
+static QImage logicalCapture(PlotCanvas &canvas) {
+   auto physical=canvas.captureImage();
+   const auto ratio=canvas.devicePixelRatioF();
+   require(!physical.isNull() && std::abs(physical.devicePixelRatio()-ratio)<1e-6,
+      "XY capture lost its device-pixel ratio");
+   require(physical.width()==qRound(canvas.width()*ratio) && physical.height()==qRound(canvas.height()*ratio),
+      "XY capture dimensions do not match physical display pixels");
+   auto logical=physical.size()==canvas.size() ? physical : physical.scaled(canvas.size(),Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
+   logical.setDevicePixelRatio(1);
+   return logical;
+}
 int main(int argc,char **argv)
 {
    QApplication app(argc,argv); app.setOrganizationName("GMATTests"); app.setApplicationName("QtXYAxes");
@@ -59,9 +72,9 @@ int main(int argc,char **argv)
       // Independent screen geometry: x=5 is one quarter across [0,20],
       // y=5 is halfway up [0,10], with legend/grid off. Data must clip at bounds.
       auto fixture=std::make_shared<PlotModel>(PlotModel::Kind::XY); fixture->grid=false; fixture->legend=false; fixture->labels=false; fixture->curves[0].color=Qt::red; fixture->curves[0].lines=false; fixture->curves[0].markers=true; fixture->curves[0].markerType=4; fixture->curves[0].markerSize=8; fixture->append(0,5,5); fixture->xAxis.minimum=0; fixture->xAxis.maximum=20; fixture->yAxis.minimum=0; fixture->yAxis.maximum=10;
-      PlotCanvas canvas(fixture); canvas.resize(600,400); canvas.show(); QApplication::processEvents(); auto image=canvas.captureImage(); require(colored(image,{199,188}),"Fixed XY range did not place sample at independent screen coordinate"); fixture->xAxis.maximum=10; canvas.refresh(); QApplication::processEvents(); require(colored(canvas.captureImage(),{324,188}),"Changed XY range did not relocate rendered sample"); fixture->yAxis.maximum=4; canvas.refresh(); QApplication::processEvents(); image=canvas.captureImage(); bool red=false; for (int y=32;y<344;++y) for (int x=74;x<574;++x) red|=colored(image,{x,y}); require(!red,"Out-of-range XY sample was not clipped");
-      fixture->yAxis.maximum=10; fixture->grid=true; fixture->xAxis.ticks=5; fixture->yAxis.ticks=5; canvas.refresh(); QApplication::processEvents(); const auto oldGrid=canvas.captureImage(); fixture->xAxis.ticks=2; fixture->yAxis.ticks=3; canvas.refresh(); QApplication::processEvents(); const auto newGrid=canvas.captureImage(); require(newGrid.pixelColor(324,80)!=oldGrid.pixelColor(324,80),"X tick setting did not change grid placement"); require(newGrid.pixelColor(120,240)!=oldGrid.pixelColor(120,240),"Y tick setting did not change grid placement");
-      fixture->xAxis.minimum=0.123456789; fixture->xAxis.maximum=10.87654321; fixture->xAxis.precision=2; canvas.refresh(); QApplication::processEvents(); const auto shortLabels=canvas.captureImage().copy(0,345,600,24); fixture->xAxis.precision=12; canvas.refresh(); QApplication::processEvents(); require(canvas.captureImage().copy(0,345,600,24)!=shortLabels,"X label precision did not change rendered numbers"); fixture->yAxis.minimum=0.123456789; fixture->yAxis.maximum=10.87654321; fixture->yAxis.precision=2; canvas.refresh(); QApplication::processEvents(); const auto shortY=canvas.captureImage().copy(24,32,45,312); fixture->yAxis.precision=12; canvas.refresh(); QApplication::processEvents(); require(canvas.captureImage().copy(24,32,45,312)!=shortY,"Y label precision did not change rendered numbers");
+      PlotCanvas canvas(fixture); canvas.resize(600,400); canvas.show(); QApplication::processEvents(); auto image=logicalCapture(canvas); require(colored(image,{199,188}),"Fixed XY range did not place sample at independent screen coordinate"); fixture->xAxis.maximum=10; canvas.refresh(); QApplication::processEvents(); require(colored(logicalCapture(canvas),{324,188}),"Changed XY range did not relocate rendered sample"); fixture->yAxis.maximum=4; canvas.refresh(); QApplication::processEvents(); image=logicalCapture(canvas); bool red=false; for (int y=32;y<344;++y) for (int x=74;x<574;++x) red|=colored(image,{x,y}); require(!red,"Out-of-range XY sample was not clipped");
+      fixture->yAxis.maximum=10; fixture->grid=true; fixture->xAxis.ticks=5; fixture->yAxis.ticks=5; canvas.refresh(); QApplication::processEvents(); const auto oldGrid=logicalCapture(canvas); fixture->xAxis.ticks=2; fixture->yAxis.ticks=3; canvas.refresh(); QApplication::processEvents(); const auto newGrid=logicalCapture(canvas); require(newGrid.pixelColor(324,80)!=oldGrid.pixelColor(324,80),"X tick setting did not change grid placement"); require(newGrid.pixelColor(120,240)!=oldGrid.pixelColor(120,240),"Y tick setting did not change grid placement");
+      fixture->xAxis.minimum=0.123456789; fixture->xAxis.maximum=10.87654321; fixture->xAxis.precision=2; canvas.refresh(); QApplication::processEvents(); const auto shortLabels=logicalCapture(canvas).copy(0,345,600,24); fixture->xAxis.precision=12; canvas.refresh(); QApplication::processEvents(); require(logicalCapture(canvas).copy(0,345,600,24)!=shortLabels,"X label precision did not change rendered numbers"); fixture->yAxis.minimum=0.123456789; fixture->yAxis.maximum=10.87654321; fixture->yAxis.precision=2; canvas.refresh(); QApplication::processEvents(); const auto shortY=logicalCapture(canvas).copy(24,32,45,312); fixture->yAxis.precision=12; canvas.refresh(); QApplication::processEvents(); require(logicalCapture(canvas).copy(24,32,45,312)!=shortY,"Y label precision did not change rendered numbers");
       std::cout<<"PASS: actual MDI XY labels/ranges/ticks/precision, Cancel/invalid correction, one-sided/automatic ranges, retained samples/close-reopen and exact script/report save-reopen/rerun; independent rendered sample coordinates and clipping.\n";
    } catch (BaseException &e) { std::cerr<<"FAIL: "<<e.GetFullMessage()<<'\n'; return 1; } catch (const std::exception &e) { std::cerr<<"FAIL: "<<e.what()<<'\n'; return 1; }
 }

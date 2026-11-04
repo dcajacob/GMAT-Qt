@@ -1,3 +1,4 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "ResourceEditor.hpp"
 #include "ScriptCompatibility.hpp"
@@ -5,6 +6,7 @@
 #include "Moderator.hpp"
 #include "GmatBase.hpp"
 #include "Rmatrix.hpp"
+#include "SpacePoint.hpp"
 #include <QApplication>
 #include <QAction>
 #include <QDialog>
@@ -53,7 +55,7 @@ int main(int argc,char **argv)
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv);
    app.setOrganizationName("GMATTests"); app.setApplicationName("QtResourceClone");
    try {
-      require(argc==2 && QGuiApplication::platformName()=="offscreen","Resource Clone must run offscreen with one startup argument");
+      require(argc==2 && acceptanceWidgetPlatform(),"Resource Clone must run offscreen with one startup argument");
       QTemporaryDir files; require(files.isValid(),"Temporary clone directory unavailable"); TestSettings settings;
       const auto startup=QFileInfo(QString::fromLocal8Bit(argv[1])).absoluteFilePath(); QDir::setCurrent(QFileInfo(startup).absolutePath());
       MainWindow window; require(window.initialize(startup),"Clone runtime initialization failed"); window.show();
@@ -129,9 +131,26 @@ int main(int argc,char **argv)
       closePanels(window); editor->undo(); require(editor->toPlainText()==baseline,"Clone Undo not exact/atomic");
       require(!window.cloneResource("Site","Stale",configured).isEmpty() && editor->toPlainText()==baseline,"Clone accepted stale source");
       require(window.buildScript() && !object(suggested),"Undo rebuild retained clone"); editor->redo(); require(editor->toPlainText()==configured && window.buildScript(),"Clone Redo/rebuild not exact");
+      // Only palette defaults depend on creation order. Freeze the original's
+      // effective values before cloning, independently of the copied source.
+      auto *originalPoint=dynamic_cast<SpacePoint *>(object("Site")); require(originalPoint,"Clone source palette unavailable");
+      const auto originalColors=qMakePair(originalPoint->GetCurrentOrbitColor(),originalPoint->GetCurrentTargetColor());
+      const auto colorSource="PlainCopy.OrbitColor = "+QString::fromStdString(originalPoint->GetOrbitColorString())+";\nPlainCopy.TargetColor = "+QString::fromStdString(originalPoint->GetTargetColorString())+";\n";
       auto before=editor->toPlainText(); auto error=window.cloneResource("Site","PlainCopy",before); require(error.isEmpty(),qPrintable(error));
-      const QString copied="Create GroundStation PlainCopy;\nPlainCopy.Id = 'Site reference text';\nGMAT PlainCopy.MinimumElevationAngle = 1.2e1; % retain elevation α\n";
-      auto expected=before; expected.insert(expected.indexOf("BeginMissionSequence"),copied); require(editor->toPlainText()==expected,"Unchanged clone lost literal/reference/comment source or copied an unrelated assignment");
+      const QString copied=QString("Create GroundStation PlainCopy;\nPlainCopy.Id = 'Site reference text';\nGMAT PlainCopy.MinimumElevationAngle = 1.2e1; % retain elevation α\n")+colorSource;
+      auto expected=before; expected.insert(expected.indexOf("BeginMissionSequence"),copied);
+      const auto evidence=qEnvironmentVariable("GMAT_QT_ACCEPTANCE_DIR");
+      if (!evidence.isEmpty()) {
+         const QMap<QString,QString> values{{"expected",expected},{"actual",editor->toPlainText()},
+            {"original-native",QString::fromStdString(object("Site")->GetGeneratingString(Gmat::SHOW_SCRIPT))},
+            {"clone-native",QString::fromStdString(object("PlainCopy")->GetGeneratingString(Gmat::SHOW_SCRIPT))}};
+         for (auto it=values.cbegin();it!=values.cend();++it) { QFile file(QDir(evidence).filePath("plain-copy-"+it.key()+".script")); if (file.open(QIODevice::WriteOnly)) file.write(it.value().toUtf8()); }
+      }
+      require(editor->toPlainText()==expected,"Unchanged clone lost literal/reference/comment source or copied an unrelated assignment");
+      auto *clonedPoint=dynamic_cast<SpacePoint *>(object("PlainCopy"));
+      require(clonedPoint&&clonedPoint->GetCurrentOrbitColor()==originalColors.first&&clonedPoint->GetCurrentTargetColor()==originalColors.second,"Unchanged clone did not preserve original native palette");
+      auto *retainedPoint=dynamic_cast<SpacePoint *>(object("Site"));
+      require(retainedPoint&&retainedPoint->GetCurrentOrbitColor()==originalColors.first&&retainedPoint->GetCurrentTargetColor()==originalColors.second&&!before.contains("Site.OrbitColor =")&&!before.contains("Site.TargetColor ="),"Cloning changed the original implicit palette or its source");
       for (const auto &pair:QList<QPair<QString,QString>>{{"Keep","KeepCopy"},{"Caption","CaptionCopy"},{"Cells","CellsCopy"},{"Frame","FrameCopy"},{"Display","DisplayCopy"}}) {
          before=editor->toPlainText(); error=window.cloneResource(pair.first,pair.second,before); require(error.isEmpty(),qPrintable(error));
          require(editor->toPlainText().startsWith(before.left(before.indexOf("BeginMissionSequence"))) && editor->toPlainText().endsWith(commands),"Cloning ordinary resource rewrote prior source");

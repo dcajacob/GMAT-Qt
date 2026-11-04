@@ -52,6 +52,7 @@ public:
 
    // Override from GmatBase
    virtual GmatBase*    Clone(void) const;
+   virtual void         Copy(const GmatBase* source);
 
    virtual Gmat::ParameterType
                         GetParameterType(const Integer id) const;

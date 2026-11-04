@@ -61,6 +61,7 @@
 //                              Additions:
 // **************************************************************************
 
+#include "AcceptedStepHistory.hpp"
 #include "gmatdefs.hpp"
 #include "RungeKutta.hpp"
 #include "MessageInterface.hpp"
@@ -440,6 +441,10 @@ bool RungeKutta::Step()
     }
 
     physicalModel->IncrementTime(stepTaken);
+    if (AcceptedStepHistory::IsCapturing())
+       AcceptedStepHistory::Record(this, physicalModel,
+          physicalModel->GetTime() - stepTaken, physicalModel->GetTime(),
+          outState, dimension);
 
     if (stepLimited)
     {
@@ -610,6 +615,12 @@ bool RungeKutta::RawStep()
 //------------------------------------------------------------------------------
 bool RungeKutta::Step(Real dt)
 {
+   struct MinimumScope
+   {
+      Real &value;
+      Real original;
+      ~MinimumScope() { value = original; }
+   } minimumScope{minimumStep, minimumStep};
    bool stepFinished = false;
    timeleft = dt;
    Integer attemptsTaken = 0;
@@ -631,6 +642,11 @@ bool RungeKutta::Step(Real dt)
                "taken)\n", attemptsTaken);
          return false;
       }
+      // Every fixed interval, including synchronized propagation, may end
+      // with a remainder shorter than MinStep. Its accuracy-policy floor
+      // is that remainder, never an overshoot. Restore MinStep on exit.
+      minimumStep = fabs(timeleft) < minimumScope.original ?
+            fabs(timeleft) : minimumScope.original;
       if (!Propagator::Step(timeleft))
          return false;
 

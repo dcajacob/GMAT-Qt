@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "scope": "Two negative-C3 elliptic apoapsis-extension six-field inputs;nonfinite,strictly-inside near-parabolic,circular and exact-pole rejection/recovery under declared GMAT convention. Exact C3/eccentricity threshold endpoints,near-pole limits,other frames and general domains remain open.",
+  "cases": [
+    {
+      "key": "IncomingAsymptote",
+      "canonical_keplerian": [
+        13500,
+        0.32,
+        48,
+        73,
+        62,
+        241
+      ],
+      "mu": 398600.4418,
+      "names": [
+        "IncomingRadPer",
+        "IncomingC3Energy",
+        "IncomingRHA",
+        "IncomingDHA",
+        "IncomingBVAZI",
+        "TA"
+      ],
+      "values": [
+        9180.0,
+        -29.525958651851848,
+        304.5283881785139,
+        -41.00750912469114,
+        62.46241901336027,
+        241
+      ],
+      "units": [
+        "km",
+        "km^2/sec^2",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "invalid_field": "IncomingC3Energy",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "extra_invalid": [
+        {
+          "field": "IncomingC3Energy",
+          "value": "0",
+          "category": "parabolic",
+          "diagnostic_any": [
+            "parabolic",
+            "C3Energy"
+          ]
+        },
+        {
+          "field": "IncomingC3Energy",
+          "value": "5e-8",
+          "category": "parabolic",
+          "diagnostic_any": [
+            "parabolic",
+            "C3Energy"
+          ]
+        },
+        {
+          "field": "IncomingC3Energy",
+          "value": "-5e-8",
+          "category": "parabolic",
+          "diagnostic_any": [
+            "parabolic",
+            "C3Energy"
+          ]
+        },
+        {
+          "field": "IncomingC3Energy",
+          "value": "-43.420527429193896",
+          "category": "circular",
+          "diagnostic_any": [
+            "circular",
+            "C3Energy"
+          ]
+        },
+        {
+          "field": "IncomingDHA",
+          "value": "90",
+          "category": "polar",
+          "diagnostic_any": [
+            "z-direction",
+            "DHA"
+          ]
+        },
+        {
+          "field": "IncomingDHA",
+          "value": "-90",
+          "category": "polar",
+          "diagnostic_any": [
+            "z-direction",
+            "DHA"
+          ]
+        }
+      ],
+      "expected_cartesian": [
+        9981.042575033214,
+        5117.017742569735,
+        -8939.150522984286,
+        -1.617637018736748,
+        3.8298889715500812,
+        2.9616761040098334
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09
+    },
+    {
+      "key": "OutgoingAsymptote",
+      "canonical_keplerian": [
+        16800,
+        0.41,
+        112,
+        224,
+        19,
+        73
+      ],
+      "mu": 398600.4418,
+      "names": [
+        "OutgoingRadPer",
+        "OutgoingC3Energy",
+        "OutgoingRHA",
+        "OutgoingDHA",
+        "OutgoingBVAZI",
+        "TA"
+      ],
+      "values": [
+        9912.000000000002,
+        -23.726216773809522,
+        36.6501490663279,
+        -17.569445674129252,
+        336.8626668340203,
+        73
+      ],
+      "units": [
+        "km",
+        "km^2/sec^2",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "invalid_field": "OutgoingC3Energy",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "extra_invalid": [
+        {
+          "field": "OutgoingC3Energy",
+          "value": "0",
+          "category": "parabolic",
+          "diagnostic_any": [
+            "parabolic",
+            "C3Energy"
+          ]
+        },
+        {
+          "field": "OutgoingC3Energy",
+          "value": "5e-8",
+          "category": "parabolic",
+          "diagnostic_any": [
+            "parabolic",
+            "C3Energy"
+          ]
+        },
+        {
+          "field": "OutgoingC3Energy",
+          "value": "-5e-8",
+          "category": "parabolic",
+          "diagnostic_any": [
+            "parabolic",
+            "C3Energy"
+          ]
+        },
+        {
+          "field": "OutgoingC3Energy",
+          "value": "-40.21392673527037",
+          "category": "circular",
+          "diagnostic_any": [
+            "circular",
+            "C3Energy"
+          ]
+        },
+        {
+          "field": "OutgoingDHA",
+          "value": "90",
+          "category": "polar",
+          "diagnostic_any": [
+            "z-direction",
+            "DHA"
+          ]
+        },
+        {
+          "field": "OutgoingDHA",
+          "value": "-90",
+          "category": "polar",
+          "diagnostic_any": [
+            "z-direction",
+            "DHA"
+          ]
+        }
+      ],
+      "expected_cartesian": [
+        -2932.2885183188655,
+        3663.4624102029156,
+        11564.133176990345,
+        3.8618144304872004,
+        4.710388053018504,
+        1.7467378035171326
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09
+    }
+  ]
+}

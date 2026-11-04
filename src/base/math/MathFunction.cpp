@@ -111,7 +111,7 @@ MathFunction& MathFunction::operator=(const MathFunction &mf)
    if (this == &mf)
       return *this;
    
-   GmatBase::operator=(mf);
+   MathNode::operator=(mf);
    leftNode   = mf.leftNode;
    rightNode  = mf.rightNode;
    

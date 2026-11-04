@@ -50,8 +50,11 @@
 #include "ObjectWrapper.hpp"
 #include "StringUtil.hpp"               // for GmatStringUtil::
 #include "Assignment.hpp"
+#include "MathTree.hpp"
 #include "RHSEquation.hpp"
 #include "ParameterInfo.hpp"            // for IsSettable()
+#include "FactoryManager.hpp"
+#include <memory>
 #include "UserDefinedFunction.hpp"    // for AddAutomaticObject()
 
 //#define DEBUG_HANDLE_ERROR
@@ -1120,7 +1123,29 @@ bool Validator::CreateAssignmentWrappers(GmatCommand *cmd, Integer manage)
       if (lhs == "" || lhs == "Not_Set")
          createDefaultStringWrapper = true;
       
-      bool paramFirst = false;
+      // A known read-only parameter must not fall back to an object-property
+      // wrapper just because its name also matches a resource field (for
+      // example Spacecraft.TotalMass). ParameterWrapper preserves its
+      // IsSettable contract and Assignment rejects the destination at build.
+      bool paramFirst = !isLhsSettableParam && theModerator->IsParameter(newType);
+      // The covariance calculation Parameter is read-only, but the direct
+      // Spacecraft field is a writable initial condition. NASA's filter
+      // sample assigns it in the mission sequence before running the filter.
+      // Keep qualified calculation Parameters and other read-only names on
+      // their existing path; only this direct, writable field uses its setter.
+      if (paramFirst && newType == "OrbitErrorCovariance" && dep.empty() &&
+          lhs.find_first_of('.') == lhs.find_last_of('.'))
+      {
+         GmatBase *fieldOwner = FindObject(owner);
+         if (fieldOwner != NULL && fieldOwner->IsOfType(Gmat::SPACECRAFT))
+         {
+            const Integer field = fieldOwner->GetParameterID(newType);
+            if (fieldOwner->GetParameterType(field) == Gmat::RMATRIX_TYPE &&
+                !fieldOwner->IsParameterReadOnly(field) &&
+                fieldOwner->IsParameterCommandModeSettable(field))
+               paramFirst = false;
+         }
+      }
       if (isLhsSettableParam)
       {
          paramFirst = true;
@@ -1336,6 +1361,19 @@ bool Validator::CreateAssignmentWrappers(GmatCommand *cmd, Integer manage)
       if ((origVal == lhs && !isMathTree) ||
           (origVal == lhs && isMathTree && origVal.find(".") == origVal.npos))
          continue;
+      if (origVal == lhs && isMathTree)
+      {
+         // Dotted destinations are inventoried for function-scope registration
+         // even when they are absent from the RHS. Only create a second,
+         // calculation-Parameter wrapper when the expression actually reads it.
+         // In particular a writable covariance field must not be rejected just
+         // because its read-only reporting Parameter is not a destination.
+         const StringArray refs = acmd->GetMathTree()->GetRefObjectNameArray(Gmat::PARAMETER);
+         const StringArray inputs = acmd->GetMathTree()->GetWrapperObjectNameArray();
+         if (std::find(refs.begin(), refs.end(), lhs) == refs.end() &&
+             std::find(inputs.begin(), inputs.end(), lhs) == inputs.end())
+            continue;
+      }
       
       std::string name = origVal;
       bool addedQuotes = false;
@@ -2372,6 +2410,44 @@ Parameter* Validator::CreateSystemParameter(bool &paramCreated,
       if (find(theParameterList.begin(), theParameterList.end(), paramType) != 
           theParameterList.end())
       {
+         // A resource field may share a name with a system parameter for a
+         // different owner type: ImpulsiveBurn.Isp is a writable burn field,
+         // whereas the Isp system parameter belongs to Spacecraft/Thruster.
+         // Leave a valid direct field to ObjectPropertyWrapper in that case.
+         // Matching owners still use the system parameter and its read-only
+         // contract (for example Spacecraft.TotalMass).
+         GmatBase *owner = NULL;
+         if (depName.empty())
+         {
+            // During function parsing the validator map may still be the caller's
+            // scope. A declared local resource takes precedence over that map.
+            if (theFunction && theFunction->IsOfType("UserDefinedFunction"))
+               owner = static_cast<UserDefinedFunction*>(theFunction)->
+                  FindFunctionObject(ownerName);
+            if (!owner)
+               owner = FindObject(ownerName);
+         }
+         UnsignedInt ownerType =
+            ParameterInfo::Instance()->GetObjectType(paramType);
+         // Isolated parsers may not have constructed this parameter yet.
+         // Obtain its declared owner without binding it to the field owner.
+         if (owner != NULL && ownerType == Gmat::UNKNOWN_OBJECT)
+         {
+            std::unique_ptr<Parameter> prototype(
+               FactoryManager::Instance()->CreateParameter(paramType));
+            if (prototype)
+               ownerType = prototype->GetOwnerType();
+         }
+         if (owner != NULL && ownerType != Gmat::UNKNOWN_OBJECT &&
+             !owner->IsOfType(ownerType))
+         {
+            Integer field = -1;
+            try { field = owner->GetParameterID(paramType); }
+            catch (BaseException &) {} // Unknown fields retain normal errors.
+            if (field >= 0)
+               continue;
+         }
+
          bool alreadyManaged;
          param = CreateAutoParameter(paramType, names[i], alreadyManaged, ownerName,
                                      depName, manage);

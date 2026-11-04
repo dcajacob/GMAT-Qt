@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "IfVariable",
+      "family": "If",
+      "kind": "Variable",
+      "legacy_object": "If",
+      "recipe_key": "IfNoElse",
+      "apply_first": false,
+      "historical_keys": [
+        "H2012:R1470"
+      ]
+    },
+    {
+      "key": "IfArray",
+      "family": "If",
+      "kind": "Array",
+      "legacy_object": "If",
+      "recipe_key": "IfNoElse",
+      "apply_first": false,
+      "historical_keys": [
+        "H2012:R1468"
+      ]
+    },
+    {
+      "key": "IfProperty",
+      "family": "If",
+      "kind": "Property",
+      "legacy_object": "If",
+      "recipe_key": "IfNoElse",
+      "apply_first": false,
+      "historical_keys": [
+        "H2012:R1469"
+      ]
+    },
+    {
+      "key": "IfElseVariable",
+      "family": "IfElse",
+      "kind": "Variable",
+      "legacy_object": "If-Else",
+      "recipe_key": "If",
+      "apply_first": false,
+      "historical_keys": [
+        "H2012:R1539"
+      ]
+    },
+    {
+      "key": "IfElseArray",
+      "family": "IfElse",
+      "kind": "Array",
+      "legacy_object": "If-Else",
+      "recipe_key": "If",
+      "apply_first": false,
+      "historical_keys": [
+        "H2012:R1537"
+      ]
+    },
+    {
+      "key": "IfElseProperty",
+      "family": "IfElse",
+      "kind": "Property",
+      "legacy_object": "If-Else",
+      "recipe_key": "If",
+      "apply_first": false,
+      "historical_keys": [
+        "H2012:R1538"
+      ]
+    },
+    {
+      "key": "WhileVariable",
+      "family": "While",
+      "kind": "Variable",
+      "legacy_object": "While",
+      "recipe_key": "While",
+      "apply_first": false,
+      "historical_keys": [
+        "H2012:R1610"
+      ]
+    },
+    {
+      "key": "WhileArray",
+      "family": "While",
+      "kind": "Array",
+      "legacy_object": "While",
+      "recipe_key": "While",
+      "apply_first": false,
+      "historical_keys": [
+        "H2012:R1608"
+      ]
+    },
+    {
+      "key": "WhileProperty",
+      "family": "While",
+      "kind": "Property",
+      "legacy_object": "While",
+      "recipe_key": "While",
+      "apply_first": false,
+      "historical_keys": [
+        "H2012:R1609"
+      ]
+    },
+    {
+      "key": "MinimizeVariable",
+      "family": "Minimize",
+      "kind": "Variable",
+      "legacy_object": "Minimize",
+      "recipe_key": "Minimize",
+      "apply_first": false,
+      "historical_keys": [
+        "H2012:R1715"
+      ]
+    },
+    {
+      "key": "MinimizeArray",
+      "family": "Minimize",
+      "kind": "Array",
+      "legacy_object": "Minimize",
+      "recipe_key": "Minimize",
+      "apply_first": true,
+      "historical_keys": [
+        "H2012:R1700",
+        "H2012:R1713"
+      ]
+    },
+    {
+      "key": "MinimizeProperty",
+      "family": "Minimize",
+      "kind": "Property",
+      "legacy_object": "Minimize",
+      "recipe_key": "Minimize",
+      "apply_first": false,
+      "historical_keys": [
+        "H2012:R1714"
+      ]
+    },
+    {
+      "key": "PropagateVariable",
+      "family": "Propagate",
+      "kind": "Variable",
+      "legacy_object": "Propagate",
+      "recipe_key": "Propagate",
+      "apply_first": false,
+      "historical_keys": [
+        "H2012:R1766"
+      ]
+    },
+    {
+      "key": "PropagateArray",
+      "family": "Propagate",
+      "kind": "Array",
+      "legacy_object": "Propagate",
+      "recipe_key": "Propagate",
+      "apply_first": false,
+      "historical_keys": [
+        "H2012:R1764"
+      ]
+    },
+    {
+      "key": "PropagateProperty",
+      "family": "Propagate",
+      "kind": "Property",
+      "legacy_object": "Propagate",
+      "recipe_key": "Propagate",
+      "apply_first": false,
+      "historical_keys": [
+        "H2012:R1765"
+      ]
+    },
+    {
+      "key": "NonlinearConstraintVariable",
+      "family": "NonlinearConstraint",
+      "kind": "Variable",
+      "legacy_object": "NonlinearConstraint",
+      "recipe_key": "NonlinearConstraint",
+      "apply_first": true,
+      "historical_keys": [
+        "H2012:R1857",
+        "H2012:R1869"
+      ]
+    },
+    {
+      "key": "NonlinearConstraintArray",
+      "family": "NonlinearConstraint",
+      "kind": "Array",
+      "legacy_object": "NonlinearConstraint",
+      "recipe_key": "NonlinearConstraint",
+      "apply_first": true,
+      "historical_keys": [
+        "H2012:R1854",
+        "H2012:R1867"
+      ]
+    },
+    {
+      "key": "NonlinearConstraintProperty",
+      "family": "NonlinearConstraint",
+      "kind": "Property",
+      "legacy_object": "NonlinearConstraint",
+      "recipe_key": "NonlinearConstraint",
+      "apply_first": true,
+      "historical_keys": [
+        "H2012:R1856",
+        "H2012:R1868"
+      ]
+    }
+  ]
+}

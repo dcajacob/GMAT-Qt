@@ -150,7 +150,7 @@ BuiltinFunctionNode& BuiltinFunctionNode::operator=(const BuiltinFunctionNode &f
    if (this == &func)
       return *this;
    
-   GmatBase::operator=(func);
+   MathNode::operator=(func);
    desc = func.desc;
    return *this;
 }

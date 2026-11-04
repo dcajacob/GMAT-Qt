@@ -473,3 +473,14 @@ Real RectangularFOV::SetRealParameter(const std::string &label, const Real value
 {
 	return SetRealParameter(GetParameterID(label), value);
 }
+
+// Whole-object script assignment and GmatFunction outputs use this virtual API.
+// Retain the existing class assignment logic and the destination's identity.
+void RectangularFOV::Copy(const GmatBase* source)
+{
+   const auto* typed = dynamic_cast<const RectangularFOV*>(source);
+   if (!typed || typed->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Cannot copy into " + GetTypeName() +
+                             " from a null or incompatible object");
+   operator=(*typed);
+}

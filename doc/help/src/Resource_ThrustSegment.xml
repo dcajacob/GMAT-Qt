@@ -156,7 +156,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless multiplicative factor or its same-unit uncertainty</para>
                   </listitem>
                 </varlistentry>
 
@@ -559,7 +559,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -615,7 +615,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless multiplicative factor or its same-unit uncertainty</para>
                   </listitem>
                 </varlistentry>
 
@@ -673,7 +673,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless multiplicative factor or its same-unit uncertainty</para>
                   </listitem>
                 </varlistentry>
 

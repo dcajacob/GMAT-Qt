@@ -36,7 +36,9 @@
 //------------------------------------------------------------------------------
 
 #include <sstream>
+#include <cmath>
 #include "Spacecraft.hpp"
+#include "ODEModel.hpp"
 #include "MessageInterface.hpp"
 #include "ConfigManager.hpp" // FIXME: Temporary workaround until GMT-7066 is fixed
 #include "SpaceObjectException.hpp"
@@ -766,6 +768,7 @@ Spacecraft::Spacecraft(const std::string &name, const std::string &typeStr) :
 //---------------------------------------------------------------------------
 Spacecraft::~Spacecraft()
 {
+   ODEModel::ForgetAccelerationContext(this);
 #ifdef DEBUG_SPACECRAFT
    MessageInterface::ShowMessage
    ("Spacecraft::~Spacecraft() <%p>'%s' entered, attitude=<%p>\n",
@@ -878,6 +881,7 @@ Spacecraft::Spacecraft(const Spacecraft &a) :
    table_MOI_Offset     (a.table_MOI_Offset),
    systemCM             (a.systemCM),
    systemMOI            (a.systemMOI),
+   originRelativeState  (a.originRelativeState),
    initialDisplay       (false),
    csSet                (a.csSet),
    isThrusterSettingMode(a.isThrusterSettingMode),
@@ -1167,6 +1171,7 @@ Spacecraft& Spacecraft::operator=(const Spacecraft &a)
    attitudeModel        = a.attitudeModel;
    ephemerisName        = a.ephemerisName;
    solarSystem          = a.solarSystem;         // need to copy
+   originRelativeState  = a.originRelativeState;
    internalCoordSystem  = a.internalCoordSystem; // need to copy
    coordinateSystem     = a.coordinateSystem;    // need to copy
 
@@ -1466,6 +1471,7 @@ void Spacecraft::SetInternalCoordSystem(CoordinateSystem *cs)
 
    if (internalCoordSystem != cs)
    {
+      originRelativeState.valid = false;
       internalCoordSystem = cs;
       if (coordinateSystem == NULL)
          coordinateSystem = cs;
@@ -1603,12 +1609,109 @@ void Spacecraft::SetState(const std::string &elementType, Real *instate)
 void Spacecraft::SetState(const Real s1, const Real s2, const Real s3,
                           const Real s4, const Real s5, const Real s6)
 {
+    originRelativeState.valid = false;
     state[0] = s1;
     state[1] = s2;
     state[2] = s3;
     state[3] = s4;
     state[4] = s5;
     state[5] = s6;
+}
+
+
+//------------------------------------------------------------------------------
+// Origin-relative Cartesian state preservation
+//------------------------------------------------------------------------------
+bool Spacecraft::SetOriginRelativeState(SpacePoint *origin,
+      const GmatTime &atEpoch, const Rvector6 &localState)
+{
+   if (!origin || !internalCoordSystem || !internalCoordSystem->GetOrigin() ||
+       origin == internalCoordSystem->GetOrigin() ||
+       !internalCoordSystem->AreAxesOfType("MJ2000EqAxes") ||
+       atEpoch != state.GetEpochGT())
+      return false;
+   for (Integer i = 0; i < 6; ++i)
+      if (!std::isfinite(localState[i]) || !std::isfinite(state[i]))
+         return false;
+
+   OriginRelativeState retained;
+   retained.origin = origin;
+   retained.internalOrigin = internalCoordSystem->GetOrigin();
+   retained.internalFrame = internalCoordSystem;
+   retained.epoch = atEpoch;
+   retained.originName = origin->GetName();
+   retained.internalOriginName = internalCoordSystem->GetOrigin()->GetName();
+   retained.celestialOrigin = origin->IsOfType(Gmat::CELESTIAL_BODY);
+   retained.celestialInternalOrigin =
+      internalCoordSystem->GetOrigin()->IsOfType(Gmat::CELESTIAL_BODY);
+   if (retained.celestialOrigin)
+      retained.originEphemeris =
+         static_cast<CelestialBody*>(origin)->GetState(atEpoch);
+   if (retained.celestialInternalOrigin)
+      retained.internalOriginEphemeris =
+         static_cast<CelestialBody*>(internalCoordSystem->GetOrigin())->GetState(atEpoch);
+
+   retained.local = localState;
+   for (Integer i = 0; i < 6; ++i)
+      retained.backing[i] = state[i];
+   for (Integer i = 0; i < 6; ++i)
+      if ((retained.celestialOrigin && !std::isfinite(retained.originEphemeris[i])) ||
+          (retained.celestialInternalOrigin && !std::isfinite(retained.internalOriginEphemeris[i])))
+         return false;
+   retained.valid = true;
+   originRelativeState = retained;
+   return true;
+}
+
+bool Spacecraft::GetOriginRelativeState(SpacePoint *origin,
+      const GmatTime &atEpoch, Rvector6 &localState) const
+{
+   if (!originRelativeState.valid)
+      return false;
+
+   // Mutable GmatState access is part of the existing public API. Bind the
+   // retained state to all six backing values, epoch and frame identities.
+   bool current = internalCoordSystem &&
+      internalCoordSystem == originRelativeState.internalFrame &&
+      internalCoordSystem->AreAxesOfType("MJ2000EqAxes") &&
+      state.GetEpochGT() == originRelativeState.epoch;
+   for (Integer i = 0; i < 6 && current; ++i)
+      current = (state[i] == originRelativeState.backing[i]);
+   // Sandbox initialization can rebind the shared internal frame to a cloned
+   // celestial body. Accept that handoff only with exact name and ephemeris
+   // equality at the retained epoch; never dereference the old origin pointer.
+   auto equivalentBody = [&](SpacePoint *body, bool celestial,
+         const std::string &name, const Rvector6 &ephemeris)
+   {
+      return celestial && body && body->IsOfType(Gmat::CELESTIAL_BODY) &&
+         body->GetName() == name &&
+         static_cast<CelestialBody*>(body)->GetState(originRelativeState.epoch) == ephemeris;
+   };
+   if (current && internalCoordSystem->GetOrigin() != originRelativeState.internalOrigin)
+   {
+      current = equivalentBody(internalCoordSystem->GetOrigin(),
+         originRelativeState.celestialInternalOrigin,
+         originRelativeState.internalOriginName, originRelativeState.internalOriginEphemeris);
+      if (current)
+         originRelativeState.internalOrigin = internalCoordSystem->GetOrigin();
+   }
+   if (!current)
+   {
+      originRelativeState.valid = false;
+      return false;
+   }
+   // Rebinding the spacecraft's configured frame to the equivalent sandbox
+   // body preserves local input. A separate same-name object does not match.
+   if (origin != originRelativeState.origin && coordinateSystem &&
+       origin == coordinateSystem->GetOrigin() &&
+       equivalentBody(origin, originRelativeState.celestialOrigin,
+          originRelativeState.originName, originRelativeState.originEphemeris))
+      originRelativeState.origin = origin;
+   // An unrelated query must not discard a still-valid local state.
+   if (origin != originRelativeState.origin || atEpoch != originRelativeState.epoch)
+      return false;
+   localState = originRelativeState.local;
+   return true;
 }
 
 
@@ -7773,7 +7876,7 @@ bool Spacecraft::TakeAction(const std::string &action,
                   MessageInterface::ShowMessage("    and current input state is: %12.10f   %12.10f      %12.10f   %12.10f   %12.10f   %12.10f\n",
                         state[0], state[1], state[2], state[3], state[4], state[5]);
                #endif
-               convertedState = GetStateInRepresentation(stateType, true); // will use defaultCartesian for the state here
+               convertedState = GetStateInRepresentation(stateType, true, true); // use defaultCartesian with the input epoch's rotation
 //               convertedState = StateConversionUtil::Convert(originMu, defaultCartesian, "Cartesian", stateType);
                #ifdef DEBUG_SPACECRAFT_CS
                   MessageInterface::ShowMessage("    state converted to %s is: %s\n", stateType.c_str(), (convertedState.ToString()).c_str());
@@ -10614,7 +10717,9 @@ void Spacecraft::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
          parmOrder[parmIndex++] = i;
    }
 
-   Rvector6 repState = GetStateInRepresentation(displayStateType);
+   // Serialization must describe the state at its own epoch, independently of
+   // a frame cache initialized by an earlier mission or another spacecraft.
+   Rvector6 repState = GetStateInRepresentation(displayStateType, false, true);
 
    #ifdef DEBUG_WRITE_PARAMETERS
    MessageInterface::ShowMessage
@@ -10862,6 +10967,12 @@ void Spacecraft::UpdateElementLabels(const std::string &displayStateType)
 //------------------------------------------------------------------------------
 Rvector6 Spacecraft::GetStateInRepresentation(const std::string &rep, bool useDefaultCartesian)
 {
+   return GetStateInRepresentation(rep, useDefaultCartesian, false);
+}
+
+Rvector6 Spacecraft::GetStateInRepresentation(const std::string &rep,
+      bool useDefaultCartesian, bool forceComputation)
+{
    #ifdef DEBUG_STATE_INTERFACE
       MessageInterface::ShowMessage("Spacecraft::GetStateInRepresentation(string): Constructing %s state\n", rep.c_str());
       MessageInterface::ShowMessage("Spacecraft::GetStateInRepresentation(string): using defaultCartesian = %s\n",
@@ -10887,12 +10998,14 @@ Rvector6 Spacecraft::GetStateInRepresentation(const std::string &rep, bool useDe
                coordinateSystem->GetName().c_str());
       #endif
 
+      const bool local = !useDefaultCartesian && GetOriginRelativeState(
+         coordinateSystem->GetOrigin(), state.GetEpochGT(), inState);
       if (hasPrecisionTime)
          coordConverter.Convert(GetEpochGT(), inState, internalCoordSystem, csState,
-            coordinateSystem);
+            coordinateSystem, forceComputation, local);
       else
          coordConverter.Convert(GetEpoch(), inState, internalCoordSystem, csState,
-            coordinateSystem);
+            coordinateSystem, forceComputation, local);
 
       inertialCS = coordinateSystem->IsInertial();
       cbOrigin   = coordinateSystem->HasCelestialBodyOrigin();
@@ -11060,16 +11173,32 @@ void Spacecraft::SetStateFromRepresentation(const std::string &rep, Rvector6 &st
       #endif
       if (hasPrecisionTime)
          coordConverter.Convert(GetEpochGT(), csState, coordinateSystem, finalState,
-            internalCoordSystem);
+            internalCoordSystem, true);
       else
          coordConverter.Convert(GetEpoch(), csState, coordinateSystem, finalState,
-            internalCoordSystem);
+            internalCoordSystem, true);
    }
    else
       finalState = csState;
 
    for (int i=0; i<6; i++)
       state[i] = finalState[i];
+
+   originRelativeState.valid = false;
+   if (coordinateSystem->GetOrigin() && internalCoordSystem->GetOrigin() &&
+       coordinateSystem->GetOrigin() != internalCoordSystem->GetOrigin() &&
+       internalCoordSystem->AreAxesOfType("MJ2000EqAxes"))
+   {
+      Rvector6 localState;
+      if (hasPrecisionTime)
+         coordConverter.Convert(GetEpochGT(), csState, coordinateSystem,
+            localState, internalCoordSystem, true, true);
+      else
+         coordConverter.Convert(GetEpoch(), csState, coordinateSystem,
+            localState, internalCoordSystem, true, true);
+      SetOriginRelativeState(coordinateSystem->GetOrigin(), state.GetEpochGT(),
+         localState);
+   }
 
    #ifdef DEBUG_STATE_INTERFACE
       MessageInterface::ShowMessage(
@@ -11326,7 +11455,7 @@ bool Spacecraft::SetElement(const std::string &label, const Real &value)
             #ifdef DEBUG_SPACECRAFT_SET_ELEMENT
                MessageInterface::ShowMessage("In SC::SetElement, csSet = TRUE\n");
             #endif
-            Rvector6 tempState = GetStateInRepresentation(rep);
+            Rvector6 tempState = GetStateInRepresentation(rep, false, true);
             tempState[id] = value;
             SetStateFromRepresentation(rep, tempState, label);
          }
@@ -12860,6 +12989,8 @@ void Spacecraft::RecomputeStateDueToChangeOfEpochPrecision(bool fromLowToHi)
 
    // 1. Get internal state
    Rvector6 inState(state.GetState());
+   const bool local = coordinateSystem && GetOriginRelativeState(
+      coordinateSystem->GetOrigin(), state.GetEpochGT(), inState);
 
 #ifdef DEBUG_CHANGE_EPOCH_PRECISION
    MessageInterface::ShowMessage("   internal CS = <%s,%p>  spacecraft's CS = <%s,%p>\n", internalCoordSystem->GetName().c_str(), internalCoordSystem, coordinateSystem->GetName().c_str(), coordinateSystem);
@@ -12872,7 +13003,7 @@ void Spacecraft::RecomputeStateDueToChangeOfEpochPrecision(bool fromLowToHi)
    {
       // Case 1: precision changes from low to high:
       // Convert state from internal coordinate system to object coordinate system in low precision epoch
-      coordConverter.Convert(GetEpoch(), inState, internalCoordSystem, csState, coordinateSystem);
+      coordConverter.Convert(GetEpoch(), inState, internalCoordSystem, csState, coordinateSystem, false, local);
 
       // Convert state from object coordinate system to internal coordinate system in high precision epoch
       coordConverter.Convert(GetEpochGT(), csState, coordinateSystem, finalState, internalCoordSystem);
@@ -12881,7 +13012,7 @@ void Spacecraft::RecomputeStateDueToChangeOfEpochPrecision(bool fromLowToHi)
    {
       // Case 2: precision changes from high to low:
       // Convert state from internal coordinate system to object coordinate system in high precision epoch
-      coordConverter.Convert(GetEpochGT(), inState, internalCoordSystem, csState, coordinateSystem);
+      coordConverter.Convert(GetEpochGT(), inState, internalCoordSystem, csState, coordinateSystem, false, local);
 
       // Convert state from object coordinate system to internal coordinate system in low precision epoch
       coordConverter.Convert(GetEpoch(), csState, coordinateSystem, finalState, internalCoordSystem);
@@ -12894,6 +13025,21 @@ void Spacecraft::RecomputeStateDueToChangeOfEpochPrecision(bool fromLowToHi)
    state[3] = finalState[3];
    state[4] = finalState[4];
    state[5] = finalState[5];
+
+   originRelativeState.valid = false;
+   if (local)
+   {
+      Rvector6 newLocal;
+      if (fromLowToHi)
+         coordConverter.Convert(GetEpochGT(), csState, coordinateSystem,
+            newLocal, internalCoordSystem, false, true);
+      else
+         coordConverter.Convert(GetEpoch(), csState, coordinateSystem,
+            newLocal, internalCoordSystem, false, true);
+      SetOriginRelativeState(coordinateSystem->GetOrigin(), state.GetEpochGT(),
+         newLocal);
+   }
+
 
 #ifdef DEBUG_CHANGE_EPOCH_PRECISION
    MessageInterface::ShowMessage("   final state = [%.12lf   %.12lf   %.12lf   %.12lf   %.12lf   %.12lf]\n", state[0], state[1], state[2], state[3], state[4], state[5]);

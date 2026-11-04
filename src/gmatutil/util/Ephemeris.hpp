@@ -34,6 +34,7 @@
 #include "utildefs.hpp"       // Change to gmatutil for R2018a
 #include "Rvector6.hpp"
 #include "Interpolator.hpp"
+#include "GmatTime.hpp"
 
 /**
  * Base class for the ephemeris file components.
@@ -55,6 +56,7 @@ public:
 //   virtual void     GetPoint(GmatEpoch &epoch, Real *posvel,
 //         const Integer pointNumber, const Integer forSegment = 0);
    virtual Rvector6 InterpolatePoint(const GmatEpoch forEpoch);
+   Rvector6 InterpolatePoint(const GmatTime &forEpoch);
    virtual void     GetInterpolationInfoFromSegment(Integer segmentNo);
 
    /// Structure containing the minimal data GMAT needs for an ephem
@@ -62,6 +64,15 @@ public:
    {
       GmatEpoch               theEpoch;
       Rvector6                posvel;
+      // Keep the input file clock independently of its rounded public MJD.
+      // Legacy clients that populate only theEpoch retain their Real clock.
+      GmatTime                preciseEpoch;
+      bool                    hasPrecisionEpoch = false;
+      GmatTime GetEpoch() const
+      {
+         return hasPrecisionEpoch && preciseEpoch.GetMjd() == theEpoch ?
+               preciseEpoch : GmatTime(theEpoch);
+      }
    };
 
    /// A container for spans of an ephem.

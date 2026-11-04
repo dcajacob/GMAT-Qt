@@ -55,6 +55,7 @@ public:
    TrackingFileSet& operator=(const TrackingFileSet& tfs);
 
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
 
    // methods overridden from GmatBase
    virtual std::string  GetParameterText(const Integer id) const;

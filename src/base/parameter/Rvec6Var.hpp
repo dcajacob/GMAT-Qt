@@ -58,10 +58,24 @@ public:
    virtual const        Rvector6& GetRvector6() const;
    virtual void         SetRvector6(const Rvector6 &val);
    virtual const        Rvector6& EvaluateRvector6();
+   virtual const        Rvector& EvaluateRvector();
+
+   virtual Integer      GetParameterID(const std::string &str) const;
+   virtual std::string  GetParameterText(const Integer id) const;
+   virtual Gmat::ParameterType GetParameterType(const Integer id) const;
+   virtual bool         IsParameterReadOnly(const Integer id) const;
+   virtual Integer      GetIntegerParameter(const Integer id) const;
+   virtual Integer      GetIntegerParameter(const std::string &label) const;
    
 protected:
    
    Rvector6 mRvec6Value;
+
+   enum
+   {
+      VECTOR_SIZE = ParameterParamCount,
+      Rvec6VarParamCount
+   };
    
 private:
 

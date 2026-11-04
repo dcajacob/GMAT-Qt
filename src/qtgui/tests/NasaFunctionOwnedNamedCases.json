@@ -1,0 +1,536 @@
+{
+  "baseline_matrix": "build/nasa-coverage/coverage95-20261103-function-resource-universe/resource-scope-matrix-v1.json",
+  "baseline_matrix_sha256": "962f8f0cba3c5e67d485bedc998fe980d0df26ca6f44e37b82b5de6d5762b93a",
+  "qualified_keys": [],
+  "cases": [
+    {
+      "category_id": 110,
+      "category_name": "Propagator",
+      "type": "RungeKutta89",
+      "key": "RungeKutta89"
+    },
+    {
+      "category_id": 110,
+      "category_name": "Propagator",
+      "type": "PrinceDormand78",
+      "key": "PrinceDormand78"
+    },
+    {
+      "category_id": 110,
+      "category_name": "Propagator",
+      "type": "PrinceDormand45",
+      "key": "PrinceDormand45"
+    },
+    {
+      "category_id": 110,
+      "category_name": "Propagator",
+      "type": "RungeKutta68",
+      "key": "RungeKutta68"
+    },
+    {
+      "category_id": 110,
+      "category_name": "Propagator",
+      "type": "RungeKutta56",
+      "key": "RungeKutta56"
+    },
+    {
+      "category_id": 110,
+      "category_name": "Propagator",
+      "type": "AdamsBashforthMoulton",
+      "key": "AdamsBashforthMoulton"
+    },
+    {
+      "category_id": 110,
+      "category_name": "Propagator",
+      "type": "SPK",
+      "key": "SPK"
+    },
+    {
+      "category_id": 110,
+      "category_name": "Propagator",
+      "type": "Code500",
+      "key": "Code500"
+    },
+    {
+      "category_id": 110,
+      "category_name": "Propagator",
+      "type": "STK",
+      "key": "STK"
+    },
+    {
+      "category_id": 110,
+      "category_name": "Propagator",
+      "type": "CCSDS-OEM",
+      "key": "CCSDSOEM"
+    },
+    {
+      "category_id": 110,
+      "category_name": "Propagator",
+      "type": "RungeKutta4",
+      "key": "RungeKutta4"
+    },
+    {
+      "category_id": 110,
+      "category_name": "Propagator",
+      "type": "BulirschStoer",
+      "key": "BulirschStoer"
+    },
+    {
+      "category_id": 110,
+      "category_name": "Propagator",
+      "type": "PrinceDormand853",
+      "key": "PrinceDormand853"
+    },
+    {
+      "category_id": 110,
+      "category_name": "Propagator",
+      "type": "SPICESGP4",
+      "key": "SPICESGP4"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "MJ2000Eq",
+      "key": "MJ2000Eq"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "MJ2000Ec",
+      "key": "MJ2000Ec"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "TOEEq",
+      "key": "TOEEq"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "TOEEc",
+      "key": "TOEEc"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "MOEEq",
+      "key": "MOEEq"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "MOEEc",
+      "key": "MOEEc"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "TODEq",
+      "key": "TODEq"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "TODEc",
+      "key": "TODEc"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "MODEq",
+      "key": "MODEq"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "MODEc",
+      "key": "MODEc"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "ObjectReferenced",
+      "key": "ObjectReferenced"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "Equator",
+      "key": "Equator"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "BodyFixed",
+      "key": "BodyFixed"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "BodyInertial",
+      "key": "BodyInertial"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "GSE",
+      "key": "GSE"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "GSM",
+      "key": "GSM"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "Topocentric",
+      "key": "Topocentric"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "LocalAlignedConstrained",
+      "key": "LocalAlignedConstrained"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "SPICE",
+      "key": "SPICE"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "ICRF",
+      "key": "ICRF"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "BodySpinSun",
+      "key": "BodySpinSun"
+    },
+    {
+      "category_id": 152,
+      "category_name": "AxisSystem",
+      "type": "TEME",
+      "key": "TEME"
+    },
+    {
+      "category_id": 153,
+      "category_name": "Attitude",
+      "type": "CoordinateSystemFixed",
+      "key": "CoordinateSystemFixed"
+    },
+    {
+      "category_id": 153,
+      "category_name": "Attitude",
+      "type": "Spinner",
+      "key": "Spinner"
+    },
+    {
+      "category_id": 153,
+      "category_name": "Attitude",
+      "type": "PrecessingSpinner",
+      "key": "PrecessingSpinner"
+    },
+    {
+      "category_id": 153,
+      "category_name": "Attitude",
+      "type": "NadirPointing",
+      "key": "NadirPointing"
+    },
+    {
+      "category_id": 153,
+      "category_name": "Attitude",
+      "type": "CCSDS-AEM",
+      "key": "CCSDSAEM"
+    },
+    {
+      "category_id": 153,
+      "category_name": "Attitude",
+      "type": "SpiceAttitude",
+      "key": "SpiceAttitude"
+    },
+    {
+      "category_id": 153,
+      "category_name": "Attitude",
+      "type": "ThreeAxisKinematic",
+      "key": "ThreeAxisKinematic"
+    },
+    {
+      "category_id": 153,
+      "category_name": "Attitude",
+      "type": "CommandableNadirPointing",
+      "key": "CommandableNadirPointing"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "MathElement",
+      "key": "MathElement"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Add",
+      "key": "Add"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Divide",
+      "key": "Divide"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Multiply",
+      "key": "Multiply"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Negate",
+      "key": "Negate"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Subtract",
+      "key": "Subtract"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Abs",
+      "key": "Abs"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Ceil",
+      "key": "Ceil"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Exp",
+      "key": "Exp"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Fix",
+      "key": "Fix"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Floor",
+      "key": "Floor"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Log",
+      "key": "Log"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Log10",
+      "key": "Log10"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Min",
+      "key": "Min"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Mod",
+      "key": "Mod"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Power",
+      "key": "Power"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Sqrt",
+      "key": "Sqrt"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Cross",
+      "key": "Cross"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Det",
+      "key": "Det"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Diag",
+      "key": "Diag"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Inv",
+      "key": "Inv"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Norm",
+      "key": "Norm"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Rand",
+      "key": "Rand"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Randn",
+      "key": "Randn"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Transpose",
+      "key": "Transpose"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Sin",
+      "key": "Sin"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Cos",
+      "key": "Cos"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Tan",
+      "key": "Tan"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Asin",
+      "key": "Asin"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Acos",
+      "key": "Acos"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Atan",
+      "key": "Atan"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Atan2",
+      "key": "Atan2"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "DegToRad",
+      "key": "DegToRad"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "RadToDeg",
+      "key": "RadToDeg"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Deg2Rad",
+      "key": "Deg2Rad"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Rad2Deg",
+      "key": "Rad2Deg"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Sprintf",
+      "key": "Sprintf"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Strcat",
+      "key": "Strcat"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Strcmp",
+      "key": "Strcmp"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Strfind",
+      "key": "Strfind"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Strrep",
+      "key": "Strrep"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Substr",
+      "key": "Substr"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "Strlen",
+      "key": "Strlen"
+    },
+    {
+      "category_id": 154,
+      "category_name": "MathNode",
+      "type": "FunctionRunner",
+      "key": "FunctionRunner"
+    }
+  ],
+  "scope": "Complete 88-entry named main creation/storage/Write probe; outcomes are observations,not main/function/global or scientific qualification. A default-setup failure is not an eligibility exclusion."
+}

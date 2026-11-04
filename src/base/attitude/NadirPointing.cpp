@@ -43,6 +43,8 @@
 
 #include "SpaceObject.hpp" 
 #include "NadirPointing.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 
 
 //------------------------------------------------------------------------------
@@ -745,3 +747,15 @@ std::vector<Rmatrix33> NadirPointing::GetRotationMatrixDerivative(GmatTime &atTi
 //  private methods
 //------------------------------------------------------------------------------
 // none 
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void NadirPointing::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const NadirPointing*>(original);
+   if (!source || typeid(*source) != typeid(NadirPointing) ||
+       typeid(*this) != typeid(NadirPointing))
+      throw GmatBaseException("Cannot copy incompatible object into NadirPointing");
+   if (source == this)
+      return;
+   operator=(*source);
+}

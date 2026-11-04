@@ -150,6 +150,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Boolean apply-corrections selection; no physical units.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -213,6 +217,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Exit-mode selection; no physical units.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -259,6 +267,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Boolean window selection; no physical units.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>
@@ -318,6 +330,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Solver-mode selection; no physical units.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -367,6 +383,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Solver object name; no physical units.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>

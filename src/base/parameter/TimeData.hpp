@@ -86,6 +86,7 @@ protected:
                              bool replaceName = false);
    
    Real mInitialEpoch;
+   GmatTime mInitialEpochGT;
    bool mIsInitialEpochSet;
    Spacecraft *mSpacecraft;
    SpacePoint *mSpacePoint;

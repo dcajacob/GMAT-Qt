@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "cases": [
+    {
+      "key": "CssiPicker",
+      "field": "CSSISpaceWeatherFile",
+      "model": "NRLMSISE00",
+      "predicted": "CSSISpaceWeatherFile"
+    },
+    {
+      "key": "SchattenPicker",
+      "field": "SchattenFile",
+      "model": "NRLMSISE00",
+      "predicted": "SchattenFile"
+    },
+    {
+      "key": "ExponentialPicker",
+      "field": "InputFile",
+      "model": "Exponential",
+      "predicted": "ConstantFluxAndGeoMag"
+    },
+    {
+      "key": "CentralBodyLuna",
+      "field": "CentralBody",
+      "central_body": "Luna"
+    },
+    {
+      "key": "ErrorControlNone",
+      "field": "ErrorControl",
+      "error_control": "None"
+    }
+  ],
+  "mu_earth": 398600.4415,
+  "mu_luna": 4902.800066,
+  "radius_earth_km": 7000,
+  "radius_luna_km": 2000,
+  "earth_radius_km": 6378.1363,
+  "duration_seconds": 5,
+  "position_bound_km": 2e-05,
+  "velocity_bound_km_s": 2e-08,
+  "density_relative_bound": 1e-09,
+  "weather_bound": 1e-12,
+  "exponential_reference_density_kg_m3": 4e-10,
+  "exponential_scale_height_km": 60,
+  "limits": [
+    "Five missing input routes:three actual atmosphere file pickers,one lunar central-body choice andErrorControl=None;not all field domains or body/model combinations.",
+    "Picker paths use QtTest focus,clipboard-paste andOpen/Cancel actions in Qt QFileDialog;native OS/portal input and physical display/GPU qualification remain open.",
+    "Synthetic single-layer Exponential density is independently checked with spherical Earth and zero drag area;not empirical atmosphere or nonzero drag truth.",
+    "Weather fixture columns/Ap lag inputs reuse the independent WeatherChoiceOracle for one forecast instant;other22weather cases are not replayed.",
+    "Lunar central-body test checks a literal-mu local circle and configured/runtime ownership;astronomical frame/ephemeris accuracy and the five older failures remain open.",
+    "ErrorControl=None native delivery and no-drag invariant do not qualify adaptive error-estimation formulas,all controls or full numerical regimes."
+  ]
+}

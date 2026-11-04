@@ -42,6 +42,11 @@ EvaluateGMATConstraints(X)
 % 
 % 06/13/06, S. Hughes, Created 
 global NonLinearEqCon JacNonLinearEqCon NonLinearIneqCon JacNonLinearIneqCon
+global GMAT_QT_CALLBACK
+if isstruct(GMAT_QT_CALLBACK) && isfield(GMAT_QT_CALLBACK,'port')
+    % fmincon can request constraints at a point different from its last objective.
+    CallGMATfminconSolver(X);
+end
 nleq    = NonLinearEqCon;
 jnleq   = JacNonLinearEqCon;
 nlineq  = NonLinearIneqCon;

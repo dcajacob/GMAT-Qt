@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "SpacecraftAttitude",
+      "actions": true,
+      "third": "0.3",
+      "fourth": "0.4",
+      "loaded": "0.5",
+      "historical_keys": [
+        "H2012:R45",
+        "H2012:R47",
+        "H2012:R53",
+        "H2012:R58"
+      ]
+    },
+    {
+      "key": "SpacecraftVisual",
+      "actions": true,
+      "third": "7",
+      "fourth": "11",
+      "loaded": "13",
+      "historical_keys": [
+        "H2012:R124",
+        "H2012:R127",
+        "H2012:R133",
+        "H2012:R138"
+      ]
+    },
+    {
+      "key": "SpacecraftMass",
+      "actions": false,
+      "third": "",
+      "fourth": "",
+      "loaded": "",
+      "historical_keys": [
+        "H2012:R87"
+      ]
+    },
+    {
+      "key": "ImpulsiveBurn",
+      "actions": false,
+      "third": "",
+      "fourth": "",
+      "loaded": "",
+      "historical_keys": [
+        "H2012:R261"
+      ]
+    },
+    {
+      "key": "XYPlot",
+      "actions": false,
+      "third": "",
+      "fourth": "",
+      "loaded": "",
+      "historical_keys": [
+        "H2012:R1141"
+      ]
+    }
+  ],
+  "scope": "Finite resource lifecycle operations on reused fields/pages. Two positive distinct Apply commits, positive owning-editor OK, actual title-bar X with current Cancel/Discard choices and actual Unicode File/Open while clean target panel is present; two existing post-Apply Cancel cases reused. No original ExitNo/Yes equivalence,private keyword/all-field/input/physics/native OS/GPU/platform/stress/current NASA/full-build qualification."
+}

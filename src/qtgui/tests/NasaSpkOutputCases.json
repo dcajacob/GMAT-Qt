@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "Degree1",
+      "order": 1,
+      "utc": "01 Jan 2000 12:00:00.000",
+      "duration": 605,
+      "initial_step": 7,
+      "max_step": 19,
+      "invalid_orders": [
+        "0",
+        "2",
+        "4",
+        "6",
+        "8",
+        "10",
+        "11",
+        "nan",
+        ""
+      ]
+    },
+    {
+      "key": "Degree3",
+      "order": 3,
+      "utc": "31 Dec 2016 23:59:30.000",
+      "duration": 173,
+      "initial_step": 5,
+      "max_step": 13,
+      "invalid_orders": []
+    },
+    {
+      "key": "Degree5",
+      "order": 5,
+      "utc": "30 Jun 2015 23:59:30.000",
+      "duration": 137,
+      "initial_step": 3,
+      "max_step": 17,
+      "invalid_orders": []
+    },
+    {
+      "key": "Degree7",
+      "order": 7,
+      "utc": "01 Jan 2000 12:00:00.000",
+      "duration": 605,
+      "initial_step": 7,
+      "max_step": 19,
+      "invalid_orders": []
+    },
+    {
+      "key": "Degree9",
+      "order": 9,
+      "utc": "31 Dec 2016 23:59:30.000",
+      "duration": 173,
+      "initial_step": 5,
+      "max_step": 13,
+      "invalid_orders": []
+    }
+  ],
+  "scope": "Finite current SPK output options;all five supported odd orders,native raw knot membership,TDB clocks at three UTC starts including two leap transitions,actual GUI commit/persistence and independent circle/continuation checks."
+}

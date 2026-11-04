@@ -68,8 +68,13 @@ void setPlotState(Publisher *publisher, Gmat::RunState state)
 
 Gmat::RunState SolverBranchCommand::GetPlotRunState(Gmat::RunState state)
 {
+   return GetSubscriberRunState(state);
+}
+
+Gmat::RunState SolverBranchCommand::GetSubscriberRunState(Gmat::RunState state)
+{
    // An inner accepted pass is still a trial until every enclosing solver is
-   // accepted. This affects plot filtering/colors only, never publisher state.
+   // accepted. Subscribers opt in without changing the publisher's state.
    for (const auto *command : plotSolvers)
       if (command->currentRunState == Gmat::SOLVING) return Gmat::SOLVING;
    return state;
@@ -1341,6 +1346,16 @@ void SolverBranchCommand::SetSubscriberBreakpoint()
       activeSubscribers[i]->TakeAction("SolverScope", scope.str());
       activeSubscribers[i]->TakeAction("MarkBreak");
    }
+   // OrbitPlot owns its renderer's solver buffers and must not enter the XY
+   // pen/color list. Its explicit integration sampler still needs the same
+   // trajectory checkpoint as the numerical solver.
+   for (auto *subscriber : publisher->GetSubscriberList())
+      if (subscriber->IsOfType("OrbitPlot") &&
+          subscriber->GetIntegerParameter(subscriber->GetParameterID("IntegrationStepsToSkip")) >= 0)
+      {
+         subscriber->TakeAction("SolverScope", scope.str());
+         subscriber->TakeAction("MarkBreak");
+      }
 }
 
 //------------------------------------------------------------------------------
@@ -1364,6 +1379,13 @@ void SolverBranchCommand::ApplySubscriberBreakpoint(Integer bp)
       activeSubscribers[i]->TakeAction("SolverScope", scope.str());
       activeSubscribers[i]->TakeAction("ClearFromBreak", breakpoint.str());
    }
+   for (auto *subscriber : publisher->GetSubscriberList())
+      if (subscriber->IsOfType("OrbitPlot") &&
+          subscriber->GetIntegerParameter(subscriber->GetParameterID("IntegrationStepsToSkip")) >= 0)
+      {
+         subscriber->TakeAction("SolverScope", scope.str());
+         subscriber->TakeAction("ClearFromBreak", breakpoint.str());
+      }
 }
 
 

@@ -29,6 +29,7 @@
 //------------------------------------------------------------------------------
 
 #include "EphemerisFile.hpp"
+#include "SolverBranchCommand.hpp"
 #include "CelestialBody.hpp"
 #include "Publisher.hpp"             // for Instance()
 //#include "FileManager.hpp"           // for GetPathname()
@@ -84,6 +85,7 @@
 //---------------------------------
 StringArray EphemerisFile::fileFormatList;
 StringArray EphemerisFile::epochFormatList;
+const StringArray EphemerisFile::outputTimeSystemList = {"A1", "TAI", "UTC", "TT", "TDB"};
 StringArray EphemerisFile::initialEpochList;
 StringArray EphemerisFile::finalEpochList;
 StringArray EphemerisFile::stepSizeList;
@@ -117,7 +119,8 @@ EphemerisFile::PARAMETER_TEXT[EphemerisFileParamCount - SubscriberParamCount] =
    "DistanceUnit",           // DISTANCE_UNIT
    "IncludeEventBoundaries", // INCLUDE_EVENT_BOUNDARIES
    "FormatVersion",          // FORMAT_VERSION
-   "AccelerationModel"       // ACCELERATION_MODEL
+   "AccelerationModel",      // ACCELERATION_MODEL
+   "OutputTimeSystem"        // OUTPUT_TIME_SYSTEM
 };
 
 const Gmat::ParameterType
@@ -143,8 +146,16 @@ EphemerisFile::PARAMETER_TYPE[EphemerisFileParamCount - SubscriberParamCount] =
    Gmat::BOOLEAN_TYPE,      // INCLUDE_EVENT_BOUNDARIES
    Gmat::STRING_TYPE,       // FORMAT_VERSION
    Gmat::OBJECT_TYPE,       // ACCELERATION_MODEL
+   Gmat::ENUMERATION_TYPE,  // OUTPUT_TIME_SYSTEM
 };
 
+
+// An inner solution remains a trial while an enclosing solver is iterating.
+// Keep the publisher's state intact for reports and numerical execution.
+void EphemerisFile::SetRunState(Gmat::RunState state)
+{
+   Subscriber::SetRunState(SolverBranchCommand::GetSubscriberRunState(state));
+}
 
 //------------------------------------------------------------------------------
 // EphemerisFile(const std::string &name, const std::string &type = "EphemerisFile")
@@ -176,6 +187,7 @@ EphemerisFile::EphemerisFile(const std::string &name, const std::string &type) :
    covFormat               ("None"),
    formatVersion           (""),
    accelModelName          (""),
+   outputTimeSystem        ("UTC"),
    writeEphemeris          (true),
    usingDefaultFileName    (true),
    generateInBackground    (false),
@@ -351,6 +363,7 @@ EphemerisFile::EphemerisFile(const EphemerisFile &ef) :
    covFormat               (ef.covFormat),
    formatVersion           (ef.formatVersion),
    accelModelName          (ef.accelModelName),
+   outputTimeSystem        (ef.outputTimeSystem),
    writeEphemeris          (ef.writeEphemeris),
    usingDefaultFileName    (ef.usingDefaultFileName),
    generateInBackground    (ef.generateInBackground),
@@ -428,6 +441,7 @@ EphemerisFile& EphemerisFile::operator=(const EphemerisFile& ef)
    covFormat            = ef.covFormat;
    formatVersion        = ef.formatVersion;
    accelModelName       = ef.accelModelName;
+   outputTimeSystem     = ef.outputTimeSystem;
    writeEphemeris       = ef.writeEphemeris;
    usingDefaultFileName = ef.usingDefaultFileName;
    generateInBackground = ef.generateInBackground;
@@ -951,6 +965,8 @@ std::string EphemerisFile::GetParameterTypeString(const Integer id) const
 //---------------------------------------------------------------------------
 bool EphemerisFile::IsParameterReadOnly(const Integer id) const
 {
+   if (id == OUTPUT_TIME_SYSTEM)
+      return fileFormat != "CCSDS-OEM";
    if (id == SOLVER_ITERATIONS)
       return true;
    if (id == FILE_NAME)
@@ -1046,6 +1062,8 @@ const StringArray& EphemerisFile::GetPropertyEnumStrings(const Integer id) const
       return fileFormatList;
    case EPOCH_FORMAT:
       return epochFormatList;
+   case OUTPUT_TIME_SYSTEM:
+      return outputTimeSystemList;
    case INITIAL_EPOCH:
       return initialEpochList;
    case FINAL_EPOCH:
@@ -1196,6 +1214,8 @@ std::string EphemerisFile::GetStringParameter(const Integer id) const
       return fileFormat;
    case EPOCH_FORMAT:
       return epochFormat;
+   case OUTPUT_TIME_SYSTEM:
+      return outputTimeSystem;
    case INITIAL_EPOCH:
       return initialEpochStr;
    case FINAL_EPOCH:
@@ -1355,6 +1375,8 @@ bool EphemerisFile::SetStringParameter(const Integer id, const std::string &valu
           fileFormatList.end())
       {
          fileFormat = value;
+         if (fileFormat != "CCSDS-OEM")
+            outputTimeSystem = "UTC";
          
          // Code to link interpolator selection to file type
          if (fileFormat == "CCSDS-OEM" || fileFormat == "STK-TimePosVel")
@@ -1541,6 +1563,11 @@ bool EphemerisFile::SetStringParameter(const Integer id, const std::string &valu
    case ACCELERATION_MODEL:
       accelModelName = value;
       return true;
+   case OUTPUT_TIME_SYSTEM:
+      if (find(outputTimeSystemList.begin(), outputTimeSystemList.end(), value) == outputTimeSystemList.end())
+         HandleError(OUTPUT_TIME_SYSTEM, value, outputTimeSystemList);
+      outputTimeSystem = value;
+      return true;
    default:
       return Subscriber::SetStringParameter(id, value);
    }
@@ -1662,6 +1689,8 @@ bool EphemerisFile::IsParameterCloaked(const Integer id) const
 {
    switch (id)
    {
+   case OUTPUT_TIME_SYSTEM:
+      return fileFormat != "CCSDS-OEM" || outputTimeSystem == "UTC";
    case FORMAT_VERSION:
       return formatVersion == "";
    case INCLUDE_COVARIANCE:
@@ -2018,7 +2047,11 @@ void EphemerisFile::CreateEphemerisWriter()
    
    // Create appropriate EphemerisFile writer
    if (fileFormat == "CCSDS-OEM")
-      ephemWriter = new EphemWriterCCSDS(GetName(), fileFormat, formatVersion);
+   {
+      auto *writer = new EphemWriterCCSDS(GetName(), fileFormat, formatVersion);
+      ephemWriter = writer;
+      writer->SetOutputTimeSystem(outputTimeSystem);
+   }
    else if (fileFormat == "SPK")
       ephemWriter = new EphemWriterSPK(GetName(), fileFormat);
    else if (fileFormat == "CK")
@@ -3095,8 +3128,29 @@ bool EphemerisFile::Distribute(const Real *dat, Integer len)
    if (!RetrieveData(dat, len))
       return true;
    
+   // SPK and report parameters opt into the same detached Cartesian sample.
+   // The original packet, covariance/attitude and live spacecraft stay intact.
+   GmatTime sampledEpoch;
+   Rvector6 sampledState;
+   const bool sampledSpk = dynamic_cast<EphemWriterSPK *>(ephemWriter) &&
+      Publisher::GetPublishedCartesianState(dat, len, spacecraft,
+                                            sampledEpoch, sampledState);
+   if (sampledSpk)
+   {
+      currEpochInDays = sampledEpoch.GetMjd();
+      for (Integer i = 0; i < 6; ++i)
+         currState[i] = sampledState[i];
+   }
    // Set data to EphemerisWriter
    ephemWriter->SetOrbitData(currEpochInDays, currState, currCov, currQuat, currAccel);
+   if (auto *spk = dynamic_cast<EphemWriterSPK *>(ephemWriter))
+   {
+      GmatTime epoch;
+      const bool precise = sampledSpk || Publisher::GetPublishedEpoch(dat, len, epoch);
+      if (sampledSpk)
+         epoch = sampledEpoch;
+      spk->SetPublishedEpoch(precise ? &epoch : NULL);
+   }
    
    // To compute block time span for use in the error message (LOJ: 2014.04.30)
    // Save block begin time

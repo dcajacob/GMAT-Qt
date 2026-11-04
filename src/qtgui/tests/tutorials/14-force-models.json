@@ -1,0 +1,1982 @@
+{
+  "id": "14-force-models",
+  "title": "Force Models",
+  "guide": "doc/help/src/Tut_ForceModels.xml",
+  "guide_sha256": "0028e2724e6043df8fd747571a4be238d5f171b33bb56d378f841455658c8d6f",
+  "reference": "application/docs/help/files/scripts/ForceModelsTutorial.script",
+  "provenance": "Current Force Models guide, corrected to the unchanged shipped script: adaptive MinStep 0, InitialStepSize/MaxStep 30, Accuracy 1e-12. GUI resource and command forms only.",
+  "stages": [
+    {
+      "name": "Current guide spacecraft, six force models and six GUI mission legs",
+      "input": null,
+      "requires_run": true,
+      "actions": [
+        {
+          "action": "key",
+          "keys": "ESC"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+N"
+        },
+        {
+          "action": "window",
+          "state": "maximized"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultSC",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "Sat1",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Sat1",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DateFormat",
+          "value": "UTCGregorian"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "text",
+          "text": "04 Jan 2003 00:00:00.000",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DisplayStateType",
+          "value": "Keplerian"
+        },
+        {
+          "action": "click",
+          "field_hint": "SMA"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "11295.67681418613"
+        },
+        {
+          "action": "click",
+          "field_hint": "ECC"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "0.2032349944098091"
+        },
+        {
+          "action": "click",
+          "field_hint": "INC"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "click",
+          "field_hint": "RAAN"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "click",
+          "field_hint": "AOP"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "click",
+          "field_hint": "TA"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-sat1-keplerian-orbit"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultProp",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "RKV89PointMass",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "RKV89PointMass",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "text",
+          "text": "30",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "text",
+          "text": "1e-12",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "30",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "RKV89PointMass_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_text": "Gravity field",
+          "target_role": "tab"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Degree",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Degree",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Order",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Order",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-force-RKV89PointMass"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagators",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add PropSetup",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "RKV89ThirdBodies",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "text",
+          "text": "30",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "text",
+          "text": "1e-12",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "30",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "RKV89ThirdBodies_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "text",
+          "text": "Sun, Luna, Venus, Mars, Jupiter, Saturn, Uranus, Neptune",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_text": "Gravity field",
+          "target_role": "tab"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Degree",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Degree",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Order",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Order",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-force-RKV89ThirdBodies"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagators",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add PropSetup",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "RKV8912x12",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "text",
+          "text": "30",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "text",
+          "text": "1e-12",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "30",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "RKV8912x12_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_text": "Gravity field",
+          "target_role": "tab"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Degree",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Degree",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "12"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Order",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Order",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "12"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-force-RKV8912x12"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagators",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add PropSetup",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "RKV89MSISE90",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "text",
+          "text": "60",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "text",
+          "text": "1e-12",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "30",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "RKV89MSISE90_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_text": "Gravity field",
+          "target_role": "tab"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Degree",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Degree",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Order",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Order",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "click",
+          "target_name": "forceAtmosphere"
+        },
+        {
+          "action": "select",
+          "target_name": "atmosphere_AtmosphereModel",
+          "value": "MSISE90"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-force-RKV89MSISE90"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagators",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add PropSetup",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "RKV89JR",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "text",
+          "text": "30",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "text",
+          "text": "1e-12",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "30",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "RKV89JR_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_text": "Gravity field",
+          "target_role": "tab"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Degree",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Degree",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Order",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Order",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "click",
+          "target_name": "forceAtmosphere"
+        },
+        {
+          "action": "select",
+          "target_name": "atmosphere_AtmosphereModel",
+          "value": "JacchiaRoberts"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-force-RKV89JR"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagators",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add PropSetup",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "RKV89SRP",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "text",
+          "text": "30",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "text",
+          "text": "1e-12",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "30",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_StopIfAccuracyIsViolated",
+          "value": "true"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "RKV89SRP_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_SRP",
+          "value": "On"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_text": "Gravity field",
+          "target_role": "tab"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Degree",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Degree",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Order",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Order",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-force-RKV89SRP"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultOrbitView",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "OpenGLSat1",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "OpenGLSat1",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewUpAxis",
+          "value": "X"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ReportFile",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "ForceModelRpt",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resource_Filename"
+        },
+        {
+          "action": "text",
+          "text": "Ex_ForceModels.report",
+          "target_name": "resource_Filename"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagate",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Delete command",
+          "target_role": "menu"
+        },
+        {
+          "action": "click",
+          "target_text": "Yes",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "ForceModelRpt",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.A1ModJulian Sat1.X Sat1.Y Sat1.Z Sat1.VX Sat1.VY Sat1.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "ForceModelRpt.WriteHeaders",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Off",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "RKV89PointMass"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "Sat1"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Days"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "0.1",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "ForceModelRpt",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.A1ModJulian Sat1.X Sat1.Y Sat1.Z Sat1.VX Sat1.VY Sat1.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "RKV89ThirdBodies"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "Sat1"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Days"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "0.1",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "ForceModelRpt",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.A1ModJulian Sat1.X Sat1.Y Sat1.Z Sat1.VX Sat1.VY Sat1.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "RKV8912x12"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "Sat1"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Days"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "0.1",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "ForceModelRpt",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.A1ModJulian Sat1.X Sat1.Y Sat1.Z Sat1.VX Sat1.VY Sat1.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "RKV89MSISE90"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "Sat1"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Days"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "0.1",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "ForceModelRpt",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.A1ModJulian Sat1.X Sat1.Y Sat1.Z Sat1.VX Sat1.VY Sat1.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "RKV89JR"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "Sat1"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Days"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "0.1",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "ForceModelRpt",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.A1ModJulian Sat1.X Sat1.Y Sat1.Z Sat1.VX Sat1.VY Sat1.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "RKV89SRP"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "Sat1"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Days"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "0.1",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "ForceModelRpt",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.A1ModJulian Sat1.X Sat1.Y Sat1.Z Sat1.VX Sat1.VY Sat1.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-six-force-model-legs"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+S"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/AuthoredForceModels.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-force-model-mission-completed"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+O"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/AuthoredForceModels.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "screenshot",
+          "label": "own-force-model-mission-reopened"
+        }
+      ]
+    }
+  ]
+}

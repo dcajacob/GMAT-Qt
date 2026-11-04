@@ -33,6 +33,7 @@
 
 
 #include "ContactLocator.hpp"
+#include <set>
 #include "EventException.hpp"
 #include "MessageInterface.hpp"
 #include "GroundstationInterface.hpp"
@@ -70,6 +71,8 @@ const std::string ContactLocator::PARAMETER_TEXT[
    "ReportFormat",
    "IntervalStepSize",
    "ReportTimeFormat",
+   "EventTypes",
+   "AdditionalTargets",
 };
 
 const Gmat::ParameterType ContactLocator::PARAMETER_TYPE[
@@ -82,6 +85,8 @@ const Gmat::ParameterType ContactLocator::PARAMETER_TYPE[
    Gmat::STRING_TYPE, // REPORT_TEMPLATE_FORMAT
    Gmat::REAL_TYPE,
    Gmat::STRING_TYPE, // REPORT_TIME_FORMAT
+   Gmat::STRINGARRAY_TYPE,
+   Gmat::OBJECTARRAY_TYPE, // ADDITIONAL_TARGETS
 };
 
 const std::string ContactLocator::LT_DIRECTIONS[2] =
@@ -139,7 +144,8 @@ ContactLocator::~ContactLocator()
       MessageInterface::ShowMessage("DESTRUCTING ContactLocator %s<%p>\n",
             instanceName.c_str(), this);
    #endif
-   TakeAction("Clear");
+   TakeAction("Clear", "Events");
+   TakeAction("Clear", "Observers");
    // Remove the temp files
    if (spice)
    {
@@ -165,7 +171,11 @@ ContactLocator::~ContactLocator()
  * @param cl The original being copied
  */
 //------------------------------------------------------------------------------
-ContactLocator::ContactLocator(const ContactLocator &cl) :
+ContactLocator::ContactLocator(const ContactLocator &cl) : ContactLocator(cl, true)
+{
+}
+
+ContactLocator::ContactLocator(const ContactLocator &cl, bool copyWorkers) :
    EventLocator            (cl),
    observerNames           (cl.observerNames),
    lightTimeDirection      (cl.lightTimeDirection),
@@ -176,6 +186,8 @@ ContactLocator::ContactLocator(const ContactLocator &cl) :
    intervalStep            (cl.intervalStep),
    reportTimeFormat        (cl.reportTimeFormat),
    reportTemplateFormat    (cl.reportTemplateFormat),
+   eventTypes              (cl.eventTypes),
+   eventTypesExplicit      (cl.eventTypesExplicit),
    spice(NULL)
 {
    // Observers
@@ -195,6 +207,11 @@ ContactLocator::ContactLocator(const ContactLocator &cl) :
       newEvent = new ContactResult(*toCopy);
       contactResults.push_back(newEvent);
    }
+   stationEvents = cl.stationEvents;
+   additionalTargetNames = cl.additionalTargetNames;
+   additionalTargets = cl.additionalTargets;
+   if (copyWorkers) for (const auto &worker : cl.targetWorkers)
+      targetWorkers.emplace_back(new ContactLocator(*worker));
    #ifdef DEBUG_INIT_FINALIZE
       MessageInterface::ShowMessage(
             "CREATED new ContactLocator %s<%p> by copying %s<%p>\n",
@@ -229,6 +246,8 @@ ContactLocator& ContactLocator::operator=(const ContactLocator &c)
      intervalStep = c.intervalStep;
      reportTimeFormat = c.reportTimeFormat;
      reportTemplateFormat = c.reportTemplateFormat;
+     eventTypes = c.eventTypes;
+     eventTypesExplicit = c.eventTypesExplicit;
 
       // Observers
       observerNames.clear();
@@ -247,6 +266,12 @@ ContactLocator& ContactLocator::operator=(const ContactLocator &c)
          newEvent = new ContactResult(*toCopy);
          contactResults.push_back(newEvent);
       }
+      stationEvents = c.stationEvents;
+      additionalTargetNames = c.additionalTargetNames;
+      additionalTargets = c.additionalTargets;
+      targetWorkers.clear();
+      for (const auto &worker : c.targetWorkers)
+         targetWorkers.emplace_back(new ContactLocator(*worker));
    }
    #ifdef DEBUG_INIT_FINALIZE
       MessageInterface::ShowMessage(
@@ -641,6 +666,19 @@ std::string ContactLocator::GetStringParameter(const Integer id) const
 bool ContactLocator::SetStringParameter(const Integer id,
       const std::string &value)
 {
+   if (id == ADDITIONAL_TARGETS)
+   {
+      if (value == "{}") return TakeAction("Clear", "AdditionalTargets");
+      return SetStringParameter(id, value, (Integer)additionalTargetNames.size());
+   }
+   if (id == EVENT_TYPES)
+   {
+      if (value != "ContactIntervals" && value != "StationRise" && value != "StationSet")
+         throw EventException("EventTypes entries must be ContactIntervals, StationRise or StationSet.");
+      if (std::find(eventTypes.begin(), eventTypes.end(), value) != eventTypes.end())
+         throw EventException("Each EventTypes entry must be listed only once.");
+      eventTypesExplicit = true; eventTypes.push_back(value); return true;
+   }
    #ifdef DEBUG_SET
       MessageInterface::ShowMessage("In SetStringParameter with id = %d, value = %s\n",
             id, value.c_str());
@@ -722,6 +760,19 @@ bool ContactLocator::SetStringParameter(const Integer id,
 std::string ContactLocator::GetStringParameter(const Integer id,
       const Integer index) const
 {
+   if (id == ADDITIONAL_TARGETS)
+   {
+      if (index < 0 || index >= (Integer)additionalTargetNames.size())
+         throw EventException("AdditionalTargets index out of range.");
+      return additionalTargetNames[index];
+   }
+   if (id == EVENT_TYPES)
+   {
+      const auto &types = GetStringArrayParameter(EVENT_TYPES);
+      if (index < 0 || index >= (Integer)types.size())
+         throw EventException("EventTypes index out of range.");
+      return types[index];
+   }
    if (id == STATIONS)
     {
        if (index < (Integer)observerNames.size())
@@ -752,6 +803,40 @@ std::string ContactLocator::GetStringParameter(const Integer id,
 bool ContactLocator::SetStringParameter(const Integer id,
       const std::string & value, const Integer index)
 {
+   if (id == ADDITIONAL_TARGETS)
+   {
+      if (value.empty() || value == "{}")
+         throw EventException("AdditionalTargets entries must name spacecraft.");
+      if (index < 0 || index > (Integer)additionalTargetNames.size())
+         throw EventException("AdditionalTargets index out of range.");
+      for (Integer i = 0; i < (Integer)additionalTargetNames.size(); ++i)
+         if (i != index && additionalTargetNames[i] == value)
+            throw EventException("Each AdditionalTargets entry must be listed only once.");
+      if (value == targetName)
+         throw EventException("The primary Target cannot also be an AdditionalTargets entry.");
+      if (index == (Integer)additionalTargetNames.size()) additionalTargetNames.push_back(value);
+      else
+      {
+         additionalTargets.erase(additionalTargetNames[index]);
+         additionalTargetNames[index] = value;
+      }
+      targetWorkers.clear();
+      return true;
+   }
+   if (id == EVENT_TYPES)
+   {
+      if (value != "ContactIntervals" && value != "StationRise" && value != "StationSet")
+         throw EventException("EventTypes entries must be ContactIntervals, StationRise or StationSet.");
+      if (index < 0 || index > (Integer)eventTypes.size())
+         throw EventException("EventTypes index out of range.");
+      for (Integer i=0; i<(Integer)eventTypes.size(); ++i)
+         if (i != index && eventTypes[i] == value)
+            throw EventException("Each EventTypes entry must be listed only once.");
+      eventTypesExplicit = true;
+      if (index == (Integer)eventTypes.size()) eventTypes.push_back(value);
+      else eventTypes[index] = value;
+      return true;
+   }
    if (id == STATIONS)
    {
       #ifdef DEBUG_SET
@@ -798,6 +883,12 @@ bool ContactLocator::SetStringParameter(const Integer id,
 const StringArray & ContactLocator::GetStringArrayParameter(
       const Integer id) const
 {
+   if (id == ADDITIONAL_TARGETS) return additionalTargetNames;
+   if (id == EVENT_TYPES)
+   {
+      static const StringArray defaults = {"ContactIntervals"};
+      return eventTypesExplicit ? eventTypes : defaults;
+   }
    if (id == STATIONS)
       return observerNames;
 
@@ -1026,6 +1117,8 @@ UnsignedInt ContactLocator::GetPropertyObjectType(const Integer id) const
 {
    switch (id)
    {
+   case ADDITIONAL_TARGETS:
+      return Gmat::SPACECRAFT;
    case STATIONS:
       return Gmat::SPACE_POINT;
    default:
@@ -1049,6 +1142,9 @@ const StringArray& ContactLocator::GetPropertyEnumStrings(const Integer id) cons
    static StringArray enumStrings;
    switch (id)
    {
+   case EVENT_TYPES:
+      enumStrings = {"ContactIntervals", "StationRise", "StationSet"};
+      return enumStrings;
    case LIGHT_TIME_DIRECTION:
       enumStrings.clear();
       for (Integer ii = 0; ii < 2; ii++)
@@ -1073,6 +1169,10 @@ const StringArray& ContactLocator::GetPropertyEnumStrings(const Integer id) cons
 //------------------------------------------------------------------------------
 const ObjectTypeArray& ContactLocator::GetTypesForList(const Integer id)
 {
+   if (id == ADDITIONAL_TARGETS)
+   {
+      listedTypes.clear(); listedTypes.push_back(Gmat::SPACECRAFT); return listedTypes;
+   }
    listedTypes.clear();  // ??
    if (id == STATIONS)
    {
@@ -1121,6 +1221,11 @@ GmatBase* ContactLocator::GetRefObject(const UnsignedInt type,
                                      const std::string &name,
                                      const Integer index)
 {
+   if (type == Gmat::SPACECRAFT || type == Gmat::SPACE_POINT || type == Gmat::UNKNOWN_OBJECT)
+   {
+      auto found = additionalTargets.find(name);
+      if (found != additionalTargets.end()) return found->second;
+   }
    switch (type)
    {
       case Gmat::GROUND_STATION:
@@ -1170,6 +1275,15 @@ GmatBase* ContactLocator::GetRefObject(const UnsignedInt type,
 bool ContactLocator::SetRefObject(GmatBase *obj, const UnsignedInt type,
                                   const std::string &name)
 {
+   if (std::find(additionalTargetNames.begin(), additionalTargetNames.end(), name) != additionalTargetNames.end())
+   {
+      auto *spacecraft = dynamic_cast<Spacecraft*>(obj);
+      if (!spacecraft) throw EventException("AdditionalTargets entries must reference spacecraft.");
+      auto existing = additionalTargets.find(name);
+      if (existing == additionalTargets.end() || existing->second != spacecraft) targetWorkers.clear();
+      additionalTargets[name] = spacecraft;
+      return true;
+   }
    #ifdef DEBUG_SETREF
       MessageInterface::ShowMessage("CL::SetRefObject, obj = %s, type = %d (%s), name= %s\n",
             (obj? "NOT NULL" : "NULL"), (Integer) type, OBJECT_TYPE_STRING[type - Gmat::SPACECRAFT].c_str(),
@@ -1274,6 +1388,10 @@ const StringArray& ContactLocator::GetRefObjectNameArray(const UnsignedInt type)
    #endif
 
    refObjectNames = EventLocator::GetRefObjectNameArray(type);
+   if (type == Gmat::SPACECRAFT || type == Gmat::SPACE_POINT || type == Gmat::UNKNOWN_OBJECT)
+      for (const auto &name : additionalTargetNames)
+         if (std::find(refObjectNames.begin(), refObjectNames.end(), name) == refObjectNames.end())
+            refObjectNames.push_back(name);
 
   if ((type == Gmat::GROUND_STATION) || (type == Gmat::SPACE_POINT) || (type == Gmat::UNKNOWN_OBJECT))
   {
@@ -1319,6 +1437,21 @@ bool ContactLocator::RenameRefObject(const UnsignedInt type,
    const std::string &oldName, const std::string &newName)
 {
    bool retval = false;
+   if (type == Gmat::SPACECRAFT || type == Gmat::SPACE_POINT || type == Gmat::UNKNOWN_OBJECT)
+   {
+      for (auto &name : additionalTargetNames) if (name == oldName)
+      {
+         name = newName;
+         auto found = additionalTargets.find(oldName);
+         if (found != additionalTargets.end())
+         {
+            additionalTargets[newName] = found->second;
+            additionalTargets.erase(found);
+         }
+         retval = true;
+      }
+      for (auto &worker : targetWorkers) worker->RenameRefObject(type, oldName, newName);
+   }
 
    switch (type)
    {
@@ -1337,7 +1470,8 @@ bool ContactLocator::RenameRefObject(const UnsignedInt type,
          ;        // Intentional drop-through
    }
    
-   retval = (retval || EventLocator::RenameRefObject(type, oldName, newName));
+   const bool baseRenamed = EventLocator::RenameRefObject(type, oldName, newName);
+   retval = retval || baseRenamed;
 
    return retval;
 }
@@ -1365,6 +1499,10 @@ bool ContactLocator::TakeAction(const std::string &action,
    #endif
    if (action == "Clear")
    {
+      if (actionData == "AdditionalTargets")
+      { additionalTargetNames.clear(); additionalTargets.clear(); targetWorkers.clear(); return true; }
+      if (actionData == "EventTypes")
+      { eventTypes.clear(); eventTypesExplicit=true; return true; }
       bool retval = false;
 
       if ((actionData == "Observers") || (actionData == ""))
@@ -1386,6 +1524,8 @@ bool ContactLocator::TakeAction(const std::string &action,
             delete contactResults.at(ii);
          }
          contactResults.clear();
+         stationEvents.clear();
+         for (auto &worker : targetWorkers) worker->TakeAction("Clear", "Events");
          retval = true;
       }
 
@@ -1406,6 +1546,39 @@ bool ContactLocator::TakeAction(const std::string &action,
 //------------------------------------------------------------------------------
 bool ContactLocator::Initialize()
 {
+   targetWorkers.clear();
+   directObservers.clear(); directObserversNames.clear(); directObserversHostIndex.clear(); observedRegions.clear();
+   // Reinitialization rebuilds FOV setup, rather than retaining stale indices.
+   if (spice)
+   {
+      for (const auto &file : fkFileName) { spice->UnloadKernel(file); remove(file.c_str()); }
+      for (const auto &file : ikFileName) { spice->UnloadKernel(file); remove(file.c_str()); }
+   }
+   fkFileName.clear(); ikFileName.clear(); spiceInstNames.clear();
+   if (!additionalTargetNames.empty())
+   {
+      if (!sat || targetIsRegion)
+         throw EventException("AdditionalTargets requires a spacecraft primary Target.");
+      std::set<Integer> identities{sat->GetIntegerParameter("NAIFId")};
+      for (const auto &name : additionalTargetNames)
+      {
+         auto found = additionalTargets.find(name);
+         if (name == targetName) throw EventException("The primary Target cannot also be an AdditionalTargets entry.");
+         if (found == additionalTargets.end() || !found->second)
+            throw EventException("Unresolved AdditionalTargets spacecraft: " + name);
+         if (std::find(observerNames.begin(), observerNames.end(), name) != observerNames.end())
+            throw EventException("A selected target cannot also be an observer.");
+         if (!identities.insert(found->second->GetIntegerParameter("NAIFId")).second)
+            throw EventException("Selected targets require distinct NAIF IDs.");
+      }
+      if (std::find(observerNames.begin(), observerNames.end(), targetName) != observerNames.end())
+         throw EventException("A selected target cannot also be an observer.");
+   }
+
+   const auto &types = GetStringArrayParameter(EVENT_TYPES);
+   if (types.empty()) throw EventException("Select at least one EventTypes entry.");
+   const bool stationSelection = std::find(types.begin(),types.end(),"StationRise") != types.end() ||
+         std::find(types.begin(),types.end(),"StationSet") != types.end();
    bool retval = false;
    #ifdef DEBUG_CONTACTLOCATOR_INIT
       MessageInterface::ShowMessage("In CL::Init for %s\n", instanceName.c_str());
@@ -1414,6 +1587,8 @@ bool ContactLocator::Initialize()
    Moderator *theModerator = Moderator::Instance();
    if (EventLocator::Initialize())
    {
+      if (stationSelection && targetIsRegion)
+         throw EventException("Station rise/set events require a spacecraft target.");
 
       if (targetIsRegion && observers.size() > 1)
       {
@@ -1435,6 +1610,8 @@ bool ContactLocator::Initialize()
             errmsg += instanceName + "\n";
             throw EventException(errmsg);
          }
+         if (stationSelection && !observers[ii]->IsOfType(Gmat::GROUND_STATION))
+            throw EventException("Station rise/set events require ground-station observers.");
          if (!observers[ii]->IsOfType(Gmat::GROUND_STATION) && !observers[ii]->IsOfType(Gmat::SPACECRAFT))
          {
             throw EventException("The observer " + observers[ii]->GetName() + " for ContactLocator " + instanceName + 
@@ -1659,7 +1836,16 @@ bool ContactLocator::Initialize()
       MessageInterface::ShowMessage("In CL::Init  about to set locatingString\n");
    #endif
    SetLocatingString("ContactLocator");
-
+   if (retval) for (const auto &name : additionalTargetNames)
+   {
+      std::unique_ptr<ContactLocator> worker(new ContactLocator(*this, false));
+      worker->additionalTargetNames.clear(); worker->additionalTargets.clear();
+      worker->targetName = name; worker->sat = additionalTargets.at(name);
+      worker->region = nullptr; worker->targetIsRegion = false; worker->em = nullptr;
+      worker->occultingBodies = occultingBodies;
+      if (!worker->Initialize()) throw EventException("Could not initialize contact target " + name);
+      targetWorkers.push_back(std::move(worker));
+   }
    return retval;
 }
 
@@ -1718,6 +1904,7 @@ bool ContactLocator::ReportEventDataLegacy(const std::string &reportNotice)
 
    //   theReport << "\nNumber of events : " << numIndividual << "\n\n\n";
 
+   WriteStationEvents();
    theReport.close();
    return true;
 }
@@ -1770,7 +1957,76 @@ void ContactLocator::FormatReportData(Integer &maxColumnWidth, Integer ii, Integ
  * Writes the event data to file and optionally displays the event data plot.
  */
 //------------------------------------------------------------------------------
+void ContactLocator::LocateEvents(const std::string &reportNotice)
+{
+   if (additionalTargetNames.empty()) { EventLocator::LocateEvents(reportNotice); return; }
+   if (runMode == "Disabled") return;
+   if (targetWorkers.size() != additionalTargetNames.size())
+      throw EventException("Initialize all selected contact targets before locating events.");
+   // Search all spacecraft before replacing any report. Each search retains its
+   // own coverage and results, including a selected spacecraft with no events.
+   const bool requestedReport = writeReport;
+   writeReport = false;
+   try
+   {
+      EventLocator::LocateEvents(reportNotice);
+      for (auto &worker : targetWorkers)
+      {
+         worker->writeReport = false;
+         worker->LocateEvents(reportNotice);
+      }
+      writeReport = requestedReport;
+      if (requestedReport)
+      {
+         if (!ReportEventData(reportNotice)) throw EventException("Could not write multi-target contact report.");
+         fileWasWritten = true;
+      }
+   }
+   catch (...) { writeReport = requestedReport; throw; }
+}
+
 bool ContactLocator::ReportEventData(const std::string &reportNotice)
+{
+   if (!ReportSingleTargetData(reportNotice)) return false;
+   for (auto &worker : targetWorkers)
+   {
+      worker->filename = filename;
+      worker->appendReport = true;
+      if (!worker->ReportSingleTargetData(reportNotice)) return false;
+   }
+   return true;
+}
+
+bool ContactLocator::ReportSingleTargetData(const std::string &reportNotice)
+{
+   const auto &types = GetStringArrayParameter(EVENT_TYPES);
+   const bool intervals = std::find(types.begin(),types.end(),"ContactIntervals") != types.end();
+   if (intervals) return ReportContactIntervalsData(reportNotice);
+   if (!OpenReportFile(false)) return false;
+   theReport << "Target: " << targetName << "\n\n";
+   WriteStationEvents(); theReport.close(); return true;
+}
+
+void ContactLocator::WriteStationEvents()
+{
+   const auto &types = GetStringArrayParameter(EVENT_TYPES);
+   const bool stationSelection = std::find(types.begin(),types.end(),"StationRise") != types.end() ||
+         std::find(types.begin(),types.end(),"StationSet") != types.end();
+   if (!stationSelection) return;
+   theReport << "Station events\nObserver\tEventType\tA1ModJulian\tUTCGregorian\n";
+   for (const auto &event : stationEvents)
+   {
+      Real utc; std::string gregorian;
+      TimeSystemConverter::Instance()->Convert("A1ModJulian",event.epoch,"",
+            "UTCGregorian",utc,gregorian);
+      theReport << event.observer << '\t' << (event.rise ? "StationRise" : "StationSet")
+            << '\t' << std::setprecision(17) << event.epoch << '\t' << gregorian << '\n';
+   }
+   theReport << "Number of station events : " << stationEvents.size() << '\n';
+}
+
+// Existing interval-report implementation is retained as the default route.
+bool ContactLocator::ReportContactIntervalsData(const std::string &reportNotice)
 {
    if (reportColumnsInOrder.size() == 0)
    {
@@ -2290,6 +2546,7 @@ bool ContactLocator::ReportEventData(const std::string &reportNotice)
    {
       theReport << "No contacts detected" << "\n";
    }
+   WriteStationEvents();
    theReport.close();
    return true;
 }
@@ -2343,6 +2600,30 @@ void ContactLocator::FindEvents()
    // Clear old events
    TakeAction("Clear", "Events");
    // @YRL
+
+   const auto &types = GetStringArrayParameter(EVENT_TYPES);
+   const bool rises = std::find(types.begin(),types.end(),"StationRise") != types.end();
+   const bool sets = std::find(types.begin(),types.end(),"StationSet") != types.end();
+   if (rises || sets)
+   {
+      for (const auto observer : observers)
+      {
+         const std::string central = observer->GetStringParameter("CentralBody");
+         StringArray bodies;
+         for (const auto &name : occultingBodyNames) if (name != central) bodies.push_back(name);
+         RealArray riseTimes, setTimes;
+         em->GetStationElevationCrossings(
+               GmatStringUtil::ToString(observer->GetIntegerParameter(observer->GetParameterID("NAIFId"))),
+               observer->GetRealParameter("MinimumElevationAngle"),observer->GetStringParameter("SpiceFrameId"),
+               bodies,theAbCorr,initialEp,finalEp,useEntireInterval,useLightTimeDelay,
+               GmatStringUtil::ToUpper(lightTimeDirection)=="TRANSMIT",stepSize,riseTimes,setTimes);
+         if (rises) for (const auto time : riseTimes) stationEvents.push_back({observer->GetName(),time,true});
+         if (sets) for (const auto time : setTimes) stationEvents.push_back({observer->GetName(),time,false});
+      }
+      std::stable_sort(stationEvents.begin(),stationEvents.end(),
+            [](const StationEvent &a,const StationEvent &b){return a.epoch < b.epoch;});
+   }
+   if (std::find(types.begin(),types.end(),"ContactIntervals") == types.end()) return;
 
    if (!targetIsRegion)
    {

@@ -30,6 +30,8 @@
 //------------------------------------------------------------------------------
 
 #include "ExponentialAtmosphere.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "FileManager.hpp"
 #include "FileUtil.hpp"
 #include "StringUtil.hpp"
@@ -702,3 +704,15 @@ GmatBase* ExponentialAtmosphere::Clone() const
    return (new ExponentialAtmosphere(*this));
 }
 
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void ExponentialAtmosphere::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const ExponentialAtmosphere*>(original);
+   if (!source || typeid(*source) != typeid(ExponentialAtmosphere) ||
+       typeid(*this) != typeid(ExponentialAtmosphere))
+      throw GmatBaseException("Cannot copy incompatible object into ExponentialAtmosphere");
+   if (source == this)
+      return;
+   operator=(*source);
+}

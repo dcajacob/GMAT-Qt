@@ -1,0 +1,92 @@
+{
+  "cases": [
+    {
+      "absolute_tolerance": 1e-12,
+      "relative_tolerance": 1e-12,
+      "key": "RealTypeGuard",
+      "destination": "R",
+      "before": "0",
+      "expression": "Seed + 1.75",
+      "expected": [
+        5
+      ],
+      "invalid": [
+        "'not numeric'",
+        "A",
+        "Text"
+      ],
+      "report": "R"
+    },
+    {
+      "absolute_tolerance": 1e-12,
+      "relative_tolerance": 1e-12,
+      "key": "StringTypeGuard",
+      "destination": "Out",
+      "before": "'before'",
+      "expression": "Text",
+      "expected": [
+        "NASA input"
+      ],
+      "invalid": [
+        "A",
+        "Vec"
+      ],
+      "report": "Out"
+    },
+    {
+      "absolute_tolerance": 1e-12,
+      "relative_tolerance": 1e-12,
+      "key": "ArrayShapeGuard",
+      "destination": "C",
+      "before": "A",
+      "expression": "B",
+      "expected": [
+        1,
+        3,
+        0,
+        2
+      ],
+      "invalid": [
+        "Vec",
+        "Wide",
+        "Row"
+      ],
+      "report": "C(1,1) C(1,2) C(2,1) C(2,2)",
+      "setup": "Create Array Wide[2,3] Row[1,2];\nWide(1,1) = 7;\nRow(1,1) = 8;\n"
+    },
+    {
+      "absolute_tolerance": 1e-12,
+      "relative_tolerance": 1e-12,
+      "key": "ArrayScalarBoundary",
+      "destination": "R",
+      "before": "0",
+      "expression": "Single",
+      "expected": [
+        -7.125
+      ],
+      "invalid": [
+        "A",
+        "Vec"
+      ],
+      "report": "R",
+      "setup": "Create Array Single[1,1];\nSingle(1,1) = -7.125;\n"
+    },
+    {
+      "absolute_tolerance": 1e-12,
+      "relative_tolerance": 1e-12,
+      "key": "InlineUserFunction",
+      "destination": "R",
+      "before": "0",
+      "expression": "InlineEcho(2) + 1",
+      "expected": [
+        7
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "report": "R",
+      "function_body": "function [out] = InlineEcho(input)\nCreate Variable out;\nBeginMissionSequence;\nout = input * 3;\n"
+    }
+  ]
+}

@@ -31,6 +31,7 @@
 
 
 #include "SpaceObject.hpp"
+#include "PlotOriginScope.hpp"
 #include "MessageInterface.hpp"
 
 
@@ -371,7 +372,8 @@ const Rvector6 SpaceObject::GetMJ2000State(const A1Mjd &atTime)
       throw SpaceObjectException(errmsg);
    }
          
-   Real *st = state.GetState(); //ps.GetState();
+   const auto *sample = PlotOriginScope::Find(this, atTime.Get());
+   const Real *st = sample ? sample->GetDataVector() : state.GetState(); //ps.GetState();
 
    #ifdef DEBUG_J2000_STATE
       MessageInterface::ShowMessage("   %s Object state: [%lf %lf %lf %lf %lf "
@@ -437,7 +439,8 @@ const Rvector6 SpaceObject::GetMJ2000State(const GmatTime &atTime)
       throw SpaceObjectException(errmsg);
    }
 
-   Real *st = state.GetState(); //ps.GetState();
+   const auto *sample = PlotOriginScope::Find(this, atTime);
+   const Real *st = sample ? sample->GetDataVector() : state.GetState(); //ps.GetState();
 
 #ifdef DEBUG_J2000_STATE
    MessageInterface::ShowMessage("   %s Object state: [%lf %lf %lf %lf %lf "
@@ -676,7 +679,10 @@ GmatTime SpaceObject::GetGmatTimeParameter(const std::string &label) const
 Real SpaceObject::SetRealParameter(const Integer id, const Real value)
 {
    if (id == EPOCH_PARAM)
+   {
+      state.SetEpochGT(GmatTime(value));
       return state.SetEpoch(value);
+   }
    return SpacePoint::SetRealParameter(id, value);
 }
 

@@ -61,6 +61,8 @@ public:
    // inherited from GmatBase
    virtual GmatBase*    Clone() const;
    virtual void         Copy(const GmatBase* orig);
+   virtual bool         TakeAction(const std::string &action,
+                                  const std::string &actionData = "");
    
    // Access methods overriden from the base class
    
@@ -106,6 +108,9 @@ protected:
    Integer      fminconExitFlag;
    /// The interface ised to exchange data with fmincon running in MATLAB
    MatlabInterface *matlabIf;
+   /// Actual MATLAB output-function counters, independent of branch evaluations.
+   Integer iterationFunctionCount = -1;
+   std::string iterationPhase;
    
    /// Table of options supported, excluding options inherited from base classes
    static const std::string    ALLOWED_OPTIONS[6];

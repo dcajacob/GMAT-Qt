@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "reference_sha256": {
+    "prototype/StateConv/BROLYD.m": "4bba549178fd7a10da7506ba17d0aa6fa98afaeaa4de51682271a583833465f3",
+    "prototype/StateConv/BROLYD_short.m": "c0f3bd3b53cf2ba335530ccec054dd1fd19123326a86e3a11d51a2630960fa24",
+    "src/qtgui/tests/BrouwerPrototypeOracle.py": "3cd4c38046ffb90926c161fd744d37af4859f63d7f6cb336656ed3ac00ac5f5b",
+    "doc/help/src/Resource_SpacecraftOrbitState.xml": "2446259ea11baa976a23b659961761eb8412566820598938c3c8f98995fe2eb4"
+  },
+  "oracle_scope": "Retained NASA prototype source parity plus independently solved Kepler equation/Cartesian basis. Independent physical averaging and historical FreeFlyer agreement remain unqualified.",
+  "driver": "src/qtgui/tests/NasaOrbitDefinitionTests.cpp",
+  "driver_sha256": "da117248f6a16761dc03ce9b9334115118d4c66da4bf11a8a236a317a50cd96c",
+  "scope": "Two actual six-field mean definitions,one new nonsingular EarthMJ2000Eq orbit;full singular/inverse/reference science remains separate",
+  "cases": [
+    {
+      "key": "BrouwerMeanShort",
+      "canonical_keplerian": [
+        10801.720560538324,
+        0.16975810800537808,
+        47.006518803866,
+        111.99704210431435,
+        38.03937939839456,
+        152.93024573940397
+      ],
+      "osculating_keplerian_MA": [
+        10801.720560538324,
+        0.16975810800537808,
+        47.006518803866,
+        111.99704210431435,
+        38.03937939839456,
+        142.9682701114765
+      ],
+      "mu": 398600.4418,
+      "names": [
+        "BrouwerShortSMA",
+        "BrouwerShortECC",
+        "BrouwerShortINC",
+        "BrouwerShortRAAN",
+        "BrouwerShortAOP",
+        "BrouwerShortMA"
+      ],
+      "values": [
+        10800,
+        0.17,
+        47,
+        112,
+        38,
+        143
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "invalid_field": "BrouwerShortSMA",
+      "invalid": [
+        "nan",
+        "0",
+        "-1"
+      ],
+      "expected_cartesian": [
+        6031.350943417012,
+        -10648.877811827599,
+        -1720.1046956530838,
+        3.1072976657840257,
+        1.8248726086642784,
+        -3.8234571597216025
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09
+    },
+    {
+      "key": "BrouwerMeanLong",
+      "canonical_keplerian": [
+        10801.720560538324,
+        0.17007538869207914,
+        47.00355822869124,
+        112.004120758483,
+        38.183033841041706,
+        152.83947165347286
+      ],
+      "osculating_keplerian_MA": [
+        10801.720560538324,
+        0.17007538869207914,
+        47.00355822869124,
+        112.004120758483,
+        38.183033841041706,
+        142.826726621444
+      ],
+      "mu": 398600.4418,
+      "names": [
+        "BrouwerLongSMA",
+        "BrouwerLongECC",
+        "BrouwerLongINC",
+        "BrouwerLongRAAN",
+        "BrouwerLongAOP",
+        "BrouwerLongMA"
+      ],
+      "values": [
+        10800,
+        0.17,
+        47,
+        112,
+        38,
+        143
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "invalid_field": "BrouwerLongSMA",
+      "invalid": [
+        "nan",
+        "0",
+        "-1"
+      ],
+      "expected_cartesian": [
+        6039.479131737587,
+        -10644.042341273873,
+        -1728.3444294068195,
+        3.105927475434816,
+        1.8273186136823907,
+        -3.822751445418319
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09
+    }
+  ]
+}

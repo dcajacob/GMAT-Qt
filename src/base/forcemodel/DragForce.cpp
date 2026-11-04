@@ -31,6 +31,8 @@
 
 
 #include "DragForce.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "StringUtil.hpp"     // for ToString()
 #include "ODEModelException.hpp"
 #include "MessageInterface.hpp"
@@ -2041,9 +2043,9 @@ Rvector6 DragForce::GetDerivativesForSpacecraft(Spacecraft* sc)
       Rvector3 velVec(vRelative[0], vRelative[1], vRelative[2]);
       Rvector3 spadArea = sc->GetSPADDragArea(now, velVec);
       
-      dv[3] = factor * spadArea[0] * vRelMag * vRelative[0];
-      dv[4] = factor * spadArea[1] * vRelMag * vRelative[1];
-      dv[5] = factor * spadArea[2] * vRelMag * vRelative[2];
+      dv[3] = factor * spadArea[0] * vRelMag * vRelMag;
+      dv[4] = factor * spadArea[1] * vRelMag * vRelMag;
+      dv[5] = factor * spadArea[2] * vRelMag * vRelMag;
 
       // dr/dt = v term not built from drag force
       dv[0] =
@@ -3482,3 +3484,15 @@ Real DragForce::CalculateAp(Real kp)
    return newAp;
 }
 
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void DragForce::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const DragForce*>(original);
+   if (!source || typeid(*source) != typeid(DragForce) ||
+       typeid(*this) != typeid(DragForce))
+      throw GmatBaseException("Cannot copy incompatible object into DragForce");
+   if (source == this)
+      return;
+   operator=(*source);
+}

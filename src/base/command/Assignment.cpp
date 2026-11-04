@@ -39,6 +39,7 @@
 
 
 #include "Assignment.hpp"
+#include <cmath>
 #include "MathTree.hpp"
 #include "StringUtil.hpp"
 #include "TextParser.hpp"
@@ -1318,10 +1319,10 @@ const StringArray& Assignment::GetWrapperObjectNameArray(bool completeSet)
    {
       if (lhs != "" && rhs != "Not_Set")
       {
-         // If LHS has more than 1 dot add to the list and Interpreter::ValidateCommand()
-         // will figure out if it is settable Parameter or not.(LOJ: 2009.12.22)
-         // Changed to use > 0 (LOJ: 2015.02.10) Changed back to >1 for LHS when equation
-         if ((GmatStringUtil::NumberOfOccurrences(lhs, '.') > 1) || completeSet)
+         // Include dotted destinations as in the non-equation branch. Function
+         // parsing registers these Parameters before cloning the local scope;
+         // a left-only time Parameter must not depend on also being on the RHS.
+         if ((GmatStringUtil::NumberOfOccurrences(lhs, '.') > 0) || completeSet)
             wrapperObjectNames.push_back(lhs);
       }
       StringArray wons = rhsEquation->GetWrapperObjectNames();
@@ -2054,6 +2055,22 @@ bool Assignment::ValidateRmatrix(ElementWrapper *lhsWrapper, ElementWrapper *rhs
    bool retval = false;
    Gmat::ParameterType lhsDataType = lhsWrapper->GetDataType();
    Gmat::ParameterType rhsDataType = rhsWrapper->GetDataType();
+
+   if (rhsDataType == Gmat::STRING_TYPE &&
+       rhsWrapper->GetWrapperType() == Gmat::STRING_WT &&
+       GmatStringUtil::IsEnclosedWithBrackets(rhsWrapper->EvaluateString()))
+   {
+      const RealArray values = GmatStringUtil::ToRealArray(rhsWrapper->EvaluateString(), false, true);
+      const Rmatrix &destination = lhsWrapper->EvaluateArray();
+      retval = !values.empty() && values.size() ==
+         destination.GetNumRows() * destination.GetNumColumns();
+      for (Real value : values)
+         if (!std::isfinite(value))
+            retval = false;
+      if (!retval)
+         lastErrorMessage = "Matrix literal size does not match left of the equal sign.";
+      return retval;
+   }
    
    if ((rhsDataType != Gmat::STRING_TYPE) &&
        (rhsDataType != Gmat::RMATRIX_TYPE))

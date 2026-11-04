@@ -1,0 +1,84 @@
+#include "AcceptancePlatform.hpp"
+#include "AcceptanceView.hpp"
+#include "MainWindow.hpp"
+#include "CommandEditor.hpp"
+#include "Moderator.hpp"
+#include "SolarSystem.hpp"
+#include "CelestialBody.hpp"
+#include "BaseException.hpp"
+#include "TestSettings.hpp"
+#include <QApplication>
+#include <QDialogButtonBox>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QLabel>
+#include <QLineEdit>
+#include <QMdiArea>
+#include <QMdiSubWindow>
+#include <QPlainTextEdit>
+#include <QPointer>
+#include <QPushButton>
+#include <QScrollArea>
+#include <QTabWidget>
+#include <QTemporaryDir>
+#include <QTest>
+#include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
+#include <cmath>
+#include <iostream>
+#include <stdexcept>
+static void require(bool ok,const QString &message) {if (!ok) throw std::runtime_error(message.toStdString());}
+static void events() {QApplication::processEvents();QApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);}
+static QByteArray read(const QString &p) {QFile f(p);require(f.open(QIODevice::ReadOnly),"Assignment artifact missing: "+p);return f.readAll();}
+static void write(const QString &p,const QByteArray &b) {QFile f(p);require(f.open(QIODevice::WriteOnly)&&f.write(b)==b.size(),"Assignment artifact write failed");}
+static void reveal(QWidget *w) {require(w,"Assignment control missing");for(QWidget *p=w;p;p=p->parentWidget())if(auto *s=qobject_cast<QScrollArea *>(p))s->ensureWidgetVisible(w);events();require(w->isVisible()&&w->isEnabled(),"Assignment control unreachable");}
+int main(int argc,char **argv) {
+ QApplication::setAttribute(Qt::AA_DontUseNativeDialogs);QApplication app(argc,argv);app.setOrganizationName("GMATTests");app.setApplicationName("NasaAssignments");
+ try {
+  require(argc==4&&acceptanceWidgetPlatform(),"Expected startup, assignment cases and key");TestSettings settings;QTemporaryDir files;require(files.isValid(),"Assignment fixture directory unavailable");
+  const QString key=argv[3];QJsonObject spec;for(auto c:QJsonDocument::fromJson(read(QFileInfo(argv[2]).absoluteFilePath())).object()["cases"].toArray())if(c.toObject()["key"]==key)spec=c.toObject();require(!spec.isEmpty(),"Assignment case missing");
+  const auto startup=QFileInfo(argv[1]).absoluteFilePath();QDir::setCurrent(QFileInfo(startup).absolutePath());const auto report=files.filePath("Assignment result Δ.txt"),saved=files.filePath("Assignment Δ.script");
+  const auto evidence=qEnvironmentVariable("GMAT_QT_ACCEPTANCE_DIR");auto save=[&](const QString &name,const QByteArray &bytes){if(!evidence.isEmpty())write(QDir(evidence).filePath(name),bytes);};
+  QString prefix="% NASA assignment sentinel Δ\nCreate Variable R Seed Keep idx;\nR = 0;\nSeed = 3.25;\nKeep = 9;\nidx = 2;\nCreate Array A[2,2] B[2,2] C[2,2] Vec[3,1];\nA(1,1) = 4;\nA(1,2) = 1;\nA(2,1) = 2;\nA(2,2) = 6;\nB(1,1) = 1;\nB(1,2) = 3;\nB(2,1) = 0;\nB(2,2) = 2;\nVec(1,1) = 3;\nVec(2,1) = 4;\nVec(3,1) = 12;\nCreate String Out Text;\nOut = 'initial';\nText = 'NASA input';\nCreate Spacecraft Sat;\nSat.DryMass = 850;\nSat.Cd = 2.2;\nCreate ReportFile Truth;\nTruth.Filename = '"+report+"';\nTruth.WriteHeaders = false;\nTruth.FixedWidth = false;\nTruth.Delimiter = ',';\nTruth.Precision = 17;\nBeginMissionSequence;\n";
+  if(spec.contains("setup"))prefix.replace("Create ReportFile Truth;",spec["setup"].toString()+"Create ReportFile Truth;");
+  if(spec.contains("function_body")) {
+   const auto function=files.filePath("InlineEcho.gmf");const auto body=spec["function_body"].toString().toUtf8();write(function,body);save("inline-function.gmf",body);
+   prefix.replace("Create ReportFile Truth;","Create GmatFunction InlineEcho;\nInlineEcho.FunctionPath = '"+function+"';\nCreate ReportFile Truth;");
+  }
+  auto statement=[&](const QString &expr){return "'NASA assignment' "+spec["destination"].toString()+" = "+expr+"; % retain target comment\n";};
+  const QString tail="Report 'NASA result' Truth "+spec["report"].toString()+" Keep;\n% Preserve final comment Ω\n";
+  const auto originalStatement=statement(spec["before"].toString()),wantedStatement=statement(spec["expression"].toString());const auto initial=prefix+originalStatement+tail,wanted=prefix+wantedStatement+tail;
+  save("initial.script",initial.toUtf8());save("expected.script",wanted.toUtf8());
+  MainWindow window;require(window.initialize(startup),"Assignment initialization failed");window.show();acceptanceView(window);events();
+  auto *source=window.findChild<QPlainTextEdit *>("scriptEditor"),*messages=window.findChild<QPlainTextEdit *>("messageWindow");auto *tree=window.findChild<QTreeWidget *>("Mission");auto *area=window.findChild<QMdiArea *>("workspace");require(source&&messages&&tree&&area,"Assignment workspace missing");
+  source->setPlainText(initial);if(!window.buildScript()){std::cerr<<messages->toPlainText().toStdString();throw std::runtime_error("Assignment initial build failed");}source->document()->setModified(false);const int undo=source->document()->availableUndoSteps();
+  auto model=[&]{QJsonObject state;for(const auto &name:QStringList{"R","Seed","Keep","idx"}){auto *p=Moderator::Instance()->GetConfiguredObject(name.toStdString());require(p,"Assignment variable missing");state[name]=p->GetRealParameter("Value");}for(const auto &name:QStringList{"Out","Text"}){auto *p=Moderator::Instance()->GetConfiguredObject(name.toStdString());require(p,"Assignment string missing");state[name]=QString::fromStdString(p->GetStringParameter("Value"));}auto *sat=Moderator::Instance()->GetConfiguredObject("Sat");require(sat,"Assignment spacecraft missing");state["Sat.Cd"]=sat->GetRealParameter("Cd");state["Sat.DryMass"]=sat->GetRealParameter("DryMass");if(spec["orbital_case"].toBool()){QJsonArray orbit;for(const auto &name:QStringList{"X","Y","Z","VX","VY","VZ"})orbit.append(sat->GetRealParameter(name.toStdString()));state["Sat.Cartesian"]=orbit;state["Sat.Epoch"]=sat->GetRealParameter("A1Epoch");QJsonArray names;for(const auto &name:Moderator::Instance()->GetListOfObjects(Gmat::PARAMETER))names.append(QString::fromStdString(name));state["ConfiguredParameters"]=names;}for(const auto &name:QStringList{"A","B","C","Vec"}){auto *p=Moderator::Instance()->GetConfiguredObject(name.toStdString());require(p,"Assignment array missing");const auto m=p->GetRmatrixParameter("RmatValue");QJsonArray values;for(int r=0;r<m.GetNumRows();++r)for(int c=0;c<m.GetNumColumns();++c)values.append(m(r,c));state[name]=values;}return state;};
+  if(spec["orbital_case"].toBool())require(std::abs(Moderator::Instance()->GetSolarSystemInUse()->GetBody("Earth")->GetGravitationalConstant()-spec["mu"].toDouble())<1e-9,"Orbital fixture gravitational input differs from literal oracle");
+  const auto base=model();auto pristine=[&]{return source->toPlainText()==initial&&source->document()->availableUndoSteps()==undo&&!source->document()->isModified()&&model()==base&&window.missionSnapshot().sourceScript==initial;};
+  auto open=[&]()->QMdiSubWindow*{for(auto *tabs:window.findChildren<QTabWidget *>())for(int i=0;i<tabs->count();++i)if(tabs->tabText(i)=="Mission")tabs->setCurrentIndex(i);int index=-1;auto snap=window.missionSnapshot();for(int i=0;i<snap.nodes.size();++i)if(missionCommandLabel(snap.nodes[i].statement).name=="NASA assignment")index=i;require(index>=0,"Assignment named command absent");QTreeWidgetItem *item=nullptr;for(QTreeWidgetItemIterator it(tree);*it;++it)if((*it)->data(0,Qt::UserRole).isValid()&&(*it)->data(0,Qt::UserRole).toInt()==index)item=*it;require(item,"Assignment Mission tree item absent");tree->expandAll();tree->setCurrentItem(item);tree->scrollToItem(item);events();acceptanceView(window);tree->itemDoubleClicked(item,0);require(QTest::qWaitFor([&]{auto *c=area->activeSubWindow();return c&&dynamic_cast<CommandEditor *>(c->widget());},1500),"Assignment editor did not open");auto *c=area->activeSubWindow();if(qEnvironmentVariable("GMAT_QT_ACCEPTANCE_MODE")=="visible"){c->showNormal();c->move(16,12);c->resize(std::min(960,area->viewport()->width()-32),std::min(700,area->viewport()->height()-24));}events();acceptanceView(*c);return c;};
+  QPointer<QMdiSubWindow> child=open();auto *panel=dynamic_cast<CommandEditor *>(child->widget());auto field=[&](const QString &name){auto *f=panel->findChild<QLineEdit *>("commandField_"+name);require(f&&!f->isReadOnly(),"Assignment typed field absent: "+name);reveal(f);return f;};auto preview=[&]{auto *p=panel->findChild<QPlainTextEdit *>("commandSource");require(p,"Assignment preview absent");return p;};auto click=[&](QDialogButtonBox::StandardButton which){auto *box=panel->findChild<QDialogButtonBox *>();auto *b=box?box->button(which):nullptr;require(b,"Assignment action absent");reveal(b);acceptanceView(*child);QTest::mouseClick(b,Qt::LeftButton);events();};
+  require(field("Destination")->text()==spec["destination"].toString()&&field("Expression")->text()==spec["before"].toString(),"Assignment initial typed values differ");
+  // Cancel one real typed edit before testing Apply; source and configured objects must remain untouched.
+  field("Expression")->setText(spec["expression"].toString());events();require(panel->hasChanges()&&pristine()&&preview()->toPlainText().trimmed()==wantedStatement.trimmed(),"Assignment draft mutated configured mission");acceptanceView(*child);click(QDialogButtonBox::Cancel);require(!child&&pristine(),"Assignment Cancel mutated source/model or retained owner");
+  child=open();panel=dynamic_cast<CommandEditor *>(child->widget());QJsonArray rejected;
+  if(spec["read_only"].toBool())for(auto action:{QDialogButtonBox::Apply,QDialogButtonBox::Ok}){
+   field("Destination")->setText(spec["reject_destination"].toString());field("Expression")->setText("1");events();QPointer<CommandEditor> owner=panel;click(action);
+   auto *label=owner?owner->findChild<QLabel *>("commandStatus"):nullptr;
+   require(owner&&child&&owner==panel&&panel->hasChanges()&&pristine()&&field("Destination")->text()==spec["reject_destination"].toString()&&label&&!label->text().isEmpty(),"Readonly orbital parameter destination changed source/model/history or lost its diagnostic/owner");
+   rejected.append(QJsonObject{{"input",spec["reject_destination"]},{"action",action==QDialogButtonBox::Apply?"Apply":"OK"},{"kind","readonly-destination"},{"diagnostic",label->text()}});acceptanceView(*child);
+   field("Destination")->setText(spec["destination"].toString());field("Expression")->setText(spec["before"].toString());events();
+  }
+  auto reject=[&](const QString &expr,QDialogButtonBox::StandardButton action){field("Expression")->setText(expr);events();const auto draft=preview()->toPlainText();QPointer<CommandEditor> owner=panel;click(action);auto *label=owner?owner->findChild<QLabel *>("commandStatus"):nullptr;save("rejection-diagnostic.json",QJsonDocument(QJsonObject{{"input",expr},{"source",source->toPlainText()},{"diagnostic",label?label->text():QString()}}).toJson());require(owner&&child&&owner==panel&&panel->hasChanges()&&pristine()&&preview()->toPlainText()==draft&&field("Expression")->text()==expr&&label&&!label->text().isEmpty(),"Invalid assignment Apply/OK changed source, model, history, draft or owner");rejected.append(QJsonObject{{"input",expr},{"action",action==QDialogButtonBox::Apply?"Apply":"OK"},{"diagnostic",label->text()}});acceptanceView(*child);};
+  for(auto bad:spec["invalid"].toArray())reject(bad.toString(),QDialogButtonBox::Apply);reject(spec["invalid"].toArray().first().toString(),QDialogButtonBox::Ok);save("rejections.json",QJsonDocument(rejected).toJson());
+  field("Expression")->setText(spec["expression"].toString());events();require(pristine()&&preview()->toPlainText().trimmed()==wantedStatement.trimmed(),"Assignment valid recovery changed mission before Apply");click(QDialogButtonBox::Apply);panel=dynamic_cast<CommandEditor *>(child->widget());save("apply-diagnostic.json",QJsonDocument(QJsonObject{{"messages",messages->toPlainText()},{"source",source->toPlainText()},{"status",panel&&panel->findChild<QLabel *>("commandStatus")?panel->findChild<QLabel *>("commandStatus")->text():QString()}}).toJson());require(panel&&!panel->hasChanges()&&source->toPlainText()==wanted,"Assignment Apply did not commit exact source");save("applied.script",source->toPlainText().toUtf8());
+  const int appliedUndo=source->document()->availableUndoSteps();click(QDialogButtonBox::Apply);require(source->toPlainText()==wanted&&source->document()->availableUndoSteps()==appliedUndo,"Assignment repeated Apply changed history");click(QDialogButtonBox::Close);require(!child,"Assignment clean close retained owner");source->undo();require(source->toPlainText()==initial&&window.buildScript()&&model()==base,"Assignment Undo did not restore exact source and configured objects");source->redo();require(source->toPlainText()==wanted&&window.buildScript(),"Assignment Redo failed");
+  require(window.saveScriptTo(saved)&&window.loadScript(saved)&&window.buildScript()&&source->toPlainText()==wanted,"Assignment Unicode save/reopen failed");child=open();panel=dynamic_cast<CommandEditor *>(child->widget());require(field("Destination")->text()==spec["destination"].toString()&&field("Expression")->text()==spec["expression"].toString(),"Assignment reopened fields differ");acceptanceView(*child);click(QDialogButtonBox::Ok);require(!child,"Assignment clean OK retained owner");save("mission.script",source->toPlainText().toUtf8());
+  messages->clear();const auto result=window.runMission();events();save("messages.txt",messages->toPlainText().toUtf8());if(result!=MainWindow::RunResult::Completed)std::cerr<<messages->toPlainText().toStdString();require(result==MainWindow::RunResult::Completed,"Assignment execution failed");const auto raw=read(report);save("values.txt",raw);const auto rows=QString::fromUtf8(raw).trimmed().split('\n');require(rows.size()==1,"Assignment report must contain exactly one row");const auto columns=rows.first().split(',');const auto expected=spec["expected"].toArray();require(columns.size()==expected.size()+1,"Assignment report column count differs");QJsonArray actual;double maxError=0;for(int i=0;i<expected.size();++i){const auto text=columns[i].trimmed();if(expected[i].isString()){require(text==expected[i].toString(),"Assignment string differs from independent literal oracle");actual.append(text);}else{bool ok=false;const double value=text.toDouble(&ok),truth=expected[i].toDouble(),error=std::abs(value-truth);require(ok&&std::isfinite(value)&&error<=spec["absolute_tolerance"].toDouble()+spec["relative_tolerance"].toDouble()*std::abs(truth),"Assignment result differs from independent mathematical oracle");if(spec["orbital_case"].toBool()){const auto limits=spec["column_absolute_tolerances"].toArray();require(i<limits.size()&&error<=limits[i].toDouble()+spec["relative_tolerance"].toDouble()*std::abs(truth),"Orbital parameter Cartesian witness differs from independent conic/spherical oracle");}actual.append(value);maxError=std::max(maxError,error);}}bool sentinelOk=false;const auto sentinel=columns.last().trimmed().toDouble(&sentinelOk);require(sentinelOk&&sentinel==9,"Assignment changed unrelated numerical sentinel");
+  auto proofFacets=QJsonArray{"actual-mission-tree-assignment-editor","typed-expression-and-destination","cancel-pending-model-history-protection","invalid-apply-ok-atomicity","exact-apply-idempotence-undo-redo","unicode-reopen-typed-readback","independent-mathematical-or-literal-mission-result"};if(spec["orbital_case"].toBool()){proofFacets.append("literal-gravitational-input");proofFacets.append("independent-complete-cartesian-witness");proofFacets.append("orbital-configured-state-isolation");}if(spec["read_only"].toBool())proofFacets.append("readonly-parameter-destination-rejection");
+  const QJsonObject proof{{"checkpoint","assignment-"+key},{"outcome","passed"},{"family",key},{"destination",spec["destination"]},{"expression",spec["expression"]},{"expected",expected},{"actual",actual},{"max_error",maxError},{"numeric_sentinel",sentinel},{"rejections",rejected},{"facets",proofFacets},{"scope",spec["orbital_case"].toBool()?"Selected orbital parameter Assignment setters or readonly calculations and rejection, with literal gravitational input and independent complete Cartesian witnesses. Broader physical invalid domains, singularities, other origins/frames and full-current-build/platform qualification remain open.":"Selected assignment inputs, scalar and matrix operations. No arbitrary-domain, all-resource, MATLAB, native OS input, platform, stress or full-current-build qualification."}};save("proof.json",QJsonDocument(proof).toJson());std::cout<<"NASA_CHECK "<<QJsonDocument(proof).toJson(QJsonDocument::Compact).constData()<<std::endl;return 0;
+ }catch(BaseException &e){std::cerr<<"FAIL "<<e.GetFullMessage()<<std::endl;}catch(std::exception &e){std::cerr<<"FAIL "<<e.what()<<std::endl;}return 1;
+}

@@ -1,0 +1,2280 @@
+{
+  "id": "09-dsn-simulation",
+  "title": "Simulate DSN Range and Doppler Data",
+  "guide": "doc/help/src/Tut_Simulate_DSN_Range_and_Doppler_Data.xml",
+  "guide_sha256": "b4020cf99e54ee3190b00a289a584e6b2530e621b60eb53d77ce8a5fa335fabe",
+  "reference": "application/samples/Tut_Simulate_DSN_Range_and_Doppler_Data_3_weeks.script",
+  "provenance": "Current script-based Help program listings entered through the GUI with QtTest keyboard events. No completed example mission is read to generate this recipe. Output/data paths are isolated to this case; dependencies are its own newly generated observations.",
+  "stages": [
+    {
+      "name": "Guide short DSN simulation",
+      "input": null,
+      "guide_programlistings": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "actions": [
+        {
+          "action": "key",
+          "keys": "ESC"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+N"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "text",
+          "text": "%  Create the Sun-centered J2000 frame.",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create CoordinateSystem SunMJ2000Eq;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SunMJ2000Eq.Origin = Sun;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SunMJ2000Eq.Axes   = MJ2000Eq;  %Earth mean equator axes",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Spacecraft Sat;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.DateFormat       = UTCGregorian;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.CoordinateSystem = SunMJ2000Eq;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.DisplayStateType = Cartesian;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.Epoch            = 19 Aug 2015 00:00:00.000;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.X                = -126544968",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.Y                =  61978514",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.Z                =  24133221",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.VX               = -13.789",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.VY               = -24.673",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.VZ               = -10.662",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.Id               = 11111;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Antenna HGA;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Transponder SatTransponder;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SatTransponder.PrimaryAntenna      = HGA;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SatTransponder.HardwareDelay       = 1e-06; %seconds",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SatTransponder.TurnAroundRatio     = '880/749';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.AddHardware                    = {SatTransponder, HGA};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%  Ground Station electronics. ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Transmitter DSNTransmitter;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Receiver DSNReceiver;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Antenna DSNAntenna;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNTransmitter.PrimaryAntenna     = DSNAntenna;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNReceiver.PrimaryAntenna        = DSNAntenna;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNTransmitter.Frequency          = 7200;   %MHz",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%   Create ground station and associated error models",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create GroundStation CAN;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.CentralBody           = Earth;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.StateType             = Cartesian;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.HorizonReference      = Ellipsoid;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.Location1             = -4461.083514",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.Location2             = 2682.281745",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.Location3             = -3674.570392",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.Id                    = 22222;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.MinimumElevationAngle = 7.0;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.IonosphereModel       = 'IRI2007';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.TroposphereModel      = 'HopfieldSaastamoinen';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.AddHardware           = {DSNTransmitter, DSNAntenna, ...",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "                                DSNReceiver};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%   Create Ground station error models",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create ErrorModel DSNrange;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNrange.Type                  = 'DSN_SeqRange';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNrange.NoiseSigma            = 10.63;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNrange.Bias                  = 0.0;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create ErrorModel DSNdoppler;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNdoppler.Type                = 'DSN_TCP';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNdoppler.NoiseSigma          = 0.0282;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNdoppler.Bias                = 0.0;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.ErrorModels                = {DSNrange, DSNdoppler};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create TrackingFileSet DSNsimData;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.AddTrackingConfig        = {{CAN, Sat, CAN}, 'DSN_SeqRange'};   ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.AddTrackingConfig        = {{CAN, Sat, CAN}, 'DSN_TCP'};                 ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.FileName                 = ...",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "                     {'Sat_dsn_range_and_doppler_measurements.gmd'};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.UseLightTime             = true;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.UseRelativityCorrection  = true;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.UseETminusTAI            = true;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.SimDopplerCountInterval  = 10.0;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.SimRangeModuloConstant   = 3.3554432e+07;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create ForceModel Fm;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Propagator Prop;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Fm.CentralBody            = Sun;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Fm.PointMasses            = {Sun, Earth, Luna, Mars, Saturn, ...",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "                             Uranus, Mercury, Venus, Jupiter};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Fm.SRP                    = On;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Fm.RelativisticCorrection = On;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Fm.ErrorControl           = None;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Prop.FM                   = Fm;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Prop.MinStep              = 0;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Simulator Sim;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.AddData             = {DSNsimData};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.EpochFormat         = UTCGregorian;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.InitialEpoch        = '19 Aug 2015 00:00:00.000';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.FinalEpoch          = '19 Aug 2015 00:12:00.000';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.MeasurementTimeStep = 600;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.Propagator          = Prop;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.AddNoise            = Off;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "BeginMissionSequence",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": " ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "RunSimulator Sim",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-code-entered"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+S"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial09-short.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+SHIFT+F7"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-mission-run"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+O"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial09-short.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "screenshot",
+          "label": "own-saved-mission-reopened"
+        }
+      ],
+      "requires_run": true
+    },
+    {
+      "name": "Guide three-station ramp and noisy simulation",
+      "input": null,
+      "guide_programlistings": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "actions": [
+        {
+          "action": "key",
+          "keys": "ESC"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+SHIFT+N"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "documentEditor"
+        },
+        {
+          "action": "text",
+          "target_name": "documentEditor",
+          "text": "27252   22222   11111   2   1   7.2e09   0.2"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "target_name": "documentEditor",
+          "text": "27252   33333   11111   2   1   7.3e09   0.3"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "target_name": "documentEditor",
+          "text": "27252   44444   11111   2   1   7.4e09   0.4"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+S"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "target_name": "fileNameEdit",
+          "text": "${WORK}/Simulate DSN Range and Doppler Data 3 weeks.rmp"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-ramp-data-created"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+W"
+        },
+        {
+          "action": "key",
+          "keys": "ESC"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+N"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "text",
+          "text": "%  Create the Sun-centered J2000 frame.",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create CoordinateSystem SunMJ2000Eq;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SunMJ2000Eq.Origin = Sun;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SunMJ2000Eq.Axes   = MJ2000Eq;  %Earth mean equator axes",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Spacecraft Sat;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.DateFormat       = UTCGregorian;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.CoordinateSystem = SunMJ2000Eq;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.DisplayStateType = Cartesian;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.Epoch            = 19 Aug 2015 00:00:00.000;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.X                = -126544968",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.Y                =  61978514",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.Z                =  24133221",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.VX               = -13.789",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.VY               = -24.673",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.VZ               = -10.662",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.Id               = 11111;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Antenna HGA;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Transponder SatTransponder;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SatTransponder.PrimaryAntenna      = HGA;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SatTransponder.HardwareDelay       = 1e-06; %seconds",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SatTransponder.TurnAroundRatio     = '880/749';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sat.AddHardware                    = {SatTransponder, HGA};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%  Ground Station electronics. ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Transmitter DSNTransmitter;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Receiver DSNReceiver;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Antenna DSNAntenna;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNTransmitter.PrimaryAntenna     = DSNAntenna;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNReceiver.PrimaryAntenna        = DSNAntenna;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNTransmitter.Frequency          = 7200;   %MHz",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%   Create ground station and associated error models",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create GroundStation CAN;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.CentralBody           = Earth;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.StateType             = Cartesian;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.HorizonReference      = Ellipsoid;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.Location1             = -4461.083514",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.Location2             = 2682.281745",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.Location3             = -3674.570392",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.Id                    = 22222;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.MinimumElevationAngle = 7.0;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.IonosphereModel       = 'IRI2007';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.TroposphereModel      = 'HopfieldSaastamoinen';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.AddHardware           = {DSNTransmitter, DSNAntenna, ...",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "                                DSNReceiver};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%   Create Ground station error models",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create ErrorModel DSNrange;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNrange.Type                  = 'DSN_SeqRange';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNrange.NoiseSigma            = 10.63;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNrange.Bias                  = 0.0;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create ErrorModel DSNdoppler;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNdoppler.Type                = 'DSN_TCP';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNdoppler.NoiseSigma          = 0.0282;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNdoppler.Bias                = 0.0;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "CAN.ErrorModels                = {DSNrange, DSNdoppler};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create TrackingFileSet DSNsimData;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.AddTrackingConfig        = {{CAN, Sat, CAN}, 'DSN_SeqRange'};   ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.AddTrackingConfig        = {{CAN, Sat, CAN}, 'DSN_TCP'};                 ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.FileName                 = ...",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "                     {'Simulate DSN Range and Doppler Data 3 weeks.gmd'};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.UseLightTime             = true;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.UseRelativityCorrection  = true;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.UseETminusTAI            = true;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.SimDopplerCountInterval  = 10.0;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.SimRangeModuloConstant   = 3.3554432e+07;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create ForceModel Fm;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Propagator Prop;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Fm.CentralBody            = Sun;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Fm.PointMasses            = {Sun, Earth, Luna, Mars, Saturn, ...",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "                             Uranus, Mercury, Venus, Jupiter};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Fm.SRP                    = On;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Fm.RelativisticCorrection = On;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Fm.ErrorControl           = None;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Prop.FM                   = Fm;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Prop.MinStep              = 0;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Simulator Sim;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.AddData             = {DSNsimData};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.EpochFormat         = UTCGregorian;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.InitialEpoch        = '19 Aug 2015 00:00:00.000';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.FinalEpoch          = '19 Aug 2015 00:12:00.000';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.MeasurementTimeStep = 600;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.Propagator          = Prop;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.AddNoise            = Off;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create GroundStation GDS;  ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "GDS.CentralBody           = Earth;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "GDS.StateType             = Cartesian;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "GDS.HorizonReference      = Ellipsoid;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "GDS.Location1             = -2353.621251;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "GDS.Location2             = -4641.341542;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "GDS.Location3             = 3677.052370;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "GDS.Id                    = '33333';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "GDS.AddHardware           = {DSNTransmitter, DSNAntenna, DSNReceiver};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "GDS.MinimumElevationAngle = 7.0;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "GDS.IonosphereModel       = 'IRI2007';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "GDS.TroposphereModel      = 'HopfieldSaastamoinen';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create GroundStation MAD;  ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MAD.CentralBody           = Earth;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MAD.StateType             = Cartesian;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MAD.HorizonReference      = Ellipsoid;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MAD.Location1             = 4849.519988;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MAD.Location2             = -0360.641653;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MAD.Location3             = 4114.504590;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MAD.Id                    = '44444';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MAD.AddHardware           = {DSNTransmitter, DSNAntenna, DSNReceiver};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MAD.MinimumElevationAngle = 7.0;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MAD.IonosphereModel       = 'IRI2007';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MAD.TroposphereModel      = 'HopfieldSaastamoinen';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "GDS.ErrorModels           = {DSNrange, DSNdoppler};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MAD.ErrorModels           = {DSNrange, DSNdoppler};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.AddTrackingConfig = {{GDS, Sat, GDS}, 'DSN_SeqRange'};   ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.AddTrackingConfig = {{GDS, Sat, GDS}, 'DSN_TCP'};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.AddTrackingConfig = {{MAD, Sat, MAD}, 'DSN_SeqRange'};   ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.AddTrackingConfig = {{MAD, Sat, MAD}, 'DSN_TCP'};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "DSNsimData.RampTable = ...",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "{'${WORK}/Simulate DSN Range and Doppler Data 3 weeks.rmp'};",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.FinalEpoch          = '09 Sep 2015 00:00:00.000';",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.AddNoise            = On;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Sim.MeasurementTimeStep = 3600;",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "BeginMissionSequence",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": " ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "RunSimulator Sim",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-code-entered"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+S"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial09-realistic.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+SHIFT+F7"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-mission-run"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+O"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial09-realistic.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "screenshot",
+          "label": "own-saved-mission-reopened"
+        }
+      ],
+      "requires_run": true
+    }
+  ]
+}

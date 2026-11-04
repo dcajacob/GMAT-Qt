@@ -1,0 +1,152 @@
+{
+  "family": "Achieve",
+  "command": "Achieve",
+  "operand": "DC(Quantity = 9, {Tolerance = 0.000000001});",
+  "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate DifferentialCorrector DC;\nDC.ShowProgress = false;\nDC.MaximumIterations = 20;\nDC.DerivativeMethod = CentralDifference;\nDC.ReportFile = '@DC@';\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nTarget DC {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary DC(U = 1, {Perturbation = 0.01, Lower = -10, Upper = 10, MaxStep = 10, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nQuantity = 2 * U + 1;\nAchieve 'Probe' DC(Quantity = 9, {Tolerance = 0.000000001});\nEndTarget;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+  "expected_tail": [
+    0,
+    4,
+    0,
+    9
+  ],
+  "velocity_increment": [
+    0,
+    0,
+    0
+  ],
+  "historical_keys": [
+    "H2012:R1683",
+    "H2012:R1685",
+    "H2012:R1686",
+    "H2012:R1687",
+    "H2012:R1689"
+  ],
+  "historical_rows": [
+    {
+      "key": "H2012:R1683",
+      "row": 1683,
+      "source_fields": {
+        "Enabled": "TRUE",
+        "Object": "Achieve",
+        "Operation": "Open and Name",
+        "Requirement(s)": "",
+        "Path": "Commands\\FRC-5_Achieve\\Achieve",
+        "Project Suite": "Achieve",
+        "Project": "Achieve",
+        "Test Case": "TreeControls_Open_and_Name",
+        "IsKeywordTest": "TRUE",
+        "Pretest": "",
+        "Tester": "SJH",
+        "% Complete": "100",
+        "Results": "",
+        "Comments": "",
+        "Start Time": "",
+        "Stop Time": "",
+        "Log": ""
+      },
+      "fingerprint": "044b7742069db907488b10d825e2d1b636e7c1c3e845a0988e1ac270731751e7",
+      "applicability": "unreviewed"
+    },
+    {
+      "key": "H2012:R1685",
+      "row": 1685,
+      "source_fields": {
+        "Enabled": "TRUE",
+        "Object": "Achieve",
+        "Operation": "Rename",
+        "Requirement(s)": "",
+        "Path": "Commands\\FRC-5_Achieve\\Achieve",
+        "Project Suite": "Achieve",
+        "Project": "Achieve",
+        "Test Case": "TreeControls_Rename",
+        "IsKeywordTest": "TRUE",
+        "Pretest": "",
+        "Tester": "SJH",
+        "% Complete": "100",
+        "Results": "",
+        "Comments": "",
+        "Start Time": "",
+        "Stop Time": "",
+        "Log": ""
+      },
+      "fingerprint": "b3f09145acb49351df9ca1dbcbc75307188e98f63d92ca1c932a86688d82ba5b",
+      "applicability": "unreviewed"
+    },
+    {
+      "key": "H2012:R1686",
+      "row": 1686,
+      "source_fields": {
+        "Enabled": "TRUE",
+        "Object": "Achieve",
+        "Operation": "Cancel Rename",
+        "Requirement(s)": "",
+        "Path": "Commands\\FRC-5_Achieve\\Achieve",
+        "Project Suite": "Achieve",
+        "Project": "Achieve",
+        "Test Case": "TreeControls_RenameCancel",
+        "IsKeywordTest": "TRUE",
+        "Pretest": "",
+        "Tester": "SJH",
+        "% Complete": "100",
+        "Results": "",
+        "Comments": "",
+        "Start Time": "",
+        "Stop Time": "",
+        "Log": ""
+      },
+      "fingerprint": "b5b4e008d27c1c13c86ca87d39ca954d407b7c52e334478dd2d57178a27dbfef",
+      "applicability": "unreviewed"
+    },
+    {
+      "key": "H2012:R1687",
+      "row": 1687,
+      "source_fields": {
+        "Enabled": "TRUE",
+        "Object": "Achieve",
+        "Operation": "Rename Error",
+        "Requirement(s)": "",
+        "Path": "Commands\\FRC-5_Achieve\\Achieve",
+        "Project Suite": "Achieve",
+        "Project": "Achieve",
+        "Test Case": "TreeControls_RenameError",
+        "IsKeywordTest": "TRUE",
+        "Pretest": "",
+        "Tester": "SJH",
+        "% Complete": "100",
+        "Results": "",
+        "Comments": "",
+        "Start Time": "",
+        "Stop Time": "",
+        "Log": ""
+      },
+      "fingerprint": "1c274d2ef8dfbf439540788fff85238938a0522624d964c4741e7de04ab37f64",
+      "applicability": "unreviewed"
+    },
+    {
+      "key": "H2012:R1689",
+      "row": 1689,
+      "source_fields": {
+        "Enabled": "TRUE",
+        "Object": "Achieve",
+        "Operation": "Rename Used Name",
+        "Requirement(s)": "",
+        "Path": "Commands\\FRC-5_Achieve\\Achieve",
+        "Project Suite": "Achieve",
+        "Project": "Achieve",
+        "Test Case": "TreeControls_RenameUsedName",
+        "IsKeywordTest": "TRUE",
+        "Pretest": "",
+        "Tester": "SJH",
+        "% Complete": "100",
+        "Results": "",
+        "Comments": "",
+        "Start Time": "",
+        "Stop Time": "",
+        "Log": ""
+      },
+      "fingerprint": "353afa5171e5fc4fac789ad6b2a8384fa900f9a206fb300ce4b8ed301cb8c364",
+      "applicability": "unreviewed"
+    }
+  ],
+  "scope": "Selected named-command Rename/editor/source/native-execution behavior. Finite-burn start/end pair has no propagation interval; no thrust integration or general science qualification. Historical keyword payloads unavailable; metadata and current NASA Rename rules define bounded scope; old Passed/NotRunnable fields are not evidence."
+}

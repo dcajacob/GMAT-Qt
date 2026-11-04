@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "doc/SystemDocs/Requirements/GMAT Requirements.xlsx": "736847e909ca550731386261073e46a9fa3ac8d78f53f0c37dd5d93b11a85c23",
+    "doc/SystemDocs/Test/Requirements-To-Test Matrix, 2012-05-11 (GMAT Build 2012-05-04).csv": "4693e097b183af76bc7c8dfcc0f62d7696b2e1417c90cb10d0ed4f9577160a97"
+  },
+  "reviews": [
+    {
+      "key": "FRR!E331",
+      "fingerprint": "ce97f460d4aa012ac369212aeec84911cfe4f0a46c3aa65fd1f4df0e66ffa68a",
+      "applicability": "gui",
+      "rationale": "Actual OrbitView and GroundTrack inputs commit collection2 and update3/4. An appended test-only subscriber independently counts every actual native publication and checks circular-state truth. Read-only opt-in dynamic properties observe the production PlotWidget refresh after its real renderer update; they do not schedule or replace refreshes. Every intermediate refresh must occur exactly at each Nth collected point, with no early refresh, all interval residues and at leastfive cycles. Initial, actual native block-flush and final forced refreshes are classified separately and cannot supply cadence credit. Native output/source/history and Unicode transactions remain mandatory. Hardware/OS, all numerical domains, conflicting skip-versus-collection requirements and full-current-build/NASA qualification remain open. The actual active OrbitView and newer GroundTrack backend types are checked: their distinct source-reviewed initial collection phases are counted from independent native publication ordinals. Cadence remains exact for each collected stream; no shared initialization phase is inferred or normalized.",
+      "evidence": [
+        {
+          "test": "QtGui.NativeNasaPlotCadence",
+          "source": "src/qtgui/tests/NasaPlotCadenceTests.cpp",
+          "source_sha256": "298e0dd500818e55ebe9832d2c8df6ac02fb660d5188de5e1cf97f8a53727377",
+          "anchor": "\"native-intermediate-redraw-cadence\"",
+          "checkpoint": "native-intermediate-redraw-cadence",
+          "expected": {
+            "plot_count": 2,
+            "collect_frequency": 2,
+            "update_frequencies": [
+              3,
+              4
+            ]
+          },
+          "facets": [
+            "actual-typed-plot-frequency-pending-apply-undo-redo-unicode-reopen",
+            "independent-native-publication-counter-and-circular-state",
+            "completed-production-widget-refresh-observation",
+            "every-intermediate-N-collected-threshold-and-no-early-refresh",
+            "initial-block-flush-and-final-forced-refreshes-not-cadence-credit",
+            "raw-report-time-sentinel-source-history-preservation"
+          ],
+          "scope": "2)\u00a0\u00a0\u00a0\u00a0\u00a0  The number of plot points to collect before updating the plot",
+          "reference_sources": {
+            "src/qtgui/tests/FormationAcceptance.hpp": "ce777b39de79f60f8931c7ea6bfa980e305f622a91564937c5b743664df50517",
+            "src/qtgui/tests/AcceptanceView.hpp": "e55fae7e5aaa3bcebba604b089edbb1bda3cee1ec2bd784e3ad5091984198c5d",
+            "src/qtgui/ResourceEditor.cpp": "1eef02ef052dda9c6f7d45b23ccb62b867dca29a7150527692c56abb679f219f",
+            "src/qtgui/ResourceForm.cpp": "f5bec04f0857956af771520aa305748822675c031467a046c8fb3143c8317905",
+            "src/qtgui/OrbitViewDialog.cpp": "8c598513cf85ab92040fd1d8644cc6c0aec374b94a48ac3ffc4f9f06877367c2",
+            "src/qtgui/GroundTrackDialog.cpp": "a70cb8eaff6e4281b6a072c8b50246672345f8b28e5f9288cc6c75096246006c",
+            "src/qtgui/MainWindow.cpp": "bab88232a5a4e6cb2b588d06619d0a8df8c0e9bc688a20c61391e0d4e6bb7296",
+            "src/qtgui/Debugger.cpp": "4cfeb65703ab355ca70a4fb9c24dde6e57c44b01f74fc9926cdc191d3371fc62",
+            "src/qtgui/PlotWidget.cpp": "a1f8ac644a3571c7b44318c15eed54be1170c284a11411b4cb647a585af64c75",
+            "src/qtgui/PlotWidget.hpp": "04c19f0c45782a58d0a9a5fd3b4e571a55002de4efe1f99085ba69063a6b672c",
+            "src/qtgui/QtPlotReceiver.cpp": "293f1667dadda496278fd778484dda611086e3923cc3474d0aab391f8ccb9ed0",
+            "src/qtgui/PlotModel.hpp": "bee3f3eba796fbd24d40f8132360e690048bedf8c2650a1df46de723164415aa",
+            "src/base/subscriber/OrbitPlot.cpp": "dada82fbdbbc26e382d6986fcc1c8274777c3466c85fd2deaa327b36102331d1",
+            "src/base/subscriber/OrbitView.cpp": "28c24f69f27c5a32012736766321f4b1247e354863fdbf559f86c974fb874326",
+            "src/base/subscriber/GroundTrackPlot.cpp": "2d3edfc9c9a3b87d2074adeda82f29f2f5be511f9a2cf480c63bd1175973cdda",
+            "src/base/subscriber/GroundTrack.cpp": "53a58b0e7fe8b8e56331b2dd7ea07aec2ff2679c5be056869357fb5cf5aedc6b",
+            "src/base/subscriber/Subscriber.cpp": "19eaa671a3a7ced55fc4b2385b9d8c5b97a5aa5453bd41c22fd0f0f57275b763",
+            "src/base/subscriber/Subscriber.hpp": "5cbabb2814711bb188417f7697f4b3319e50f0e390fd9775dd55f60ec62592e0",
+            "src/base/executive/Publisher.cpp": "8bc8f556228232a123e9fc0107ecf4e88199ffb3baf46af99538112f9f8ef70f",
+            "src/base/executive/Publisher.hpp": "914c38b738ed5217d9ed735f9d34ccf69dd62ca63ea390694a2c8354b9a195ab",
+            "src/qtgui/CMakeLists.txt": "8f2c9631f674dfb73f933350c57c2a8af8a9abecb28b5669d902b6f4245b91c8",
+            "src/base/factory/SubscriberFactory.cpp": "6e41f2bd67319405b2fb8c0993068b6b900abfb6b44fe7cec141baf9f665d260",
+            "src/base/subscriber/OrbitView.hpp": "6796cfeb00e9c7f00c28af2fdc044300e140b6db663b058a8c3e53287ef7b8ed",
+            "src/base/subscriber/GroundTrack.hpp": "53b1ee12d96af080927014ce3c16d945db4e97fcb2120d680e2909cc1f7b56f9"
+          }
+        }
+      ]
+    },
+    {
+      "key": "FRR!E635",
+      "fingerprint": "09fd4c5b72d0f82342b2da4748e11f273abfe5a91d531c6f5eaa62746e6f11c8",
+      "applicability": "gui",
+      "rationale": "Actual OrbitView and GroundTrack inputs commit collection2 and update3/4. An appended test-only subscriber independently counts every actual native publication and checks circular-state truth. Read-only opt-in dynamic properties observe the production PlotWidget refresh after its real renderer update; they do not schedule or replace refreshes. Every intermediate refresh must occur exactly at each Nth collected point, with no early refresh, all interval residues and at leastfive cycles. Initial, actual native block-flush and final forced refreshes are classified separately and cannot supply cadence credit. Native output/source/history and Unicode transactions remain mandatory. Hardware/OS, all numerical domains, conflicting skip-versus-collection requirements and full-current-build/NASA qualification remain open. The actual active OrbitView and newer GroundTrack backend types are checked: their distinct source-reviewed initial collection phases are counted from independent native publication ordinals. Cadence remains exact for each collected stream; no shared initialization phase is inferred or normalized.",
+      "evidence": [
+        {
+          "test": "QtGui.NativeNasaPlotCadence",
+          "source": "src/qtgui/tests/NasaPlotCadenceTests.cpp",
+          "source_sha256": "298e0dd500818e55ebe9832d2c8df6ac02fb660d5188de5e1cf97f8a53727377",
+          "anchor": "\"native-intermediate-redraw-cadence\"",
+          "checkpoint": "native-intermediate-redraw-cadence",
+          "expected": {
+            "plot_count": 2,
+            "collect_frequency": 2,
+            "update_frequencies": [
+              3,
+              4
+            ]
+          },
+          "facets": [
+            "actual-typed-plot-frequency-pending-apply-undo-redo-unicode-reopen",
+            "independent-native-publication-counter-and-circular-state",
+            "completed-production-widget-refresh-observation",
+            "every-intermediate-N-collected-threshold-and-no-early-refresh",
+            "initial-block-flush-and-final-forced-refreshes-not-cadence-credit",
+            "raw-report-time-sentinel-source-history-preservation"
+          ],
+          "scope": "2)  The number of plot points to collect before updating a ground track plot",
+          "reference_sources": {
+            "src/qtgui/tests/FormationAcceptance.hpp": "ce777b39de79f60f8931c7ea6bfa980e305f622a91564937c5b743664df50517",
+            "src/qtgui/tests/AcceptanceView.hpp": "e55fae7e5aaa3bcebba604b089edbb1bda3cee1ec2bd784e3ad5091984198c5d",
+            "src/qtgui/ResourceEditor.cpp": "1eef02ef052dda9c6f7d45b23ccb62b867dca29a7150527692c56abb679f219f",
+            "src/qtgui/ResourceForm.cpp": "f5bec04f0857956af771520aa305748822675c031467a046c8fb3143c8317905",
+            "src/qtgui/OrbitViewDialog.cpp": "8c598513cf85ab92040fd1d8644cc6c0aec374b94a48ac3ffc4f9f06877367c2",
+            "src/qtgui/GroundTrackDialog.cpp": "a70cb8eaff6e4281b6a072c8b50246672345f8b28e5f9288cc6c75096246006c",
+            "src/qtgui/MainWindow.cpp": "bab88232a5a4e6cb2b588d06619d0a8df8c0e9bc688a20c61391e0d4e6bb7296",
+            "src/qtgui/Debugger.cpp": "4cfeb65703ab355ca70a4fb9c24dde6e57c44b01f74fc9926cdc191d3371fc62",
+            "src/qtgui/PlotWidget.cpp": "a1f8ac644a3571c7b44318c15eed54be1170c284a11411b4cb647a585af64c75",
+            "src/qtgui/PlotWidget.hpp": "04c19f0c45782a58d0a9a5fd3b4e571a55002de4efe1f99085ba69063a6b672c",
+            "src/qtgui/QtPlotReceiver.cpp": "293f1667dadda496278fd778484dda611086e3923cc3474d0aab391f8ccb9ed0",
+            "src/qtgui/PlotModel.hpp": "bee3f3eba796fbd24d40f8132360e690048bedf8c2650a1df46de723164415aa",
+            "src/base/subscriber/OrbitPlot.cpp": "dada82fbdbbc26e382d6986fcc1c8274777c3466c85fd2deaa327b36102331d1",
+            "src/base/subscriber/OrbitView.cpp": "28c24f69f27c5a32012736766321f4b1247e354863fdbf559f86c974fb874326",
+            "src/base/subscriber/GroundTrackPlot.cpp": "2d3edfc9c9a3b87d2074adeda82f29f2f5be511f9a2cf480c63bd1175973cdda",
+            "src/base/subscriber/GroundTrack.cpp": "53a58b0e7fe8b8e56331b2dd7ea07aec2ff2679c5be056869357fb5cf5aedc6b",
+            "src/base/subscriber/Subscriber.cpp": "19eaa671a3a7ced55fc4b2385b9d8c5b97a5aa5453bd41c22fd0f0f57275b763",
+            "src/base/subscriber/Subscriber.hpp": "5cbabb2814711bb188417f7697f4b3319e50f0e390fd9775dd55f60ec62592e0",
+            "src/base/executive/Publisher.cpp": "8bc8f556228232a123e9fc0107ecf4e88199ffb3baf46af99538112f9f8ef70f",
+            "src/base/executive/Publisher.hpp": "914c38b738ed5217d9ed735f9d34ccf69dd62ca63ea390694a2c8354b9a195ab",
+            "src/qtgui/CMakeLists.txt": "8f2c9631f674dfb73f933350c57c2a8af8a9abecb28b5669d902b6f4245b91c8",
+            "src/base/factory/SubscriberFactory.cpp": "6e41f2bd67319405b2fb8c0993068b6b900abfb6b44fe7cec141baf9f665d260",
+            "src/base/subscriber/OrbitView.hpp": "6796cfeb00e9c7f00c28af2fdc044300e140b6db663b058a8c3e53287ef7b8ed",
+            "src/base/subscriber/GroundTrack.hpp": "53b1ee12d96af080927014ce3c16d945db4e97fcb2120d680e2909cc1f7b56f9"
+          }
+        }
+      ]
+    }
+  ]
+}

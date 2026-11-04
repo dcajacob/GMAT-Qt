@@ -1,0 +1,264 @@
+{
+  "cases": [
+    {
+      "key": "Sun",
+      "body": "Sun",
+      "type": "Star",
+      "user": false,
+      "historical_control_key": "H2012:R922"
+    },
+    {
+      "key": "Mercury",
+      "body": "Mercury",
+      "type": "Planet",
+      "user": false,
+      "historical_control_key": "H2012:R727"
+    },
+    {
+      "key": "Venus",
+      "body": "Venus",
+      "type": "Planet",
+      "user": false,
+      "historical_control_key": "H2012:R1000"
+    },
+    {
+      "key": "Earth",
+      "body": "Earth",
+      "type": "Planet",
+      "user": false,
+      "historical_control_key": "H2012:R532"
+    },
+    {
+      "key": "Luna",
+      "body": "Luna",
+      "type": "Moon",
+      "user": false,
+      "historical_control_key": "H2012:R649"
+    },
+    {
+      "key": "Mars",
+      "body": "Mars",
+      "type": "Planet",
+      "user": false,
+      "historical_control_key": "H2012:R688"
+    },
+    {
+      "key": "Jupiter",
+      "body": "Jupiter",
+      "type": "Planet",
+      "user": false,
+      "historical_control_key": "H2012:R610"
+    },
+    {
+      "key": "Saturn",
+      "body": "Saturn",
+      "type": "Planet",
+      "user": false,
+      "historical_control_key": null
+    },
+    {
+      "key": "Uranus",
+      "body": "Uranus",
+      "type": "Planet",
+      "user": false,
+      "historical_control_key": "H2012:R961"
+    },
+    {
+      "key": "Neptune",
+      "body": "Neptune",
+      "type": "Planet",
+      "user": false,
+      "historical_control_key": "H2012:R805"
+    },
+    {
+      "key": "Pluto",
+      "body": "Pluto",
+      "type": "Planet",
+      "user": false,
+      "historical_control_key": "H2012:R844"
+    },
+    {
+      "key": "Moon",
+      "body": "ScriptMoon",
+      "type": "Moon",
+      "user": true,
+      "historical_control_key": null
+    },
+    {
+      "key": "Asteroid",
+      "body": "ScriptAsteroid",
+      "type": "Asteroid",
+      "user": true,
+      "historical_control_key": "H2012:R415"
+    },
+    {
+      "key": "Comet",
+      "body": "ScriptComet",
+      "type": "Comet",
+      "user": true,
+      "historical_control_key": "H2012:R454"
+    },
+    {
+      "key": "Planet",
+      "body": "ScriptPlanet",
+      "type": "Planet",
+      "user": true,
+      "historical_control_key": "H2012:R493"
+    }
+  ],
+  "fields": [
+    {
+      "page": "Properties",
+      "name": "Mu",
+      "kind": "line"
+    },
+    {
+      "page": "Properties",
+      "name": "EquatorialRadius",
+      "kind": "line"
+    },
+    {
+      "page": "Properties",
+      "name": "Flattening",
+      "kind": "line"
+    },
+    {
+      "page": "Properties",
+      "name": "PlanetarySpiceKernelName",
+      "kind": "list"
+    },
+    {
+      "page": "Orbit",
+      "name": "PosVelSource",
+      "kind": "combo"
+    },
+    {
+      "page": "Orbit",
+      "name": "CentralBody",
+      "kind": "line"
+    },
+    {
+      "page": "Orbit",
+      "name": "NAIFId",
+      "kind": "line"
+    },
+    {
+      "page": "Orbit",
+      "name": "OrbitSpiceKernelName",
+      "kind": "list"
+    },
+    {
+      "page": "Orientation",
+      "name": "RotationDataSource",
+      "kind": "line"
+    },
+    {
+      "page": "Orientation",
+      "name": "OrientationEpoch",
+      "kind": "line"
+    },
+    {
+      "page": "Orientation",
+      "name": "SpinAxisRAConstant",
+      "kind": "line"
+    },
+    {
+      "page": "Orientation",
+      "name": "SpinAxisRARate",
+      "kind": "line"
+    },
+    {
+      "page": "Orientation",
+      "name": "SpinAxisDECConstant",
+      "kind": "line"
+    },
+    {
+      "page": "Orientation",
+      "name": "SpinAxisDECRate",
+      "kind": "line"
+    },
+    {
+      "page": "Orientation",
+      "name": "RotationConstant",
+      "kind": "line"
+    },
+    {
+      "page": "Orientation",
+      "name": "RotationRate",
+      "kind": "line"
+    },
+    {
+      "page": "Orientation",
+      "name": "SpiceFrameId",
+      "kind": "line"
+    },
+    {
+      "page": "Orientation",
+      "name": "FrameSpiceKernelName",
+      "kind": "list"
+    },
+    {
+      "page": "Visualization",
+      "name": "TextureMapFileName",
+      "kind": "line"
+    },
+    {
+      "page": "Visualization",
+      "name": "3DModelFile",
+      "kind": "line"
+    },
+    {
+      "page": "Visualization",
+      "name": "3DModelOffsetX",
+      "kind": "line"
+    },
+    {
+      "page": "Visualization",
+      "name": "3DModelOffsetY",
+      "kind": "line"
+    },
+    {
+      "page": "Visualization",
+      "name": "3DModelOffsetZ",
+      "kind": "line"
+    },
+    {
+      "page": "Visualization",
+      "name": "3DModelRotationX",
+      "kind": "line"
+    },
+    {
+      "page": "Visualization",
+      "name": "3DModelRotationY",
+      "kind": "line"
+    },
+    {
+      "page": "Visualization",
+      "name": "3DModelRotationZ",
+      "kind": "line"
+    },
+    {
+      "page": "Visualization",
+      "name": "3DModelScale",
+      "kind": "line"
+    },
+    {
+      "page": "Visualization",
+      "name": "OrbitColor",
+      "kind": "line"
+    },
+    {
+      "page": "Visualization",
+      "name": "TargetColor",
+      "kind": "line"
+    }
+  ],
+  "earth_extra": {
+    "page": "Orientation",
+    "name": "NutationUpdateInterval",
+    "kind": "line"
+  },
+  "fixture_source": "src/qtgui/tests/NasaBodyScriptCases.json",
+  "fixture_source_sha256": "534d282f14a29055beadad0017ad2015fb21a273774a7c33f23485e271a26779",
+  "limits": "Four ambiguous historical identities remain uncredited. Current Saturn and user Moon are direct current identities. Artificial point-mass circles are independent integration witnesses,not physical ephemeris/orientation/GPU/native-input/general-science qualification."
+}

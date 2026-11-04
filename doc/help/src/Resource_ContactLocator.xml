@@ -717,7 +717,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Integer count or order; ReportPrecision counts formatting digits</para>
                   </listitem>
                 </varlistentry>
 

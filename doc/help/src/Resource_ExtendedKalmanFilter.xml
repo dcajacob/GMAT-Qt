@@ -415,7 +415,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless covariance multiplier</para>
                   </listitem>
                 </varlistentry>
 
@@ -886,7 +886,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless normalized-residual sigma multiple</para>
                   </listitem>
                 </varlistentry>
 

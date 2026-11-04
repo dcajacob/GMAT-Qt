@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "scope": "Function-local string/list/reference-dependent resource creation and whole-object outputs;dependency identity qualified only where native API exposes initialized references;no universal type/all-property/physics claim.",
+  "cases": [
+    {
+      "key": "Receiver",
+      "type": "Receiver",
+      "field": "Id",
+      "kind": "string",
+      "first": "1",
+      "second": "2",
+      "dependencies": "",
+      "globals": "",
+      "object_settings": ""
+    },
+    {
+      "key": "Antenna",
+      "type": "Antenna",
+      "field": "FieldOfView",
+      "kind": "string",
+      "first": "Cone1",
+      "second": "Cone2",
+      "dependencies": "Create ConicalFOV Cone1 Cone2;\n",
+      "globals": "Global Cone1 Cone2;\n",
+      "object_settings": "",
+      "reference_kind": "fov"
+    },
+    {
+      "key": "Formation",
+      "type": "Formation",
+      "field": "Add",
+      "kind": "list",
+      "first": "Anchor",
+      "second": "Anchor,Other",
+      "dependencies": "Create Spacecraft Anchor Other ShadowA ShadowB FirstA FirstB SecondA SecondB PrivateA PrivateB;\n",
+      "globals": "Global Anchor Other ShadowA ShadowB FirstA FirstB SecondA SecondB PrivateA PrivateB;\n",
+      "object_settings": "",
+      "reference_kind": "formation",
+      "main_seeds": {
+        "out": "ShadowA,ShadowB",
+        "First": "FirstA,FirstB",
+        "Second": "SecondA,SecondB"
+      },
+      "private_seed": "PrivateA,PrivateB",
+      "second_output": "Other"
+    },
+    {
+      "key": "FiniteBurn",
+      "type": "FiniteBurn",
+      "field": "Thrusters",
+      "kind": "list",
+      "first": "Engine",
+      "second": "Engine,Engine2",
+      "dependencies": "Create ChemicalThruster Engine Engine2;\n",
+      "globals": "Global Engine Engine2;\n",
+      "object_settings": "",
+      "reference_kind": "unexecuted-thruster-names"
+    },
+    {
+      "key": "Barycenter",
+      "type": "Barycenter",
+      "field": "BodyNames",
+      "kind": "list",
+      "first": "Earth,Mars",
+      "second": "Earth,Luna",
+      "dependencies": "Create Barycenter MainBodyIdentity;\nMainBodyIdentity.BodyNames = {Earth, Mars, Luna};\n",
+      "globals": "",
+      "object_settings": "",
+      "reference_kind": "solar-bodies"
+    },
+    {
+      "key": "LibrationPoint",
+      "type": "LibrationPoint",
+      "field": "Secondary",
+      "kind": "string",
+      "first": "Luna",
+      "second": "Mars",
+      "dependencies": "Create Barycenter MainBodyIdentity;\nMainBodyIdentity.BodyNames = {Earth, Mars, Luna};\n",
+      "globals": "",
+      "object_settings": "Primary = Earth;\n",
+      "reference_kind": "solar-bodies"
+    }
+  ]
+}

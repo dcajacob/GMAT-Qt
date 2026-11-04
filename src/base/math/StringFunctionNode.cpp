@@ -95,7 +95,7 @@ StringFunctionNode& StringFunctionNode::operator=(const StringFunctionNode &sf)
    if (this == &sf)
       return *this;
    
-   GmatBase::operator=(sf);
+   BuiltinFunctionNode::operator=(sf);
    return *this;
 }
 

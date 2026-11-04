@@ -1,0 +1,1643 @@
+{
+  "id": "12-inter-spacecraft-tracking",
+  "title": "Simulate and Estimate Inter-Spacecraft Tracking",
+  "guide": "doc/help/src/Tut_Simulate_and_Estimate_Inter_Spacecraft_Tracking.xml",
+  "guide_sha256": "07777b2d99820b235e2d2150b16a89315cc072ba52cb10dc6d7c18003d8f729d",
+  "reference": "application/samples/Tut_Inter_Spacecraft_Tracking.script",
+  "provenance": "Literal program listings 2 through 11 of the current script-based Help chapter, entered by GUI keyboard events. No example mission is read to generate this recipe.",
+  "stages": [
+    {
+      "name": "Written simulation and estimation code",
+      "input": null,
+      "guide_programlistings": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "actions": [
+        {
+          "action": "key",
+          "keys": "ESC"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+N"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%   Simulated Spacecraft",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Spacecraft SimSat",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimSat.DateFormat            = UTCGregorian",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimSat.Epoch                 = '10 Jun 2010 00:00:00.000'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimSat.CoordinateSystem      = EarthMJ2000Eq",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimSat.DisplayStateType      = Cartesian",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimSat.X                     =   576.86955",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimSat.Y                     = -5701.14276",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimSat.Z                     = -4170.59369",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimSat.VX                    = -1.76450794",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimSat.VY                    =  4.18128798",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimSat.VZ                    = -5.96578986",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimSat.Id                    = 'ObservedSat'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Spacecraft SimTrackSat",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimTrackSat.DateFormat       = UTCGregorian",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimTrackSat.Epoch            = '10 Jun 2010 00:00:00.000'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimTrackSat.CoordinateSystem = EarthFixed",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimTrackSat.DisplayStateType = Cartesian",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimTrackSat.X                = -36517.051189    ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimTrackSat.Y                = -21083.129334       ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimTrackSat.Z                = -0.000000      ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimTrackSat.VX               = -0.005964       ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimTrackSat.VY               = 0.010330       ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimTrackSat.VZ               = 0.267968",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimTrackSat.Id               = 'TrackSat'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%   Estimator Spacecraft",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Spacecraft EstSat",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstSat.DateFormat            = UTCGregorian",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstSat.Epoch                 = '10 Jun 2010 00:00:00.000'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstSat.CoordinateSystem      = EarthMJ2000Eq",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstSat.DisplayStateType      = Cartesian",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstSat.X                     = 576.87",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstSat.Y                     = -5701.14",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstSat.Z                     = -4170.59",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstSat.VX                    = -1.764508",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstSat.VY                    = 4.181288",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstSat.VZ                    = -5.965790",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstSat.Id                    = 'ObservedSat'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstSat.AddHardware           = {Transponder1, SpacecraftAntenna}",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstSat.SolveFors             = {CartesianState}",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Spacecraft EstTrackSat",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstTrackSat.DateFormat       = UTCGregorian",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstTrackSat.Epoch            = '10 Jun 2010 00:00:00.000'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstTrackSat.CoordinateSystem = EarthFixed",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstTrackSat.DisplayStateType = Cartesian",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstTrackSat.X                = -36517.051189    ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstTrackSat.Y                = -21083.129334       ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstTrackSat.Z                = -0.000000      ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstTrackSat.VX               = -0.005964       ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstTrackSat.VY               = 0.010330       ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstTrackSat.VZ               = 0.267968",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstTrackSat.Id               = 'TrackSat'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%   Spacecraft hardware",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Antenna SpacecraftAntenna",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Transponder HGA",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "HGA.PrimaryAntenna  = SpacecraftAntenna",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "HGA.HardwareDelay   = 1e-06",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "HGA.TurnAroundRatio = '880/749'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimSat.AddHardware = {HGA, SpacecraftAntenna}",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstSat.AddHardware = {HGA, SpacecraftAntenna}",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%   Measurement Spacecraft hardware",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Transmitter MeasurementTransmitter",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Receiver MeasurementReceiver",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MeasurementTransmitter.PrimaryAntenna = SpacecraftAntenna",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MeasurementTransmitter.Frequency      = 7200",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MeasurementReceiver.PrimaryAntenna    = SpacecraftAntenna",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "SimTrackSat.AddHardware = {HGA, SpacecraftAntenna, MeasurementTransmitter, MeasurementReceiver}",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "EstTrackSat.AddHardware = {HGA, SpacecraftAntenna, MeasurementTransmitter, MeasurementReceiver}",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%   Tracking file sets",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create TrackingFileSet simData",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "simData.AddTrackingConfig       = {{SimTrackSat, SimSat, SimTrackSat}, 'Range', 'RangeRate'}",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "simData.FileName                = {'InterSpacecraft_Range_and_RangeRate.gmd'}",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "simData.UseLightTime            = True",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "simData.UseRelativityCorrection = True",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "simData.UseETminusTAI           = True",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "simData.SimDopplerCountInterval = 10.",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create TrackingFileSet estData",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "estData.AddTrackingConfig       = {{EstTrackSat, EstSat, EstTrackSat}, 'Range', 'RangeRate'}",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "estData.FileName                = {'InterSpacecraft_Range_and_RangeRate.gmd'}",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "estData.UseLightTime            = True",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "estData.UseRelativityCorrection = True",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "estData.UseETminusTAI           = True",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%   Spacecraft error models",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create ErrorModel Range",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Range.Type           = 'Range'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Range.NoiseSigma     = 0.010",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Range.Bias           = 0.0",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Range.SolveFors      = {}",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create ErrorModel RangeRate",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "RangeRate.Type       = 'RangeRate'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "RangeRate.NoiseSigma = 0.000001",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "RangeRate.Bias       = 0.0",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "RangeRate.SolveFors  = {}",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "MeasurementReceiver.ErrorModels = {Range, RangeRate}",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%   Propagator and force model",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create ForceModel FM",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "FM.CentralBody  = Earth",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "FM.PointMasses  = {Earth}",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "FM.Drag         = None",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "FM.SRP          = Off",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "FM.ErrorControl = None",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Propagator Prop",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Prop.FM              = FM",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Prop.Type            = 'RungeKutta56'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Prop.InitialStepSize = 60",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Prop.Accuracy        = 1e-13",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Prop.MinStep         = 0",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Prop.MaxStep         = 60",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Prop.MaxStepAttempts = 50",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%   Simulator",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create Simulator sim",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "sim.AddData                    = {simData}",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "sim.EpochFormat                = 'UTCGregorian'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "sim.InitialEpoch               = '10 Jun 2010 00:00:00.000'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "sim.FinalEpoch                 = '11 Jun 2010 00:00:00.000'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "sim.MeasurementTimeStep        = 60",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "sim.Propagator                 = Prop",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "sim.AddNoise                   = On",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%   Estimator",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "%",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "Create BatchEstimator bat",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "bat.ShowProgress               = True",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "bat.Measurements               = {estData} ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "bat.AbsoluteTol                = 0.000001",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "bat.RelativeTol                = 0.005",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "bat.MaximumIterations          = 10",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "bat.MaxConsecutiveDivergences  = 3",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "bat.Propagator                 = Prop",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "bat.ShowAllResiduals           = On",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "bat.OLSEInitialRMSSigma        = 3000",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "bat.OLSEMultiplicativeConstant = 3",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "bat.OLSEAdditiveConstant       = 0",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "bat.ReportFile                 = 'InterSpacecraft_Range_and_RangeRate.txt'",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "BeginMissionSequence",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": " ",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "RunSimulator sim",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "text",
+          "text": "RunEstimator bat",
+          "target_name": "scriptEditor"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-code-entered"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+S"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial12-authored.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-mission-run"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+O"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial12-authored.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "screenshot",
+          "label": "own-saved-mission-reopened"
+        }
+      ]
+    }
+  ]
+}

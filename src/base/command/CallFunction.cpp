@@ -36,6 +36,8 @@
 #include "FileManager.hpp"         // for GetAllMatlabFunctionPaths()
 #include "MessageInterface.hpp"
 #include "GmatGlobal.hpp"          // for IsWritingGmatKeyword()
+#include "ParameterInfo.hpp"
+#include <algorithm>
 #include <sstream>
 
 
@@ -278,6 +280,20 @@ bool CallFunction::AddOutputParameter(const std::string &paramName, Integer inde
 {
    if (paramName != "" && index == mNumOutputParams)
    {
+      // Outputs assign into caller resources. System parameters must be
+      // writable even when the reference has not been instantiated yet.
+      // Bare local variables/objects and array elements keep their existing
+      // function-scope resolution rules.
+      if (paramName.find('.') != std::string::npos)
+      {
+         std::string type, owner, dependency;
+         GmatStringUtil::ParseParameter(paramName, type, owner, dependency);
+         ParameterInfo *info = ParameterInfo::Instance();
+         const StringArray &types = info->GetTypesOfParameters();
+         if (std::find(types.begin(), types.end(), type) != types.end() &&
+             !info->IsSettable(type))
+            return false;
+      }
       mOutputNames.push_back(paramName);
       mNumOutputParams = mOutputNames.size();
       mOutputList.push_back(NULL);

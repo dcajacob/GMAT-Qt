@@ -59,8 +59,9 @@ public:
 
    virtual GmatCommand*    GetNext();
    virtual bool            Initialize();
-   // Plot-only classification: the publisher state remains available unchanged
-   // to propagation, report subscribers and the numerical solver machinery.
+   // Nested acceptance classification for selected output subscribers. The
+   // publisher state remains unchanged for propagation, reports and solvers.
+   static Gmat::RunState    GetSubscriberRunState(Gmat::RunState state);
    static Gmat::RunState    GetPlotRunState(Gmat::RunState state);
    virtual bool            TakeAction(const std::string &action, 
                                       const std::string &actionData = "");

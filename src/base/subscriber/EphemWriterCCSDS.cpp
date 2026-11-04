@@ -32,6 +32,7 @@
 #include "StringUtil.hpp"            // for ToString()
 #include "FileUtil.hpp"              // for ParseFileExtension()
 #include "MessageInterface.hpp"
+#include "CcsdsOemB1Text.hpp"
 #include <sstream>                   // for <<, std::endl
 
 
@@ -219,6 +220,14 @@ bool EphemWriterCCSDS::Initialize()
    #endif
    
    EphemWriterWithInterpolator::Initialize();
+
+   // Reject an invalid identity during mission execution, before finalization
+   // can leave a header-only file while the run is reported as completed.
+   if (ephemType == "CCSDS-OEM" && ephemVersion == "1.0")
+   {
+      CcsdsOemB1Text::RequireValue("OBJECT_ID", spacecraftId);
+      CcsdsOemB1Text::CheckLines(CcsdsOemB1Text::MetadataLine("OBJECT_ID", spacecraftId));
+   }
    
    // Set maximum segment size
    maxSegmentSize = 1000;
@@ -247,6 +256,7 @@ bool EphemWriterCCSDS::Initialize()
    {
       ccsdsOemWriter = new CCSDSOEMWriter(ephemVersion);
    }
+   ccsdsOemWriter->SetTimeSystem(ccsdsEpochFormat);
 
    // Check if interpolator needs to be created
    if (useFixedStepSize || interpolateInitialState || interpolateFinalState)
@@ -268,6 +278,14 @@ bool EphemWriterCCSDS::Initialize()
    #endif
    
    return true;
+}
+
+void EphemWriterCCSDS::SetOutputTimeSystem(const std::string &system)
+{
+   if (!ccsdsOemWriter)
+      ccsdsOemWriter = new CCSDSOEMWriter(ephemVersion);
+   ccsdsOemWriter->SetTimeSystem(system);
+   ccsdsEpochFormat = GmatStringUtil::ToUpper(system);
 }
 
 
@@ -792,7 +810,25 @@ void EphemWriterCCSDS::HandleCcsdsOrbitData(bool writeData, bool &timeToWrite)
       #endif
 
       if (writeOrbit)
-         HandleWriteOrbit();
+      {
+         if (!useFixedStepSize &&
+             (interpolateInitialState || interpolateFinalState))
+         {
+            // Keep native samples behind any pending explicit boundary. Writing
+            // a sample immediately can put a later-interpolated start out of order.
+            const Real initial = initialEpochA1Mjd * GmatTimeConstants::SECS_PER_DAY;
+            const Real final = finalEpochA1Mjd * GmatTimeConstants::SECS_PER_DAY;
+            if ((initialEpochA1Mjd == -999.999 || currEpochInSecs >= initial) &&
+                (finalEpochA1Mjd == -999.999 || currEpochInSecs <= final))
+               AddNextEpochToWrite(currEpochInSecs, "   Adding native sample within explicit OEM window, ");
+            // The first received step can cross both bounds, including at EOF.
+            if (finalEpochA1Mjd != -999.999 && currEpochInSecs >= final)
+               AddNextEpochToWrite(final, "   Adding explicit OEM final boundary, ");
+            ProcessEpochsOnWaiting(false, false);
+         }
+         else
+            HandleWriteOrbit();
+      }
       else if (writeAttitude)
          HandleWriteAttitude();
       
@@ -840,7 +876,8 @@ void EphemWriterCCSDS::FinishUpWritingOrbitData()
        "interpolatorStatus=%d\n", canFinalize, interpolatorStatus);
    #endif
    
-   if (interpolator != NULL && useFixedStepSize)
+   if (interpolator != NULL &&
+       (useFixedStepSize || interpolateInitialState || interpolateFinalState))
    {
       // Check for not enough data points for interpolation
       #ifdef DEBUG_EPHEMFILE_FINISH
@@ -913,6 +950,14 @@ void EphemWriterCCSDS::FinishUpWritingOrbitData()
       
       // Finish up final data waiting to be output
       ProcessFinalDataOnWaiting();
+      if (canFinalize && !useFixedStepSize)
+      {
+         // The shared final pass defers the current event sample. At end of
+         // this run there is no following segment to own that queued sample.
+         interpolator->SetForceInterpolation(true);
+         ProcessEpochsOnWaiting(false, false);
+         interpolator->SetForceInterpolation(false);
+      }
    }
    
    writeCommentAfterData = false;
@@ -1153,11 +1198,11 @@ void EphemWriterCCSDS::WriteCcsdsOrbitDataSegment()
       if (metaDataStartStr == "YYYY-MM-DDTHH:MM:SS.SSS")
       {
          metaDataStart = (a1MjdArray.front())->GetReal();
-         metaDataStartStr = ToUtcGregorian(metaDataStart, true, 2);
+         metaDataStartStr = ccsdsOemWriter->FormatEpoch(metaDataStart);
       }
    }
    metaDataStop  = (a1MjdArray.back())->GetReal();
-   metaDataStopStr = ToUtcGregorian(metaDataStop, true, 2);
+   metaDataStopStr = ccsdsOemWriter->FormatEpoch(metaDataStop);
    
    if (metaDataWriteOption == 1)
    {
@@ -1256,12 +1301,11 @@ void EphemWriterCCSDS::WriteCcsdsOemMetaData()
       throw SubscriberException("Writing covariance to a CCSDS ephemeris file with a coordinate system other than J2000 is not allowed.\n");
    
    Integer actualInterpOrder = interpolationOrder;
-   Integer numData = a1MjdArray.size();
-   Integer numPoints = 0;
-   if (interpolator != NULL)
-      numPoints = interpolator->GetPointCount();
-   else
-      numPoints = numData;
+   Integer numPoints = a1MjdArray.size();
+   // Recommended interpolation must be supported by exported records, not by
+   // internal interpolation samples or just the last subscriber buffer.
+   if (metaDataWriteOption == 2 && ccsdsOemWriter)
+      numPoints = ccsdsOemWriter->GetNumberOfSerializedDataPoints();
    
    #ifdef DEBUG_EPHEMFILE_METADATA
    MessageInterface::ShowMessage
@@ -1272,9 +1316,7 @@ void EphemWriterCCSDS::WriteCcsdsOemMetaData()
    {
       if (numPoints <= interpolationOrder)
       {
-         actualInterpOrder = numPoints - 1;
-         if (numPoints < 2)
-            actualInterpOrder = 1;
+         actualInterpOrder = numPoints > 0 ? numPoints - 1 : 0;
       }
    }
    
@@ -1333,7 +1375,7 @@ void EphemWriterCCSDS::WriteCcsdsOemMetaData()
    
    if (metaDataWriteOption == 2)
    {
-      if (numData < 2 && stepSize == "IntegratorSteps")
+      if (numPoints < 2 && stepSize == "IntegratorSteps")
       {
          
          #ifdef DEBUG_EPHEMFILE_METADATA

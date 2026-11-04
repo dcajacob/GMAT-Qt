@@ -1,3 +1,4 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "CommandEditor.hpp"
 #include "CommandForm.hpp"
@@ -58,7 +59,7 @@ int main(int argc,char **argv)
 {
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
    QApplication app(argc,argv); app.setOrganizationName("GMATTests"); app.setApplicationName("FileThrustCardinality");
-   if (argc!=2 || QGuiApplication::platformName()!="offscreen") return 2;
+   if (argc!=2 || !acceptanceWidgetPlatform()) return 2;
    try {
       TestSettings settings; QTemporaryDir files; require(files.isValid(),"No private fixture directory");
       const auto startup=QFileInfo(QString::fromLocal8Bit(argv[1])).absoluteFilePath();

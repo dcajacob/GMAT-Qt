@@ -293,7 +293,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>Hz, Hz/sec, Hz/sec^2 , ...</para>
+                    <para>MHz, MHz/s, MHz/s^2, ... (coefficient k uses MHz/s^k, starting at k=0)</para>
                   </listitem>
                 </varlistentry>
 
@@ -306,6 +306,23 @@
                 </varlistentry>
               </variablelist></entry>
           </row>
+
+          <row>
+            <entry><guilabel>FrequencyBiasSigma</guilabel></entry>
+            <entry><para>Standard deviations associated with the transmitter
+            FrequencyBias polynomial coefficients. Element k uses the same units
+            as coefficient k, beginning at k=0. The bias model evaluates elapsed
+            time from ReferenceEpoch in seconds and adds the resulting bias to
+            Frequency in MHz. These are coefficient uncertainties; they are not
+            fractional-frequency values or a single common Hz value for the
+            entire array.</para><variablelist>
+              <varlistentry><term>Data Type</term><listitem><para>Real array</para></listitem></varlistentry>
+              <varlistentry><term>Units</term><listitem><para>MHz, MHz/s, MHz/s^2, ... (element k uses MHz/s^k, starting at k=0)</para></listitem></varlistentry>
+              <varlistentry><term>Interfaces</term><listitem><para>GUI, script</para></listitem></varlistentry>
+            </variablelist></entry>
+          </row>
+
+
 
           <row>
             <entry><guilabel>PrimaryAntenna</guilabel></entry>

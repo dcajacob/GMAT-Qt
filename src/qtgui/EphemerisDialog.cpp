@@ -39,7 +39,7 @@ QStringList frames(const QString &format)
       result.append(QString::fromStdString(name));
    } result.sort(); return result;
 }
-QStringList variantFields() { return {"CoordinateSystem","StepSize","OutputFormat","DistanceUnit","IncludeEventBoundaries","Interpolator"}; }
+QStringList variantFields() { return {"CoordinateSystem","StepSize","OutputFormat","DistanceUnit","IncludeEventBoundaries","Interpolator","OutputTimeSystem"}; }
 }
 QSet<QString> applyEphemerisProperties(GmatBase &object,const QMap<QString,QString> &values)
 {
@@ -50,6 +50,7 @@ QSet<QString> applyEphemerisProperties(GmatBase &object,const QMap<QString,QStri
    for (const auto &name:QStringList{"FileFormat","EpochFormat"}) if (values.contains(name)) { setResourceProperty(object,name,values.value(name)); applied.insert(name); }
    for (auto it=values.cbegin();it!=values.cend();++it) if (!applied.contains(it.key())) {
       const auto format=object.GetStringParameter("FileFormat");
+      if (it.key()=="OutputTimeSystem" && format!="CCSDS-OEM") { applied.insert(it.key()); continue; }
       if ((it.key()=="DistanceUnit" || it.key()=="IncludeEventBoundaries") && format!="STK-TimePosVel") {
          if (!values.contains("FileFormat")) throw std::runtime_error("Distance units and event boundaries are STK output settings.");
          applied.insert(it.key()); continue;
@@ -94,6 +95,7 @@ EphemerisDialog::EphemerisDialog(GmatBase &object,const QMap<QString,QString> &p
    auto *browse=new QPushButton("Browse…",filename); browse->setObjectName("ephemerisBrowse"); fileRow->addWidget(browse); output->addRow("Filename",filename);
    connect(browse,&QPushButton::clicked,this,[this,path] { QFileDialog picker(this,"Choose ephemeris output",path->text()); picker.setObjectName("ephemerisFilePicker"); picker.setAcceptMode(QFileDialog::AcceptSave); picker.setFileMode(QFileDialog::AnyFile); picker.setOption(QFileDialog::DontConfirmOverwrite,true); if (picker.exec()==QDialog::Accepted && !picker.selectedFiles().isEmpty()) path->setText(picker.selectedFiles().first()); });
    choice(output,"CoordinateSystem","Output coordinate system");
+   choice(output,"OutputTimeSystem","Output time system (OEM)");
    auto *sampling=group("Sampling and format"); line(sampling,"Interpolator","Interpolator"); text.value("Interpolator")->setReadOnly(true); line(sampling,"InterpolationOrder","Interpolation order (1–10)"); choice(sampling,"StepSize","Step size (s)",true); choice(sampling,"OutputFormat","Byte order"); choice(sampling,"DistanceUnit","Distance unit"); check(sampling,"IncludeEventBoundaries","Include event boundaries");
    auto *interval=group("Time interval"); choice(interval,"EpochFormat","Epoch format"); choice(interval,"InitialEpoch","Initial epoch",true); choice(interval,"FinalEpoch","Final epoch",true);
    groups->addStretch(); error=new QLabel(this); error->setObjectName("ephemerisError"); error->setWordWrap(true); layout->addWidget(error);
@@ -133,6 +135,7 @@ void EphemerisDialog::changeFileFormat()
       previousFormat=next;
    }
    choices.value("StepSize")->setEnabled(next!="SPK"); choices.value("OutputFormat")->setEnabled(next=="Code-500"); choices.value("DistanceUnit")->setEnabled(next=="STK-TimePosVel"); checks.value("IncludeEventBoundaries")->setEnabled(next=="STK-TimePosVel");
+   choices.value("OutputTimeSystem")->setEnabled(next=="CCSDS-OEM");
 }
 void EphemerisDialog::convertEpochs()
 {
@@ -150,7 +153,7 @@ void EphemerisDialog::convertEpochs()
 QMap<QString,QString> EphemerisDialog::settings() const
 {
    QMap<QString,QString> result;
-   for (auto it=choices.cbegin();it!=choices.cend();++it) if ((it.key()!="DistanceUnit") || choices.value("FileFormat")->currentText()=="STK-TimePosVel") result.insert(it.key(),it.value()->currentText().trimmed());
+   for (auto it=choices.cbegin();it!=choices.cend();++it) if (((it.key()!="DistanceUnit") || choices.value("FileFormat")->currentText()=="STK-TimePosVel") && (it.key()!="OutputTimeSystem" || choices.value("FileFormat")->currentText()=="CCSDS-OEM")) result.insert(it.key(),it.value()->currentText().trimmed());
    for (auto it=text.cbegin();it!=text.cend();++it) result.insert(it.key(),it.value()->text().trimmed());
    for (auto it=checks.cbegin();it!=checks.cend();++it) if (it.key()!="IncludeEventBoundaries" || choices.value("FileFormat")->currentText()=="STK-TimePosVel") result.insert(it.key(),it.value()->isChecked() ? "true" : "false");
    return result;

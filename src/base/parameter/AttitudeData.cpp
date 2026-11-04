@@ -267,6 +267,15 @@ void AttitudeData::SetReal(Integer item, Real value)
    case EULER_ANGLE_3:
       attitude->SetRealParameter("EulerAngle3", value);
       break;
+   case MRP_1:
+      attitude->SetRealParameter("MRP1", value);
+      break;
+   case MRP_2:
+      attitude->SetRealParameter("MRP2", value);
+      break;
+   case MRP_3:
+      attitude->SetRealParameter("MRP3", value);
+      break;
    case ANGULAR_VELOCITY_X:
       attitude->SetRealParameter("AngularVelocityX", value);
       break;

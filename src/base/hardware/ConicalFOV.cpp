@@ -418,3 +418,14 @@ Real ConicalFOV::SetRealParameter(const std::string &label, const Real value)
 }
 
 
+
+// Whole-object script assignment and GmatFunction outputs use this virtual API.
+// Retain the existing class assignment logic and the destination's identity.
+void ConicalFOV::Copy(const GmatBase* source)
+{
+   const auto* typed = dynamic_cast<const ConicalFOV*>(source);
+   if (!typed || typed->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Cannot copy into " + GetTypeName() +
+                             " from a null or incompatible object");
+   operator=(*typed);
+}

@@ -59,6 +59,7 @@ public:
    virtual bool         InsufficientDataPoints();
    
    // methods inherited from Subscriber
+   virtual void         SetRunState(Gmat::RunState state) override;
    virtual void         SetProvider(GmatBase *provider, Real epochInMjd = -999.999);
    
    // methods inherited from GmatBase
@@ -150,6 +151,7 @@ protected:
    std::string covFormat;
    std::string formatVersion;
    std::string accelModelName;
+   std::string outputTimeSystem;
    bool        writeEphemeris;
    bool        usingDefaultFileName;
    bool        generateInBackground;
@@ -199,6 +201,7 @@ protected:
    static StringArray fileFormatList;   
    /// Available epoch format list
    static StringArray epochFormatList;   
+   static const StringArray outputTimeSystemList;
    /// Available initial epoch list
    static StringArray initialEpochList;
    /// Available final epoch list
@@ -300,6 +303,7 @@ protected:
       INCLUDE_EVENT_BOUNDARIES,
       FORMAT_VERSION,
       ACCELERATION_MODEL,
+      OUTPUT_TIME_SYSTEM,
       EphemerisFileParamCount   // Count of the parameters for this class
    };
    

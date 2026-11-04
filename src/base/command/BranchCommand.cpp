@@ -887,6 +887,25 @@ void BranchCommand::SetSolarSystem(SolarSystem *ss)
 }
 
 //------------------------------------------------------------------------------
+// void BranchCommand::SetTriggerManagers(std::vector<TriggerManager*> *trigs)
+//------------------------------------------------------------------------------
+/**
+ * Passes the sandbox's trigger managers to every child, including nested
+ * branches. Estimators and simulators inside control flow need the same event
+ * manager as commands at the top level.
+ */
+void BranchCommand::SetTriggerManagers(std::vector<TriggerManager*> *trigs)
+{
+   GmatCommand::SetTriggerManagers(trigs);
+   for (auto first : branch)
+   {
+      for (auto current = first; current && current != this;
+           current = current->GmatCommand::GetNext())
+         current->SetTriggerManagers(trigs);
+   }
+}
+
+//------------------------------------------------------------------------------
 // void BranchCommand::SetInternalCoordSystem(CoordinateSystem *cs)
 //------------------------------------------------------------------------------
 /**

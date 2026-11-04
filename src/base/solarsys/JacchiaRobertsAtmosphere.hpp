@@ -49,6 +49,7 @@ public:
     
    // inherited from GmatBase
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
     
    bool Density(Real *position, Real *density, Real epoch = GmatTimeConstants::MJD_OF_J2000,
                 Integer count = 1);

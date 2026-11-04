@@ -214,8 +214,8 @@ GmatBase* TopocentricAxes::Clone() const
  * @param forceComputation force computation even if it's not time to do it
  *                         (default is false)
  *
- * @note  The implementation of this method for this class ignores the
- *        forceComputation argument
+ * The force flag also applies to the origin's body-fixed frame, whose
+ * nutation cache may have been initialized at a different run epoch.
  */
 //------------------------------------------------------------------------------
 void TopocentricAxes::CalculateRotationMatrix(const A1Mjd &atEpoch,
@@ -285,7 +285,8 @@ void TopocentricAxes::CalculateRotationMatrix(const A1Mjd &atEpoch,
    #endif
    // Determine rotation matrix from body-fixed to inertial
    Rvector bogusIn(6,7000.0,1000.0,6000.0, 0.0, 0.0, 0.0);
-   Rvector bogusOut = bfcs->ToBaseSystem(atEpoch, bogusIn); // @todo - need ToMJ2000Eq here?
+   Rvector bogusOut = bfcs->ToBaseSystem(atEpoch, bogusIn, false,
+                                       forceComputation); // @todo - need ToMJ2000Eq here?
    #ifdef DEBUG_TOPOCENTRIC_AXES
       MessageInterface::ShowMessage("bogusIn:\n");
       MessageInterface::ShowMessage("%12.17f\n", bogusIn[0]);
@@ -379,7 +380,10 @@ void TopocentricAxes::CalculateRFT(const A1Mjd &atEpoch, const Rvector3 newLocat
    // Calculate the geocentric latitude to use as an initial guess
    // to find the geodetic latitude
    Real phigd    = atan2(z, rxy);
-   Real eSquared = 2 * flattening - (flattening * flattening);
+   // A spherical horizon is geocentric even when the central body's
+   // configured reference ellipsoid has nonzero flattening.
+   Real eSquared = horizonReference == "Sphere" ? 0.0 :
+      2 * flattening - (flattening * flattening);
    Real phiPrime, C, divided, bfLong;
 
    #ifdef DEBUG_TOPOCENTRIC_AXES

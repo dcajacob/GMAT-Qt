@@ -1,0 +1,640 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "doc/SystemDocs/Requirements/GMAT Requirements.xlsx": "736847e909ca550731386261073e46a9fa3ac8d78f53f0c37dd5d93b11a85c23",
+    "doc/SystemDocs/Test/Requirements-To-Test Matrix, 2012-05-11 (GMAT Build 2012-05-04).csv": "4693e097b183af76bc7c8dfcc0f62d7696b2e1417c90cb10d0ed4f9577160a97"
+  },
+  "reviews": [
+    {
+      "key": "All Others!E311",
+      "fingerprint": "bad4ee1afa9eb68c57b367bb638f5bd3bba6b55b85ddb78f96f114125f6e5147",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-311",
+          "expected": {
+            "field": "failed_by_type_platform",
+            "source_key": "All Others!E311",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "Report all failed tests by the following categories:",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E312",
+      "fingerprint": "cf99250d632d2eef62e3ec693b25fd66752f8bf7ef95207a6be5b2c12bf0dd84",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-312",
+          "expected": {
+            "field": "test_type",
+            "source_key": "All Others!E312",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "1)\u00a0\u00a0\u00a0\u00a0\u00a0 Test Type (Acceptance, System, Validation)",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E313",
+      "fingerprint": "1cf023b83e81001cf728309a93c46ba7eabb030b033a836657b8f2be748b34c8",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-313",
+          "expected": {
+            "field": "platform",
+            "source_key": "All Others!E313",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "2)\u00a0\u00a0\u00a0\u00a0\u00a0 Platform",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E314",
+      "fingerprint": "5fa1c19538b355d868e921e4dcea09bfb92e86305a609a4414d8fe7eb7e29aec",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-314",
+          "expected": {
+            "field": "requirement-set-query",
+            "source_key": "All Others!E314",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "Report all tests for a given set of requirements",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E315",
+      "fingerprint": "988766db1a58d985a8fa3ee31f11257ff95ba0a78782740e02a46249788a8161",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-315",
+          "expected": {
+            "field": "requirements_without_tests",
+            "source_key": "All Others!E315",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "Report all requirements that have no tests",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E316",
+      "fingerprint": "822f1b312e09c8da62bfbef7d01e57a158684d63d43d0622769818aad94eac02",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-316",
+          "expected": {
+            "field": "earliest_build_date",
+            "source_key": "All Others!E316",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "Earliest build date supported",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E317",
+      "fingerprint": "77b72a70c4b707e5fede31c99fc38d7fce52542ff057b5804f7b656a5ac2f43a",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-317",
+          "expected": {
+            "field": "latest_build_date",
+            "source_key": "All Others!E317",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "Latest build date supported",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E318",
+      "fingerprint": "248aae2464593d4302dc8b960e79b55adc2cc27c678b9744a9250693847631ff",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-318",
+          "expected": {
+            "field": "requirements",
+            "source_key": "All Others!E318",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "Requirements",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E319",
+      "fingerprint": "894f560dd98087aeabd0055c41ee1b6c48ee112569f39ad18786fc81c815cbeb",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-319",
+          "expected": {
+            "field": "author",
+            "source_key": "All Others!E319",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "Author",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E320",
+      "fingerprint": "c6da6935b6708ee92c7b616637b7cbb6260ffd5a914a69118532b1576b756cac",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-320",
+          "expected": {
+            "field": "truth_data",
+            "source_key": "All Others!E320",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "Truth data",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E321",
+      "fingerprint": "393f1fefd40fabe2f8090c9030595bfa7ff9a2e028225a7647b25e8d9ee4bd29",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-321",
+          "expected": {
+            "field": "tolerances",
+            "source_key": "All Others!E321",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "Tolerance on test comparison",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E322",
+      "fingerprint": "1ecdce44b93f778bb39fadd393c5999d2b2a46f19ba2824770846706d85f8014",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-322",
+          "expected": {
+            "field": "comparator",
+            "source_key": "All Others!E322",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "Comparator type",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E323",
+      "fingerprint": "5aac6920fe94a7e587457ec8f1f39786fdf6514ad0ad18d7b636fd19dfc2637a",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-323",
+          "expected": {
+            "field": "extensions",
+            "source_key": "All Others!E323",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "User-defined",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E324",
+      "fingerprint": "aabf32cead89d91c891ae51eb1f2229013cd0b2e4c5c1d62dd89a0a93b0dcff3",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-324",
+          "expected": {
+            "field": "comments",
+            "source_key": "All Others!E324",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "Comments",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E325",
+      "fingerprint": "3dbf4127a294b87f554cbb3257d0985abd1fb828afcf50834d41b9ae198c93fc",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-325",
+          "expected": {
+            "field": "creation_date",
+            "source_key": "All Others!E325",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "Creation date",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E326",
+      "fingerprint": "38c2d91a48b4acdd78cf32721e78183d90f62847b114fac02535a3043fe1d643",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-326",
+          "expected": {
+            "field": "platform_dependencies",
+            "source_key": "All Others!E326",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "Platform dependencies",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E331",
+      "fingerprint": "6885aa6e18db12c2ecdb231948d2a21615ab4df0d4c83c78ff8344ce08be28b9",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-331",
+          "expected": {
+            "field": "summary",
+            "source_key": "All Others!E331",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "The system shall optionally write the following data to summary file",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E332",
+      "fingerprint": "b673c0a1d63569b1b2d685e808a8cc6dfcacc146e068082c64989ed95802d711",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-332",
+          "expected": {
+            "field": "tests_run",
+            "source_key": "All Others!E332",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "1)\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0 Number of tests run",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E333",
+      "fingerprint": "dd10bfae0dc310223cad8f3710fa93b34777039d1a7615c8c7f6b59680f85bb5",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-333",
+          "expected": {
+            "field": "failed_test_names",
+            "source_key": "All Others!E333",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "2)\u00a0\u00a0\u00a0\u00a0\u00a0 Number and name of failed tests",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E334",
+      "fingerprint": "017f2d3570311c54a99ecee989f94018882ec67e8cad3433a4cc96fa8f8f3933",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-334",
+          "expected": {
+            "field": "tests_passed",
+            "source_key": "All Others!E334",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "3)\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0 Number of tests passed",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E335",
+      "fingerprint": "68bfae461ecb205a711f7fc954d6ea89b9d823ddb24ada911051c001cdf32e86",
+      "applicability": "harness",
+      "rationale": "Original test-system requirement, not a GMAT GUI widget. The current reusable catalogue supplies this exact metadata/query/summary capability. Complete typed metadata round trips, inclusive build-date eligibility, real CLI exports/queries and an independently specified mixed-outcome fixture are mandatory. Unknown legacy metadata stays explicit; no claim that every existing test has populated metadata or that supplied old evidence is newly qualified.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.CatalogueContracts",
+          "source": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "source_sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "catalogue-335",
+          "expected": {
+            "field": "failed_requirement_keys-and-names",
+            "source_key": "All Others!E335",
+            "contracts": 13
+          },
+          "facets": [
+            "mixed-outcome-independent-literal-oracle",
+            "metadata-roundtrip-and-validation",
+            "actual-cli-exports-and-queries",
+            "no-new-gui-execution-or-fixture-tolerance-change"
+          ],
+          "scope": "4)\u00a0\u00a0\u00a0\u00a0\u00a0 Number and name of failed requirements",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3"
+          }
+        }
+      ]
+    }
+  ],
+  "scope": "Original NASA test-harness requirements; all original denominator rows retained. Backend contracts are not GUI exposure."
+}

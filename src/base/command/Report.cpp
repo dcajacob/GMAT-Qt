@@ -1032,14 +1032,22 @@ void Report::WriteHeaders(std::stringstream &datastream, Integer colWidth)
    #endif
    
    reporter->TakeAction("ActivateForReport", "On");
-   for (StringArray::iterator i = actualParmNames.begin();
+   const bool fixedWidth = reporter->GetBooleanParameter("FixedWidth");
+   const std::string delimiter = reporter->GetStringParameter("Delimiter");
+   for (StringArray::const_iterator i = actualParmNames.begin();
         i != actualParmNames.end(); ++i)
    {
-      datastream.width(colWidth);
+      if (fixedWidth)
+      {
+         const Integer width = (Integer)i->length() > colWidth ?
+            (Integer)i->length() : colWidth;
+         datastream.width(width + 3);
+      }
+      else if (i != actualParmNames.begin())
+         datastream << delimiter;
       datastream << (*i);
-      datastream << "   ";
    }
-   
+
    std::string header = datastream.str();
    reporter->ReceiveData(header.c_str(), header.length());
    datastream.str("");

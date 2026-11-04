@@ -46,6 +46,7 @@ public:
    bool operator==(const ErrorModel& em);
 
    virtual GmatBase* Clone() const;
+   virtual void         Copy(const GmatBase* source) override;
    virtual bool Initialize();
    virtual bool Finalize();
 

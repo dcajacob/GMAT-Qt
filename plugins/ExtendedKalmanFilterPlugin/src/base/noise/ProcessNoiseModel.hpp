@@ -72,6 +72,7 @@ public:
                                      const std::string &name = "");
 
    virtual GmatBase*    Clone(void) const;
+   virtual void         Copy(const GmatBase* source) override;
 
    virtual GmatBase*    GetOwnedObject(Integer whichOne);
    virtual bool         IsOwnedObject(Integer id) const;

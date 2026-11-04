@@ -29,6 +29,8 @@
 //------------------------------------------------------------------------------
 
 #include "SNCProcessNoise.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "NoiseException.hpp"
 #include "StringUtil.hpp"
 #include "MessageInterface.hpp"
@@ -710,4 +712,16 @@ const Rvector& SNCProcessNoise::SetRvectorParameter(const std::string &label,
                                    const Rvector &value)
 {
    return SetRvectorParameter(GetParameterID(label), value);
+}
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void SNCProcessNoise::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const SNCProcessNoise*>(original);
+   if (!source || typeid(*source) != typeid(SNCProcessNoise) ||
+       typeid(*this) != typeid(SNCProcessNoise))
+      throw GmatBaseException("Cannot copy incompatible object into SNCProcessNoise");
+   if (source == this)
+      return;
+   operator=(*source);
 }

@@ -7,6 +7,7 @@
 #include "Parameter.hpp"
 #include "CoordinateSystem.hpp"
 #include "CalculatedPoint.hpp"
+#include "CelestialBody.hpp"
 #include "BaseException.hpp"
 #include "FileManager.hpp"
 #include <QDir>
@@ -73,6 +74,14 @@ Field field(GmatBase &object,const QString &path)
 bool renamedStringField(const Field &value,const Names &names)
 {
    if (!value.owner) return false;
+   // A body's CentralBody is a string reference, but CelestialBody has no
+   // RenameRefObject override. Keep child-body parents in the same source
+   // transaction instead of leaving a reference to the removed name.
+   if (value.owner->IsOfType("CelestialBody") && value.owner->GetParameterText(value.id)=="CentralBody")
+      for (auto it=names.cbegin();it!=names.cend();++it) {
+         auto *original=Moderator::Instance()->GetConfiguredObject(it.key().toStdString());
+         if (original && original->IsOfType("CelestialBody")) return true;
+      }
    try {
       QtResourcePreview copy(value.owner->Clone());
       for (auto it=names.cbegin();it!=names.cend();++it) {
@@ -304,7 +313,8 @@ QJsonObject camera(QJsonObject value,const Names &names)
 }
 bool resourceCanBeRenamed(GmatBase *object)
 {
-   if (!object || object->IsOfType("SolarSystem") || object->IsOfType("CelestialBody")) return false;
+   if (!object || object->IsOfType("SolarSystem")) return false;
+   if (auto *body=dynamic_cast<CelestialBody *>(object);body && !body->IsUserDefined()) return false;
    if (auto *frame=dynamic_cast<CoordinateSystem *>(object);frame && frame->IsBuiltIn()) return false;
    if (auto *point=dynamic_cast<CalculatedPoint *>(object);point && point->IsBuiltIn()) return false;
    return true;
@@ -417,4 +427,9 @@ QString renameResourceSource(const QString &source,GmatBase &object,const QStrin
    auto candidate=source; qsizetype end=source.size();
    for (const auto &edit:edits) { if (edit.position+edit.length>end) throw std::runtime_error("Overlapping resource rename edits."); candidate.replace(edit.position,edit.length,edit.text); end=edit.position; }
    qtCameraSettings(candidate); return candidate;
+}
+
+void validateResourceExternalReferences(const QString &source,const QString &name)
+{
+   RenameDependencies(Names{{name,name}}).inspect(scriptStatements(source));
 }

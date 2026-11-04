@@ -2450,6 +2450,8 @@ UnsignedInt CoordinateSystem::GetPropertyObjectType(const Integer id) const
 {
    switch (id)
    {
+   case ORIGIN_NAME:
+      return Gmat::SPACE_POINT;
    case AXES:
       return Gmat::AXIS_SYSTEM;
    default:

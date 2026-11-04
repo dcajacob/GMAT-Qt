@@ -67,6 +67,7 @@ Rvec6Var::Rvec6Var(const std::string &name, const std::string &typeStr,
 {
    mRvec6Value = Rvector6::RVECTOR6_UNDEFINED;
    mReturnType = Gmat::RVECTOR_TYPE;
+   parameterCount = Rvec6VarParamCount;
 }
 
 
@@ -196,5 +197,52 @@ const Rvector6& Rvec6Var::EvaluateRvector6()
    {
       return mRvec6Value;
    }
+}
+
+// Fixed-size parameters participate in the same wrapper/assignment contract
+// as RvectorVar, while retaining their existing six-component evaluators.
+const Rvector& Rvec6Var::EvaluateRvector()
+{
+   return EvaluateRvector6();
+}
+
+Integer Rvec6Var::GetParameterID(const std::string &str) const
+{
+   if (str == "VectorSize")
+      return VECTOR_SIZE;
+   return Parameter::GetParameterID(str);
+}
+
+std::string Rvec6Var::GetParameterText(const Integer id) const
+{
+   if (id == VECTOR_SIZE)
+      return "VectorSize";
+   return Parameter::GetParameterText(id);
+}
+
+Gmat::ParameterType Rvec6Var::GetParameterType(const Integer id) const
+{
+   if (id == VECTOR_SIZE)
+      return Gmat::INTEGER_TYPE;
+   return Parameter::GetParameterType(id);
+}
+
+bool Rvec6Var::IsParameterReadOnly(const Integer id) const
+{
+   if (id == VECTOR_SIZE)
+      return true;
+   return Parameter::IsParameterReadOnly(id);
+}
+
+Integer Rvec6Var::GetIntegerParameter(const Integer id) const
+{
+   if (id == VECTOR_SIZE)
+      return 6;
+   return Parameter::GetIntegerParameter(id);
+}
+
+Integer Rvec6Var::GetIntegerParameter(const std::string &label) const
+{
+   return GetIntegerParameter(GetParameterID(label));
 }
 

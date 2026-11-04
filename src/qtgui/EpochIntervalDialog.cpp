@@ -11,6 +11,7 @@
 #include <QDialogButtonBox>
 #include <QSignalBlocker>
 #include <cmath>
+#include <algorithm>
 #include <memory>
 #include <stdexcept>
 
@@ -81,6 +82,16 @@ QSet<QString> applyWarmStartProperties(GmatBase &object,const QMap<QString,QStri
    object.SetStringParameter("WarmStartEpochFormat",to.toStdString());
    object.SetStringParameter("WarmStartEpoch",value.toStdString());
    return consumed;
+}
+QString convertEphemerisEpoch(const QString &value,const QString &from,const QString &to)
+{
+   const auto &formats=TimeSystemConverter::Instance()->GetValidTimeRepresentations();
+   const auto valid=[&](const QString &format) { return std::find(formats.begin(),formats.end(),format.toStdString())!=formats.end(); };
+   if (!valid(from) || !valid(to)) throw std::runtime_error("Select a supported ephemeris epoch format.");
+   const auto input=value.trimmed();
+   if (input=="FromSpacecraft" || input=="EphemStart") return input;
+   epoch(from,input); // Validate even a same-format or paired transaction now.
+   return convertEpochInterval({{"EpochFormat",from},{"InitialEpoch",input},{"FinalEpoch",input}},to).value("InitialEpoch");
 }
 EpochIntervalDialog::EpochIntervalDialog(GmatBase &object,const QMap<QString,QString> &pending,QWidget *parent) : QDialog(parent)
 {

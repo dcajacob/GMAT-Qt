@@ -6,6 +6,16 @@
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
+bool scriptTransposeQuote(const QString &code,qsizetype index)
+{
+   if (index<=0 || index>=code.size() || code[index]!='\'') return false;
+   auto previous=index-1;
+   // A chain of postfix transposes still follows the original operand.
+   while (previous>=0 && (code[previous].isSpace() || code[previous]=='\'')) --previous;
+   if (previous<0 || !(code[previous].isLetterOrNumber() || QString("_)]}").contains(code[previous]))) return false;
+   static const QRegularExpression assignment(R"(^\s*(?:GMAT\s+)?(?:'[^'\n]*'\s+)?(?:[A-Za-z][A-Za-z0-9_.]*(?:\([^;\n]*?\))?|\[[^\];\n]*\])\s*=)");
+   return assignment.match(code.left(index)).hasMatch();
+}
 namespace {
 using Statement=ScriptStatement;
 QVector<Statement> statements(const QString &source)
@@ -29,6 +39,7 @@ QVector<Statement> statements(const QString &source)
          }
       }
       if (c=='\'') {
+         if (!quoted && scriptTransposeQuote(current.code,current.code.size()-1)) continue;
          if (quoted && i+1<source.size() && source[i+1]=='\'') { current.code+=source[++i]; current.positions.append(i); }
          else quoted=!quoted;
       } else if (!quoted) {
@@ -51,7 +62,7 @@ QVector<Statement> statements(const QString &source)
    return result;
 }
 
-QString forceSelectorSource(const QString &source,const QString &name,const QString &field,const QString &value,const QStringList &aliases,const QString &firstMissionStatement,const QStringList &dependencies={},const QStringList &creatorAliases={})
+QString forceSelectorSource(const QString &source,const QString &name,const QString &field,const QString &value,const QStringList &aliases,const QString &firstMissionStatement,const QStringList &dependencies={},const QStringList &creatorAliases={},bool newlyEnabled=false)
 {
    const QRegularExpression assignment("^\\s*(?:GMAT\\s+)?"+QRegularExpression::escape(name)+"\\.([A-Za-z0-9_.]+)\\s*=\\s*(.*?)\\s*;?\\s*$",QRegularExpression::DotMatchesEverythingOption);
    auto normalize=[](QString code) { code=code.trimmed(); code.remove(QRegularExpression("^GMAT\\s+")); if (!code.endsWith(';')) code+=';'; return code; };
@@ -60,6 +71,12 @@ QString forceSelectorSource(const QString &source,const QString &name,const QStr
    struct Edit { qsizetype position,length; QString text; };
    QVector<Edit> edits; QStringList remove;
    qsizetype firstDependent=source.size(); bool located=firstCommand.isEmpty(),found=false;
+   // New contributors follow the engine writer's order. Inserting a point
+   // mass after an existing SRP/drag selector changes floating-point force
+   // accumulation and can change a targeting result. Existing active force
+   // order is deliberately retained when only its settings are edited.
+   const QStringList orderedCreators={"PrimaryBodies","PointMasses","SRP","Drag"};
+   const auto rank=orderedCreators.indexOf(field);
    for (const auto &statement:statements(source)) {
       int first=0; while (first<statement.code.size() && statement.code[first].isSpace()) ++first;
       if (QRegularExpression("^\\s*BeginMissionSequence\\b").match(statement.code).hasMatch() || (!firstCommand.isEmpty() && normalize(statement.code)==firstCommand)) {
@@ -67,13 +84,35 @@ QString forceSelectorSource(const QString &source,const QString &name,const QStr
       }
       const auto match=assignment.match(statement.code); if (!match.hasMatch()) continue;
       const auto key=match.captured(1);
+      auto other=key.section('.',0,0);
+      if (key=="AtmosphereModel") other="Drag";
+      if (rank>=0 && orderedCreators.indexOf(other)>rank)
+         firstDependent=std::min(firstDependent,statement.positions[first]);
       const bool dependent=std::any_of(dependencies.cbegin(),dependencies.cend(),[&](const QString &prefix) { return key.startsWith(prefix); });
       const bool creator=key==field || creatorAliases.contains(key);
       if (!creator && !dependent && !key.startsWith(field+'.') && !aliases.contains(key)) continue;
       firstDependent=std::min(firstDependent,statement.positions[first]); remove.append(key);
       if (!creator || value=="Off") continue;
+      if (newlyEnabled && statement.continuations.isEmpty() && statement.positions[first]>firstDependent) {
+         // Mapped positions exclude comments and preserve continued source.
+         for (auto position:statement.positions.mid(first)) edits.append({position,1,{}});
+         for (auto position:statement.continuations) edits.append({position,1,{}});
+         continue;
+      }
       found=true; const auto positions=statement.positions.mid(match.capturedStart(2),match.capturedLength(2));
       if (positions.isEmpty()) throw std::runtime_error("Cannot locate the force selector value safely.");
+      if (field=="External") {
+         // Use the same assignment spelling as other edited external-force
+         // fields. Change only horizontal spacing before '=', retaining the
+         // mapped RHS, continuations, comments and unrelated source.
+         const auto gapStart=match.capturedEnd(1);
+         auto equals=gapStart;
+         while (equals<statement.code.size() && (statement.code[equals]==' ' || statement.code[equals]=='\t')) ++equals;
+         if (equals<statement.code.size() && statement.code[equals]=='=') {
+            for (auto i=gapStart;i<equals;++i) edits.append({statement.positions[i],1,{}});
+            edits.append({statement.positions[equals],0," "});
+         }
+      }
       for (auto position:positions) edits.append({position,1,{}});
       for (auto position:statement.continuations) if (position>=positions.first() && position<=positions.last()) edits.append({position,1,{}});
       edits.append({positions.first(),0,value});
@@ -270,7 +309,9 @@ QString patchResourceConfiguration(const QString &source,const QString &name,con
          const auto alias=it.key().mid(field.size()+1);
          if (!old.values.contains(alias) && !pending.values.contains(alias)) aliases.append(alias);
       }
-      forceSource=forceSelectorSource(forceSource,name,field,setting,aliases,firstMissionStatement);
+      const auto previous=old.values.value(field);
+      const bool newlyEnabled=setting=="On" && (previous.isEmpty() || value.match(previous.last()).captured(1)=="Off");
+      forceSource=forceSelectorSource(forceSource,name,field,setting,aliases,firstMissionStatement,{}, {},newlyEnabled);
       changed.removeAll(field);
       for (const auto &key:QStringList(changed)) if (key.startsWith(field+'.')) {
          const auto alias=key.mid(field.size()+1); if (aliases.contains(alias)) changed.append(alias);

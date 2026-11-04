@@ -283,7 +283,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Dimensionless for the supported Cd and AtmosDensityScaleFactor solve-fors</para>
                   </listitem>
                 </varlistentry>
 
@@ -342,7 +342,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Dimensionless for the supported Cd and AtmosDensityScaleFactor solve-fors</para>
                   </listitem>
                 </varlistentry>
 

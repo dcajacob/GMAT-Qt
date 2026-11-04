@@ -43,6 +43,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <vector>
+#include <cmath>
 
 //#define DEBUG_SPK_LOADING
 //#define DEBUG_SPK_ISLOADED
@@ -738,6 +739,44 @@ Real SpiceInterface::SpiceTimeToA1(SpiceDouble spiceTime)
  *
  */
 //------------------------------------------------------------------------------
+SpiceDouble SpiceInterface::A1ToSpiceTime(const GmatTime &a1Time)
+{
+   const GmatTime tdbTime = theTimeConverter->Convert(a1Time,
+      TimeSystemConverter::A1MJD, TimeSystemConverter::TDBMJD,
+      GmatTimeConstants::JD_JAN_5_1941);
+   // Subtract the exact J2000 day origin before the one required conversion
+   // to SPICE double seconds. Do not round through an absolute MJD Real.
+   const GmatTime origin(j2000_c() - GmatTimeConstants::JD_JAN_5_1941);
+   return (tdbTime - origin).GetTimeInSec();
+}
+
+SpiceDouble SpiceInterface::A1ToSpiceTime(const GmatTime &a1Time,
+                                         GmatTime &canonicalEpoch)
+{
+   if (!std::isfinite(a1Time.GetFracSec()))
+      throw UtilityException("Cannot encode a nonfinite precise A1 epoch.");
+   const SpiceDouble encoded = A1ToSpiceTime(a1Time);
+   if (!std::isfinite(encoded))
+      throw UtilityException("Cannot encode a nonfinite SPICE epoch.");
+
+   // Build the target from seconds, without rounding through an absolute MJD.
+   GmatTime target(j2000_c() - GmatTimeConstants::JD_JAN_5_1941);
+   target.AddSeconds(encoded);
+   GmatTime candidate(a1Time);
+   // Invert the existing nonlinear clock locally. Its slope differs from one
+   // by about 1e-10, so four residual corrections resolve the double ET cell
+   // within GmatTime arithmetic. This does not substitute a linear TDB clock.
+   for (Integer i = 0; i < 4; ++i)
+   {
+      const GmatTime tdb = theTimeConverter->Convert(candidate,
+         TimeSystemConverter::A1MJD, TimeSystemConverter::TDBMJD,
+         GmatTimeConstants::JD_JAN_5_1941);
+      candidate.AddSeconds((target - tdb).GetTimeInSec());
+   }
+   canonicalEpoch = candidate;
+   return encoded;
+}
+
 SpiceDouble SpiceInterface::A1ToSpiceTime(Real a1Time)
 {
    SpiceDouble j2ET      = j2000_c();

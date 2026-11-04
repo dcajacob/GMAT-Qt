@@ -1,0 +1,2 @@
+# Offline reference contract only; native GUI replay uses the frozen JSON reference.
+numpy>=1.24

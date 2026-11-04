@@ -83,6 +83,9 @@
 //---------------------------------
 // static data
 //---------------------------------
+namespace {
+thread_local const Propagate *accelerationContextInitializer=nullptr;
+}
 std::string Propagate::PropModeList[PropModeCount] =
 {
    "", "Synchronized", "BackProp"
@@ -3286,8 +3289,22 @@ void Propagate::CleanString(std::string &theString, const StringArray *extras)
  * @return true if the GmatCommand is initialized, false if an error occurs.
  */
 //------------------------------------------------------------------------------
+bool Propagate::InitializeForPropagation(bool selectAccelerationContext)
+{
+   const auto *previous=accelerationContextInitializer;
+   accelerationContextInitializer=selectAccelerationContext ? this:nullptr;
+   struct RestoreSelection
+   {
+      const Propagate *previous;
+      ~RestoreSelection(){accelerationContextInitializer=previous;}
+   } restore{previous};
+   // Preserve virtual Initialize dispatch for derived propagation commands.
+   return Initialize();
+}
+
 bool Propagate::Initialize()
 {
+   const bool selectAccelerationContext=accelerationContextInitializer==this;
    #if DEBUG_PROPAGATE_INIT
       MessageInterface::ShowMessage("Propagate::Initialize() <%p> entered\n", this);
       MessageInterface::ShowMessage("  Size of propName is %d\n",
@@ -3598,6 +3615,9 @@ bool Propagate::Initialize()
             throw PropagatorException("Propagate::Initialize -- "
                   "ODE model cannot set spacecraft parameters");
 
+      if (selectAccelerationContext && p->UsesODEModel())
+         odem->ActivateAccelerationContext();
+
       ++index;
    } // End of loop through PropSetups
 
@@ -3734,6 +3754,32 @@ bool Propagate::Initialize()
       isInitialized = false;
       MessageInterface::ShowMessage
          ("Propagate::Initialize() SolarSystem not set in StopCondition");
+   }
+
+   // Real MJD clocks cannot resolve submicrosecond time-stop requests.
+   // Select the existing precision-time path for the complete propagation
+   // group before its models are built by PrepareToPropagate().
+   bool preciseTimeStop = false;
+   if (isInitialized)
+      for (auto *condition : stopWhen)
+         if (condition->IsTimeCondition() &&
+               timeAccuracy * condition->GetTimeMultiplier() < 1.0e-6)
+            preciseTimeStop = true;
+   if (preciseTimeStop)
+   {
+      auto enableClock = [&](auto &&self, GmatBase *object) -> void
+      {
+         object->SetPrecisionTimeFlag(true);
+         if (object->IsOfType(Gmat::FORMATION))
+            for (auto *member : object->GetRefObjectArray("SpaceObject"))
+               self(self, member);
+      };
+      for (auto *object : sats) enableClock(enableClock, object);
+      for (auto *setup : propagators)
+      {
+         setup->SetPrecisionTimeFlag(true);
+         setup->GetPropStateManager()->MapObjectsToVector();
+      }
    }
 
    #if DEBUG_PROPAGATE_INIT
@@ -3877,6 +3923,26 @@ GmatCommand* Propagate::GetNext()
 //------------------------------------------------------------------------------
 void Propagate::PrepareToPropagate()
 {
+   for (auto *setup:propagators)
+   {
+      if (setup->GetPropagator()->UsesODEModel())
+      {
+         if (auto *model=setup->GetODEModel()) model->ActivateAccelerationContext();
+      }
+      else
+      {
+         ObjectArray objects;
+         setup->GetPropStateManager()->GetStateObjects(objects,Gmat::SPACEOBJECT);
+         auto suspend=[&](auto &&self,GmatBase *object)->void
+         {
+            if (auto *spacecraft=dynamic_cast<Spacecraft *>(object))
+               ODEModel::SuspendAccelerationContext(spacecraft);
+            else if (object && object->IsOfType(Gmat::FORMATION))
+               for (auto *member:object->GetRefObjectArray("SpaceObject")) self(self,member);
+         };
+         for (auto *object:objects) suspend(suspend,object);
+      }
+   }
    #ifdef DEBUG_PROPAGATE_INIT
       MessageInterface::ShowMessage
          ("Propagate::PrepareToPropagate() <%p> entered\n", this);
@@ -4058,7 +4124,7 @@ void Propagate::PrepareToPropagate()
       #ifdef DEBUG_PROPAGATE_INIT
          MessageInterface::ShowMessage("Initializing Propagate command\n");
       #endif
-      Initialize();
+      InitializeForPropagation(true);
 
       // Loop through the PropSetups and build the models
       for (std::vector<PropSetup*>::iterator i=propagators.begin(); i != propagators.end(); ++i)
@@ -4348,7 +4414,7 @@ void Propagate::PrepareToPropagate()
       
    // Publish
    //publisher->Publish(this, streamID, pubdata, dim + 1, direction);
-   publisher->Publish(this, streamID, pubdata, expandedDim, direction);
+   PublishIntegrationSteps({}, direction, true);
    
 
 //   }
@@ -4591,7 +4657,8 @@ bool Propagate::Execute()
             else
                p[i]->BufferState();
 
-         if (!TakeAStep())
+         std::vector<AcceptedStepHistory::Step> iterationSteps;
+         if (!TakeAStepWithJournal(0.0, iterationSteps))
             throw CommandException(
                "Propagate::Execute() Propagator Failed to Step\n");
 
@@ -4711,7 +4778,7 @@ bool Propagate::Execute()
             // Remove the "2.0 * " piece to implement GMT-6110.
 
             //publisher->Publish(this, streamID, pubdata, dim+1, 2.0 * direction);
-            publisher->Publish(this, streamID, pubdata, expandedDim, 2.0 * direction);
+            PublishIntegrationSteps(iterationSteps, 2.0 * direction);
 
             // Set segment orbit color (LOJ: 2013.12.16 Added for propagation segment color)
             publisher->SetSegmentOrbitColor(this, overrideSegmentColor, segmentOrbitColor, fullSatList);
@@ -4765,7 +4832,7 @@ bool Propagate::Execute()
             publisher->SetSegmentOrbitColor(this, overrideSegmentColor, segmentOrbitColor, fullSatList);
             // Publish
             //publisher->Publish(this, streamID, pubdata, dim+1, direction);
-            publisher->Publish(this, streamID, pubdata, expandedDim, direction);
+            PublishIntegrationSteps(iterationSteps, direction);
             if (createNewSegmentsNow == true)
             {
                CreateNewSegments(currEpoch[0]);
@@ -4934,6 +5001,153 @@ bool Propagate::Execute()
    return true;
 }
 
+
+// Capture the native endpoints of one candidate only. The caller chooses whether
+// that candidate survives the stopping-condition search before publishing it.
+// An ambient raw diagnostic journal retains native trials, including probes;
+// the separate publication vector alone represents a committed trajectory.
+bool Propagate::TakeAStepWithJournal(Real propStep,
+   std::vector<AcceptedStepHistory::Step> &records)
+{
+   records.clear();
+   if (!publisher->HasIntegrationStepConsumers())
+      return TakeAStep(propStep);
+   // Ephemeris providers have no numerical primitives. Capture one distinct
+   // provider advance, in J2000 coordinates, after a successful command step.
+   // Keep it in the same private candidate vector so crossed-stop trials are
+   // discarded together with numerical trials. Never synthesize intermediates.
+   RealArray starts;
+   for (auto *propagator : p) starts.push_back(propagator->GetTime());
+   auto appendEphemeris = [&]()
+   {
+      for (size_t group = 0; group < p.size(); ++group)
+      {
+         if (p[group]->UsesODEModel() || starts[group] == p[group]->GetTime())
+            continue;
+         const Integer size = psm[group]->GetState()->GetSize();
+         const Real *state = p[group]->GetJ2KState();
+         if (!state || size <= 0 || p[group]->GetDimension() != size)
+            throw CommandException("Ephemeris endpoint layout differs from native state.");
+         // A null model explicitly denotes an ephemeris advance, not an
+         // accepted numerical integration primitive. Identity is the provider.
+         records.push_back({NULL, p[group], p[group]->GetTypeName(),
+            starts[group], p[group]->GetTime(), RealArray(state, state + size)});
+      }
+   };
+   if (AcceptedStepHistory::IsCapturing())
+   {
+      AcceptedStepHistory::Transaction candidate;
+      if (!TakeAStep(propStep)) return false;
+      records = candidate.Steps();
+      candidate.Commit();
+      appendEphemeris();
+      return true;
+   }
+   AcceptedStepHistory::Transaction candidate(records);
+   if (!TakeAStep(propStep)) return false;
+   candidate.Commit();
+   appendEphemeris();
+   return true;
+}
+
+bool Propagate::PublishIntegrationSteps(
+   const std::vector<AcceptedStepHistory::Step> &records, Real propDir, bool initial)
+{
+   if (!publisher->HasIntegrationStepConsumers())
+      return publisher->PublishPropagatePacket(this, streamID, pubdata, expandedDim,
+         propDir, sats, initial);
+
+   std::vector<Publisher::IntegrationStep> steps;
+   // Bind using exactly the PSM's publication layout, including formation member
+   // expansion and non-Cartesian state items. No configured-name lookup is used.
+   auto bind = [&](size_t group, Publisher::IntegrationStep &step,
+                   const RealArray &state)
+   {
+      const auto *map = psm.at(group)->GetStateMap();
+      StringArray owners, elements;
+      psm.at(group)->PrepareStateInfoToPublish(owners, elements);
+      if (!map || map->size() != state.size() || owners.size() != state.size() ||
+          elements.size() != state.size())
+         throw CommandException("Integration-step publication layout differs from native state.");
+      static const char *components[] = {"X", "Y", "Z", "Vx", "Vy", "Vz"};
+      for (size_t i = 0; i < map->size(); ++i)
+      {
+         const ListItem *item = (*map)[i];
+         if (item->elementName != "CartesianState" || item->subelement < 1 ||
+             (item->subelement - 1) % 6 != 0) continue;
+         if (state.size() - i < 6 || !item->object)
+            throw CommandException("Integration-step Cartesian block is incomplete.");
+         GmatBase *object = item->object;
+         if (object->IsOfType(Gmat::FORMATION))
+         {
+            // Formation exposes its runtime members as an array; it does not
+            // implement the single-object GetRefObject accessor.
+            const auto &members = object->GetRefObjectArray(Gmat::SPACECRAFT);
+            object = NULL;
+            for (auto *member : members)
+               if (member && member->GetName() == owners[i])
+               {
+                  if (object)
+                     throw CommandException("Integration-step formation member identity is ambiguous.");
+                  object = member;
+               }
+         }
+         if (!object || !object->IsOfType(Gmat::SPACECRAFT) || object->GetName() != owners[i])
+            throw CommandException("Integration-step spacecraft identity is unresolved.");
+         Rvector6 cartesian;
+         for (size_t j = 0; j < 6; ++j)
+         {
+            const ListItem *component = (*map)[i+j];
+            if (component->object != item->object || component->elementName != "CartesianState" ||
+                component->subelement != item->subelement + static_cast<Integer>(j) ||
+                owners[i+j] != owners[i] || elements[i+j] != owners[i] + "." + components[j])
+               throw CommandException("Integration-step Cartesian component binding is invalid.");
+            cartesian[j] = state[i+j];
+         }
+         step.states.push_back({object, step.epoch, cartesian});
+         i += 5;
+      }
+   };
+
+   if (initial)
+   {
+      for (size_t group = 0; group < psm.size(); ++group)
+      {
+         auto *state = psm[group]->GetState();
+         Publisher::IntegrationStep step;
+         step.initial = true;
+         step.ephemeris = !p[group]->UsesODEModel();
+         step.startSeconds = step.endSeconds = fm[group] ? fm[group]->GetTime() : p[group]->GetTime();
+         step.epoch = state->HasPrecisionTime() ? state->GetEpochGT() : GmatTime(state->GetEpoch());
+         step.method = p[group]->GetTypeName();
+         const RealArray raw(state->GetState(), state->GetState() + state->GetSize());
+         bind(group, step, raw); // PSM raw state is already J2000-body MJ2000Eq.
+         steps.push_back(std::move(step));
+      }
+   }
+   else for (const auto &record : records)
+   {
+      size_t group = 0;
+      if (record.model)
+         while (group < fm.size() && fm[group] != record.model) ++group;
+      else
+         while (group < p.size() && p[group] != record.integrator) ++group;
+      if (group == p.size() || (!record.model && p[group]->UsesODEModel()))
+         throw CommandException("Committed endpoint has no active propagation provider.");
+      Publisher::IntegrationStep step;
+      step.ephemeris = !record.model;
+      step.startSeconds = record.startSeconds;
+      step.endSeconds = record.endSeconds;
+      step.method = record.method;
+      step.epoch = baseEpochGT.at(group);
+      step.epoch.AddSeconds(record.endSeconds);
+      bind(group, step, step.ephemeris ? record.state :
+         fm[group]->GetJ2KStateSnapshot(record.state, step.epoch));
+      steps.push_back(std::move(step));
+   }
+   return publisher->PublishPropagatePacket(this, streamID, pubdata, expandedDim,
+      propDir, sats, initial, &steps);
+}
 
 //------------------------------------------------------------------------------
 // bool TakeAStep(Real propStep)
@@ -5495,8 +5709,13 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
    //
    // Note that this code makes the final propagated state match the granularity
    // given by other software (aka STK)
-   if (TIME_ROUNDOFF != 0.0)
-      secsToStep = std::floor(secsToStep / TIME_ROUNDOFF + 0.5) * TIME_ROUNDOFF;
+   Real roundingPrecision = TIME_ROUNDOFF;
+   if (stopper->IsTimeCondition())
+      roundingPrecision = std::min(roundingPrecision,
+            timeAccuracy * stopper->GetTimeMultiplier());
+   if (roundingPrecision > 0.0)
+      secsToStep = std::floor(secsToStep / roundingPrecision + 0.5) *
+            roundingPrecision;
 
    #if defined DEBUG_PROPAGATE_STEPSIZE | defined DEBUG_PROPAGATE_DIRECTION
       MessageInterface::ShowMessage
@@ -5509,6 +5728,7 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
           stopEpoch, currEpoch[trigger]);
    #endif
 
+   std::vector<AcceptedStepHistory::Step> finalSteps;
    Real accuracy = (stopper->IsTimeCondition() ? timeAccuracy : stopAccuracy);
 
    // If we are not at the final state, move to it
@@ -5530,7 +5750,7 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
          MessageInterface::ShowMessage("   step by time %.11lf\n", secsToStep);
       #endif
 
-      if (!TakeAStep(secsToStep))
+      if (!TakeAStepWithJournal(secsToStep, finalSteps))
          throw CommandException("Propagator Failed to Step fixed interval\n");
 
       #ifdef DEBUG_EPOCH_SYNC
@@ -5600,6 +5820,7 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
          }
          else
          {
+            finalSteps.clear(); // The first candidate is not the committed trajectory.
             // The interpolated step was not close enough, so back it out
             BufferSatelliteStates(false);
             for (UnsignedInt i = 0; i < fm.size(); ++i)
@@ -5627,6 +5848,7 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
 
             // Generate a better time step
             secsToStep = RefineFinalStep(secsToStep, stopper);
+            const Real unroundedRefinedStep = secsToStep;
 
             // Perform stepsize rounding.  Note that the rounding precision can be
             // set by redefining the macro TIME_ROUNDOFF at the top of
@@ -5640,7 +5862,7 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
 
             // If a refined step was needed, we still need to take it;
             // RefineFinalStep returns with the interpolated step backed out
-            if (!TakeAStep(secsToStep))
+            if (!TakeAStepWithJournal(secsToStep, finalSteps))
                throw CommandException(
                   "Propagator Failed to Step fixed interval\n");
 
@@ -5677,6 +5899,59 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
                   "   Refined timestep of %15.10lf secs gives %.9le\n",
                   secsToStep, stopper->GetStopParameter()->EvaluateReal());
             #endif
+
+            // Keep the historical microsecond grid when it satisfies the
+            // requested stop. Rounding a converged nonlinear root can otherwise
+            // undo the refinement, so retry its original duration from the same
+            // saved state. The rounded candidate must not enter the committed
+            // integration-step publication journal.
+            if (secsToStep != unroundedRefinedStep &&
+                  fabs(stopper->GetStopDifference()) > accuracy)
+            {
+               finalSteps.clear();
+               BufferSatelliteStates(false);
+               for (UnsignedInt i = 0; i < fm.size(); ++i)
+               {
+                  if (fm[i])
+                  {
+                     fm[i]->UpdateFromSpaceObject();
+                     fm[i]->SetTime(fm[i]->GetTime() - secsToStep);
+                  }
+                  else
+                  {
+                     p[i]->UpdateFromSpaceObject();
+                     p[i]->SetTime(p[i]->GetTime() - secsToStep);
+                  }
+               }
+               secsToStep = unroundedRefinedStep;
+               if (!TakeAStepWithJournal(secsToStep, finalSteps))
+                  throw CommandException("Propagator failed to step to the unrounded stopping condition\n");
+               for (UnsignedInt i = 0; i < psm.size(); ++i)
+               {
+                  if (fm[i])
+                  {
+                     if (fm[i]->HasPrecisionTime())
+                     {
+                        GmatTime gt = baseEpochGT[i]; gt.AddSeconds(fm[i]->GetTime());
+                        fm[i]->UpdateSpaceObjectGT(gt);
+                     }
+                     else
+                        fm[i]->UpdateSpaceObject(baseEpoch[i] + fm[i]->GetTime() /
+                              GmatTimeConstants::SECS_PER_DAY);
+                  }
+                  else
+                  {
+                     if (p[i]->HasPrecisionTime())
+                     {
+                        GmatTime gt = baseEpochGT[i]; gt.AddSeconds(p[i]->GetTime());
+                        p[i]->UpdateSpaceObjectGT(gt);
+                     }
+                     else
+                        p[i]->UpdateSpaceObject(baseEpoch[i] + p[i]->GetTime() /
+                              GmatTimeConstants::SECS_PER_DAY);
+                  }
+               }
+            }
 
             if (fabs(stopper->GetStopDifference()) > accuracy)
                MessageInterface::ShowMessage("**** WARNING **** For the line "
@@ -5741,7 +6016,7 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
 
       // Publish
       //publisher->Publish(this, streamID, pubdata, dim+1, direction);
-      publisher->Publish(this, streamID, pubdata, expandedDim, direction);
+      PublishIntegrationSteps(finalSteps, direction);
 
       #if DEBUG_PROPAGATE_EXE
          MessageInterface::ShowMessage

@@ -56,6 +56,7 @@
 //                               - BULIRSCHSTOER_MINIMUMTOLERANCE
 // **************************************************************************
 
+#include "AcceptedStepHistory.hpp"
 #include "BulirschStoer.hpp"
 #include "MessageInterface.hpp"
 
@@ -688,6 +689,11 @@ bool BulirschStoer::SetMaximumDepth(Integer d)
          break;
 
    kmax = kopt;
+   // Step() requires at least three extrapolation levels before accepting an
+   // error estimate. A loose tolerance can choose kopt < 3; leaving kmax that
+   // small makes an otherwise converged step repeat forever.
+   if (kmax < 3 && depth >= 3)
+      kmax = 3;
 
    isInitialized = false;
    depthInitialized = true;
@@ -709,16 +715,25 @@ bool BulirschStoer::Step(Real dt)
    if (!isInitialized)
       return false;
 
+   struct MinimumScope
+   {
+      Real &value;
+      Real original;
+      ~MinimumScope() { value = original; }
+   } minimumScope{minimumStep, minimumStep};
    Real stepleft = dt;
+   const Real direction = dt < 0.0 ? -1.0 : 1.0;
    bool retval = true;
 
    do
    {
       stepSize = stepleft;
+      minimumStep = finalStep && fabs(stepleft) < minimumScope.original ?
+            fabs(stepleft) : minimumScope.original;
       if (!Step())
          return false;
       stepleft -= stepTaken;
-   } while (stepleft > 0.0);
+   } while (direction * stepleft > smallestTime);
 
    return retval;
 }
@@ -760,6 +775,11 @@ bool BulirschStoer::Step(void)
 {
     if (!isInitialized)
         return false;
+    // Fixed-interval callers set stepSize to their entire remaining interval.
+    // Bound the primitive trial before extrapolation, as the RK family does.
+    if (fabs(stepSize) > maximumStep)
+       stepSize = stepSize < 0.0 ? -maximumStep : maximumStep;
+
         
     //  waw: 06/28/04 Unused variable    
     // Real nextstep = stepSize;
@@ -793,8 +813,15 @@ bool BulirschStoer::Step(void)
 
         if (!converged)
                 {
+            const bool acceptMinimumStep = eEstimate > tolerance &&
+                  !stopIfAccuracyViolated &&
+                  GmatMathUtil::Abs(tnew) == minimumStep;
             if (!AdaptStep(eEstimate))
                 return false;
+            // The user permits this minimum-step estimate despite its error.
+            // Accept the already computed extrapolated state exactly once.
+            if (acceptMinimumStep)
+                converged = true;
         }
 
         if (stepAttempts >= maxStepAttempts)
@@ -804,6 +831,10 @@ bool BulirschStoer::Step(void)
 
     memcpy(outState, estimatedState, dimension * sizeof(Real));
     physicalModel->IncrementTime(stepTaken);
+    if (AcceptedStepHistory::IsCapturing())
+       AcceptedStepHistory::Record(this, physicalModel,
+          physicalModel->GetTime() - stepTaken, physicalModel->GetTime(),
+          outState, dimension);
 
     return true;
 }
@@ -1073,7 +1104,10 @@ bool BulirschStoer::AdaptStep(Real maxerror)
                 MessageInterface::PopupMessage(Gmat::WARNING_,
                    "BulirschStoer: Accuracy settings will be violated with current step size values.\n");
              }
-             return false;
+             first = false;
+             stepTaken = stepSize;
+             stepAttempts = 0;
+             return true;
           }
        }
         // Step is too large: reduce it 
@@ -1091,7 +1125,10 @@ bool BulirschStoer::AdaptStep(Real maxerror)
         factor = (factor > minimumReduction ? minimumReduction : factor);
         factor = (factor < maximumReduction ? maximumReduction : factor);
 
+        const Real sign = stepSize < 0.0 ? -1.0 : 1.0;
         stepSize *= factor;
+        if (GmatMathUtil::Abs(stepSize) < minimumStep)
+            stepSize = sign * minimumStep;
         ++stepAttempts;
     }
     else

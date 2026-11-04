@@ -20,7 +20,7 @@ private:
 class SummaryDialog final : public InspectionDialog
 {
 public:
-   using Loader=std::function<QString(const QString &,bool)>;
+   using Loader=std::function<QString(const QString &,bool,bool)>;
    SummaryDialog(const QString &title,const QStringList &frames,bool mission,
                  Loader loader,const QString &context,QWidget *parent,ProtectedPaths protectedPaths);
 };

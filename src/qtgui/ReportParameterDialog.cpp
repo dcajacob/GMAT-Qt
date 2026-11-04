@@ -77,8 +77,15 @@ ReportParameterDialog::ReportParameterDialog(const QStringList &selected,QWidget
       for (const auto &name:moderator->GetListOfObjects(ownerType)) properties[QString::fromStdString(name)].append(QString::fromStdString(type));
    }
    owner->addItems(properties.keys());
-   auto updateDependency=[property,dependency,dependencyLabel,use,owner] {
-      const auto dep=parameterDependency(owner->currentText(),property->currentText());
+   auto updateDependency=[property,dependency,dependencyLabel,use,owner,writable,moderator] {
+      auto dep=parameterDependency(owner->currentText(),property->currentText());
+      // Burn components can be read in other frames, but native writes use
+      // the burn's own configured axes. An external frame would reject a
+      // Local VNB/LVLH write at execution rather than set its components.
+      auto *object=moderator->GetConfiguredObject(owner->currentText().toStdString());
+      if (writable && object && object->IsOfType("ImpulsiveBurn") &&
+          QStringList{"Element1","Element2","Element3","V","N","B"}.contains(property->currentText()))
+         dep.needed=false;
       dependency->clear(); dependency->addItems(dep.choices);
       dependencyLabel->setText(dep.label);
       dependency->setVisible(dep.needed); dependencyLabel->setVisible(dep.needed);
@@ -160,7 +167,7 @@ ReportParameterDialog::ReportParameterDialog(const QStringList &selected,QWidget
    }
    auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,this); layout->addWidget(buttons);
    if (single) {
-      auto validate=[entry,buttons,moderator,info,writable,realOnly,mode,writableParameter] {
+      auto validate=[this,entry,buttons,moderator,info,writable,realOnly,mode,writableParameter] {
          const auto value=entry->currentText().trimmed();
          const auto *object=moderator->GetConfiguredObject(value.toStdString());
          const bool bareArray=object && object->IsOfType("Array") && QString::fromStdString(object->GetName())==value;
@@ -177,17 +184,30 @@ ReportParameterDialog::ReportParameterDialog(const QStringList &selected,QWidget
                   valid=valid && info->IsSettable(type) && (!realOnly || info->IsPlottable(type));
             }
          }
+         // Vary requires an existing numeric destination. The syntactic
+         // writable check alone also admits unknown/out-of-range array cells.
+         if (realOnly) valid=valid && isPlottableReference(value);
          buttons->button(QDialogButtonBox::Ok)->setEnabled(valid);
       };
       connect(entry,&QComboBox::currentTextChanged,this,[validate] { validate(); }); validate();
    }
    if (mode==Mode::FunctionOutputs) {
-      auto validate=[this,buttons,moderator,writableParameter] {
+      auto validate=[this,buttons,moderator,info,writableParameter] {
          static const QRegularExpression reference(R"(^[A-Za-z_][A-Za-z0-9_.]*(?:\(\s*[1-9][0-9]*\s*,\s*[1-9][0-9]*\s*\))?$)");
          bool valid=true;
          for (int i=0;i<list->count();++i) {
             const auto value=list->item(i)->text().trimmed(); valid=valid && reference.match(value).hasMatch();
-            if (const auto *parameter=dynamic_cast<const Parameter *>(moderator->GetConfiguredObject(value.toStdString()))) valid=valid && writableParameter(parameter);
+            if (const auto *object=moderator->GetConfiguredObject(value.toStdString())) {
+               if (const auto *parameter=dynamic_cast<const Parameter *>(object)) valid=valid && writableParameter(parameter);
+            } else {
+               // A reference typed here need not have been instantiated by a
+               // report or expression yet. Apply the same parameter metadata
+               // check as the Assignment destination picker in that case.
+               const auto type=value.section('.',-1).toStdString();
+               const auto &types=info->GetTypesOfParameters();
+               if (std::find(types.begin(),types.end(),type)!=types.end())
+                  valid=valid && info->IsSettable(type);
+            }
          }
          buttons->button(QDialogButtonBox::Ok)->setEnabled(valid);
       };

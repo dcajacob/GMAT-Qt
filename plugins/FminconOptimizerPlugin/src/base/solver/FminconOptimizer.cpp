@@ -32,6 +32,11 @@
 
 #include <sstream>                 // for stringstream, istringstream
 #include <stdlib.h>                // for atoi atof, etc.
+#include <cstdlib>
+#include <cmath>
+#include <iomanip>
+#include <locale>
+#include <algorithm>
 #include "FminconOptimizer.hpp"
 #include "SolverException.hpp"
 #include "StringUtil.hpp"
@@ -195,6 +200,8 @@ FminconOptimizer::operator=(const FminconOptimizer& opt)
    options          = opt.options;
    optionValues     = opt.optionValues;
    fminconExitFlag  = opt.fminconExitFlag; // right?
+   iterationFunctionCount = -1;
+   iterationPhase.clear();
 
    return *this;
 }
@@ -206,6 +213,8 @@ FminconOptimizer::operator=(const FminconOptimizer& opt)
 bool FminconOptimizer::Initialize()
 {
    ExternalOptimizer::Initialize();
+   iterationFunctionCount = -1;
+   iterationPhase.clear();
 
    // open connection(s) to the external source
    //if (!OpenConnection())
@@ -511,7 +520,29 @@ bool FminconOptimizer::Optimize()
    //   "[X] = GmatFminconOptimizationDriver(X0,Lower,Upper);";
    // wcs - made it into an m-file instead of a function
    std::string runString = "GmatFminconOptimizationDriver;";
-   EvalMatlabString(runString);
+#ifdef GMAT_QT_FMINCON_CALLBACK
+   const char *callbackEndpoint = std::getenv("GMAT_QT_MATLAB_CALLBACK");
+   if (!callbackEndpoint || !*callbackEndpoint)
+      throw SolverException("The Qt MATLAB optimizer callback service has not started");
+   std::string endpoint(callbackEndpoint);
+   for (size_t pos=0; (pos=endpoint.find('\'',pos)) != std::string::npos; pos+=2)
+      endpoint.insert(pos,"'");
+   EvalMatlabString("global GMAT_QT_CALLBACK; GMAT_QT_CALLBACK = jsondecode('"+endpoint+"');");
+#endif
+   try
+   {
+      EvalMatlabString(runString);
+   }
+   catch (...)
+   {
+#ifdef GMAT_QT_FMINCON_CALLBACK
+      try { matlabIf->EvalString("clear global GMAT_QT_CALLBACK;"); } catch (...) {}
+#endif
+      throw;
+   }
+#ifdef GMAT_QT_FMINCON_CALLBACK
+   matlabIf->EvalString("clear global GMAT_QT_CALLBACK;");
+#endif
    // ask MATLAB for the value of exitFlag here and evaluate
    double      outArr[1];
    int         OKint = 0;
@@ -663,6 +694,10 @@ Gmat::ParameterType FminconOptimizer::GetParameterType(const Integer id) const
 //---------------------------------------------------------------------------
 bool FminconOptimizer::IsParameterReadOnly(const Integer id) const
 {
+   // Named options already have writable scalar getters/setters, but their
+   // alias IDs are outside GmatBase's ordinary parameter range.
+   if (id >= MATLAB_OPTIONS_OFFSET && id < MATLAB_OPTIONS_OFFSET+NUM_MATLAB_OPTIONS)
+      return false;
    if (id == OPTIMIZER_TOLERANCE || id == SOURCE_TYPE)
       return true;
 
@@ -911,6 +946,66 @@ const StringArray& FminconOptimizer::GetStringArrayParameter(
 }
 
 //------------------------------------------------------------------------------
+// Fixed metadata from the Qt OutputFcn callback; never evaluate external code.
+bool FminconOptimizer::TakeAction(const std::string &action, const std::string &actionData)
+{
+#ifdef GMAT_QT_FMINCON_CALLBACK
+   if (action == "MatlabOptimizerIteration" || action == "ValidateMatlabOptimizerIteration")
+   {
+      std::istringstream input(actionData);
+      input.imbue(std::locale::classic());
+      std::string phase;
+      Integer iteration, evaluations;
+      Real objective;
+      if (!(input >> phase >> iteration >> evaluations >> objective))
+         throw SolverException("Invalid fmincon iteration metadata");
+      input >> std::ws;
+      if (!input.eof() || !std::isfinite(objective) || iteration < 0 || evaluations < 0 ||
+          (phase != "init" && phase != "iter" && phase != "done") ||
+          (iterationPhase.empty() ? (phase != "init" || iteration != 0) :
+             (phase == "init" || iterationPhase == "done" || iteration < iterationsTaken ||
+              evaluations < iterationFunctionCount)))
+         throw SolverException("Invalid or out-of-order fmincon iteration notification");
+      if (action == "ValidateMatlabOptimizerIteration") return true;
+      if (!std::isfinite(cost) || std::abs(cost-objective) >
+          1e-10*std::max(1.0,std::abs(objective)))
+         throw SolverException("MATLAB iteration objective differs from the native branch value");
+
+      std::ostringstream record;
+      record.imbue(std::locale::classic());record << std::setprecision(17);
+      record << "Fmincon \"" << instanceName << "\": MATLAB iteration " << iteration
+             << " [" << phase << "], function evaluations " << evaluations << '\n';
+      for (size_t i=0; i<variableNames.size(); ++i)
+         record << "  Control \"" << variableNames.at(i) << "\": physical " << unscaledVariable.at(i)
+                << ", optimizer scaled value: " << variable.at(i) << '\n';
+      auto constraints=[&record](const StringArray &names, const RealArray &achieved,
+            const RealArray &desired, const IntegerArray &ops) {
+         for (size_t i=0; i<names.size(); ++i) {
+            if (!std::isfinite(achieved.at(i)) || !std::isfinite(desired.at(i)) ||
+                ops.at(i)<-1 || ops.at(i)>1)
+               throw SolverException("Invalid native fmincon constraint progress");
+            record << "  Constraint \"" << names.at(i) << "\": achieved " << achieved.at(i)
+                   << ", desired " << desired.at(i) << " ("
+                   << (ops.at(i)==0 ? "=" : ops.at(i)<0 ? "<=" : ">=") << ")\n";
+         }
+      };
+      constraints(eqConstraintNames,eqConstraintAchievedValues,eqConstraintDesiredValues,eqConstraintOp);
+      constraints(ineqConstraintNames,ineqConstraintAchievedValues,ineqConstraintDesiredValues,ineqConstraintOp);
+      record << "  Cost \"" << objectiveFnName << "\": " << cost << "\nEnd fmincon iteration\n";
+      if (showProgress) {
+         if (!textFile.is_open()) OpenSolverTextFile();
+         if (phase == "init") textFile << "*** Fmincon Text File\n";
+         textFile << record.str();textFile.flush();
+         if (!textFile) throw SolverException("Error writing fmincon iteration report");
+         MessageInterface::ShowMessage("%s",record.str().c_str());
+      }
+      iterationsTaken=iteration;iterationFunctionCount=evaluations;iterationPhase=phase;
+      return true;
+   }
+#endif
+   return ExternalOptimizer::TakeAction(action,actionData);
+}
+
 // protected methods
 //------------------------------------------------------------------------------
 
@@ -940,7 +1035,9 @@ void FminconOptimizer::RunExternal()
 //------------------------------------------------------------------------------
 void FminconOptimizer::RunNominal()
 {
+#ifndef GMAT_QT_FMINCON_CALLBACK
    ++iterationsTaken;
+#endif
    WriteToTextFile(nestedState);
 }
 
@@ -986,6 +1083,15 @@ void FminconOptimizer::FreeArrays()
 //------------------------------------------------------------------------------
 std::string FminconOptimizer::GetProgressString()
 {
+#ifdef GMAT_QT_FMINCON_CALLBACK
+   // MATLAB OutputFcn publishes each real iteration exactly once. Branch
+   // evaluations (including finite differences) are not optimizer iterations.
+   if (currentState == FINISHED)
+      return "Fmincon \"" + instanceName + "\": finished; MATLAB exit flag " +
+         std::to_string(fminconExitFlag) + "; iterations " + std::to_string(iterationsTaken) +
+         "; function evaluations " + std::to_string(iterationFunctionCount);
+   return "";
+#endif
    StringArray::iterator current;
    Integer i;
    std::stringstream progress;
@@ -1183,6 +1289,10 @@ std::string FminconOptimizer::GetProgressString()
 //------------------------------------------------------------------------------
 void FminconOptimizer::WriteToTextFile(SolverState stateToUse)
 {
+#ifdef GMAT_QT_FMINCON_CALLBACK
+   // Iteration records are written by the validated OutputFcn notification.
+   return;
+#endif
    StringArray::iterator current;
    Integer i;
 

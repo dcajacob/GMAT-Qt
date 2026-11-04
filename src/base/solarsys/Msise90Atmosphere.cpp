@@ -32,6 +32,8 @@
 #include <math.h>
 
 #include "Msise90Atmosphere.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "MessageInterface.hpp"
 #include "CelestialBody.hpp"
 #include "TimeSystemConverter.hpp"
@@ -427,4 +429,16 @@ bool Msise90Atmosphere::Density(Real *pos, Real *density, Real epoch,
 GmatBase* Msise90Atmosphere::Clone() const
 {
    return (new Msise90Atmosphere(*this));
+}
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void Msise90Atmosphere::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const Msise90Atmosphere*>(original);
+   if (!source || typeid(*source) != typeid(Msise90Atmosphere) ||
+       typeid(*this) != typeid(Msise90Atmosphere))
+      throw GmatBaseException("Cannot copy incompatible object into Msise90Atmosphere");
+   if (source == this)
+      return;
+   operator=(*source);
 }

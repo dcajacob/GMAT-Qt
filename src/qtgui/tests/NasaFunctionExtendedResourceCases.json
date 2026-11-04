@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "scope": "Additional current-resource types using unchanged function resource GUI driver;one numeric property,private creation,whole-object returns,Unicode reload and continuation. Not all fields,physics or universal factory/type qualification.",
+  "cases": [
+    {
+      "key": "ElectricTank",
+      "type": "ElectricTank",
+      "field": "FuelMass",
+      "kind": "real",
+      "first": "15.25",
+      "second": "31.5",
+      "native_source": "src/base/hardware/ElectricTank.cpp",
+      "native_source_sha256": "2a6b023eac1ba458aa1c7764508638c9cbbf6fa6ecb7737ce3c9692867344bea"
+    },
+    {
+      "key": "ElectricThruster",
+      "type": "ElectricThruster",
+      "field": "DutyCycle",
+      "kind": "real",
+      "first": "0.4",
+      "second": "0.8",
+      "native_source": "src/base/hardware/ElectricThruster.cpp",
+      "native_source_sha256": "ea5fa795ce8d73e508f1d9d8f4c0760ef79bb82b66e287e26521a083ed039f6d"
+    },
+    {
+      "key": "SolarPowerSystem",
+      "type": "SolarPowerSystem",
+      "field": "InitialMaxPower",
+      "kind": "real",
+      "first": "12.5",
+      "second": "22.5",
+      "native_source": "src/base/hardware/SolarPowerSystem.cpp",
+      "native_source_sha256": "a063885f59b006b62d5aa9f24139f4e53ddf523a5fe033d1d885aef342829b11"
+    },
+    {
+      "key": "NuclearPowerSystem",
+      "type": "NuclearPowerSystem",
+      "field": "InitialMaxPower",
+      "kind": "real",
+      "first": "3.25",
+      "second": "6.5",
+      "native_source": "src/base/hardware/NuclearPowerSystem.cpp",
+      "native_source_sha256": "9d485f8c0adcfa5681e1010b360b34965c3e059c78bcc48602d85560a0234b16"
+    },
+    {
+      "key": "ConicalFOV",
+      "type": "ConicalFOV",
+      "field": "FieldOfViewAngle",
+      "kind": "real",
+      "first": "12.5",
+      "second": "25",
+      "native_source": "src/base/hardware/ConicalFOV.cpp",
+      "native_source_sha256": "4f2001da007e06f27a0210039390dfa9dd2a1bf0f174b38e8c5846da5fc40c73"
+    },
+    {
+      "key": "RectangularFOV",
+      "type": "RectangularFOV",
+      "field": "AngleWidth",
+      "kind": "real",
+      "first": "10",
+      "second": "20",
+      "native_source": "src/base/hardware/RectangularFOV.cpp",
+      "native_source_sha256": "4eee8a6a772e19568ed2852530f0f2dcc826dd44aa644102bbc930987588a624"
+    },
+    {
+      "key": "ErrorModel",
+      "type": "ErrorModel",
+      "field": "NoiseSigma",
+      "kind": "real",
+      "first": "0.125",
+      "second": "0.25",
+      "native_source": "plugins/EstimationPlugin/src/base/errormodel/ErrorModel.cpp",
+      "native_source_sha256": "2c1bf079f6c8d5b6733f8bf38102b44d339cbadec65659cb55e79386eda4b858"
+    },
+    {
+      "key": "ProcessNoiseModel",
+      "type": "ProcessNoiseModel",
+      "field": "UpdateTimeStep",
+      "kind": "real",
+      "first": "30",
+      "second": "60",
+      "native_source": "plugins/ExtendedKalmanFilterPlugin/src/base/noise/ProcessNoiseModel.cpp",
+      "native_source_sha256": "c9065e43dbf6a920ea68025618d4ce4d9eccea3f02d7fcc53fa82e3792a6b698"
+    },
+    {
+      "key": "EstimatedParameter",
+      "type": "EstimatedParameter",
+      "field": "HalfLife",
+      "kind": "real",
+      "first": "300",
+      "second": "600",
+      "native_source": "plugins/ExtendedKalmanFilterPlugin/src/base/estimatedparam/EstimatedParameter.cpp",
+      "native_source_sha256": "522f260dbc9f03063a1d102bb85960f801567cd59f42b1546874d17c2f83baaf"
+    },
+    {
+      "key": "OrbitView",
+      "type": "OrbitView",
+      "field": "NumPointsToRedraw",
+      "kind": "integer",
+      "first": "10",
+      "second": "20",
+      "native_source": "src/base/subscriber/OrbitView.cpp",
+      "native_source_sha256": "28c24f69f27c5a32012736766321f4b1247e354863fdbf559f86c974fb874326"
+    },
+    {
+      "key": "ReportFile",
+      "type": "ReportFile",
+      "field": "Precision",
+      "kind": "integer",
+      "first": "12",
+      "second": "14",
+      "native_source": "src/base/subscriber/ReportFile.cpp",
+      "native_source_sha256": "fa56e756516e4ddf5ac8977860f07f4703a8c12ea556169db31e7163bc3b3888"
+    }
+  ]
+}

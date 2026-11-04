@@ -171,6 +171,19 @@
 //#define __SHOW_FINAL_STATE__
 //#define __DISABLE_SOLAR_SYSTEM_CLONING__
 
+namespace
+{
+// Opening Script Event markers group their contents; they do not change which
+// first command selects the mission's execution/preparation mode. Do not skip
+// assignments, branch commands or any other preceding executable command.
+GmatCommand *FirstSequenceCommand(GmatCommand *command)
+{
+   while (command && command->GetTypeName() == "BeginScript")
+      command = command->GetNext();
+   return command;
+}
+}
+
 //---------------------------------
 // static data
 //---------------------------------
@@ -2432,6 +2445,17 @@ GmatBase* Moderator::CreateObject(UnsignedInt objTypeId, const std::string &type
       
       // Add object to object map in use
       AddObjectToObjectMapInUse(name, obj, objTypeId);
+
+      if (objTypeId == Gmat::ATTITUDE && objectManageOption == 1)
+      {
+         // Named main-script attitude prototypes also serialize numeric state.
+         // Supply their declared frame; runtime/function instances are rebound
+         // by ObjectInitializer to the active local/global reference maps.
+         const std::string frameName = obj->GetRefObjectName(Gmat::COORDINATE_SYSTEM);
+         GmatBase *frame = FindObject(frameName);
+         if (frame && frame->IsOfType(Gmat::COORDINATE_SYSTEM))
+            obj->SetRefObject(frame, Gmat::COORDINATE_SYSTEM, frameName);
+      }
       
       // @todo Set defaults if creating default object
       
@@ -6208,7 +6232,17 @@ GmatCommand* Moderator::InterpretGmatFunction(Function *funct, ObjectMap *objMap
                               "InterpretGmatFunction()");
    
    GmatCommand *cmd = NULL;
-   cmd = theScriptInterpreter->InterpretGmatFunction(funct);
+   try
+   {
+      cmd = theScriptInterpreter->InterpretGmatFunction(funct);
+   }
+   catch (...)
+   {
+      // Function parsing may fail before returning a control sequence. Do
+      // not retain a function context while the GUI rebuilds its mission.
+      currentFunction = NULL;
+      throw;
+   }
    
    // Do not reset configuration changed flag here (LOJ: 2015.10.4 GMT5374)
    // #if DEBUG_GMAT_FUNCTION
@@ -7382,8 +7416,8 @@ Integer Moderator::RunMission(Integer sandboxNum)
          else
          {
             // Execute only the PrepareMissionSequence command
-            GmatCommand *cmd = commands[sandboxNum-1]->GetNext();
-            if (cmd->GetTypeName() == "PrepareMissionSequence")
+            GmatCommand *cmd = FirstSequenceCommand(commands[sandboxNum-1]->GetNext());
+            if (cmd && cmd->GetTypeName() == "PrepareMissionSequence")
                cmd->Execute();
          }
       }
@@ -7675,6 +7709,12 @@ std::string Moderator::GetMainScriptFileName()
 bool Moderator::InterpretScript(const std::string &filename, bool readBack,
                                 const std::string &newPath)
 {
+   return InterpretScript(filename, readBack, newPath, false);
+}
+
+bool Moderator::InterpretScript(const std::string &filename, bool readBack,
+                                const std::string &newPath, bool allowUtf8)
+{
    #if DEBUG_INTERPRET
    MessageInterface::ShowMessage
       ("Moderator::InterpretScript() entered\n   filename='%s', readBack=%d, "
@@ -7717,7 +7757,8 @@ bool Moderator::InterpretScript(const std::string &filename, bool readBack,
       if (theUiInterpreter != NULL)
          theUiInterpreter->ResetIconFile();
       
-      isGoodScript = theScriptInterpreter->Interpret(filename);
+      isGoodScript = allowUtf8 ? theScriptInterpreter->Interpret(filename, true) :
+            theScriptInterpreter->Interpret(filename);
       foundBeginMissionSeq = theScriptInterpreter->FoundBeginMissionSequence();
       
       #ifdef DEBUG_MEMORY
@@ -7760,7 +7801,7 @@ bool Moderator::InterpretScript(const std::string &filename, bool readBack,
          }
          
          SaveScript(newfile);
-         InterpretScript(newfile);
+         InterpretScript(newfile, false, "", allowUtf8);
       }
       
       if (isGoodScript)
@@ -7799,6 +7840,7 @@ bool Moderator::InterpretScript(const std::string &filename, bool readBack,
       // Append BeginMissionSequence command if not there (New since 2010.07.09)
       GmatCommand *first = GetFirstCommand();
       GmatCommand *second = first->GetNext();
+      GmatCommand *sequenceStart = FirstSequenceCommand(second);
 
       
       #if DEBUG_INTERPRET
@@ -7806,7 +7848,7 @@ bool Moderator::InterpretScript(const std::string &filename, bool readBack,
       #endif
       
       std::string firstCommandType = 
-         (second != NULL ? second->GetTypeName() : "");
+         (sequenceStart != NULL ? sequenceStart->GetTypeName() : "");
       
       if (!IsSequenceStarter(firstCommandType))
       {
@@ -7855,7 +7897,7 @@ bool Moderator::InterpretScript(const std::string &filename, bool readBack,
          InsertCommand(bms, first);
       }
       
-      if (second != NULL && second->GetTypeName() == "PrepareMissionSequence")
+      if (sequenceStart != NULL && sequenceStart->GetTypeName() == "PrepareMissionSequence")
          loadSandboxAndPause = true;
       else
          loadSandboxAndPause = false;
@@ -7912,6 +7954,7 @@ bool Moderator::InterpretScript(std::istringstream *ss, bool clearObjs)
    #endif
    bool isGoodScript = false;
    isRunReady = false;
+   loadSandboxAndPause = false;
    endOfInterpreter = false;
    runState = Gmat::IDLE;
    
@@ -7934,6 +7977,8 @@ bool Moderator::InterpretScript(std::istringstream *ss, bool clearObjs)
             ("Moderator::InterpretScript() successfully interpreted the script\n");
          #endif
          
+         GmatCommand *sequenceStart = FirstSequenceCommand(GetFirstCommand()->GetNext());
+         loadSandboxAndPause = sequenceStart && sequenceStart->GetTypeName() == "PrepareMissionSequence";
          isRunReady = true;
       }
       else

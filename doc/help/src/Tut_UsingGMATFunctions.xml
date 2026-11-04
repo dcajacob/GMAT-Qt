@@ -8,6 +8,7 @@
          xmlns:html="http://www.w3.org/1999/xhtml"
          xmlns:db="http://docbook.org/ns/docbook">
   <title>Mars B-Plane Targeting Using GMAT Functions</title>
+  <para>The numerical state values and point-mass order below follow the shipped script. Retain their displayed precision when typing them. Current Qt viewer definitions and explicit defaults may differ from older screenshots.</para>
 
   <variablelist>
     <varlistentry>
@@ -378,21 +379,21 @@
                     <entry><guilabel>SMA</guilabel> under
                     <guilabel>Elements</guilabel></entry>
 
-                    <entry><userinput>-32593.21599272796</userinput></entry>
+                    <entry><userinput>-32593.21599272774</userinput></entry>
                   </row>
 
                   <row>
                     <entry><guilabel>ECC</guilabel> under
                     <guilabel>Elements</guilabel></entry>
 
-                    <entry><userinput>1.202872548116185</userinput></entry>
+                    <entry><userinput>1.202872548116186</userinput></entry>
                   </row>
 
                   <row>
                     <entry><guilabel>INC</guilabel> under
                     <guilabel>Elements</guilabel></entry>
 
-                    <entry><userinput>28.80241266404142</userinput></entry>
+                    <entry><userinput>28.80241266404144</userinput></entry>
                   </row>
 
                   <row>
@@ -406,14 +407,14 @@
                     <entry><guilabel>AOP</guilabel> under
                     <guilabel>Elements</guilabel></entry>
 
-                    <entry><userinput>240.9696529532764</userinput></entry>
+                    <entry><userinput>240.9696529532762</userinput></entry>
                   </row>
 
                   <row>
                     <entry><guilabel>TA</guilabel> under
                     <guilabel>Elements</guilabel></entry>
 
-                    <entry><userinput>359.9465533778069</userinput></entry>
+                    <entry><userinput>359.946553377841</userinput></entry>
                   </row>
                 </tbody>
               </tgroup>
@@ -744,8 +745,8 @@
                     <entry><guilabel>Point Masses</guilabel> under
                     <guilabel>Force Model</guilabel></entry>
 
-                    <entry>Add <guilabel>Earth, Luna, Sun, Mars, Jupiter,
-                    Neptune, Saturn, Uranus, Venus</guilabel></entry>
+                    <entry>Add <guilabel>Earth, Jupiter, Luna, Mars, Neptune,
+                    Saturn, Sun, Uranus, Venus</guilabel></entry>
                   </row>
 
                   <row>

@@ -32,6 +32,7 @@
 #define OrbitPlot_hpp
 
 #include "Subscriber.hpp"
+#include "IntegrationStepSampler.hpp"
 #include "SpacePoint.hpp"
 #include "CoordinateSystem.hpp"
 #include <map>
@@ -149,6 +150,12 @@ public:
                         GetPropertyObjectType(const Integer id) const;
    
 protected:
+   Integer integrationStepsToSkip = -1;
+   IntegrationStepSampler integrationSampler;
+   StringArray stepSkipped;
+   StringArray stepArcStarts; // Scoped to the compact endpoint packet under collection.
+   virtual void WriteParameterValue(Integer id, std::stringstream &stream) override;
+
    
    CoordinateSystem *mViewCoordSystem;
    
@@ -229,6 +236,7 @@ protected:
    void                 PublishArcMetadata(const Real *dat, Integer len);
    std::string          DataAvailabilityAction(const Real *dat, Integer len);
    virtual bool         UpdateData(const Real *dat, Integer len);
+   bool                 CollectSample(const Real *dat, Integer len);
    
    /// Calls PlotInterface for plotting solver data
    virtual bool         UpdateSolverData();
@@ -278,6 +286,7 @@ protected:
       NUM_POINTS_TO_REDRAW,
       SHOW_PLOT,
       MAX_DATA,
+      INTEGRATION_STEPS_TO_SKIP,
       OrbitPlotParamCount
    };
    

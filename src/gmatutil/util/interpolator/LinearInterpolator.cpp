@@ -130,7 +130,10 @@ bool LinearInterpolator::Interpolate(const Real ind, Real *results)
         if (((ind < range[0]) || (ind > range[1])) && allowExtrapolation == false)
             return false;
             
-        if (ind >= independent[previousPoint] || (allowExtrapolation && ind < independent[previousPoint] && previousPoint == 0))
+        if ((dataIncreases && (ind >= independent[previousPoint] ||
+             (allowExtrapolation && ind < independent[previousPoint] && previousPoint == 0))) ||
+            (!dataIncreases && (ind <= independent[previousPoint] ||
+             (allowExtrapolation && ind > independent[previousPoint] && previousPoint == 0))))
         {
             // Found the bounding points
             delta = independent[index] - independent[previousPoint];

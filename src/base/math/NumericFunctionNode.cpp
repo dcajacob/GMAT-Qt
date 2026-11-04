@@ -96,7 +96,7 @@ NumericFunctionNode& NumericFunctionNode::operator=(const NumericFunctionNode &n
    if (this == &nfn)
       return *this;
    
-   GmatBase::operator=(nfn);
+   BuiltinFunctionNode::operator=(nfn);
    return *this;
 }
 

@@ -36,6 +36,7 @@
  */
 //------------------------------------------------------------------------------
 
+#include "Spacecraft.hpp"
 #include "Interpreter.hpp"          // class's header file
 #include "Moderator.hpp"
 #include "StringTokenizer.hpp"
@@ -55,6 +56,7 @@
 #include "RHSEquation.hpp"
 #include "MathTree.hpp"
 
+#include <algorithm>                // for declared formal input names
 #include <stack>                    // for checking matching begin/end control logic
 #include <fstream>                  // for checking GmatFunction declaration
 #include <sstream>                  // for checking GmatFunction declaration
@@ -1096,6 +1098,30 @@ bool Interpreter::ValidateCommand(GmatCommand *cmd)
    #endif
    
    debugMsg = "In ValidateCommand()";
+
+   // Check direct-field command restrictions before eager automatic parameter
+   // creation. A field such as Fuel.Volume shares a type name with an attached
+   // Spacecraft parameter; trying to construct that parameter first masks the
+   // actual mission-mode restriction with a misleading owner-type error.
+   if (cmd->IsOfType("Assignment"))
+   {
+      const std::string lhs = static_cast<Assignment*>(cmd)->GetLHS();
+      std::string type, owner, dependency;
+      GmatStringUtil::ParseParameter(lhs, type, owner, dependency);
+      GmatBase *object = dependency.empty() ? FindObject(owner) : NULL;
+      if (object != NULL)
+      {
+         Integer field = -1;
+         try { field = object->GetParameterID(type); }
+         catch (BaseException &) {} // Other references use normal validation.
+         if (field >= 0 && !object->IsParameterCommandModeSettable(field))
+         {
+            HandleError(InterpreterException("The field " + lhs +
+               " cannot be set after the Mission Sequence has started"));
+            return false;
+         }
+      }
+   }
    
    // Check if any Parameters need to be created
    StringArray names = cmd->GetWrapperObjectNameArray();
@@ -1583,7 +1609,7 @@ GmatCommand* Interpreter::CreateCommand(const std::string &type,
    if (IsCommandType(type1))
    {
       commandFound = true;
-      if (type1 == "BeginMissionSequence")
+      if (theModerator->IsSequenceStarter(type1))
       {
          beginMissionSeqFound = true;
          lastFileHasBMS = currentScriptBeingRead;
@@ -1616,7 +1642,8 @@ GmatCommand* Interpreter::CreateCommand(const std::string &type,
          else
          {
             // Check if function name is built-in GmatFunction
-            if (find(functionList.begin(), functionList.end(), funcName) != 
+            if ((func && func->IsOfType("BuiltinGmatFunction")) ||
+                find(functionList.begin(), functionList.end(), funcName) !=
                 functionList.end())
             {
                #ifdef DEBUG_CREATE_CALL_FUNCTION
@@ -1691,7 +1718,8 @@ GmatCommand* Interpreter::CreateCommand(const std::string &type,
             else
             {
                // Check if function name is built-in GmatFunction
-               if (find(functionList.begin(), functionList.end(), funcName) != 
+               if ((func && func->IsOfType("BuiltinGmatFunction")) ||
+                   find(functionList.begin(), functionList.end(), funcName) !=
                    functionList.end())
                {
                   #ifdef DEBUG_CREATE_CALL_FUNCTION
@@ -1738,12 +1766,18 @@ GmatCommand* Interpreter::CreateCommand(const std::string &type,
       MessageInterface::ShowMessage("   funcName = '%s'\n", funcName.c_str());
       #endif
       
-      bool isBuiltinFunction = false;
+      // A declared built-in may have an instance name unlike its factory type.
+      GmatBase *namedFunction = funcName.empty() ? NULL : FindObject(funcName);
+      bool isBuiltinFunction = namedFunction && namedFunction->IsOfType("BuiltinGmatFunction");
       if (find(functionList.begin(), functionList.end(), funcName) != 
           functionList.end())
          isBuiltinFunction = true;
       
-      if (type1 == "CallFunction" || isBuiltinFunction)
+      // A builtin function used as a command operand (Save, Global, etc.)
+      // must not turn that recognized command into a function call. Keep
+      // inference for shorthand calls and assignment RHS expressions.
+      if (type1 == "CallFunction" ||
+          (isBuiltinFunction && (!commandFound || type1 == "GMAT")))
       {
          isPythonFunction = false;
          
@@ -2416,6 +2450,33 @@ bool Interpreter::AssembleCallFunctionCommand(GmatCommand *cmd,
       index1 = newDesc.find("=");
       lhs = newDesc.substr(0, index1);
       outArray = theTextParser.SeparateBrackets(lhs, "[]", " ,", true);
+      if (cmdTypeName == "CallMatlabFunction" && lhs.find('(') != std::string::npos)
+      {
+         // Preserve commas inside nested Array indices. SeparateBrackets joins
+         // tokenized nested expressions with spaces, changing their meaning.
+         const std::string outputs = GmatStringUtil::RemoveOuterString(
+            GmatStringUtil::Trim(lhs), "[", "]");
+         outArray.clear();
+         std::string output;
+         Integer depth = 0;
+         for (char ch : outputs)
+         {
+            if (depth == 0 && (ch == ',' || ch == ' ' || ch == '\t'))
+            {
+               if (!output.empty())
+                  outArray.push_back(output);
+               output.clear();
+            }
+            else
+            {
+               output += ch;
+               if (ch == '(') ++depth;
+               if (ch == ')') --depth;
+            }
+         }
+         if (!output.empty())
+            outArray.push_back(output);
+      }
       index1 = index1 + 1;
    }
    
@@ -2637,7 +2698,9 @@ bool Interpreter::AssembleCallFunctionCommand(GmatCommand *cmd,
                validInput = true;
          }
          // Parameter or object property
-         else if (inArray[i].find('.') != std::string::npos)
+         else if (inArray[i].find('.') != std::string::npos &&
+                  !(cmdTypeName == "CallMatlabFunction" &&
+                    inArray[i].find('(') != std::string::npos))
          {
             #ifdef DEBUG_ASSEMBLE_CALL_FUNCTION
             MessageInterface::ShowMessage
@@ -2751,7 +2814,8 @@ bool Interpreter::AssembleCallFunctionCommand(GmatCommand *cmd,
       else if (retval && cmd->GetTypeName() == "CallMatlabFunction")
       {
          // If Parameter or object field, check further
-         if (outArray[i].find('.') != std::string::npos)
+         if (outArray[i].find('.') != std::string::npos &&
+             outArray[i].find('(') == std::string::npos)
          {
             // Currently CallMatlabFunction cannot handle object field
             // If output parameter is a system Parameter then create
@@ -2798,6 +2862,18 @@ bool Interpreter::AssembleCallFunctionCommand(GmatCommand *cmd,
          }
       }
       
+      // Formal inputs acquire their actual objects in FunctionManager. Permit
+      // only those declared names here; CallMatlabFunction checks the actual
+      // supported output type when that function instance is initialized.
+      if (retval && !validOutput && inFunctionMode && currentFunction &&
+          cmd->GetTypeName() == "CallMatlabFunction")
+      {
+         const StringArray formalInputs =
+            currentFunction->GetStringArrayParameter("Input");
+         validOutput = std::find(formalInputs.begin(), formalInputs.end(),
+                                 outArray[i]) != formalInputs.end();
+      }
+
       // If not in function mode, throw exception if invalid output parameter
       if (!retval || !validOutput)
       {
@@ -3913,7 +3989,24 @@ GmatCommand* Interpreter::CreateAssignmentCommand(const std::string &lhs,
       index = lhs.find("(");
       if (index != lhs.npos)
       {
-         if (!IsArrayElement(lhs))
+         bool arrayLhs = IsArrayElement(lhs);
+         if (!arrayLhs)
+         {
+            // This is only the command-name guard. Native Array wrappers later
+            // validate the indices, including recursively indexed expressions.
+            // Do not mistake a quoted label before such an LHS for a command.
+            std::string candidate = GmatStringUtil::Trim(lhs);
+            if (!candidate.empty() && candidate[0] == '\'')
+            {
+               const std::string::size_type closing = candidate.find('\'', 1);
+               if (closing != std::string::npos)
+                  candidate = GmatStringUtil::Trim(candidate.substr(closing + 1));
+            }
+            std::string arrayName, row, column;
+            GmatStringUtil::GetArrayIndexVar(candidate, row, column, arrayName);
+            arrayLhs = GmatStringUtil::IsValidName(arrayName);
+         }
+         if (!arrayLhs)
          {
             InterpreterException ex("\"" + cmd + "\" is not a valid Command");
             HandleError(ex);
@@ -3985,7 +4078,31 @@ GmatCommand* Interpreter::CreateAssignmentCommand(const std::string &lhs,
    if (createCallFunction)
    {
       // Create CallFunction command
-      std::string desc = "[" + lhs + "] = " + rhs;
+      std::string output = lhs;
+      std::string label;
+      const std::string trimmed = GmatStringUtil::Trim(lhs);
+      if (!trimmed.empty() && trimmed[0] == '\'')
+      {
+         const std::string::size_type closing = trimmed.find('\'', 1);
+         if (closing == std::string::npos)
+         {
+            HandleError(InterpreterException("Found invalid syntax for \"CallFunction\" "
+               "command, possible missing single quote for the command name"));
+            retFlag = false;
+            return NULL;
+         }
+         // A command label belongs before the output brackets. Putting it
+         // inside them makes AssembleCallFunctionCommand treat it as an output.
+         label = trimmed.substr(0, closing + 1) + " ";
+         output = GmatStringUtil::Trim(trimmed.substr(closing + 1));
+         if (output.empty())
+         {
+            HandleError(InterpreterException("The function assignment has an empty output"));
+            retFlag = false;
+            return NULL;
+         }
+      }
+      std::string desc = label + "[" + output + "] = " + rhs;
       return CreateCommand("CallFunction", desc, retFlag, inCmd);
    }
    else
@@ -6582,6 +6699,9 @@ bool Interpreter::SetPropertyStringValue(GmatBase *obj, const Integer id,
             // retains startup kernels after a GUI removal/save/reopen.
             const bool emptyList = GmatStringUtil::IsEnclosedWithBraces(valueToUse) &&
                GmatStringUtil::Trim(GmatStringUtil::RemoveEnclosingString(valueToUse, "{}")).empty();
+            if (emptyList && obj->IsOfType("ContactLocator") &&
+                obj->GetParameterText(id) == "EventTypes")
+               return obj->TakeAction("Clear", "EventTypes");
             // Owned force parameters use encoded ids. Their setters support
             // string arrays even when the parent has no text getter for that
             // id. Only these class-specific empty-list cases need the name.
@@ -7414,6 +7534,12 @@ bool Interpreter::SetForceModelProperty(GmatBase *obj, const std::string &prop,
       retval = true;
       StringArray bodies = theTextParser.SeparateBrackets(value, "{}", " ,");
       
+      // An explicit empty primary-body list selects no harmonic gravity.
+      // Clear it here as well: the creation loop below is skipped for {}, so
+      // it cannot remove the automatically installed default Earth field.
+      if (pmType == "PrimaryBodies" && bodies.empty())
+         forceModel->TakeAction("ClearForcesOfType", "GravityField");
+
       // Clear the old point mass forces if a new list is found
       if (pmType == "PointMasses")
          forceModel->TakeAction("ClearForcesOfType", "PointMassForce");
@@ -8958,6 +9084,23 @@ bool Interpreter::FinalPass()
    
    objList = theModerator->GetListOfObjects(Gmat::UNKNOWN_OBJECT);
    SolarSystem *ss = theModerator->GetSolarSystemInUse();
+   // A spacecraft's coordinate system may use another spacecraft as origin,
+   // primary or secondary. Binding that frame below can evaluate the other
+   // spacecraft before Sandbox initialization supplies its J2000 body.
+   // Supply the configured binding first, independently of object-name order.
+   for (const auto &name : theModerator->GetListOfObjects(Gmat::SPACECRAFT))
+   {
+      Spacecraft *spacecraft = dynamic_cast<Spacecraft*>(FindObject(name));
+      if (spacecraft && !spacecraft->GetJ2000Body())
+      {
+         CelestialBody *body = ss->GetBody(spacecraft->GetJ2000BodyName());
+         if (body)
+         {
+            if (!body->GetJ2000Body()) body->SetJ2000Body(body);
+            spacecraft->SetJ2000Body(body);
+         }
+      }
+   }
    objList.push_back(ss->GetName());
 
    StringArray theSSBodies = ss->GetBodiesInUse();
@@ -10982,9 +11125,23 @@ bool Interpreter::CheckFunctionDefinition(const std::string &funcPath,
       std::string errMsg;
       IntegerArray rowCounts, colCounts;
       std::sort(outputArgs.begin(), outputArgs.end());
+      StringArray automaticGlobalObjects;
+      if (theObjectMap != NULL)
+      {
+         for (UnsignedInt i=0; i<outputArgs.size(); ++i)
+         {
+            ObjectMap::const_iterator found = theObjectMap->find(outputArgs[i]);
+            GmatBase *obj = found == theObjectMap->end() ? NULL : found->second;
+            if (obj != NULL && obj->GetName() == outputArgs[i] &&
+                obj->IsAutomaticGlobal() && obj->IsGlobal() && !obj->IsLocal() &&
+                !obj->IsOfType(Gmat::PARAMETER))
+               automaticGlobalObjects.push_back(outputArgs[i]);
+         }
+      }
       WrapperTypeArray outputTypes =
          GmatFileUtil::GetFunctionOutputTypes(&inStream, inputArgs, outputArgs, errMsg,
-                                              rowCounts, colCounts);
+                                              rowCounts, colCounts,
+                                              automaticGlobalObjects);
       
       if (errMsg != "")
       {

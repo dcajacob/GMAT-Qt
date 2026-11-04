@@ -61,6 +61,9 @@
 // ***************************************************************************
 
 #include "ODEModel.hpp"
+#include "PlotOriginScope.hpp"
+#include "PointMassForce.hpp"
+#include "GravityField.hpp"
 #include "MessageInterface.hpp"
 #include "PropagationStateManager.hpp"
 #include "TextParser.hpp"
@@ -78,6 +81,224 @@
 #include <string.h> 
 #include <algorithm>    // for find()
 #include <sstream>
+#include <set>
+#include <mutex>
+#include <cmath>
+#include "CoordinateSystem.hpp"
+
+namespace {
+struct FrameAccelerationBinding
+{
+   ODEModel *active=nullptr;
+   ODEModel *pendingActive=nullptr;
+   std::set<ODEModel *> models;
+   std::set<ODEModel *> acceptedModels;
+   bool querying=false;
+   std::string retiredReason;
+};
+struct FrameAccelerationContexts
+{
+   std::recursive_mutex mutex;
+   std::map<Spacecraft *,FrameAccelerationBinding> spacecraft;
+};
+FrameAccelerationContexts &frameAccelerationContexts()
+{
+   // Keep the registry alive through native singleton destruction. Entries
+   // are removed by spacecraft destruction and provider references by models.
+   static auto *contexts=new FrameAccelerationContexts;
+   return *contexts;
+}
+void bindFrameAccelerationModel(ODEModel *model,Spacecraft *spacecraft,bool activate,bool engineRegistration)
+{
+   if (!spacecraft) throw ODEModelException("Cannot bind a null spacecraft acceleration context.");
+   auto &contexts=frameAccelerationContexts();
+   std::lock_guard<std::recursive_mutex> lock(contexts.mutex);
+   auto found=contexts.spacecraft.find(spacecraft);
+   if (found==contexts.spacecraft.end())
+      found=contexts.spacecraft.emplace(spacecraft,FrameAccelerationBinding{}).first;
+   auto &binding=found->second;const bool first=binding.models.empty();binding.models.insert(model);
+   if (engineRegistration) binding.acceptedModels.insert(model);
+   if (activate || first || (engineRegistration && binding.pendingActive==model))
+   {
+      binding.active=model;binding.pendingActive=nullptr;binding.retiredReason.clear();
+   }
+}
+void retireFrameAccelerationModel(ODEModel *model,const std::string &reason)
+{
+   auto &contexts=frameAccelerationContexts();
+   std::lock_guard<std::recursive_mutex> lock(contexts.mutex);
+   for (auto &entry:contexts.spacecraft)
+   {
+      entry.second.models.erase(model);
+      entry.second.acceptedModels.erase(model);
+      if (reason=="model destruction" && entry.second.pendingActive==model) entry.second.pendingActive=nullptr;
+      if (entry.second.active==model)
+      {
+         entry.second.active=nullptr;entry.second.retiredReason=reason;
+         entry.second.pendingActive=reason=="model destruction" ? nullptr:model;
+      }
+   }
+}
+// Differentiate ephemeris relative velocity, in MJ2000Eq axes. This is used
+// only for frame-origin translation, never as a spacecraft force surrogate.
+Rvector3 frameOriginAcceleration(SpacePoint *point,SpacePoint *origin,const GmatTime &epoch)
+{
+   if (point==origin) return Rvector3(0,0,0);
+   auto velocity=[&](Real seconds) {
+      GmatTime at=epoch;at.AddSeconds(seconds);
+      return point->GetMJ2000Velocity(at)-origin->GetMJ2000Velocity(at);
+   };
+   auto restore=[&] { point->GetMJ2000Velocity(epoch);origin->GetMJ2000Velocity(epoch); };
+   try
+   {
+      const auto m2=velocity(-2),m1=velocity(-1),p1=velocity(1),p2=velocity(2);
+      restore();return (8*(p1-m1)-(p2-m2))/12;
+   }
+   catch (...)
+   {
+      try { restore(); } catch (...) {}
+      throw;
+   }
+}
+}
+
+void ODEModel::BindAccelerationContext(Spacecraft *spacecraft,bool activate)
+{
+   // Initialization visits later Propagate commands too. The earliest model
+   // serves initial reports; actual command execution explicitly selects its
+   // model, including repeated commands and handoffs.
+   bindFrameAccelerationModel(this,spacecraft,activate,false);
+}
+void ODEModel::ActivateAccelerationContext()
+{
+   auto &contexts=frameAccelerationContexts();
+   std::lock_guard<std::recursive_mutex> lock(contexts.mutex);
+   for (auto &entry:contexts.spacecraft)
+      if (entry.second.models.count(this))
+      {
+         entry.second.active=this;entry.second.pendingActive=nullptr;entry.second.retiredReason.clear();
+      }
+}
+void ODEModel::ForgetAccelerationContext(Spacecraft *spacecraft)
+{
+   auto &contexts=frameAccelerationContexts();
+   std::lock_guard<std::recursive_mutex> lock(contexts.mutex);
+   contexts.spacecraft.erase(spacecraft);
+}
+void ODEModel::SuspendAccelerationContext(Spacecraft *spacecraft)
+{
+   if (!spacecraft) throw ODEModelException("Cannot suspend a null spacecraft acceleration context.");
+   auto &contexts=frameAccelerationContexts();
+   std::lock_guard<std::recursive_mutex> lock(contexts.mutex);
+   contexts.spacecraft[spacecraft].active=nullptr;
+   contexts.spacecraft[spacecraft].pendingActive=nullptr;
+   contexts.spacecraft[spacecraft].retiredReason="non-numerical propagation";
+}
+bool ODEModel::GetBoundRelativeAcceleration(SpacePoint *secondary,
+      SpacePoint *primary,const A1Mjd &atEpoch,Rvector3 &acceleration)
+{
+   if (!secondary || !primary) throw ODEModelException("Object-frame acceleration requires both reference objects.");
+   auto &contexts=frameAccelerationContexts();
+   std::lock_guard<std::recursive_mutex> lock(contexts.mutex);
+   auto secondaryBinding=contexts.spacecraft.find(dynamic_cast<Spacecraft *>(secondary));
+   auto primaryBinding=contexts.spacecraft.find(dynamic_cast<Spacecraft *>(primary));
+   if (secondaryBinding==contexts.spacecraft.end() && primaryBinding==contexts.spacecraft.end())
+      return false;
+   auto selected=secondaryBinding!=contexts.spacecraft.end() ? secondaryBinding:primaryBinding;
+   if (!selected->second.active)
+      throw ODEModelException("The object-frame acceleration provider is no longer available: "+selected->second.retiredReason);
+   auto *reference=selected->second.active->forceOrigin;
+   if (!reference) throw ODEModelException("The object-frame force origin is unavailable.");
+   GmatTime epoch(atEpoch.Get());
+   const bool sampled=PlotOriginScope::Epoch(selected->first,atEpoch.Get(),epoch);
+   if (!sampled)
+   {
+      if (selected->first->GetEpoch()!=atEpoch.Get())
+         throw ODEModelException("Object-frame acceleration requires the accepted spacecraft epoch.");
+      if (selected->first->GetState().HasPrecisionTime()) epoch=selected->first->GetEpochGT();
+   }
+   auto relative=[&](SpacePoint *point)->Rvector3
+   {
+      auto *spacecraft=dynamic_cast<Spacecraft *>(point);
+      if (!spacecraft) return frameOriginAcceleration(point,reference,epoch);
+      auto found=contexts.spacecraft.find(spacecraft);
+      if (found==contexts.spacecraft.end() || !found->second.active)
+         throw ODEModelException("No live object-frame acceleration provider for "+spacecraft->GetName());
+      auto &binding=found->second;auto *model=binding.active;
+      if (binding.querying) throw ODEModelException("Recursive attitude/force acceleration query for "+spacecraft->GetName());
+      const auto *snapshot=sampled ? PlotOriginScope::Find(spacecraft,epoch) : nullptr;
+      if ((sampled && !snapshot) || (!sampled && (spacecraft->GetEpoch()!=atEpoch.Get() ||
+          (spacecraft->GetState().HasPrecisionTime() && spacecraft->GetEpochGT()!=epoch))))
+         throw ODEModelException("Object-frame acceleration requires coeval accepted spacecraft states.");
+      auto *internal=spacecraft->GetInternalCoordSystem();
+      if (!model->isInitialized || !model->forceOrigin || !internal ||
+          internal->GetBaseSystem()!="FK5" || !internal->GetAxisSystem() ||
+          internal->GetAxisSystem()->GetTypeName()!="MJ2000Eq" || !model->j2kBody ||
+          internal->GetOrigin()!=model->j2kBody || spacecraft->GetJ2000Body()!=model->j2kBody)
+         throw ODEModelException("Object-frame acceleration requires an initialized force model with matching MJ2000Eq state origin and axes.");
+      ObjectArray owned;
+      if (model->psm) model->psm->GetStateObjects(owned,Gmat::SPACEOBJECT);
+      std::set<GmatBase *> checked;
+      auto contains=[&](auto &&self,GmatBase *object)->bool
+      {
+         if (object==spacecraft) return true;
+         if (!object || !checked.insert(object).second) return false;
+         if (object->IsOfType(Gmat::FORMATION))
+            for (auto *member:object->GetRefObjectArray("SpaceObject"))
+               if (self(self,member)) return true;
+         return false;
+      };
+      // SetupSpacecraftData supplies the engine's exact spacecraft identities
+      // before the PSM publishes its final object list. A public/manual binding
+      // has no such admission and must match that list (copies cannot qualify
+      // merely by sharing a name or state).
+      bool actual=binding.acceptedModels.count(model)!=0;
+      for (auto *object:owned) actual=actual || contains(contains,object);
+      if (!actual) throw ODEModelException("Object-frame acceleration requires the actual accepted spacecraft identity.");
+      struct Guard { bool &active;explicit Guard(bool &value):active(value) {active=true;} ~Guard() {active=false;} } guard(binding.querying);
+      if (model->forceList.empty()) throw ODEModelException("The object-frame force model has no acceleration providers.");
+      Rvector3 result(0,0,0);
+      for (auto *force:model->forceList)
+      {
+         // A Cartesian endpoint and epoch determine point-mass and harmonic
+         // gravity acceleration with the configured field/body inputs.
+         // Other force laws may also depend on mass, attitude, or hardware; do
+         // not silently read those inputs from the later live spacecraft.
+         Rvector6 derivative;
+         if (snapshot)
+         {
+            auto *pointMass=dynamic_cast<PointMassForce*>(force);
+            auto *gravity=dynamic_cast<GravityField*>(force);
+            if (pointMass && force->GetTypeName()=="PointMassForce")
+               derivative=pointMass->GetDerivativesAtState(*snapshot,epoch);
+            else if (gravity && force->GetTypeName()=="GravityField")
+               derivative=gravity->GetDerivativesAtState(*snapshot,epoch);
+            else
+            {
+               bool live=spacecraft->GetEpoch()==atEpoch.Get() &&
+                  (!spacecraft->GetState().HasPrecisionTime() || spacecraft->GetEpochGT()==epoch);
+               for (Integer i=0; i<6 && live; ++i)
+                  live=(*snapshot)[i]==spacecraft->GetState()[i];
+               if (!live)
+                  throw ODEModelException("Sampled object-frame acceleration is unavailable for force "+force->GetTypeName());
+               derivative=force->GetDerivativesForSpacecraft(spacecraft);
+            }
+         }
+         else derivative=force->GetDerivativesForSpacecraft(spacecraft);
+         for (Integer i=0;i<3;++i)
+         {
+            if (!std::isfinite(derivative[i+3]))
+               throw ODEModelException("Nonfinite object-frame acceleration from "+force->GetName());
+            result[i]+=derivative[i+3];
+         }
+      }
+      return result+frameOriginAcceleration(model->forceOrigin,reference,epoch);
+   };
+   const auto result=relative(secondary)-relative(primary);
+   for (Integer i=0;i<3;++i)
+      if (!std::isfinite(result[i])) throw ODEModelException("Nonfinite relative object-frame acceleration.");
+   acceleration=result;return true;
+}
 
 
 //#define DEBUG_ODEMODEL
@@ -340,6 +561,7 @@ ODEModel::ODEModel(const std::string &modelName, const std::string typeName) :
 //------------------------------------------------------------------------------
 ODEModel::~ODEModel()
 {
+   retireFrameAccelerationModel(this,"model destruction");
    #ifdef DEBUG_ODEMODEL
       MessageInterface::ShowMessage
          ("ODEModel destructor entered, this=<%p>'%s', has %d forces\n",
@@ -490,6 +712,7 @@ ODEModel::ODEModel(const ODEModel& fdf) :
 //------------------------------------------------------------------------------
 ODEModel& ODEModel::operator=(const ODEModel& fdf)
 {
+   if (this!=&fdf) retireFrameAccelerationModel(this,"model assignment");
    #ifdef DEBUG_ODEMODEL
       MessageInterface::ShowMessage("ODEModel <'%s',%p> Assignment Operator "
             "entered\n", GetName(), this);
@@ -1213,6 +1436,13 @@ void ODEModel::UpdateSpaceObject(Real newEpoch)
    
    state->SetEpoch(newepoch);
    psm->MapVectorToObjects();
+
+   if (centralBodyName != j2kBodyName)
+      for (Integer i = 0; i < cartesianCount && i < (Integer)scObjs.size(); ++i)
+         if (Spacecraft *sc = dynamic_cast<Spacecraft*>(scObjs[i]))
+            sc->SetOriginRelativeState(forceOrigin, sc->GetEpochGT(),
+               Rvector6(modelState + cartesianStart + i * 6));
+
    // Add to pass back propagated covariance information from psm to rawstate
    if (psm->SatHasCovariance())
    {
@@ -1276,6 +1506,13 @@ void ODEModel::UpdateSpaceObjectGT(GmatTime newEpoch)
 
    state->SetEpochGT(newepoch);
    psm->MapVectorToObjects();
+
+   if (centralBodyName != j2kBodyName)
+      for (Integer i = 0; i < cartesianCount && i < (Integer)scObjs.size(); ++i)
+         if (Spacecraft *sc = dynamic_cast<Spacecraft*>(scObjs[i]))
+            sc->SetOriginRelativeState(forceOrigin, sc->GetEpochGT(),
+               Rvector6(modelState + cartesianStart + i * 6));
+
 
    // Update elements for each Formation
    for (UnsignedInt i = 0; i < stateObjects.size(); ++i)
@@ -2660,6 +2897,8 @@ Integer ODEModel::SetupSpacecraftData(ObjectArray *sats, Integer i, bool updateE
       std::string dragShapeModel = GetShapeModel("DragForce");
 	
       sat = *j;
+      if (auto *spacecraft=dynamic_cast<Spacecraft *>(sat))
+         bindFrameAccelerationModel(this,spacecraft,false,true);
 
       #ifdef DEBUG_SPACECRAFT_PROPERTIES
          MessageInterface::ShowMessage("   Looking at %s\n",
@@ -5478,6 +5717,9 @@ bool ODEModel::SetEpoch(const GmatEpoch newEpoch)
 //------------------------------------------------------------------------------
 void ODEModel::SetPropStateManager(PropagationStateManager *sm)
 {
+   // Rebinding aggregate vector storage does not replace this live force
+   // provider. Frame queries use their engine-registered spacecraft identity
+   // and current accepted state, not the PSM's temporary state vector.
    PhysicalModel::SetPropStateManager(sm);
    for (UnsignedInt i = 0; i < forceList.size(); ++i)
       forceList[i]->SetPropStateManager(psm);
@@ -5932,6 +6174,19 @@ void ODEModel::MoveToOrigin(Real newEpoch)
          {
             modelState[i6 + j] = rawState[i6 + j] - delta[j];
          }
+         if (i < (Integer)scObjs.size())
+            if (Spacecraft *sc = dynamic_cast<Spacecraft*>(scObjs[i]))
+            {
+               bool sameBacking = sc->GetEpoch() == now;
+               for (Integer j = 0; j < 6 && sameBacking; ++j)
+                  sameBacking = (rawState[i6 + j] == sc->GetState()[j]);
+               Rvector6 localState;
+               if (sameBacking && sc->GetOriginRelativeState(forceOrigin,
+                     sc->GetEpochGT(), localState))
+                  for (Integer j = 0; j < 6; ++j)
+                     modelState[i6 + j] = localState[j];
+            }
+
 
          #ifdef DEBUG_REORIGIN
             MessageInterface::ShowMessage(
@@ -6016,6 +6271,19 @@ void ODEModel::MoveToOriginGT(GmatTime newEpoch)
          {
             modelState[i6 + j] = rawState[i6 + j] - delta[j];
          }
+         if (i < (Integer)scObjs.size())
+            if (Spacecraft *sc = dynamic_cast<Spacecraft*>(scObjs[i]))
+            {
+               bool sameBacking = sc->GetEpochGT() == now;
+               for (Integer j = 0; j < 6 && sameBacking; ++j)
+                  sameBacking = (rawState[i6 + j] == sc->GetState()[j]);
+               Rvector6 localState;
+               if (sameBacking && sc->GetOriginRelativeState(forceOrigin,
+                     sc->GetEpochGT(), localState))
+                  for (Integer j = 0; j < 6; ++j)
+                     modelState[i6 + j] = localState[j];
+            }
+
 
 #ifdef DEBUG_REORIGIN
          MessageInterface::ShowMessage(
@@ -6061,6 +6329,26 @@ void ODEModel::MoveToOriginGT(GmatTime newEpoch)
  * coordinate system.
  */
 //------------------------------------------------------------------------------
+RealArray ODEModel::GetJ2KStateSnapshot(const RealArray &local,
+   const GmatTime &atEpoch) const
+{
+   if (local.size() != static_cast<size_t>(dimension) || cartesianStart < 0 ||
+       cartesianCount < 0 || static_cast<size_t>(cartesianStart) > local.size() ||
+       static_cast<size_t>(cartesianCount) > (local.size() - cartesianStart) / 6)
+      throw ODEModelException("Captured state does not match the native Cartesian layout.");
+   RealArray result(local);
+   if (centralBodyName != j2kBodyName)
+   {
+      if (!forceOrigin || !j2kBody)
+         throw ODEModelException("Captured state has unresolved origin references.");
+      const Rvector6 delta = j2kBody->GetState(atEpoch) - forceOrigin->GetState(atEpoch);
+      for (Integer i = 0; i < cartesianCount; ++i)
+         for (Integer j = 0; j < 6; ++j)
+            result[cartesianStart + i * 6 + j] -= delta[j];
+   }
+   return result;
+}
+
 void ODEModel::ReturnFromOrigin(Real newEpoch)
 {
    #ifdef DEBUG_REORIGIN

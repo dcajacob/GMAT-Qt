@@ -20,5 +20,5 @@ private:
    QTabWidget *tabs;
    QList<std::function<QMap<QString,QString>()>> readers;
    QList<QMap<QString,QString>> originals;
-   void add(const QString &label,QDialog *dialog,std::function<QMap<QString,QString>()> read);
+   void add(const QString &label,QWidget *dialog,std::function<QMap<QString,QString>()> read,bool scrollable=false);
 };

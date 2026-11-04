@@ -73,6 +73,7 @@ TextEphemFile::TextEphemFile(const std::string &type, const std::string &name,
                              const std::string &fname, Parameter *firstVarParam) :
    ReportFile(type, name, fname, firstVarParam)
 {
+   parameterCount = TextEphemFileParamCount;
    // create Interpolator
    mInterpolator = new CubicSplineInterpolator("InternalInterpolator", 6);
    
@@ -117,6 +118,8 @@ TextEphemFile::~TextEphemFile(void)
 TextEphemFile::TextEphemFile(const TextEphemFile &copy) :
    ReportFile(copy)
 {
+   // ReportFile's copy constructor restores its own shorter count.
+   parameterCount = TextEphemFileParamCount;
    mHeaderFileName = copy.mHeaderFileName;
    mEpochFormat = copy.mEpochFormat;
    mCoordSysName = copy.mCoordSysName;
@@ -345,7 +348,7 @@ std::string TextEphemFile::GetStringParameter(const Integer id) const
    case EPOCH_FORMAT:
       return mEpochFormat;
    case COORD_SYSTEM:
-      return mEpochFormat;
+      return mCoordSysName;
    default:
       return ReportFile::GetStringParameter(id);
    }

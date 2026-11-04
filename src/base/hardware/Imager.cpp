@@ -29,6 +29,8 @@
 //------------------------------------------------------------------------------
 
 #include "Imager.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "HardwareException.hpp"
 #include "CustomFOV.hpp"
 
@@ -157,12 +159,13 @@ Imager& Imager::operator=(const Imager &other)
 {
    if (this != &other)
    {
+      Hardware::operator=(other);
       fovIsModeled = other.fovIsModeled;
 
-      if (fov)  // Check to see if a clone
-      {
-         fov = nullptr;
-      }
+      // The FOV is a borrowed reference, as in the copy constructor. Whole
+      // object assignment (including function outputs) must preserve it along
+      // with its name; clearing it leaves a configured but unusable imager.
+      fov = other.fov;
       fovName      = other.fovName;
    }
 
@@ -1103,4 +1106,16 @@ Rvector Imager::GetMaskClockAngles() const
 bool Imager::HasFOV()
 {
    return fovIsModeled; //(!(fov == NULL));
+}
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void Imager::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const Imager*>(original);
+   if (!source || typeid(*source) != typeid(Imager) ||
+       typeid(*this) != typeid(Imager))
+      throw GmatBaseException("Cannot copy incompatible object into Imager");
+   if (source == this)
+      return;
+   operator=(*source);
 }

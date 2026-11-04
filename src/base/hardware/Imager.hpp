@@ -45,6 +45,7 @@ public:
    Imager& operator=(const Imager &other);
 
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
 
    virtual bool Initialize();
 

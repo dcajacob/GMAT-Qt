@@ -522,7 +522,7 @@ Rvector6 StateConversionUtil::ConvertFromModKeplerian(const std::string &toType,
    }
    else if (toType == "AlternateEquinoctial") // Alternate Equinoctial by HYKim 
    {
-      Rvector6 cartesian   = KeplerianToCartesian(mu, state, anomalyType);
+      Rvector6 cartesian   = KeplerianToCartesian(mu, keplerian, anomalyType);
       Rvector6 equinoctial = CartesianToEquinoctial(cartesian, mu);
       outState = EquinoctialToAltEquinoctial(equinoctial);
    }
@@ -537,22 +537,22 @@ Rvector6 StateConversionUtil::ConvertFromModKeplerian(const std::string &toType,
    }
    else if (toType == "OutgoingAsymptote") // YK
    {
-      Rvector6 cartesian = KeplerianToCartesian(mu, state, anomalyType);
+      Rvector6 cartesian = KeplerianToCartesian(mu, keplerian, anomalyType);
       outState = CartesianToOutgoingAsymptote(mu, cartesian);
    }
    else if (toType == "IncomingAsymptote") // YK
    {
-      Rvector6 cartesian = KeplerianToCartesian(mu, state, anomalyType);
+      Rvector6 cartesian = KeplerianToCartesian(mu, keplerian, anomalyType);
       outState = CartesianToIncomingAsymptote(mu, cartesian);
    }
    else if (toType == "BrouwerMeanShort") // YK
    {
-      Rvector6 cartesian = KeplerianToCartesian(mu, state, anomalyType);
+      Rvector6 cartesian = KeplerianToCartesian(mu, keplerian, anomalyType);
       outState = CartesianToBrouwerMeanShort(mu, cartesian);
    }
    else if (toType == "BrouwerMeanLong") // YK
    {
-      Rvector6 cartesian = KeplerianToCartesian(mu, state, anomalyType);
+      Rvector6 cartesian = KeplerianToCartesian(mu, keplerian, anomalyType);
       outState = CartesianToBrouwerMeanLong(mu, cartesian);
    }
    else
@@ -619,22 +619,18 @@ Rvector6 StateConversionUtil::ConvertFromSphericalAZFPA(const std::string &toTyp
    }
    else if (toType == "OutgoingAsymptote") // YK
    {
-      Rvector6 cartesian = KeplerianToCartesian(mu, state, anomalyType);
       outState = CartesianToOutgoingAsymptote(mu, cartesian);
    }
    else if (toType == "IncomingAsymptote") // YK
    {
-      Rvector6 cartesian = KeplerianToCartesian(mu, state, anomalyType);
       outState = CartesianToIncomingAsymptote(mu, cartesian);
    }
    else if (toType == "BrouwerMeanShort") // YK
    {
-      Rvector6 cartesian = KeplerianToCartesian(mu, state, anomalyType);
       outState = CartesianToBrouwerMeanShort(mu, cartesian);
    }
    else if (toType == "BrouwerMeanLong") // YK
    {
-      Rvector6 cartesian = KeplerianToCartesian(mu, state, anomalyType);
       outState = CartesianToBrouwerMeanLong(mu, cartesian);
    }
    else
@@ -743,7 +739,7 @@ Rvector6 StateConversionUtil::ConvertFromEquinoctial(const std::string &toType, 
    }
    else if (toType == "Keplerian" || toType == "ModifiedKeplerian")
    {
-      Rvector6 kepl = CartesianToKeplerian(mu, state, anomalyType);
+      Rvector6 kepl = CartesianToKeplerian(mu, cartState, anomalyType);
       
       if (toType == "ModifiedKeplerian")
          outState =  KeplerianToModKeplerian(kepl);
@@ -777,19 +773,19 @@ Rvector6 StateConversionUtil::ConvertFromEquinoctial(const std::string &toType, 
    }
    else if (toType == "OutgoingAsymptote") // YK
    {
-      outState = CartesianToOutgoingAsymptote(mu, state);
+      outState = CartesianToOutgoingAsymptote(mu, cartState);
    }
    else if (toType == "IncomingAsymptote") // YK
    {
-      outState = CartesianToIncomingAsymptote(mu, state);
+      outState = CartesianToIncomingAsymptote(mu, cartState);
    }
    else if (toType == "BrouwerMeanShort") // YK
    {
-      outState = CartesianToBrouwerMeanShort(mu, state);
+      outState = CartesianToBrouwerMeanShort(mu, cartState);
    }
    else if (toType == "BrouwerMeanLong") // YK
    {
-      outState = CartesianToBrouwerMeanLong(mu, state);
+      outState = CartesianToBrouwerMeanLong(mu, cartState);
    }
    else
    {
@@ -841,7 +837,7 @@ Rvector6 StateConversionUtil::ConvertFromModEquinoctial(const std::string &toTyp
    }
    else if (toType == "AlternateEquinoctial") 
    {
-      Rvector6 equinoctial = CartesianToEquinoctial(state, mu);
+      Rvector6 equinoctial = CartesianToEquinoctial(cartState, mu);
       outState = EquinoctialToAltEquinoctial(equinoctial);
    }
    else if (toType == "Delaunay") // Modified by M.H.
@@ -852,6 +848,15 @@ Rvector6 StateConversionUtil::ConvertFromModEquinoctial(const std::string &toTyp
    else if (toType == "Planetodetic") // Modified by M.H.
    {
       outState = CartesianToPlanetodetic(cartState, flattening, eqRadius);
+   }
+   else if (toType == "OutgoingAsymptote" ||
+            toType == "IncomingAsymptote" ||
+            toType == "BrouwerMeanShort" ||
+            toType == "BrouwerMeanLong")
+   {
+      // These supported targets share the established Cartesian conversion.
+      outState = ConvertFromCartesian(toType, cartState, mu, anomalyType,
+                                      flattening, eqRadius);
    }
    else
    {
@@ -915,6 +920,15 @@ Rvector6 StateConversionUtil::ConvertFromAltEquinoctial(const std::string &toTyp
    {
       outState = CartesianToPlanetodetic(cartState, flattening, eqRadius);
    }
+   else if (toType == "OutgoingAsymptote" ||
+            toType == "IncomingAsymptote" ||
+            toType == "BrouwerMeanShort" ||
+            toType == "BrouwerMeanLong")
+   {
+      // These supported targets share the established Cartesian conversion.
+      outState = ConvertFromCartesian(toType, cartState, mu, anomalyType,
+                                      flattening, eqRadius);
+   }
    else
    {
       throw UtilityException
@@ -973,12 +987,21 @@ Rvector6 StateConversionUtil::ConvertFromDelaunay(const std::string &toType, con
    }
    else if (toType == "AlternateEquinoctial")
    {
-      Rvector6 equinoctial = CartesianToEquinoctial(state, mu);
+      Rvector6 equinoctial = CartesianToEquinoctial(cart, mu);
       outState = EquinoctialToAltEquinoctial(equinoctial);
    }
    else if (toType == "Planetodetic") // Modified by M.H.
    {
       outState = CartesianToPlanetodetic(cart, flattening, eqRadius);
+   }
+   else if (toType == "OutgoingAsymptote" ||
+            toType == "IncomingAsymptote" ||
+            toType == "BrouwerMeanShort" ||
+            toType == "BrouwerMeanLong")
+   {
+      // These supported targets share the established Cartesian conversion.
+      outState = ConvertFromCartesian(toType, cart, mu, anomalyType,
+                                      flattening, eqRadius);
    }
    else
    {
@@ -1034,13 +1057,22 @@ Rvector6 StateConversionUtil::ConvertFromPlanetodetic(const std::string &toType,
    }
    else if (toType == "AlternateEquinoctial")
    {
-      Rvector6 equinoctial = CartesianToEquinoctial(state, mu);
+      Rvector6 equinoctial = CartesianToEquinoctial(cart, mu);
       outState = EquinoctialToAltEquinoctial(equinoctial);
    }
    else if (toType == "Delaunay") // Modified by M.H.
    {
       Rvector6 kepl = CartesianToKeplerian(mu, cart, anomalyType);
       outState = KeplerianToDelaunay(kepl, mu);
+   }
+   else if (toType == "OutgoingAsymptote" ||
+            toType == "IncomingAsymptote" ||
+            toType == "BrouwerMeanShort" ||
+            toType == "BrouwerMeanLong")
+   {
+      // These supported targets share the established Cartesian conversion.
+      outState = ConvertFromCartesian(toType, cart, mu, anomalyType,
+                                      flattening, eqRadius);
    }
    else
    {
@@ -1071,7 +1103,7 @@ Rvector6 StateConversionUtil::ConvertFromIncomingAsymptote(const std::string &to
    }
    else if (toType == "Keplerian" || toType == "ModifiedKeplerian")
    {
-      Rvector6 kepl = CartesianToKeplerian(mu, state, anomalyType);
+      Rvector6 kepl = CartesianToKeplerian(mu, cartState, anomalyType);
       
       if (toType == "ModifiedKeplerian")
          outState =  KeplerianToModKeplerian(kepl);
@@ -1089,6 +1121,18 @@ Rvector6 StateConversionUtil::ConvertFromIncomingAsymptote(const std::string &to
    else if (toType == "OutgoingAsymptote") // YK
    {
       outState = CartesianToOutgoingAsymptote(mu, cartState);
+   }
+   else if (toType == "Equinoctial" ||
+            toType == "ModifiedEquinoctial" ||
+            toType == "AlternateEquinoctial" ||
+            toType == "Delaunay" ||
+            toType == "Planetodetic" ||
+            toType == "BrouwerMeanShort" ||
+            toType == "BrouwerMeanLong")
+   {
+      // These supported targets share the established Cartesian conversion.
+      outState = ConvertFromCartesian(toType, cartState, mu, anomalyType,
+                                      flattening, eqRadius);
    }
    else
    {
@@ -1119,7 +1163,7 @@ Rvector6 StateConversionUtil::ConvertFromOutgoingAsymptote(const std::string &to
    }
    else if (toType == "Keplerian" || toType == "ModifiedKeplerian")
    {
-      Rvector6 kepl = CartesianToKeplerian(mu, state, anomalyType);
+      Rvector6 kepl = CartesianToKeplerian(mu, cartState, anomalyType);
       
       if (toType == "ModifiedKeplerian")
          outState =  KeplerianToModKeplerian(kepl);
@@ -1137,6 +1181,18 @@ Rvector6 StateConversionUtil::ConvertFromOutgoingAsymptote(const std::string &to
    else if (toType == "IncomingAsymptote") // YK
    {
       outState = CartesianToIncomingAsymptote(mu, cartState);
+   }
+   else if (toType == "Equinoctial" ||
+            toType == "ModifiedEquinoctial" ||
+            toType == "AlternateEquinoctial" ||
+            toType == "Delaunay" ||
+            toType == "Planetodetic" ||
+            toType == "BrouwerMeanShort" ||
+            toType == "BrouwerMeanLong")
+   {
+      // These supported targets share the established Cartesian conversion.
+      outState = ConvertFromCartesian(toType, cartState, mu, anomalyType,
+                                      flattening, eqRadius);
    }
    else
    {
@@ -1167,7 +1223,7 @@ Rvector6 StateConversionUtil::ConvertFromBrouwerMeanShort(const std::string &toT
    }
    else if (toType == "Keplerian" || toType == "ModifiedKeplerian")
    {
-      Rvector6 kepl = CartesianToKeplerian(mu, state, anomalyType);
+      Rvector6 kepl = CartesianToKeplerian(mu, cartState, anomalyType);
       
       if (toType == "ModifiedKeplerian")
          outState =  KeplerianToModKeplerian(kepl);
@@ -1193,6 +1249,16 @@ Rvector6 StateConversionUtil::ConvertFromBrouwerMeanShort(const std::string &toT
    else if (toType == "BrouwerMeanLong") // YK
    {
       outState = CartesianToBrouwerMeanLong(mu, cartState);
+   }
+   else if (toType == "Equinoctial" ||
+            toType == "ModifiedEquinoctial" ||
+            toType == "AlternateEquinoctial" ||
+            toType == "Delaunay" ||
+            toType == "Planetodetic")
+   {
+      // These supported targets share the established Cartesian conversion.
+      outState = ConvertFromCartesian(toType, cartState, mu, anomalyType,
+                                      flattening, eqRadius);
    }
    else
    {
@@ -1223,7 +1289,7 @@ Rvector6 StateConversionUtil::ConvertFromBrouwerMeanLong(const std::string &toTy
    }
    else if (toType == "Keplerian" || toType == "ModifiedKeplerian")
    {
-      Rvector6 kepl = CartesianToKeplerian(mu, state, anomalyType);
+      Rvector6 kepl = CartesianToKeplerian(mu, cartState, anomalyType);
       
       if (toType == "ModifiedKeplerian")
          outState =  KeplerianToModKeplerian(kepl);
@@ -1249,6 +1315,16 @@ Rvector6 StateConversionUtil::ConvertFromBrouwerMeanLong(const std::string &toTy
    else if (toType == "BrouwerMeanShort") // YK
    {
       outState = CartesianToBrouwerMeanShort(mu, cartState);
+   }
+   else if (toType == "Equinoctial" ||
+            toType == "ModifiedEquinoctial" ||
+            toType == "AlternateEquinoctial" ||
+            toType == "Delaunay" ||
+            toType == "Planetodetic")
+   {
+      // These supported targets share the established Cartesian conversion.
+      outState = ConvertFromCartesian(toType, cartState, mu, anomalyType,
+                                      flattening, eqRadius);
    }
    else
    {
@@ -2801,8 +2877,23 @@ Rvector6 StateConversionUtil::PlanetodeticToCartesian(const Rvector6& planetodet
    Real e2   = 2*f - f*f;
    Real tol  = 1;
    Real latg = latd;
-   
-   while(tol >= 1e-13)
+
+   if (rMag > Req && Req > 0 && f >= 0 && f < 1)
+   {
+      // For an exterior point, intersect its geodetic normal with the sphere
+      // of radius rMag exactly. With N the spheroid's normal radius and
+      // u = N + altitude, rho = u*cos(latd), z = (u-e2*N)*sin(latd).
+      // The positive quadratic root avoids the old O(f^2) latitude error.
+      const Real sinLat = Sin(latd);
+      const Real cosLat = Cos(latd);
+      const Real normalRadius = Req / Sqrt(1 - e2*sinLat*sinLat);
+      const Real offset = e2*normalRadius;
+      const Real ratio = offset / rMag;
+      const Real u = offset*sinLat*sinLat +
+         rMag*Sqrt(1 - ratio*ratio*sinLat*sinLat*cosLat*cosLat);
+      latg = ATan2((u-offset)*sinLat, u*cosLat);
+   }
+   else while(tol >= 1e-13)
    {
 	   // If latitude is close to 90 deg
 	   if ( Abs(latg - PI/2) < (0.001*RAD_PER_DEG) || Abs(latg + PI/2) < (0.001*RAD_PER_DEG)) // modified by YKK
@@ -3421,7 +3512,7 @@ Rvector6 StateConversionUtil::CartesianToBrouwerMeanShort(Real mu, const Rvector
 		throw UtilityException(errmsg.str());
 	}
 	
-	Real	tol		= 1.0E-8;
+	Real	tol		= 1.0E-13;
 	Integer	maxiter	= 75;
 	Rvector6 cart = cartesian;
 	AnomalyType type = GetAnomalyType("TA");
@@ -3547,7 +3638,7 @@ Rvector6 StateConversionUtil::CartesianToBrouwerMeanShort(Real mu, const Rvector
 		blmean2[0]=aeqmean2[0];
 		blmean2[1]=Sqrt(aeqmean2[1]*aeqmean2[1]+aeqmean2[2]*aeqmean2[2]);
 		if ((aeqmean2[3]*aeqmean2[3]+aeqmean2[4]*aeqmean2[4]) <= 1.0)
-			blmean2[2]=ACos(1.0-2.0*(aeqmean2[3]*aeqmean2[3]+aeqmean2[4]*aeqmean2[4]))*DEG_PER_RAD;
+			blmean2[2]=2.0*ASin(Sqrt(aeqmean2[3]*aeqmean2[3]+aeqmean2[4]*aeqmean2[4]))*DEG_PER_RAD;
 		if ((aeqmean2[3]*aeqmean2[3]+aeqmean2[4]*aeqmean2[4]) > 1.0)
 			blmean2[2]=ACos(1.0-2.0*1.0)*DEG_PER_RAD;
 
@@ -3627,7 +3718,7 @@ Rvector6 StateConversionUtil::CartesianToBrouwerMeanShort(Real mu, const Rvector
 	blmean[0]=aeqmean2[0];
 	blmean[1]=Sqrt(aeqmean2[1]*aeqmean2[1]+aeqmean2[2]*aeqmean2[2]);	
 	if ((aeqmean2[3]*aeqmean2[3]+aeqmean2[4]*aeqmean2[4]) <= 1.0)
-		blmean[2]=ACos(1.0-2.0*(aeqmean2[3]*aeqmean2[3]+aeqmean2[4]*aeqmean2[4]))*DEG_PER_RAD;
+		blmean[2]=2.0*ASin(Sqrt(aeqmean2[3]*aeqmean2[3]+aeqmean2[4]*aeqmean2[4]))*DEG_PER_RAD;
 	if ((aeqmean2[3]*aeqmean2[3]+aeqmean2[4]*aeqmean2[4]) > 1.0)
 		blmean[2]=ACos(1.0-2.0*1.0)*DEG_PER_RAD;
 	blmean[3]=ATan2(aeqmean2[3],aeqmean2[4])*DEG_PER_RAD;
@@ -3952,7 +4043,8 @@ Rvector6 StateConversionUtil::CartesianToBrouwerMeanLong(Real mu, const Rvector6
 		throw UtilityException(errmsg.str());
 	}
 	
-	Real	tol=1.0E-8;
+	// Resolve the mean input beyond the visible six-field round-trip precision.
+	Real	tol=1.0E-13;
 	Integer	maxiter=75;
 	Rvector6 cart = cartesian;
 	AnomalyType type = GetAnomalyType("TA");
@@ -4087,7 +4179,7 @@ Rvector6 StateConversionUtil::CartesianToBrouwerMeanLong(Real mu, const Rvector6
 		blmean2[0]=aeqmean2[0];
 		blmean2[1]=Sqrt(aeqmean2[1]*aeqmean2[1]+aeqmean2[2]*aeqmean2[2]);
 		if ((aeqmean2[3]*aeqmean2[3]+aeqmean2[4]*aeqmean2[4]) <= 1.0)
-			blmean2[2]=ACos(1.0-2.0*(aeqmean2[3]*aeqmean2[3]+aeqmean2[4]*aeqmean2[4]))*DEG_PER_RAD;
+			blmean2[2]=2.0*ASin(Sqrt(aeqmean2[3]*aeqmean2[3]+aeqmean2[4]*aeqmean2[4]))*DEG_PER_RAD;
 		if ((aeqmean2[3]*aeqmean2[3]+aeqmean2[4]*aeqmean2[4]) > 1.0)
 			blmean2[2]=ACos(1.0-2.0*1.0)*DEG_PER_RAD;
 
@@ -4158,7 +4250,7 @@ Rvector6 StateConversionUtil::CartesianToBrouwerMeanLong(Real mu, const Rvector6
 	blmean[0]=aeqmean[0];
 	blmean[1]=Sqrt(aeqmean[1]*aeqmean[1]+aeqmean[2]*aeqmean[2]);
 	if ((aeqmean[3]*aeqmean[3]+aeqmean[4]*aeqmean[4]) <= 1.0)
-		blmean[2]=ACos(1.0-2.0*(aeqmean[3]*aeqmean[3]+aeqmean[4]*aeqmean[4]))*DEG_PER_RAD;
+		blmean[2]=2.0*ASin(Sqrt(aeqmean[3]*aeqmean[3]+aeqmean[4]*aeqmean[4]))*DEG_PER_RAD;
 	if ((aeqmean[3]*aeqmean[3]+aeqmean[4]*aeqmean[4]) > 1.0)
 		blmean[2]=ACos(1.0-2.0*1.0)*DEG_PER_RAD;
 
@@ -4432,7 +4524,9 @@ Rvector6 StateConversionUtil::BrouwerMeanLongToOsculatingElements(Real mu, const
          criticalInclinationWritten = true;
 	   }
 		dlt1e = 0.0;
-		blghp = 0.0;
+      // Suppress the singular correction, not the mean longitude itself.
+      // Retaining the base angle preserves rotation about the zonal axis.
+		blghp = raandp + aopdp + meanAnom;
 		eccdpdl= 0.0;
 		dltI = 0.0;
 		sinDH = 0.0;
@@ -4487,10 +4581,11 @@ Rvector6 StateConversionUtil::BrouwerMeanLongToOsculatingElements(Real mu, const
 	Real ma;
 	Real	raan;
 	Real	aop;
-	if (ecc <= 1.0E-11)
+	// Preserve every nonzero eccentricity vector; only exact zero is singular.
+	if (ecc == 0.0)
 	{
 		aop=0.0;
-		if (inc <= 1.0E-7) 
+		if (inc == 0.0) 
 		{    
 			raan=0.0;
 			ma = blgh;
@@ -4510,7 +4605,7 @@ Rvector6 StateConversionUtil::BrouwerMeanLongToOsculatingElements(Real mu, const
 		ma =ATan2(arg1,arg2);
 		ma=Mod(ma,(TWO_PI));
 		
-		if (inc <= 1.0E-7) 
+		if (inc == 0.0) 
 		{    
 			raan=0.0;
 			aop = blgh - raan - ma;
@@ -5136,7 +5231,7 @@ Real StateConversionUtil::CartesianToTA(Real mu, const Rvector3 &pos,
       #endif
 
       Real temp = (eVec*pos) / (ecc*rMag);
-      ta = ACos(temp, GmatOrbitConstants::KEP_TOL);
+      ta = ATan2(Cross(eVec,pos).GetMagnitude(), eVec*pos);
 
       #ifdef DEBUG_KEPLERIAN_TA
       MessageInterface::ShowMessage("   ACos(%+.16f) = %+.16f\n", temp, ACos(temp, GmatOrbitConstants::KEP_TOL));
@@ -5161,7 +5256,7 @@ Real StateConversionUtil::CartesianToTA(Real mu, const Rvector3 &pos,
       #endif
 
       //ta = ACos((eVec*pos) / (ecc*rMag));
-      ta = ACos(((eVec*pos) / (ecc*rMag)), GmatOrbitConstants::KEP_TOL);
+      ta = ATan2(Cross(eVec,pos).GetMagnitude(), eVec*pos);
 
       // Fix quadrant
       if ((pos*vel) < 0.0)
@@ -5182,7 +5277,7 @@ Real StateConversionUtil::CartesianToTA(Real mu, const Rvector3 &pos,
          throw UtilityException("Cannot convert from Cartesian to TA - n vector is a zero vector.\n");
       }
       //ta = ACos((nVec*pos) / (nMag*rMag));
-      ta = ACos(((nVec*pos) / (nMag*rMag)), GmatOrbitConstants::KEP_TOL);
+      ta = ATan2(Cross(nVec,pos).GetMagnitude(), nVec*pos);
 
       // Fix quadrant
       if ((pos[2]) < 0.0)
@@ -5197,11 +5292,14 @@ Real StateConversionUtil::CartesianToTA(Real mu, const Rvector3 &pos,
       #endif
 
       //ta = ACos(pos[0] / rMag);
-      ta = ACos((pos[0] / rMag), GmatOrbitConstants::KEP_TOL);
+      ta = ATan2(Abs(pos[1]), pos[0]);
 
       // Fix quadrant
       if ((pos[1]) < 0.0)
          ta = TWO_PI - ta;
+      // Retrograde equatorial angles advance opposite inertial longitude.
+      if (inc > PI - GmatOrbitConstants::KEP_TOL)
+         ta = Mod(-ta + TWO_PI, TWO_PI);
    }
 
    // Convert 2pi to 0
@@ -5475,7 +5573,8 @@ Real StateConversionUtil::CartesianToINC(Real mu, const Rvector3 &pos,
       throw UtilityException("Cannot convert from Cartesian to INC - angular momentum is a zero vector.\n");
    }
 
-   Real inc = ACos((hVec[2] / hMag), GmatOrbitConstants::KEP_TOL);
+   // Preserve small transverse momentum near prograde/retrograde equatorial planes.
+   Real inc = ATan2(Sqrt(hVec[0]*hVec[0] + hVec[1]*hVec[1]), hVec[2]);
    
    // if (inc >= PI - GmatOrbitConstants::KEP_TOL)
    // {
@@ -5537,7 +5636,7 @@ Real StateConversionUtil::CartesianToRAAN(Real mu, const Rvector3 &pos,
       {
          throw UtilityException("Cannot convert from Cartesian to RAAN - n vector is a zero vector.\n");
       }
-      raan = ACos((nVec[0] / nMag), GmatOrbitConstants::KEP_TOL);
+      raan = ATan2(Abs(nVec[1]), nVec[0]);
 
       // Fix quadrant
       if (nVec[1] < 0.0)
@@ -5559,7 +5658,7 @@ Real StateConversionUtil::CartesianToRAAN(Real mu, const Rvector3 &pos,
       {
          throw UtilityException("Cannot convert from Cartesian to RAAN - n vector is a zero vector.\n");
       }
-      raan = ACos((nVec[0] / nMag), GmatOrbitConstants::KEP_TOL);
+      raan = ATan2(Abs(nVec[1]), nVec[0]);
 
       // Fix quadrant
       if (nVec[1] < 0.0)
@@ -5631,7 +5730,7 @@ Real StateConversionUtil::CartesianToAOP(Real mu, const Rvector3 &pos,
       {
          throw UtilityException("Cannot convert from Cartesian to AOP - n vector is a zero vector or eccentricity is zero.\n");
       }
-      aop = ACos(((nVec*eVec) / (nMag*ecc)), GmatOrbitConstants::KEP_TOL);
+      aop = ATan2(Cross(nVec,eVec).GetMagnitude(), nVec*eVec);
 
       // Fix quadrant
       if (eVec[2] < 0.0)
@@ -5645,11 +5744,14 @@ Real StateConversionUtil::CartesianToAOP(Real mu, const Rvector3 &pos,
       {
          throw UtilityException("Cannot convert from Cartesian to AOP - eccentricity is zero.\n");
       }
-      aop = ACos((eVec[0] / ecc), GmatOrbitConstants::KEP_TOL);
+      aop = ATan2(Abs(eVec[1]), eVec[0]);
 
       // Fix quadrant
       if (eVec[1] < 0.0)
          aop = TWO_PI - aop;
+      // Retrograde equatorial angles advance opposite inertial longitude.
+      if (inc > PI - GmatOrbitConstants::KEP_TOL)
+         aop = Mod(-aop + TWO_PI, TWO_PI);
    }
    // Case 3: Circular, Inclined Orbit
    //else if ((ecc < GmatOrbitConstants::KEP_TOL) && (inc >= GmatOrbitConstants::KEP_TOL))
@@ -7184,8 +7286,8 @@ bool StateConversionUtil::ValidateValue(const std::string &label,       Real val
          throw ue;
       }
    }
-   else if (labelUpper == "RMagnitude" || label == "PlanetodeticRMAG" ||
-            labelUpper == "VMagnitude" || label == "PlanetodeticVMAG") // value >= 1.0e-10
+   else if (labelUpper == "RMAGNITUDE" || label == "PlanetodeticRMAG" ||
+            labelUpper == "VMAGNITUDE" || label == "PlanetodeticVMAG") // value >= 1.0e-10
    {
       if (value < 1.0e-10)
       {
@@ -7739,7 +7841,8 @@ Integer StateConversionUtil::ComputeCartToKepl(Real grav,    Real r[3], Real v[3
    {
       throw UtilityException("Cannot convert from Cartesian to Keplerian - angular momentum is zero.\n");
    }
-   Real i = ACos( angMomentum.Get(2)/h );
+   // atan2 retains the small transverse momentum lost by acos near the poles.
+   Real i = ATan2(n, angMomentum.Get(2));
    
    // For GMT-4169 fix (LOJ: 2014.03.18)
    #if 0
@@ -7763,15 +7866,15 @@ Integer StateConversionUtil::ComputeCartToKepl(Real grav,    Real r[3], Real v[3
       {
          throw UtilityException("Cannot convert from Cartesian to Keplerian - line-of-nodes vector is a zero vector.\n");
       }
-      raan = ACos( nodeVec.Get(0)/n );
+      raan = ATan2(Abs(nodeVec.Get(1)), nodeVec.Get(0));
       if (nodeVec.Get(1) < 0)
          raan = TWO_PI - raan;
 
-      argPeriapsis = ACos( (nodeVec*eccVec)/(n*e) );
+      argPeriapsis = ATan2(Cross(nodeVec,eccVec).GetMagnitude(), nodeVec*eccVec);
       if (eccVec.Get(2) < 0)
          argPeriapsis = TWO_PI - argPeriapsis;
 
-      trueAnom = ACos( (eccVec*pos)/(e*posMag) );
+      trueAnom = ATan2(Cross(eccVec,pos).GetMagnitude(), eccVec*pos);
       if (pos*vel < 0)
          trueAnom = TWO_PI - trueAnom;
    }
@@ -7784,7 +7887,7 @@ Integer StateConversionUtil::ComputeCartToKepl(Real grav,    Real r[3], Real v[3
          throw UtilityException("Cannot convert from Cartesian to Keplerian - eccentricity is zero.\n");
       }
       raan = 0;
-      argPeriapsis = ACos(eccVec.Get(0)/e);
+      argPeriapsis = ATan2(Abs(eccVec.Get(1)), eccVec.Get(0));
       if (eccVec.Get(1) < 0)
          argPeriapsis = TWO_PI - argPeriapsis;
       
@@ -7794,7 +7897,7 @@ Integer StateConversionUtil::ComputeCartToKepl(Real grav,    Real r[3], Real v[3
       if (argPeriapsis < 0.0)
          argPeriapsis = argPeriapsis + TWO_PI;
       
-      trueAnom = ACos( (eccVec*pos)/(e*posMag) );
+      trueAnom = ATan2(Cross(eccVec,pos).GetMagnitude(), eccVec*pos);
       if (pos*vel < 0)
          trueAnom = TWO_PI - trueAnom;
    }
@@ -7806,13 +7909,13 @@ Integer StateConversionUtil::ComputeCartToKepl(Real grav,    Real r[3], Real v[3
       {
          throw UtilityException("Cannot convert from Cartesian to Keplerian - line-of-nodes vector is a zero vector.\n");
       }
-      raan = ACos( nodeVec.Get(0)/n );
+      raan = ATan2(Abs(nodeVec.Get(1)), nodeVec.Get(0));
       if (nodeVec.Get(1) < 0)
          raan = TWO_PI - raan;
 
       argPeriapsis = 0;
 
-      trueAnom = ACos( (nodeVec*pos)/(n*posMag) );
+      trueAnom = ATan2(Cross(nodeVec,pos).GetMagnitude(), nodeVec*pos);
       if (pos.Get(2) < 0)
          trueAnom = TWO_PI - trueAnom;
    }
@@ -7822,7 +7925,7 @@ Integer StateConversionUtil::ComputeCartToKepl(Real grav,    Real r[3], Real v[3
    {
       raan = 0;
       argPeriapsis = 0;
-      trueAnom = ACos(pos.Get(0)/posMag);
+      trueAnom = ATan2(Abs(pos.Get(1)), pos.Get(0));
       if (pos.Get(1) < 0)
          trueAnom = TWO_PI - trueAnom;
       

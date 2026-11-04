@@ -115,6 +115,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Same units as the selected Goal parameter.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -164,6 +168,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Absolute tolerance in the same units as the selected Goal parameter.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>
@@ -218,6 +226,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Units of the selected scalar goal parameter; use those units for its desired value and tolerance.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -268,6 +280,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Solver object name; no physical units.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>

@@ -3545,7 +3545,7 @@ GmatBase* ThrustDirections::Clone(void) const
 //------------------------------------------------------------------------------
 ThrustMagnitude::ThrustMagnitude(const std::string &name, GmatBase *obj)
    : HardwareReal(name, "ThrustMagnitude", Gmat::SPACECRAFT, Gmat::THRUSTER, obj,
-                  "ThrustMagnitude", "")
+                  "ThrustMagnitude", "N")
 {
    #ifdef USE_PREDEFINED_COLORS
       mColor = GmatColor::CHESTNUT;
@@ -3626,7 +3626,7 @@ GmatBase* ThrustMagnitude::Clone(void) const
 //------------------------------------------------------------------------------
 Isp::Isp(const std::string &name, GmatBase *obj)
    : HardwareReal(name, "Isp", Gmat::SPACECRAFT, Gmat::THRUSTER, obj,
-                  "Isp", "")
+                  "Isp", "s")
 {
    #ifdef USE_PREDEFINED_COLORS
       mColor = GmatColor::CHESTNUT;
@@ -3707,7 +3707,7 @@ GmatBase* Isp::Clone(void) const
 //------------------------------------------------------------------------------
 MassFlowRate::MassFlowRate(const std::string &name, GmatBase *obj)
    : HardwareReal(name, "MassFlowRate", Gmat::SPACECRAFT, Gmat::THRUSTER, obj,
-                  "MassFlowRate", "")
+                  "MassFlowRate", "kg/s")
 {
    #ifdef USE_PREDEFINED_COLORS
       mColor = GmatColor::CHESTNUT;

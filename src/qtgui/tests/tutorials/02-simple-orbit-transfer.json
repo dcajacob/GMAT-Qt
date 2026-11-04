@@ -1,0 +1,773 @@
+{
+  "id": "02-simple-orbit-transfer",
+  "title": "Simple Orbit Transfer",
+  "guide": "doc/help/src/Tut_SimpleOrbitTransfer.xml",
+  "guide_sha256": "28fb7f4d787db0a61115084f91a18602fc497e519f07559fdf33f74ea24db52d",
+  "reference": "application/samples/Tut_SimpleOrbitTransfer.script",
+  "provenance": "Reviewed current Help instructions, using semantic QtTest widget selectors. Values come from the Help chapter; the generator never reads a completed example mission. Script-event text is entered only where the chapter explicitly teaches it.",
+  "stages": [
+    {
+      "name": "Current Help GUI instructions with QtTest selectors",
+      "input": null,
+      "requires_run": true,
+      "actions": [
+        {
+          "action": "key",
+          "keys": "Esc"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+N"
+        },
+        {
+          "action": "window",
+          "state": "maximized"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Solvers",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add DifferentialCorrector",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "DC1",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "DefaultOrbitView",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_SolverIterations",
+          "value": "Current"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewUpAxis",
+          "value": "X"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewPointVector",
+          "value": "Vector"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "text",
+          "text": "120000",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Burns",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ImpulsiveBurn",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "TOI",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Burns",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ImpulsiveBurn",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "GOI",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Propagate",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Prop To Periapsis",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "text",
+          "text": "DefaultSC.Earth.Periapsis",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Target"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Hohmann Transfer",
+          "target_name": "commandName"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Hohmann Transfer",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Vary TOI",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "TOI.Element1",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "1.0",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "0.5",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Hohmann Transfer",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Maneuver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Perform TOI",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "text",
+          "text": "TOI",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Hohmann Transfer",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Prop To Apoapsis",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "text",
+          "text": "DefaultSC.Earth.Apoapsis",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Hohmann Transfer",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Achieve RMAG = 42165",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "text",
+          "text": "DefaultSC.Earth.RMAG",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "42164.169",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Hohmann Transfer",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Vary GOI",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "GOI.Element1",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "1.0",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Hohmann Transfer",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Maneuver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Perform GOI",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "text",
+          "text": "GOI",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Hohmann Transfer",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Achieve ECC = 0.005",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "text",
+          "text": "DefaultSC.Earth.ECC",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "0.005",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "text",
+          "text": "0.0001",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Prop One Day",
+          "target_name": "commandName"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Seconds"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "86400",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+S"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial02-authored.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-nominal-hohmann-solve"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Target \u2014 Hohmann Transfer",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_name": "applySolverCorrections"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+S"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-apply-corrections-rerun"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+O"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial02-authored.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "screenshot",
+          "label": "own-saved-mission-reopened"
+        }
+      ]
+    }
+  ]
+}

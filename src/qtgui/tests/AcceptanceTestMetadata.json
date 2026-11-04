@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "tests": {
+    "QtAcceptance.CatalogueContracts": {
+      "earliest_build_date": null,
+      "latest_build_date": null,
+      "requirements": [
+        "All Others!E311",
+        "All Others!E312",
+        "All Others!E313",
+        "All Others!E314",
+        "All Others!E315",
+        "All Others!E316",
+        "All Others!E317",
+        "All Others!E318",
+        "All Others!E319",
+        "All Others!E320",
+        "All Others!E321",
+        "All Others!E322",
+        "All Others!E323",
+        "All Others!E324",
+        "All Others!E325",
+        "All Others!E326",
+        "All Others!E331",
+        "All Others!E332",
+        "All Others!E333",
+        "All Others!E334",
+        "All Others!E335"
+      ],
+      "author": "Codex",
+      "truth_data": [
+        {
+          "kind": "file",
+          "path": "src/qtgui/tests/AcceptanceCatalogTests.py",
+          "sha256": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a"
+        }
+      ],
+      "tolerances": {
+        "absolute": 0,
+        "relative": 0
+      },
+      "comparator": "exact-json-contract",
+      "extensions": {
+        "execution_kind": "backend-support",
+        "truth_role": "independent literal mixed-outcome fixtures; not simulated GMAT results"
+      },
+      "comments": "Metadata/query/summary capability contract. Synthetic failures belong to unit fixtures, not real GMAT missions. No fixture tolerance is overridden.",
+      "creation_date": "2026-11-01",
+      "platform_dependencies": [],
+      "test_type": "Acceptance"
+    }
+  }
+}

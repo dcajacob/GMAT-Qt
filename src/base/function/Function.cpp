@@ -284,6 +284,14 @@ void Function::SetSolarSystem(SolarSystem *ss)
 }
 
 //------------------------------------------------------------------------------
+// const SolarSystem* GetSolarSystem() const
+//------------------------------------------------------------------------------
+const SolarSystem* Function::GetSolarSystem() const
+{
+   return solarSys;
+}
+
+//------------------------------------------------------------------------------
 // void SetInternalCoordSystem(CoordinateSystem *cs)
 //------------------------------------------------------------------------------
 void Function::SetInternalCoordSystem(CoordinateSystem *cs)

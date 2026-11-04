@@ -59,7 +59,8 @@ OrbitRvec6::OrbitRvec6(const std::string &name, const std::string &typeStr,
                        const std::string &unit, GmatParam::DepObject depObj,
                        UnsignedInt objType)
    : Rvec6Var(name, typeStr, GmatParam::SYSTEM_PARAM, obj, desc, unit, depObj,
-              objType)
+              objType),
+     OrbitData(name, typeStr, objType, depObj)
 {
    mNeedCoordSystem = true;
    AddRefObject(obj);
@@ -223,6 +224,8 @@ bool OrbitRvec6::Validate()
 //------------------------------------------------------------------------------
 bool OrbitRvec6::Initialize()
 {
+   Rvec6Var::Initialize();
+   SetParameter(this);
    InitializeRefObjects();
    return true;
 }
@@ -254,6 +257,11 @@ bool OrbitRvec6::RenameRefObject(const UnsignedInt type,
 std::string OrbitRvec6::GetRefObjectName(const UnsignedInt type) const
 {
    return OrbitData::GetRefObjectName(type);
+}
+
+const StringArray& OrbitRvec6::GetRefObjectNameArray(const UnsignedInt type)
+{
+   return OrbitData::GetRefObjectNameArray(type);
 }
 
 //------------------------------------------------------------------------------

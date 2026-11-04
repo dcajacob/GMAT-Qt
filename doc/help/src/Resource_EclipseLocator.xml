@@ -1095,6 +1095,13 @@
           </listitem>
         </itemizedlist></para>
 
+      <para>The Qt distribution also writes a separate eclipse-type summary listing the number of individual
+      intervals, maximum individual duration, and spacecraft/occulting-body
+      participants for each selected type. Types with no intervals show zero
+      count and duration. Participants tied within one microsecond of the
+      maximum are listed together. These statistics supplement the total-event
+      union statistics described above.</para>
+
       <para>The report makes the distinction between an
       <emphasis>individual</emphasis> event and a <emphasis>total</emphasis>
       event.<itemizedlist>

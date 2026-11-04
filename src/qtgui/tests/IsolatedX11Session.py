@@ -68,7 +68,7 @@ class IsolatedX11Session:
                  wm_command=None, wm_library_path=None, wm_data_dir=None, script=None):
         if not 10 <= seconds <= 600:
             raise ValueError("Session bound must be from 10 to 600 seconds")
-        if not (640 <= width <= 2560 and 480 <= height <= 1600):
+        if not (640 <= width <= 4096 and 480 <= height <= 3072):
             raise ValueError("Screen size is outside the bounded test range")
         self.app, self.startup = Path(app).resolve(), Path(startup).resolve()
         if not self.app.is_file() or not os.access(self.app, os.X_OK) or not self.startup.is_file():

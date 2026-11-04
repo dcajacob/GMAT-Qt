@@ -313,7 +313,6 @@ bool CCSDSOEMReader::ParseFile_v1()
    std::string   eqSign;
 
    std::string   lastRead = "none";
-   Real          epochVal = 0.0;
 
    // 1. Read header
    while (!readingMeta && (!ephFile.eof()))
@@ -643,7 +642,7 @@ bool CCSDSOEMReader::ParseFile_v1()
          else
          {
             nonCommentFound = true;
-            epochVal = CCSDSEMSegment::ParseEpoch(keyWord);
+            const GmatTime preciseEpoch = CCSDSEMSegment::ParseEpochGT(keyWord);
 
             Rvector dataVec(dataSize);
             std::string strDataVal;
@@ -685,10 +684,10 @@ bool CCSDSOEMReader::ParseFile_v1()
                   dataRec.SetSize(dataSize);
                   for (Integer i = 0; i < dataSize; ++i)
                      dataRec[i] = dataVec[i];
-                  currentSegment->AddData(epochVal, dataRec);
+                  static_cast<CCSDSOEMSegment*>(currentSegment)->AddData(preciseEpoch, dataRec);
                }
                else
-                  currentSegment->AddData(epochVal, dataVec);
+                  static_cast<CCSDSOEMSegment*>(currentSegment)->AddData(preciseEpoch, dataVec);
             }
             catch (UtilityException e)
             {
@@ -890,7 +889,6 @@ bool CCSDSOEMReader::ParseFile_v2()
    std::string line;
    std::string keyWord, keyAllCaps, sVal;
    std::string eqSign;
-   Real epochVal;
 
    // Read header
    while (true)
@@ -1048,7 +1046,7 @@ bool CCSDSOEMReader::ParseFile_v2()
             }
          else // Process data
          {
-            epochVal = CCSDSEMSegment::ParseEpoch(keyWord);
+            const GmatTime preciseEpoch = CCSDSEMSegment::ParseEpochGT(keyWord);
 
             Rvector dataVec(6);
             std::string strDataVal;
@@ -1057,7 +1055,7 @@ bool CCSDSOEMReader::ParseFile_v2()
             for (Integer i = 0; i < 6; i++)
                lineStr >> dataVec[i];
 
-            currentSegment->AddData(epochVal, dataVec);
+            static_cast<CCSDSOEMSegment*>(currentSegment)->AddData(preciseEpoch, dataVec);
          }
       }
    }

@@ -1,0 +1,465 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "doc/SystemDocs/Requirements/GMAT Requirements.xlsx": "736847e909ca550731386261073e46a9fa3ac8d78f53f0c37dd5d93b11a85c23",
+    "doc/SystemDocs/Test/Requirements-To-Test Matrix, 2012-05-11 (GMAT Build 2012-05-04).csv": "4693e097b183af76bc7c8dfcc0f62d7696b2e1417c90cb10d0ed4f9577160a97"
+  },
+  "reviews": [
+    {
+      "key": "FRR!E294",
+      "fingerprint": "eff6b5668063b58d35ada7963d937f247f360446699b44383460641d6642db7f",
+      "applicability": "gui",
+      "rationale": "Current targeted VF13ad report contract: real native resource choices, every complete nominal iteration, physical/scaled controls, independent cost, explicit derived equality/lower/upper desired/achieved/residual values, message/file identity, disabled gating and preserved source/configured graph. Forward and central differences use nonidentity control scales. No arbitrary optimization/science/platform or whole-current-build/NASA qualification.",
+      "evidence": [
+        {
+          "test": "QtGui.NativeNasaVF13adProgressForward",
+          "source": "src/qtgui/tests/NasaVf13adProgressTests.cpp",
+          "source_sha256": "7cf7f88934f038138d5ae37afc9e84e80663c8d5f62ad975bbf471aafaf05976",
+          "anchor": "\"vf13ad-progress-schema\"",
+          "checkpoint": "vf13ad-progress-schema",
+          "expected": {
+            "mode": "Forward",
+            "operators": [
+              "=",
+              "<=",
+              ">="
+            ]
+          },
+          "facets": [
+            "actual-resource-progress-style-unicode-file-input-and-history",
+            "live-native-nominal-decision-vector-and-every-iteration",
+            "independent-derived-equality-lower-upper-achieved-desired-residuals",
+            "independent-scaled-two-control-cost-and-optimum",
+            "identical-message-file-results-and-disabled-gating",
+            "source-configured-graph-preservation"
+          ],
+          "scope": "The system shall optionally show progress of a vf13ad optimizer in the message window that includes all of the following parameters:",
+          "reference_sources": {
+            "src/base/solver/InternalOptimizer.cpp": "0bdeb574317fd86e5d92f09462de7e1eaa9d9e1c3d90abe117b12f07e438dbd9",
+            "src/base/solver/Optimizer.cpp": "dde8411e1db1e12636adc25f76a66c6a05d9fe7c8b3227212252394ad96a5086",
+            "src/base/command/NonlinearConstraint.cpp": "03424c547502722e92208a8c8d44cf80128561aafd613d60785c4562aa60b115",
+            "src/base/command/Optimize.cpp": "2a20da205858acd32052db29f0d3203ddf8f75502ee8e23291a9692476df20f5",
+            "src/base/command/Vary.cpp": "13a221da317218a5d0753de4aa52e0c7a5a86ef2368d3e5300241a0d69955e84",
+            "src/qtgui/QtMessageReceiver.cpp": "0f6550038b969a82decedc697c0c276d7ffd2dc6268a08f38f1f535cadaf42c9",
+            "src/qtgui/tests/Vf13adAcceptance.hpp": "2645e018184c1bb9ae97cc1425d00dc561c8fde87ce36b07bf195f112ecb47b4",
+            "doc/help/src/Resource_VF13ad.xml": "0c38c0a8df46f065b68394538fc360a1e207ffabd9098e55dee6c24c5ac727ba"
+          }
+        },
+        {
+          "test": "QtGui.NativeNasaVF13adProgressCentral",
+          "source": "src/qtgui/tests/NasaVf13adProgressTests.cpp",
+          "source_sha256": "7cf7f88934f038138d5ae37afc9e84e80663c8d5f62ad975bbf471aafaf05976",
+          "anchor": "\"vf13ad-progress-schema\"",
+          "checkpoint": "vf13ad-progress-schema",
+          "expected": {
+            "mode": "Central",
+            "operators": [
+              "=",
+              "<=",
+              ">="
+            ]
+          },
+          "facets": [
+            "actual-resource-progress-style-unicode-file-input-and-history",
+            "live-native-nominal-decision-vector-and-every-iteration",
+            "independent-derived-equality-lower-upper-achieved-desired-residuals",
+            "independent-scaled-two-control-cost-and-optimum",
+            "identical-message-file-results-and-disabled-gating",
+            "source-configured-graph-preservation"
+          ],
+          "scope": "The system shall optionally show progress of a vf13ad optimizer in the message window that includes all of the following parameters:",
+          "reference_sources": {
+            "src/base/solver/InternalOptimizer.cpp": "0bdeb574317fd86e5d92f09462de7e1eaa9d9e1c3d90abe117b12f07e438dbd9",
+            "src/base/solver/Optimizer.cpp": "dde8411e1db1e12636adc25f76a66c6a05d9fe7c8b3227212252394ad96a5086",
+            "src/base/command/NonlinearConstraint.cpp": "03424c547502722e92208a8c8d44cf80128561aafd613d60785c4562aa60b115",
+            "src/base/command/Optimize.cpp": "2a20da205858acd32052db29f0d3203ddf8f75502ee8e23291a9692476df20f5",
+            "src/base/command/Vary.cpp": "13a221da317218a5d0753de4aa52e0c7a5a86ef2368d3e5300241a0d69955e84",
+            "src/qtgui/QtMessageReceiver.cpp": "0f6550038b969a82decedc697c0c276d7ffd2dc6268a08f38f1f535cadaf42c9",
+            "src/qtgui/tests/Vf13adAcceptance.hpp": "2645e018184c1bb9ae97cc1425d00dc561c8fde87ce36b07bf195f112ecb47b4",
+            "doc/help/src/Resource_VF13ad.xml": "0c38c0a8df46f065b68394538fc360a1e207ffabd9098e55dee6c24c5ac727ba"
+          }
+        }
+      ]
+    },
+    {
+      "key": "FRR!E295",
+      "fingerprint": "6747894a78b633022ae841a51216e6b975fa4e933167921a95e26b5dd2127569",
+      "applicability": "gui",
+      "rationale": "Current targeted VF13ad report contract: real native resource choices, every complete nominal iteration, physical/scaled controls, independent cost, explicit derived equality/lower/upper desired/achieved/residual values, message/file identity, disabled gating and preserved source/configured graph. Forward and central differences use nonidentity control scales. No arbitrary optimization/science/platform or whole-current-build/NASA qualification.",
+      "evidence": [
+        {
+          "test": "QtGui.NativeNasaVF13adProgressForward",
+          "source": "src/qtgui/tests/NasaVf13adProgressTests.cpp",
+          "source_sha256": "7cf7f88934f038138d5ae37afc9e84e80663c8d5f62ad975bbf471aafaf05976",
+          "anchor": "\"vf13ad-progress-schema\"",
+          "checkpoint": "vf13ad-progress-schema",
+          "expected": {
+            "mode": "Forward",
+            "operators": [
+              "=",
+              "<=",
+              ">="
+            ]
+          },
+          "facets": [
+            "actual-resource-progress-style-unicode-file-input-and-history",
+            "live-native-nominal-decision-vector-and-every-iteration",
+            "independent-derived-equality-lower-upper-achieved-desired-residuals",
+            "independent-scaled-two-control-cost-and-optimum",
+            "identical-message-file-results-and-disabled-gating",
+            "source-configured-graph-preservation"
+          ],
+          "scope": "1)\u00a0\u00a0\u00a0\u00a0\u00a0 Current value of control variables",
+          "reference_sources": {
+            "src/base/solver/InternalOptimizer.cpp": "0bdeb574317fd86e5d92f09462de7e1eaa9d9e1c3d90abe117b12f07e438dbd9",
+            "src/base/solver/Optimizer.cpp": "dde8411e1db1e12636adc25f76a66c6a05d9fe7c8b3227212252394ad96a5086",
+            "src/base/command/NonlinearConstraint.cpp": "03424c547502722e92208a8c8d44cf80128561aafd613d60785c4562aa60b115",
+            "src/base/command/Optimize.cpp": "2a20da205858acd32052db29f0d3203ddf8f75502ee8e23291a9692476df20f5",
+            "src/base/command/Vary.cpp": "13a221da317218a5d0753de4aa52e0c7a5a86ef2368d3e5300241a0d69955e84",
+            "src/qtgui/QtMessageReceiver.cpp": "0f6550038b969a82decedc697c0c276d7ffd2dc6268a08f38f1f535cadaf42c9",
+            "src/qtgui/tests/Vf13adAcceptance.hpp": "2645e018184c1bb9ae97cc1425d00dc561c8fde87ce36b07bf195f112ecb47b4",
+            "doc/help/src/Resource_VF13ad.xml": "0c38c0a8df46f065b68394538fc360a1e207ffabd9098e55dee6c24c5ac727ba"
+          }
+        },
+        {
+          "test": "QtGui.NativeNasaVF13adProgressCentral",
+          "source": "src/qtgui/tests/NasaVf13adProgressTests.cpp",
+          "source_sha256": "7cf7f88934f038138d5ae37afc9e84e80663c8d5f62ad975bbf471aafaf05976",
+          "anchor": "\"vf13ad-progress-schema\"",
+          "checkpoint": "vf13ad-progress-schema",
+          "expected": {
+            "mode": "Central",
+            "operators": [
+              "=",
+              "<=",
+              ">="
+            ]
+          },
+          "facets": [
+            "actual-resource-progress-style-unicode-file-input-and-history",
+            "live-native-nominal-decision-vector-and-every-iteration",
+            "independent-derived-equality-lower-upper-achieved-desired-residuals",
+            "independent-scaled-two-control-cost-and-optimum",
+            "identical-message-file-results-and-disabled-gating",
+            "source-configured-graph-preservation"
+          ],
+          "scope": "1)\u00a0\u00a0\u00a0\u00a0\u00a0 Current value of control variables",
+          "reference_sources": {
+            "src/base/solver/InternalOptimizer.cpp": "0bdeb574317fd86e5d92f09462de7e1eaa9d9e1c3d90abe117b12f07e438dbd9",
+            "src/base/solver/Optimizer.cpp": "dde8411e1db1e12636adc25f76a66c6a05d9fe7c8b3227212252394ad96a5086",
+            "src/base/command/NonlinearConstraint.cpp": "03424c547502722e92208a8c8d44cf80128561aafd613d60785c4562aa60b115",
+            "src/base/command/Optimize.cpp": "2a20da205858acd32052db29f0d3203ddf8f75502ee8e23291a9692476df20f5",
+            "src/base/command/Vary.cpp": "13a221da317218a5d0753de4aa52e0c7a5a86ef2368d3e5300241a0d69955e84",
+            "src/qtgui/QtMessageReceiver.cpp": "0f6550038b969a82decedc697c0c276d7ffd2dc6268a08f38f1f535cadaf42c9",
+            "src/qtgui/tests/Vf13adAcceptance.hpp": "2645e018184c1bb9ae97cc1425d00dc561c8fde87ce36b07bf195f112ecb47b4",
+            "doc/help/src/Resource_VF13ad.xml": "0c38c0a8df46f065b68394538fc360a1e207ffabd9098e55dee6c24c5ac727ba"
+          }
+        }
+      ]
+    },
+    {
+      "key": "FRR!E296",
+      "fingerprint": "ff1c0b11920029ddcaf39f8310ab3a9f7e0b2fa7cf9e4e2fd802186f6d377341",
+      "applicability": "gui",
+      "rationale": "Current targeted VF13ad report contract: real native resource choices, every complete nominal iteration, physical/scaled controls, independent cost, explicit derived equality/lower/upper desired/achieved/residual values, message/file identity, disabled gating and preserved source/configured graph. Forward and central differences use nonidentity control scales. No arbitrary optimization/science/platform or whole-current-build/NASA qualification.",
+      "evidence": [
+        {
+          "test": "QtGui.NativeNasaVF13adProgressForward",
+          "source": "src/qtgui/tests/NasaVf13adProgressTests.cpp",
+          "source_sha256": "7cf7f88934f038138d5ae37afc9e84e80663c8d5f62ad975bbf471aafaf05976",
+          "anchor": "\"vf13ad-progress-schema\"",
+          "checkpoint": "vf13ad-progress-schema",
+          "expected": {
+            "mode": "Forward",
+            "operators": [
+              "=",
+              "<=",
+              ">="
+            ]
+          },
+          "facets": [
+            "actual-resource-progress-style-unicode-file-input-and-history",
+            "live-native-nominal-decision-vector-and-every-iteration",
+            "independent-derived-equality-lower-upper-achieved-desired-residuals",
+            "independent-scaled-two-control-cost-and-optimum",
+            "identical-message-file-results-and-disabled-gating",
+            "source-configured-graph-preservation"
+          ],
+          "scope": "2)\u00a0\u00a0\u00a0\u00a0\u00a0 Achieved and desired values of the constraints",
+          "reference_sources": {
+            "src/base/solver/InternalOptimizer.cpp": "0bdeb574317fd86e5d92f09462de7e1eaa9d9e1c3d90abe117b12f07e438dbd9",
+            "src/base/solver/Optimizer.cpp": "dde8411e1db1e12636adc25f76a66c6a05d9fe7c8b3227212252394ad96a5086",
+            "src/base/command/NonlinearConstraint.cpp": "03424c547502722e92208a8c8d44cf80128561aafd613d60785c4562aa60b115",
+            "src/base/command/Optimize.cpp": "2a20da205858acd32052db29f0d3203ddf8f75502ee8e23291a9692476df20f5",
+            "src/base/command/Vary.cpp": "13a221da317218a5d0753de4aa52e0c7a5a86ef2368d3e5300241a0d69955e84",
+            "src/qtgui/QtMessageReceiver.cpp": "0f6550038b969a82decedc697c0c276d7ffd2dc6268a08f38f1f535cadaf42c9",
+            "src/qtgui/tests/Vf13adAcceptance.hpp": "2645e018184c1bb9ae97cc1425d00dc561c8fde87ce36b07bf195f112ecb47b4",
+            "doc/help/src/Resource_VF13ad.xml": "0c38c0a8df46f065b68394538fc360a1e207ffabd9098e55dee6c24c5ac727ba"
+          }
+        },
+        {
+          "test": "QtGui.NativeNasaVF13adProgressCentral",
+          "source": "src/qtgui/tests/NasaVf13adProgressTests.cpp",
+          "source_sha256": "7cf7f88934f038138d5ae37afc9e84e80663c8d5f62ad975bbf471aafaf05976",
+          "anchor": "\"vf13ad-progress-schema\"",
+          "checkpoint": "vf13ad-progress-schema",
+          "expected": {
+            "mode": "Central",
+            "operators": [
+              "=",
+              "<=",
+              ">="
+            ]
+          },
+          "facets": [
+            "actual-resource-progress-style-unicode-file-input-and-history",
+            "live-native-nominal-decision-vector-and-every-iteration",
+            "independent-derived-equality-lower-upper-achieved-desired-residuals",
+            "independent-scaled-two-control-cost-and-optimum",
+            "identical-message-file-results-and-disabled-gating",
+            "source-configured-graph-preservation"
+          ],
+          "scope": "2)\u00a0\u00a0\u00a0\u00a0\u00a0 Achieved and desired values of the constraints",
+          "reference_sources": {
+            "src/base/solver/InternalOptimizer.cpp": "0bdeb574317fd86e5d92f09462de7e1eaa9d9e1c3d90abe117b12f07e438dbd9",
+            "src/base/solver/Optimizer.cpp": "dde8411e1db1e12636adc25f76a66c6a05d9fe7c8b3227212252394ad96a5086",
+            "src/base/command/NonlinearConstraint.cpp": "03424c547502722e92208a8c8d44cf80128561aafd613d60785c4562aa60b115",
+            "src/base/command/Optimize.cpp": "2a20da205858acd32052db29f0d3203ddf8f75502ee8e23291a9692476df20f5",
+            "src/base/command/Vary.cpp": "13a221da317218a5d0753de4aa52e0c7a5a86ef2368d3e5300241a0d69955e84",
+            "src/qtgui/QtMessageReceiver.cpp": "0f6550038b969a82decedc697c0c276d7ffd2dc6268a08f38f1f535cadaf42c9",
+            "src/qtgui/tests/Vf13adAcceptance.hpp": "2645e018184c1bb9ae97cc1425d00dc561c8fde87ce36b07bf195f112ecb47b4",
+            "doc/help/src/Resource_VF13ad.xml": "0c38c0a8df46f065b68394538fc360a1e207ffabd9098e55dee6c24c5ac727ba"
+          }
+        }
+      ]
+    },
+    {
+      "key": "FRR!E297",
+      "fingerprint": "3c5d72bb0d0d3c275ca0f4467c43a7b071063f032541ae483dc5357dcf572cef",
+      "applicability": "gui",
+      "rationale": "Current targeted VF13ad report contract: real native resource choices, every complete nominal iteration, physical/scaled controls, independent cost, explicit derived equality/lower/upper desired/achieved/residual values, message/file identity, disabled gating and preserved source/configured graph. Forward and central differences use nonidentity control scales. No arbitrary optimization/science/platform or whole-current-build/NASA qualification.",
+      "evidence": [
+        {
+          "test": "QtGui.NativeNasaVF13adProgressForward",
+          "source": "src/qtgui/tests/NasaVf13adProgressTests.cpp",
+          "source_sha256": "7cf7f88934f038138d5ae37afc9e84e80663c8d5f62ad975bbf471aafaf05976",
+          "anchor": "\"vf13ad-progress-schema\"",
+          "checkpoint": "vf13ad-progress-schema",
+          "expected": {
+            "mode": "Forward",
+            "operators": [
+              "=",
+              "<=",
+              ">="
+            ]
+          },
+          "facets": [
+            "actual-resource-progress-style-unicode-file-input-and-history",
+            "live-native-nominal-decision-vector-and-every-iteration",
+            "independent-derived-equality-lower-upper-achieved-desired-residuals",
+            "independent-scaled-two-control-cost-and-optimum",
+            "identical-message-file-results-and-disabled-gating",
+            "source-configured-graph-preservation"
+          ],
+          "scope": "3)\u00a0\u00a0\u00a0\u00a0\u00a0 Cost function value",
+          "reference_sources": {
+            "src/base/solver/InternalOptimizer.cpp": "0bdeb574317fd86e5d92f09462de7e1eaa9d9e1c3d90abe117b12f07e438dbd9",
+            "src/base/solver/Optimizer.cpp": "dde8411e1db1e12636adc25f76a66c6a05d9fe7c8b3227212252394ad96a5086",
+            "src/base/command/NonlinearConstraint.cpp": "03424c547502722e92208a8c8d44cf80128561aafd613d60785c4562aa60b115",
+            "src/base/command/Optimize.cpp": "2a20da205858acd32052db29f0d3203ddf8f75502ee8e23291a9692476df20f5",
+            "src/base/command/Vary.cpp": "13a221da317218a5d0753de4aa52e0c7a5a86ef2368d3e5300241a0d69955e84",
+            "src/qtgui/QtMessageReceiver.cpp": "0f6550038b969a82decedc697c0c276d7ffd2dc6268a08f38f1f535cadaf42c9",
+            "src/qtgui/tests/Vf13adAcceptance.hpp": "2645e018184c1bb9ae97cc1425d00dc561c8fde87ce36b07bf195f112ecb47b4",
+            "doc/help/src/Resource_VF13ad.xml": "0c38c0a8df46f065b68394538fc360a1e207ffabd9098e55dee6c24c5ac727ba"
+          }
+        },
+        {
+          "test": "QtGui.NativeNasaVF13adProgressCentral",
+          "source": "src/qtgui/tests/NasaVf13adProgressTests.cpp",
+          "source_sha256": "7cf7f88934f038138d5ae37afc9e84e80663c8d5f62ad975bbf471aafaf05976",
+          "anchor": "\"vf13ad-progress-schema\"",
+          "checkpoint": "vf13ad-progress-schema",
+          "expected": {
+            "mode": "Central",
+            "operators": [
+              "=",
+              "<=",
+              ">="
+            ]
+          },
+          "facets": [
+            "actual-resource-progress-style-unicode-file-input-and-history",
+            "live-native-nominal-decision-vector-and-every-iteration",
+            "independent-derived-equality-lower-upper-achieved-desired-residuals",
+            "independent-scaled-two-control-cost-and-optimum",
+            "identical-message-file-results-and-disabled-gating",
+            "source-configured-graph-preservation"
+          ],
+          "scope": "3)\u00a0\u00a0\u00a0\u00a0\u00a0 Cost function value",
+          "reference_sources": {
+            "src/base/solver/InternalOptimizer.cpp": "0bdeb574317fd86e5d92f09462de7e1eaa9d9e1c3d90abe117b12f07e438dbd9",
+            "src/base/solver/Optimizer.cpp": "dde8411e1db1e12636adc25f76a66c6a05d9fe7c8b3227212252394ad96a5086",
+            "src/base/command/NonlinearConstraint.cpp": "03424c547502722e92208a8c8d44cf80128561aafd613d60785c4562aa60b115",
+            "src/base/command/Optimize.cpp": "2a20da205858acd32052db29f0d3203ddf8f75502ee8e23291a9692476df20f5",
+            "src/base/command/Vary.cpp": "13a221da317218a5d0753de4aa52e0c7a5a86ef2368d3e5300241a0d69955e84",
+            "src/qtgui/QtMessageReceiver.cpp": "0f6550038b969a82decedc697c0c276d7ffd2dc6268a08f38f1f535cadaf42c9",
+            "src/qtgui/tests/Vf13adAcceptance.hpp": "2645e018184c1bb9ae97cc1425d00dc561c8fde87ce36b07bf195f112ecb47b4",
+            "doc/help/src/Resource_VF13ad.xml": "0c38c0a8df46f065b68394538fc360a1e207ffabd9098e55dee6c24c5ac727ba"
+          }
+        }
+      ]
+    },
+    {
+      "key": "FRR!E298",
+      "fingerprint": "d968751d73f5c9014d771bf91259866c5bbf9799a090505b9ebbc71e07e9a0b6",
+      "applicability": "gui",
+      "rationale": "Current targeted VF13ad report contract: real native resource choices, every complete nominal iteration, physical/scaled controls, independent cost, explicit derived equality/lower/upper desired/achieved/residual values, message/file identity, disabled gating and preserved source/configured graph. Forward and central differences use nonidentity control scales. No arbitrary optimization/science/platform or whole-current-build/NASA qualification.",
+      "evidence": [
+        {
+          "test": "QtGui.NativeNasaVF13adProgressForward",
+          "source": "src/qtgui/tests/NasaVf13adProgressTests.cpp",
+          "source_sha256": "7cf7f88934f038138d5ae37afc9e84e80663c8d5f62ad975bbf471aafaf05976",
+          "anchor": "\"vf13ad-progress-schema\"",
+          "checkpoint": "vf13ad-progress-schema",
+          "expected": {
+            "mode": "Forward",
+            "operators": [
+              "=",
+              "<=",
+              ">="
+            ]
+          },
+          "facets": [
+            "actual-resource-progress-style-unicode-file-input-and-history",
+            "live-native-nominal-decision-vector-and-every-iteration",
+            "independent-derived-equality-lower-upper-achieved-desired-residuals",
+            "independent-scaled-two-control-cost-and-optimum",
+            "identical-message-file-results-and-disabled-gating",
+            "source-configured-graph-preservation"
+          ],
+          "scope": "4)\u00a0\u00a0\u00a0\u00a0\u00a0 Iteration number",
+          "reference_sources": {
+            "src/base/solver/InternalOptimizer.cpp": "0bdeb574317fd86e5d92f09462de7e1eaa9d9e1c3d90abe117b12f07e438dbd9",
+            "src/base/solver/Optimizer.cpp": "dde8411e1db1e12636adc25f76a66c6a05d9fe7c8b3227212252394ad96a5086",
+            "src/base/command/NonlinearConstraint.cpp": "03424c547502722e92208a8c8d44cf80128561aafd613d60785c4562aa60b115",
+            "src/base/command/Optimize.cpp": "2a20da205858acd32052db29f0d3203ddf8f75502ee8e23291a9692476df20f5",
+            "src/base/command/Vary.cpp": "13a221da317218a5d0753de4aa52e0c7a5a86ef2368d3e5300241a0d69955e84",
+            "src/qtgui/QtMessageReceiver.cpp": "0f6550038b969a82decedc697c0c276d7ffd2dc6268a08f38f1f535cadaf42c9",
+            "src/qtgui/tests/Vf13adAcceptance.hpp": "2645e018184c1bb9ae97cc1425d00dc561c8fde87ce36b07bf195f112ecb47b4",
+            "doc/help/src/Resource_VF13ad.xml": "0c38c0a8df46f065b68394538fc360a1e207ffabd9098e55dee6c24c5ac727ba"
+          }
+        },
+        {
+          "test": "QtGui.NativeNasaVF13adProgressCentral",
+          "source": "src/qtgui/tests/NasaVf13adProgressTests.cpp",
+          "source_sha256": "7cf7f88934f038138d5ae37afc9e84e80663c8d5f62ad975bbf471aafaf05976",
+          "anchor": "\"vf13ad-progress-schema\"",
+          "checkpoint": "vf13ad-progress-schema",
+          "expected": {
+            "mode": "Central",
+            "operators": [
+              "=",
+              "<=",
+              ">="
+            ]
+          },
+          "facets": [
+            "actual-resource-progress-style-unicode-file-input-and-history",
+            "live-native-nominal-decision-vector-and-every-iteration",
+            "independent-derived-equality-lower-upper-achieved-desired-residuals",
+            "independent-scaled-two-control-cost-and-optimum",
+            "identical-message-file-results-and-disabled-gating",
+            "source-configured-graph-preservation"
+          ],
+          "scope": "4)\u00a0\u00a0\u00a0\u00a0\u00a0 Iteration number",
+          "reference_sources": {
+            "src/base/solver/InternalOptimizer.cpp": "0bdeb574317fd86e5d92f09462de7e1eaa9d9e1c3d90abe117b12f07e438dbd9",
+            "src/base/solver/Optimizer.cpp": "dde8411e1db1e12636adc25f76a66c6a05d9fe7c8b3227212252394ad96a5086",
+            "src/base/command/NonlinearConstraint.cpp": "03424c547502722e92208a8c8d44cf80128561aafd613d60785c4562aa60b115",
+            "src/base/command/Optimize.cpp": "2a20da205858acd32052db29f0d3203ddf8f75502ee8e23291a9692476df20f5",
+            "src/base/command/Vary.cpp": "13a221da317218a5d0753de4aa52e0c7a5a86ef2368d3e5300241a0d69955e84",
+            "src/qtgui/QtMessageReceiver.cpp": "0f6550038b969a82decedc697c0c276d7ffd2dc6268a08f38f1f535cadaf42c9",
+            "src/qtgui/tests/Vf13adAcceptance.hpp": "2645e018184c1bb9ae97cc1425d00dc561c8fde87ce36b07bf195f112ecb47b4",
+            "doc/help/src/Resource_VF13ad.xml": "0c38c0a8df46f065b68394538fc360a1e207ffabd9098e55dee6c24c5ac727ba"
+          }
+        }
+      ]
+    },
+    {
+      "key": "FRR!E299",
+      "fingerprint": "1b41c9788ab2dfa768bdc329f5bb870218522077dc4bcf65e07cd75697f3b370",
+      "applicability": "gui",
+      "rationale": "Current targeted VF13ad report contract: real native resource choices, every complete nominal iteration, physical/scaled controls, independent cost, explicit derived equality/lower/upper desired/achieved/residual values, message/file identity, disabled gating and preserved source/configured graph. Forward and central differences use nonidentity control scales. No arbitrary optimization/science/platform or whole-current-build/NASA qualification.",
+      "evidence": [
+        {
+          "test": "QtGui.NativeNasaVF13adProgressForward",
+          "source": "src/qtgui/tests/NasaVf13adProgressTests.cpp",
+          "source_sha256": "7cf7f88934f038138d5ae37afc9e84e80663c8d5f62ad975bbf471aafaf05976",
+          "anchor": "\"vf13ad-progress-schema\"",
+          "checkpoint": "vf13ad-progress-schema",
+          "expected": {
+            "mode": "Forward",
+            "operators": [
+              "=",
+              "<=",
+              ">="
+            ]
+          },
+          "facets": [
+            "actual-resource-progress-style-unicode-file-input-and-history",
+            "live-native-nominal-decision-vector-and-every-iteration",
+            "independent-derived-equality-lower-upper-achieved-desired-residuals",
+            "independent-scaled-two-control-cost-and-optimum",
+            "identical-message-file-results-and-disabled-gating",
+            "source-configured-graph-preservation"
+          ],
+          "scope": "The system shall optionally create a report file containing information on each iteration of the vf13ad optimizer containing all data listed in FRR-21.2.",
+          "reference_sources": {
+            "src/base/solver/InternalOptimizer.cpp": "0bdeb574317fd86e5d92f09462de7e1eaa9d9e1c3d90abe117b12f07e438dbd9",
+            "src/base/solver/Optimizer.cpp": "dde8411e1db1e12636adc25f76a66c6a05d9fe7c8b3227212252394ad96a5086",
+            "src/base/command/NonlinearConstraint.cpp": "03424c547502722e92208a8c8d44cf80128561aafd613d60785c4562aa60b115",
+            "src/base/command/Optimize.cpp": "2a20da205858acd32052db29f0d3203ddf8f75502ee8e23291a9692476df20f5",
+            "src/base/command/Vary.cpp": "13a221da317218a5d0753de4aa52e0c7a5a86ef2368d3e5300241a0d69955e84",
+            "src/qtgui/QtMessageReceiver.cpp": "0f6550038b969a82decedc697c0c276d7ffd2dc6268a08f38f1f535cadaf42c9",
+            "src/qtgui/tests/Vf13adAcceptance.hpp": "2645e018184c1bb9ae97cc1425d00dc561c8fde87ce36b07bf195f112ecb47b4",
+            "doc/help/src/Resource_VF13ad.xml": "0c38c0a8df46f065b68394538fc360a1e207ffabd9098e55dee6c24c5ac727ba"
+          }
+        },
+        {
+          "test": "QtGui.NativeNasaVF13adProgressCentral",
+          "source": "src/qtgui/tests/NasaVf13adProgressTests.cpp",
+          "source_sha256": "7cf7f88934f038138d5ae37afc9e84e80663c8d5f62ad975bbf471aafaf05976",
+          "anchor": "\"vf13ad-progress-schema\"",
+          "checkpoint": "vf13ad-progress-schema",
+          "expected": {
+            "mode": "Central",
+            "operators": [
+              "=",
+              "<=",
+              ">="
+            ]
+          },
+          "facets": [
+            "actual-resource-progress-style-unicode-file-input-and-history",
+            "live-native-nominal-decision-vector-and-every-iteration",
+            "independent-derived-equality-lower-upper-achieved-desired-residuals",
+            "independent-scaled-two-control-cost-and-optimum",
+            "identical-message-file-results-and-disabled-gating",
+            "source-configured-graph-preservation"
+          ],
+          "scope": "The system shall optionally create a report file containing information on each iteration of the vf13ad optimizer containing all data listed in FRR-21.2.",
+          "reference_sources": {
+            "src/base/solver/InternalOptimizer.cpp": "0bdeb574317fd86e5d92f09462de7e1eaa9d9e1c3d90abe117b12f07e438dbd9",
+            "src/base/solver/Optimizer.cpp": "dde8411e1db1e12636adc25f76a66c6a05d9fe7c8b3227212252394ad96a5086",
+            "src/base/command/NonlinearConstraint.cpp": "03424c547502722e92208a8c8d44cf80128561aafd613d60785c4562aa60b115",
+            "src/base/command/Optimize.cpp": "2a20da205858acd32052db29f0d3203ddf8f75502ee8e23291a9692476df20f5",
+            "src/base/command/Vary.cpp": "13a221da317218a5d0753de4aa52e0c7a5a86ef2368d3e5300241a0d69955e84",
+            "src/qtgui/QtMessageReceiver.cpp": "0f6550038b969a82decedc697c0c276d7ffd2dc6268a08f38f1f535cadaf42c9",
+            "src/qtgui/tests/Vf13adAcceptance.hpp": "2645e018184c1bb9ae97cc1425d00dc561c8fde87ce36b07bf195f112ecb47b4",
+            "doc/help/src/Resource_VF13ad.xml": "0c38c0a8df46f065b68394538fc360a1e207ffabd9098e55dee6c24c5ac727ba"
+          }
+        }
+      ]
+    }
+  ]
+}

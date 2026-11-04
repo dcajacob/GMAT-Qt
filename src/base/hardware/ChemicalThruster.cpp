@@ -32,6 +32,7 @@
 #include "HardwareException.hpp"
 #include "MessageInterface.hpp"
 #include <sstream>
+#include <cmath>
 #include <math.h>          // for pow(real, real)
 
 //#define DEBUG_CHEMICAL_THRUSTER
@@ -876,6 +877,14 @@ bool ChemicalThruster::CalculateThrustAndIsp()
       // Now add the temperature independent pieces
       thrust  += cCoefficients[0] + cCoefficients[1] * pressure;
       impulse += kCoefficients[0] + kCoefficients[1] * pressure;
+
+      // Finite inputs can still leave the real domain (for example a
+      // negative Celsius temperature ratio raised to a fractional power).
+      // Stop before a non-finite value reaches force or mass derivatives.
+      if (!std::isfinite(thrust) || !std::isfinite(impulse))
+         throw HardwareException("ChemicalThruster \"" + instanceName +
+            "\" calculated non-finite thrust or Isp; check its coefficients "
+            "and tank pressure/temperature.");
    }
    
    // Calculate applied thrust magnitude

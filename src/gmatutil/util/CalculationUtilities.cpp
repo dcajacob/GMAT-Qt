@@ -384,7 +384,7 @@ Real GmatCalcUtil::CalculatePlanetData(const std::string &item, const Rvector6 &
       Real rxy               = sqrt(state[0]*state[0] + state[1]*state[1]);
       Real geolat            = atan2(state[2], rxy);
       Real delta             = 1.0;
-      Real geodeticTolerance = 1.0e-7;    // Better than 0.0001 degrees
+      Real geodeticTolerance = 1.0e-12;   // Radians; resolve oblate-body latitude and altitude.
       Real ecc2              = 2.0 * originFlattening - originFlattening*originFlattening;
 
       #ifdef DEBUG_ALTITUDE_LATITUDE

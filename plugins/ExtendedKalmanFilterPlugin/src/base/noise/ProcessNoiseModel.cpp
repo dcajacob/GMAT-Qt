@@ -936,3 +936,14 @@ Integer ProcessNoiseModel::GetOwnedObjectId(Integer id, UnsignedInt objType) con
    
    return actualId;
 }
+
+// Whole-object script assignment and GmatFunction outputs use this virtual API.
+// Retain the existing class assignment logic and the destination's identity.
+void ProcessNoiseModel::Copy(const GmatBase* source)
+{
+   const auto* typed = dynamic_cast<const ProcessNoiseModel*>(source);
+   if (!typed || typed->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Cannot copy into " + GetTypeName() +
+                             " from a null or incompatible object");
+   operator=(*typed);
+}

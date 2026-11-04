@@ -29,6 +29,8 @@
 //------------------------------------------------------------------------------
 
 #include "FileInterface.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "FileUtil.hpp"
 #include "ReaderFactory.hpp"        // Not a registered factory for now, but it
                                     // uses the factory interfaces
@@ -573,4 +575,16 @@ Integer FileInterface::Close(const std::string& name)
    }
 
    return retval;
+}
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void FileInterface::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const FileInterface*>(original);
+   if (!source || typeid(*source) != typeid(FileInterface) ||
+       typeid(*this) != typeid(FileInterface))
+      throw GmatBaseException("Cannot copy incompatible object into FileInterface");
+   if (source == this)
+      return;
+   operator=(*source);
 }

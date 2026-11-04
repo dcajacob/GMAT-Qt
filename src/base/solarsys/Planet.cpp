@@ -299,9 +299,9 @@ Rvector Planet::GetBodyCartographicCoordinates(const A1Mjd &forTime) const
       Real d = GetJulianDaysFromTDBEpoch(forTime); // interval in Julian days
       Real T = d / GmatTimeConstants::DAYS_PER_JULIAN_CENTURY;  // interval in Julian centuries
       Real N    = 357.85 + 52.316 * T;
-      //Real NDot = 52.316 * CelestialBody::TDot;
-	  //NDot = 52.316 (deg/century) * (1 century/36525 days)
-      Real NDot      = 0.0014323;   // fixed conversion error from spec, (SPH) 02 Nov. 2012
+      // N is specified in degrees. Differentiating sin(Rad(N)) requires
+      // the argument rate in radians/day; Wdot below remains degrees/day.
+      Real NDot = Rad(52.316) / GmatTimeConstants::DAYS_PER_JULIAN_CENTURY;
       Real alpha     = orientation[0] + orientation[1] * Sin(Rad(N));
       Real delta     = orientation[2] + orientation[3] * Cos(Rad(N));
       Real W         = orientation[4] + orientation[5] * d - 0.48 * Sin(Rad(N));

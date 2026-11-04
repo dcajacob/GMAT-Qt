@@ -39,6 +39,9 @@
 #include "CoordinateSystem.hpp"
 #include "CoordinateConverter.hpp"
 #include "RelativisticCorrection.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
+#include <memory>
 #include "TimeSystemConverter.hpp"
 #include "MessageInterface.hpp"
 
@@ -155,6 +158,11 @@ RelativisticCorrection& RelativisticCorrection::operator=(const RelativisticCorr
    if (&rc == this)
       return *this;
 
+   std::unique_ptr<CoordinateSystem> nextInertial(rc.bodyInertial ?
+      static_cast<CoordinateSystem*>(rc.bodyInertial->Clone()) : NULL);
+   std::unique_ptr<CoordinateSystem> nextFixed(rc.bodyFixed ?
+      static_cast<CoordinateSystem*>(rc.bodyFixed->Clone()) : NULL);
+
    PhysicalModel::operator=(rc);
 
    theSun         = NULL;
@@ -163,8 +171,10 @@ RelativisticCorrection& RelativisticCorrection::operator=(const RelativisticCorr
    bodySpinRate   = rc.bodySpinRate;
    now            = rc.now;
    satCount       = rc.satCount;
-   bodyInertial   = (CoordinateSystem*) rc.bodyInertial->Clone();
-   bodyFixed      = (CoordinateSystem*) rc.bodyFixed->Clone();
+   delete bodyInertial;
+   delete bodyFixed;
+   bodyInertial   = nextInertial.release();
+   bodyFixed      = nextFixed.release();
    eop            = rc.eop;
 
    return *this;
@@ -801,7 +811,7 @@ Gmat::ParameterType RelativisticCorrection::GetParameterType(const Integer id) c
 std::string RelativisticCorrection::GetParameterTypeString(const Integer id) const
 {
    if ((id >= PhysicalModelParamCount) && (id < RelativisticCorrectionParamCount))
-      return PARAMETER_TEXT[id - PhysicalModelParamCount];
+      return GmatBase::PARAM_TYPE_STRING[GetParameterType(id)];
    return PhysicalModel::GetParameterTypeString(id);
 }
 
@@ -966,3 +976,15 @@ bool RelativisticCorrection::SetStart(Gmat::StateElementId id, Integer index,
 // N/A
 
 
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void RelativisticCorrection::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const RelativisticCorrection*>(original);
+   if (!source || typeid(*source) != typeid(RelativisticCorrection) ||
+       typeid(*this) != typeid(RelativisticCorrection))
+      throw GmatBaseException("Cannot copy incompatible object into RelativisticCorrection");
+   if (source == this)
+      return;
+   operator=(*source);
+}

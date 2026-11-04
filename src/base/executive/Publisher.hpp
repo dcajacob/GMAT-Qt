@@ -32,6 +32,8 @@
 #define Publisher_hpp
 
 #include "Subscriber.hpp"
+#include "GmatTime.hpp"
+#include "Rvector6.hpp"
 #include <list>
 #include <vector>
 #include <map>
@@ -50,6 +52,65 @@ public:
    bool UnsubscribeAll();
    
    virtual bool Publish(GmatBase *provider, Integer id, Real *data, Integer count, Real propDir = 1.0);
+   // Optional precise timestamp for this synchronous Real packet only. Existing
+   // Publish overloads and subscriber ABI remain unchanged.
+   bool PublishWithEpoch(GmatBase *provider, Integer id, Real *data, Integer count,
+                         const GmatTime &epoch, Real propDir = 1.0);
+   static bool GetPublishedEpoch(const Real *data, Integer count, GmatTime &epoch);
+   struct CartesianSample
+   {
+      const GmatBase *object;
+      GmatTime epoch;
+      Rvector6 state;
+   };
+   bool PublishWithSamples(GmatBase *provider, Integer id, Real *data,
+                           Integer count, const GmatTime &sourceEpoch,
+                           const std::vector<CartesianSample> &samples,
+                           Real propDir = 1.0);
+   static bool GetPublishedCartesianState(const Real *data, Integer count,
+      const GmatBase *object, GmatTime &epoch, Rvector6 &state);
+   // Optional accepted integration endpoints for this synchronous publication.
+   // Existing packets, virtual dispatch and Subscriber ABI remain unchanged.
+   struct IntegrationStep
+   {
+      bool initial = false;
+      // True for a committed ephemeris-provider advance (no integration).
+      bool ephemeris = false;
+      Real startSeconds = 0.0;
+      Real endSeconds = 0.0;
+      std::string method;
+      GmatTime epoch;
+      std::vector<CartesianSample> states;
+   };
+   static void SetIntegrationStepConsumer(Subscriber *subscriber, bool enabled);
+   bool HasIntegrationStepConsumers() const;
+   bool PublishWithIntegrationSteps(GmatBase *provider, Integer id, Real *data,
+      Integer count, const std::vector<IntegrationStep> &steps, Real propDir = 1.0);
+   static const std::vector<IntegrationStep>* GetPublishedIntegrationSteps(
+      const Real *data, Integer count);
+
+   // Identity and command-start flag for the current ordinary Propagate packet.
+   // This lightweight context does not subscribe the caller to integration steps.
+   bool PublishPropagatePacket(GmatBase *provider, Integer id, Real *data,
+      Integer count, Real direction, const ObjectArray &objects, bool initial,
+      const std::vector<IntegrationStep> *steps = NULL);
+   static const ObjectArray *GetPublishedPropagationObjects(const Real *data,
+      Integer count, bool &initial);
+
+   // Only a report's wrapper evaluation opts into sampled Cartesian/time
+   // values. Other subscribers and the live spacecraft retain source data.
+   class GMAT_API ParameterStateScope
+   {
+   public:
+      ParameterStateScope(const Real *data, Integer count);
+      ~ParameterStateScope();
+      ParameterStateScope(const ParameterStateScope &) = delete;
+      ParameterStateScope &operator=(const ParameterStateScope &) = delete;
+   private:
+      const void *previous;
+   };
+   static bool GetParameterCartesianState(const GmatBase *object,
+      GmatTime &epoch, Rvector6 &state);
    virtual bool Publish(Integer id, char *data, Integer count = 0);
    virtual bool Publish(Integer id, Integer *data, Integer count);
    virtual void Ping();

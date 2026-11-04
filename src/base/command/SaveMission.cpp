@@ -130,9 +130,16 @@ SaveMission& SaveMission::operator=(const SaveMission& noop)
 //------------------------------------------------------------------------------
 bool SaveMission::Execute()
 {
-   // If this command is not in a function and is the last command, write
-   // whole mission to a file
-   if (currentFunction == NULL && GmatCommandUtil::GetLastCommand(this) == this)
+   // Script Event closing markers are GUI grouping only. A final semantic
+   // SaveMission remains terminal when only those markers follow it. Stop at
+   // every other successor, including branch terminators/owners; do not walk
+   // a branch's cyclic command chain while checking terminal placement.
+   GmatCommand *following = GetNextWhileExecuting();
+   while (following != NULL && following->GetTypeName() == "EndScript")
+      following = following->GetNextWhileExecuting();
+
+   // Functions still cannot save the whole mission.
+   if (currentFunction == NULL && following == NULL)
    {
       FileManager *fm = FileManager::Instance();
       std::string outPath = fm->GetAbsPathname(FileManager::OUTPUT_PATH);

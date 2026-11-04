@@ -57,7 +57,7 @@
       <itemizedlist>
         <listitem>
           <para>Objective: Target a Martian transfer trajectory using B-Plane
-          Targeting, to achieve a transfer inclination of 24.677° in the
+          Targeting, to achieve a transfer inclination of 24.677090° in the
           SunMJ2kEq coordinate system before the Mars encounter.</para>
         </listitem>
 
@@ -66,27 +66,27 @@
 
           <itemizedlist>
             <listitem>
-              <para>Parking orbit SMA = 10000 km</para>
+              <para>Parking orbit SMA = 9999.999999999996 km</para>
             </listitem>
 
             <listitem>
-              <para>Parking orbit ECC = 0.1</para>
+              <para>Parking orbit ECC = 0.09999999999999859</para>
             </listitem>
 
             <listitem>
-              <para>INC = 25.0°</para>
+              <para>INC = 24.99999999999999°</para>
             </listitem>
 
             <listitem>
-              <para>RAAN = 332.5°</para>
+              <para>RAAN = 332.5000000000001°</para>
             </listitem>
 
             <listitem>
-              <para>AOP = 90.0°</para>
+              <para>AOP = 89.99999999999974°</para>
             </listitem>
 
             <listitem>
-              <para>TA = 360°</para>
+              <para>TA = 359.9999991462263°</para>
             </listitem>
           </itemizedlist>
         </listitem>
@@ -234,8 +234,7 @@
                   <para>Use RungeKutta89, InitialStepSize 60 sec, Accuracy
                   1e-12, MinStep 0.001 sec, MaxStep 86400 sec and
                   MaxStepAttempts 50, as shown in the EarthProp illustration.
-                  For SunProp and MarsProp the original prose omits Accuracy;
-                  this walkthrough retains the current creator default 1e-11,
+                  For SunProp and MarsProp set Accuracy to 1e-12, matching the shipped script,
                   with RungeKutta89, InitialStepSize 60 sec and MinStep
                   0.001 sec. Keep StopIfAccuracyIsViolated true.</para>
                 </listitem>
@@ -329,13 +328,13 @@
             </listitem>
 
             <listitem>
-              <para>Change the MarsMCC vector N to - 0.8593 km/s with a
+              <para>Change the MarsMCC vector N to - 0.8593108944581399 km/s with a
               heliocentric origin</para>
             </listitem>
 
             <listitem>
-              <para>Change the MarsBPlane vector V to - 0.3309 km/s and B to
-              0.6917 km/s with a heliocentric origin</para>
+              <para>Change the MarsBPlane vector V to - 0.3309163493210106 km/s and B to
+              0.6917117705660262 km/s with a heliocentric origin</para>
             </listitem>
 
             <listitem>
@@ -571,17 +570,13 @@
     when the second sequence targets a distinct B-Plane parameter. After the
     second targeting sequence is accomplished, the spacecraft is slowed by a
     final maneuver that puts it into the elliptical orbit and continues to
-    propagate for another 25 days. During each Propagate and Maneuver command
+    propagate for another 0.5 days. During each Propagate and Maneuver command
     before and after the targeting sequences, reports are added for tracking
     and analysis purposes, to monitor the spacecraft's Cartesian coordinates
     and velocity vectors.</para>
 
     <note>
-      <para>The original overview and historical reference use a half-day
-      final coast, while the detailed Propagate 6 instruction below specifies
-      25 elapsed days. This walkthrough follows that detailed instruction.
-      The 24.677° target is the SunMJ2kEq transfer inclination in Target 1;
-      the final MarsMJ2000Eq orbit inclination is a different quantity.</para>
+      <para>The final Mars coast is 0.5 elapsed days, matching the shipped reference. The earlier 25-day instruction was a tutorial error. The 24.677090° target is the SunMJ2kEq transfer inclination, not the final Mars-relative inclination.</para>
     </note>
 
     <para>Use the Mission tree's Insert before, Insert after and Append inside
@@ -626,7 +621,7 @@
             <para>Target 1 includes Vary, Maneuver, and Achieve commands, to
             prompt GMAT into achieving the desired inclination. The maneuver
             applies the MarsMCC impulsive burn to achieve a ΔV in the N
-            direction, so the spacecraft can reach 24.677° and begin its final
+            direction, so the spacecraft can reach 24.677090° and begin its final
             maneuver.</para>
           </listitem>
 
@@ -652,7 +647,7 @@
 
           <listitem>
             <para>The final command, Propagate 6, propagates the spacecraft
-            for an additional 25 days, so the plot can show the entire
+            for an additional 0.5 days, so the plot can show the entire
             elliptical trajectory around Mars.</para>
           </listitem>
         </itemizedlist>
@@ -896,7 +891,7 @@
 
                 <itemizedlist>
                   <listitem>
-                    <para>Set the Value to 24.677°</para>
+                    <para>Set the Value to 24.677090°</para>
                   </listitem>
 
                   <listitem>
@@ -976,7 +971,7 @@
                   </listitem>
 
                   <listitem>
-                    <para>Use an Initial Value to - 0.2338 km/s</para>
+                    <para>Use an Initial Value to -0.233834 km/s</para>
                   </listitem>
 
                   <listitem>
@@ -1007,7 +1002,7 @@
                   </listitem>
 
                   <listitem>
-                    <para>Use an Initial Value of 0.6683 km/s</para>
+                    <para>Use an Initial Value of 0.668261 km/s</para>
                   </listitem>
 
                   <listitem>
@@ -1159,7 +1154,7 @@
               </listitem>
 
               <listitem>
-                <para>Set the stopping condition to 25 elapsed days</para>
+                <para>Set the stopping condition to 0.5 elapsed days</para>
               </listitem>
             </itemizedlist>
           </listitem>

@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include <memory>
 #include <QSignalBlocker>
+#include <tuple>
 
 InspectionDialog::InspectionDialog(const QString &title,const QString &contents,const QString &context,
                                    QWidget *parent,ProtectedPaths paths)
@@ -73,21 +74,25 @@ SummaryDialog::SummaryDialog(const QString &title,const QStringList &frames,bool
    frame->setCurrentText("EarthMJ2000Eq"); row->addWidget(frame,1);
    auto *physics=new QCheckBox("Physics commands only",controls); physics->setObjectName("summaryPhysics");
    physics->setVisible(mission); row->addWidget(physics);
+   auto *a1=new QCheckBox("Include A1ModJulian",controls); a1->setObjectName("summaryA1Epoch");
+   row->addWidget(a1);
    static_cast<QVBoxLayout *>(layout())->insertWidget(1,controls);
-   auto previous=std::make_shared<QPair<QString,bool>>(frame->currentText(),false);
-   auto refresh=[this,frame,physics,loader,previous] {
+   auto previous=std::make_shared<std::tuple<QString,bool,bool>>(frame->currentText(),false,false);
+   auto refresh=[this,frame,physics,a1,loader,previous] {
       auto *status=findChild<QLabel *>("inspectionStatus");
       try {
-         setText(loader(frame->currentText(),physics->isChecked()));
-         *previous={frame->currentText(),physics->isChecked()}; status->clear();
+         setText(loader(frame->currentText(),physics->isChecked(),a1->isChecked()));
+         *previous={frame->currentText(),physics->isChecked(),a1->isChecked()}; status->clear();
       } catch (BaseException &error) {
          status->setText(QString::fromStdString(error.GetFullMessage()));
       } catch (const std::exception &error) { status->setText(QString::fromUtf8(error.what())); }
       if (!status->text().isEmpty()) {
-         const QSignalBlocker frameBlock(frame),physicsBlock(physics);
-         frame->setCurrentText(previous->first); physics->setChecked(previous->second);
+         const QSignalBlocker frameBlock(frame),physicsBlock(physics),a1Block(a1);
+         frame->setCurrentText(std::get<0>(*previous)); physics->setChecked(std::get<1>(*previous));
+         a1->setChecked(std::get<2>(*previous));
       }
    };
    connect(frame,&QComboBox::currentTextChanged,this,[refresh] { refresh(); });
    connect(physics,&QCheckBox::toggled,this,[refresh] { refresh(); }); refresh();
+   connect(a1,&QCheckBox::toggled,this,[refresh] { refresh(); });
 }

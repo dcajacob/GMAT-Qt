@@ -1,0 +1,438 @@
+{
+    "A1_minus_TAI_seconds": 0.0343817,
+    "TT_minus_TAI_seconds": 32.184,
+    "cases": [
+        {
+            "center_et": -55.69107275543756,
+            "held_inputs": [
+            ],
+            "inputs": [
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": -55.69107275543756,
+                    "format": "A1ModJulian",
+                    "key": "A1ModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "21544.9989833261788590"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": -55.69107275543756,
+                    "format": "A1Gregorian",
+                    "key": "A1Gregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2000 11:58:32.159"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": -55.69107275543756,
+                    "format": "TAIModJulian",
+                    "key": "TAIModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "21544.9989829282421852"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": -55.69107275543756,
+                    "format": "TAIGregorian",
+                    "key": "TAIGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2000 11:58:32.125"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": -55.69107275543756,
+                    "format": "UTCModJulian",
+                    "key": "UTCModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "21544.9986125578689098"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": -55.69107275543756,
+                    "format": "UTCGregorian",
+                    "key": "UTCGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2000 11:58:00.125"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": -55.69107275543756,
+                    "format": "TTModJulian",
+                    "key": "TTModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "21544.9993554282409605"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": -55.69107275543756,
+                    "format": "TTGregorian",
+                    "key": "TTGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2000 11:59:04.309"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": -55.69107275543756,
+                    "format": "TDBModJulian",
+                    "key": "TDBModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "21544.9993554273969494"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": -55.69107275543756,
+                    "format": "TDBGregorian",
+                    "key": "TDBGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2000 11:59:04.309"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": -295.6910727554376,
+                    "format": "TDBModJulian",
+                    "key": "FromSpacecraft",
+                    "kind": "inherited",
+                    "start_epoch": "FromSpacecraft"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": -1255.6910727554375,
+                    "format": "A1Gregorian",
+                    "key": "EphemStart",
+                    "kind": "ephemeris-start",
+                    "start_epoch": "EphemStart"
+                }
+            ],
+            "key": "J2000",
+            "reference_utc": "2000 JAN 01 11:58:00.125 UTC",
+            "spacecraft_tdb_mjd": "21544.9965776496210310"
+        },
+        {
+            "center_et": 536500866.3089298,
+            "held_inputs": [
+            ],
+            "inputs": [
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500866.3089298,
+                    "format": "A1ModJulian",
+                    "key": "A1ModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "27754.5003953632149205"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": 536500866.3089298,
+                    "format": "A1Gregorian",
+                    "key": "A1Gregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2017 00:00:34.159"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500866.3089298,
+                    "format": "TAIModJulian",
+                    "key": "TAIModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "27754.5003949652782467"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": 536500866.3089298,
+                    "format": "TAIGregorian",
+                    "key": "TAIGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2017 00:00:34.125"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500866.3089298,
+                    "format": "UTCModJulian",
+                    "key": "UTCModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "27754.4999782986124046"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": 536500866.3089298,
+                    "format": "UTCGregorian",
+                    "key": "UTCGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "31 Dec 2016 23:59:58.125"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500866.3089298,
+                    "format": "TTModJulian",
+                    "key": "TTModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "27754.5007674652770220"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": 536500866.3089298,
+                    "format": "TTGregorian",
+                    "key": "TTGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2017 00:01:06.309"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500866.3089298,
+                    "format": "TDBModJulian",
+                    "key": "TDBModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "27754.5007674644657527"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": 536500866.3089298,
+                    "format": "TDBGregorian",
+                    "key": "TDBGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2017 00:01:06.309"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500626.3089298,
+                    "format": "TDBModJulian",
+                    "key": "FromSpacecraft",
+                    "kind": "inherited",
+                    "start_epoch": "FromSpacecraft"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536499666.3089298,
+                    "format": "A1Gregorian",
+                    "key": "EphemStart",
+                    "kind": "ephemeris-start",
+                    "start_epoch": "EphemStart"
+                }
+            ],
+            "key": "PreLeap",
+            "reference_utc": "2016 DEC 31 23:59:58.125 UTC",
+            "spacecraft_tdb_mjd": "27754.4979896866861964"
+        },
+        {
+            "center_et": 536500868.3089298,
+            "held_inputs": [
+                {
+                    "format": "UTCModJulian",
+                    "reason": "UTC Modified Julian is ambiguous during a leap second;current NASA guide discourages this representation. No unique ET assertion supplied."
+                }
+            ],
+            "inputs": [
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500868.3089298,
+                    "format": "A1ModJulian",
+                    "key": "A1ModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "27754.5004185113612039"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": 536500868.3089298,
+                    "format": "A1Gregorian",
+                    "key": "A1Gregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2017 00:00:36.159"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500868.3089298,
+                    "format": "TAIModJulian",
+                    "key": "TAIModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "27754.5004181134245300"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": 536500868.3089298,
+                    "format": "TAIGregorian",
+                    "key": "TAIGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2017 00:00:36.125"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": 536500868.3089298,
+                    "format": "UTCGregorian",
+                    "key": "UTCGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "31 Dec 2016 23:59:60.125"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500868.3089298,
+                    "format": "TTModJulian",
+                    "key": "TTModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "27754.5007906134269433"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": 536500868.3089298,
+                    "format": "TTGregorian",
+                    "key": "TTGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2017 00:01:08.309"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500868.3089298,
+                    "format": "TDBModJulian",
+                    "key": "TDBModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "27754.5007906126120361"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": 536500868.3089298,
+                    "format": "TDBGregorian",
+                    "key": "TDBGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2017 00:01:08.309"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500628.3089298,
+                    "format": "TDBModJulian",
+                    "key": "FromSpacecraft",
+                    "kind": "inherited",
+                    "start_epoch": "FromSpacecraft"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536499668.3089298,
+                    "format": "A1Gregorian",
+                    "key": "EphemStart",
+                    "kind": "ephemeris-start",
+                    "start_epoch": "EphemStart"
+                }
+            ],
+            "key": "LeapSecond",
+            "reference_utc": "2016 DEC 31 23:59:60.125 UTC",
+            "spacecraft_tdb_mjd": "27754.4980128348361177"
+        },
+        {
+            "center_et": 536500869.3089298,
+            "held_inputs": [
+            ],
+            "inputs": [
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500869.3089298,
+                    "format": "A1ModJulian",
+                    "key": "A1ModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "27754.5004300854379835"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": 536500869.3089298,
+                    "format": "A1Gregorian",
+                    "key": "A1Gregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2017 00:00:37.159"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500869.3089298,
+                    "format": "TAIModJulian",
+                    "key": "TAIModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "27754.5004296875013097"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": 536500869.3089298,
+                    "format": "TAIGregorian",
+                    "key": "TAIGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2017 00:00:37.125"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500869.3089298,
+                    "format": "UTCModJulian",
+                    "key": "UTCModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "27754.5000014467586880"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": 536500869.3089298,
+                    "format": "UTCGregorian",
+                    "key": "UTCGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2017 00:00:00.125"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500869.3089298,
+                    "format": "TTModJulian",
+                    "key": "TTModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "27754.5008021875000850"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": 536500869.3089298,
+                    "format": "TTGregorian",
+                    "key": "TTGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2017 00:01:09.309"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500869.3089298,
+                    "format": "TDBModJulian",
+                    "key": "TDBModJulian",
+                    "kind": "explicit",
+                    "start_epoch": "27754.5008021866888157"
+                },
+                {
+                    "epoch_tolerance_seconds": 0.0011,
+                    "expected_start_et": 536500869.3089298,
+                    "format": "TDBGregorian",
+                    "key": "TDBGregorian",
+                    "kind": "explicit",
+                    "start_epoch": "01 Jan 2017 00:01:09.309"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536500629.3089298,
+                    "format": "TDBModJulian",
+                    "key": "FromSpacecraft",
+                    "kind": "inherited",
+                    "start_epoch": "FromSpacecraft"
+                },
+                {
+                    "epoch_tolerance_seconds": 1e-04,
+                    "expected_start_et": 536499669.3089298,
+                    "format": "A1Gregorian",
+                    "key": "EphemStart",
+                    "kind": "ephemeris-start",
+                    "start_epoch": "EphemStart"
+                }
+            ],
+            "key": "PostLeap",
+            "reference_utc": "2017 JAN 01 00:00:00.125 UTC",
+            "spacecraft_tdb_mjd": "27754.4980244089092594"
+        }
+    ],
+    "explicit_format_inputs": 39,
+    "gmat_j2000_mjd": 21545,
+    "gmat_jd_offset": 2430000,
+    "limits": "LSK,NAIF toolkit and declared GMAT A1/MJD conventions are shared external inputs,not independent leap-history or measured-time truth. Millisecond Gregorian and100microsecond numeric epoch bounds are explicit. UTC MJD inside the leap second remains ambiguous/unqualified.",
+    "missions_per_mode": 47,
+    "oracle": "NAIF UTC parsing and uniform TAI/TT/TDB conversion, independent of GMAT converter",
+    "schema_version": 1,
+    "source_urls": [
+        "https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/cspice/unitim_c.html",
+        "https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/cspice/str2et_c.html",
+        "https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/cspice/et2utc_c.html"
+    ]
+}

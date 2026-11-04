@@ -1,0 +1,158 @@
+{
+  "family": "Toggle",
+  "command": "Toggle",
+  "operand": "Trace Off;",
+  "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nToggle 'Probe' Trace Off;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+  "expected_tail": [
+    0,
+    1,
+    0,
+    0
+  ],
+  "velocity_increment": [
+    0,
+    0,
+    0
+  ],
+  "historical_keys": [
+    "H2012:R1972",
+    "H2012:R1974",
+    "H2012:R1975",
+    "H2012:R1976",
+    "H2012:R1978"
+  ],
+  "historical_rows": [
+    {
+      "key": "H2012:R1972",
+      "row": 1972,
+      "source_fields": {
+        "Enabled": "TRUE",
+        "Object": "Toggle",
+        "Operation": "Open and Name",
+        "Requirement(s)": "",
+        "Path": "Commands\\FRC-16_Toggle\\Toggle",
+        "Project Suite": "Toggle",
+        "Project": "Toggle",
+        "Test Case": "TreeControls_Open_and_Name",
+        "IsKeywordTest": "TRUE",
+        "Pretest": "",
+        "Tester": "SJH",
+        "% Complete": "100",
+        "Results": "",
+        "Comments": "",
+        "Start Time": "",
+        "Stop Time": "",
+        "Log": ""
+      },
+      "fingerprint": "3739fd77a3e3f424c5ad8b176ca74ff15dd1a85fc4d9296b6ff031c25b9a19d8",
+      "applicability": "unreviewed"
+    },
+    {
+      "key": "H2012:R1974",
+      "row": 1974,
+      "source_fields": {
+        "Enabled": "TRUE",
+        "Object": "Toggle",
+        "Operation": "Rename",
+        "Requirement(s)": "",
+        "Path": "Commands\\FRC-16_Toggle\\Toggle",
+        "Project Suite": "Toggle",
+        "Project": "Toggle",
+        "Test Case": "TreeControls_Rename",
+        "IsKeywordTest": "TRUE",
+        "Pretest": "",
+        "Tester": "SJH",
+        "% Complete": "100",
+        "Results": "",
+        "Comments": "",
+        "Start Time": "",
+        "Stop Time": "",
+        "Log": ""
+      },
+      "fingerprint": "81d3bde75b679a76701a88656f2dbb5a55715b2d187e9bfcc77c52a462b42848",
+      "applicability": "unreviewed"
+    },
+    {
+      "key": "H2012:R1975",
+      "row": 1975,
+      "source_fields": {
+        "Enabled": "TRUE",
+        "Object": "Toggle",
+        "Operation": "Cancel Rename",
+        "Requirement(s)": "",
+        "Path": "Commands\\FRC-16_Toggle\\Toggle",
+        "Project Suite": "Toggle",
+        "Project": "Toggle",
+        "Test Case": "TreeControls_RenameCancel",
+        "IsKeywordTest": "TRUE",
+        "Pretest": "",
+        "Tester": "SJH",
+        "% Complete": "100",
+        "Results": "",
+        "Comments": "",
+        "Start Time": "",
+        "Stop Time": "",
+        "Log": ""
+      },
+      "fingerprint": "12c7c782396eae15813cadd4c9366245096f4a597104746333b89c5c71f6a9bd",
+      "applicability": "unreviewed"
+    },
+    {
+      "key": "H2012:R1976",
+      "row": 1976,
+      "source_fields": {
+        "Enabled": "TRUE",
+        "Object": "Toggle",
+        "Operation": "Rename Error",
+        "Requirement(s)": "",
+        "Path": "Commands\\FRC-16_Toggle\\Toggle",
+        "Project Suite": "Toggle",
+        "Project": "Toggle",
+        "Test Case": "TreeControls_RenameError",
+        "IsKeywordTest": "TRUE",
+        "Pretest": "",
+        "Tester": "SJH",
+        "% Complete": "100",
+        "Results": "",
+        "Comments": "",
+        "Start Time": "",
+        "Stop Time": "",
+        "Log": ""
+      },
+      "fingerprint": "84b9fa3fe7011bd2a9052dc65ae6e51d0e9f788fdb4d455125d973fd961e053d",
+      "applicability": "unreviewed"
+    },
+    {
+      "key": "H2012:R1978",
+      "row": 1978,
+      "source_fields": {
+        "Enabled": "TRUE",
+        "Object": "Toggle",
+        "Operation": "Rename Used Name",
+        "Requirement(s)": "",
+        "Path": "Commands\\FRC-16_Toggle\\Toggle",
+        "Project Suite": "Toggle",
+        "Project": "Toggle",
+        "Test Case": "TreeControls_RenameUsedName",
+        "IsKeywordTest": "TRUE",
+        "Pretest": "",
+        "Tester": "SJH",
+        "% Complete": "100",
+        "Results": "",
+        "Comments": "",
+        "Start Time": "",
+        "Stop Time": "",
+        "Log": ""
+      },
+      "fingerprint": "0f477d3d79d1620f64f92e6488b5a2e0126538a36aa23521141558c8732e1c3d",
+      "applicability": "unreviewed"
+    }
+  ],
+  "scope": "Selected named-command Rename/editor/source/native-execution behavior. Finite-burn start/end pair has no propagation interval; no thrust integration or general science qualification. Historical keyword payloads unavailable; metadata and current NASA Rename rules define bounded scope; old Passed/NotRunnable fields are not evidence.",
+  "effect_family": "Toggle",
+  "orbit_duration": 20,
+  "orbit_inclination_degrees": 0,
+  "operation_summary_seconds": 20,
+  "operation_fixture_origin": "src/qtgui/tests/mission-command-names/Toggle.json",
+  "operation_fixture_origin_sha256": "59613c41a7fd85c507346f75df8757bd4acb7b1f5d27a52676c625512ae1cde6"
+}

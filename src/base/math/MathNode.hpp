@@ -80,6 +80,7 @@ public:
    virtual MathNode*    GetRight() = 0;
    
    // Inherited (GmatBase) methods
+   void                 Copy(const GmatBase *original) override;
    virtual bool         RenameRefObject(const UnsignedInt type,
                                         const std::string &oldName,
                                         const std::string &newName);

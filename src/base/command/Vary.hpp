@@ -217,6 +217,7 @@ protected:
    bool IsThereSameWrapperName(int param, const std::string &wrapperName);
    /// Method to refresh values of data from variables
    void RefreshData();
+   void WarnUnsupportedSetting(Integer id) const;
 };
 
 

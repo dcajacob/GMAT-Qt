@@ -48,6 +48,9 @@ public:
    virtual bool Interpret(GmatCommand *cmd, bool skipHeader = false,
                           bool functionMode = false);
    virtual bool Interpret(const std::string &scriptfile);
+   // Explicit file encoding for clients that already use UTF-8 source text.
+   // The existing virtual file entry retains its historical ASCII contract.
+   bool Interpret(const std::string &scriptfile, bool allowUtf8);
    
    GmatCommand* InterpretGmatFunction(const std::string &fileName);
    GmatCommand* InterpretGmatFunction(Function *funct);

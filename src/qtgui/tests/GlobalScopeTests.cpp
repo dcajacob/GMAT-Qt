@@ -1,4 +1,5 @@
 #include "MainWindow.hpp"
+#include "AcceptanceView.hpp"
 #include "CommandEditor.hpp"
 #include "TestSettings.hpp"
 #include "Moderator.hpp"
@@ -37,7 +38,7 @@ static void write(const QString &path,const QByteArray &data) { QFile file(path)
 static QTreeWidgetItem *globalItem(MainWindow &window) { auto *tree=window.findChild<QTreeWidget *>("Mission"); QTreeWidgetItemIterator it(tree); while (*it && !(*it)->text(0).endsWith(" — share resources")) ++it; require(*it,"Labeled Global tree entry missing"); return *it; }
 static QMdiSubWindow *active(MainWindow &window) { auto *child=window.findChild<QMdiArea *>("workspace")->activeSubWindow(); require(child && dynamic_cast<CommandEditor *>(child->widget()),"Global command panel missing"); return child; }
 static void closePanels(MainWindow &window) { for (auto *child:window.findChild<QMdiArea *>("workspace")->subWindowList()) if (auto *panel=dynamic_cast<CommandEditor *>(child->widget())) { panel->discardChanges(); child->close(); } QApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete); }
-static void apply(QMdiSubWindow *child) { child->widget()->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click(); }
+static void apply(QMdiSubWindow *child) { acceptanceView(*child); child->widget()->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click(); }
 static void choose(QMdiSubWindow *child,bool accept,const QString &capture={}) {
    bool visited=false; std::exception_ptr failure;
    QTimer::singleShot(0,child,[&] {
@@ -90,6 +91,15 @@ int main(int argc,char **argv) {
       // become available in dynamic scopes. A text fallback must preserve that
       // engine contract rather than rejecting every unconfigured name on Apply.
       child->widget()->findChild<QLineEdit *>("commandField_Objects")->setText("MissingResource"); apply(child);
+      require(editor->toPlainText()==inserted && dynamic_cast<CommandEditor *>(child->widget())->hasChanges(),"Typed Global accepted an unknown resource");
+      auto *label=child->widget()->findChild<QLineEdit *>("commandName"); label->setText("renamed pending scope"); apply(child);
+      require(editor->toPlainText()==inserted && dynamic_cast<CommandEditor *>(child->widget())->hasChanges(),"Renaming bypassed typed Global reference validation");
+      auto *raw=child->widget()->findChild<QPlainTextEdit *>("commandSource");
+      require(raw,"Global raw script fallback missing");
+      raw->setPlainText(QString(selected).replace("Grid Counter Text Sat","Missing.Resource").trimmed()); apply(child);
+      require(editor->toPlainText()==inserted && dynamic_cast<CommandEditor *>(child->widget())->hasChanges(),"Raw Global accepted a malformed object identifier");
+      raw->setPlainText(QString(selected).replace("Grid Counter Text Sat","MissingResource").trimmed());
+      label->setText("temporary scope"); label->setText("share resources"); apply(child);
       const auto invalid=QString(inserted).replace(selected,"Global 'share resources' MissingResource; % retain Global comment\n");
       require(editor->toPlainText()==invalid && !dynamic_cast<CommandEditor *>(child->widget())->hasChanges(),"Global deferred reference Apply lost source/panel"); closePanels(window);
       const auto failed=window.runMission(); QApplication::processEvents();

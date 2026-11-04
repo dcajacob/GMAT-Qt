@@ -63,6 +63,7 @@ public:
    virtual void SetReal(Real val);
    
    virtual Integer GetParameterID(const std::string &str) const;
+   virtual std::string GetParameterText(const Integer id) const override;
    virtual std::string GetParameterTypeString(const Integer id) const;
    virtual Gmat::ParameterType GetParameterType(const Integer id) const;
    virtual bool IsParameterReadOnly(const Integer id) const;

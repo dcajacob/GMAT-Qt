@@ -195,6 +195,10 @@ or
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Propagation-mode selection; no physical units.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -245,6 +249,10 @@ or
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Propagation-direction selection; no physical units.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>
@@ -299,6 +307,10 @@ or
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Each stop goal uses the units of its selected stopping parameter; elapsed-time goals use seconds.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -351,6 +363,10 @@ or
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Spacecraft or Formation name list; no physical units.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -401,6 +417,10 @@ or
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Propagator object name; no physical units.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -448,6 +468,10 @@ or
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Absolute tolerance in the stopping parameter units, for example degrees for true anomaly or seconds for ElapsedSecs.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>
@@ -499,6 +523,10 @@ or
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>State-transition-matrix propagation selection; no numeric quantity is entered.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -548,6 +576,10 @@ or
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>A-matrix propagation selection; no numeric quantity is entered.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>
@@ -666,6 +698,10 @@ or
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Color specification; no physical units.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>

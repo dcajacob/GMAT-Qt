@@ -1,0 +1,301 @@
+{
+  "fixtures": [
+    {
+      "id": 0,
+      "burn": "BurnA",
+      "spacecraft": "SatA",
+      "script": "Create Variable Keep;\n% Finite field source Ω\nKeep = 41;\nEarth.Mu = 1e-20;\nCreate Array Grid[1,1];\nCreate String Text;\nText = 'BurnA SatA';\nCreate GroundStation Site;\nCreate ImpulsiveBurn Impulse;\nCreate ChemicalTank Fuel;\nFuel.FuelMass = 100;\nFuel.Pressure = 2000;\nFuel.Volume = 1;\nFuel.FuelDensity = 1000;\nFuel.PressureModel = PressureRegulated;\nCreate ChemicalThruster EngineA EngineB;\nEngineA.Tank = {Fuel};\nEngineA.DecrementMass = false;\nEngineA.CoordinateSystem = EarthMJ2000Eq;\nEngineA.ThrustDirection1 = 1;\nEngineA.ThrustDirection2 = 0;\nEngineA.ThrustDirection3 = 0;\nEngineA.C1 = 100;\nEngineA.K1 = 300;\nEngineA.C2 = 0;\nEngineA.K2 = 0;\nEngineA.C3 = 0;\nEngineA.K3 = 0;\nEngineA.C4 = 0;\nEngineA.K4 = 0;\nEngineA.C5 = 0;\nEngineA.K5 = 0;\nEngineA.C6 = 0;\nEngineA.K6 = 0;\nEngineA.C7 = 0;\nEngineA.K7 = 0;\nEngineA.C8 = 0;\nEngineA.K8 = 0;\nEngineA.C9 = 0;\nEngineA.K9 = 0;\nEngineA.C10 = 0;\nEngineA.K10 = 0;\nEngineA.C11 = 0;\nEngineA.K11 = 0;\nEngineA.C12 = 0;\nEngineA.K12 = 0;\nEngineA.C13 = 0;\nEngineA.K13 = 0;\nEngineA.C14 = 0;\nEngineA.K14 = 0;\nEngineA.C15 = 0;\nEngineA.K15 = 0;\nEngineA.C16 = 0;\nEngineA.K16 = 0;\nEngineB.Tank = {Fuel};\nEngineB.DecrementMass = false;\nEngineB.CoordinateSystem = EarthMJ2000Eq;\nEngineB.ThrustDirection1 = 0;\nEngineB.ThrustDirection2 = 0;\nEngineB.ThrustDirection3 = 1;\nEngineB.C1 = 250;\nEngineB.K1 = 300;\nEngineB.C2 = 0;\nEngineB.K2 = 0;\nEngineB.C3 = 0;\nEngineB.K3 = 0;\nEngineB.C4 = 0;\nEngineB.K4 = 0;\nEngineB.C5 = 0;\nEngineB.K5 = 0;\nEngineB.C6 = 0;\nEngineB.K6 = 0;\nEngineB.C7 = 0;\nEngineB.K7 = 0;\nEngineB.C8 = 0;\nEngineB.K8 = 0;\nEngineB.C9 = 0;\nEngineB.K9 = 0;\nEngineB.C10 = 0;\nEngineB.K10 = 0;\nEngineB.C11 = 0;\nEngineB.K11 = 0;\nEngineB.C12 = 0;\nEngineB.K12 = 0;\nEngineB.C13 = 0;\nEngineB.K13 = 0;\nEngineB.C14 = 0;\nEngineB.K14 = 0;\nEngineB.C15 = 0;\nEngineB.K15 = 0;\nEngineB.C16 = 0;\nEngineB.K16 = 0;\nCreate Spacecraft SatA;\nSatA.CoordinateSystem = EarthMJ2000Eq;\nSatA.DateFormat = A1ModJulian;\nSatA.Epoch = '21545';\nSatA.DisplayStateType = Cartesian;\nSatA.X = 7000;\nSatA.Y = 0;\nSatA.Z = 0;\nSatA.VX = 0;\nSatA.VY = 1;\nSatA.VZ = 0;\nSatA.DryMass = 900;\nSatA.Tanks = {Fuel};\nSatA.Thrusters = {EngineA, EngineB};\nSatA.NAIFId = -100084;\nSatA.NAIFIdReferenceFrame = -100084001;\nCreate Spacecraft SatB;\nSatB.CoordinateSystem = EarthMJ2000Eq;\nSatB.DateFormat = A1ModJulian;\nSatB.Epoch = '21545';\nSatB.DisplayStateType = Cartesian;\nSatB.X = 8000;\nSatB.Y = 0;\nSatB.Z = 0;\nSatB.VX = 0;\nSatB.VY = 2;\nSatB.VZ = 0;\nSatB.DryMass = 1400;\nSatB.Tanks = {Fuel};\nSatB.Thrusters = {EngineA, EngineB};\nSatB.NAIFId = -100085;\nSatB.NAIFIdReferenceFrame = -100085001;\nCreate FiniteBurn BurnA BurnB;\nBurnA.Thrusters = {EngineA};\nBurnB.Thrusters = {EngineB};\nCreate ForceModel Forces;\nForces.PrimaryBodies = {};\nForces.PointMasses = {Earth};\nForces.Drag = None;\nForces.SRP = Off;\nCreate Propagator P;\nP.FM = Forces;\nP.InitialStepSize = 1;\nP.MinStep = 1;\nP.MaxStep = 1;\nP.Accuracy = 1e-12;\nCreate ReportFile Values;\nValues.Filename = '@VALUES@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nBeginMissionSequence;\nReport 'State0' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nBeginFiniteBurn 'Probe' BurnA(SatA); % owned command Δ\nReport 'State1' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nPropagate 'Powered' Synchronized P(SatA) P(SatB) {SatA.ElapsedSecs = 10};\nReport 'State2' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nEndFiniteBurn 'Stop' BurnA(SatA);\nReport 'State3' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nPropagate 'Coast' Synchronized P(SatA) P(SatB) {SatA.ElapsedSecs = 10};\nReport 'State4' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nKeep = Keep + 1;\nReport 'Continuation' Values Keep;\n% Finite field tail Ω\n",
+      "original_script": "build/gui-acceptance/20261029-finite-command-fields-final-unattended/QtGui.NativeNasaFiniteCommandFieldBeginFiniteBurn/mission-0.script",
+      "original_sha256": "35f0ffe4a6d0389d39ff77d72a71505d69e8d947aa74e15c4f965ca1f7ab99c8",
+      "normalization": "Only Values.Filename is replaced with @VALUES@;all other original validated fixture bytes are retained.",
+      "source_driver": "src/qtgui/tests/NasaFiniteCommandFieldTests.cpp",
+      "source_driver_sha256": "74e16ad8d39357bcf389895f91b3cd9503a09e7dbc7fe8e34ae360661366c990"
+    },
+    {
+      "id": 1,
+      "burn": "BurnA",
+      "spacecraft": "SatB",
+      "script": "Create Variable Keep;\n% Finite field source Ω\nKeep = 41;\nEarth.Mu = 1e-20;\nCreate Array Grid[1,1];\nCreate String Text;\nText = 'BurnA SatA';\nCreate GroundStation Site;\nCreate ImpulsiveBurn Impulse;\nCreate ChemicalTank Fuel;\nFuel.FuelMass = 100;\nFuel.Pressure = 2000;\nFuel.Volume = 1;\nFuel.FuelDensity = 1000;\nFuel.PressureModel = PressureRegulated;\nCreate ChemicalThruster EngineA EngineB;\nEngineA.Tank = {Fuel};\nEngineA.DecrementMass = false;\nEngineA.CoordinateSystem = EarthMJ2000Eq;\nEngineA.ThrustDirection1 = 1;\nEngineA.ThrustDirection2 = 0;\nEngineA.ThrustDirection3 = 0;\nEngineA.C1 = 100;\nEngineA.K1 = 300;\nEngineA.C2 = 0;\nEngineA.K2 = 0;\nEngineA.C3 = 0;\nEngineA.K3 = 0;\nEngineA.C4 = 0;\nEngineA.K4 = 0;\nEngineA.C5 = 0;\nEngineA.K5 = 0;\nEngineA.C6 = 0;\nEngineA.K6 = 0;\nEngineA.C7 = 0;\nEngineA.K7 = 0;\nEngineA.C8 = 0;\nEngineA.K8 = 0;\nEngineA.C9 = 0;\nEngineA.K9 = 0;\nEngineA.C10 = 0;\nEngineA.K10 = 0;\nEngineA.C11 = 0;\nEngineA.K11 = 0;\nEngineA.C12 = 0;\nEngineA.K12 = 0;\nEngineA.C13 = 0;\nEngineA.K13 = 0;\nEngineA.C14 = 0;\nEngineA.K14 = 0;\nEngineA.C15 = 0;\nEngineA.K15 = 0;\nEngineA.C16 = 0;\nEngineA.K16 = 0;\nEngineB.Tank = {Fuel};\nEngineB.DecrementMass = false;\nEngineB.CoordinateSystem = EarthMJ2000Eq;\nEngineB.ThrustDirection1 = 0;\nEngineB.ThrustDirection2 = 0;\nEngineB.ThrustDirection3 = 1;\nEngineB.C1 = 250;\nEngineB.K1 = 300;\nEngineB.C2 = 0;\nEngineB.K2 = 0;\nEngineB.C3 = 0;\nEngineB.K3 = 0;\nEngineB.C4 = 0;\nEngineB.K4 = 0;\nEngineB.C5 = 0;\nEngineB.K5 = 0;\nEngineB.C6 = 0;\nEngineB.K6 = 0;\nEngineB.C7 = 0;\nEngineB.K7 = 0;\nEngineB.C8 = 0;\nEngineB.K8 = 0;\nEngineB.C9 = 0;\nEngineB.K9 = 0;\nEngineB.C10 = 0;\nEngineB.K10 = 0;\nEngineB.C11 = 0;\nEngineB.K11 = 0;\nEngineB.C12 = 0;\nEngineB.K12 = 0;\nEngineB.C13 = 0;\nEngineB.K13 = 0;\nEngineB.C14 = 0;\nEngineB.K14 = 0;\nEngineB.C15 = 0;\nEngineB.K15 = 0;\nEngineB.C16 = 0;\nEngineB.K16 = 0;\nCreate Spacecraft SatA;\nSatA.CoordinateSystem = EarthMJ2000Eq;\nSatA.DateFormat = A1ModJulian;\nSatA.Epoch = '21545';\nSatA.DisplayStateType = Cartesian;\nSatA.X = 7000;\nSatA.Y = 0;\nSatA.Z = 0;\nSatA.VX = 0;\nSatA.VY = 1;\nSatA.VZ = 0;\nSatA.DryMass = 900;\nSatA.Tanks = {Fuel};\nSatA.Thrusters = {EngineA, EngineB};\nSatA.NAIFId = -100084;\nSatA.NAIFIdReferenceFrame = -100084001;\nCreate Spacecraft SatB;\nSatB.CoordinateSystem = EarthMJ2000Eq;\nSatB.DateFormat = A1ModJulian;\nSatB.Epoch = '21545';\nSatB.DisplayStateType = Cartesian;\nSatB.X = 8000;\nSatB.Y = 0;\nSatB.Z = 0;\nSatB.VX = 0;\nSatB.VY = 2;\nSatB.VZ = 0;\nSatB.DryMass = 1400;\nSatB.Tanks = {Fuel};\nSatB.Thrusters = {EngineA, EngineB};\nSatB.NAIFId = -100085;\nSatB.NAIFIdReferenceFrame = -100085001;\nCreate FiniteBurn BurnA BurnB;\nBurnA.Thrusters = {EngineA};\nBurnB.Thrusters = {EngineB};\nCreate ForceModel Forces;\nForces.PrimaryBodies = {};\nForces.PointMasses = {Earth};\nForces.Drag = None;\nForces.SRP = Off;\nCreate Propagator P;\nP.FM = Forces;\nP.InitialStepSize = 1;\nP.MinStep = 1;\nP.MaxStep = 1;\nP.Accuracy = 1e-12;\nCreate ReportFile Values;\nValues.Filename = '@VALUES@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nBeginMissionSequence;\nReport 'State0' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nBeginFiniteBurn 'Probe' BurnA(SatB); % owned command Δ\nReport 'State1' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nPropagate 'Powered' Synchronized P(SatA) P(SatB) {SatA.ElapsedSecs = 10};\nReport 'State2' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nEndFiniteBurn 'Stop' BurnA(SatB);\nReport 'State3' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nPropagate 'Coast' Synchronized P(SatA) P(SatB) {SatA.ElapsedSecs = 10};\nReport 'State4' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nKeep = Keep + 1;\nReport 'Continuation' Values Keep;\n% Finite field tail Ω\n",
+      "original_script": "build/gui-acceptance/20261029-finite-command-fields-final-unattended/QtGui.NativeNasaFiniteCommandFieldBeginFiniteBurn/mission-1.script",
+      "original_sha256": "4f013b03c6333b6f33723a81942564ee687a1d6f2eabdc4c3c870263eb6ff944",
+      "normalization": "Only Values.Filename is replaced with @VALUES@;all other original validated fixture bytes are retained.",
+      "source_driver": "src/qtgui/tests/NasaFiniteCommandFieldTests.cpp",
+      "source_driver_sha256": "74e16ad8d39357bcf389895f91b3cd9503a09e7dbc7fe8e34ae360661366c990"
+    },
+    {
+      "id": 2,
+      "burn": "BurnB",
+      "spacecraft": "SatA",
+      "script": "Create Variable Keep;\n% Finite field source Ω\nKeep = 41;\nEarth.Mu = 1e-20;\nCreate Array Grid[1,1];\nCreate String Text;\nText = 'BurnA SatA';\nCreate GroundStation Site;\nCreate ImpulsiveBurn Impulse;\nCreate ChemicalTank Fuel;\nFuel.FuelMass = 100;\nFuel.Pressure = 2000;\nFuel.Volume = 1;\nFuel.FuelDensity = 1000;\nFuel.PressureModel = PressureRegulated;\nCreate ChemicalThruster EngineA EngineB;\nEngineA.Tank = {Fuel};\nEngineA.DecrementMass = false;\nEngineA.CoordinateSystem = EarthMJ2000Eq;\nEngineA.ThrustDirection1 = 1;\nEngineA.ThrustDirection2 = 0;\nEngineA.ThrustDirection3 = 0;\nEngineA.C1 = 100;\nEngineA.K1 = 300;\nEngineA.C2 = 0;\nEngineA.K2 = 0;\nEngineA.C3 = 0;\nEngineA.K3 = 0;\nEngineA.C4 = 0;\nEngineA.K4 = 0;\nEngineA.C5 = 0;\nEngineA.K5 = 0;\nEngineA.C6 = 0;\nEngineA.K6 = 0;\nEngineA.C7 = 0;\nEngineA.K7 = 0;\nEngineA.C8 = 0;\nEngineA.K8 = 0;\nEngineA.C9 = 0;\nEngineA.K9 = 0;\nEngineA.C10 = 0;\nEngineA.K10 = 0;\nEngineA.C11 = 0;\nEngineA.K11 = 0;\nEngineA.C12 = 0;\nEngineA.K12 = 0;\nEngineA.C13 = 0;\nEngineA.K13 = 0;\nEngineA.C14 = 0;\nEngineA.K14 = 0;\nEngineA.C15 = 0;\nEngineA.K15 = 0;\nEngineA.C16 = 0;\nEngineA.K16 = 0;\nEngineB.Tank = {Fuel};\nEngineB.DecrementMass = false;\nEngineB.CoordinateSystem = EarthMJ2000Eq;\nEngineB.ThrustDirection1 = 0;\nEngineB.ThrustDirection2 = 0;\nEngineB.ThrustDirection3 = 1;\nEngineB.C1 = 250;\nEngineB.K1 = 300;\nEngineB.C2 = 0;\nEngineB.K2 = 0;\nEngineB.C3 = 0;\nEngineB.K3 = 0;\nEngineB.C4 = 0;\nEngineB.K4 = 0;\nEngineB.C5 = 0;\nEngineB.K5 = 0;\nEngineB.C6 = 0;\nEngineB.K6 = 0;\nEngineB.C7 = 0;\nEngineB.K7 = 0;\nEngineB.C8 = 0;\nEngineB.K8 = 0;\nEngineB.C9 = 0;\nEngineB.K9 = 0;\nEngineB.C10 = 0;\nEngineB.K10 = 0;\nEngineB.C11 = 0;\nEngineB.K11 = 0;\nEngineB.C12 = 0;\nEngineB.K12 = 0;\nEngineB.C13 = 0;\nEngineB.K13 = 0;\nEngineB.C14 = 0;\nEngineB.K14 = 0;\nEngineB.C15 = 0;\nEngineB.K15 = 0;\nEngineB.C16 = 0;\nEngineB.K16 = 0;\nCreate Spacecraft SatA;\nSatA.CoordinateSystem = EarthMJ2000Eq;\nSatA.DateFormat = A1ModJulian;\nSatA.Epoch = '21545';\nSatA.DisplayStateType = Cartesian;\nSatA.X = 7000;\nSatA.Y = 0;\nSatA.Z = 0;\nSatA.VX = 0;\nSatA.VY = 1;\nSatA.VZ = 0;\nSatA.DryMass = 900;\nSatA.Tanks = {Fuel};\nSatA.Thrusters = {EngineA, EngineB};\nSatA.NAIFId = -100084;\nSatA.NAIFIdReferenceFrame = -100084001;\nCreate Spacecraft SatB;\nSatB.CoordinateSystem = EarthMJ2000Eq;\nSatB.DateFormat = A1ModJulian;\nSatB.Epoch = '21545';\nSatB.DisplayStateType = Cartesian;\nSatB.X = 8000;\nSatB.Y = 0;\nSatB.Z = 0;\nSatB.VX = 0;\nSatB.VY = 2;\nSatB.VZ = 0;\nSatB.DryMass = 1400;\nSatB.Tanks = {Fuel};\nSatB.Thrusters = {EngineA, EngineB};\nSatB.NAIFId = -100085;\nSatB.NAIFIdReferenceFrame = -100085001;\nCreate FiniteBurn BurnA BurnB;\nBurnA.Thrusters = {EngineA};\nBurnB.Thrusters = {EngineB};\nCreate ForceModel Forces;\nForces.PrimaryBodies = {};\nForces.PointMasses = {Earth};\nForces.Drag = None;\nForces.SRP = Off;\nCreate Propagator P;\nP.FM = Forces;\nP.InitialStepSize = 1;\nP.MinStep = 1;\nP.MaxStep = 1;\nP.Accuracy = 1e-12;\nCreate ReportFile Values;\nValues.Filename = '@VALUES@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nBeginMissionSequence;\nReport 'State0' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nBeginFiniteBurn 'Probe' BurnB(SatA); % owned command Δ\nReport 'State1' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nPropagate 'Powered' Synchronized P(SatA) P(SatB) {SatA.ElapsedSecs = 10};\nReport 'State2' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nEndFiniteBurn 'Stop' BurnB(SatA);\nReport 'State3' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nPropagate 'Coast' Synchronized P(SatA) P(SatB) {SatA.ElapsedSecs = 10};\nReport 'State4' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nKeep = Keep + 1;\nReport 'Continuation' Values Keep;\n% Finite field tail Ω\n",
+      "original_script": "build/gui-acceptance/20261029-finite-command-fields-final-unattended/QtGui.NativeNasaFiniteCommandFieldBeginFiniteBurn/mission-2.script",
+      "original_sha256": "35947d89bb806639ee29bdc447fac20002d9c84af24d2dd558230f2b35e857a8",
+      "normalization": "Only Values.Filename is replaced with @VALUES@;all other original validated fixture bytes are retained.",
+      "source_driver": "src/qtgui/tests/NasaFiniteCommandFieldTests.cpp",
+      "source_driver_sha256": "74e16ad8d39357bcf389895f91b3cd9503a09e7dbc7fe8e34ae360661366c990"
+    },
+    {
+      "id": 3,
+      "burn": "BurnB",
+      "spacecraft": "SatB",
+      "script": "Create Variable Keep;\n% Finite field source Ω\nKeep = 41;\nEarth.Mu = 1e-20;\nCreate Array Grid[1,1];\nCreate String Text;\nText = 'BurnA SatA';\nCreate GroundStation Site;\nCreate ImpulsiveBurn Impulse;\nCreate ChemicalTank Fuel;\nFuel.FuelMass = 100;\nFuel.Pressure = 2000;\nFuel.Volume = 1;\nFuel.FuelDensity = 1000;\nFuel.PressureModel = PressureRegulated;\nCreate ChemicalThruster EngineA EngineB;\nEngineA.Tank = {Fuel};\nEngineA.DecrementMass = false;\nEngineA.CoordinateSystem = EarthMJ2000Eq;\nEngineA.ThrustDirection1 = 1;\nEngineA.ThrustDirection2 = 0;\nEngineA.ThrustDirection3 = 0;\nEngineA.C1 = 100;\nEngineA.K1 = 300;\nEngineA.C2 = 0;\nEngineA.K2 = 0;\nEngineA.C3 = 0;\nEngineA.K3 = 0;\nEngineA.C4 = 0;\nEngineA.K4 = 0;\nEngineA.C5 = 0;\nEngineA.K5 = 0;\nEngineA.C6 = 0;\nEngineA.K6 = 0;\nEngineA.C7 = 0;\nEngineA.K7 = 0;\nEngineA.C8 = 0;\nEngineA.K8 = 0;\nEngineA.C9 = 0;\nEngineA.K9 = 0;\nEngineA.C10 = 0;\nEngineA.K10 = 0;\nEngineA.C11 = 0;\nEngineA.K11 = 0;\nEngineA.C12 = 0;\nEngineA.K12 = 0;\nEngineA.C13 = 0;\nEngineA.K13 = 0;\nEngineA.C14 = 0;\nEngineA.K14 = 0;\nEngineA.C15 = 0;\nEngineA.K15 = 0;\nEngineA.C16 = 0;\nEngineA.K16 = 0;\nEngineB.Tank = {Fuel};\nEngineB.DecrementMass = false;\nEngineB.CoordinateSystem = EarthMJ2000Eq;\nEngineB.ThrustDirection1 = 0;\nEngineB.ThrustDirection2 = 0;\nEngineB.ThrustDirection3 = 1;\nEngineB.C1 = 250;\nEngineB.K1 = 300;\nEngineB.C2 = 0;\nEngineB.K2 = 0;\nEngineB.C3 = 0;\nEngineB.K3 = 0;\nEngineB.C4 = 0;\nEngineB.K4 = 0;\nEngineB.C5 = 0;\nEngineB.K5 = 0;\nEngineB.C6 = 0;\nEngineB.K6 = 0;\nEngineB.C7 = 0;\nEngineB.K7 = 0;\nEngineB.C8 = 0;\nEngineB.K8 = 0;\nEngineB.C9 = 0;\nEngineB.K9 = 0;\nEngineB.C10 = 0;\nEngineB.K10 = 0;\nEngineB.C11 = 0;\nEngineB.K11 = 0;\nEngineB.C12 = 0;\nEngineB.K12 = 0;\nEngineB.C13 = 0;\nEngineB.K13 = 0;\nEngineB.C14 = 0;\nEngineB.K14 = 0;\nEngineB.C15 = 0;\nEngineB.K15 = 0;\nEngineB.C16 = 0;\nEngineB.K16 = 0;\nCreate Spacecraft SatA;\nSatA.CoordinateSystem = EarthMJ2000Eq;\nSatA.DateFormat = A1ModJulian;\nSatA.Epoch = '21545';\nSatA.DisplayStateType = Cartesian;\nSatA.X = 7000;\nSatA.Y = 0;\nSatA.Z = 0;\nSatA.VX = 0;\nSatA.VY = 1;\nSatA.VZ = 0;\nSatA.DryMass = 900;\nSatA.Tanks = {Fuel};\nSatA.Thrusters = {EngineA, EngineB};\nSatA.NAIFId = -100084;\nSatA.NAIFIdReferenceFrame = -100084001;\nCreate Spacecraft SatB;\nSatB.CoordinateSystem = EarthMJ2000Eq;\nSatB.DateFormat = A1ModJulian;\nSatB.Epoch = '21545';\nSatB.DisplayStateType = Cartesian;\nSatB.X = 8000;\nSatB.Y = 0;\nSatB.Z = 0;\nSatB.VX = 0;\nSatB.VY = 2;\nSatB.VZ = 0;\nSatB.DryMass = 1400;\nSatB.Tanks = {Fuel};\nSatB.Thrusters = {EngineA, EngineB};\nSatB.NAIFId = -100085;\nSatB.NAIFIdReferenceFrame = -100085001;\nCreate FiniteBurn BurnA BurnB;\nBurnA.Thrusters = {EngineA};\nBurnB.Thrusters = {EngineB};\nCreate ForceModel Forces;\nForces.PrimaryBodies = {};\nForces.PointMasses = {Earth};\nForces.Drag = None;\nForces.SRP = Off;\nCreate Propagator P;\nP.FM = Forces;\nP.InitialStepSize = 1;\nP.MinStep = 1;\nP.MaxStep = 1;\nP.Accuracy = 1e-12;\nCreate ReportFile Values;\nValues.Filename = '@VALUES@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nBeginMissionSequence;\nReport 'State0' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nBeginFiniteBurn 'Probe' BurnB(SatB); % owned command Δ\nReport 'State1' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nPropagate 'Powered' Synchronized P(SatA) P(SatB) {SatA.ElapsedSecs = 10};\nReport 'State2' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nEndFiniteBurn 'Stop' BurnB(SatB);\nReport 'State3' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nPropagate 'Coast' Synchronized P(SatA) P(SatB) {SatA.ElapsedSecs = 10};\nReport 'State4' Values SatA.ElapsedSecs SatA.EarthMJ2000Eq.X SatA.EarthMJ2000Eq.Y SatA.EarthMJ2000Eq.Z SatA.EarthMJ2000Eq.VX SatA.EarthMJ2000Eq.VY SatA.EarthMJ2000Eq.VZ SatA.TotalMass SatA.Fuel.FuelMass SatB.ElapsedSecs SatB.EarthMJ2000Eq.X SatB.EarthMJ2000Eq.Y SatB.EarthMJ2000Eq.Z SatB.EarthMJ2000Eq.VX SatB.EarthMJ2000Eq.VY SatB.EarthMJ2000Eq.VZ SatB.TotalMass SatB.Fuel.FuelMass Keep;\nKeep = Keep + 1;\nReport 'Continuation' Values Keep;\n% Finite field tail Ω\n",
+      "original_script": "build/gui-acceptance/20261029-finite-command-fields-final-unattended/QtGui.NativeNasaFiniteCommandFieldBeginFiniteBurn/mission-3.script",
+      "original_sha256": "88d6f5b168555982577ca654bef544e04f01c982d539151d8f9203f832543ae2",
+      "normalization": "Only Values.Filename is replaced with @VALUES@;all other original validated fixture bytes are retained.",
+      "source_driver": "src/qtgui/tests/NasaFiniteCommandFieldTests.cpp",
+      "source_driver_sha256": "74e16ad8d39357bcf389895f91b3cd9503a09e7dbc7fe8e34ae360661366c990"
+    }
+  ],
+  "cases": [
+    {
+      "key": "RootBeforeBurnASatA",
+      "mode": "Defaults",
+      "depth": "Root",
+      "position": "Before",
+      "fixture_ids": [
+        0
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "RootBeforeBurnASatB",
+      "mode": "Defaults",
+      "depth": "Root",
+      "position": "Before",
+      "fixture_ids": [
+        1
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "RootBeforeBurnBSatA",
+      "mode": "Defaults",
+      "depth": "Root",
+      "position": "Before",
+      "fixture_ids": [
+        2
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "RootBeforeBurnBSatB",
+      "mode": "Defaults",
+      "depth": "Root",
+      "position": "Before",
+      "fixture_ids": [
+        3
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "RootAfterBurnASatA",
+      "mode": "Defaults",
+      "depth": "Root",
+      "position": "After",
+      "fixture_ids": [
+        0
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "RootAfterBurnASatB",
+      "mode": "Defaults",
+      "depth": "Root",
+      "position": "After",
+      "fixture_ids": [
+        1
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "RootAfterBurnBSatA",
+      "mode": "Defaults",
+      "depth": "Root",
+      "position": "After",
+      "fixture_ids": [
+        2
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "RootAfterBurnBSatB",
+      "mode": "Defaults",
+      "depth": "Root",
+      "position": "After",
+      "fixture_ids": [
+        3
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "NestedBeforeBurnASatA",
+      "mode": "Defaults",
+      "depth": "Nested",
+      "position": "Before",
+      "fixture_ids": [
+        0
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "NestedBeforeBurnASatB",
+      "mode": "Defaults",
+      "depth": "Nested",
+      "position": "Before",
+      "fixture_ids": [
+        1
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "NestedBeforeBurnBSatA",
+      "mode": "Defaults",
+      "depth": "Nested",
+      "position": "Before",
+      "fixture_ids": [
+        2
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "NestedBeforeBurnBSatB",
+      "mode": "Defaults",
+      "depth": "Nested",
+      "position": "Before",
+      "fixture_ids": [
+        3
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "NestedAfterBurnASatA",
+      "mode": "Defaults",
+      "depth": "Nested",
+      "position": "After",
+      "fixture_ids": [
+        0
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "NestedAfterBurnASatB",
+      "mode": "Defaults",
+      "depth": "Nested",
+      "position": "After",
+      "fixture_ids": [
+        1
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "NestedAfterBurnBSatA",
+      "mode": "Defaults",
+      "depth": "Nested",
+      "position": "After",
+      "fixture_ids": [
+        2
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "NestedAfterBurnBSatB",
+      "mode": "Defaults",
+      "depth": "Nested",
+      "position": "After",
+      "fixture_ids": [
+        3
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false
+    },
+    {
+      "key": "NonBeginBefore",
+      "mode": "Defaults",
+      "depth": "Root",
+      "position": "Before",
+      "fixture_ids": [
+        3
+      ],
+      "selection": "Report",
+      "duplicate": false
+    },
+    {
+      "key": "DuplicateBefore",
+      "mode": "Defaults",
+      "depth": "Root",
+      "position": "Before",
+      "fixture_ids": [
+        3
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": true
+    },
+    {
+      "key": "NonBeginAfter",
+      "mode": "Defaults",
+      "depth": "Root",
+      "position": "After",
+      "fixture_ids": [
+        3
+      ],
+      "selection": "Report",
+      "duplicate": false
+    },
+    {
+      "key": "DuplicateAfter",
+      "mode": "Defaults",
+      "depth": "Root",
+      "position": "After",
+      "fixture_ids": [
+        3
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": true
+    },
+    {
+      "key": "RenameBeginFiniteBurn",
+      "mode": "Rename",
+      "depth": "Root",
+      "position": "Before",
+      "fixture_ids": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false,
+      "focus": "BeginFiniteBurn"
+    },
+    {
+      "key": "RenameEndFiniteBurn",
+      "mode": "Rename",
+      "depth": "Root",
+      "position": "Before",
+      "fixture_ids": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "selection": "BeginFiniteBurn",
+      "duplicate": false,
+      "focus": "EndFiniteBurn"
+    }
+  ],
+  "scope": "Actual selected-command EndFiniteBurn defaults:all four burn/spacecraft pairs,before/after at root and one-iteration For depth,duplicate raw spacecraft and non-Begin fallback. Two direct-reference rename suites each cover all four pairs with both resource types,Cancel,stale-editor refusal,history,Unicode and independent native/CSV selected-force/coast results. No automatic End creation is prescribed by native MissionTree;separate Begin/End commands are required."
+}

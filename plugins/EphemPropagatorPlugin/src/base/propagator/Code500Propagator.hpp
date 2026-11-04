@@ -144,6 +144,8 @@ protected:
    void                    UpdateInterpolator(const GmatTime &forEpoch);
    void                    GetState(GmatEpoch forEpoch, Rvector6 &outstate);
    void                    GetState(GmatTime forEpoch, Rvector6 &outstate);
+   GmatTime                GetRecordEpoch(Integer block, Integer line);
+   Real                    GetInterpolationEpoch(const GmatTime &epoch);
 
    /// Parameter IDs
    enum

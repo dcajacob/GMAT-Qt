@@ -45,6 +45,7 @@
 //------------------------------------------------------------------------------
 
 #include "Subscriber.hpp"
+#include "Publisher.hpp"
 #include "SubscriberException.hpp"
 #include "Parameter.hpp"
 #include "StringUtil.hpp"          // for Replace()
@@ -304,6 +305,7 @@ Subscriber& Subscriber::operator=(const Subscriber& rhs)
 //------------------------------------------------------------------------------
 Subscriber::~Subscriber()
 {
+   Publisher::SetIntegrationStepConsumer(this, false);
 #ifdef __ENABLE_CLONING_WRAPPERS__
    ClearWrappers();
 #else

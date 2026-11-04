@@ -30,12 +30,340 @@
 //------------------------------------------------------------------------------
 
 #include "Publisher.hpp"
+#include "PlotOriginScope.hpp"
+#include "SpaceObject.hpp"
+#include <limits>
 #include "PublisherException.hpp"
 #include "MessageInterface.hpp"
 #include "Moderator.hpp"
 #include <string>
 #include <algorithm>               // for find()
+#include <cmath>
+#include <set>
 
+namespace
+{
+   struct EpochPacket
+   {
+      const Real *data = NULL;
+      Integer count = 0;
+      const GmatTime *epoch = NULL;
+      const std::vector<Publisher::CartesianSample> *samples = NULL;
+      const void *token = NULL;
+   };
+   thread_local EpochPacket requestedEpoch;
+   thread_local EpochPacket activeEpoch;
+   thread_local const void *parameterToken = NULL;
+
+   struct EpochRequest
+   {
+      EpochPacket previous;
+      EpochRequest(const Real *data, Integer count, const GmatTime &epoch,
+         const std::vector<Publisher::CartesianSample> *samples = NULL) :
+         previous(requestedEpoch)
+      { requestedEpoch = {data, count, &epoch, samples, this}; }
+      ~EpochRequest() { requestedEpoch = previous; }
+   };
+
+   struct EpochDispatch
+   {
+      EpochPacket previous;
+      EpochDispatch(const Real *data, Integer count) : previous(activeEpoch)
+      {
+         activeEpoch = requestedEpoch.data == data && requestedEpoch.count == count
+            ? requestedEpoch : EpochPacket{};
+         // Consume the request before callbacks. Nested legacy publications,
+         // even with the same pointer, must not inherit the outer epoch.
+         requestedEpoch = EpochPacket{};
+      }
+      ~EpochDispatch() { activeEpoch = previous; }
+   };
+}
+
+bool Publisher::PublishWithEpoch(GmatBase *provider, Integer id, Real *data,
+                                 Integer count, const GmatTime &epoch, Real propDir)
+{
+   if (!data || count <= 0 || !std::isfinite(data[0]) ||
+       !std::isfinite(epoch.GetFracSec()) || data[0] != epoch.GetMjd())
+      throw PublisherException("Precise publication epoch must match its Real packet epoch.");
+   EpochRequest request(data, count, epoch);
+   // Preserve existing derived-Publisher dispatch and behavior.
+   return Publish(provider, id, data, count, propDir);
+}
+
+bool Publisher::GetPublishedEpoch(const Real *data, Integer count, GmatTime &epoch)
+{
+   if (!data || count <= 0 || activeEpoch.data != data ||
+       activeEpoch.count != count || !activeEpoch.epoch ||
+       data[0] != activeEpoch.epoch->GetMjd())
+      return false;
+   epoch = *activeEpoch.epoch;
+   return true;
+}
+
+bool Publisher::PublishWithSamples(GmatBase *provider, Integer id, Real *data,
+   Integer count, const GmatTime &sourceEpoch,
+   const std::vector<CartesianSample> &samples, Real propDir)
+{
+   if (!data || count <= 0 || !std::isfinite(data[0]) ||
+       !std::isfinite(sourceEpoch.GetFracSec()) || data[0] != sourceEpoch.GetMjd())
+      throw PublisherException("Sampled publication requires a matching source epoch.");
+   std::set<const GmatBase *> objects;
+   for (const auto &sample : samples)
+   {
+      if (!sample.object || !objects.insert(sample.object).second ||
+          !std::isfinite(sample.epoch.GetFracSec()))
+         throw PublisherException("Sampled publication has invalid object or epoch metadata.");
+      for (Integer i = 0; i < 6; ++i)
+         if (!std::isfinite(sample.state[i]))
+            throw PublisherException("Sampled publication has a nonfinite Cartesian state.");
+   }
+   // Snapshot the caller's vector: callbacks cannot change later consumers'
+   // values by modifying the producer's storage during synchronous dispatch.
+   const std::vector<CartesianSample> frozen(samples);
+   const GmatTime frozenEpoch(sourceEpoch);
+   EpochRequest request(data, count, frozenEpoch, &frozen);
+   return Publish(provider, id, data, count, propDir);
+}
+
+bool Publisher::GetPublishedCartesianState(const Real *data, Integer count,
+   const GmatBase *object, GmatTime &epoch, Rvector6 &state)
+{
+   GmatTime source;
+   if (!object || !activeEpoch.samples || !GetPublishedEpoch(data, count, source))
+      return false;
+   for (const auto &sample : *activeEpoch.samples)
+      if (sample.object == object)
+      {
+         epoch = sample.epoch;
+         state = sample.state;
+         return true;
+      }
+   return false;
+}
+
+Publisher::ParameterStateScope::ParameterStateScope(const Real *data, Integer count) :
+   previous(parameterToken)
+{
+   GmatTime source;
+   parameterToken = Publisher::GetPublishedEpoch(data, count, source) ?
+      activeEpoch.token : NULL;
+}
+
+Publisher::ParameterStateScope::~ParameterStateScope()
+{
+   parameterToken = previous;
+}
+
+bool Publisher::GetParameterCartesianState(const GmatBase *object,
+   GmatTime &epoch, Rvector6 &state)
+{
+   return parameterToken && parameterToken == activeEpoch.token &&
+      GetPublishedCartesianState(activeEpoch.data, activeEpoch.count, object, epoch, state);
+}
+
+
+
+namespace
+{
+   std::set<const Subscriber*> integrationStepConsumers;
+   struct IntegrationPacket
+   {
+      const Real *data = NULL;
+      Integer count = 0;
+      const std::vector<Publisher::IntegrationStep> *steps = NULL;
+      const ObjectArray *objects = NULL;
+      bool initial = false;
+   };
+   thread_local IntegrationPacket requestedIntegration;
+   thread_local IntegrationPacket activeIntegration;
+   struct IntegrationRequest
+   {
+      IntegrationPacket previous;
+      IntegrationRequest(const Real *data, Integer count,
+         const std::vector<Publisher::IntegrationStep> &steps) : previous(requestedIntegration)
+      {
+         requestedIntegration = {data, count, &steps};
+         if (previous.data == data && previous.count == count)
+         {
+            requestedIntegration.objects = previous.objects;
+            requestedIntegration.initial = previous.initial;
+         }
+      }
+      IntegrationRequest(const Real *data, Integer count, const ObjectArray &objects,
+                         bool initial) : previous(requestedIntegration)
+      { requestedIntegration = {data, count, NULL, &objects, initial}; }
+      ~IntegrationRequest() { requestedIntegration = previous; }
+   };
+   struct IntegrationDispatch
+   {
+      IntegrationPacket previous;
+      IntegrationDispatch(const Real *data, Integer count) : previous(activeIntegration)
+      {
+         activeIntegration = requestedIntegration.data == data && requestedIntegration.count == count
+            ? requestedIntegration : IntegrationPacket{};
+         requestedIntegration = IntegrationPacket{};
+      }
+      ~IntegrationDispatch() { activeIntegration = previous; }
+   };
+}
+
+thread_local const PlotOriginScope *PlotOriginScope::active = nullptr;
+
+PlotOriginScope::Packet::Packet(const Real *raw, Integer length, SpaceObject *origin) :
+   Packet(raw, length, origin ? std::vector<SpaceObject*>{origin} : std::vector<SpaceObject*>{}) {}
+
+PlotOriginScope::Packet::Packet(const Real *raw, Integer length,
+      const std::vector<SpaceObject*> &dependencies) :
+   data(raw), count(length), steps(Publisher::GetPublishedIntegrationSteps(raw, length))
+{
+   for (auto *object : dependencies)
+      if (object && std::find(objects.begin(),objects.end(),object)==objects.end())
+         objects.push_back(object);
+   if (!steps) return;
+   for (const auto &step : *steps)
+      for (const auto &sample : step.states)
+         for (auto *object : objects)
+         {
+            if (sample.object != object) continue;
+            auto added = byObject[object].emplace(sample.epoch, &sample.state);
+            auto &stored = added.first->second;
+            if (!added.second && stored)
+               for (Integer i=0; i<6; ++i)
+                  if ((*stored)[i] != sample.state[i]) { stored = nullptr; break; }
+         }
+}
+
+PlotOriginScope::PlotOriginScope(const Packet &source, const GmatTime &time) :
+   previous(active), packet(source), epoch(time)
+{
+   if (packet.steps) for (auto *object : packet.objects)
+   {
+      Rvector6 state;
+      bool valid=false, recorded=false;
+      const auto index=packet.byObject.find(object);
+      if (index!=packet.byObject.end())
+      {
+         const auto found=index->second.find(epoch);
+         if (found!=index->second.end())
+         {
+            recorded=true;
+            if (found->second) { state=*found->second; valid=true; }
+         }
+      }
+      if (!recorded && (object->HasPrecisionTime() ? object->GetEpochGT()==epoch :
+                        object->GetEpoch()==epoch.GetMjd()))
+      {
+         auto &live=object->GetState();
+         if (live.GetSize()>=6)
+         {
+            for (Integer i=0; i<6; ++i) state[i]=live[i];
+            valid=true;
+         }
+      }
+      if (valid) for (Integer i=0; i<6; ++i)
+         if (!std::isfinite(state[i]) || std::abs(state[i])>=std::numeric_limits<Real>::max())
+            valid=false;
+      if (valid) states.emplace(object,state);
+   }
+   active=this;
+}
+
+PlotOriginScope::~PlotOriginScope() { active=previous; }
+
+SpaceObject *PlotOriginScope::MissingObject() const
+{
+   for (auto *object : packet.objects) if (!states.count(object)) return object;
+   return nullptr;
+}
+
+bool PlotOriginScope::Matches(const SpaceObject *candidate) const
+{
+   return states.count(candidate) && packet.steps &&
+      Publisher::GetPublishedIntegrationSteps(packet.data,packet.count)==packet.steps;
+}
+
+bool PlotOriginScope::Epoch(const SpaceObject *candidate, Real mjd, GmatTime &time)
+{
+   if (!active || !active->Matches(candidate) || active->epoch.GetMjd()!=mjd) return false;
+   time=active->epoch;return true;
+}
+
+const Rvector6 *PlotOriginScope::Find(const SpaceObject *candidate, Real mjd)
+{
+   return active && active->Matches(candidate) && active->epoch.GetMjd()==mjd ? &active->states.at(candidate) : nullptr;
+}
+
+const Rvector6 *PlotOriginScope::Find(const SpaceObject *candidate, const GmatTime &time)
+{
+   return active && active->Matches(candidate) && active->epoch==time ? &active->states.at(candidate) : nullptr;
+}
+
+void Publisher::SetIntegrationStepConsumer(Subscriber *subscriber, bool enabled)
+{
+   if (!subscriber) return;
+   if (enabled) integrationStepConsumers.insert(subscriber);
+   else integrationStepConsumers.erase(subscriber);
+}
+
+bool Publisher::HasIntegrationStepConsumers() const
+{
+   for (auto *subscriber : subscriberList)
+      if (integrationStepConsumers.count(subscriber)) return true;
+   return false;
+}
+
+const std::vector<Publisher::IntegrationStep>* Publisher::GetPublishedIntegrationSteps(
+   const Real *data, Integer count)
+{
+   return data && count > 0 && activeIntegration.data == data &&
+      activeIntegration.count == count ? activeIntegration.steps : NULL;
+}
+
+const ObjectArray *Publisher::GetPublishedPropagationObjects(const Real *data,
+   Integer count, bool &initial)
+{
+   initial = false;
+   if (!data || count <= 0 || data != activeIntegration.data || count != activeIntegration.count)
+      return NULL;
+   initial = activeIntegration.initial;
+   return activeIntegration.objects;
+}
+
+bool Publisher::PublishPropagatePacket(GmatBase *provider, Integer id, Real *data,
+   Integer count, Real direction, const ObjectArray &objects, bool initial,
+   const std::vector<IntegrationStep> *steps)
+{
+   IntegrationRequest request(data, count, objects, initial);
+   if (steps) return PublishWithIntegrationSteps(provider, id, data, count, *steps, direction);
+   return Publish(provider, id, data, count, direction);
+}
+
+bool Publisher::PublishWithIntegrationSteps(GmatBase *provider, Integer id,
+   Real *data, Integer count, const std::vector<IntegrationStep> &steps, Real propDir)
+{
+   if (!data || count <= 0 || !std::isfinite(data[0]))
+      throw PublisherException("Integration-step publication requires a finite source packet.");
+   for (const auto &step : steps)
+   {
+      if (!std::isfinite(step.startSeconds) || !std::isfinite(step.endSeconds) ||
+          !std::isfinite(step.epoch.GetMjd()) || !std::isfinite(step.epoch.GetFracSec()) ||
+          (!step.initial && step.startSeconds == step.endSeconds))
+         throw PublisherException("Integration-step publication requires a nonzero accepted advance.");
+      std::set<const GmatBase*> objects;
+      for (const auto &sample : step.states)
+      {
+         if (!sample.object || !objects.insert(sample.object).second || sample.epoch != step.epoch)
+            throw PublisherException("Integration-step object/epoch bindings are invalid.");
+         for (Integer i = 0; i < 6; ++i)
+            if (!std::isfinite(sample.state[i]))
+               throw PublisherException("Integration-step Cartesian state is nonfinite.");
+      }
+   }
+   const std::vector<IntegrationStep> frozen(steps);
+   IntegrationRequest request(data, count, frozen);
+   return Publish(provider, id, data, count, propDir);
+}
 
 //#define DBGLVL_PUBLISHER_SUBSCRIBE 1
 //#define DBGLVL_PUBLISHER_REGISTER 2
@@ -161,6 +489,7 @@ bool Publisher::Subscribe(Subscriber *s)
 //------------------------------------------------------------------------------
 bool Publisher::Unsubscribe(Subscriber *s)
 {
+   SetIntegrationStepConsumer(s, false);
    if (!s)
       return false;
    
@@ -205,6 +534,7 @@ bool Publisher::UnsubscribeAll()
    #endif
    
    subscriberList.clear();
+   integrationStepConsumers.clear();
    
    ClearPublishedData();
    
@@ -250,6 +580,8 @@ bool Publisher::UnsubscribeAll()
 bool Publisher::Publish(GmatBase *provider, Integer id, Real *data, Integer count,
                         Real propDir)
 {
+   EpochDispatch precision(data, count);
+   IntegrationDispatch integration(data, count);
    #if DBGLVL_PUBLISHER_PUBLISH
    MessageInterface::ShowMessage
       ("Publisher::Publish(Real) entered, provider=<%p><%s>, id=%d, "
@@ -391,7 +723,9 @@ bool Publisher::Publish(GmatBase *provider, Integer id, Real *data, Integer coun
 
          // Code to only publish to ephems in step mode.  Remove this to
          // implement GMT-6110
-         if (ephemsOnly && !((*current)->IsOfType(Gmat::EPHEMERIS_FILE)))
+         const bool integrationConsumer = integrationStepConsumers.count(*current) &&
+               GetPublishedIntegrationSteps(data, count);
+         if (ephemsOnly && !((*current)->IsOfType(Gmat::EPHEMERIS_FILE)) && !integrationConsumer)
          {
             ++current;
             continue;
@@ -433,6 +767,8 @@ bool Publisher::Publish(GmatBase *provider, Integer id, Real *data, Integer coun
 //------------------------------------------------------------------------------
 bool Publisher::Publish(Integer id, char *data, Integer count)
 {
+   EpochDispatch precision(NULL, 0);
+   IntegrationDispatch integration(NULL, 0);
    Integer i;
     
    // No subscribers
@@ -494,6 +830,8 @@ bool Publisher::Publish(Integer id, char *data, Integer count)
 //------------------------------------------------------------------------------
 bool Publisher::Publish(Integer id, Integer *data, Integer count)
 {
+   EpochDispatch precision(NULL, 0);
+   IntegrationDispatch integration(NULL, 0);
    // No subscribers
    if (subscriberList.empty())
       return false;
@@ -627,6 +965,7 @@ void Publisher::ClearPublishedData()
    std::list<Subscriber*>::iterator current = subscriberList.begin();
    while (current != subscriberList.end())
    {
+      SetIntegrationStepConsumer(*current, false);
       (*current)->ClearDataLabels();
       current++;
    }

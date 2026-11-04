@@ -1339,7 +1339,9 @@ bool Estimator::SetStringParameter(const Integer id,
       if (value == "FromParticipants")
       {
          estimationEpochGT = 0.0;
-         estEpoch = "";
+         // Keep the symbolic epoch value stable across an explicit format
+         // assignment and script reload. No numerical epoch is selected here.
+         estEpoch = "FromParticipants";
       }
 
       return retVal;
@@ -3908,10 +3910,6 @@ Rmatrix Estimator::GetCovarianceVNB(const Rmatrix& inCov)
    esm.GetStateObjects(satArray, Gmat::SPACECRAFT);
    UnsignedInt satArraySize = satArray.size();
    UnsignedInt matSize = satArraySize*6;
-   Rvector outState(stateSize);
-   Rvector inState(stateSize);
-   inState.Set(estimationState->GetState(), stateSize);
-
    Rmatrix transform(matSize, matSize);
    UnsignedIntArray satStartIdxs; // Start index of the S/C Cartesian states in the esm
    const std::vector<ListItem*> *map = esm.GetStateMap();
@@ -3937,9 +3935,10 @@ Rmatrix Estimator::GetCovarianceVNB(const Rmatrix& inCov)
       UnsignedInt offsetIdx = satStartIdxs.size() * 6;
       satStartIdxs.push_back(satIdx);
 
-      cc.Convert(currentEpochGT, inState, ((Spacecraft*)satArray[idx])->GetInternalCoordSystem(), outState, vnbFrames[satArray[idx]], true, false);
-
-      Rmatrix33 vnbRot = cc.GetLastRotationMatrix();
+      // This covariance convention rotates the two 3-vectors independently;
+      // it does not use the six-state conversion's frame-rate terms.
+      Rmatrix33 vnbRot = cc.GetRotationMatrixOnly(currentEpochGT,
+         ((Spacecraft*)satArray[idx])->GetInternalCoordSystem(), vnbFrames[satArray[idx]]);
 
       for (UnsignedInt ii = 0; ii < 3U; ii++)
       {
@@ -10560,14 +10559,24 @@ void Estimator::WriteReportFileSummaryPart3(Solver::SolverState sState)
    textFile3 << "\n";
    
 
-   // 8. Calculate matrix [dK/dS]
-   Rmatrix dK_dS = solv2KeplMatrix.Inverse();     // GTDS MathSpec 8-45, 8-46a, and 8-46b
+   // Classical Keplerian elements can have a singular conversion at a
+   // circular/equatorial state. This derived report must not abort a valid
+   // Cartesian estimation or manufacture zero uncertainties for that case.
+   bool keplerianCovarianceAvailable = true;
+   Rmatrix keplerianCovar(informationInverse.GetNumRows(),
+                         informationInverse.GetNumColumns());
+   try
+   {
+      Rmatrix dK_dS = solv2KeplMatrix.Inverse();
+      keplerianCovar = dK_dS * informationInverse * dK_dS.Transpose();
+   }
+   catch (Rmatrix::IsSingular &)
+   {
+      keplerianCovarianceAvailable = false;
+      textFile3 << "Keplerian uncertainties unavailable: singular orbital-element conversion.\n";
+   }
 
-   
-   // 9. Write Keplerian state
-   // 9.1. Calculate Keplerian covariance matrix
-   //Rmatrix keplerianCovar = convmatrix * covar * convmatrix.Transpose();                 // Equation 8-49 GTDS MathSpec
-   Rmatrix keplerianCovar = dK_dS * informationInverse * dK_dS.Transpose();                // Equation 8-49 GTDS MathSpec
+   // 9. Write Keplerian states; unavailable uncertainties are explicitly N/A.
 
    // 9.2. Write Keplerian apriori, previous, current states
    std::vector<std::string> nameList;
@@ -10611,7 +10620,7 @@ void Estimator::WriteReportFileSummaryPart3(Solver::SolverState sState)
 
       for (UnsignedInt j = 0; j < 6; ++j)
       {
-         if (keplerianCovar(k, k) >= 0.0)
+         if (keplerianCovarianceAvailable && keplerianCovar(k, k) >= 0.0)
          {
             stdArr.push_back(GmatMathUtil::Sqrt(keplerianCovar(k, k)));
          }
@@ -10822,8 +10831,19 @@ void Estimator::WriteReportFileSummaryPart4(Solver::SolverState sState)
    textFile4 << WriteMatrixReport(finalCorrelation);
 
 
-   // 3. Calculate converison derivative matrix [dK/dS] from solve-for state to Keplerian state
-   Rmatrix convmatrix = solv2KeplMatrix.Inverse();                            // GTDS MathSpec Eq 8-45, 8-46a, and 8-46b
+   // Cartesian covariance/correlation above remain valid when classical
+   // Keplerian coordinates have no nonsingular covariance conversion.
+   Rmatrix convmatrix;
+   try
+   {
+      convmatrix = solv2KeplMatrix.Inverse();
+   }
+   catch (Rmatrix::IsSingular &)
+   {
+      textFile4 << "Keplerian covariance and correlation unavailable: singular orbital-element conversion.\n\n";
+      textFile4.flush();
+      return;
+   }
 
    // 4. Write final covariance and correlation matrix for Keplerian coordinate system:
    // 4.1. Calculate covariance matrix w.r.t. Cr_Epsilon and Cd_Epsilon

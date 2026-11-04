@@ -1,4 +1,5 @@
 #include "QtScriptInterpreter.hpp"
+#include "FunctionValidation.hpp"
 #include "Moderator.hpp"
 #include "FileManager.hpp"
 #include "UtilityException.hpp"
@@ -15,6 +16,10 @@ bool qtInterpretScript(std::istringstream &script)
       // CustomFOV construction installs its default path. Restore only this
       // existing setting, retaining aliases and all other interpreter effects.
       const bool result=Moderator::Instance()->InterpretScript(&script,true);
+      if (result) {
+         try { qtValidateFunctionBodies(script.str()); }
+         catch (const std::exception &error) { throw QtFunctionValidationError(error.what()); }
+      }
       restore();
       return result;
    } catch (...) {

@@ -1,6 +1,10 @@
 #include "CelestialBodyPanel.hpp"
 #include "CelestialBody.hpp"
+#include "DateUtil.hpp"
 #include "SolarSystem.hpp"
+#ifdef __USE_SPICE__
+#include "SpiceInterface.hpp"
+#endif
 #include "Moderator.hpp"
 #include "FileManager.hpp"
 #include "ResourceProperties.hpp"
@@ -19,6 +23,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QDialogButtonBox>
+#include <QDialog>
 #include <QFileDialog>
 #include <QColorDialog>
 #include <QImageReader>
@@ -28,6 +33,13 @@
 #include <algorithm>
 #include <stdexcept>
 
+namespace {
+QString defaultRotationSource(const CelestialBody &body)
+{
+   return QString::fromStdString(Gmat::ROTATION_DATA_SOURCE_STRINGS[
+      body.GetName()=="Luna" ? Gmat::DE_FILE : Gmat::IAU_SIMPLIFIED]);
+}
+}
 QVector<BodyField> celestialBodyFields(CelestialBody &body)
 {
    QVector<BodyField> fields;
@@ -49,7 +61,8 @@ QVector<BodyField> celestialBodyFields(CelestialBody &body)
    if (kernels) add("Properties","PlanetarySpiceKernelName","Planetary PCK files");
    add("Orbit","PosVelSource","Ephemeris source",!body.IsUserDefined()); add("Orbit","CentralBody","Central body",true);
    if (kernels) { add("Orbit","NAIFId","NAIF ID"); add("Orbit","OrbitSpiceKernelName","Orbit SPK files"); }
-   add("Orientation","RotationDataSource","Rotation source",true);
+   add("Orientation","RotationDataSource","Rotation source",!(kernels && (body.IsUserDefined() || body.GetName()=="Luna")));
+   add("Orientation","OrientationEpoch","Reference epoch (A1ModJulian)",!body.IsUserDefined());
    if (body.GetName()=="Earth") add("Orientation","NutationUpdateInterval","Nutation update interval (s)");
    for (const auto &entry:QList<QPair<QString,QString>>{{"SpinAxisRAConstant","Pole right ascension (deg)"},{"SpinAxisRARate","RA rate (deg/century)"},{"SpinAxisDECConstant","Pole declination (deg)"},{"SpinAxisDECRate","DEC rate (deg/century)"},{"RotationConstant","Prime meridian (deg)"},{"RotationRate","Rotation rate (deg/day)"}}) add("Orientation",entry.first,entry.second,!body.IsUserDefined());
    if (kernels) { add("Orientation","SpiceFrameId","SPICE frame ID"); add("Orientation","FrameSpiceKernelName","Frame FK files"); }
@@ -76,6 +89,9 @@ QString assetPath(const QString &name,const QString &field,const QString &value)
 QString celestialBodyScript(CelestialBody &body,const QString &source,const QMap<QString,QString> &changes,const QString &firstMissionStatement)
 {
    QMap<QString,BodyField> fields; for (const auto &field:celestialBodyFields(body)) fields.insert(field.name,field);
+   const auto rotation=changes.value("RotationDataSource",QString::fromStdString(body.GetStringParameter(body.GetParameterID("RotationDataSource"))));
+   if (rotation=="SPICE" && changes.value("SpiceFrameId",QString::fromStdString(body.GetStringParameter(body.GetParameterID("SpiceFrameId")))).trimmed().isEmpty())
+      throw std::runtime_error("Choose a SPICE frame ID before applying SPICE rotation.");
    QString block; QStringList replaced;
    // Iterate in page order: source/NAIF before files, independent real values,
    // appearance files before their pose. No CelestialBody clone is created:
@@ -84,8 +100,17 @@ QString celestialBodyScript(CelestialBody &body,const QString &source,const QMap
       if (!changes.contains(field.name)) continue;
       if (field.readOnly) throw std::runtime_error(("This body setting is read-only: "+field.name).toStdString());
       const auto value=changes.value(field.name); QString literal;
-      if (field.type==Gmat::REAL_TYPE) {
+      if (field.name=="RotationDataSource") {
+         const auto fallback=defaultRotationSource(body);
+         if (value!=fallback && value!="SPICE") throw std::runtime_error("Choose a rotation source available for this body.");
+         // Rebuilding without an override restores the factory source. Avoid
+         // asking the engine's legacy setter to select a default it ignores.
+         if (value==fallback) { replaced.append(field.name); continue; }
+         literal=value;
+      } else if (field.type==Gmat::REAL_TYPE) {
          bool ok=false; const auto number=value.toDouble(&ok); if (!ok || !std::isfinite(number)) throw std::runtime_error(("Enter a finite number for "+field.label+".").toStdString());
+         if (field.name=="OrientationEpoch" && (number<DateUtil::EARLIEST_VALID_MJD_VALUE || number>DateUtil::LATEST_VALID_MJD_VALUE))
+            throw std::runtime_error("Orientation epoch must be between 6116.0 and 58127.5 A1ModJulian, inclusive.");
          if ((field.name=="Mu" || field.name=="EquatorialRadius") && number<=0) throw std::runtime_error((field.label+" must be greater than zero.").toStdString());
          if ((field.name=="Flattening" || field.name=="NutationUpdateInterval") && number<0) throw std::runtime_error((field.label+" must be zero or greater.").toStdString());
          if (field.name.startsWith("3DModelOffset") && (number< -3.5 || number>3.5)) throw std::runtime_error("Model offsets must be between -3.5 and 3.5.");
@@ -98,6 +123,11 @@ QString celestialBodyScript(CelestialBody &body,const QString &source,const QMap
          QStringList entries,seen;
          for (const auto &path:value.split('\n',Qt::SkipEmptyParts)) {
             const QFileInfo file(path); if (!file.isFile() || !file.isReadable()) throw std::runtime_error(("Choose an existing readable kernel: "+path).toStdString());
+#ifdef __USE_SPICE__
+            const auto kind=field.name=="OrbitSpiceKernelName" ? "SPK" : field.name=="FrameSpiceKernelName" ? "FK" : "PCK";
+            if (!SpiceInterface::IsValidKernel(file.absoluteFilePath().toStdString(),kind))
+               throw std::runtime_error(("Choose a valid "+QString(kind)+" kernel: "+path).toStdString());
+#endif
             const auto identity=file.canonicalFilePath(); if (seen.contains(identity)) throw std::runtime_error("Choose each kernel only once."); seen.append(identity); entries.append(quotedFile(path));
          }
          literal="{"+entries.join(", ")+"}";
@@ -140,6 +170,14 @@ QString celestialBodySettingsError(CelestialBody &body,const QMap<QString,QStrin
    return {};
 }
 
+CelestialBodyPanel::~CelestialBodyPanel()
+{
+   // QListWidget emits modelReset while QWidget tears down children, after
+   // this class's settings getters have been destroyed. Retire callbacks now.
+   for (auto *child:findChildren<QObject *>())
+      QObject::disconnect(child,nullptr,this,nullptr);
+}
+
 CelestialBodyPanel::CelestialBodyPanel(CelestialBody &body,Apply apply,QWidget *parent) : EditablePanel(parent)
 {
    setObjectName("celestialBodyPanel"); const auto name=QString::fromStdString(body.GetName()); auto *layout=new QVBoxLayout(this);
@@ -171,8 +209,19 @@ CelestialBodyPanel::CelestialBodyPanel(CelestialBody &body,Apply apply,QWidget *
          auto *combo=new QComboBox(this); combo->setObjectName("body_"+field.name); combo->addItems(field.choices); combo->setCurrentText(field.value); combo->setEnabled(!field.readOnly); form->addRow(field.label,combo); values[field.name]=[combo] { return combo->currentText(); };
          if (field.name=="PosVelSource") form->addRow("Ephemeris file",sourceFile);
       } else {
-         auto *edit=new QLineEdit(field.value,this); edit->setObjectName("body_"+field.name); edit->setReadOnly(field.readOnly); values[field.name]=[edit] { return edit->text(); };
-         if (field.filename || field.type==Gmat::COLOR_TYPE) {
+         auto *edit=new QLineEdit(field.value,this); edit->setObjectName("body_"+field.name); edit->setReadOnly(field.readOnly || field.name=="RotationDataSource"); values[field.name]=[edit] { return edit->text(); };
+         if (field.name=="RotationDataSource" && !field.readOnly) {
+            auto *row=new QWidget(this); auto *box=new QHBoxLayout(row); box->setContentsMargins(0,0,0,0); box->addWidget(edit,1);
+            auto *choose=new QPushButton("Choose…",row); choose->setObjectName("bodyChoose_RotationDataSource"); box->addWidget(choose); form->addRow(field.label,row);
+            const auto fallback=defaultRotationSource(body);
+            connect(choose,&QPushButton::clicked,this,[this,edit,fallback] {
+               QDialog dialog(this); dialog.setObjectName("bodyRotationSourceDialog"); dialog.setWindowTitle("Body rotation source");
+               auto *layout=new QVBoxLayout(&dialog); auto *choice=new QComboBox(&dialog); choice->setObjectName("bodyRotationSourceChoice"); choice->addItems({fallback,"SPICE"}); choice->setCurrentText(edit->text()); layout->addWidget(choice);
+               auto *note=new QLabel("SPICE uses the selected frame and kernels. The body default uses its original rotation model. Apply commits the selection.",&dialog); note->setWordWrap(true); layout->addWidget(note);
+               auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,&dialog); layout->addWidget(buttons); connect(buttons,&QDialogButtonBox::accepted,&dialog,&QDialog::accept); connect(buttons,&QDialogButtonBox::rejected,&dialog,&QDialog::reject);
+               if (dialog.exec()==QDialog::Accepted) edit->setText(choice->currentText());
+            });
+         } else if (field.filename || field.type==Gmat::COLOR_TYPE) {
             auto *row=new QWidget(this); auto *box=new QHBoxLayout(row); box->setContentsMargins(0,0,0,0); box->addWidget(edit,1); auto *button=new QPushButton(field.filename ? "Browse…" : "Choose…",row); button->setObjectName("bodyChoose_"+field.name); box->addWidget(button); form->addRow(field.label,row);
             connect(button,&QPushButton::clicked,this,[this,edit,field] {
                if (field.filename) { const auto path=QFileDialog::getOpenFileName(this,"Choose "+field.label,edit->text()); if (!path.isEmpty()) edit->setText(path); }
@@ -188,11 +237,35 @@ CelestialBodyPanel::CelestialBodyPanel(CelestialBody &body,Apply apply,QWidget *
    auto *source=findChild<QComboBox *>("body_PosVelSource");
    const auto dependencies=[this,source] { const bool spice=source->currentText()=="SPICE"; if (auto *id=findChild<QLineEdit *>("body_NAIFId")) id->setReadOnly(!spice); if (auto *files=findChild<QListWidget *>("body_OrbitSpiceKernelName")) files->parentWidget()->setEnabled(spice); };
    connect(source,&QComboBox::currentTextChanged,this,[dependencies] { dependencies(); }); dependencies();
+   if (auto *rotation=findChild<QLineEdit *>("body_RotationDataSource")) {
+      const bool custom=body.IsUserDefined(); const auto active=[this,rotation,custom] {
+         for (const auto &key:QStringList{"OrientationEpoch","SpinAxisRAConstant","SpinAxisRARate","SpinAxisDECConstant","SpinAxisDECRate","RotationConstant","RotationRate"})
+            if (auto *field=findChild<QLineEdit *>("body_"+key)) field->setReadOnly(!custom || rotation->text()=="SPICE");
+      };
+      connect(rotation,&QLineEdit::textChanged,this,[active] { active(); }); active();
+   }
    status=new QLabel(this); status->setObjectName("bodyStatus"); status->setWordWrap(true); layout->addWidget(status);
    auto *buttons=new QDialogButtonBox(QDialogButtonBox::Apply|QDialogButtonBox::Close,this); layout->addWidget(buttons);
    const auto script=QString::fromStdString(body.GetGeneratingString(Gmat::SHOW_SCRIPT)); auto *show=new QPushButton("Show script…",this); show->setObjectName("showScript"); buttons->addButton(show,QDialogButtonBox::ActionRole); connect(show,&QPushButton::clicked,this,[this,script] { InspectionDialog dialog("Celestial-body script",script,"Applied settings. Pending edits are not included.",this); dialog.exec(); });
    connect(buttons->button(QDialogButtonBox::Apply),&QPushButton::clicked,this,[this,apply] { QMap<QString,QString> changed; const auto pending=settings(); for (auto it=pending.cbegin();it!=pending.cend();++it) if (it.value()!=original.value(it.key())) changed.insert(it.key(),it.value()); if (changed.isEmpty()) { status->setText("No changes to apply."); return; } const auto error=apply(changed); if (error.isEmpty()) { applied=true; appliedSuccessfully(); } else status->setText(error); });
-   connect(buttons,&QDialogButtonBox::rejected,this,[this] { parentWidget()->close(); });
+   connect(buttons->button(QDialogButtonBox::Close),&QPushButton::clicked,this,[this] { parentWidget()->close(); });
+   // Match GmatPanel::EnableUpdate: Apply follows the complete pending model,
+   // including chooser-driven edits and kernel-list insert/remove/reorder.
+   auto *applyButton=buttons->button(QDialogButtonBox::Apply);
+   const auto updateApply=[this,applyButton] { applyButton->setEnabled(hasChanges()); };
+   for (auto *edit:findChildren<QLineEdit *>())
+      connect(edit,&QLineEdit::textChanged,this,updateApply);
+   for (auto *choice:findChildren<QComboBox *>())
+      connect(choice,&QComboBox::currentTextChanged,this,updateApply);
+   for (auto *list:findChildren<QListWidget *>()) {
+      auto *model=list->model();
+      connect(model,&QAbstractItemModel::dataChanged,this,updateApply);
+      connect(model,&QAbstractItemModel::rowsInserted,this,updateApply);
+      connect(model,&QAbstractItemModel::rowsRemoved,this,updateApply);
+      connect(model,&QAbstractItemModel::rowsMoved,this,updateApply);
+      connect(model,&QAbstractItemModel::modelReset,this,updateApply);
+   }
+   updateApply();
 }
 QMap<QString,QString> CelestialBodyPanel::settings() const { QMap<QString,QString> result; for (auto it=values.cbegin();it!=values.cend();++it) result.insert(it.key(),it.value()()); return result; }
 bool CelestialBodyPanel::hasChanges() const { return !applied && settings()!=original; }

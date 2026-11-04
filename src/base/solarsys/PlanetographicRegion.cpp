@@ -978,6 +978,11 @@ std::string PlanetographicRegion::GetParameterTypeString(const Integer id) const
  //---------------------------------------------------------------------------
 bool PlanetographicRegion::IsParameterReadOnly(const Integer id) const
 {
+   // File initialization populates these lists for computation. They are
+   // derived in file mode, whose setters reject a simultaneous explicit list.
+   if ((id == LATITUDE || id == LONGITUDE) && !filename.empty())
+      return true;
+
    if ((id == LOCATION_1) || (id == LOCATION_2) || (id == LOCATION_3) || 
       (id == HORIZON_REFERENCE) || (id == STATE_TYPE) || (id == ORBIT_COLOR) || (id == TARGET_COLOR))
       return true;
@@ -999,11 +1004,7 @@ bool PlanetographicRegion::IsParameterReadOnly(const Integer id) const
  //---------------------------------------------------------------------------
 bool PlanetographicRegion::IsParameterReadOnly(const std::string &label) const
 {
-   if ((label == PARAMETER_TEXT[LATITUDE - BodyFixedPointParamCount]) ||
-      (label == PARAMETER_TEXT[LONGITUDE - BodyFixedPointParamCount]))
-      return false;
-
-   return BodyFixedPoint::IsParameterReadOnly(label);
+   return IsParameterReadOnly(GetParameterID(label));
 }
 
 bool PlanetographicRegion::IsValidID(const std::string & id)

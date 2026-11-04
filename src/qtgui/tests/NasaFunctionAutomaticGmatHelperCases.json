@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "scope": "Actual user-defined function resource automatic identity plus distinct quadratic main/local leaf functions and input-copy preservation.",
+  "cases": [
+    {
+      "key": "GmatFunction",
+      "helper_type": "GmatFunction",
+      "kind": "array",
+      "oracle": "literal",
+      "columns": 2,
+      "tolerance": 1e-12,
+      "original_scope_case": false,
+      "declarations": "Create GmatFunction NativeHelper;\nNativeHelper.FunctionPath = '@AUTO_PRIVATE_LEAF@';\nCreate Variable Input Measured;\nInput = 7;\n",
+      "execution": "[Measured] = NativeHelper(Input);\nout(1,1) = Measured;\nout(1,2) = Input;\n",
+      "expected": [
+        60,
+        7
+      ],
+      "main_declarations": "Create GmatFunction CallerHelper;\nCallerHelper.FunctionPath = '@AUTO_CALLER_LEAF@';\nCreate Variable Input Measured MainSentinel;\nInput = 5;\nMainSentinel = 29;\n",
+      "main_execution": "[Measured] = CallerHelper(Input);\nout(1,1) = Measured;\nout(1,2) = Input;\n",
+      "main_expected": [
+        28,
+        5
+      ],
+      "caller_objects": [
+        "CallerHelper",
+        "Input",
+        "Measured",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "Input": {
+          "type": "Variable",
+          "value": 5
+        },
+        "Measured": {
+          "type": "Variable",
+          "value": 28
+        },
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        }
+      },
+      "private_primary_helper_calls_per_block": 1,
+      "main_primary_helper_calls_per_block": 1,
+      "support_files": [
+        {
+          "name": "NativeHelper.gmf",
+          "contents": "function [answer] = NativeHelper(input)\nCreate Variable answer;\nBeginMissionSequence;\nanswer = input * input + 11;\ninput = 999;\n"
+        },
+        {
+          "name": "CallerHelper.gmf",
+          "contents": "function [answer] = CallerHelper(input)\nCreate Variable answer;\nBeginMissionSequence;\nanswer = input * input + 3;\ninput = 888;\n"
+        }
+      ]
+    }
+  ]
+}

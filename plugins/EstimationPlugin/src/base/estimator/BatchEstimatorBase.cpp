@@ -117,6 +117,7 @@ BatchEstimatorBase::BatchEstimatorBase(const std::string &type,
    resetBestRMSFlag           (false),
    useApriori                 (false),                  // second term of Equation Eq8-184 in GTDS MathSpec is not used   
    advanceToEstimationEpoch   (false),
+   finalPass                  (false),
 //   converged                  (false),
    estimationStatus           (UNKNOWN),
    maxConsDivergences         (3),
@@ -147,6 +148,9 @@ BatchEstimatorBase::~BatchEstimatorBase()
          delete outerLoopBuffer[i];
    }
    outerLoopBuffer.clear();
+   for (auto object : finalPassBuffer)
+      delete object;
+   finalPassBuffer.clear();
 }
 
 
@@ -168,6 +172,7 @@ BatchEstimatorBase::BatchEstimatorBase(const BatchEstimatorBase& est) :
    resetBestRMSFlag           (est.resetBestRMSFlag),
    useApriori                 (est.useApriori),
    advanceToEstimationEpoch   (false),
+   finalPass                  (false),
    estimationStatus           (UNKNOWN),
    maxConsDivergences         (est.maxConsDivergences),
    freezeEditing              (est.freezeEditing),
@@ -203,6 +208,10 @@ BatchEstimatorBase& BatchEstimatorBase::operator=(const BatchEstimatorBase& est)
       useApriori			   = est.useApriori;
 
       advanceToEstimationEpoch = false;
+      finalPass = false;
+      for (auto object : finalPassBuffer)
+         delete object;
+      finalPassBuffer.clear();
       estimationStatus         = UNKNOWN;
 
       maxConsDivergences       = est.maxConsDivergences;
@@ -867,6 +876,8 @@ bool BatchEstimatorBase::TakeAction(const std::string &action,
    // @todo  Complete Reset action (?) and add others if needed
    if (action == "Reset")
    {
+      RestoreFinalPassObjects();
+      finalPass = false;
       currentState = INITIALIZING;
       isInitialized = false;
       estimationStatus = UNKNOWN;
@@ -1008,6 +1019,7 @@ Solver::SolverState BatchEstimatorBase::AdvanceState()
    }
    catch (...) //(EstimatorException ex)
    {
+      RestoreFinalPassObjects();
       currentState = FINISHED;
       throw; // ex;
    }
@@ -1031,6 +1043,7 @@ bool BatchEstimatorBase::Finalize()
 {
    bool retval = false;
 
+   RestoreFinalPassObjects();
    if (Estimator::Finalize())
    {
       retval = true;
@@ -1054,8 +1067,23 @@ bool BatchEstimatorBase::Finalize()
  //------------------------------------------------------------------------------
 bool BatchEstimatorBase::IsFinalPass()
 {
-   bool retval = false;
-   return retval;
+   return finalPass;
+}
+
+
+// Restore the fitted initial conditions after output propagation, including
+// participants that are propagated but are not themselves solve-for objects.
+void BatchEstimatorBase::RestoreFinalPassObjects()
+{
+   if (!finalPassBuffer.empty())
+   {
+      esm.RestoreObjects(&finalPassBuffer);
+      esm.SetEstimationState(finalPassState);
+      currentEpochGT = estimationEpochGT;
+      for (auto object : finalPassBuffer)
+         delete object;
+      finalPassBuffer.clear();
+   }
 }
 
 
@@ -1320,6 +1348,17 @@ void BatchEstimatorBase::CompleteInitialization()
 //------------------------------------------------------------------------------
 void BatchEstimatorBase::FindTimeStep()
 {
+   if (finalPass)
+   {
+      timeStep = (finalPassEndEpochGT - currentEpochGT).GetTimeInSec();
+      if (fabs(timeStep) <= ESTTIME_ROUNDOFF)
+      {
+         RestoreFinalPassObjects();
+         timeStep = 0.0;
+         currentState = FINISHED;
+      }
+      return;
+   }
    #ifdef DEBUG_PROPAGATION
       MessageInterface::ShowMessage("BatchEstimatorBase::FindTimeStep() "
             "current epoch = %s, next epoch = %s\n",
@@ -1508,6 +1547,20 @@ void BatchEstimatorBase::CheckCompletion()
       GmatGlobal::Instance()->SetSolverStatus(instanceName, status);
 
       currentState = FINISHED;
+
+      // Estimate() has already restored the participants to the newly fitted
+      // initial conditions. Publish only a propagation of that solution; do
+      // not recalculate measurements, corrections, statistics or iterations.
+      if (status == Gmat::CONVERGED)
+      {
+         finalPassEndEpochGT = currentEpochGT;
+         finalPassState = esm.GetEstimationState();
+         esm.BufferObjects(&finalPassBuffer);
+         currentEpochGT = estimationEpochGT;
+         timeStep = (finalPassEndEpochGT - currentEpochGT).GetTimeInSec();
+         finalPass = true;
+         currentState = PROPAGATING;
+      }
    }
    else
    {

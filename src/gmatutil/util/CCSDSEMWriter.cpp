@@ -31,10 +31,12 @@
 #include "FileUtil.hpp"
 #include "FileTypes.hpp"
 #include "StringUtil.hpp"
-#include "TimeTypes.hpp"             // for FormatCurrentTime()
+#include "TimeTypes.hpp"
 #include "UtilityException.hpp"
 #include "MessageInterface.hpp"
+#include "CcsdsOemB1Text.hpp"
 #include <sstream>
+#include <ctime>
 
 //#define DEBUG_INIT_EM_FILE
 //#define DEBUG_EM_FILE
@@ -199,16 +201,42 @@ bool CCSDSEMWriter::WriteHeader(const std::string &versionFieldName)
 {
    if (!emOutStream.is_open())
       return false;
+
+   const bool oemB1 = versionFieldName == "CCSDS_OEM_VERS" && versionNumber == "1.0";
+   if (oemB1)
+      CcsdsOemB1Text::RequireValue("ORIGINATOR", originator);
    
-   creationTime = GmatTimeUtil::FormatCurrentTime(2);
+   // CCSDS creation dates are UTC, independently of the process timezone.
+   const std::time_t clockTime = std::time(nullptr);
+   std::tm utcTime;
+   if (clockTime == std::time_t(-1))
+      throw UtilityException("Unable to obtain CCSDS message creation time");
+   #ifdef _MSC_VER
+   if (gmtime_s(&utcTime, &clockTime) != 0)
+   #else
+   if (gmtime_r(&clockTime, &utcTime) == nullptr)
+   #endif
+      throw UtilityException("Unable to convert CCSDS message creation time to UTC");
+   char utcText[20];
+   if (std::strftime(utcText, sizeof(utcText), "%Y-%m-%dT%H:%M:%S", &utcTime) == 0)
+      throw UtilityException("Unable to format CCSDS message creation time in UTC");
+   creationTime = utcText;
    
    std::stringstream ss("");
    ss << versionFieldName << " = " << versionNumber << std::endl;
    //ss << "CCSDS_OEM_VERS = " << versionNumber << std::endl;
    for (unsigned int i = 0; i < headerComments.size(); i++)
-      ss << "COMMENT  " << headerComments[i] << std::endl;
+   {
+      if (oemB1)
+         ss << CcsdsOemB1Text::Comment(headerComments[i]);
+      else
+         ss << "COMMENT  " << headerComments[i] << std::endl;
+   }
    ss << "CREATION_DATE  = " << creationTime << std::endl;
    ss << "ORIGINATOR     = " << originator << std::endl;
+
+   if (oemB1)
+      CcsdsOemB1Text::CheckLines(ss.str());
    
    emOutStream << ss.str();
    emOutStream.flush();

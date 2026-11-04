@@ -34,6 +34,7 @@
 #define Propagate_hpp
 
 #include "PropagationEnabledCommand.hpp"
+#include "AcceptedStepHistory.hpp"
 #include "ElementWrapper.hpp"
 #include <list>
 
@@ -185,6 +186,11 @@ public:
    virtual GmatBase*    GetClone(Integer cloneIndex = 0);
    
 protected:
+   bool InitializeForPropagation(bool selectAccelerationContext);
+   bool TakeAStepWithJournal(Real propStep,
+      std::vector<AcceptedStepHistory::Step> &records);
+   bool PublishIntegrationSteps(const std::vector<AcceptedStepHistory::Step> &records,
+      Real propDir, bool initial = false);
    /// Name of the propagator setup(s) used in this command
    StringArray                  propName;
    /// The spacecraft associated with this propagation, grouped by propagator

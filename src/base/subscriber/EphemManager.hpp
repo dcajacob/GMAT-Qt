@@ -113,6 +113,19 @@ public:
                                             const std::string                      idForInstrument,
                                             RealArray		  &maxEl);
 
+   // Isolated apparent elevation crossings, not clipped contact intervals.
+   // The caller supplies a station frame and excludes its central body from
+   // occultingBodies, as for GetContactIntervals. Occultation is evaluated at
+   // each root epoch; it is not a one-sided visibility-limit calculation.
+   bool                 GetStationElevationCrossings(
+                            const std::string &observerID, Real minElevation,
+                            const std::string &obsFrameName,
+                            const StringArray &occultingBodies,
+                            const std::string &abCorrection,
+                            Real start, Real stop, bool useEntireInterval,
+                            bool useLightTime, bool transmit, Real stepSize,
+                            RealArray &rises, RealArray &sets);
+
    bool                 GetIntrusionIntervals(const std::string &instName,
                                               const std::string &targetName,
                                               const std::string &targetShape,

@@ -32,6 +32,8 @@
 #include "Attitude.hpp"
 #include "AttitudeException.hpp"
 #include "CCSDSAttitude.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "MessageInterface.hpp"
 #include "AttitudeConversionUtility.hpp"
 
@@ -234,3 +236,15 @@ void CCSDSAttitude::ComputeCosineMatrixAndAngularVelocity(GmatTime &atTime)
 //  private methods
 //------------------------------------------------------------------------------
 // none
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void CCSDSAttitude::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const CCSDSAttitude*>(original);
+   if (!source || typeid(*source) != typeid(CCSDSAttitude) ||
+       typeid(*this) != typeid(CCSDSAttitude))
+      throw GmatBaseException("Cannot copy incompatible object into CCSDSAttitude");
+   if (source == this)
+      return;
+   operator=(*source);
+}

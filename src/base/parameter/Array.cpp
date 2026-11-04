@@ -338,7 +338,7 @@ Gmat::ParameterType Array::GetParameterType(const Integer id) const
 std::string Array::GetParameterTypeString(const Integer id) const
 {
    if (id >= ParameterParamCount && id < ArrayParamCount)
-      return PARAM_TYPE_STRING[GetParameterType(id - ParameterParamCount)];
+      return PARAM_TYPE_STRING[GetParameterType(id)];
    else
       return Parameter::GetParameterTypeString(id);
 }

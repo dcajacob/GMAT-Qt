@@ -1,0 +1,489 @@
+{
+  "id": "01-simulating-orbit",
+  "title": "Simulating an Orbit",
+  "guide": "doc/help/src/Tut_SimulatingAnOrbit.xml",
+  "guide_sha256": "e15978b8d0acfa36f4297e7af824f486d51b3c9c6b55232e3c1af92a324bc8d1",
+  "reference": "application/samples/Tut_SimulatingAnOrbit.script",
+  "provenance": "Reviewed current Help instructions, using semantic QtTest widget selectors. Values come from the Help chapter; the generator never reads a completed example mission. Script-event text is entered only where the chapter explicitly teaches it.",
+  "stages": [
+    {
+      "name": "Current Help GUI instructions with QtTest selectors",
+      "input": null,
+      "requires_run": true,
+      "actions": [
+        {
+          "action": "key",
+          "keys": "Esc"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+N"
+        },
+        {
+          "action": "window",
+          "state": "maximized"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultSC",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "Sat",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Sat",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DateFormat",
+          "value": "UTCGregorian"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "text",
+          "text": "22 Jul 2014 11:29:10.811",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DisplayStateType",
+          "value": "Keplerian"
+        },
+        {
+          "action": "click",
+          "field_hint": "SMA",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "83474.318"
+        },
+        {
+          "action": "click",
+          "field_hint": "ECC",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "0.89652"
+        },
+        {
+          "action": "click",
+          "field_hint": "INC",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "12.4606"
+        },
+        {
+          "action": "click",
+          "field_hint": "RAAN",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "292.8362"
+        },
+        {
+          "action": "click",
+          "field_hint": "AOP",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "218.9805"
+        },
+        {
+          "action": "click",
+          "field_hint": "TA",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "180"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultProp",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "LowEarthProp",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "LowEarthProp_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "text",
+          "text": "Sun, Luna",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_SRP",
+          "value": "On"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_text": "Gravity field",
+          "target_role": "tab"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Degree",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Degree",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "10"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Order",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Order",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "10"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "target_name": "forceAtmosphere"
+        },
+        {
+          "action": "select",
+          "target_name": "atmosphere_AtmosphereModel",
+          "value": "JacchiaRoberts"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "DefaultOrbitView",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewPointVector",
+          "value": "Vector"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "text",
+          "text": "-60000",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "text",
+          "text": "30000",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "text",
+          "text": "20000",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "check",
+          "target_name": "orbit_XYPlane",
+          "checked": false
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-orbit-resources-configured"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Propagate",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "text",
+          "text": "Sat.Earth.Periapsis",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+S"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial01-authored.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-periapsis-run"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagate",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Command summary",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "summaryFrame",
+          "value": "EarthFixed"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-command-summary-earth-fixed"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_name": "allPlotReplayStart"
+        },
+        {
+          "action": "check",
+          "target_name": "allPlotReplayPlay",
+          "checked": true
+        },
+        {
+          "action": "wait",
+          "ms": 500
+        },
+        {
+          "action": "check",
+          "target_name": "allPlotReplayPlay",
+          "checked": false
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-animation"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+O"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial01-authored.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "screenshot",
+          "label": "own-saved-mission-reopened"
+        }
+      ]
+    }
+  ]
+}

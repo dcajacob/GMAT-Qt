@@ -81,6 +81,12 @@ public:
    virtual Rvector6     GetState(std::string rep);
    virtual Rvector6     GetState(Integer rep);
    StringArray          GetStateElementLabels(const std::string &stateType);
+   // Retain a small Cartesian state in internal MJ2000Eq axes without a lossy
+   // round trip through the internal origin. The ordinary state remains intact.
+   bool SetOriginRelativeState(SpacePoint *origin, const GmatTime &atEpoch,
+                               const Rvector6 &localState);
+   bool GetOriginRelativeState(SpacePoint *origin, const GmatTime &atEpoch,
+                               Rvector6 &localState) const;
    Rvector6             GetCartesianState();
    Rvector6             GetKeplerianState();
    Rvector6             GetModifiedKeplerianState();
@@ -794,6 +800,21 @@ protected:
    /// New constructs needed to preserve interfaces
    Rvector6          rvState;
 
+   struct OriginRelativeState
+   {
+      bool valid = false;
+      SpacePoint *origin = NULL;
+      SpacePoint *internalOrigin = NULL;
+      CoordinateSystem *internalFrame = NULL;
+      std::string originName, internalOriginName;
+      Rvector6 originEphemeris, internalOriginEphemeris;
+      bool celestialOrigin = false, celestialInternalOrigin = false;
+      GmatTime epoch;
+      Rvector6 local;
+      Rvector6 backing;
+   };
+   mutable OriginRelativeState originRelativeState;
+
    bool              initialDisplay;
    bool              csSet;
    bool              isThrusterSettingMode;
@@ -961,6 +982,8 @@ protected:
                         std::stringstream &stream);
 
    Rvector6          GetStateInRepresentation(const std::string &rep = "", bool useDefaultCartesian = false);
+   Rvector6          GetStateInRepresentation(const std::string &rep,
+                        bool useDefaultCartesian, bool forceComputation);
    Rvector6          GetStateInRepresentation(Integer rep, bool useDefaultCartesian = false);
    void              SetStateFromRepresentation(const std::string &rep, Rvector6 &st, const std::string &label = "");
 

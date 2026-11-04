@@ -1,0 +1,277 @@
+{
+  "schema_version": 1,
+  "status": "Declared new acceptance inputs;execution pending;source claims precede runs",
+  "scope": "Five actual six-field definitions/inverses,one orbit each,EarthMJ2000Eq;asymptote convention and broader domains remain open",
+  "driver": "src/qtgui/tests/NasaOrbitDefinitionTests.cpp",
+  "driver_sha256": "da117248f6a16761dc03ce9b9334115118d4c66da4bf11a8a236a317a50cd96c",
+  "reference_sha256": {
+    "src/qtgui/tests/HyperbolicConversionOracle.py": "c26ac3081ba3d4ad7d509d443db620935d6af55fe7116606e47fb75bba966e12",
+    "src/qtgui/tests/OrbitExtendedConversionOracle.py": "e3a8ad68c48449e3f60003ffa7ac762bd6a049c54de14ef43e1e8e920c88ec20",
+    "doc/help/src/Resource_SpacecraftOrbitState.xml": "2446259ea11baa976a23b659961761eb8412566820598938c3c8f98995fe2eb4",
+    "doc/SystemDocs/MathematicalSpecification/CalculationObjects.tex": "99cd4ec7fe78f5555b990e940e598ee1956344e666d337c6fad01f7b9e780bae"
+  },
+  "cases": [
+    {
+      "key": "ModifiedEquinoctial",
+      "canonical_keplerian": [
+        10800,
+        0.17,
+        47,
+        112,
+        38,
+        143
+      ],
+      "mu": 398600.4418,
+      "names": [
+        "SemilatusRectum",
+        "ModEquinoctialF",
+        "ModEquinoctialG",
+        "ModEquinoctialH",
+        "ModEquinoctialK",
+        "TLONG"
+      ],
+      "values": [
+        10487.88,
+        -0.14722431864335458,
+        0.08499999999999999,
+        -0.16288358255919758,
+        0.4031510138296177,
+        293
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "invalid_field": "SemilatusRectum",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "expected_cartesian": [
+        4679.267974918806,
+        -11196.009216714616,
+        -154.89598737516408,
+        3.576878312822121,
+        0.8652892685735869,
+        -3.9040300159616117
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09
+    },
+    {
+      "key": "AlternateEquinoctial",
+      "canonical_keplerian": [
+        11300,
+        0.29,
+        68,
+        152,
+        17,
+        209
+      ],
+      "mu": 398600.4418,
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "AltEquinoctialP",
+        "AltEquinoctialQ",
+        "MLONG"
+      ],
+      "values": [
+        11300,
+        0.05533460865919791,
+        -0.2846718831998225,
+        0.26252516629119127,
+        -0.4937380280632903,
+        37.766026406923785
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "invalid_field": "SMA",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "expected_cartesian": [
+        10259.464533626888,
+        -1222.9868002036135,
+        -9248.641196214792,
+        -3.0215441128306737,
+        2.7054013964996573,
+        -2.4013258349107027
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09
+    },
+    {
+      "key": "Delaunay",
+      "canonical_keplerian": [
+        12200,
+        0.36,
+        105,
+        210,
+        51,
+        312
+      ],
+      "mu": 398600.4418,
+      "names": [
+        "Delaunayl",
+        "Delaunayg",
+        "Delaunayh",
+        "DelaunayL",
+        "DelaunayG",
+        "DelaunayH"
+      ],
+      "values": [
+        337.5567023831393,
+        51,
+        210,
+        69734.6785319901,
+        65059.12894760569,
+        -16838.541629421077
+      ],
+      "units": [
+        "deg",
+        "deg",
+        "deg",
+        "km^2/sec",
+        "km^2/sec",
+        "km^2/sec"
+      ],
+      "invalid_field": "Delaunayl",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "expected_cartesian": [
+        -7458.806359744523,
+        -4172.495752311359,
+        432.6038833565801,
+        0.7907405548118701,
+        2.6998828316872525,
+        7.250616523414578
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09
+    },
+    {
+      "key": "IncomingAsymptote",
+      "canonical_keplerian": [
+        -20000,
+        1.7,
+        75,
+        240,
+        55,
+        -60
+      ],
+      "mu": 398600.4418,
+      "names": [
+        "IncomingRadPer",
+        "IncomingC3Energy",
+        "IncomingRHA",
+        "IncomingDHA",
+        "IncomingBVAZI",
+        "TA"
+      ],
+      "values": [
+        14000.0,
+        19.930022089999998,
+        203.01930588873208,
+        -65.99016718815813,
+        140.49945148062437,
+        300
+      ],
+      "units": [
+        "km",
+        "km^2/sec^2",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "invalid_field": "IncomingRadPer",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "expected_cartesian": [
+        -10576.496686665956,
+        -17397.21773649518,
+        -1720.1244059190021,
+        3.55433851229026,
+        2.8427233692389984,
+        6.183208636089229
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09
+    },
+    {
+      "key": "OutgoingAsymptote",
+      "canonical_keplerian": [
+        -26000,
+        2.2,
+        125,
+        290,
+        110,
+        75
+      ],
+      "mu": 398600.4418,
+      "names": [
+        "OutgoingRadPer",
+        "OutgoingC3Energy",
+        "OutgoingRHA",
+        "OutgoingDHA",
+        "OutgoingBVAZI",
+        "TA"
+      ],
+      "values": [
+        31200.000000000004,
+        15.330786223076922,
+        78.37298982033793,
+        -36.82964184737633,
+        314.22608664168087,
+        75
+      ],
+      "units": [
+        "km",
+        "km^2/sec^2",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "invalid_field": "OutgoingRadPer",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "expected_cartesian": [
+        -18686.92648705299,
+        60640.26143259748,
+        -4541.83054007357,
+        0.5299629016847036,
+        4.403382544003947,
+        -2.8620768093204627
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09
+    }
+  ],
+  "candidate_source": "build/nasa-coverage/hyperbolic-conversion-review/definition-candidates.json",
+  "candidate_source_sha256": "155a49c119ffd6a56a5488e4d67404842c512045c80ade9ee858f524c7a12b64"
+}

@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <iomanip>
 #include <sstream>
+#include <filesystem>
 #include "ReportFile.hpp"
 #include "MessageInterface.hpp"
 #include "Publisher.hpp"           // for Instance()
@@ -601,8 +602,10 @@ bool ReportFile::WriteData(WrapperArray wrapperArray, bool parsable)
       dstream.seekp(finalSolverDataPosition, std::ios_base::beg);
    }
    
-   if (leftJustify)
-      dstream.setf(std::ios::left);
+   // Assignment commands can change alignment while this stream is open.
+   // Replace the previous adjustment field in both directions on every write.
+   dstream.setf(leftJustify ? std::ios::left : std::ios::right,
+                std::ios::adjustfield);
 
    // write to datastream
    for (UnsignedInt row=0; row < maxRow; row++)
@@ -656,6 +659,22 @@ bool ReportFile::WriteData(WrapperArray wrapperArray, bool parsable)
    delete[] output;
    delete[] colWidths;
    
+   // Replacing a final solver row can shorten its text (for example,
+   // 2.999999999 becomes 3). Seeking alone leaves the previous tail on disk.
+   if (writeFinalSolverData)
+   {
+      const auto end = dstream.tellp();
+      dstream.flush();
+      if (!dstream.good() || end < std::ofstream::pos_type(0))
+         throw SubscriberException("Cannot finalize solver data in report file: " + fullPathFileName);
+      std::error_code error;
+      std::filesystem::resize_file(std::filesystem::u8path(fullPathFileName),
+         static_cast<std::uintmax_t>(static_cast<std::streamoff>(end)), error);
+      if (error)
+         throw SubscriberException("Cannot truncate final solver data in report file: " +
+            fullPathFileName + ": " + error.message());
+   }
+
    if (isEndOfRun)  // close file
    {
       if (dstream.is_open())
@@ -704,13 +723,24 @@ bool ReportFile::Initialize()
    // correctly in functions on Mac and Linux
    if (!dstream.is_open())
    {
-      if (GmatFileUtil::DoesFileExist(fullPathFileName) && !appendToExistingFile)
+#ifdef _WIN32
+      const auto nativeReportPath = std::filesystem::u8path(fullPathFileName);
+      std::error_code reportPathError;
+      const bool reportExists = std::filesystem::exists(nativeReportPath, reportPathError);
+#else
+      const bool reportExists = GmatFileUtil::DoesFileExist(fullPathFileName);
+#endif
+      if (reportExists && !appendToExistingFile && (active || usedByReport))
       {
          #ifdef DEBUG_REPORTFILE_INIT
             MessageInterface::ShowMessage("Removing the existing \"%s\" file\n",
                   fullPathFileName.c_str());
          #endif
+#ifdef _WIN32
+         std::filesystem::remove(nativeReportPath, reportPathError);
+#else
          remove(fullPathFileName.c_str());
+#endif
       }
    }
    
@@ -1615,11 +1645,17 @@ bool ReportFile::OpenReportFile()
    if (dstream.is_open())
       dstream.close();
 
+   // Qt supplies UTF-8 paths. A narrow Windows fstream uses the active
+   // code page and otherwise creates a different, mojibake filename.
+#ifdef _WIN32
+   const auto nativeReportPath = std::filesystem::u8path(fullPathFileName);
+#else
+   const auto &nativeReportPath = fullPathFileName;
+#endif
    if (!appendToExistingFile)
-      dstream.open(fullPathFileName.c_str());
+      dstream.open(nativeReportPath);
    else
-      dstream.open(fullPathFileName.c_str(),
-         std::ofstream::out | std::ofstream::app);
+      dstream.open(nativeReportPath, std::ofstream::out | std::ofstream::app);
    if (!dstream.is_open())
    {
       #ifdef DEBUG_REPORTFILE_OPEN
@@ -2022,6 +2058,7 @@ bool ReportFile::Distribute(const Real * dat, Integer len)
       
       // Write to report file using ReportFile::WriateData().
       // This method takes ElementWrapper array to write data to stream
+      Publisher::ParameterStateScope parameterSamples(dat, len);
       WriteData(yParamWrappers);
       mLastReportTime = dat[0];
       

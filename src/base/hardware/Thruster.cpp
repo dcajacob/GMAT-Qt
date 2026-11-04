@@ -35,6 +35,7 @@
 #include "Spacecraft.hpp"
 #include "StringUtil.hpp"
 #include "HardwareException.hpp"
+#include "CoordinateConverter.hpp"
 #include "MessageInterface.hpp"
 #include <sstream>
 #include <math.h>          // for pow(real, real)
@@ -2018,7 +2019,17 @@ void Thruster::ConvertDirectionToInertial(Real *dir, Real *dirInertial, Real epo
 //      coordSystem->ToMJ2000Eq(epoch, inDir, outDir, true);
       // Now rotate to base system axes, we don't want to translate so
       // set coincident to true
-      coordSystem->ToBaseSystem(A1Mjd(epoch), inDir, outDir, true); // @todo - need ToMJ2000Eq here?
+      coordSystem->ToBaseSystem(A1Mjd(epoch), inDir, outDir, true);
+      // FiniteThrust contributes derivatives in the internal FK5/MJ2000Eq
+      // axes. ToBaseSystem alone leaves ICRF-based directions in ICRF.
+      if (coordSystem->GetBaseSystem() == "ICRF")
+      {
+         CoordinateConverter converter;
+         const Rvector3 direction = converter.GetRotationMatrixFromICRFToFK5(A1Mjd(epoch)) *
+            Rvector3(outDir[0], outDir[1], outDir[2]);
+         for (Integer i = 0; i < 3; ++i)
+            outDir[i] = direction[i];
+      }
       
       #ifdef DEBUG_BURN_CONVERT_ROTMAT
       Rmatrix33 rotMat = coordSystem->GetLastRotationMatrix();

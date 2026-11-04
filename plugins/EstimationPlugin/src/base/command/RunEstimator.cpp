@@ -35,7 +35,21 @@
 #include "MessageInterface.hpp"
 #include "ODEModel.hpp"
 #include "Plate.hpp"
+#include "Subscriber.hpp"
+#ifdef __USE_SPICE__
+#include "SpiceInterface.hpp"
+#endif
 #include <map>
+#include <set>
+#include <memory>
+#include <cmath>
+#include <atomic>
+
+namespace
+{
+   std::atomic<std::uint64_t> estimatorExecutionSequence{0};
+}
+
 
 //#define DEBUG_INITIALIZATION
 //#define DEBUG_EXECUTION
@@ -58,6 +72,7 @@
 RunEstimator::RunEstimator(const std::string &typeStr) :
    RunSolver               (typeStr),
    theEstimator            (NULL),
+   successfulExecutionSequence (0),
    commandRunning          (false),
    commandComplete         (false),
    propPrepared            (false),
@@ -76,6 +91,14 @@ RunEstimator::RunEstimator(const std::string &typeStr) :
    delayInitialization  = true;
    hasPrecisionTime		= true;
    solveMode			= "Solve";
+}
+
+
+// Runtime ordering is used by RunSmoother to identify the completed filter,
+// including commands in branches. Failed and unexecuted commands keep zero.
+std::uint64_t RunEstimator::GetSuccessfulExecutionSequence() const
+{
+   return successfulExecutionSequence;
 }
 
 
@@ -115,6 +138,7 @@ RunEstimator::~RunEstimator()
 RunEstimator::RunEstimator(const RunEstimator & rs) :
    RunSolver               (rs),
    theEstimator            (NULL),
+   successfulExecutionSequence (0),
    commandRunning          (false),
    commandComplete         (false),
    propPrepared            (false),
@@ -157,6 +181,7 @@ RunEstimator& RunEstimator::operator=(const RunEstimator & rs)
          theEstimator = NULL;
       }
 
+      successfulExecutionSequence = 0;
       commandRunning       = false;
       commandComplete      = false;
       overridePropInit     = true;
@@ -434,6 +459,10 @@ bool RunEstimator::Initialize()
       MessageInterface::ShowMessage("RunEstimator::Initialize():   step 1.2: initialize the Estimator\n"); 
    #endif
    theEstimator->Initialize();
+   // A sandbox solver can retain a terminal state after an earlier invocation.
+   // A new command-local clone must start its own state machine from the
+   // initialization state, before its fresh propagators are used.
+   theEstimator->TakeAction("Reset");
 
    theEstimator->TakeAction("ResetInstanceCount");
    theEstimator->TakeAction("IncrementInstanceCount"); 
@@ -737,6 +766,10 @@ void RunEstimator::SetPropagationProperties(PropagationStateManager *psm)
 //------------------------------------------------------------------------------
 bool RunEstimator::PreExecution()
 {
+   // This entry point begins a new invocation, including reentry from a
+   // containing loop. Do not reuse the previous FINISHED solver clone while
+   // constructing new propagation objects below.
+   isInitialized = false;
 #ifdef DEBUG_INITIALIZATION
    MessageInterface::ShowMessage("Start RunEstimator::PreExecution()\n");
 #endif
@@ -791,6 +824,12 @@ bool RunEstimator::PreExecution()
       EstimationStateManager *esm = theEstimator->GetEstimationStateManager();
 
       // Next comes the propagators
+      // Each invocation owns fresh PropSetup clones. The propagation reuse
+      // path retains state-manager/raw-state pointers into the old clones;
+      // force a full rebuild before any new model is used after reentry.
+      inProgress = false;
+      hasFired = false;
+      startNewPass = false;
       // Clear old ones
       if (propagators.size() > 0)
       {
@@ -888,7 +927,15 @@ bool RunEstimator::PreExecution()
             }
 
             if (ps->GetPropagator()->UsesODEModel())
+            {
+               // Force derivatives always include the six Cartesian rows.
+               // Reject a reduced solve-for-only STM before force evaluation;
+               // the estimator's later state-solve-for check is too late.
+               if (sc->GetIntegerParameter("FullSTMRowCount") < 6)
+                  throw CommandException("Cannot initialize RunEstimator: spacecraft \"" +
+                        sc->GetName() + "\" has fewer than six Cartesian STM rows.\n");
                sc->TakeAction("UseSTM");
+            }
             else
                sc->TakeAction("SkipSTM");
             
@@ -1151,6 +1198,8 @@ bool RunEstimator::Execute()
    // Initialization step is moved here:
    if (delayInitialization)
    {
+      // A new execution cannot offer the preceding execution's filter data.
+      successfulExecutionSequence = 0;
       // It needs to run initialization now
       delayInitialization = false;
       PreExecution();
@@ -1443,7 +1492,12 @@ bool RunEstimator::Execute()
          }
 
          // Publish the final state
-         PublishState();
+         // A batch estimator restores its participants to the fitted initial
+         // epoch, including when it terminates without a final pass. Any
+         // accepted trajectory was already published by the final pass; do
+         // not tag restored initial conditions with the old terminal epoch.
+         if (!theEstimator->IsOfType("BatchEstimatorBase"))
+            PublishState();
 
          // Why is Finalize commented out???  There is no command summary because of this change.
          // Finalize();
@@ -1470,6 +1524,8 @@ bool RunEstimator::Execute()
          // It has to run all work in AdvanceState() before Finalize()
          state = theEstimator->AdvanceState();  // ekf mod 12/16
          Finalize();
+         successfulExecutionSequence =
+            estimatorExecutionSequence.fetch_add(1, std::memory_order_relaxed) + 1;
       }
    } catch (...)//(EstimatorException ex1)
    {
@@ -1494,6 +1550,7 @@ bool RunEstimator::Execute()
 //------------------------------------------------------------------------------
 void RunEstimator::RunComplete()
 {
+   successfulExecutionSequence = 0;
    #ifdef DEBUG_EXECUTION
       MessageInterface::ShowMessage("Entered RunEstimator::RunComplete()\n");
    #endif
@@ -1561,6 +1618,7 @@ bool RunEstimator::TakeAction(const std::string &action,
 {
    if (action == "Reset")
    {
+      successfulExecutionSequence = 0;
       theEstimator->TakeAction("Reset");
       commandRunning = false;
       commandComplete = false;
@@ -1962,6 +2020,21 @@ void RunEstimator::Propagate()
          }
       }
       startNewPass = false;
+
+      if (theEstimator->IsOfType("BatchEstimatorBase") &&
+          theEstimator->IsFinalPass())
+      {
+         // Publish the fitted initial state before the first output step,
+         // with propagation clocks reset to that same epoch.
+         for (UnsignedInt i = 0; i < currEpochGT.size(); ++i)
+         {
+            elapsedTime[i] = estimationOffset;
+            currEpochGT[i] = baseEpochGT[i];
+            currEpochGT[i].AddSeconds(estimationOffset);
+            currEpoch[i] = currEpochGT[i].GetMjd();
+         }
+         PublishState();
+      }
    }
    
    Real dt = theEstimator->GetTimeStep();
@@ -2027,6 +2100,12 @@ void RunEstimator::Propagate()
          currentIntegratedEpoch = currEpochGT[i];
    }
    theEstimator->UpdateCurrentEpoch(currentIntegratedEpoch);
+   // Estimators normally publish only at measurement epochs. The batch
+   // output pass has no measurements to calculate, so publish every completed
+   // propagation step using the same state/covariance packing as Calculate().
+   if (theEstimator->IsOfType("BatchEstimatorBase") &&
+       theEstimator->IsFinalPass())
+      PublishState();
    
    #ifdef DEBUG_EXECUTION
       MessageInterface::ShowMessage("Exit RunEstimator::Propagate()\n");
@@ -2617,7 +2696,73 @@ void RunEstimator::PublishState()
 
 
    //publisher->Publish(this, streamID, pubdata, theDim +idx, direction);
-   publisher->Publish(this, streamID, pubdata, pubdataElements.size(), direction);
+   std::vector<Publisher::CartesianSample> outputSamples;
+#ifdef __USE_SPICE__
+   if (theEstimator->IsOfType("BatchEstimatorBase") && theEstimator->IsFinalPass())
+   {
+      std::set<std::string> spkTargets;
+      for (auto *subscriber : publisher->GetSubscriberList())
+         if (subscriber->IsOfType("EphemerisFile") && subscriber->IsActive() &&
+             subscriber->GetStringParameter("FileFormat") == "SPK" &&
+             subscriber->GetBooleanParameter("WriteEphemeris"))
+            spkTargets.insert(subscriber->GetStringParameter("Spacecraft"));
+      if (!spkTargets.empty())
+      {
+         SpiceInterface clock;
+         GmatTime sampleEpoch;
+         clock.A1ToSpiceTime(currEpochGT[0], sampleEpoch);
+         const Real dt = (sampleEpoch - currEpochGT[0]).GetTimeInSec();
+         // This is local output sampling, not a propagator step or an event
+         // epoch change. Refuse dates whose encoded ET cell exceeds this range.
+         if (!std::isfinite(dt) || std::abs(dt) > 1.0e-6)
+            throw CommandException("SPK output sampling exceeds the supported one-microsecond time cell.");
+         std::set<const GmatBase *> sampled;
+         for (UnsignedInt index = 0; index < psm.size(); ++index)
+         {
+            ObjectArray objects;
+            psm[index]->GetStateObjects(objects, Gmat::SPACECRAFT);
+            for (auto *object : objects)
+            {
+               if (!spkTargets.count(object->GetName()) || !sampled.insert(object).second)
+                  continue;
+               auto *sat = dynamic_cast<Spacecraft *>(object);
+               if (!sat || index >= fm.size() || !fm[index] ||
+                   sat->GetEpochGT() != currEpochGT[0])
+                  throw CommandException("SPK output sampling requires a synchronized numerical spacecraft.");
+               const GmatTime liveEpoch = sat->GetEpochGT();
+               const Rvector6 liveState = sat->GetLastState();
+               // Evaluate forces on a detached spacecraft. Unlike the ODE
+               // parameter helper, do not swallow unsupported force errors.
+               std::unique_ptr<Spacecraft> input(new Spacecraft(*sat));
+               Rvector3 acceleration(0.0, 0.0, 0.0);
+               for (Integer f = 0; f < fm[index]->GetNumForces(); ++f)
+               {
+                  const Rvector6 derivative = fm[index]->GetForce(f)->GetDerivativesForSpacecraft(input.get());
+                  for (Integer j = 0; j < 3; ++j)
+                  {
+                     if (!std::isfinite(derivative[j + 3]))
+                        throw CommandException("SPK output sampling encountered a nonfinite force derivative.");
+                     acceleration[j] += derivative[j + 3];
+                  }
+               }
+               if (sat->GetEpochGT() != liveEpoch || sat->GetLastState() != liveState)
+                  throw CommandException("SPK output sampling changed the live spacecraft.");
+               Rvector6 state(liveState);
+               for (Integer j = 0; j < 3; ++j)
+               {
+                  state[j] += liveState[j + 3] * dt + 0.5 * acceleration[j] * dt * dt;
+                  state[j + 3] += acceleration[j] * dt;
+               }
+               outputSamples.push_back({sat, sampleEpoch, state});
+            }
+         }
+         if (outputSamples.size() != spkTargets.size())
+            throw CommandException("SPK output sampling could not resolve every requested spacecraft.");
+      }
+   }
+#endif
+   publisher->PublishWithSamples(this, streamID, pubdata, pubdataElements.size(),
+                                 currEpochGT[0], outputSamples, direction);
    if (theEstimator->IsOfType("SeqEstimator") && esm->HasStateOffset())
    {
       // Remove the state offset from the reference trajectory

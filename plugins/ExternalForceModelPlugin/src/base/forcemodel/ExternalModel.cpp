@@ -25,6 +25,8 @@
 ///
 
 #include "ExternalModel.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include <sstream>                      // For stringstream
 #include "MessageInterface.hpp"
 #include "GmatConstants.hpp"
@@ -859,4 +861,16 @@ StringArray ExternalModel::GetStateDateTypes()
       elements.push_back(elementStr);
    }
    return elements;
+}
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void ExternalModel::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const ExternalModel*>(original);
+   if (!source || typeid(*source) != typeid(ExternalModel) ||
+       typeid(*this) != typeid(ExternalModel))
+      throw GmatBaseException("Cannot copy incompatible object into ExternalModel");
+   if (source == this)
+      return;
+   operator=(*source);
 }

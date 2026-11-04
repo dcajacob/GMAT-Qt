@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "doc/SystemDocs/Requirements/GMAT Requirements.xlsx": "736847e909ca550731386261073e46a9fa3ac8d78f53f0c37dd5d93b11a85c23",
+    "doc/SystemDocs/Test/Requirements-To-Test Matrix, 2012-05-11 (GMAT Build 2012-05-04).csv": "4693e097b183af76bc7c8dfcc0f62d7696b2e1417c90cb10d0ed4f9577160a97"
+  },
+  "reviews": [
+    {
+      "key": "FRR!E320",
+      "fingerprint": "9b541b1154b9bc2a17e74fa70ff4e1c43d8f9f90bb948d5cec06e780aacaef89",
+      "applicability": "gui",
+      "rationale": "Closes the specifically held missing celestial-body trajectory color route: actual tree-opened spacecraft and celestial-body panels, real color pickers with Cancel/pending/Apply/Undo/Redo/reopen, then selected RGB on all five configured trajectories (spacecraft, planet, moon and star) and every published sample. Literal unequal color tuples and a separate analytic circular-state/raw-report oracle verify results and preservation. This is a source-versioned capability witness, not independent ephemeris or hardware/GPU qualification.",
+      "evidence": [
+        {
+          "test": "QtGui.NativeNasaTrajectoryColors",
+          "source": "src/qtgui/tests/NasaTrajectoryColorTests.cpp",
+          "source_sha256": "7d9c9988fb29ec47a42d0b7df87acf2790be1d4cce161d7a013ee1914b7a21a1",
+          "anchor": "\"all-configured-trajectory-colors\"",
+          "checkpoint": "all-configured-trajectory-colors",
+          "expected": {
+            "trajectory_count": 5,
+            "celestial_body_count": 4
+          },
+          "facets": [
+            "actual-spacecraft-and-celestial-body-color-pickers",
+            "cancel-pending-apply-exact-undo-redo-unicode-roundtrip",
+            "every-configured-curve-and-sample-has-selected-rgb",
+            "independent-circular-state-and-sentinel-source-preservation"
+          ],
+          "scope": "The system shall allow the user to specify the color of all trajectories plotted in 3-D graphics.",
+          "reference_sources": {
+            "src/qtgui/tests/FormationAcceptance.hpp": "ce777b39de79f60f8931c7ea6bfa980e305f622a91564937c5b743664df50517",
+            "src/qtgui/tests/AcceptanceView.hpp": "e55fae7e5aaa3bcebba604b089edbb1bda3cee1ec2bd784e3ad5091984198c5d",
+            "src/qtgui/ResourceEditor.cpp": "1eef02ef052dda9c6f7d45b23ccb62b867dca29a7150527692c56abb679f219f",
+            "src/qtgui/CelestialBodyPanel.cpp": "eeb40fd8d18bb2b2c53814172e517bba06f84c44adfd52e9fb978e095e9d54fd",
+            "src/qtgui/CelestialBodyPanel.hpp": "3332579aca443fea000c4c13d3ae16f40a760a450d5f4b22e2c38c0f60723d13",
+            "src/qtgui/MainWindow.cpp": "bab88232a5a4e6cb2b588d06619d0a8df8c0e9bc688a20c61391e0d4e6bb7296",
+            "src/qtgui/QtPlotReceiver.cpp": "293f1667dadda496278fd778484dda611086e3923cc3474d0aab391f8ccb9ed0",
+            "src/qtgui/PlotModel.hpp": "bee3f3eba796fbd24d40f8132360e690048bedf8c2650a1df46de723164415aa",
+            "src/base/subscriber/OrbitPlot.cpp": "dada82fbdbbc26e382d6986fcc1c8274777c3466c85fd2deaa327b36102331d1",
+            "src/base/foundation/SpacePoint.cpp": "3a38cae355f97e6b123dc1e96312751e7c15ddea5cdf46bff43a8c87bbd1fc6e",
+            "src/qtgui/CMakeLists.txt": "6a7f5325aa8f989952ce82447a0bbe86609ed769846cff278078434121099d6e",
+            "src/qtgui/ResourceForm.cpp": "f5bec04f0857956af771520aa305748822675c031467a046c8fb3143c8317905",
+            "src/qtgui/VisualModelDialog.cpp": "cba7569d8bd0c68b19cc4ecd24a49cb33e322638ceac46bf90683167300e7a56"
+          }
+        }
+      ]
+    }
+  ]
+}

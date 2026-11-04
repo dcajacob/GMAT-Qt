@@ -14,11 +14,13 @@
 #include "AxisSystem.hpp"
 #include "TimeSystemConverter.hpp"
 #include "BaseException.hpp"
+#include <array>
 #include <memory>
 #include <stdexcept>
 #include "ResourceProperties.hpp"
 #include "SpacecraftOrbit.hpp"
 #include "AtmosphereDialog.hpp"
+#include "GravityDialog.hpp"
 #include "ExternalForceDialog.hpp"
 #include "PolyhedronDialog.hpp"
 #include <QJsonDocument>
@@ -39,6 +41,9 @@
 #include "EphemerisFile.hpp"
 #include "Spacecraft.hpp"
 #include "CalculatedPoint.hpp"
+#include "PropSetup.hpp"
+#include "Propagator.hpp"
+#include "PropagatorSettings.hpp"
 #include "ReportParameterDialog.hpp"
 #include "RgbColor.hpp"
 #include <QColorDialog>
@@ -69,6 +74,11 @@
 #include <QSet>
 #include <QDialog>
 #include <QSpinBox>
+#include <QDoubleSpinBox>
+#include <QAbstractSlider>
+#include <QDateTimeEdit>
+#include <QPlainTextEdit>
+#include <QTextEdit>
 #include <QInputDialog>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -109,6 +119,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       form->addRow("Initial value",value); layout->addLayout(form);
       scalarValue=[value] { return value->text(); };
       status=new QLabel(numeric ? "Mission assignments can change this value during execution. Edit expressions in the mission sequence." : "Enter literal text without enclosing quotes. Mission assignments stay unchanged.",this);
+      status->setObjectName("resourceStatus");
       status->setWordWrap(true); layout->addWidget(status); layout->addStretch();
       auto *buttons=new QDialogButtonBox(QDialogButtonBox::Apply|QDialogButtonBox::Close,this); layout->addWidget(buttons);
       buttons->setObjectName("resourceButtons"); applyButton=buttons->button(QDialogButtonBox::Apply);
@@ -116,12 +127,13 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       auto *preview=new QPushButton("Show script…",this); preview->setObjectName("showScript"); buttons->addButton(preview,QDialogButtonBox::ActionRole);
       connect(preview,&QPushButton::clicked,this,[this,scriptPreview] { InspectionDialog dialog("Parameter script",scriptPreview,"Applied initializer. Pending edits are not included.",this); dialog.exec(); });
       connect(buttons->button(QDialogButtonBox::Apply),&QPushButton::clicked,this,[this,apply] {
-         if (!hasChanges() && !applyButton->property("createResource").toBool()) { reportStatus("No changes to apply."); return; }
+         if (!hasChanges() && !applyButton->property("createResource").toBool()) { applyDirty=false; updateApplyState(); reportStatus("No changes to apply."); return; }
          const auto error=apply({{"Value",scalarValue()}});
          if (error.isEmpty()) { applied=true; appliedSuccessfully(); } else reportStatus(error);
       });
-      connect(buttons,&QDialogButtonBox::rejected,this,[this] { parentWidget()->close(); });
+      connect(buttons->button(QDialogButtonBox::Close),&QPushButton::clicked,this,[this] { parentWidget()->close(); });
       applyButton->setProperty("createResource",creation);
+      trackApplyState(creation || applyUnchanged);
       return;
    }
    if (object.IsOfType("CoordinateSystem") && object.GetOwnedObject(0)) {
@@ -129,11 +141,13 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       QMap<QString,QString> initialValues;
       for (const auto &field:resourceProperties(*initial)) initialValues[field.name]=field.value;
       initialValues["Axes"]=QString::fromStdString(initial->GetTypeName());
+      coordinateAxisInitial=initialValues;
       auto *axesButton=new QPushButton("Axes…",this); axesButton->setObjectName("editCoordinateAxes");
       layout->addWidget(axesButton);
       connect(axesButton,&QPushButton::clicked,this,[this,initial,initialValues] {
          QMap<QString,QString> pending;
          for (int row=0;row<table->rowCount();++row) {
+            if (table->item(row,0)->data(Qt::UserRole+4).toBool()) continue;
             const auto *choice=qobject_cast<QComboBox *>(table->cellWidget(row,1));
             pending[table->item(row,0)->text()]=choice ? comboValue(choice) : table->item(row,1)->text();
          }
@@ -162,6 +176,16 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
                   auto candidate=values;
                   for (auto it=changes.cbegin();it!=changes.cend();++it) candidate[it.key()]=it.value();
                   candidate["Axes"]=selected;
+                  // Validate the edited field types on a detached axis before
+                  // changing the parent's draft. Complete coordinate/reference
+                  // checks still belong to the parent's Create or Apply.
+                  try {
+                     QtResourcePreview checked(Moderator::Instance()->CreateAxisSystem(selected.toStdString(),"",0));
+                     if (!checked) return QString("The engine could not validate these axes.");
+                     for (auto it=changes.cbegin();it!=changes.cend();++it)
+                        setResourceProperty(*checked,it.key(),it.value());
+                  } catch (BaseException &error) { return QString::fromStdString(error.GetFullMessage()); }
+                  catch (const std::exception &error) { return QString::fromUtf8(error.what()); }
                   // Update fields already present in the parent and retain new
                   // dependent fields locally. No parent callback runs here.
                   for (int row=0;row<table->rowCount();++row) {
@@ -173,6 +197,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
                   for (auto it=candidate.cbegin();it!=candidate.cend();++it)
                      if (selected!=initialValues.value("Axes") || !initialValues.contains(it.key()) || it.value()!=initialValues.value(it.key()))
                         coordinateAxisEdits[it.key()]=it.value();
+                  refreshCoordinateAxisFields(selected);
                   return QString();
                },&dialog,{},true);
                auto *buttons=panel->findChild<QDialogButtonBox *>("resourceButtons");
@@ -372,10 +397,13 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       auto *create=new QPushButton("New function file…",this); create->setObjectName("newFunctionFile"); layout->addWidget(create);
       const auto functionName=QString::fromStdString(object.GetName());
       connect(create,&QPushButton::clicked,this,[this,functionName] {
-         QFileDialog chooser(this,"New GMAT function file",functionName+".gmf","GMAT functions (*.gmf);;All files (*)");
-         chooser.setObjectName("newFunctionFileDialog"); chooser.setAcceptMode(QFileDialog::AcceptSave); chooser.setDefaultSuffix("gmf");
-         if (chooser.exec()!=QDialog::Accepted || chooser.selectedFiles().isEmpty()) return;
-         const auto path=chooser.selectedFiles().first();
+         QString path;
+         {
+            QFileDialog chooser(this,"New GMAT function file",functionName+".gmf","GMAT functions (*.gmf);;All files (*)");
+            chooser.setObjectName("newFunctionFileDialog"); chooser.setAcceptMode(QFileDialog::AcceptSave); chooser.setDefaultSuffix("gmf");
+            if (chooser.exec()!=QDialog::Accepted || chooser.selectedFiles().isEmpty()) return;
+            path=chooser.selectedFiles().first();
+         } // Stop filesystem/MIME work before entering the nested editor.
          if (QFileInfo::exists(path)) { reportStatus("That file already exists. Use Edit function file or choose a new name."); return; }
          QString source;
          try { source=functionFileTemplate(path); } catch (const std::exception &error) { reportStatus(QString::fromUtf8(error.what())); return; }
@@ -464,7 +492,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
                for (int row=0;row<table->rowCount();++row) if (table->item(row,0)->text()=="Add") {
                   const auto *choice=qobject_cast<QComboBox *>(table->cellWidget(row,1)); names=splitResourceReferences(choice ? comboValue(choice) : table->item(row,1)->text());
                }
-               if (formValues) names=splitResourceReferences(formValues().value("Add"));
+               if (formEdits) { const auto edits=formEdits(); if (edits.contains("Add")) names=splitResourceReferences(edits.value("Add")); }
                QSet<QString> unique;
                for (const auto &name:names) {
                   auto *object=Moderator::Instance()->GetConfiguredObject(name.toStdString());
@@ -552,7 +580,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
                for (int row=0;row<table->rowCount();++row) if (table->item(row,0)->text()=="Add") {
                   const auto *choice=qobject_cast<QComboBox *>(table->cellWidget(row,1)); names=splitResourceReferences(choice ? comboValue(choice) : table->item(row,1)->text());
                }
-               if (formValues) names=splitResourceReferences(formValues().value("Add"));
+               if (formEdits) { const auto edits=formEdits(); if (edits.contains("Add")) names=splitResourceReferences(edits.value("Add")); }
                const QString key="@QtSensorMasks";
                OrbitSensorMaskDialog dialog(names,qtSensorMasks(objectDrawingEdits.value(key,originalDrawing.value(key))),this);
                if (dialog.exec()!=QDialog::Accepted) return;
@@ -778,7 +806,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       else {
          auto *choices = new QComboBox(table);
          choices->addItems(field.choices);
-         if (object.IsOfType("EphemerisFile") && QStringList{"StepSize","InitialEpoch","FinalEpoch"}.contains(field.name)) { choices->setEditable(true); choices->setInsertPolicy(QComboBox::NoInsert); }
+         if ((object.IsOfType("EphemerisFile") && QStringList{"StepSize","InitialEpoch","FinalEpoch"}.contains(field.name)) || (object.IsOfType("PropSetup") && field.name=="StartEpoch")) { choices->setEditable(true); choices->setInsertPolicy(QComboBox::NoInsert); }
          if (choices->findText(field.value) < 0) choices->addItem(field.value);
          choices->setCurrentText(field.value); table->setCellWidget(row, 1, choices);
       }
@@ -917,6 +945,36 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
             polyhedron->setText(changed ? "Polyhedron gravity… (pending)" : "Polyhedron gravity…"); reportStatus(changed ? "Polyhedron contributors are pending. Review them with Polyhedron gravity…, then Apply." : "Polyhedron settings are unchanged.");
          } catch (BaseException &error) { reportStatus(QString::fromStdString(error.GetFullMessage())); }
          catch (const std::exception &error) { reportStatus(QString::fromUtf8(error.what())); }
+      });
+      auto *gravityButton=new QPushButton("Gravity and tides…",this);gravityButton->setObjectName("forceGravity");layout->addWidget(gravityButton);
+      const auto gravityName=object.GetName();
+      connect(gravityButton,&QPushButton::clicked,this,[this,gravityName,gravityButton] {
+         try {
+            auto *configured=Moderator::Instance()->GetConfiguredObject(gravityName);if (!configured) throw std::runtime_error("This force model is no longer available.");
+            QMap<QString,QString> bodyEdits,pending=gravityEdits;
+            for (int row=0;row<table->rowCount();++row) {
+               const auto field=table->item(row,0)->text();const auto *combo=qobject_cast<QComboBox *>(table->cellWidget(row,1));
+               const auto value=combo ? comboValue(combo) : table->item(row,1)->text();
+               if ((field=="PrimaryBodies" || field=="PointMasses") && value!=original.value(field)) bodyEdits[field]=value;
+               if (gravityEdits.isEmpty() && field.startsWith("GravityField.") && value!=original.value(field)) pending[field]=value;
+            }
+            QtResourcePreview preview(configured->Clone());applyGravityBodyProperties(*preview,bodyEdits);
+            GravityDialog dialog(*preview,pending,this);if (dialog.exec()!=QDialog::Accepted) return;
+            gravityEdits=dialog.values();const bool changed=!gravityEdits.isEmpty();
+            for (int row=0;row<table->rowCount();++row) {
+               const auto field=table->item(row,0)->text();if (!field.startsWith("GravityField.")) continue;
+               const auto value=gravityEdits.value(field,original.value(field));
+               if (auto *combo=qobject_cast<QComboBox *>(table->cellWidget(row,1))) {if (combo->findText(value)<0) combo->addItem(value);combo->setCurrentText(value);}
+               else if (auto *item=table->item(row,1)) item->setText(value);
+               for (int column=1;column<table->columnCount();++column) {
+                  if (auto *control=table->cellWidget(row,column)) control->setEnabled(!changed);
+                  if (column==1) if (auto *item=table->item(row,column)) item->setFlags(changed ? item->flags() & ~Qt::ItemIsEditable : item->flags() | Qt::ItemIsEditable);
+               }
+            }
+            gravityButton->setText(changed ? "Gravity and tides… (pending)" : "Gravity and tides…");
+            reportStatus(changed ? "Gravity and tide settings are pending. Review them with Gravity and tides…, then Apply." : "Gravity and tide settings are unchanged.");
+         } catch (BaseException &error) {reportStatus(QString::fromStdString(error.GetFullMessage()));}
+           catch (const std::exception &error) {reportStatus(QString::fromUtf8(error.what()));}
       });
       auto *button=new QPushButton("Atmosphere and drag…",this); button->setObjectName("forceAtmosphere"); layout->addWidget(button);
       const auto name=object.GetName();
@@ -1136,7 +1194,24 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
             source.insert("@OrbitCartesianState",state.join(','));
             return source;
          };
-         auto convert=[this,representation,frame,anomaly,elementRows,resourceName,previous,creation,orbitDraft] {
+         auto synchronizeSelectors=[this,representation,frame,anomaly] {
+            // Orbit conversion rebuilds backing choices with signals blocked.
+            // Keep the visible selectors on that same validated choice list,
+            // including frame fallback and restoration after a rejected edit.
+            const std::array<QPair<QString,QComboBox *>,3> selectors{{
+               {"DisplayStateType",representation},{"CoordinateSystem",frame},{"AnomalyType",anomaly}}};
+            for (const auto &selector:selectors) {
+               auto *visible=findChild<QComboBox *>("resource_"+selector.first);
+               if (!visible) continue;
+               const QSignalBlocker block(visible);
+               visible->clear();
+               for (int i=0;i<selector.second->count();++i)
+                  visible->addItem(selector.second->itemText(i),selector.second->itemData(i));
+               visible->setCurrentText(selector.second->currentText());
+               visible->setEnabled(selector.second->isEnabled());
+            }
+         };
+         auto convert=[this,representation,frame,anomaly,elementRows,resourceName,previous,creation,orbitDraft,synchronizeSelectors] {
             try {
                auto nextRepresentation=representation->currentText();
                const auto nextFrame=frame->currentText(); auto nextAnomaly=anomaly->currentText();
@@ -1192,6 +1267,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
                representation->setCurrentText(previous->representation); frame->setCurrentText(previous->frame); anomaly->setCurrentText(previous->anomaly);
                reportStatus(QString::fromUtf8(error.what()));
             }
+            synchronizeSelectors();
          };
          connect(representation,&QComboBox::currentTextChanged,this,[convert] { convert(); });
          connect(frame,&QComboBox::currentTextChanged,this,[convert] { convert(); });
@@ -1446,7 +1522,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
    });
    if (object.IsOfType("CoordinateSystem")) for (int row=0;row<table->rowCount();++row)
       if (table->item(row,0)->text()=="Axes") if (auto *choice=qobject_cast<QComboBox *>(table->cellWidget(row,1)))
-         connect(choice,&QComboBox::currentTextChanged,this,[this] { coordinateAxisEdits.clear(); });
+         connect(choice,&QComboBox::currentTextChanged,this,[this](const QString &type) { coordinateAxisEdits.clear(); refreshCoordinateAxisFields(type); });
    // Primary forms and Advanced share one pending snapshot and one Apply.
    // The table remains the backing store for generic controls and converters.
    auto *pages=new QTabWidget(this); pages->setObjectName("resourceEditorTabs");
@@ -1490,17 +1566,42 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
    }
    auto *generic=new QScrollArea(pages); generic->setWidgetResizable(true); generic->setFrameShape(QFrame::NoFrame);
    auto *content=new QWidget(generic); auto *fields=new QFormLayout(content); generic->setWidget(content);
+   PropagatorSettings *propagatorSettings=nullptr;
+   if (auto *setup=dynamic_cast<PropSetup *>(&object)) {
+      propagatorSettings=new PropagatorSettings(*setup,content);propagationFields=propagatorSettings->initialFields();
+      pendingPropagation=[propagatorSettings] {return propagatorSettings->values();};propagationChanges=[propagatorSettings] {return propagatorSettings->changes();};originalPropagation=pendingPropagation();
+      propagatorSettings->onError=[this](const QString &message) {if (status) reportStatus(message);};
+      propagatorSettings->onValueChanged=[this](const QString &name,const QString &text) {
+         for (int row=0;row<table->rowCount();++row) if (table->item(row,0)->text()==name) {
+            if (auto *choice=qobject_cast<QComboBox *>(table->cellWidget(row,1))) {const QSignalBlocker block(choice);if (choice->isEditable() || choice->findText(text)>=0) choice->setCurrentText(text);}
+            else {const QSignalBlocker block(table);table->item(row,1)->setText(text);}break;
+         }
+      };
+      for (int row=0;row<table->rowCount();++row) if (propagationFields.contains(table->item(row,0)->text())) {
+         const auto name=table->item(row,0)->text();
+         if (auto *choice=qobject_cast<QComboBox *>(table->cellWidget(row,1))) connect(choice,&QComboBox::currentTextChanged,propagatorSettings,[propagatorSettings,name](const QString &text) {propagatorSettings->setValue(name,text);});
+         else connect(table,&QTableWidget::itemChanged,propagatorSettings,[this,propagatorSettings,row,name](QTableWidgetItem *item) {if (item==table->item(row,1)) propagatorSettings->setValue(name,item->text());});
+      }
+      fields->addRow(propagatorSettings);
+   }
    int common=0;
    for (int row=0;row<table->rowCount();++row) {
       auto *key=table->item(row,0); const auto name=key->text(),section=key->data(Qt::UserRole).toString();
       const bool advanced=name.contains('.') || name.contains("Covariance") || section=="SPICE" || name.startsWith("NAIF");
+      if (propagationFields.contains(name)) {key->setData(Qt::UserRole+1,true);continue;}
       if (formFields.contains(name) || advanced || (!primary->isEmpty() && !spacecraft)) { if (formFields.contains(name)) key->setData(Qt::UserRole+1,true); continue; }
       auto *line=new QWidget(content); auto *lineLayout=new QHBoxLayout(line); lineLayout->setContentsMargins(0,0,0,0);
       if (auto *source=qobject_cast<QComboBox *>(table->cellWidget(row,1))) {
          auto *choice=new QComboBox(line); choice->setObjectName("resource_"+name); choice->setEditable(source->isEditable());
          for (int i=0;i<source->count();++i) choice->addItem(source->itemText(i),source->itemData(i)); choice->setCurrentText(source->currentText());
          connect(choice,&QComboBox::currentTextChanged,this,[source](const QString &value) { source->setCurrentText(value); });
-         connect(source,&QComboBox::currentTextChanged,choice,[choice](const QString &value) { const QSignalBlocker block(choice); if (choice->findText(value)<0) choice->addItem(value); choice->setCurrentText(value); });
+         connect(source,&QComboBox::currentTextChanged,choice,[choice,source] {
+            // A preceding converter may reject the selection and restore the
+            // backing choice synchronously. Read that result, not the stale
+            // signal argument, so both controls display the accepted frame.
+            const auto value=source->currentText(); const QSignalBlocker block(choice);
+            if (choice->findText(value)<0) choice->addItem(value); choice->setCurrentText(value);
+         });
          lineLayout->addWidget(choice);
       } else {
          auto *value=new QLineEdit(table->item(row,1)->text(),line); value->setObjectName("resource_"+name);
@@ -1512,12 +1613,20 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       if (auto *source=qobject_cast<QPushButton *>(table->cellWidget(row,3))) {
          auto *choose=new QPushButton(source->text(),line); connect(choose,&QPushButton::clicked,source,&QPushButton::click); lineLayout->addWidget(choose);
       }
-      if (!table->item(row,2)->text().isEmpty()) lineLayout->addWidget(new QLabel(table->item(row,2)->text(),line));
+      auto *unitItem=table->item(row,2);
+      auto *unitLabel=new QLabel(unitItem->text(),line);
+      lineLayout->addWidget(unitLabel);
+      unitLabel->setVisible(!unitItem->text().isEmpty());
+      connect(table,&QTableWidget::itemChanged,unitLabel,[unitItem,unitLabel](QTableWidgetItem *item) {
+         if (item!=unitItem) return;
+         unitLabel->setText(item->text());
+         unitLabel->setVisible(!item->text().isEmpty());
+      });
       auto *label=new QLabel(name,content); fields->addRow(label,line);
       connect(table,&QTableWidget::itemChanged,label,[key,label](QTableWidgetItem *item) { if (item==key) label->setText(key->text()); });
       key->setData(Qt::UserRole+1,true); ++common;
    }
-   if (common) pages->addTab(generic,spacecraft ? "Orbit and hardware" : "Properties"); else generic->hide();
+   if (common || propagatorSettings) pages->addTab(generic,spacecraft ? "Orbit and hardware" : "Properties"); else generic->hide();
    if (!primary->isEmpty()) pages->insertTab(0,primary,"Setup"); else primary->hide();
    if (spacecraft && common) pages->setCurrentWidget(generic);
    auto *advanced=new QWidget(pages); auto *advancedLayout=new QVBoxLayout(advanced);
@@ -1589,7 +1698,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       for (int row=0;row<table->rowCount();++row) {
          const auto *name=table->item(row,0);
          const bool inSection=!sections || section=="All Properties" || name->data(Qt::UserRole).toString()==section;
-         table->setRowHidden(row,name->data(Qt::UserRole+1).toBool() || !inSection || !name->text().contains(search->text(),Qt::CaseInsensitive));
+         table->setRowHidden(row,name->data(Qt::UserRole+1).toBool() || name->data(Qt::UserRole+4).toBool() || !inSection || !name->text().contains(search->text(),Qt::CaseInsensitive));
          actions=actions || (!table->isRowHidden(row) && table->cellWidget(row,3));
       }
       table->setColumnHidden(3,!actions);
@@ -1597,6 +1706,29 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
    connect(search, &QLineEdit::textChanged, this, filter);
    if (sections) connect(sections,&QTabBar::currentChanged,this,filter);
    filter();
+   if (object.GetTypeName()=="ReportFile") {
+      QComboBox *fixedWidth=nullptr;
+      for (int row=0;row<table->rowCount();++row)
+         if (table->item(row,0)->text()=="FixedWidth") fixedWidth=qobject_cast<QComboBox *>(table->cellWidget(row,1));
+      if (fixedWidth) {
+         auto updateReportFormat=[this,fixedWidth] {
+            const bool fixed=fixedWidth->currentText()=="true";
+            for (int row=0;row<table->rowCount();++row) {
+               const auto name=table->item(row,0)->text();
+               if (name!="ColumnWidth" && name!="Delimiter") continue;
+               const bool enabled=name=="ColumnWidth" ? fixed : !fixed;
+               if (auto *control=findChild<QWidget *>("resource_"+name)) control->setEnabled(enabled);
+               if (auto *control=table->cellWidget(row,1)) control->setEnabled(enabled);
+               if (auto *value=table->item(row,1)) {
+                  auto flags=value->flags();
+                  value->setFlags(enabled ? flags|Qt::ItemIsEnabled : flags&~Qt::ItemIsEnabled);
+               }
+            }
+         };
+         connect(fixedWidth,&QComboBox::currentTextChanged,this,[updateReportFormat] { updateReportFormat(); });
+         updateReportFormat();
+      }
+   }
    connect(buttons->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, [this, apply, applyUnchanged,creation] {
       QMap<QString, QString> changes=coordinateAxisEdits;
       for (auto it=attitudeEdits.cbegin();it!=attitudeEdits.cend();++it) changes[it.key()]=it.value();
@@ -1604,6 +1736,16 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
          const auto values=formEdits();
          for (auto it=values.cbegin();it!=values.cend();++it)
             if (!creation || it.value()!=formOriginal.value(it.key()) || !formOriginal.contains(it.key())) changes.insert(it.key(),it.value());
+         if (creation && findChild<QWidget *>("groundStationDialog")) {
+            const QStringList locationFields{"CentralBody","StateType","HorizonReference","Location1","Location2","Location3"};
+            bool locationChanged=false;
+            for (const auto &field:locationFields) locationChanged=locationChanged || changes.contains(field);
+            // A representation switch changes the meaning of the coordinates.
+            // Retain the whole tuple, including zero values equal to a default
+            // Cartesian component, after converting the draft's selectors.
+            if (locationChanged) for (const auto &field:locationFields)
+               if (values.contains(field)) changes.insert(field,values.value(field));
+         }
       } catch (BaseException &error) { reportStatus(QString::fromStdString(error.GetFullMessage())); return; }
       catch (const std::exception &error) { reportStatus(QString::fromUtf8(error.what())); return; }
       if (!objectDrawingEdits.isEmpty()) {
@@ -1611,7 +1753,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
          for (int row=0;row<table->rowCount();++row) if (table->item(row,0)->text()=="Add") {
             const auto *choice=qobject_cast<QComboBox *>(table->cellWidget(row,1)); selected=splitResourceReferences(choice ? comboValue(choice) : table->item(row,1)->text());
          }
-         if (formValues) selected=splitResourceReferences(formValues().value("Add"));
+         if (formEdits) { const auto edits=formEdits(); if (edits.contains("Add")) selected=splitResourceReferences(edits.value("Add")); }
          // Drawing edits may predate a pending object removal in Orbit setup.
          for (auto it=objectDrawingEdits.cbegin();it!=objectDrawingEdits.cend();++it) {
             auto prune=[&](auto &values) { for (auto item=values.begin();item!=values.end();) { if (!selected.contains(item.key())) item=values.erase(item); else ++item; } };
@@ -1628,15 +1770,22 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       if (!pendingDynamicData.isEmpty()) changes.insert("@DynamicData",pendingDynamicData);
       if (!pendingTrackingConfigs.isEmpty()) changes.insert("@TrackingConfigs",pendingTrackingConfigs);
       for (auto it=atmosphereEdits.cbegin();it!=atmosphereEdits.cend();++it) changes.insert(it.key(),it.value());
+      if (!gravityEdits.isEmpty()) {
+         QStringList primary;
+         for (int row=0;row<table->rowCount();++row) if (table->item(row,0)->text()=="PrimaryBodies") primary=splitResourceReferences(table->item(row,1)->text());
+         for (auto it=gravityEdits.cbegin();it!=gravityEdits.cend();++it) if (primary.contains(it.key().section('.',1,1))) changes.insert(it.key(),it.value());
+      }
       if (externalEdits!=originalExternal) for (auto it=externalEdits.cbegin();it!=externalEdits.cend();++it) changes.insert(it.key(),it.value());
       for (auto it=stationEdits.cbegin();it!=stationEdits.cend();++it) changes.insert(it.key(),it.value());
       for (auto it=eventEdits.cbegin();it!=eventEdits.cend();++it) changes.insert(it.key(),it.value());
       if (expressions!=originalExpressions) changes.insert("@ArrayExpressions",expressions);
       for (int row = 0; row < table->rowCount(); ++row) {
          const QString name = table->item(row, 0)->text();
+         if (table->item(row,0)->data(Qt::UserRole+4).toBool()) continue;
          if (changes.contains(name) && formFields.contains(name)) continue;
          if (!attitudeEdits.isEmpty() && attitudeNames.contains(name)) continue;
          if (!atmosphereEdits.isEmpty() && (name=="Drag" || name.startsWith("Drag."))) continue;
+         if (!gravityEdits.isEmpty() && name.startsWith("GravityField.")) continue;
          if (!externalEdits.isEmpty() && name.startsWith("External.")) continue;
          if (!pendingPolyhedron.isEmpty() && name.startsWith("PolyhedronGravityModel.")) continue;
          if (stationEdits.contains(name)) continue;
@@ -1651,7 +1800,11 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
             if (name=="Tank" || name=="MixRatio") changes.insert(name,table->item(row,1)->text());
          }
       }
-      if (changes.isEmpty() && !applyUnchanged && !creation) { reportStatus("No changes to apply."); return; }
+      if (propagationChanges) {
+         for (const auto &name:propagationFields) changes.remove(name);
+         const auto pending=propagationChanges();for (auto it=pending.cbegin();it!=pending.cend();++it) changes.insert(it.key(),it.value());
+      }
+      if (changes.isEmpty() && !applyUnchanged && !creation) { applyDirty=false; updateApplyState(); reportStatus("No changes to apply."); return; }
       if (pendingOrbit) {
          bool orbitChanged=false;
          for (int row=0;row<table->rowCount();++row)
@@ -1685,20 +1838,54 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
          appliedSuccessfully();
       } else reportStatus(error);
    });
-   connect(buttons, &QDialogButtonBox::rejected, this, [this] { parentWidget()->close(); });
+   connect(buttons->button(QDialogButtonBox::Close), &QPushButton::clicked, this, [this] { parentWidget()->close(); });
+   trackApplyState(creation || applyUnchanged);
+}
+
+void ResourceEditor::trackApplyState(bool allowUnchanged)
+{
+   allowUnchangedApply=allowUnchanged;
+   // Install after form synchronization, so dependent values have settled
+   // before checking the pending snapshot. No polling or model mutation.
+   for (auto *input:findChildren<QLineEdit *>()) connect(input,&QLineEdit::textChanged,this,&ResourceEditor::updateApplyState);
+   for (auto *input:findChildren<QComboBox *>()) connect(input,&QComboBox::currentTextChanged,this,&ResourceEditor::updateApplyState);
+   for (auto *input:findChildren<QAbstractButton *>()) {
+      connect(input,&QAbstractButton::toggled,this,&ResourceEditor::updateApplyState);
+      connect(input,&QAbstractButton::clicked,this,&ResourceEditor::updateApplyState);
+   }
+   for (auto *input:findChildren<QSpinBox *>()) connect(input,&QSpinBox::valueChanged,this,&ResourceEditor::updateApplyState);
+   for (auto *input:findChildren<QDoubleSpinBox *>()) connect(input,&QDoubleSpinBox::valueChanged,this,&ResourceEditor::updateApplyState);
+   for (auto *input:findChildren<QAbstractSlider *>()) connect(input,&QAbstractSlider::valueChanged,this,&ResourceEditor::updateApplyState);
+   for (auto *input:findChildren<QDateTimeEdit *>()) connect(input,&QDateTimeEdit::dateTimeChanged,this,&ResourceEditor::updateApplyState);
+   for (auto *input:findChildren<QPlainTextEdit *>()) connect(input,&QPlainTextEdit::textChanged,this,&ResourceEditor::updateApplyState);
+   for (auto *input:findChildren<QTextEdit *>()) connect(input,&QTextEdit::textChanged,this,&ResourceEditor::updateApplyState);
+   for (auto *input:findChildren<QTableWidget *>()) connect(input,&QTableWidget::itemChanged,this,&ResourceEditor::updateApplyState);
+   updateApplyState();
+}
+
+void ResourceEditor::updateApplyState()
+{
+   // NASA's dirty flag remains set after a user reverts a draft, until Apply
+   // succeeds. Keep invalid drafts enabled so validation/correction is possible.
+   applyDirty=!applied && (applyDirty || hasChanges());
+   if (applyButton) applyButton->setEnabled(allowUnchangedApply || applyDirty);
 }
 
 bool ResourceEditor::hasChanges() const
 {
    if (applied) return false;
    if (scalarValue) return scalarValue()!=originalScalarValue;
+   if (pendingPropagation && pendingPropagation()!=originalPropagation) return true;
    if (formValues) try { if (formValues()!=formOriginal) return true; }
    catch (...) { return true; }
+   if (!gravityEdits.isEmpty()) return true;
    if (!coordinateAxisEdits.isEmpty() || !attitudeEdits.isEmpty() || !atmosphereEdits.isEmpty() || !stationEdits.isEmpty() || !eventEdits.isEmpty() || !pendingDynamicData.isEmpty() || !pendingTrackingConfigs.isEmpty()) return true;
    if (!externalEdits.isEmpty() && externalEdits!=originalExternal) return true;
    if (!pendingPolyhedron.isEmpty()) return true;
    if (expressions!=originalExpressions || !objectDrawingEdits.isEmpty()) return true;
    for (int row = 0; row < table->rowCount(); ++row) {
+      if (table->item(row,0)->data(Qt::UserRole+4).toBool()) continue;
+      if (propagationFields.contains(table->item(row,0)->text())) continue;
       const auto *combo = qobject_cast<QComboBox *>(table->cellWidget(row, 1));
       if (!externalEdits.isEmpty() && table->item(row,0)->text().startsWith("External.")) continue;
       if (!pendingPolyhedron.isEmpty() && table->item(row,0)->text().startsWith("PolyhedronGravityModel.")) continue;
@@ -1706,6 +1893,29 @@ bool ResourceEditor::hasChanges() const
       if (value != original.value(table->item(row, 0)->text())) return true;
    }
    return false;
+}
+void ResourceEditor::refreshCoordinateAxisFields(const QString &type)
+{
+   if (!table || coordinateAxisInitial.isEmpty()) return;
+   QtResourcePreview axes(Moderator::Instance()->CreateAxisSystem(type.toStdString(),"",0));
+   if (!axes) return;
+   QSet<QString> active;
+   for (const auto &field:resourceProperties(*axes)) active.insert(field.name);
+   for (int row=0;row<table->rowCount();++row) {
+      auto *key=table->item(row,0); const auto name=key->text();
+      if (name=="Axes" || !coordinateAxisInitial.contains(name)) continue;
+      const bool enabled=active.contains(name);
+      key->setData(Qt::UserRole+4,!enabled);
+      if (!enabled) {
+         // An axis switch retires fields the replacement axis cannot use.
+         // Reset the backing draft as well as its visible generic control.
+         if (auto *choice=qobject_cast<QComboBox *>(table->cellWidget(row,1))) choice->setCurrentText(coordinateAxisInitial.value(name));
+         else table->item(row,1)->setText(coordinateAxisInitial.value(name));
+         table->setRowHidden(row,true);
+      }
+      if (auto *control=findChild<QWidget *>("resource_"+name)) control->setEnabled(enabled);
+      if (auto *control=table->cellWidget(row,1)) control->setEnabled(enabled);
+   }
 }
 void ResourceEditor::reportStatus(const QString &message)
 {

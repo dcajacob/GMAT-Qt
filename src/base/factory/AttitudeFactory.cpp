@@ -100,7 +100,7 @@ Attitude* AttitudeFactory::CreateAttitude(const std::string &ofType,
       return new CommandableNadirPointing(withName);
    #ifdef __USE_SPICE__
       else if (ofType == "SpiceAttitude")
-         return new SpiceAttitude();
+         return new SpiceAttitude(withName);
    #endif
    else
    {

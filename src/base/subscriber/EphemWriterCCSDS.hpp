@@ -59,6 +59,7 @@ public:
    virtual void CloseEphemerisFile(bool done = true, bool writeMetaData = true);
    
    virtual bool             Initialize();
+   void                     SetOutputTimeSystem(const std::string &system);
    virtual EphemerisWriter* Clone(void) const;
    virtual void             Copy(const EphemerisWriter* orig);
    

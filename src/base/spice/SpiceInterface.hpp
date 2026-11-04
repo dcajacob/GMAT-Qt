@@ -65,6 +65,8 @@ extern "C"
 #define MAX_LONG_MESSAGE_VALUE 1840
 #define MAX_SHORT_MESSAGE_VALUE 320
 
+class GmatTime;
+
 class GMAT_API SpiceInterface
 {
 public:
@@ -95,6 +97,11 @@ public:
    
    virtual Real        SpiceTimeToA1(SpiceDouble spiceTime);
    virtual SpiceDouble A1ToSpiceTime(Real a1Time);
+   SpiceDouble A1ToSpiceTime(const GmatTime &a1Time);
+   // Return the same encoded ET and the precise A1 epoch it represents.
+   // A caller must sample its state at canonicalEpoch before using that tag.
+   SpiceDouble A1ToSpiceTime(const GmatTime &a1Time,
+                            GmatTime &canonicalEpoch);
 
    static const Integer     DEFAULT_NAIF_ID;
    static const Integer     DEFAULT_NAIF_ID_REF_FRAME;

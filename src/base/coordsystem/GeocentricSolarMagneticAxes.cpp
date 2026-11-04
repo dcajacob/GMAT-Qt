@@ -324,7 +324,12 @@ void GeocentricSolarMagneticAxes::CalculateRotationMatrix(const A1Mjd &atEpoch,
 
    // Convert to MJD UTC to use for polar motion  and LOD
    // interpolations
-   Real mjdUTC = theTimeConverter->Convert(atEpoch.Get(),
+   // Preserve the converted epoch fractions through sidereal-time evaluation,
+   // as BodyFixedAxes does. Converting to Real here and back to GmatTime in
+   // the sidereal helpers loses enough precision to rotate long-baseline GSM
+   // states by centimetres relative to the same Earth-fixed dipole input.
+   const GmatTime preciseEpoch(atEpoch.Get());
+   GmatTime mjdUTC = theTimeConverter->Convert(preciseEpoch,
                   TimeSystemConverter::A1MJD, TimeSystemConverter::UTCMJD,
                   JD_JAN_5_1941);
    Real offset = JD_JAN_5_1941 - JD_NOV_17_1858;
@@ -333,21 +338,21 @@ void GeocentricSolarMagneticAxes::CalculateRotationMatrix(const A1Mjd &atEpoch,
 
 
    // convert input time to UT1 for later use (for AST calculation)
-   Real mjdUT1 = theTimeConverter->Convert(atEpoch.Get(),
+   GmatTime mjdUT1 = theTimeConverter->Convert(preciseEpoch,
                   TimeSystemConverter::A1MJD, TimeSystemConverter::UT1MJD,
                   JD_JAN_5_1941);
    
 
    // convert input A1 MJD to TT MJD (for most calculations)
-   Real mjdTT = theTimeConverter->Convert(atEpoch.Get(),
+   GmatTime mjdTT = theTimeConverter->Convert(preciseEpoch,
                   TimeSystemConverter::A1MJD, TimeSystemConverter::TTMJD,
                   JD_JAN_5_1941);
-   Real jdTT    = mjdTT + JD_JAN_5_1941;
+   GmatTime jdTT = mjdTT + JD_JAN_5_1941;
 
    // Compute Julian centuries of TDB from the base epoch (J2000)
    // NOTE - this is really TT, an approximation of TDB *********
    offset =  JD_JAN_5_1941 - JD_OF_J2000;
-   Real tTDB    = (mjdTT + offset) / DAYS_PER_JULIAN_CENTURY;
+   Real tTDB    = (mjdTT + offset).GetMjd() / DAYS_PER_JULIAN_CENTURY;
 
    if (overrideOriginInterval) updateIntervalToUse = 
                                ((Planet*) origin)->GetNutationUpdateInterval();
@@ -356,11 +361,11 @@ void GeocentricSolarMagneticAxes::CalculateRotationMatrix(const A1Mjd &atEpoch,
    ComputePrecessionMatrix(tTDB, atEpoch);
    ComputeNutationMatrix(tTDB, atEpoch, dPsi, longAscNodeLunar, cosEpsbar,
                          forceComputation);
-   ComputeSiderealTimeRotation(jdTT, mjdUT1, dPsi, longAscNodeLunar, cosEpsbar,
+   ComputeSiderealTimeRotation(jdTT.GetMjd(), mjdUT1, dPsi, longAscNodeLunar, cosEpsbar,
                                cosAst, sinAst);
-   ComputeSiderealTimeDotRotation(mjdUTC, atEpoch.Get(), cosAst, sinAst,
+   ComputeSiderealTimeDotRotation(mjdUTC, preciseEpoch, cosAst, sinAst,
                                   forceComputation);
-   ComputePolarMotionRotation(mjdUTC, atEpoch, forceComputation);
+   ComputePolarMotionRotation(mjdUTC.GetMjd(), atEpoch, forceComputation);
 
    Real np[3][3], rot[3][3], tmp[3][3];
    Integer p3;

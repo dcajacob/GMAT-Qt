@@ -56,6 +56,8 @@
 // **************************************************************************
 
 #include "SolarRadiationPressure.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include <sstream>                      // For stringstream
 #include "MessageInterface.hpp"
 #include "GmatConstants.hpp"
@@ -3146,10 +3148,9 @@ Rvector3 SolarRadiationPressure::GetTorquesForSpacecraft(Spacecraft *sc)
       // Determine the force diraction on the current plate, Eq. 2.5 
       Rvector3 forceDir = -2.0 * plateCRs * normDotSunToSC * plateNorm -
          plateCRd * ((2.0/3.0) * plateNorm + sunToSCUnitBF) - plateCa * sunToSCUnitBF;
-      forceDir = -forceDir; // Correction, sign change to Eq. 2.5
-      // I don't think this sign change is needed -- Mike S. 10/5/22
-      // correction: I think I missed the sign error in the spec that
-      // Josh found -- MES
+      // The projected-area factor below is negative for an illuminated face.
+      // Keep Eq. 2.5's sign so an absorbing plate receives momentum away from
+      // the Sun. Negating this vector reverses every plate's physical torque.
 
       #ifdef DEBUG_SRP_TORQUE
          MessageInterface::ShowMessage("SRP force direction on plate:\n"
@@ -3405,4 +3406,16 @@ Real SolarRadiationPressure::GetShadowStateFromAllBodies(Real epoch, Real* state
    }
 #endif
    return minPercentSun;
+}
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void SolarRadiationPressure::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const SolarRadiationPressure*>(original);
+   if (!source || typeid(*source) != typeid(SolarRadiationPressure) ||
+       typeid(*this) != typeid(SolarRadiationPressure))
+      throw GmatBaseException("Cannot copy incompatible object into SolarRadiationPressure");
+   if (source == this)
+      return;
+   operator=(*source);
 }

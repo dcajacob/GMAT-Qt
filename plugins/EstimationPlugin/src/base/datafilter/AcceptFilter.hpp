@@ -46,6 +46,7 @@ public:
    AcceptFilter& operator=(const AcceptFilter& af);
 
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
    virtual bool Initialize();
    virtual bool CleanUp();
    

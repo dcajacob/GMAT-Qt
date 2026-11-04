@@ -36,6 +36,7 @@
 #include "Linear.hpp"               // for GmatRealUtil::ToString()
 #include "GmatConstants.hpp"
 #include "MessageInterface.hpp"
+#include "Publisher.hpp"
 
 //#define DEBUG_TIMEDATA
 //#define DEBUG_TIMEDATA_OBJNAME
@@ -78,6 +79,7 @@ TimeData::TimeData(const std::string &name, const std::string &typeName,
       ("TimeData::TimeData(default) <%p>'%s' entered\n", this, mActualParamName.c_str());
    #endif
    mInitialEpoch = 0.0;
+   mInitialEpochGT = 0.0;
    mIsInitialEpochSet = false;
    mSpacecraft = NULL;
    mSpacePoint = NULL;
@@ -113,6 +115,7 @@ TimeData::TimeData(const TimeData &copy)
        copy.mInitialEpoch, copy.mIsInitialEpochSet);
    #endif
    mInitialEpoch      = copy.mInitialEpoch;
+   mInitialEpochGT    = copy.mInitialEpochGT;
    mIsInitialEpochSet = copy.mIsInitialEpochSet;
    mSpacecraft        = copy.mSpacecraft;
    mSpacePoint        = copy.mSpacePoint;
@@ -147,6 +150,7 @@ TimeData& TimeData::operator= (const TimeData &right)
       RefData::operator=(right);
       
       mInitialEpoch      = right.mInitialEpoch;
+      mInitialEpochGT    = right.mInitialEpochGT;
       mIsInitialEpochSet = right.mIsInitialEpochSet;
       mSpacecraft        = right.mSpacecraft;
       mSpacePoint        = right.mSpacePoint;
@@ -228,6 +232,7 @@ Real TimeData::GetInitialEpoch() const
 void TimeData::SetInitialEpoch(const Real &initialEpoch)
 {
    mInitialEpoch      = initialEpoch;
+   mInitialEpochGT    = initialEpoch;
    mIsInitialEpochSet = true;
    
    #ifdef DEBUG_TIMEDATA
@@ -253,6 +258,10 @@ Real TimeData::GetTimeReal(Integer id)
    
 //   Real a1Mjd = mSpacecraft->GetEpoch();
    Real a1Mjd = mSpacePoint->GetEpoch();
+   GmatTime sampleEpoch;
+   Rvector6 sampleState;
+   if (Publisher::GetParameterCartesianState(mSpacePoint, sampleEpoch, sampleState))
+      a1Mjd = sampleEpoch.GetMjd();
    
    #ifdef DEBUG_TIMEDATA_GET
    MessageInterface::ShowMessage
@@ -494,6 +503,18 @@ Real TimeData::GetElapsedTimeReal(Integer id)
    #endif
    
    Real a1mjd = GetTimeReal(A1);
+   // SpaceObject retains its precise clock before precision evaluation is
+   // enabled during propagation preparation. Other SpacePoints can provide
+   // only a Real epoch unless they advertise precision time.
+   GmatTime currentEpoch = (mSpacePoint->HasPrecisionTime() ||
+         mSpacePoint->IsOfType(Gmat::SPACEOBJECT)) ?
+         mSpacePoint->GetEpochGT() : GmatTime(a1mjd);
+   GmatTime sampleEpoch;
+   Rvector6 sampleState;
+   const bool sampled = Publisher::GetParameterCartesianState(mSpacePoint,
+         sampleEpoch, sampleState);
+   if (sampled) currentEpoch = sampleEpoch;
+   const bool precise = sampled || mSpacePoint->HasPrecisionTime();
    Real retVal = GmatBase::REAL_PARAMETER_UNDEFINED;
    
    #ifdef DEBUG_TIMEDATA_GET
@@ -505,6 +526,7 @@ Real TimeData::GetElapsedTimeReal(Integer id)
    if (!mIsInitialEpochSet)
    {
       mInitialEpoch = a1mjd;
+      mInitialEpochGT = currentEpoch;
       mIsInitialEpochSet = true;
       #ifdef DEBUG_TIMEDATA
       MessageInterface::ShowMessage
@@ -518,12 +540,15 @@ Real TimeData::GetElapsedTimeReal(Integer id)
    //case YEARS:
    //case MONTHS:
    case DAYS:
-      retVal = a1mjd - mInitialEpoch;
+      retVal = precise ? (currentEpoch - mInitialEpochGT).GetTimeInSec() /
+            GmatTimeConstants::SECS_PER_DAY :
+            a1mjd - mInitialEpoch;
       break;
    //case HOURS:
    //case MINS:
    case SECS:
-      retVal =  (a1mjd - mInitialEpoch)* GmatTimeConstants::SECS_PER_DAY;
+      retVal = precise ? (currentEpoch - mInitialEpochGT).GetTimeInSec() :
+            (a1mjd - mInitialEpoch)* GmatTimeConstants::SECS_PER_DAY;
       break;
    default:
       throw ParameterException("TimeData::GetElapsedTimeReal() Unknown parameter id: " +
@@ -749,6 +774,9 @@ bool TimeData::ValidateRefObjects(GmatBase *param)
          if (rval != GmatBase::REAL_PARAMETER_UNDEFINED)
          {
             mInitialEpoch = sp->GetRealParameter("A1Epoch");
+            mInitialEpochGT = (sp->HasPrecisionTime() ||
+                  sp->IsOfType(Gmat::SPACEOBJECT)) ? sp->GetEpochGT() :
+                  GmatTime(mInitialEpoch);
             mIsInitialEpochSet = true;
             status = true;
          }
@@ -811,6 +839,9 @@ void TimeData::InitializeRefObjects()
       {
 //         mInitialEpoch = mSpacecraft->GetEpoch();
          mInitialEpoch = mSpacePoint->GetEpoch();
+         mInitialEpochGT = (mSpacePoint->HasPrecisionTime() ||
+               mSpacePoint->IsOfType(Gmat::SPACEOBJECT)) ?
+               mSpacePoint->GetEpochGT() : GmatTime(mInitialEpoch);
          mIsInitialEpochSet = true;
          
          #ifdef DEBUG_TIMEDATA

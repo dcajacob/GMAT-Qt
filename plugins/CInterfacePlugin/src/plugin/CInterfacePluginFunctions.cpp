@@ -36,8 +36,13 @@
 #include "ODEModel.hpp"
 #include "Propagate.hpp"
 #include "Factory.hpp"
+#include "Spacecraft.hpp"
+#include "BaseException.hpp"
 
 #include "CCommandFactory.hpp"
+#include <set>
+#include <vector>
+#include <cmath>
 
 //#define DEBUG_INTERFACE_FROM_MATLAB
 
@@ -53,6 +58,13 @@ Integer     nextOdeIndex = 1000;
 std::map<Integer,ODEModel*> odeTable;
 std::map<Integer,PropSetup*> setupTable;
 std::map<std::string,Integer> odeNameTable;
+
+namespace
+{
+   // Only the new accessor uses this flag. Never expose a previous script's
+   // sandbox, or a partially initialized sandbox, after a load/run failure.
+   bool spacecraftEpochAvailable = false;
+}
 
 #ifdef DEBUG_INTERFACE_FROM_MATLAB
    FILE *fp;
@@ -162,6 +174,7 @@ extern "C"
    //---------------------------------------------------------------------------
    int StartGmat()
    {
+      spacecraftEpochAvailable = false;
       #ifdef DEBUG_INTERFACE_FROM_MATLAB
          fp = fopen("CInterfaceDebug.txt", "w");
          fprintf(fp, "Starting GMAT\n");
@@ -207,6 +220,7 @@ extern "C"
    //---------------------------------------------------------------------------
    int LoadScript(const char* scriptName)
    {
+      spacecraftEpochAvailable = false;
       int retval = -1;
 
       Moderator *theModerator = Moderator::Instance();
@@ -218,7 +232,7 @@ extern "C"
 
       std::string script = scriptName;
 
-      if (theModerator->InterpretScript(scriptName))
+      if (theModerator->InterpretScript(scriptName, false, "", true))
       {
          lastMsg = "Interpreted the script " + script + " successfully.";
          retval = 0;
@@ -230,6 +244,9 @@ extern "C"
       else
       {
          lastMsg = "The script " + script + " failed to load.";
+         if (auto *interpreter = Moderator::GetScriptInterpreter())
+            for (const auto &error : interpreter->GetErrorList())
+               lastMsg += "\n" + error;
          retval = -2;
       }
 
@@ -257,6 +274,7 @@ extern "C"
    //---------------------------------------------------------------------------
    int RunScript()
    {
+      spacecraftEpochAvailable = false;
       int retval = -1;
 
       Moderator *theModerator = Moderator::Instance();
@@ -267,6 +285,10 @@ extern "C"
       }
 
       retval = theModerator->RunMission();
+      // Execution errors and Stop preserve the initialized run objects. An
+      // initialization error does not establish a usable runtime spacecraft.
+      spacecraftEpochAvailable = retval == 1 || retval == -4 ||
+            retval == -5 || retval == -6;
       switch (retval)
       {
       case 1:
@@ -279,20 +301,94 @@ extern "C"
          break;
 
       case -2:
-         lastMsg = "Execution interrupted by user";
+         lastMsg = "Exception thrown during sandbox initialization";
          break;
 
       case -3:
-         lastMsg = "Exception thrown during the run";
+         lastMsg = "Unknown error occurred during sandbox initialization";
          break;
 
       case -4:
+         lastMsg = "Execution interrupted by user";
+         break;
+
+      case -5:
+         lastMsg = "Exception thrown during the run";
+         break;
+
+      case -6:
+         lastMsg = "Unknown error occurred during the run";
+         break;
+
+      case -7:
+         lastMsg = "No mission sequence defined";
+         break;
+
       default:
          lastMsg = "unknown error occurred";
          break;
       }
 
       return retval;
+   }
+
+   int GetSpacecraftEpoch(const char *spacecraftName, double *epochA1Mjd)
+   {
+      if (spacecraftName == NULL || spacecraftName[0] == '\0' ||
+            epochA1Mjd == NULL)
+      {
+         lastMsg = "GetSpacecraftEpoch requires a name and output pointer";
+         return -1;
+      }
+      Moderator *theModerator = Moderator::Instance();
+      if (!spacecraftEpochAvailable || theModerator == NULL ||
+            !theModerator->IsInitialized())
+      {
+         lastMsg = "GetSpacecraftEpoch requires an initialized run sandbox";
+         return -2;
+      }
+      GmatBase *object = NULL;
+      try
+      {
+         object = theModerator->GetInternalObject(spacecraftName);
+      }
+      catch (BaseException &)
+      {
+         lastMsg = "GetSpacecraftEpoch could not find the run object";
+         return -3;
+      }
+      catch (...)
+      {
+         lastMsg = "GetSpacecraftEpoch could not read the run object";
+         return -4;
+      }
+      Spacecraft *spacecraft = dynamic_cast<Spacecraft*>(object);
+      if (spacecraft == NULL)
+      {
+         lastMsg = "GetSpacecraftEpoch requires a Spacecraft run object";
+         return -3;
+      }
+      try
+      {
+         // The public scalar epoch is authoritative for Real-valued mission
+         // epoch assignments too. Those need not update the precision-time
+         // storage, so reading GetEpochGT unconditionally can return old data.
+         const double epoch = spacecraft->GetEpoch();
+         if (!std::isfinite(epoch))
+         {
+            lastMsg = "GetSpacecraftEpoch found a non-finite epoch";
+            return -4;
+         }
+         // Assign only after all potentially failing object reads complete.
+         lastMsg = "GetSpacecraftEpoch read A1 modified Julian days";
+         *epochA1Mjd = epoch;
+         return 0;
+      }
+      catch (...)
+      {
+         lastMsg = "GetSpacecraftEpoch could not read the spacecraft epoch";
+         return -4;
+      }
    }
 
    //---------------------------------------------------------------------------
@@ -541,15 +637,28 @@ extern "C"
 
          if (stateDim <= theState->GetSize())
          {
+            // Do not report success or change the propagation vector when the
+            // native model rejects the epoch.
+            if (ode != NULL && !ode->SetEpoch(epoch))
+            {
+               lastMsg = "Error setting the epoch on the ODE model";
+               return -1;
+            }
             theState->SetEpoch(epoch);
+            theState->SetEpochGT(GmatTime(epoch));
             theState->SetState(state, stateDim);
             if (ode != NULL)
             {
-               if (!ode->SetEpoch(epoch))
-                  lastMsg = "Error setting the epoch on the ODE model";
-               else
-                  lastMsg = "State and epoch updated on the propagator and "
-                            "ODE Model";
+               // SetEpoch updates scalar force epochs. Keep precise force
+               // epochs and the model's elapsed-time base in the same session.
+               ode->SetGmatTimeParameter(ode->GetParameterID("Epoch"),GmatTime(epoch));
+               for (Integer i = 0; i < ode->GetNumForces(); ++i)
+               {
+                  PhysicalModel *force = ode->GetForce(i);
+                  force->SetGmatTimeParameter(force->GetParameterID("Epoch"),GmatTime(epoch));
+               }
+               lastMsg = "State and epoch updated on the propagator and "
+                         "ODE Model";
             }
             retval = 0;
          }
@@ -806,16 +915,48 @@ extern "C"
          return "Error accessing the Moderator";
       }
 
-      GmatCommand *current = theModerator->GetFirstCommand(1);
+      // Branch children are separate lists whose ends point back to their
+      // owner. Visit each command once, in source order, including unexecuted
+      // alternatives (which provide their native "no summary data" result).
+      std::vector<GmatCommand*> pending;
+      std::set<GmatCommand*> visited;
+      pending.push_back(theModerator->GetFirstCommand(1));
       lastMsg = "";
-      while (current != NULL)
+      while (!pending.empty())
       {
+         GmatCommand *current = pending.back();
+         pending.pop_back();
+         if (current == NULL || !visited.insert(current).second)
+            continue;
+
          if (current->GetTypeName() != "NoOp")
          {
+            // The GUI normally supplies summaryName; external C clients do
+            // not. Use the actual command name without changing stored GUI
+            // inspection metadata, including during exception unwinding.
+            struct RestoreSummaryName
+            {
+               GmatCommand *command;
+               std::string previous;
+               explicit RestoreSummaryName(GmatCommand *cmd) :
+                  command(cmd), previous(cmd->GetSummaryName())
+               {
+                  if (!cmd->GetName().empty())
+                     cmd->SetSummaryName(cmd->GetName());
+               }
+               ~RestoreSummaryName() { command->SetSummaryName(previous); }
+            } restoreName(current);
             lastMsg += current->GetStringParameter("Summary");
             lastMsg += "\n-----------------------------------\n";
          }
-         current = current->GetNext();
+
+         // Inspect structure without executing solver/propagator state-machine
+         // navigation or changing Publisher run state through GetNext().
+         pending.push_back(current->GetNextWhileExecuting());
+         std::vector<GmatCommand*> children;
+         for (Integer which = 0; GmatCommand *child = current->GetChildCommand(which); ++which)
+            children.push_back(child);
+         pending.insert(pending.end(), children.rbegin(), children.rend());
       }
 
       return lastMsg.c_str();

@@ -20,7 +20,10 @@
 #include "Array.hpp"
 #include "PropSetup.hpp"
 #include "Propagator.hpp"
+#include "Integrator.hpp"
 #include "ODEModel.hpp"
+#include "CelestialBody.hpp"
+#include "HarmonicGravity.hpp"
 #include "PlanetographicRegion.hpp"
 #include "BodyFixedPoint.hpp"
 #include "AxisSystem.hpp"
@@ -191,7 +194,16 @@ QVector<ResourceProperty> resourceProperties(GmatBase &object)
 {
    QVector<ResourceProperty> fields;
    std::optional<Rvector6> orbit;
-   for (Integer id = 0; id < object.GetParameterCount(); ++id) {
+   QVector<Integer> parameterIds;
+   for (Integer id = 0; id < object.GetParameterCount(); ++id) parameterIds.append(id);
+   // fmincon exposes its named options as aliases outside parameterCount.
+   // Use the plugin's own option list and metadata for the ordinary editor.
+   if (object.GetTypeName()=="FminconOptimizer")
+      for (const auto &name:object.GetStringArrayParameter("Options")) {
+         const auto id=object.GetParameterID(name);
+         if (!parameterIds.contains(id)) parameterIds.append(id);
+      }
+   for (const Integer id:parameterIds) {
       try {
          // Subscriber visibility separates editable output settings from the
          // window layout/state metadata that is still valid in saved scripts.
@@ -206,7 +218,7 @@ QVector<ResourceProperty> resourceProperties(GmatBase &object)
          if (auto *point=dynamic_cast<CalculatedPoint *>(&object); point && point->IsBuiltIn() && fieldName!="OrbitColor" && fieldName!="TargetColor") continue;
          const bool thrusterSetting=(object.IsOfType("Thruster") && QStringList{"Origin","Axes","MixRatio"}.contains(fieldName)) ||
             (object.IsOfType("ImpulsiveBurn") && QStringList{"Origin","Axes"}.contains(fieldName));
-         const bool ephemerisSetting=object.IsOfType("EphemerisFile") && QStringList{"DistanceUnit","IncludeEventBoundaries"}.contains(fieldName);
+         const bool ephemerisSetting=object.IsOfType("EphemerisFile") && QStringList{"DistanceUnit","IncludeEventBoundaries","OutputTimeSystem"}.contains(fieldName);
          // This input becomes writable for serialization only once populated.
          // The GUI must offer the first selection as well as later replacement.
          const bool ephemerisInput=object.IsOfType("Spacecraft") && fieldName=="EphemerisName";
@@ -217,6 +229,15 @@ QVector<ResourceProperty> resourceProperties(GmatBase &object)
          field.name = QString::fromStdString(object.GetParameterText(id));
          if (object.IsOfType("Spacecraft") && field.name=="StateType") continue; // Deprecated input-state alias; DisplayStateType is the GUI choice.
          field.unit = QString::fromStdString(object.GetParameterUnit(id));
+         if (field.unit.isEmpty() && object.IsOfType("ChemicalThruster")) {
+            static const QRegularExpression coefficient("^([CK])(1[0-6]|[1-9])$");
+            const auto match=coefficient.match(field.name);
+            if (match.hasMatch()) {
+               const auto &units=object.GetStringArrayParameter(match.captured(1)=="C" ? "C_UNITS" : "K_UNITS");
+               const int index=match.captured(2).toInt()-1;
+               if (index<int(units.size())) field.unit=QString::fromStdString(units[index]);
+            }
+         }
          if (object.IsOfType("ErrorModel") && field.name=="NoiseSigma") field.unit=QString::fromStdString(object.GetParameterUnit(object.GetParameterID("Bias")));
          if (object.IsOfType(Gmat::AXIS_SYSTEM) && field.name=="Epoch") field.unit="A1ModJulian";
          switch (object.GetParameterType(id)) {
@@ -247,6 +268,7 @@ QVector<ResourceProperty> resourceProperties(GmatBase &object)
                // are not a substitute for the converted state's sixth element.
                if (!orbit) orbit=spacecraft->GetState(spacecraft->GetStringParameter("DisplayStateType"));
                field.name=spacecraftOrbitElementNames(object)[element-1];
+               field.unit=QString::fromStdString(spacecraft->GetStringParameter("Element"+std::to_string(element)+"Units"));
                field.value=QString::number((*orbit)[element-1],'g',17); orbitElement=true; break;
             }
             if (!orbitElement) field.value=QString::number(object.GetRealParameter(id),'g',17);
@@ -400,6 +422,8 @@ QVector<ResourceProperty> resourceProperties(GmatBase &object)
             for (int i=0;i<StateConversionUtil::GetTypeCount();++i) {
                if (StateConversionUtil::RequiresCelestialBodyOrigin(types[i]) && (!origin || !origin->IsOfType(Gmat::CELESTIAL_BODY))) continue;
                if (StateConversionUtil::RequiresFixedCoordinateSystem(types[i]) && (!frame || !frame->AreAxesOfType("BodyFixedAxes"))) continue;
+               if ((types[i]=="BrouwerMeanShort" || types[i]=="BrouwerMeanLong") &&
+                   (!origin || origin->GetName()!="Earth")) continue;
                field.choices.append(QString::fromStdString(types[i]));
             }
          }
@@ -445,6 +469,10 @@ QVector<ResourceProperty> resourceProperties(GmatBase &object)
          }
          if (hasEpochInterval(object) && field.name=="EpochFormat") {
             field.choices.clear(); for (const auto &format:TimeSystemConverter::Instance()->GetValidTimeRepresentations()) field.choices.append(QString::fromStdString(format));
+         }
+         if (object.IsOfType("EphemerisPropagator")) {
+            if (field.name=="EpochFormat") { field.choices.clear(); for (const auto &format:TimeSystemConverter::Instance()->GetValidTimeRepresentations()) field.choices.append(QString::fromStdString(format)); }
+            if (field.name=="StartEpoch") { field.choices={"FromSpacecraft","EphemStart"}; field.help="Explicit epoch in EpochFormat, spacecraft epoch, or first ephemeris epoch. Changing format converts an explicit date."; }
          }
          if ((object.IsOfType("TrackingFileSet") || object.IsOfType("Estimator")) && field.name=="DataFilters") {
             field.references.clear(); for (const auto &name:Moderator::Instance()->GetListOfObjects(Gmat::DATA_FILTER)) field.references.append(QString::fromStdString(name));
@@ -497,6 +525,11 @@ QVector<ResourceProperty> resourceProperties(GmatBase &object)
                for (const auto &name:Moderator::Instance()->GetListOfObjects(Gmat::SPACECRAFT)) field.references.append(QString::fromStdString(name));
                if (field.name=="Target") for (const auto &name:Moderator::Instance()->GetListOfObjects(Gmat::REGION)) field.references.append(QString::fromStdString(name));
             }
+            if (field.name=="AdditionalTargets") {
+               field.references.clear();
+               for (const auto &name:Moderator::Instance()->GetListOfObjects(Gmat::SPACECRAFT)) field.references.append(QString::fromStdString(name));
+               field.references.removeAll(QString::fromStdString(object.GetStringParameter("Target")));
+            }
             if (field.name=="Observers") {
                field.references.clear();
                auto *target=Moderator::Instance()->GetConfiguredObject(object.GetStringParameter("Target"));
@@ -507,7 +540,7 @@ QVector<ResourceProperty> resourceProperties(GmatBase &object)
                }
                field.references.removeAll(QString::fromStdString(object.GetStringParameter("Target")));
             }
-            if (field.name=="EclipseTypes") for (const auto &choice:object.GetPropertyEnumStrings(id)) field.references.append(QString::fromStdString(choice));
+            if (field.name=="EclipseTypes" || field.name=="EventTypes") for (const auto &choice:object.GetPropertyEnumStrings(id)) field.references.append(QString::fromStdString(choice));
             if (field.name=="Sensors") {
                field.references.clear();
                for (const auto &name:Moderator::Instance()->GetListOfObjects(Gmat::HARDWARE)) {
@@ -588,6 +621,11 @@ QVector<ResourceProperty> resourceProperties(GmatBase &object)
          for (auto field:resourceProperties(*force)) {
             if (field.list) continue;
             field.name=prefix+"."+field.name;
+            // The native owned-force metadata omits these units. Keep the
+            // GUI labels consistent with the ForceModel reference guide.
+            if (field.name=="SRP.Flux") field.unit="W/m^2";
+            if (field.name=="SRP.Nominal_Sun") field.unit="km";
+            if (field.name=="Drag.F107" || field.name=="Drag.F107A") field.unit="10^-22 W/m^2/Hz";
             const bool duplicate=std::any_of(fields.cbegin(),fields.cend(),[&](const ResourceProperty &other) { return other.name==field.name; });
             if (!duplicate) fields.append(field);
          }
@@ -642,7 +680,7 @@ bool isResourceList(GmatBase &object, const QString &name)
       (type=="FiniteBurn" && name=="Thrusters") ||
       (type=="SolarPowerSystem" && name=="ShadowBodies") ||
       ((type=="ForceModel" || type=="ODEModel") && (name=="PrimaryBodies" || name=="PointMasses")) ||
-      (object.IsOfType("EventLocator") && (name=="OccultingBodies" || name=="Observers" || name=="EclipseTypes" || name=="IntrudingBodies" || name=="Sensors"));
+      (object.IsOfType("EventLocator") && (name=="OccultingBodies" || name=="Observers" || name=="AdditionalTargets" || name=="EclipseTypes" || name=="EventTypes" || name=="IntrudingBodies" || name=="Sensors"));
    const auto parameterType=object.GetParameterType(id);
    return supported && (parameterType==Gmat::OBJECTARRAY_TYPE || parameterType==Gmat::STRINGARRAY_TYPE) && !object.IsParameterReadOnly(id);
 }
@@ -708,6 +746,11 @@ QString replaceResourceList(GmatBase &object, const QString &block, const QStrin
          if (object.IsOfType("FiniteBurn") && name=="Thrusters") {
             auto *thruster=Moderator::Instance()->GetConfiguredObject(entry.toStdString());
             if (!thruster || !thruster->IsOfType(Gmat::THRUSTER)) throw std::runtime_error("Select an available thruster.");
+            if (!entries.isEmpty()) {
+               auto *first=Moderator::Instance()->GetConfiguredObject(entries.first().toStdString());
+               if (first->IsOfType("ElectricThruster")!=thruster->IsOfType("ElectricThruster"))
+                  throw std::runtime_error("Select either chemical or electric thrusters for a finite burn; the types cannot be mixed.");
+            }
          }
          if (object.IsOfType("SolarPowerSystem") && name=="ShadowBodies") {
             if (entry=="Sun") throw std::runtime_error("The Sun cannot shadow itself. Select other celestial bodies.");
@@ -836,9 +879,38 @@ QString replaceResourceList(GmatBase &object, const QString &block, const QStrin
 
 void validateResourceProperties(GmatBase &object,bool replacingPolyhedron)
 {
-   if (object.IsOfType("ODEModel") && !replacingPolyhedron) for (int i=0;i<object.GetOwnedObjectCount();++i) {
+   auto *propagator=dynamic_cast<Propagator *>(&object);
+   if (auto *setup=dynamic_cast<PropSetup *>(&object)) propagator=setup->GetPropagator();
+   if (auto *integrator=dynamic_cast<Integrator *>(propagator)) {
+      if (integrator->GetRealParameter("MinStep")>integrator->GetRealParameter("MaxStep"))
+         throw std::runtime_error("Minimum step must not exceed maximum step.");
+      if (integrator->IsOfType("PredictorCorrector")) {
+         const auto lower=integrator->GetRealParameter("LowerError"),target=integrator->GetRealParameter("TargetError"),accuracy=integrator->GetRealParameter("Accuracy");
+         if (!(lower>0 && lower<target && target<accuracy))
+            throw std::runtime_error("Predictor-corrector settings require 0 < LowerError < TargetError < Accuracy.");
+      }
+   }
+   if (object.IsOfType("ODEModel")) for (int i=0;i<object.GetOwnedObjectCount();++i) {
       auto *force=object.GetOwnedObject(i);
-      if (force && force->IsOfType("PolyhedronGravityModel")) {
+      if (force && force->IsOfType("GravityField") &&
+          force->GetIntegerParameter("Order")>force->GetIntegerParameter("Degree"))
+         throw std::runtime_error("Gravity field Order must not exceed Degree.");
+      if (force && force->IsOfType("GravityField")) {
+         const auto filename=force->GetStringParameter("PotentialFileFullPath");
+         auto *body=dynamic_cast<CelestialBody *>(Moderator::Instance()->GetConfiguredObject(force->GetStringParameter("BodyName")));
+         if (body && !filename.empty()) {
+            // Read the selected file's limits, not the force's generic maximum.
+            // Header-only inspection avoids initializing/mutating the pending
+            // force or allocating its full coefficient arrays during Apply.
+            HarmonicGravity potential(filename,force->GetStringParameter("TideFileFullPath"),
+               body->GetEquatorialRadius(),body->GetGravitationalConstant(),body->GetName(),false);
+            if (force->GetIntegerParameter("Degree")>potential.GetNN() ||
+                force->GetIntegerParameter("Order")>potential.GetMM())
+               throw std::runtime_error("Gravity field degree/order must not exceed the selected potential file limits ("+
+                  std::to_string(potential.GetNN())+"/"+std::to_string(potential.GetMM())+").");
+         }
+      }
+      if (force && !replacingPolyhedron && force->IsOfType("PolyhedronGravityModel")) {
          const auto body=force->GetStringParameter("CreateForceBody");
          auto *selected=Moderator::Instance()->GetConfiguredObject(body);
          if (!selected || !selected->IsOfType("CelestialBody")) throw std::runtime_error("Select an existing celestial body for polyhedron gravity.");
@@ -1022,6 +1094,32 @@ QSet<QString> applyPropSetupProperties(GmatBase &object,const QMap<QString,QStri
       // be lost when the pending setup is cloned again for serialization.
       setup->SetODEModel(model); consumed.insert("FM");
    }
+   if (auto *propagator=setup->GetPropagator();propagator && propagator->GetTypeName()=="SPK" && values.contains("CentralBody")) {
+      if (values.value("CentralBody").trimmed()!=QString::fromStdString(propagator->GetStringParameter("CentralBody")))
+         throw std::runtime_error("The current SPK engine does not support changing CentralBody/Origin.");
+      consumed.insert("CentralBody");
+   }
+   // Validate paired bounds as one proposed edit. MaxStep's engine setter checks
+   // against the current minimum, so alphabetical application can reject a
+   // valid downward change of both bounds. This is only the preview object.
+   if (dynamic_cast<Integrator *>(setup->GetPropagator()) && values.contains("MinStep") && values.contains("MaxStep")) {
+      auto *integrator=setup->GetPropagator();
+      setResourceProperty(*integrator,"MinStep","0");
+      setResourceProperty(*integrator,"MaxStep",values.value("MaxStep"));
+      setResourceProperty(*integrator,"MinStep",values.value("MinStep"));
+      consumed.insert("MinStep"); consumed.insert("MaxStep");
+   }
+   if (auto *propagator=setup->GetPropagator();propagator && propagator->IsOfType("EphemerisPropagator") && (values.contains("EpochFormat") || values.contains("StartEpoch"))) {
+      const auto from=QString::fromStdString(propagator->GetStringParameter("EpochFormat"));
+      const auto to=values.value("EpochFormat",from);
+      // An explicit pair is already in the new format. A format-only edit
+      // preserves the old physical instant, matching the GUI selector.
+      const auto epoch=values.contains("StartEpoch") ? convertEphemerisEpoch(values.value("StartEpoch"),to,to) : convertEphemerisEpoch(QString::fromStdString(propagator->GetStringParameter("StartEpoch")),from,to);
+      propagator->SetStringParameter("EpochFormat",to.toStdString());
+      propagator->SetStringParameter("StartEpoch",epoch.toStdString());
+      if (values.contains("EpochFormat")) consumed.insert("EpochFormat");
+      if (values.contains("StartEpoch")) consumed.insert("StartEpoch");
+   }
    return consumed;
 }
 
@@ -1102,6 +1200,15 @@ QSet<QString> applyGravityBodyProperties(GmatBase &object,const QMap<QString,QSt
 
 void setResourceProperty(GmatBase &object, const QString &name, const QString &value)
 {
+   if (object.IsOfType("ODEModel") && name=="CentralBody") {
+      // ODEModel stores the name without resolving its type until Initialize.
+      // Reject a bad GUI draft before changing source, history or live objects.
+      auto *body=Moderator::Instance()->GetConfiguredObject(value.trimmed().toStdString());
+      if (!body || !body->IsOfType("CelestialBody"))
+         throw std::runtime_error("Select an existing celestial body for the force model central body.");
+      object.SetStringParameter("CentralBody",body->GetName());
+      return;
+   }
    if (auto *model=dynamic_cast<ODEModel *>(&object);model && (name=="SRP" || name=="RelativisticCorrection")) {
       if (value!="On" && value!="Off") throw std::runtime_error("Select On or Off.");
       const auto type=name=="SRP" ? "SolarRadiationPressure" : "RelativisticCorrection";
@@ -1263,6 +1370,21 @@ void setResourceProperty(GmatBase &object, const QString &name, const QString &v
    case Gmat::FILENAME_TYPE:
    case Gmat::OBJECT_TYPE:
    case Gmat::ENUMERATION_TYPE:
+      if (object.GetTypeName()=="FminconOptimizer") {
+         const auto &options=object.GetStringArrayParameter("Options");
+         if (std::find(options.begin(),options.end(),name.toStdString())!=options.end()) {
+            bool valid=false;
+            if (name=="MaxFunEvals") {
+               const auto count=value.toLongLong(&valid);
+               if (!valid || count<=0 || count>std::numeric_limits<Integer>::max())
+                  throw std::runtime_error("Enter a positive integer for the maximum function evaluations.");
+            } else {
+               const auto number=value.toDouble(&valid);
+               if (!valid || !std::isfinite(number) || number<=0)
+                  throw std::runtime_error("Enter a finite positive number for this fmincon option.");
+            }
+         }
+      }
       if (!object.SetStringParameter(id, value.toStdString())) throw std::runtime_error("Property rejected value");
       break;
    default: throw std::runtime_error("This property requires a specialized editor");

@@ -29,6 +29,7 @@
 //------------------------------------------------------------------------------
 
 #include <sstream>
+#include <cmath>
 #include <cstdio>                   // for sprintf
 #include "EphemerisPropagator.hpp"
 #include "MessageInterface.hpp"
@@ -99,6 +100,7 @@ EphemerisPropagator::EphemerisPropagator(const std::string & typeStr,
    currentEpochGT       (-987654321.0),
    timeFromEpoch        (0.0),
    ephemStart           (-987654321.0),
+   ephemStartGT         (-987654321.0),
    ephemEnd             (987654321.0),
    stopOutsideOfEphem   (true),
    psm                  (NULL),
@@ -168,6 +170,7 @@ EphemerisPropagator::EphemerisPropagator(const EphemerisPropagator & ep) :
    currentEpochGT          (ep.currentEpochGT),
    timeFromEpoch           (ep.timeFromEpoch),
    ephemStart              (ep.ephemStart),
+   ephemStartGT            (ep.ephemStartGT),
    ephemEnd                (ep.ephemEnd),
    stopOutsideOfEphem      (ep.stopOutsideOfEphem),
    psm                     (NULL),
@@ -222,6 +225,7 @@ EphemerisPropagator& EphemerisPropagator::operator=(
 
       timeFromEpoch = ep.timeFromEpoch;
       ephemStart    = ep.ephemStart;
+      ephemStartGT  = ep.ephemStartGT;
       ephemEnd      = ep.ephemEnd;
       stopOutsideOfEphem = ep.stopOutsideOfEphem;
       psm           = NULL;
@@ -460,8 +464,11 @@ Real EphemerisPropagator::SetRealParameter(const Integer id, const Real value)
    #endif
    if (id == EPHEM_STEP_SIZE)
    {
-      if (value != 0.0)
-         ephemStep = value;
+      // StepSize is the positive user magnitude. Propagate supplies backward
+      // direction through InitialStepSize; internal Step(dt) remains signed.
+      if (!std::isfinite(value) || value <= 0.0)
+         throw PropagatorException("StepSize must be a finite real number greater than zero.");
+      ephemStep = value;
       return ephemStep;
    }
 
@@ -1403,11 +1410,12 @@ bool EphemerisPropagator::Initialize()
 
                if (ephemStart > 0)
                {
-                  if (ephemStart > initialEpoch)
+                  if (hasPrecisionTime ? GetEphemStartEpochGT() > initialEpochGT :
+                        ephemStart > initialEpoch)
                   {
                      initialEpoch = ephemStart;
                      if (hasPrecisionTime)
-                        initialEpochGT = GmatTime(ephemStart);
+                        initialEpochGT = GetEphemStartEpochGT();
                   }
                }
                else
@@ -1454,7 +1462,7 @@ bool EphemerisPropagator::Initialize()
                {
                   initialEpoch = ephemStart;
                   if (hasPrecisionTime)
-                     initialEpochGT = GmatTime(ephemStart);
+                     initialEpochGT = GetEphemStartEpochGT();
 
 #ifdef DEBUG_INITIAL_EPHEM_STATE
                   MessageInterface::ShowMessage("From Ephem\n");
@@ -1473,14 +1481,18 @@ bool EphemerisPropagator::Initialize()
             {
                initialEpoch = ((SpaceObject*)(propObjects[0]))->GetEpoch();
                if (hasPrecisionTime)
-                  initialEpochGT = ((SpaceObject*)(propObjects[0]))->GetEpoch();
+                  initialEpochGT = ((SpaceObject*)(propObjects[0]))->GetEpochGT();
                timeFromEpoch = 0.0;
             }
             else
             {
-               initialEpoch = ConvertToRealEpoch(startEpoch, epochFormat);
                if (hasPrecisionTime)
-                  initialEpochGT = initialEpoch;
+               {
+                  initialEpochGT = ConvertToGmatTimeEpoch(startEpoch, epochFormat);
+                  initialEpoch = initialEpochGT.GetMjd();
+               }
+               else
+                  initialEpoch = ConvertToRealEpoch(startEpoch, epochFormat);
                #ifdef DEBUG_INITIAL_EPHEM_STATE
                MessageInterface::ShowMessage("From Script\n");
                #endif
@@ -1880,6 +1892,26 @@ GmatEpoch EphemerisPropagator::ConvertToRealEpoch(const std::string &theEpoch,
 }
 
 
+// Real-only providers may assign ephemStart directly. Never reuse an old
+// precise companion after their rounded boundary changes.
+GmatTime EphemerisPropagator::GetEphemStartEpochGT() const
+{
+   return ephemStartGT.GetMjd() == ephemStart ? ephemStartGT : GmatTime(ephemStart);
+}
+
+GmatTime EphemerisPropagator::ConvertToGmatTimeEpoch(const std::string &theEpoch,
+      const std::string &theFormat)
+{
+   GmatTime result(-999.999);
+   std::string output;
+   theTimeConverter->Convert(theFormat, GmatTime(-999.999), theEpoch,
+         "A1ModJulian", result, output);
+   if (result == GmatTime(-999.999))
+      throw PropagatorException("Error converting the time string \"" +
+            theEpoch + "\"; please check the format for the input string.");
+   return result;
+}
+
 //------------------------------------------------------------------------------
 // Real* GetAnalyticState()
 //------------------------------------------------------------------------------
@@ -1913,6 +1945,7 @@ void EphemerisPropagator::SetEphemSpan(const GmatEpoch start, const GmatEpoch en
             "EphemerisPropagator::SetEphemSpan(const GmatEpoch start, "
             "const GmatEpoch end): start >= end");
    ephemStart = start;
+   ephemStartGT = GmatTime(start);
    ephemEnd   = end;
 }
 
@@ -1928,11 +1961,19 @@ void EphemerisPropagator::SetEphemSpan(const GmatEpoch start, const GmatEpoch en
 //------------------------------------------------------------------------------
 void EphemerisPropagator::SetEphemSpan(Integer whichOne)
 {
+   // An explicit parsed start is independent of when the file span becomes
+   // known. Loading that span must not replace the user's selected epoch.
+   if (startEpochSource == FROM_SCRIPT)
+   {
+      initialEphemEpochSet = true;
+      return;
+   }
 	if (!initialEphemEpochSet)
 	{
       if (startEpochSource == FROM_SPACECRAFT)
       {
-         if (initialEpoch > ephemStart)
+         if (hasPrecisionTime ? initialEpochGT > GetEphemStartEpochGT() :
+               initialEpoch > ephemStart)
          {
             initialEphemEpochSet = true;
             return;
@@ -1940,7 +1981,7 @@ void EphemerisPropagator::SetEphemSpan(Integer whichOne)
       }
 		initialEpoch = ephemStart;
       if (hasPrecisionTime)
-         initialEpochGT = GmatTime(ephemStart);
+         initialEpochGT = GetEphemStartEpochGT();
 
 		initialEphemEpochSet = true;
 		if (currentEpoch == -987654321.0)

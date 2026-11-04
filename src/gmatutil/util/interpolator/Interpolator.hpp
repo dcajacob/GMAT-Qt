@@ -112,6 +112,8 @@ protected:
    bool rangeCalculated;
    /// Flag used to determine if independent variable increases or decreases
    bool dataIncreases;
+   /// Direction established by distinct input values, retained until Clear
+   Integer inputDirection;
    /// Flag used for additional feasiblity checking
    bool forceInterpolation;
    /// Flag to allow extrapolation

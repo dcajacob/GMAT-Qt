@@ -28,6 +28,8 @@
 //------------------------------------------------------------------------------
 
 #include "ThrustSegment.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "MessageInterface.hpp"
 #include "ODEModelException.hpp"
 #include "StringUtil.hpp"
@@ -1939,4 +1941,16 @@ bool ThrustSegment::HadScriptUpdate()
 void ThrustSegment::ResetScriptUpdate()
 {
    hadScriptUpdate = false;
+}
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void ThrustSegment::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const ThrustSegment*>(original);
+   if (!source || typeid(*source) != typeid(ThrustSegment) ||
+       typeid(*this) != typeid(ThrustSegment))
+      throw GmatBaseException("Cannot copy incompatible object into ThrustSegment");
+   if (source == this)
+      return;
+   operator=(*source);
 }

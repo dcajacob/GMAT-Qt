@@ -105,7 +105,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -165,7 +165,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -225,7 +225,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -354,7 +354,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -414,7 +414,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -474,7 +474,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -534,7 +534,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -595,7 +595,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -655,7 +655,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -769,7 +769,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>Modified Julian Date</para>
+                    <para>GMAT A1 modified Julian days</para>
                   </listitem>
                 </varlistentry>
 

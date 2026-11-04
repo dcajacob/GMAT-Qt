@@ -14,6 +14,10 @@ class MissionNavigation final : public QWidget
 public:
    MissionNavigation(QTreeWidget *tree,QTabWidget *tabs,QMainWindow *window);
    void refresh();
+   void refreshLabels();
+   void setDetailed(bool detailed);
+   bool isDetailed() const { return detailed; }
+   void setExpansion(int level);
    void showFilter();
    void setDetached(bool detached);
    void restorePlacement();
@@ -26,5 +30,5 @@ private:
    QComboBox *depth;
    QAction *detach;
    QSet<QString> selectedTypes;
-   bool filtering=false,exclude=false,detached=false,moving=false;
+   bool filtering=false,exclude=false,detached=false,moving=false,detailed=false;
 };

@@ -1,3 +1,4 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "HelpDialog.hpp"
 #include "ResourceEditor.hpp"
@@ -46,7 +47,7 @@ int main(int argc,char **argv)
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv);
    app.setOrganizationName("GMATTests"); app.setApplicationName("QtResourceCreationHelp");
    try {
-      require(argc==2 && QGuiApplication::platformName()=="offscreen","Creation Help requires offscreen startup");
+      require(argc==2 && acceptanceWidgetPlatform(),"Creation Help requires offscreen startup");
       TestSettings settings; const auto startup=QFileInfo(QString::fromLocal8Bit(argv[1])).absoluteFilePath(); QDir::setCurrent(QFileInfo(startup).absolutePath());
       MainWindow window; require(window.initialize(startup),"Creation Help runtime initialization failed"); window.show();
       auto *editor=window.findChild<QPlainTextEdit *>("scriptEditor"); auto *tree=window.findChild<QTreeWidget *>("Resources"); require(editor && tree,"Creation Help workspace missing");

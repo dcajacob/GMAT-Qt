@@ -1,0 +1,329 @@
+{
+  "schema_version": 1,
+  "scope": "Six positive committed state definitions in EarthMJ2000Eq; distinct nonsingular elliptic orbits. No any-frame, singular, hyperbolic or all-conversion-pair claim.",
+  "reference_sha256": {
+    "doc/help/src/Resource_SpacecraftOrbitState.xml": "2446259ea11baa976a23b659961761eb8412566820598938c3c8f98995fe2eb4",
+    "doc/SystemDocs/MathematicalSpecification/CalculationObjects.tex": "99cd4ec7fe78f5555b990e940e598ee1956344e666d337c6fad01f7b9e780bae"
+  },
+  "normative_note": "For SphericalAZFPA use the explicit acos(r dot v/(r*v)) equation and0..180 range. The mathematical-spec table prose also mentions a plane-normal angle; this wording discrepancy is not generalized.",
+  "cases": [
+    {
+      "key": "Cartesian",
+      "canonical_keplerian": [
+        9000,
+        0.2,
+        30,
+        40,
+        50,
+        60
+      ],
+      "mu": 398600.4418,
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "values": [
+        -6166.616962325736,
+        3169.771576189599,
+        3690.429201631931,
+        -4.879417119182024,
+        -5.733436239724976,
+        -0.7249429977623574
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "invalid_field": "X",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "expected_cartesian": [
+        -6166.616962325736,
+        3169.771576189599,
+        3690.429201631931,
+        -4.879417119182024,
+        -5.733436239724976,
+        -0.7249429977623574
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09,
+      "requirement": "FRR!E10"
+    },
+    {
+      "key": "Keplerian",
+      "canonical_keplerian": [
+        9200,
+        0.22,
+        35,
+        55,
+        40,
+        75
+      ],
+      "mu": 398600.4418,
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "values": [
+        9200,
+        0.22,
+        35,
+        55,
+        40,
+        75
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "invalid_field": "ECC",
+      "invalid": [
+        "-0.1",
+        "1",
+        "nan"
+      ],
+      "expected_cartesian": [
+        -7045.136546226244,
+        659.6376160132249,
+        4305.849651563947,
+        -2.9045086196283405,
+        -6.5966011759091225,
+        -0.9833860457413521
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09,
+      "requirement": "FRR!E6"
+    },
+    {
+      "key": "ModifiedKeplerian",
+      "canonical_keplerian": [
+        9400,
+        0.25,
+        42,
+        62,
+        33,
+        81
+      ],
+      "mu": 398600.4418,
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "values": [
+        7050.0,
+        11750.0,
+        42,
+        62,
+        33,
+        81
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "invalid_field": "RadPer",
+      "invalid": [
+        "-1",
+        "0",
+        "nan"
+      ],
+      "expected_cartesian": [
+        -6703.087507317198,
+        -342.6635730158082,
+        5184.170085694044,
+        -2.4446786414603827,
+        -6.695754049744708,
+        -0.8868466569764972
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09,
+      "requirement": "FRR!E7"
+    },
+    {
+      "key": "Equinoctial",
+      "canonical_keplerian": [
+        9600,
+        0.18,
+        52,
+        75,
+        55,
+        94
+      ],
+      "mu": 398600.4418,
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "values": [
+        9600,
+        0.13788799976141602,
+        -0.11570176974357708,
+        0.4711135036185859,
+        0.12623448283799688,
+        203.3410646109463
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "invalid_field": "EquinoctialH",
+      "invalid": [
+        "2",
+        "nan",
+        "not-a-number"
+      ],
+      "expected_cartesian": [
+        -4968.213794614637,
+        -7016.657079760126,
+        3817.9142535689375,
+        1.813760399348363,
+        -4.978804086499837,
+        -3.8917487135228024
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09,
+      "requirement": "FRR!E8"
+    },
+    {
+      "key": "SphericalAZFPA",
+      "canonical_keplerian": [
+        9800,
+        0.3,
+        64,
+        88,
+        18,
+        101
+      ],
+      "mu": 398600.4418,
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "values": [
+        9459.486536863038,
+        229.66155507845605,
+        51.82280632355586,
+        6.603163353715965,
+        134.82779848259352,
+        72.6528136192724
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "invalid_field": "RMagnitude",
+      "invalid": [
+        "-1",
+        "0",
+        "nan"
+      ],
+      "expected_cartesian": [
+        -3784.684695151821,
+        -4456.681374501295,
+        7436.130608424645,
+        0.3586072920851963,
+        -6.483533567575466,
+        -1.1987324822673964
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09,
+      "requirement": "FRR!E11"
+    },
+    {
+      "key": "SphericalRADEC",
+      "canonical_keplerian": [
+        10000,
+        0.12,
+        25,
+        103,
+        67,
+        126
+      ],
+      "mu": 398600.4418,
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "values": [
+        10603.940802378454,
+        294.8179375962364,
+        -5.455258018120256,
+        5.943032602302457,
+        20.756153285148955,
+        -24.798901314752143
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "invalid_field": "RMagnitude",
+      "invalid": [
+        "-1",
+        "0",
+        "nan"
+      ],
+      "expected_cartesian": [
+        4430.69935871537,
+        -9581.033256010645,
+        -1008.0999356432387,
+        5.0448481712826645,
+        1.911941581280343,
+        -2.4927139487929804
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09,
+      "requirement": "FRR!E12"
+    }
+  ]
+}

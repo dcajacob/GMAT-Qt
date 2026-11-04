@@ -65,6 +65,7 @@ public:
                                 const std::string &newName);
    
    virtual std::string GetRefObjectName(const UnsignedInt type) const;
+   virtual const StringArray& GetRefObjectNameArray(const UnsignedInt type);
    virtual bool SetRefObjectName(const UnsignedInt type,
                                  const std::string &name);
    virtual GmatBase* GetRefObject(const UnsignedInt type,

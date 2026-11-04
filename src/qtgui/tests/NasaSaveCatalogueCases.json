@@ -1,0 +1,849 @@
+{
+  "schema_version": 1,
+  "scope": "Persistence-only remaining offered builtin function resources and aliases. Constructor-declared input/output identity and native writable fields; no builtin execution, estimator science or thrust/dynamics qualification. GroundTrackPlot uses prior passing source-versioned evidence.",
+  "cases": [
+    {
+      "key": "BuiltinAngle",
+      "setup": "Create Angle Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Angle.data",
+      "definitions": [
+        "Create Angle Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__Angle_input_1_vertex__",
+            "__Angle_input_2_end1__",
+            "__Angle_input_3_end2__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": [
+            "__Angle_output_1_num__"
+          ]
+        }
+      ],
+      "expected_implementation": "Angle"
+    },
+    {
+      "key": "BuiltinConvertTime",
+      "setup": "Create ConvertTime Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.ConvertTime.data",
+      "definitions": [
+        "Create ConvertTime Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__ConvertTime_input_1_startformat__",
+            "__ConvertTime_input_2_endformat__",
+            "__ConvertTime_input_3_time__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": [
+            "__ConvertTime_output_1_time__"
+          ]
+        }
+      ],
+      "expected_implementation": "ConvertTime"
+    },
+    {
+      "key": "BuiltinGetEphemStates",
+      "setup": "Create GetEphemStates Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.GetEphemStates.data",
+      "definitions": [
+        "Create GetEphemStates Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__BuiltinFunction_GetEphemStates_input_1_ephemtype__",
+            "__BuiltinFunction_GetEphemStates_input_2_spacecraft__",
+            "__BuiltinFunction_GetEphemStates_input_3_epochformat__",
+            "__BuiltinFunction_GetEphemStates_input_4_coordsys__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": [
+            "__BuiltinFunction_GetEphemStates_output_1_initialepoch__",
+            "__BuiltinFunction_GetEphemStates_output_2_initialstate__",
+            "__BuiltinFunction_GetEphemStates_output_3_finalepoch__",
+            "__BuiltinFunction_GetEphemStates_output_4_finalstate__"
+          ]
+        }
+      ],
+      "expected_implementation": "GetEphemStates"
+    },
+    {
+      "key": "BuiltinGetLastState",
+      "setup": "Create GetLastState Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.GetLastState.data",
+      "definitions": [
+        "Create GetLastState Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__BuiltinFunction_GetLastState_input_1_spacecraft__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": [
+            "__BuiltinFunction_GetLastState_output_1_state__"
+          ]
+        }
+      ],
+      "expected_implementation": "GetLastState"
+    },
+    {
+      "key": "BuiltinNum2str",
+      "setup": "Create Num2str Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Num2str.data",
+      "definitions": [
+        "Create Num2str Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__Num2str_input_1_num__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": [
+            "__Num2str_output_1_str__"
+          ]
+        }
+      ],
+      "expected_implementation": "Num2str"
+    },
+    {
+      "key": "Builtinnum2str",
+      "setup": "Create num2str Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.num2str.data",
+      "definitions": [
+        "Create num2str Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__Num2str_input_1_num__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": [
+            "__Num2str_output_1_str__"
+          ]
+        }
+      ],
+      "expected_implementation": "Num2str"
+    },
+    {
+      "key": "BuiltinPause",
+      "setup": "Create Pause Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Pause.data",
+      "definitions": [
+        "Create Pause Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__Pause_input_1_time__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": []
+        }
+      ],
+      "expected_implementation": "Pause"
+    },
+    {
+      "key": "Builtinpause",
+      "setup": "Create pause Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.pause.data",
+      "definitions": [
+        "Create pause Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__Pause_input_1_time__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": []
+        }
+      ],
+      "expected_implementation": "Pause"
+    },
+    {
+      "key": "BuiltinQuaternionProduct",
+      "setup": "Create QuaternionProduct Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.QuaternionProduct.data",
+      "definitions": [
+        "Create QuaternionProduct Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__QuaternionProd_input_1_quaternion1__",
+            "__QuaternionProd_input_2_quaternion2__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": [
+            "__QuaternionProd_output_1_product__"
+          ]
+        }
+      ],
+      "expected_implementation": "QuaternionProduct"
+    },
+    {
+      "key": "BuiltinQuaternionRotation",
+      "setup": "Create QuaternionRotation Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.QuaternionRotation.data",
+      "definitions": [
+        "Create QuaternionRotation Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__QuaternionRot_input_1_quaternion__",
+            "__QuaternionRot_input_2_vector__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": [
+            "__QuaternionRot_output_1_rotatedVec__"
+          ]
+        }
+      ],
+      "expected_implementation": "QuaternionRotation"
+    },
+    {
+      "key": "BuiltinQuaternionToDCM",
+      "setup": "Create QuaternionToDCM Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.QuaternionToDCM.data",
+      "definitions": [
+        "Create QuaternionToDCM Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__QuaternionToDCM_input_1_quaternion__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": [
+            "__QuaternionToDCM_output_1_dcmMat__"
+          ]
+        }
+      ],
+      "expected_implementation": "QuaternionToDCM"
+    },
+    {
+      "key": "BuiltinRotationMatrix",
+      "setup": "Create RotationMatrix Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.RotationMatrix.data",
+      "definitions": [
+        "Create RotationMatrix Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__RotationMatrix_input_1_coordsys__",
+            "__RotationMatrix_input_2_epoch__",
+            "__RotationMatrix_input_3_epochFormat__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": [
+            "__RotationMatrix_output_1_matrix__",
+            "__RotationMatrix_output_2_timederivative__"
+          ]
+        }
+      ],
+      "expected_implementation": "RotationMatrix"
+    },
+    {
+      "key": "BuiltinSetSeed",
+      "setup": "Create SetSeed Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.SetSeed.data",
+      "definitions": [
+        "Create SetSeed Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__SetSeed_input_1_seed__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": []
+        }
+      ],
+      "expected_implementation": "SetSeed"
+    },
+    {
+      "key": "BuiltinSign",
+      "setup": "Create Sign Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Sign.data",
+      "definitions": [
+        "Create Sign Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__Sign_input_1_variable__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": [
+            "__Sign_output_1_sign__"
+          ]
+        }
+      ],
+      "expected_implementation": "Sign"
+    },
+    {
+      "key": "Builtinsign",
+      "setup": "Create sign Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.sign.data",
+      "definitions": [
+        "Create sign Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__Sign_input_1_variable__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": [
+            "__Sign_output_1_sign__"
+          ]
+        }
+      ],
+      "expected_implementation": "Sign"
+    },
+    {
+      "key": "BuiltinStr2num",
+      "setup": "Create Str2num Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Str2num.data",
+      "definitions": [
+        "Create Str2num Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__Str2num_input_1_string__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": [
+            "__Str2num_output_1_num__"
+          ]
+        }
+      ],
+      "expected_implementation": "Str2num"
+    },
+    {
+      "key": "Builtinstr2num",
+      "setup": "Create str2num Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.str2num.data",
+      "definitions": [
+        "Create str2num Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__Str2num_input_1_string__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": [
+            "__Str2num_output_1_num__"
+          ]
+        }
+      ],
+      "expected_implementation": "Str2num"
+    },
+    {
+      "key": "BuiltinSystemTime",
+      "setup": "Create SystemTime Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.SystemTime.data",
+      "definitions": [
+        "Create SystemTime Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": ""
+        },
+        {
+          "object": "Subject",
+          "field": "Input",
+          "type": "StringArray",
+          "expected": [
+            "__SystemTime_input_1_time__"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Output",
+          "type": "StringArray",
+          "expected": [
+            "__SystemTime_output_1_time__"
+          ]
+        }
+      ],
+      "expected_implementation": "SystemTime"
+    },
+    {
+      "key": "AliasBatchEstimatorInv",
+      "setup": "Create BatchEstimatorInv Subject;\nSubject.MaximumIterations = 8;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.BatchEstimator.data",
+      "definitions": [
+        "Create BatchEstimator Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "MaximumIterations",
+          "type": "Integer",
+          "expected": 8
+        }
+      ]
+    },
+    {
+      "key": "AliasODEModel",
+      "setup": "Create ODEModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nProp.InitialStepSize = 120;\n",
+      "selected": [
+        "FM",
+        "Prop"
+      ],
+      "objects": [
+        "Prop",
+        "FM"
+      ],
+      "filename": "FM_Prop.data",
+      "definitions": [
+        "Create ODEModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Prop",
+          "field": "FM",
+          "type": "Object",
+          "expected": "FM"
+        }
+      ]
+    },
+    {
+      "key": "AliasFuelTank",
+      "setup": "Create FuelTank Subject;\nSubject.FuelMass = 123.5;\nSubject.Pressure = 1718;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.ChemicalTank.data",
+      "definitions": [
+        "Create ChemicalTank Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FuelMass",
+          "type": "Real",
+          "expected": 123.5
+        },
+        {
+          "object": "Subject",
+          "field": "Pressure",
+          "type": "Real",
+          "expected": 1718
+        }
+      ]
+    },
+    {
+      "key": "AliasThruster",
+      "setup": "Create FuelTank Fuel;\nFuel.FuelMass = 123.5;\nCreate Thruster Subject;\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.ThrustDirection1 = 1;\nSubject.ThrustDirection2 = 0;\nSubject.ThrustDirection3 = 0;\nSubject.GravitationalAccel = 10;\nSubject.DecrementMass = true;\nSubject.Tank = {Fuel};\nSubject.C1 = 10;\nSubject.K1 = 2000;\n",
+      "selected": [
+        "Subject",
+        "Fuel"
+      ],
+      "objects": [
+        "Subject",
+        "Fuel"
+      ],
+      "filename": "Subject_Fuel.data",
+      "definitions": [
+        "Create ChemicalThruster Subject;",
+        "Create ChemicalTank Fuel;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "GravitationalAccel",
+          "type": "Real",
+          "expected": 10
+        },
+        {
+          "object": "Subject",
+          "field": "C1",
+          "type": "Real",
+          "expected": 10
+        },
+        {
+          "object": "Subject",
+          "field": "K1",
+          "type": "Real",
+          "expected": 2000
+        },
+        {
+          "object": "Subject",
+          "field": "Tank",
+          "type": "ObjectArray",
+          "expected": [
+            "Fuel"
+          ]
+        },
+        {
+          "object": "Fuel",
+          "field": "FuelMass",
+          "type": "Real",
+          "expected": 123.5
+        }
+      ]
+    }
+  ]
+}

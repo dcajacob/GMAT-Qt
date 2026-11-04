@@ -39,6 +39,7 @@
 #include "TextParser.hpp"          // for SeparateBrackets()
 #include "SolarSystem.hpp"         // for GetBody()
 #include "MessageInterface.hpp"
+#include <cmath>
 
 //#define DEBUG_RENAME
 //#define DEBUG_EW_SET_VALUE
@@ -753,6 +754,11 @@ bool ElementWrapper::SetValue(ElementWrapper *lhsWrapper, ElementWrapper *rhsWra
                   valueSet = true;
                }
             }
+            else if (rhsDataType == Gmat::RVECTOR_TYPE)
+            {
+               lhsWrapper->SetRvector(rvec);
+               valueSet = true;
+            }
             
             if (!valueSet)
                throw GmatBaseException
@@ -805,6 +811,29 @@ bool ElementWrapper::SetValue(ElementWrapper *lhsWrapper, ElementWrapper *rhsWra
             onebyoneArray(0,0) = rval;
             lhsWrapper->SetArray(onebyoneArray);
          }
+         else if (rhsDataType == Gmat::STRING_TYPE &&
+                  rhsWrapperType == Gmat::STRING_WT &&
+                  GmatStringUtil::IsEnclosedWithBrackets(sval))
+         {
+            // Resource matrix initializers already accept bracketed numeric
+            // literals. Function bodies retain those initializers as commands;
+            // assign their values at execution instead of silently doing nothing.
+            Rmatrix value = lhsWrapper->EvaluateArray();
+            const RealArray entries = GmatStringUtil::ToRealArray(sval, false, true);
+            const Integer rows = value.GetNumRows(), cols = value.GetNumColumns();
+            if (entries.empty() || entries.size() != rows * cols)
+               throw GmatBaseException("Matrix literal size does not match \"" + lhs + "\"");
+            for (Real entry : entries)
+               if (!std::isfinite(entry))
+                  throw GmatBaseException("Matrix literal must contain finite values for \"" + lhs + "\"");
+            for (Integer row = 0; row < rows; ++row)
+               for (Integer col = 0; col < cols; ++col)
+                  value(row, col) = entries[row * cols + col];
+            lhsWrapper->SetArray(value);
+         }
+         else
+            throw GmatBaseException
+               ("ElementWrapper::SetValue() Cannot set \"" + rhs + "\" to \"" + lhs + "\"");
          break;
       case Gmat::STRING_TYPE:
       case Gmat::ENUMERATION_TYPE:

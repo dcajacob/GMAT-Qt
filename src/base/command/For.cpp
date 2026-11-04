@@ -1176,7 +1176,6 @@ bool For::StillLooping()
          incrPositive = true;
       else
          incrPositive = false;
-      numPasses   = (int)( floor((endValue - startValue)/stepSize)) + 1;
       currentPass = 1;
       
       #if DEBUG_FOR_EXE
@@ -1209,6 +1208,10 @@ bool For::StillLooping()
       }
       else
       {
+         // Reject zero/direction-invalid steps before dividing or converting
+         // the pass count. A zero step otherwise produces infinity and an
+         // invalid floating-point-to-integer conversion before the guard.
+         numPasses = (int)(floor((endValue - startValue)/stepSize)) + 1;
          currentValue = startValue;
          indexWrapper->SetReal(currentValue);
          commandComplete  = false;

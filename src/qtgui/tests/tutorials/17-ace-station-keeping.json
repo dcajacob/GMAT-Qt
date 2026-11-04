@@ -1,0 +1,1465 @@
+{
+  "id": "17-ace-station-keeping",
+  "title": "ACE Station Keeping",
+  "guide": "doc/help/src/Tut_ACEStationKeeping.xml",
+  "guide_sha256": "f488023357c990940611ec143765ed517b9530b9eba1a1bf1befcd5a6267612d",
+  "reference": "application/samples/Ex_LibrationPointStationKeeping_ESM.script",
+  "provenance": "Reviewed current Help instructions, using semantic QtTest widget selectors. Values come from the Help chapter; the generator never reads a completed example mission. Literal code is entered only where the chapter explicitly teaches it.",
+  "stages": [
+    {
+      "name": "Current Help GUI instructions with QtTest selectors",
+      "input": null,
+      "requires_run": true,
+      "actions": [
+        {
+          "action": "key",
+          "keys": "Esc"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+N"
+        },
+        {
+          "action": "window",
+          "state": "maximized"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultSC",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "ACE",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "ACE",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DateFormat",
+          "value": "UTCGregorian"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "text",
+          "text": "09 Dec 2005 13:00:00.000",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "click",
+          "field_hint": "X",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "-528665.5773210001"
+        },
+        {
+          "action": "click",
+          "field_hint": "Y",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "-1325445.164527"
+        },
+        {
+          "action": "click",
+          "field_hint": "Z",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "-525969.843578"
+        },
+        {
+          "action": "click",
+          "field_hint": "VX",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "0.240435056"
+        },
+        {
+          "action": "click",
+          "field_hint": "VY",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "-0.068342458"
+        },
+        {
+          "action": "click",
+          "field_hint": "VZ",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "0.0315715361"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultProp",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "EarthSunMoon",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "EarthSunMoon",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "40000",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MaxStepAttempts"
+        },
+        {
+          "action": "text",
+          "text": "40000",
+          "target_name": "resource_MaxStepAttempts"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "EarthSunMoon_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "key",
+          "keys": "Backspace",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "text",
+          "text": "Sun, Earth, Luna",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Calculated Points",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Barycenter",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "DefaultBC",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_BodyNames"
+        },
+        {
+          "action": "text",
+          "text": "Earth, Luna",
+          "target_name": "resource_BodyNames"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Calculated Points",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add LibrationPoint",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "ESL1",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Primary"
+        },
+        {
+          "action": "text",
+          "text": "Sun",
+          "target_name": "resource_Primary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Secondary"
+        },
+        {
+          "action": "text",
+          "text": "Earth",
+          "target_name": "resource_Secondary"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_Point",
+          "value": "L1"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "I",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Coordinate Systems",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add CoordinateSystem",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "EarthSunL1CS",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "EarthSunL1CS",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "text",
+          "text": "ESL1",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_Axes",
+          "value": "ObjectReferenced"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_name": "editCoordinateAxes"
+        },
+        {
+          "action": "select",
+          "target_name": "coordinateAxisType",
+          "value": "ObjectReferenced"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Primary"
+        },
+        {
+          "action": "text",
+          "text": "Sun",
+          "target_name": "resource_Primary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Secondary"
+        },
+        {
+          "action": "text",
+          "text": "Earth",
+          "target_name": "resource_Secondary"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_XAxis",
+          "value": "R"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_YAxis",
+          "value": ""
+        },
+        {
+          "action": "select",
+          "target_name": "resource_ZAxis",
+          "value": "N"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Coordinate Systems",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add CoordinateSystem",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "EarthSunRotCS",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "EarthSunRotCS",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "text",
+          "text": "Earth",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_Axes",
+          "value": "ObjectReferenced"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_name": "editCoordinateAxes"
+        },
+        {
+          "action": "select",
+          "target_name": "coordinateAxisType",
+          "value": "ObjectReferenced"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Primary"
+        },
+        {
+          "action": "text",
+          "text": "Sun",
+          "target_name": "resource_Primary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Secondary"
+        },
+        {
+          "action": "text",
+          "text": "Earth",
+          "target_name": "resource_Secondary"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_XAxis",
+          "value": "R"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_YAxis",
+          "value": ""
+        },
+        {
+          "action": "select",
+          "target_name": "resource_ZAxis",
+          "value": "N"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Burns",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ImpulsiveBurn",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "MCC",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "MCC",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "burn_CoordinateSystem",
+          "value": "EarthSunRotCS"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Solvers",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add DifferentialCorrector",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "DefaultDC",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultOrbitView",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "L1View",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "L1View",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitClearObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "ACE"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Earth"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Sun"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_CoordinateSystem",
+          "value": "EarthSunL1CS"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewUpCoordinateSystem",
+          "value": "EarthSunL1CS"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewPointReference",
+          "value": "ESL1"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewDirection",
+          "value": "ESL1"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewScaleFactor"
+        },
+        {
+          "action": "text",
+          "text": "1",
+          "target_name": "orbit_ViewScaleFactor"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewUpAxis",
+          "value": "X"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewPointVector",
+          "value": "Vector"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "text",
+          "text": "540000",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_SolverIterations",
+          "value": "Current"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add OrbitView",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "EarthSunRotView",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "EarthSunRotView",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitClearObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "ACE"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Earth"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Luna"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Sun"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_CoordinateSystem",
+          "value": "EarthSunRotCS"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewUpCoordinateSystem",
+          "value": "EarthSunRotCS"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewPointVector",
+          "value": "Vector"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "text",
+          "text": "-3000000",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "text",
+          "text": "-1500000",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "text",
+          "text": "1000000",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_SolverIterations",
+          "value": "Current"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagate",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Delete command",
+          "target_role": "menu"
+        },
+        {
+          "action": "click",
+          "target_text": "Yes",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "For"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "For1",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Index"
+        },
+        {
+          "action": "text",
+          "text": "I",
+          "target_name": "commandField_Index"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Start"
+        },
+        {
+          "action": "text",
+          "text": "1",
+          "target_name": "commandField_Start"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Step"
+        },
+        {
+          "action": "text",
+          "text": "1",
+          "target_name": "commandField_Step"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_End"
+        },
+        {
+          "action": "text",
+          "text": "7",
+          "target_name": "commandField_End"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "For \u2014 For1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Target"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Target1",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DefaultDC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "select",
+          "target_name": "commandChoice_ExitMode",
+          "value": "DiscardAndContinue"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DefaultDC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "MCC.Element1",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "MCC.Element1",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "text",
+          "text": "1e-5",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "text",
+          "text": "-0.1",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "text",
+          "text": "0.1",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "0.001",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Maneuver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "text",
+          "text": "MCC",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "text",
+          "text": "ACE",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "EarthSunMoon"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "ACE"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "text",
+          "text": "ACE.EarthSunL1CS.Y",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationTolerance"
+        },
+        {
+          "action": "text",
+          "text": "1e-5",
+          "target_name": "propagationTolerance"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DefaultDC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "text",
+          "text": "ACE.EarthSunL1CS.VX",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "text",
+          "text": "1e-5",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+S"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial17-ace.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-seven-half-orbits"
+        },
+        {
+          "action": "click",
+          "target_name": "allPlotReplayLatest"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+O"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial17-ace.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "screenshot",
+          "label": "own-saved-mission-reopened"
+        }
+      ]
+    }
+  ]
+}

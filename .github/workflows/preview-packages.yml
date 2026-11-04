@@ -1,0 +1,71 @@
+name: Qt preview packages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/stable-qt-preview-20261104]
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2022
+            platform: windows-x64
+          - runner: macos-15
+            platform: macos-arm64
+          - runner: macos-15-intel
+            platform: macos-x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and verify portable package
+        run: python tools/preview/BuildPreviewPackage.py --platform ${{ matrix.platform }}
+      - name: Preserve build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-${{ matrix.platform }}
+          path: build/preview-package/logs/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload verified package
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.platform }}
+          path: build/preview-package/dist/*
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: package-*
+          merge-multiple: true
+          path: dist
+      - name: Publish private preview downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PREVIEW_COMMIT: ${{ github.sha }}
+          PREVIEW_TAG: qt-preview-20261104-${{ github.run_number }}
+        run: |
+          cat > release-notes.txt <<'EOF'
+          Frozen Qt 6 GMAT preview for exploratory testing.
+
+          Windows: unzip the entire folder, then open bin/GmatQt.exe.
+          Mac: unzip and keep the extracted folder together, then open GMAT-Qt.app inside it. Choose arm64 for Apple Silicon or x64 for Intel; macOS 15 or newer. The Mac apps are ad-hoc signed, without Apple notarization.
+
+          Optional licensed MATLAB/fmincon and VF13ad components are excluded. Each package passed its bundled native mission probe and independent state comparison. This is a preview; full scientific, platform and NASA acceptance remain incomplete. Source-versioned campaign coverage is 1052/1158.
+          EOF
+          gh release create "$PREVIEW_TAG" dist/* --target "$PREVIEW_COMMIT" --prerelease --title "Qt preview — 2026-11-04 (build $GITHUB_RUN_NUMBER)" --notes-file release-notes.txt

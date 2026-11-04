@@ -126,6 +126,7 @@ OPTION(PLUGIN_GEOMETRICMEASUREMENT "GeometricMeasurement Plugin" OFF)
 OPTION(PLUGIN_GMATFUNCTION "GmatFunction Plugin" ON)
 OPTION(PLUGIN_MATLABINTERFACE "MatlabInterface Plugin" ON)
 OPTION(PLUGIN_MSISE00ATMOSPHERE "MSISE00 Atmosphere Plugin" ON)
+OPTION(PLUGIN_MSISE86ATMOSPHERE "Exact NASA MSIS-86 Atmosphere Plugin (GNU Fortran)" OFF)
 OPTION(PLUGIN_NEWPARAMETERS "NewParameter Plugin" ON)
 OPTION(PLUGIN_OVTOOFI "OVtoOFI Plugin" ON)
 OPTION(PLUGIN_POLYHEDRONGRAVITY "PolyhedronGravity Plugin" ON)
@@ -275,6 +276,15 @@ endif()
 # MatlabInterface Plugin
 if (PLUGIN_MATLABINTERFACE)
   SET(PLUGINDIR "MatlabInterfacePlugin/src/base")
+  ADD_SUBDIRECTORY(${PLUGINDIR})
+  GET_DIRECTORY_PROPERTY(tmp DIRECTORY ${PLUGINDIR} DEFINITION TargetName)
+  SET(PluginTargets ${PluginTargets} ${tmp})
+endif()
+
+# ====================================================================
+# Msise86 Plugin
+if (PLUGIN_MSISE86ATMOSPHERE)
+  SET(PLUGINDIR "Msise86Plugin/src/base")
   ADD_SUBDIRECTORY(${PLUGINDIR})
   GET_DIRECTORY_PROPERTY(tmp DIRECTORY ${PLUGINDIR} DEFINITION TargetName)
   SET(PluginTargets ${PluginTargets} ${tmp})

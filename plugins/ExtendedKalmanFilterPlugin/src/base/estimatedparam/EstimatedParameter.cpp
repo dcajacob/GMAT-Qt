@@ -756,3 +756,14 @@ Integer EstimatedParameter::GetOwnedObjectId(Integer id, UnsignedInt objType) co
    
    return actualId;
 }
+
+// Whole-object script assignment and GmatFunction outputs use this virtual API.
+// Retain the existing class assignment logic and the destination's identity.
+void EstimatedParameter::Copy(const GmatBase* source)
+{
+   const auto* typed = dynamic_cast<const EstimatedParameter*>(source);
+   if (!typed || typed->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Cannot copy into " + GetTypeName() +
+                             " from a null or incompatible object");
+   operator=(*typed);
+}

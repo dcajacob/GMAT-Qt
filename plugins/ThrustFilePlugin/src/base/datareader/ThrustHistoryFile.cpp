@@ -29,6 +29,8 @@
 
 
 #include "ThrustHistoryFile.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "ThfDataSegment.hpp"
 #include "InterfaceException.hpp"
 #include "TextParser.hpp"
@@ -1540,4 +1542,16 @@ bool ThrustHistoryFile::SetPrecisionTimeFlag(bool onOff)
    theForce.SetPrecisionTimeFlag(onOff);
 
    return hasPrecisionTime;
+}
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void ThrustHistoryFile::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const ThrustHistoryFile*>(original);
+   if (!source || typeid(*source) != typeid(ThrustHistoryFile) ||
+       typeid(*this) != typeid(ThrustHistoryFile))
+      throw GmatBaseException("Cannot copy incompatible object into ThrustHistoryFile");
+   if (source == this)
+      return;
+   operator=(*source);
 }

@@ -1,0 +1,1268 @@
+{
+  "id": "16-leo-station-keeping",
+  "title": "LEO Station Keeping",
+  "guide": "doc/help/src/Tut_LEOStationKeeping.xml",
+  "guide_sha256": "d5e18391a46234fb700d6a1a1c125c693bbe411bf6cb6877b0a265ef027b06fc",
+  "reference": "application/samples/Ex_LEOStationKeeping.script",
+  "provenance": "Reviewed current Help instructions, using semantic QtTest widget selectors. Values come from the Help chapter; the generator never reads a completed example mission. Literal code is entered only where the chapter explicitly teaches it.",
+  "stages": [
+    {
+      "name": "Current Help GUI instructions with QtTest selectors",
+      "input": null,
+      "requires_run": true,
+      "actions": [
+        {
+          "action": "key",
+          "keys": "Esc"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+N"
+        },
+        {
+          "action": "window",
+          "state": "maximized"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultSC",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "LEOsat",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "LEOsat",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DateFormat",
+          "value": "UTCGregorian"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "text",
+          "text": "01 Jan 2000 11:59:28.000",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "click",
+          "field_hint": "X",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "-4083.9"
+        },
+        {
+          "action": "click",
+          "field_hint": "Y",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "4691.8"
+        },
+        {
+          "action": "click",
+          "field_hint": "Z",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "-2576.7"
+        },
+        {
+          "action": "click",
+          "field_hint": "VX",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "-4.252"
+        },
+        {
+          "action": "click",
+          "field_hint": "VY",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "-5.509"
+        },
+        {
+          "action": "click",
+          "field_hint": "VZ",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "-3.284"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultProp",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "LEOprop",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "LEOprop_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "text",
+          "text": "Luna, Sun",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_SRP",
+          "value": "On"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_text": "Gravity field",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_name": "forceAtmosphere"
+        },
+        {
+          "action": "select",
+          "target_name": "atmosphere_AtmosphereModel",
+          "value": "JacchiaRoberts"
+        },
+        {
+          "action": "select",
+          "target_name": "atmosphere_HistoricWeatherSource",
+          "value": "ConstantFluxAndGeoMag"
+        },
+        {
+          "action": "select",
+          "target_name": "atmosphere_PredictedWeatherSource",
+          "value": "ConstantFluxAndGeoMag"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "atmosphere_F107"
+        },
+        {
+          "action": "text",
+          "text": "150",
+          "target_name": "atmosphere_F107"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "atmosphere_F107A"
+        },
+        {
+          "action": "text",
+          "text": "150",
+          "target_name": "atmosphere_F107A"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "atmosphere_MagneticIndex"
+        },
+        {
+          "action": "text",
+          "text": "3",
+          "target_name": "atmosphere_MagneticIndex"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Solvers",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add DifferentialCorrector",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Burns",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ImpulsiveBurn",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "TCM1",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Burns",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ImpulsiveBurn",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "TCM2",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add XYPlot",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "XYPlot1",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "XYPlot1",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "xyXVariable"
+        },
+        {
+          "action": "text",
+          "text": "LEOsat.A1ModJulian",
+          "target_name": "xyXVariable"
+        },
+        {
+          "action": "click",
+          "target_name": "xySelectY"
+        },
+        {
+          "action": "click",
+          "target_name": "reportParameterRemoveAll"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "reportParameterEntry"
+        },
+        {
+          "action": "text",
+          "text": "LEOsat.Earth.Altitude",
+          "target_name": "reportParameterEntry"
+        },
+        {
+          "action": "click",
+          "target_name": "reportAddParameter"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagate",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Delete command",
+          "target_role": "menu"
+        },
+        {
+          "action": "click",
+          "target_text": "Yes",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "While"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "While1",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Condition"
+        },
+        {
+          "action": "text",
+          "text": "LEOsat.ElapsedDays < 10",
+          "target_name": "commandField_Condition"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "While \u2014 While1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Prop One Step",
+          "target_name": "commandName"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "LEOprop"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "LEOsat"
+        },
+        {
+          "action": "check",
+          "target_name": "propagationSingleStep",
+          "checked": true
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+S"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial16-part1.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-uncontrolled-ten-day-run"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "While \u2014 While1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "If"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "If1",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Condition"
+        },
+        {
+          "action": "text",
+          "text": "LEOsat.Earth.Altitude < 342",
+          "target_name": "commandField_Condition"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Else",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Insert before",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Prop To Periapsis",
+          "target_name": "commandName"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "LEOprop"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "LEOsat"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "text",
+          "text": "LEOsat.Earth.Periapsis",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Else",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Insert before",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Target"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Target1",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "select",
+          "target_name": "commandChoice_ExitMode",
+          "value": "DiscardAndContinue"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "TCM1.Element1",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "0.002",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "text",
+          "text": "0.0001",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "text",
+          "text": "-9.999999e300",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "text",
+          "text": "9.999999e300",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "0.05",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Maneuver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "text",
+          "text": "TCM1",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "text",
+          "text": "LEOsat",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "LEOprop"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "LEOsat"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "text",
+          "text": "LEOsat.Earth.Apoapsis",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "text",
+          "text": "LEOsat.Earth.RMAG",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "6737",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "text",
+          "text": "0.1",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "TCM2.Element1",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "1e-5",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "text",
+          "text": "0.00005",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "text",
+          "text": "-9.999999e300",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "text",
+          "text": "9.999999e300",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "0.05",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Maneuver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "text",
+          "text": "TCM2",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "text",
+          "text": "LEOsat",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "text",
+          "text": "LEOsat.Earth.ECC",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "0.00005",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "text",
+          "text": "0.0001",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+Shift+S"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial16-controlled.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-controlled-ten-day-run"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+O"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial16-controlled.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "screenshot",
+          "label": "own-saved-mission-reopened"
+        }
+      ]
+    }
+  ]
+}

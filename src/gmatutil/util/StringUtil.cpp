@@ -6547,10 +6547,12 @@ bool GmatStringUtil::IsValidFileName(const std::string &str)
    if (str == "")
       return false;
 
-   // It contains any character with ASCII fro 32 to 127 except /\|*":<>?
+   // Keep reserved separators and ASCII controls out of a basename, while
+   // retaining non-ASCII bytes (including UTF-8 from the GUI) unchanged.
    for (UnsignedInt i = 0; i < str.size(); i++)
    {
-      if ((str[i] < 32) || (str[i] > 126) || 
+      const unsigned char byte = static_cast<unsigned char>(str[i]);
+      if ((byte < 32) || (byte == 127) ||
          (str[i] == '\\') || (str[i] == '/') || (str[i] == '|') || (str[i] == '*') ||
          (str[i] == '"') || (str[i] == ':') || (str[i] == '<') || (str[i] == '>') || 
          (str[i] == '?'))
@@ -6602,7 +6604,7 @@ bool GmatStringUtil::IsValidFullFileName(const std::string &str, Integer &error)
          return false;
       }
 
-      if ((driver.size() == 1) && (!isalpha(driver[0])))
+      if ((driver.size() == 1) && (!isalpha(static_cast<unsigned char>(driver[0]))))
       {
          error = 3;
          return false;
@@ -6647,10 +6649,12 @@ bool GmatStringUtil::IsValidFullFileName(const std::string &str, Integer &error)
       return false;
    }
 
-   // Verify path. It contains any character with ASCII fro 32 to 127 except |*":<>?
+   // Apply the same reserved-character/control checks to the path without
+   // rejecting the bytes of a Unicode directory name.
    for (UnsignedInt i = 0; i < path.size(); i++)
    {
-      if ((path[i] < 32) || (path[i] > 126) ||
+      const unsigned char byte = static_cast<unsigned char>(path[i]);
+      if ((byte < 32) || (byte == 127) ||
          (path[i] == '|') || (path[i] == '*') ||
          (path[i] == '"') || (path[i] == ':') || (path[i] == '<') || (path[i] == '>') ||
          (path[i] == '?'))

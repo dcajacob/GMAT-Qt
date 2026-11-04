@@ -249,14 +249,27 @@ std::string ObjectPropertyWrapper::ToString()
    case Gmat::OBJECTARRAY_TYPE:
    {
       StringArray hardwareInfo = object->GetStringArrayParameter(propID);
+      bool attachedObject = false;
       for (Integer i = 0; i < hardwareInfo.size(); i++)
       {
          if (propIDNames[0] == hardwareInfo[i])
          {
+            attachedObject = true;
             Integer hardwareNum = i;
             retval = object->GetRefObject(Gmat::HARDWARE, hardwareInfo.at(hardwareNum))->GetGeneratingString(Gmat::MATLAB_STRUCT);
             break;
          }
+      }
+      if (!attachedObject)
+      {
+         retval = "{";
+         for (UnsignedInt i = 0; i < hardwareInfo.size(); ++i)
+         {
+            if (i > 0)
+               retval += ", ";
+            retval += hardwareInfo[i];
+         }
+         retval += "}";
       }
       break;
    }

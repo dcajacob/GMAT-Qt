@@ -15,14 +15,19 @@
 #include "BallisticsMassDialog.hpp"
 #include "AttitudeDialog.hpp"
 #include "VisualModelDialog.hpp"
+#include "CelestialBodyPanel.hpp"
+#include "CelestialBody.hpp"
 #include "ResourceProperties.hpp"
 #include "ScriptCompatibility.hpp"
 #include "GmatBase.hpp"
+#include "Spacecraft.hpp"
 #include <QDialogButtonBox>
+#include <QDialog>
 #include <QPushButton>
 #include <QLabel>
 #include <QTabWidget>
 #include <QVBoxLayout>
+#include <QScrollArea>
 #include <QKeyEvent>
 #include <memory>
 
@@ -32,7 +37,9 @@ ResourceForm::ResourceForm(GmatBase &object,QWidget *parent,const QString &scrip
    auto *layout=new QVBoxLayout(this); layout->setContentsMargins(0,0,0,0);
    tabs=new QTabWidget(this); tabs->setObjectName("resourceFormTabs"); layout->addWidget(tabs);
    const auto type=object.GetTypeName();
-   if (object.IsOfType("EphemerisFile")) {
+   if (auto *body=dynamic_cast<CelestialBody *>(&object)) {
+      auto *form=new CelestialBodyPanel(*body,{},this); add("Body",form,[form] { return form->settings(); });
+   } else if (object.IsOfType("EphemerisFile")) {
       auto *form=new EphemerisDialog(object,{},this); add("Output",form,[form] { return form->settings(); });
    } else if (object.IsOfType("Thruster")) {
       auto *form=new ThrusterDialog(object,{},this); add("Direction and performance",form,[form] { return form->settings(); });
@@ -61,35 +68,47 @@ ResourceForm::ResourceForm(GmatBase &object,QWidget *parent,const QString &scrip
    } else if (object.IsOfType("Spacecraft")) {
       QMap<QString,QString> values; QMap<QString,QStringList> choices;
       for (const auto &field:resourceProperties(object)) { values[field.name]=field.value; choices[field.name]=field.choices; }
-      auto *mass=new BallisticsMassDialog(values,choices,this); add("Ballistics and mass",mass,[mass] { return mass->values(); });
+      auto *mass=new BallisticsMassDialog(values,choices,this); add("Ballistics and mass",mass,[mass] { return mass->values(); },true);
       auto *attitude=new AttitudeDialog(object,{},this); add("Attitude",attitude,[attitude] { return attitude->pendingValues(); });
-      auto snapshot=qtResourcePreviewShared(object.Clone());
       QMap<QString,QString> modelValues;
       for (auto it=values.cbegin();it!=values.cend();++it) if (it.key().startsWith("Model") || it.key()=="OrbitColor" || it.key()=="TargetColor") modelValues.insert(it.key(),it.value());
-      auto *model=new VisualModelDialog(modelValues,[snapshot](const QMap<QString,QString> &pending) {
-         QtResourcePreview preview(snapshot->Clone());
+      auto *model=new VisualModelDialog(modelValues,[](const QMap<QString,QString> &pending) {
+         // Model validation uses only model/colour fields. A configured-spacecraft
+         // clone retains borrowed coordinate references that a rebuild can retire.
+         QtResourcePreview preview(new Spacecraft("QtVisualValidation"));
          for (auto it=pending.cbegin();it!=pending.cend();++it) setResourceProperty(*preview,it.key(),it.value());
          auto normalized=pending;
+         for (auto it=pending.cbegin();it!=pending.cend();++it)
+            if (it.key().startsWith("ModelRotation") || it.key().startsWith("ModelOffset") || it.key()=="ModelScale")
+               normalized[it.key()]=QString::number(preview->GetRealParameter(it.key().toStdString()),'g',17);
          normalized["@ResolvedModelFile"]=pending.value("ModelFile").isEmpty() ? QString() : QString::fromStdString(preview->GetStringParameter("ModelFileFullPath"));
          return normalized;
       },this);
-      add("Visual model",model,[model] { return model->settings(); });
+      add("Visual model",model,[model] { return model->settings(); },true);
    }
    if (readers.size()==1) {
       auto *page=tabs->widget(0); tabs->removeTab(0); layout->removeWidget(tabs); tabs->hide();
       layout->addWidget(page); page->show();
    }
 }
-void ResourceForm::add(const QString &label,QDialog *dialog,std::function<QMap<QString,QString>()> read)
+void ResourceForm::add(const QString &label,QWidget *dialog,std::function<QMap<QString,QString>()> read,bool scrollable)
 {
-   dialog->setWindowFlags(Qt::Widget); dialog->setModal(false); dialog->installEventFilter(this);
+   dialog->setWindowFlags(Qt::Widget);
+   if (auto *modal=qobject_cast<QDialog *>(dialog)) modal->setModal(false);
+   dialog->installEventFilter(this);
    for (auto *buttons:dialog->findChildren<QDialogButtonBox *>(QString(),Qt::FindDirectChildrenOnly)) {
       buttons->hide();
       for (auto *button:buttons->findChildren<QPushButton *>()) { button->setDefault(false); button->setAutoDefault(false); }
    }
    for (auto *help:dialog->findChildren<QLabel *>(QString(),Qt::FindDirectChildrenOnly))
       if (help->text().contains("OK")) help->setText("Edit settings here. Apply commits them; Close lets you discard pending changes.");
-   tabs->addTab(dialog,label); originals.append(read()); readers.append(std::move(read));
+   QWidget *page=dialog;
+   if (scrollable) {
+      auto *scroll=new QScrollArea(this); scroll->setObjectName("resourceFormScroll");
+      scroll->setWidgetResizable(true); scroll->setFrameShape(QFrame::NoFrame);
+      scroll->setWidget(dialog); page=scroll;
+   }
+   tabs->addTab(page,label); originals.append(read()); readers.append(std::move(read));
 }
 QMap<QString,QString> ResourceForm::values() const
 {

@@ -1,0 +1,15 @@
+"""Run uncovered owned type/scoping cases with fresh bounded source review."""
+import argparse,hashlib,json,subprocess,sys,uuid
+from pathlib import Path
+import NasaGuiCoverage as nasa
+def main():
+    repo=Path(__file__).resolve().parents[3];p=argparse.ArgumentParser(description=__doc__);p.add_argument('--visible',action='store_true');p.add_argument('--filter');p.add_argument('--output',type=Path);p.add_argument('--list',action='store_true');a=p.parse_args();selection=a.filter or'^QtGui.NasaFunctionOwnedType'
+    if a.list:return subprocess.call(['ctest','--test-dir','build/linux-gui','-N','-R',selection],cwd=repo)
+    catalog=repo/'src/qtgui/tests/NasaFunctionOwnedTypeCases.json';data=json.loads(catalog.read_text());assert data['factory_rows']==566 and len(data['cases'])==32
+    identity=uuid.uuid4().hex[:12];directory=repo/'build/gui-acceptance';directory.mkdir(exist_ok=True);review=directory/('function-owned-types-'+identity+'-review.json');refs={str(f.relative_to(repo))for root in ['src/base','src/gmatutil','plugins']for f in(repo/root).rglob('*')if f.is_file()and f.suffix in {'.cpp','.hpp','.h','.c','.inc'}}
+    refs.update(['src/qtgui/CMakeLists.txt','src/qtgui/tests/NasaFunctionOwnedTypeTests.cpp','src/qtgui/tests/NasaFunctionOwnedTypeCases.json','src/qtgui/tests/PrepareFunctionEphemerisClock.py','src/qtgui/tests/NasaFunctionEphemerisClockFromSpacecraftCases.json','src/qtgui/tests/NasaFunctionEphemerisClockEphemStartCases.json','src/qtgui/tests/NasaFunctionEphemerisClockScriptStartCases.json','src/qtgui/tests/NasaFunctionEphemerisClockRealScriptStartCases.json','src/qtgui/tests/NasaFunctionEphemerisClockFractionLittleCases.json','src/qtgui/tests/NasaFunctionEphemerisClockFractionBigCases.json','src/qtgui/tests/PrepareFunctionOwnedTypes.py','src/qtgui/tests/FunctionScopeUi.hpp','src/qtgui/tests/FunctionOwnedInputFixtures.hpp','src/qtgui/tests/Code500EpochInterpolationTests.cpp','src/qtgui/tests/TextEphemerisEpochTests.cpp','src/qtgui/tests/AuditTextEphemerisEpoch.py','src/qtgui/tests/RunTextEphemerisEpoch.py','src/qtgui/tests/AuditCode500EpochInterpolation.py','application/data/time/tai-utc.dat','plugins/TLEPropagatorPlugin/test/TLE/TleTestElements.txt',data['baseline']])
+    review.write_text(json.dumps(dict(sources=nasa.inventory(repo)['sources'],reviews=[],reference_sources={name:hashlib.sha256((repo/name).read_bytes()).hexdigest()for name in sorted(refs)},scope='All32 uncovered owned implementation/type routes in preparation;zero exact-row qualification.'),indent=2)+'\n')
+    command=[sys.executable,'src/qtgui/tests/RunAcceptance.py','--filter',selection,'--nasa-review',str(review.relative_to(repo)),'--max-screenshots','0','--max-checkpoints','500','--pause-ms','0','--output',str(a.output or directory/('function-owned-types-'+identity))]
+    if a.visible:command+=['--visible','--display-route','nested','--display-scale','auto','--start-minimized']
+    return subprocess.call(command,cwd=repo)
+if __name__=='__main__':raise SystemExit(main())

@@ -59,6 +59,7 @@ Interpolator::Interpolator(const std::string &name, const std::string &typestr,
    latestPoint        (-1),
    rangeCalculated    (false),
    dataIncreases      (true),
+   inputDirection     (0),
    forceInterpolation (true),
    allowExtrapolation (false),
    resetToBaseOrder   (true),
@@ -92,6 +93,8 @@ Interpolator::~Interpolator()
 //------------------------------------------------------------------------------
 Interpolator::Interpolator(const Interpolator &i) :
 //   GmatBase           (i),
+   independent        (NULL),
+   dependent          (NULL),
    previousX          (i.previousX),
    dimension          (i.dimension),
    requiredPoints     (i.requiredPoints),
@@ -100,6 +103,7 @@ Interpolator::Interpolator(const Interpolator &i) :
    latestPoint        (i.latestPoint),
    rangeCalculated    (i.rangeCalculated),
    dataIncreases      (i.dataIncreases),
+   inputDirection     (i.inputDirection),
    forceInterpolation (i.forceInterpolation),
    allowExtrapolation (i.allowExtrapolation),
    resetToBaseOrder   (i.resetToBaseOrder),
@@ -149,6 +153,7 @@ Interpolator& Interpolator::operator=(const Interpolator &i)
    bufferSize     = i.bufferSize;
    pointCount     = i.pointCount;
    latestPoint    = i.latestPoint;
+   previousX      = i.previousX;
    
    // Copy over the memory from i
    if (i.independent)
@@ -162,6 +167,7 @@ Interpolator& Interpolator::operator=(const Interpolator &i)
    }
    
    dataIncreases      = i.dataIncreases;
+   inputDirection     = i.inputDirection;
    forceInterpolation = i.forceInterpolation;
    allowExtrapolation = i.allowExtrapolation;
    resetToBaseOrder   = i.resetToBaseOrder;
@@ -197,7 +203,24 @@ Interpolator& Interpolator::operator=(const Interpolator &i)
 bool Interpolator::AddPoint(const Real ind, const Real *data)
 {
    Integer i;
-   
+
+   // Accept either time direction, but keep it until Clear. Reject before
+   // changing the buffer so an invalid point cannot contaminate interpolation.
+   Integer direction = 0;
+   if (pointCount > 0)
+   {
+      const Real last = independent[latestPoint];
+      direction = (ind > last ? 1 : (ind < last ? -1 : 0));
+      if (direction != 0 && inputDirection != 0 && direction != inputDirection)
+      {
+         InterpolatorException error;
+         error.SetDetails("The independent data provided to interpolator '%s' "
+            "is not monotonic: current data is %.16g, previous data is %.16g",
+            instanceName.c_str(), ind, last);
+         throw error;
+      }
+   }
+
    if (!independent)
       AllocateArrays();
    
@@ -205,6 +228,8 @@ bool Interpolator::AddPoint(const Real ind, const Real *data)
    if (latestPoint == bufferSize-1)
       latestPoint = -1;
    
+   if (direction != 0)
+      inputDirection = direction;
    dataIncreases = (ind > previousX ? true : false);
    previousX = ind;
    
@@ -309,6 +334,7 @@ void Interpolator::Clear()
 {
    latestPoint = -1;
    pointCount = 0;
+   inputDirection = 0;
    previousX = -9.9999e65;
    resetToBaseOrder = true;
 }
@@ -447,6 +473,9 @@ void Interpolator::CopyArrays(const Interpolator &i)
    memcpy(independent, i.independent, bufferSize*sizeof(Real));
    for (j = 0; j < bufferSize; ++j)
       memcpy(dependent[j], i.dependent[j], dimension*sizeof(Real));
+   // Allocation clears the counters; the copied buffer retains their values.
+   pointCount = i.pointCount;
+   latestPoint = i.latestPoint;
 }
 
 

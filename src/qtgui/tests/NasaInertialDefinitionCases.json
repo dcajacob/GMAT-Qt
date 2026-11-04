@@ -1,0 +1,8844 @@
+{
+  "scope": "Missing FRR!E5 conic definition witnesses. All seven declared inertial axis types and fifteen default/user body entries are conjoined with retained EarthMJ2000Eq definitions and existing transaction/eligible-domain evidence. No whole-row credit from this fixture alone or all14-representation conversion claim.",
+  "position_tolerance_km": 1e-06,
+  "velocity_tolerance_km_s": 1e-09,
+  "physical_inputs": {
+    "application/data/planetary_ephem/spk/ceres_1900_2100.bsp": "17e73febbf23ad34dd108793c19d90e5d6142080af642a26f3282e90be91eeec"
+  },
+  "body_inventory": [
+    {
+      "key": "Sun",
+      "body": "Sun",
+      "type": "Star",
+      "user": false,
+      "mu_km3_s2": 132712440017.99,
+      "radius_km": 3000000
+    },
+    {
+      "key": "Mercury",
+      "body": "Mercury",
+      "type": "Planet",
+      "user": false,
+      "mu_km3_s2": 22032.080486418,
+      "radius_km": 8000
+    },
+    {
+      "key": "Venus",
+      "body": "Venus",
+      "type": "Planet",
+      "user": false,
+      "mu_km3_s2": 324858.59882646,
+      "radius_km": 15000
+    },
+    {
+      "key": "Mars",
+      "body": "Mars",
+      "type": "Planet",
+      "user": false,
+      "mu_km3_s2": 42828.314258067,
+      "radius_km": 10000
+    },
+    {
+      "key": "Jupiter",
+      "body": "Jupiter",
+      "type": "Planet",
+      "user": false,
+      "mu_km3_s2": 126712767.8578,
+      "radius_km": 300000
+    },
+    {
+      "key": "Saturn",
+      "body": "Saturn",
+      "type": "Planet",
+      "user": false,
+      "mu_km3_s2": 37940626.061137,
+      "radius_km": 250000
+    },
+    {
+      "key": "Uranus",
+      "body": "Uranus",
+      "type": "Planet",
+      "user": false,
+      "mu_km3_s2": 5794549.0070719,
+      "radius_km": 100000
+    },
+    {
+      "key": "Neptune",
+      "body": "Neptune",
+      "type": "Planet",
+      "user": false,
+      "mu_km3_s2": 6836534.0638793,
+      "radius_km": 100000
+    },
+    {
+      "key": "Pluto",
+      "body": "Pluto",
+      "type": "Planet",
+      "user": false,
+      "mu_km3_s2": 981.600887707,
+      "radius_km": 5000
+    },
+    {
+      "key": "UserMoon",
+      "body": "OrbitMoon",
+      "type": "Moon",
+      "user": true,
+      "mu_km3_s2": 63.0,
+      "radius_km": 1000.0
+    },
+    {
+      "key": "UserComet",
+      "body": "OrbitComet",
+      "type": "Comet",
+      "user": true,
+      "mu_km3_s2": 74.0,
+      "radius_km": 1100.0
+    },
+    {
+      "key": "UserPlanet",
+      "body": "OrbitPlanet",
+      "type": "Planet",
+      "user": true,
+      "mu_km3_s2": 85.0,
+      "radius_km": 1200.0
+    },
+    {
+      "key": "Earth",
+      "body": "Earth",
+      "type": "Planet",
+      "user": false,
+      "mu_km3_s2": 398600.4415,
+      "radius_km": 7000
+    },
+    {
+      "key": "Luna",
+      "body": "Luna",
+      "type": "Moon",
+      "user": false,
+      "mu_km3_s2": 4902.8005821478,
+      "radius_km": 3000
+    },
+    {
+      "key": "UserAsteroid",
+      "body": "OrbitAsteroid",
+      "type": "Asteroid",
+      "user": true,
+      "mu_km3_s2": 51.0,
+      "radius_km": 1200.0
+    }
+  ],
+  "cases": [
+    {
+      "key": "BodySun_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Sun",
+        "body": "Sun",
+        "type": "Star",
+        "user": false,
+        "mu_km3_s2": 132712440017.99,
+        "radius_km": 3000000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        6000000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -3422383.254663022,
+        2490497.0883302446,
+        2548732.4780279,
+        -135.53304844045624,
+        -105.3981734041516,
+        -46.09244923823507
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            6000000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            6000000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -3422383.254663022,
+            2490497.0883302446,
+            2548732.4780279,
+            -135.53304844045624,
+            -105.3981734041516,
+            -46.09244923823507
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -10200000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -10200000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            3517364.9619052117,
+            -2999235.8544703447,
+            -71889.13468074081,
+            -149.8715956169951,
+            -19.34204153037213,
+            -218.1490016833583
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            7800000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            7800000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -4694157.180585977,
+            -6229356.978368884,
+            -0.0,
+            104.17347036300792,
+            -78.50034050530802,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodySun_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Sun",
+        "body": "Sun",
+        "type": "Star",
+        "user": false,
+        "mu_km3_s2": 132712440017.99,
+        "radius_km": 3000000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        6000000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -3422383.254663022,
+        2490497.0883302446,
+        2548732.4780279,
+        -135.53304844045624,
+        -105.3981734041516,
+        -46.09244923823507
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            6000000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            4800000.0,
+            7200000.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -3422383.254663022,
+            2490497.0883302446,
+            2548732.4780279,
+            -135.53304844045624,
+            -105.3981734041516,
+            -46.09244923823507
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -10200000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            4079999.999999999,
+            -24480000.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            3517364.9619052117,
+            -2999235.8544703447,
+            -71889.13468074081,
+            -149.8715956169951,
+            -19.34204153037213,
+            -218.1490016833583
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            7800000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            7800000.0,
+            7800000.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -4694157.180585977,
+            -6229356.978368884,
+            -0.0,
+            104.17347036300792,
+            -78.50034050530802,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodySun_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Sun",
+        "body": "Sun",
+        "type": "Star",
+        "user": false,
+        "mu_km3_s2": 132712440017.99,
+        "radius_km": 3000000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        6000000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -3422383.254663022,
+        2490497.0883302446,
+        2548732.4780279,
+        -135.53304844045624,
+        -105.3981734041516,
+        -46.09244923823507
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            6000000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            6000000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -3422383.254663022,
+            2490497.0883302446,
+            2548732.4780279,
+            -135.53304844045624,
+            -105.3981734041516,
+            -46.09244923823507
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            10200000.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            10200000.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            1794826.9911837305,
+            4732984.70612629,
+            9380040.17208818,
+            49.69931556349208,
+            -79.10949599777535,
+            -56.23916446442007
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            7800000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            7800000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -4694157.180585977,
+            -6229356.978368884,
+            -0.0,
+            104.17347036300792,
+            -78.50034050530802,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyMercury_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Mercury",
+        "body": "Mercury",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 22032.080486418,
+        "radius_km": 8000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        16000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -9126.355345768057,
+        6641.325568880652,
+        6796.619941407734,
+        -1.0693817747623655,
+        -0.8316118247805847,
+        -0.3636782743153809
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            16000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            16000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -9126.355345768057,
+            6641.325568880652,
+            6796.619941407734,
+            -1.0693817747623655,
+            -0.8316118247805847,
+            -0.3636782743153809
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -27200.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -27200.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            9379.639898413896,
+            -7997.962278587584,
+            -191.70435914864214,
+            -1.182515665009787,
+            -0.1526124213782725,
+            -1.721237508247126
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            20800.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            20800.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -12517.752481562604,
+            -16611.618608983692,
+            -0.0,
+            0.8219486826409723,
+            -0.6193827587807609,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyMercury_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Mercury",
+        "body": "Mercury",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 22032.080486418,
+        "radius_km": 8000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        16000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -9126.355345768057,
+        6641.325568880652,
+        6796.619941407734,
+        -1.0693817747623655,
+        -0.8316118247805847,
+        -0.3636782743153809
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            16000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            12800.0,
+            19200.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -9126.355345768057,
+            6641.325568880652,
+            6796.619941407734,
+            -1.0693817747623655,
+            -0.8316118247805847,
+            -0.3636782743153809
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -27200.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            10879.999999999998,
+            -65280.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            9379.639898413896,
+            -7997.962278587584,
+            -191.70435914864214,
+            -1.182515665009787,
+            -0.1526124213782725,
+            -1.721237508247126
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            20800.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            20800.0,
+            20800.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -12517.752481562604,
+            -16611.618608983692,
+            -0.0,
+            0.8219486826409723,
+            -0.6193827587807609,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyMercury_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Mercury",
+        "body": "Mercury",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 22032.080486418,
+        "radius_km": 8000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        16000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -9126.355345768057,
+        6641.325568880652,
+        6796.619941407734,
+        -1.0693817747623655,
+        -0.8316118247805847,
+        -0.3636782743153809
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            16000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            16000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -9126.355345768057,
+            6641.325568880652,
+            6796.619941407734,
+            -1.0693817747623655,
+            -0.8316118247805847,
+            -0.3636782743153809
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            27200.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            27200.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            4786.205309823282,
+            12621.292549670108,
+            25013.440458901816,
+            0.3921371421458975,
+            -0.6241891125751798,
+            -0.443737805635914
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            20800.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            20800.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -12517.752481562604,
+            -16611.618608983692,
+            -0.0,
+            0.8219486826409723,
+            -0.6193827587807609,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyVenus_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Venus",
+        "body": "Venus",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 324858.59882646,
+        "radius_km": 15000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        30000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -17111.91627331511,
+        12452.485441651224,
+        12743.662390139501,
+        -2.9988280944825174,
+        -2.3320585432738157,
+        -1.0198496478137897
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            30000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            30000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -17111.91627331511,
+            12452.485441651224,
+            12743.662390139501,
+            -2.9988280944825174,
+            -2.3320585432738157,
+            -1.0198496478137897
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -51000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -51000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            17586.824809526053,
+            -14996.17927235172,
+            -359.445673403704,
+            -3.316085314045157,
+            -0.427965416651941,
+            -4.826803222970188
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            39000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            39000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -23470.78590292988,
+            -31146.78489184442,
+            -0.0,
+            2.3049605481394897,
+            -1.736912356377669,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyVenus_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Venus",
+        "body": "Venus",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 324858.59882646,
+        "radius_km": 15000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        30000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -17111.91627331511,
+        12452.485441651224,
+        12743.662390139501,
+        -2.9988280944825174,
+        -2.3320585432738157,
+        -1.0198496478137897
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            30000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            24000.0,
+            36000.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -17111.91627331511,
+            12452.485441651224,
+            12743.662390139501,
+            -2.9988280944825174,
+            -2.3320585432738157,
+            -1.0198496478137897
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -51000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            20399.999999999996,
+            -122400.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            17586.824809526053,
+            -14996.17927235172,
+            -359.445673403704,
+            -3.316085314045157,
+            -0.427965416651941,
+            -4.826803222970188
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            39000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            39000.0,
+            39000.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -23470.78590292988,
+            -31146.78489184442,
+            -0.0,
+            2.3049605481394897,
+            -1.736912356377669,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyVenus_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Venus",
+        "body": "Venus",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 324858.59882646,
+        "radius_km": 15000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        30000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -17111.91627331511,
+        12452.485441651224,
+        12743.662390139501,
+        -2.9988280944825174,
+        -2.3320585432738157,
+        -1.0198496478137897
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            30000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            30000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -17111.91627331511,
+            12452.485441651224,
+            12743.662390139501,
+            -2.9988280944825174,
+            -2.3320585432738157,
+            -1.0198496478137897
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            51000.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            51000.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            8974.134955918653,
+            23664.92353063145,
+            46900.200860440906,
+            1.0996558072242424,
+            -1.7503906380642342,
+            -1.2443576555442082
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            39000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            39000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -23470.78590292988,
+            -31146.78489184442,
+            -0.0,
+            2.3049605481394897,
+            -1.736912356377669,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyMars_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Mars",
+        "body": "Mars",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 42828.314258067,
+        "radius_km": 10000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        20000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -11407.944182210073,
+        8301.656961100816,
+        8495.774926759668,
+        -1.3335690490908823,
+        -1.0370588096396338,
+        -0.45352380403298764
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            20000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            20000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -11407.944182210073,
+            8301.656961100816,
+            8495.774926759668,
+            -1.3335690490908823,
+            -1.0370588096396338,
+            -0.45352380403298764
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -34000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -34000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            11724.549873017371,
+            -9997.452848234481,
+            -239.6304489358027,
+            -1.4746522973730332,
+            -0.1903148215725906,
+            -2.146463612251811
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            26000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            26000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -15647.190601953254,
+            -20764.523261229613,
+            -0.0,
+            1.0250084197990021,
+            -0.7723992461290032,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyMars_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Mars",
+        "body": "Mars",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 42828.314258067,
+        "radius_km": 10000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        20000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -11407.944182210073,
+        8301.656961100816,
+        8495.774926759668,
+        -1.3335690490908823,
+        -1.0370588096396338,
+        -0.45352380403298764
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            20000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            16000.0,
+            24000.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -11407.944182210073,
+            8301.656961100816,
+            8495.774926759668,
+            -1.3335690490908823,
+            -1.0370588096396338,
+            -0.45352380403298764
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -34000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            13599.999999999996,
+            -81600.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            11724.549873017371,
+            -9997.452848234481,
+            -239.6304489358027,
+            -1.4746522973730332,
+            -0.1903148215725906,
+            -2.146463612251811
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            26000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            26000.0,
+            26000.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -15647.190601953254,
+            -20764.523261229613,
+            -0.0,
+            1.0250084197990021,
+            -0.7723992461290032,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyMars_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Mars",
+        "body": "Mars",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 42828.314258067,
+        "radius_km": 10000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        20000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -11407.944182210073,
+        8301.656961100816,
+        8495.774926759668,
+        -1.3335690490908823,
+        -1.0370588096396338,
+        -0.45352380403298764
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            20000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            20000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -11407.944182210073,
+            8301.656961100816,
+            8495.774926759668,
+            -1.3335690490908823,
+            -1.0370588096396338,
+            -0.45352380403298764
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            34000.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            34000.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            5982.7566372791025,
+            15776.615687087635,
+            31266.80057362727,
+            0.4890133422003823,
+            -0.7783929939284194,
+            -0.5533617810524762
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            26000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            26000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -15647.190601953254,
+            -20764.523261229613,
+            -0.0,
+            1.0250084197990021,
+            -0.7723992461290032,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyJupiter_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Jupiter",
+        "body": "Jupiter",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 126712767.8578,
+        "radius_km": 300000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        600000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -342238.32546630217,
+        249049.7088330245,
+        254873.24780279002,
+        -13.24340249652064,
+        -10.298819725895024,
+        -4.503852487170828
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            600000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            600000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -342238.32546630217,
+            249049.7088330245,
+            254873.24780279002,
+            -13.24340249652064,
+            -10.298819725895024,
+            -4.503852487170828
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -1020000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -1020000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            351736.4961905211,
+            -299923.58544703445,
+            -7188.913468074081,
+            -14.644471487879441,
+            -1.8899777142080034,
+            -21.316092766673897
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            780000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            780000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -469415.71805859765,
+            -622935.6978368884,
+            -0.0,
+            10.179149759792962,
+            -7.67053952809487,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyJupiter_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Jupiter",
+        "body": "Jupiter",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 126712767.8578,
+        "radius_km": 300000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        600000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -342238.32546630217,
+        249049.7088330245,
+        254873.24780279002,
+        -13.24340249652064,
+        -10.298819725895024,
+        -4.503852487170828
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            600000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            480000.0,
+            720000.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -342238.32546630217,
+            249049.7088330245,
+            254873.24780279002,
+            -13.24340249652064,
+            -10.298819725895024,
+            -4.503852487170828
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -1020000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            407999.9999999999,
+            -2448000.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            351736.4961905211,
+            -299923.58544703445,
+            -7188.913468074081,
+            -14.644471487879441,
+            -1.8899777142080034,
+            -21.316092766673897
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            780000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            780000.0,
+            780000.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -469415.71805859765,
+            -622935.6978368884,
+            -0.0,
+            10.179149759792962,
+            -7.67053952809487,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyJupiter_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Jupiter",
+        "body": "Jupiter",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 126712767.8578,
+        "radius_km": 300000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        600000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -342238.32546630217,
+        249049.7088330245,
+        254873.24780279002,
+        -13.24340249652064,
+        -10.298819725895024,
+        -4.503852487170828
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            600000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            600000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -342238.32546630217,
+            249049.7088330245,
+            254873.24780279002,
+            -13.24340249652064,
+            -10.298819725895024,
+            -4.503852487170828
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            1020000.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            1020000.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            179482.69911837307,
+            473298.470612629,
+            938004.0172088181,
+            4.856291859310461,
+            -7.73006221619596,
+            -5.495323093817578
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            780000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            780000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -469415.71805859765,
+            -622935.6978368884,
+            -0.0,
+            10.179149759792962,
+            -7.67053952809487,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodySaturn_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Saturn",
+        "body": "Saturn",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 37940626.061137,
+        "radius_km": 250000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        500000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -285198.6045552518,
+        207541.42402752038,
+        212394.37316899167,
+        -7.938386853781314,
+        -6.1733391507951225,
+        -2.6997082800224814
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            500000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            500000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -285198.6045552518,
+            207541.42402752038,
+            212394.37316899167,
+            -7.938386853781314,
+            -6.1733391507951225,
+            -2.6997082800224814
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -850000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -850000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            293113.74682543427,
+            -249936.321205862,
+            -5990.761223395068,
+            -8.778218435217084,
+            -1.1328942274729037,
+            -12.777335026810821
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            650000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            650000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -391179.76504883135,
+            -519113.0815307403,
+            -0.0,
+            6.101606339990147,
+            -4.597890169632461,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodySaturn_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Saturn",
+        "body": "Saturn",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 37940626.061137,
+        "radius_km": 250000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        500000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -285198.6045552518,
+        207541.42402752038,
+        212394.37316899167,
+        -7.938386853781314,
+        -6.1733391507951225,
+        -2.6997082800224814
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            500000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            400000.0,
+            600000.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -285198.6045552518,
+            207541.42402752038,
+            212394.37316899167,
+            -7.938386853781314,
+            -6.1733391507951225,
+            -2.6997082800224814
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -850000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            339999.99999999994,
+            -2040000.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            293113.74682543427,
+            -249936.321205862,
+            -5990.761223395068,
+            -8.778218435217084,
+            -1.1328942274729037,
+            -12.777335026810821
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            650000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            650000.0,
+            650000.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -391179.76504883135,
+            -519113.0815307403,
+            -0.0,
+            6.101606339990147,
+            -4.597890169632461,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodySaturn_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Saturn",
+        "body": "Saturn",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 37940626.061137,
+        "radius_km": 250000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        500000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -285198.6045552518,
+        207541.42402752038,
+        212394.37316899167,
+        -7.938386853781314,
+        -6.1733391507951225,
+        -2.6997082800224814
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            500000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            500000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -285198.6045552518,
+            207541.42402752038,
+            212394.37316899167,
+            -7.938386853781314,
+            -6.1733391507951225,
+            -2.6997082800224814
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            850000.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            850000.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            149568.91593197756,
+            394415.39217719086,
+            781670.0143406817,
+            2.910968194480511,
+            -4.633569378570463,
+            -3.2940175771825544
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            650000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            650000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -391179.76504883135,
+            -519113.0815307403,
+            -0.0,
+            6.101606339990147,
+            -4.597890169632461,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyUranus_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Uranus",
+        "body": "Uranus",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 5794549.0070719,
+        "radius_km": 100000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        200000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -114079.44182210072,
+        83016.56961100816,
+        84957.74926759668,
+        -4.9052352115930065,
+        -3.814588673158672,
+        -1.668185786371388
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            200000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            200000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -114079.44182210072,
+            83016.56961100816,
+            84957.74926759668,
+            -4.9052352115930065,
+            -3.814588673158672,
+            -1.668185786371388
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -340000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -340000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            117245.49873017368,
+            -99974.52848234479,
+            -2396.3044893580263,
+            -5.42417835721513,
+            -0.7000304668905761,
+            -7.895285885945274
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            260000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            260000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -156471.90601953256,
+            -207645.23261229612,
+            -0.0,
+            3.7702640117547617,
+            -2.8410977160146094,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyUranus_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Uranus",
+        "body": "Uranus",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 5794549.0070719,
+        "radius_km": 100000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        200000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -114079.44182210072,
+        83016.56961100816,
+        84957.74926759668,
+        -4.9052352115930065,
+        -3.814588673158672,
+        -1.668185786371388
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            200000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            160000.0,
+            240000.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -114079.44182210072,
+            83016.56961100816,
+            84957.74926759668,
+            -4.9052352115930065,
+            -3.814588673158672,
+            -1.668185786371388
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -340000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            135999.99999999997,
+            -816000.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            117245.49873017368,
+            -99974.52848234479,
+            -2396.3044893580263,
+            -5.42417835721513,
+            -0.7000304668905761,
+            -7.895285885945274
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            260000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            260000.0,
+            260000.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -156471.90601953256,
+            -207645.23261229612,
+            -0.0,
+            3.7702640117547617,
+            -2.8410977160146094,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyUranus_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Uranus",
+        "body": "Uranus",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 5794549.0070719,
+        "radius_km": 100000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        200000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -114079.44182210072,
+        83016.56961100816,
+        84957.74926759668,
+        -4.9052352115930065,
+        -3.814588673158672,
+        -1.668185786371388
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            200000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            200000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -114079.44182210072,
+            83016.56961100816,
+            84957.74926759668,
+            -4.9052352115930065,
+            -3.814588673158672,
+            -1.668185786371388
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            340000.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            340000.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            59827.56637279103,
+            157766.15687087635,
+            312668.0057362727,
+            1.7987261077597363,
+            -2.8631443755221517,
+            -2.0354174349043723
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            260000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            260000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -156471.90601953256,
+            -207645.23261229612,
+            -0.0,
+            3.7702640117547617,
+            -2.8410977160146094,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyNeptune_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Neptune",
+        "body": "Neptune",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 6836534.0638793,
+        "radius_km": 100000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        200000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -114079.44182210072,
+        83016.56961100816,
+        84957.74926759668,
+        -5.328046519659596,
+        -4.143390689180739,
+        -1.8119766106659723
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            200000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            200000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -114079.44182210072,
+            83016.56961100816,
+            84957.74926759668,
+            -5.328046519659596,
+            -4.143390689180739,
+            -1.8119766106659723
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -340000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -340000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            117245.49873017368,
+            -99974.52848234479,
+            -2396.3044893580263,
+            -5.891720452032601,
+            -0.7603702436036174,
+            -8.575827390888133
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            260000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            260000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -156471.90601953256,
+            -207645.23261229612,
+            -0.0,
+            4.095245422391076,
+            -3.085988774207723,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyNeptune_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Neptune",
+        "body": "Neptune",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 6836534.0638793,
+        "radius_km": 100000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        200000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -114079.44182210072,
+        83016.56961100816,
+        84957.74926759668,
+        -5.328046519659596,
+        -4.143390689180739,
+        -1.8119766106659723
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            200000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            160000.0,
+            240000.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -114079.44182210072,
+            83016.56961100816,
+            84957.74926759668,
+            -5.328046519659596,
+            -4.143390689180739,
+            -1.8119766106659723
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -340000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            135999.99999999997,
+            -816000.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            117245.49873017368,
+            -99974.52848234479,
+            -2396.3044893580263,
+            -5.891720452032601,
+            -0.7603702436036174,
+            -8.575827390888133
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            260000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            260000.0,
+            260000.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -156471.90601953256,
+            -207645.23261229612,
+            -0.0,
+            4.095245422391076,
+            -3.085988774207723,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyNeptune_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Neptune",
+        "body": "Neptune",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 6836534.0638793,
+        "radius_km": 100000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        200000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -114079.44182210072,
+        83016.56961100816,
+        84957.74926759668,
+        -5.328046519659596,
+        -4.143390689180739,
+        -1.8119766106659723
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            200000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            200000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -114079.44182210072,
+            83016.56961100816,
+            84957.74926759668,
+            -5.328046519659596,
+            -4.143390689180739,
+            -1.8119766106659723
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            340000.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            340000.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            59827.56637279103,
+            157766.15687087635,
+            312668.0057362727,
+            1.9537689763826327,
+            -3.109935766022034,
+            -2.2108621324551705
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            260000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            260000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -156471.90601953256,
+            -207645.23261229612,
+            -0.0,
+            4.095245422391076,
+            -3.085988774207723,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyPluto_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Pluto",
+        "body": "Pluto",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 981.600887707,
+        "radius_km": 5000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.2855173381472202,
+        -0.22203445035882352,
+        -0.0970995160709339
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.2855173381472202,
+            -0.22203445035882352,
+            -0.0970995160709339
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            5862.274936508686,
+            -4998.726424117241,
+            -119.81522446790134,
+            -0.31572328326430577,
+            -0.04074643251687083,
+            -0.45955818892002376
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.21945446004390212,
+            -0.16537079717920425,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyPluto_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Pluto",
+        "body": "Pluto",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 981.600887707,
+        "radius_km": 5000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.2855173381472202,
+        -0.22203445035882352,
+        -0.0970995160709339
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            8000.0,
+            12000.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.2855173381472202,
+            -0.22203445035882352,
+            -0.0970995160709339
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            6799.999999999998,
+            -40800.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            5862.274936508686,
+            -4998.726424117241,
+            -119.81522446790134,
+            -0.31572328326430577,
+            -0.04074643251687083,
+            -0.45955818892002376
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            13000.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.21945446004390212,
+            -0.16537079717920425,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyPluto_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Pluto",
+        "body": "Pluto",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 981.600887707,
+        "radius_km": 5000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.2855173381472202,
+        -0.22203445035882352,
+        -0.0970995160709339
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            10000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.2855173381472202,
+            -0.22203445035882352,
+            -0.0970995160709339
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            17000.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            17000.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            2991.3783186395513,
+            7888.307843543817,
+            15633.400286813636,
+            0.10469783164112237,
+            -0.16665405950325243,
+            -0.1184748422784823
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.21945446004390212,
+            -0.16537079717920425,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyUserMoon_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "UserMoon",
+        "body": "OrbitMoon",
+        "type": "Moon",
+        "user": true,
+        "mu_km3_s2": 63.0,
+        "radius_km": 1000.0
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.07233280210235628,
+        -0.05625008296143852,
+        -0.02459913687123244
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.07233280210235628,
+            -0.05625008296143852,
+            -0.02459913687123244
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            5862.274936508686,
+            -4998.726424117241,
+            -119.81522446790134,
+            -0.07998515927494312,
+            -0.010322678331009536,
+            -0.11642421349742811
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.05559646966395471,
+            -0.041894944886690204,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyUserMoon_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "UserMoon",
+        "body": "OrbitMoon",
+        "type": "Moon",
+        "user": true,
+        "mu_km3_s2": 63.0,
+        "radius_km": 1000.0
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.07233280210235628,
+        -0.05625008296143852,
+        -0.02459913687123244
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            8000.0,
+            12000.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.07233280210235628,
+            -0.05625008296143852,
+            -0.02459913687123244
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            6799.999999999998,
+            -40800.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            5862.274936508686,
+            -4998.726424117241,
+            -119.81522446790134,
+            -0.07998515927494312,
+            -0.010322678331009536,
+            -0.11642421349742811
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            13000.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.05559646966395471,
+            -0.041894944886690204,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyUserMoon_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "UserMoon",
+        "body": "OrbitMoon",
+        "type": "Moon",
+        "user": true,
+        "mu_km3_s2": 63.0,
+        "radius_km": 1000.0
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.07233280210235628,
+        -0.05625008296143852,
+        -0.02459913687123244
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            10000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.07233280210235628,
+            -0.05625008296143852,
+            -0.02459913687123244
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            17000.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            17000.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            2991.3783186395513,
+            7888.307843543817,
+            15633.400286813636,
+            0.0265240898706412,
+            -0.042220045843196476,
+            -0.030014350008469942
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.05559646966395471,
+            -0.041894944886690204,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyUserComet_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "UserComet",
+        "body": "OrbitComet",
+        "type": "Comet",
+        "user": true,
+        "mu_km3_s2": 74.0,
+        "radius_km": 1100.0
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.07839364802969358,
+        -0.06096333996683958,
+        -0.0266603259056493
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.07839364802969358,
+            -0.06096333996683958,
+            -0.0266603259056493
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            5862.274936508686,
+            -4998.726424117241,
+            -119.81522446790134,
+            -0.08668720471973271,
+            -0.011187627027911658,
+            -0.1261795278183197
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.060254959684295485,
+            -0.045405368908881444,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyUserComet_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "UserComet",
+        "body": "OrbitComet",
+        "type": "Comet",
+        "user": true,
+        "mu_km3_s2": 74.0,
+        "radius_km": 1100.0
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.07839364802969358,
+        -0.06096333996683958,
+        -0.0266603259056493
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            8000.0,
+            12000.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.07839364802969358,
+            -0.06096333996683958,
+            -0.0266603259056493
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            6799.999999999998,
+            -40800.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            5862.274936508686,
+            -4998.726424117241,
+            -119.81522446790134,
+            -0.08668720471973271,
+            -0.011187627027911658,
+            -0.1261795278183197
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            13000.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.060254959684295485,
+            -0.045405368908881444,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyUserComet_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "UserComet",
+        "body": "OrbitComet",
+        "type": "Comet",
+        "user": true,
+        "mu_km3_s2": 74.0,
+        "radius_km": 1100.0
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.07839364802969358,
+        -0.06096333996683958,
+        -0.0266603259056493
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            10000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.07839364802969358,
+            -0.06096333996683958,
+            -0.0266603259056493
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            17000.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            17000.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            2991.3783186395513,
+            7888.307843543817,
+            15633.400286813636,
+            0.02874657285756211,
+            -0.045757710436068584,
+            -0.03252928577375513
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.060254959684295485,
+            -0.045405368908881444,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyUserPlanet_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "UserPlanet",
+        "body": "OrbitPlanet",
+        "type": "Planet",
+        "user": true,
+        "mu_km3_s2": 85.0,
+        "radius_km": 1200.0
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.08401841371287797,
+        -0.06533747628012736,
+        -0.028573211579751467
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.08401841371287797,
+            -0.06533747628012736,
+            -0.028573211579751467
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            5862.274936508686,
+            -4998.726424117241,
+            -119.81522446790134,
+            -0.09290703536333338,
+            -0.011990342326465288,
+            -0.13523294344357634
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.06457826951860132,
+            -0.04866321654437185,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyUserPlanet_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "UserPlanet",
+        "body": "OrbitPlanet",
+        "type": "Planet",
+        "user": true,
+        "mu_km3_s2": 85.0,
+        "radius_km": 1200.0
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.08401841371287797,
+        -0.06533747628012736,
+        -0.028573211579751467
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            8000.0,
+            12000.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.08401841371287797,
+            -0.06533747628012736,
+            -0.028573211579751467
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            6799.999999999998,
+            -40800.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            5862.274936508686,
+            -4998.726424117241,
+            -119.81522446790134,
+            -0.09290703536333338,
+            -0.011990342326465288,
+            -0.13523294344357634
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            13000.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.06457826951860132,
+            -0.04866321654437185,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyUserPlanet_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "UserPlanet",
+        "body": "OrbitPlanet",
+        "type": "Planet",
+        "user": true,
+        "mu_km3_s2": 85.0,
+        "radius_km": 1200.0
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.08401841371287797,
+        -0.06533747628012736,
+        -0.028573211579751467
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            10000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.08401841371287797,
+            -0.06533747628012736,
+            -0.028573211579751467
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            17000.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            17000.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            2991.3783186395513,
+            7888.307843543817,
+            15633.400286813636,
+            0.030809147320956517,
+            -0.04904083867248385,
+            -0.03486327092328423
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.06457826951860132,
+            -0.04866321654437185,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyLuna_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Luna",
+        "body": "Luna",
+        "type": "Moon",
+        "user": false,
+        "mu_km3_s2": 4902.8005821478,
+        "radius_km": 3000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.6380976267003685,
+        -0.49622084857989374,
+        -0.21700598345684194
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.6380976267003685,
+            -0.49622084857989374,
+            -0.21700598345684194
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            5862.274936508686,
+            -4998.726424117241,
+            -119.81522446790134,
+            -0.7056043568223603,
+            -0.0910634781559767,
+            -1.0270584321901426
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.4904548740595919,
+            -0.3695842567402613,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyLuna_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Luna",
+        "body": "Luna",
+        "type": "Moon",
+        "user": false,
+        "mu_km3_s2": 4902.8005821478,
+        "radius_km": 3000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.6380976267003685,
+        -0.49622084857989374,
+        -0.21700598345684194
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            8000.0,
+            12000.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.6380976267003685,
+            -0.49622084857989374,
+            -0.21700598345684194
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            6799.999999999998,
+            -40800.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            5862.274936508686,
+            -4998.726424117241,
+            -119.81522446790134,
+            -0.7056043568223603,
+            -0.0910634781559767,
+            -1.0270584321901426
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            13000.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.4904548740595919,
+            -0.3695842567402613,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyLuna_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "Luna",
+        "body": "Luna",
+        "type": "Moon",
+        "user": false,
+        "mu_km3_s2": 4902.8005821478,
+        "radius_km": 3000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.6380976267003685,
+        -0.49622084857989374,
+        -0.21700598345684194
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            10000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.6380976267003685,
+            -0.49622084857989374,
+            -0.21700598345684194
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            17000.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            17000.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            2991.3783186395513,
+            7888.307843543817,
+            15633.400286813636,
+            0.23398732393767022,
+            -0.37245219691063,
+            -0.26477732025723594
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.4904548740595919,
+            -0.3695842567402613,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyUserAsteroid_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "UserAsteroid",
+        "body": "OrbitAsteroid",
+        "type": "Asteroid",
+        "user": true,
+        "mu_km3_s2": 51.0,
+        "radius_km": 1200.0
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.06508038341694826,
+        -0.050610191503231074,
+        -0.02213271451920767
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.06508038341694826,
+            -0.050610191503231074,
+            -0.02213271451920767
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            5862.274936508686,
+            -4998.726424117241,
+            -119.81522446790134,
+            -0.07196548014153874,
+            -0.00928767922914519,
+            -0.10475098756311613
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.0500221124744874,
+            -0.037694365449847486,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyUserAsteroid_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "UserAsteroid",
+        "body": "OrbitAsteroid",
+        "type": "Asteroid",
+        "user": true,
+        "mu_km3_s2": 51.0,
+        "radius_km": 1200.0
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.06508038341694826,
+        -0.050610191503231074,
+        -0.02213271451920767
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            8000.0,
+            12000.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.06508038341694826,
+            -0.050610191503231074,
+            -0.02213271451920767
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            6799.999999999998,
+            -40800.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            5862.274936508686,
+            -4998.726424117241,
+            -119.81522446790134,
+            -0.07196548014153874,
+            -0.00928767922914519,
+            -0.10475098756311613
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            13000.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.0500221124744874,
+            -0.037694365449847486,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyUserAsteroid_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Eq",
+      "body": {
+        "key": "UserAsteroid",
+        "body": "OrbitAsteroid",
+        "type": "Asteroid",
+        "user": true,
+        "mu_km3_s2": 51.0,
+        "radius_km": 1200.0
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.06508038341694826,
+        -0.050610191503231074,
+        -0.02213271451920767
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            10000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.06508038341694826,
+            -0.050610191503231074,
+            -0.02213271451920767
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            17000.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            17000.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            2991.3783186395513,
+            7888.307843543817,
+            15633.400286813636,
+            0.02386466289698309,
+            -0.03798687029251492,
+            -0.02700497353603942
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.0500221124744874,
+            -0.037694365449847486,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesMJ2000Ec_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Ec",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            8207.18491111216,
+            -6998.216993764136,
+            -167.74131425506187,
+            -5.377049185144895,
+            -0.6939480975148332,
+            -7.826685950147173
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesMJ2000Ec_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Ec",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            11200.0,
+            16800.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            9519.999999999998,
+            -57120.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            8207.18491111216,
+            -6998.216993764136,
+            -167.74131425506187,
+            -5.377049185144895,
+            -0.6939480975148332,
+            -7.826685950147173
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            18200.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesMJ2000Ec_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MJ2000Ec",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            14000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            23800.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            23800.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            4187.929646095372,
+            11043.630980961345,
+            21886.76040153909,
+            1.7830974785633773,
+            -2.83826731303463,
+            -2.017732260817727
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesMOEEq_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MOEEq",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            8207.18491111216,
+            -6998.216993764136,
+            -167.74131425506187,
+            -5.377049185144895,
+            -0.6939480975148332,
+            -7.826685950147173
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesMOEEq_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MOEEq",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            11200.0,
+            16800.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            9519.999999999998,
+            -57120.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            8207.18491111216,
+            -6998.216993764136,
+            -167.74131425506187,
+            -5.377049185144895,
+            -0.6939480975148332,
+            -7.826685950147173
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            18200.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesMOEEq_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MOEEq",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            14000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            23800.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            23800.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            4187.929646095372,
+            11043.630980961345,
+            21886.76040153909,
+            1.7830974785633773,
+            -2.83826731303463,
+            -2.017732260817727
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesMOEEc_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "MOEEc",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            8207.18491111216,
+            -6998.216993764136,
+            -167.74131425506187,
+            -5.377049185144895,
+            -0.6939480975148332,
+            -7.826685950147173
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesMOEEc_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "MOEEc",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            11200.0,
+            16800.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            9519.999999999998,
+            -57120.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            8207.18491111216,
+            -6998.216993764136,
+            -167.74131425506187,
+            -5.377049185144895,
+            -0.6939480975148332,
+            -7.826685950147173
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            18200.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesMOEEc_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "MOEEc",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            14000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            23800.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            23800.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            4187.929646095372,
+            11043.630980961345,
+            21886.76040153909,
+            1.7830974785633773,
+            -2.83826731303463,
+            -2.017732260817727
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesTOEEq_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "TOEEq",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            8207.18491111216,
+            -6998.216993764136,
+            -167.74131425506187,
+            -5.377049185144895,
+            -0.6939480975148332,
+            -7.826685950147173
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesTOEEq_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "TOEEq",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            11200.0,
+            16800.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            9519.999999999998,
+            -57120.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            8207.18491111216,
+            -6998.216993764136,
+            -167.74131425506187,
+            -5.377049185144895,
+            -0.6939480975148332,
+            -7.826685950147173
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            18200.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesTOEEq_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "TOEEq",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            14000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            23800.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            23800.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            4187.929646095372,
+            11043.630980961345,
+            21886.76040153909,
+            1.7830974785633773,
+            -2.83826731303463,
+            -2.017732260817727
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesTOEEc_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "TOEEc",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            8207.18491111216,
+            -6998.216993764136,
+            -167.74131425506187,
+            -5.377049185144895,
+            -0.6939480975148332,
+            -7.826685950147173
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesTOEEc_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "TOEEc",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            11200.0,
+            16800.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            9519.999999999998,
+            -57120.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            8207.18491111216,
+            -6998.216993764136,
+            -167.74131425506187,
+            -5.377049185144895,
+            -0.6939480975148332,
+            -7.826685950147173
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            18200.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesTOEEc_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "TOEEc",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            14000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            23800.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            23800.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            4187.929646095372,
+            11043.630980961345,
+            21886.76040153909,
+            1.7830974785633773,
+            -2.83826731303463,
+            -2.017732260817727
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesBodyInertial_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "BodyInertial",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            8207.18491111216,
+            -6998.216993764136,
+            -167.74131425506187,
+            -5.377049185144895,
+            -0.6939480975148332,
+            -7.826685950147173
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesBodyInertial_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "BodyInertial",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            11200.0,
+            16800.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -23800.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            9519.999999999998,
+            -57120.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            8207.18491111216,
+            -6998.216993764136,
+            -167.74131425506187,
+            -5.377049185144895,
+            -0.6939480975148332,
+            -7.826685950147173
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            18200.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "AxesBodyInertial_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "BodyInertial",
+      "body": {
+        "key": "Earth",
+        "body": "Earth",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 398600.4415,
+        "radius_km": 7000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        14000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -7985.56092754705,
+        5811.1598727705705,
+        5947.042448731767,
+        -4.862614991698388,
+        -3.7814447766798027,
+        -1.6536913855988844
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            14000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            14000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -7985.56092754705,
+            5811.1598727705705,
+            5947.042448731767,
+            -4.862614991698388,
+            -3.7814447766798027,
+            -1.6536913855988844
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            23800.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            23800.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            4187.929646095372,
+            11043.630980961345,
+            21886.76040153909,
+            1.7830974785633773,
+            -2.83826731303463,
+            -2.017732260817727
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            18200.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            18200.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -10953.033421367278,
+            -14535.16628286073,
+            -0.0,
+            3.737505239889555,
+            -2.8164122107991894,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyInertialMars_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "BodyInertial",
+      "body": {
+        "key": "Mars",
+        "body": "Mars",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 42828.314258067,
+        "radius_km": 10000
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        20000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -11407.944182210073,
+        8301.656961100816,
+        8495.774926759668,
+        -1.3335690490908823,
+        -1.0370588096396338,
+        -0.45352380403298764
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            20000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            20000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -11407.944182210073,
+            8301.656961100816,
+            8495.774926759668,
+            -1.3335690490908823,
+            -1.0370588096396338,
+            -0.45352380403298764
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -34000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -34000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            11724.549873017371,
+            -9997.452848234481,
+            -239.6304489358027,
+            -1.4746522973730332,
+            -0.1903148215725906,
+            -2.146463612251811
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            26000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            26000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -15647.190601953254,
+            -20764.523261229613,
+            -0.0,
+            1.0250084197990021,
+            -0.7723992461290032,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyInertialMars_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "BodyInertial",
+      "body": {
+        "key": "Mars",
+        "body": "Mars",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 42828.314258067,
+        "radius_km": 10000
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        20000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -11407.944182210073,
+        8301.656961100816,
+        8495.774926759668,
+        -1.3335690490908823,
+        -1.0370588096396338,
+        -0.45352380403298764
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            20000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            16000.0,
+            24000.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -11407.944182210073,
+            8301.656961100816,
+            8495.774926759668,
+            -1.3335690490908823,
+            -1.0370588096396338,
+            -0.45352380403298764
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -34000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            13599.999999999996,
+            -81600.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            11724.549873017371,
+            -9997.452848234481,
+            -239.6304489358027,
+            -1.4746522973730332,
+            -0.1903148215725906,
+            -2.146463612251811
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            26000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            26000.0,
+            26000.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -15647.190601953254,
+            -20764.523261229613,
+            -0.0,
+            1.0250084197990021,
+            -0.7723992461290032,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyInertialMars_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "BodyInertial",
+      "body": {
+        "key": "Mars",
+        "body": "Mars",
+        "type": "Planet",
+        "user": false,
+        "mu_km3_s2": 42828.314258067,
+        "radius_km": 10000
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        20000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -11407.944182210073,
+        8301.656961100816,
+        8495.774926759668,
+        -1.3335690490908823,
+        -1.0370588096396338,
+        -0.45352380403298764
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            20000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            20000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -11407.944182210073,
+            8301.656961100816,
+            8495.774926759668,
+            -1.3335690490908823,
+            -1.0370588096396338,
+            -0.45352380403298764
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            34000.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            34000.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            5982.7566372791025,
+            15776.615687087635,
+            31266.80057362727,
+            0.4890133422003823,
+            -0.7783929939284194,
+            -0.5533617810524762
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            26000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            26000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -15647.190601953254,
+            -20764.523261229613,
+            -0.0,
+            1.0250084197990021,
+            -0.7723992461290032,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyInertialUserPlanet_Keplerian",
+      "frame": "InertialFrame",
+      "axis": "BodyInertial",
+      "body": {
+        "key": "UserPlanet",
+        "body": "OrbitPlanet",
+        "type": "Planet",
+        "user": true,
+        "mu_km3_s2": 85.0,
+        "radius_km": 1200.0
+      },
+      "representation": "Keplerian",
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.08401841371287797,
+        -0.06533747628012736,
+        -0.028573211579751467
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.08401841371287797,
+            -0.06533747628012736,
+            -0.028573211579751467
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            5862.274936508686,
+            -4998.726424117241,
+            -119.81522446790134,
+            -0.09290703536333338,
+            -0.011990342326465288,
+            -0.13523294344357634
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.06457826951860132,
+            -0.04866321654437185,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyInertialUserPlanet_ModifiedKeplerian",
+      "frame": "InertialFrame",
+      "axis": "BodyInertial",
+      "body": {
+        "key": "UserPlanet",
+        "body": "OrbitPlanet",
+        "type": "Planet",
+        "user": true,
+        "mu_km3_s2": 85.0,
+        "radius_km": 1200.0
+      },
+      "representation": "ModifiedKeplerian",
+      "names": [
+        "RadPer",
+        "RadApo",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "units": [
+        "km",
+        "km",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.08401841371287797,
+        -0.06533747628012736,
+        -0.028573211579751467
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            8000.0,
+            12000.0,
+            37,
+            17,
+            87,
+            34
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.08401841371287797,
+            -0.06533747628012736,
+            -0.028573211579751467
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            -17000.0,
+            1.4,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "values": [
+            6799.999999999998,
+            -40800.0,
+            117,
+            140,
+            218,
+            -37
+          ],
+          "cartesian": [
+            5862.274936508686,
+            -4998.726424117241,
+            -119.81522446790134,
+            -0.09290703536333338,
+            -0.011990342326465288,
+            -0.13523294344357634
+          ],
+          "domain": "hyperbolic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            13000.0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.06457826951860132,
+            -0.04866321654437185,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    },
+    {
+      "key": "BodyInertialUserPlanet_Equinoctial",
+      "frame": "InertialFrame",
+      "axis": "BodyInertial",
+      "body": {
+        "key": "UserPlanet",
+        "body": "OrbitPlanet",
+        "type": "Planet",
+        "user": true,
+        "mu_km3_s2": 85.0,
+        "radius_km": 1200.0
+      },
+      "representation": "Equinoctial",
+      "names": [
+        "SMA",
+        "EquinoctialH",
+        "EquinoctialK",
+        "EquinoctialP",
+        "EquinoctialQ",
+        "MLONG"
+      ],
+      "units": [
+        "km",
+        "",
+        "",
+        "",
+        "",
+        "deg"
+      ],
+      "baseline_keplerian": [
+        10000,
+        0.2,
+        37,
+        17,
+        87,
+        34
+      ],
+      "baseline_cartesian": [
+        -5703.972091105036,
+        4150.828480550408,
+        4247.887463379834,
+        -0.08401841371287797,
+        -0.06533747628012736,
+        -0.028573211579751467
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "canonical_keplerian": [
+            10000,
+            0.2,
+            37,
+            17,
+            87,
+            34
+          ],
+          "values": [
+            10000,
+            0.1940591452551993,
+            -0.04838437911993351,
+            0.0978262039550699,
+            0.31997509536280394,
+            126.64690596126826
+          ],
+          "cartesian": [
+            -5703.972091105036,
+            4150.828480550408,
+            4247.887463379834,
+            -0.08401841371287797,
+            -0.06533747628012736,
+            -0.028573211579751467
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 25300.25,
+          "canonical_keplerian": [
+            17000.0,
+            0.7,
+            117,
+            140,
+            218,
+            223
+          ],
+          "values": [
+            17000.0,
+            -0.024429647691750576,
+            0.699573578913367,
+            1.0489340453324612,
+            -1.250070916919338,
+            304.34083718278646
+          ],
+          "cartesian": [
+            2991.3783186395513,
+            7888.307843543817,
+            15633.400286813636,
+            0.030809147320956517,
+            -0.04904083867248385,
+            -0.03486327092328423
+          ],
+          "domain": "inclined-elliptic"
+        },
+        {
+          "epoch": 30000.75,
+          "canonical_keplerian": [
+            13000.0,
+            0,
+            0,
+            0,
+            0,
+            233
+          ],
+          "values": [
+            13000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            233.0
+          ],
+          "cartesian": [
+            -7823.595300976627,
+            -10382.261630614807,
+            -0.0,
+            0.06457826951860132,
+            -0.04866321654437185,
+            0.0
+          ],
+          "domain": "circular-equatorial"
+        }
+      ]
+    }
+  ]
+}

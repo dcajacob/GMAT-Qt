@@ -1,0 +1,972 @@
+{
+  "cases": [
+    {
+      "key": "ReadEA",
+      "parameter": "EA",
+      "assigned_value": 95.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "Keplerian",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = Keplerian;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.Earth.EA",
+      "report": "Sat.Earth.EA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [],
+      "read_only": true,
+      "conflict_requirement": "FRR!E506",
+      "reject_destination": "Sat.Earth.EA",
+      "expected": [
+        50.47880364135782,
+        -6851.79662480637,
+        3521.968417988444,
+        4100.476890702145,
+        -4.629021523447763,
+        -5.4392151990177595,
+        -0.687741313757011
+      ]
+    },
+    {
+      "key": "ECC",
+      "parameter": "ECC",
+      "assigned_value": 0.35,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "Keplerian",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = Keplerian;\n",
+      "destination": "Sat.Earth.ECC",
+      "before": "0.20000000000000001",
+      "expression": "0.34999999999999998",
+      "report": "Sat.Earth.ECC Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [
+        "FRR!E507"
+      ],
+      "expected": [
+        0.35,
+        -5863.206287317686,
+        3013.8120704462285,
+        3508.852232934615,
+        -5.796741632367866,
+        -5.755854974616727,
+        -0.39442666339712135
+      ]
+    },
+    {
+      "key": "ReadMA",
+      "parameter": "MA",
+      "assigned_value": 125.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "Keplerian",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = Keplerian;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.Earth.MA",
+      "report": "Sat.Earth.MA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [],
+      "read_only": true,
+      "conflict_requirement": "FRR!E513",
+      "reject_destination": "Sat.Earth.MA",
+      "expected": [
+        41.63933435545169,
+        -6851.79662480637,
+        3521.968417988444,
+        4100.476890702145,
+        -4.629021523447763,
+        -5.4392151990177595,
+        -0.687741313757011
+      ]
+    },
+    {
+      "key": "RadApo",
+      "parameter": "RadApo",
+      "assigned_value": 14000.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "ModifiedKeplerian",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = ModifiedKeplerian;\n",
+      "destination": "Sat.Earth.RadApo",
+      "before": "12000",
+      "expression": "14000",
+      "report": "Sat.Earth.RadApo Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [
+        "FRR!E517"
+      ],
+      "expected": [
+        14000.0,
+        -7034.511201467874,
+        3615.887575801469,
+        4209.8229411208695,
+        -4.924673509790457,
+        -5.311542255811187,
+        -0.5215541666926824
+      ]
+    },
+    {
+      "key": "RadPer",
+      "parameter": "RadPer",
+      "assigned_value": 7500.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "ModifiedKeplerian",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = ModifiedKeplerian;\n",
+      "destination": "Sat.Earth.RadPer",
+      "before": "8000",
+      "expression": "7500",
+      "report": "Sat.Earth.RadPer Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [
+        "FRR!E518"
+      ],
+      "expected": [
+        7500.0,
+        -6497.393351109489,
+        3339.797637747662,
+        3888.383258424448,
+        -4.911695010493754,
+        -5.560271495390435,
+        -0.6363776288521374
+      ]
+    },
+    {
+      "key": "SMA",
+      "parameter": "SMA",
+      "assigned_value": 12000.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "Keplerian",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = Keplerian;\n",
+      "destination": "Sat.Earth.SMA",
+      "before": "10000",
+      "expression": "12000",
+      "report": "Sat.Earth.SMA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [
+        "FRR!E521"
+      ],
+      "expected": [
+        12000.0,
+        -8222.155949767644,
+        4226.362101586133,
+        4920.572268842574,
+        -4.225699179282115,
+        -4.96530143271163,
+        -0.6278190521215882
+      ]
+    },
+    {
+      "key": "TA",
+      "parameter": "TA",
+      "assigned_value": 150.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "Keplerian",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = Keplerian;\n",
+      "destination": "Sat.Earth.TA",
+      "before": "60",
+      "expression": "150",
+      "report": "Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [
+        "FRR!E522"
+      ],
+      "expected": [
+        150.0,
+        -6147.542226107314,
+        -9647.939777310205,
+        -1985.6153560620546,
+        3.841540044330272,
+        -2.6854174151198347,
+        -2.613343333311922
+      ]
+    },
+    {
+      "key": "AOP",
+      "parameter": "AOP",
+      "assigned_value": 75.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "Keplerian",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = Keplerian;\n",
+      "destination": "Sat.EarthMJ2000Eq.AOP",
+      "before": "50",
+      "expression": "75",
+      "report": "Sat.EarthMJ2000Eq.AOP Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [
+        "FRR!E527"
+      ],
+      "expected": [
+        75.0,
+        -8162.623720132586,
+        127.28748054068586,
+        3085.5568633594794,
+        -2.0932493590715953,
+        -6.5304026431432405,
+        -2.1114068294837973
+      ]
+    },
+    {
+      "key": "AZI",
+      "parameter": "AZI",
+      "assigned_value": 135.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "SphericalAZFPA",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = SphericalAZFPA;\n",
+      "destination": "Sat.EarthMJ2000Eq.AZI",
+      "before": "101.1702294330788",
+      "expression": "135",
+      "report": "Sat.EarthMJ2000Eq.AZI Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [
+        "FRR!E528"
+      ],
+      "expected": [
+        135.0,
+        -6851.796624806371,
+        3521.968417988443,
+        4100.476890702145,
+        -5.261910154085786,
+        -2.930629912307006,
+        -3.8999487442576743
+      ]
+    },
+    {
+      "key": "DEC",
+      "parameter": "DEC",
+      "assigned_value": -25.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "SphericalAZFPA",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = SphericalAZFPA;\n",
+      "destination": "Sat.EarthMJ2000Eq.DEC",
+      "before": "28.024320673604699",
+      "expression": "-25",
+      "report": "Sat.EarthMJ2000Eq.DEC Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [
+        "FRR!E533"
+      ],
+      "expected": [
+        -25.0,
+        -7034.663335653985,
+        3615.965775991596,
+        -3688.304829737013,
+        -3.562496716163905,
+        -5.9874315127734405,
+        -1.716150164637592
+      ]
+    },
+    {
+      "key": "DECV",
+      "parameter": "DECV",
+      "assigned_value": -12.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "SphericalRADEC",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = SphericalRADEC;\n",
+      "destination": "Sat.EarthMJ2000Eq.DECV",
+      "before": "-5.500103260849059",
+      "expression": "-12",
+      "report": "Sat.EarthMJ2000Eq.DECV Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [
+        "FRR!E534"
+      ],
+      "expected": [
+        -12.0,
+        -6851.796624806371,
+        3521.968417988443,
+        4100.476890702145,
+        -4.548808896486579,
+        -5.344963371172407,
+        -1.4918426674708447
+      ]
+    },
+    {
+      "key": "FPA",
+      "parameter": "FPA",
+      "assigned_value": 110.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "SphericalAZFPA",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = SphericalAZFPA;\n",
+      "destination": "Sat.EarthMJ2000Eq.FPA",
+      "before": "81.051724435372918",
+      "expression": "110",
+      "report": "Sat.EarthMJ2000Eq.FPA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [
+        "FRR!E535"
+      ],
+      "expected": [
+        110.0,
+        -6851.796624806371,
+        3521.968417988443,
+        4100.476890702145,
+        -1.6431823687458527,
+        -6.593000807522177,
+        -2.3061184738584823
+      ]
+    },
+    {
+      "key": "INC",
+      "parameter": "INC",
+      "assigned_value": 55.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "Keplerian",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = Keplerian;\n",
+      "destination": "Sat.EarthMJ2000Eq.INC",
+      "before": "30",
+      "expression": "55",
+      "report": "Sat.EarthMJ2000Eq.INC Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [
+        "FRR!E538"
+      ],
+      "expected": [
+        55.0,
+        -5310.160234123351,
+        1684.7177109179836,
+        6717.828055156862,
+        -4.887588286515754,
+        -5.131067330206025,
+        -1.1267294062121045
+      ]
+    },
+    {
+      "key": "RA",
+      "parameter": "RA",
+      "assigned_value": 210.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "SphericalAZFPA",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = SphericalAZFPA;\n",
+      "destination": "Sat.EarthMJ2000Eq.RA",
+      "before": "152.79587725885847",
+      "expression": "210",
+      "report": "Sat.EarthMJ2000Eq.RA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [
+        "FRR!E541"
+      ],
+      "expected": [
+        -150.0,
+        -6671.846363171292,
+        -3851.992293768772,
+        4100.476890702145,
+        2.0649356681730753,
+        -6.837319864689312,
+        -0.6877413137570131
+      ]
+    },
+    {
+      "key": "RAAN",
+      "parameter": "RAAN",
+      "assigned_value": 125.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "Keplerian",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = Keplerian;\n",
+      "destination": "Sat.EarthMJ2000Eq.RAAN",
+      "before": "40",
+      "expression": "125",
+      "report": "Sat.EarthMJ2000Eq.RAAN Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [
+        "FRR!E542"
+      ],
+      "expected": [
+        125.0,
+        -4105.739688837556,
+        -6518.763696631446,
+        4100.476890702145,
+        5.015071533970546,
+        -5.08546553964598,
+        -0.687741313757011
+      ]
+    },
+    {
+      "key": "RAV",
+      "parameter": "RAV",
+      "assigned_value": 280.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "SphericalRADEC",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = SphericalRADEC;\n",
+      "destination": "Sat.EarthMJ2000Eq.RAV",
+      "before": "229.60069310178429",
+      "expression": "280",
+      "report": "Sat.EarthMJ2000Eq.RAV Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [
+        "FRR!E543"
+      ],
+      "expected": [
+        -80.0,
+        -6851.796624806371,
+        3521.968417988443,
+        4100.476890702145,
+        1.2402528856138435,
+        -7.033823641910209,
+        -0.687741313757011
+      ]
+    },
+    {
+      "key": "VMAG",
+      "parameter": "VMAG",
+      "assigned_value": 8.25,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "SphericalAZFPA",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = SphericalAZFPA;\n",
+      "destination": "Sat.EarthMJ2000Eq.VMAG",
+      "before": "7.1753669146892189",
+      "expression": "8.25",
+      "report": "Sat.EarthMJ2000Eq.VMAG Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [
+        "FRR!E544"
+      ],
+      "expected": [
+        8.25,
+        -6851.796624806371,
+        3521.968417988443,
+        4100.476890702145,
+        -5.322296130984421,
+        -6.2538300724430735,
+        -0.7907422583338521
+      ]
+    },
+    {
+      "key": "RMAG",
+      "parameter": "RMAG",
+      "assigned_value": 10000.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "SphericalAZFPA",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = SphericalAZFPA;\n",
+      "destination": "Sat.Earth.RMAG",
+      "before": "8727.2727272727261",
+      "expression": "10000",
+      "report": "Sat.Earth.RMAG Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [],
+      "expected": [
+        10000.0,
+        -7851.016965923968,
+        4035.588812278425,
+        4698.463103929542,
+        -4.629021523447764,
+        -5.4392151990177595,
+        -0.6877413137570131
+      ],
+      "conflict_requirement": "FRR!E519"
+    },
+    {
+      "key": "ReadHA",
+      "parameter": "HA",
+      "assigned_value": 95.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        -12000.0,
+        1.4,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "Keplerian",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -5320.2185557320036;\nSat.Y = 2734.704889261614;\nSat.Z = 3183.8997033687233;\nSat.VX = -10.893651558072149;\nSat.VY = -5.4309602323533674;\nSat.VZ = 1.6407990611809895;\nSat.DisplayStateType = Keplerian;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.Earth.HA",
+      "report": "Sat.Earth.HA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [],
+      "read_only": true,
+      "conflict_requirement": "FRR!E536",
+      "reject_destination": "Sat.Earth.HA",
+      "expected": [
+        27.52702930003277,
+        -5320.218555732004,
+        2734.704889261614,
+        3183.8997033687233,
+        -10.893651558072149,
+        -5.4309602323533674,
+        1.6407990611809895
+      ]
+    },
+    {
+      "key": "SemilatusRectum",
+      "parameter": "SemilatusRectum",
+      "assigned_value": 11000.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "representation": "Keplerian",
+      "orbital_case": true,
+      "setup": "Sat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\nSat.DisplayStateType = Keplerian;\n",
+      "destination": "Sat.Earth.SemilatusRectum",
+      "before": "9600",
+      "expression": "11000",
+      "report": "Sat.Earth.SemilatusRectum Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "requirements": [],
+      "read_only": false,
+      "conflict_requirement": "FRR!E520",
+      "reject_destination": "Sat.Earth.SemilatusRectum",
+      "expected": [
+        11000.0,
+        -7851.016965923967,
+        4035.5888122784254,
+        4698.463103929542,
+        -4.324426042206057,
+        -5.08130794740316,
+        -0.64248706393931
+      ]
+    }
+  ],
+  "reference_sources": {
+    "doc/help/src/System_CalculationParameters.xml": "490d83f477678eb43b6021baccb4bd9c7b232550b0601cb6d54b16ad43acf578",
+    "doc/help/src/Resource_SpacecraftOrbitState.xml": "2446259ea11baa976a23b659961761eb8412566820598938c3c8f98995fe2eb4"
+  },
+  "scope": "17 selected Earth/EarthMJ2000Eq orbital parameter setters and3 readonly anomaly calculations/protections, complete Cartesian witnesses and syntax-error Apply/OK recovery. No all bodies/frames, singular/hyperbolic, physical invalid runtime domains, native OS input/platform/stress or full-current-build qualification."
+}

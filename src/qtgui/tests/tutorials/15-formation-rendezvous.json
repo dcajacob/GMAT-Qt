@@ -1,0 +1,5701 @@
+{
+  "id": "15-formation-rendezvous",
+  "title": "Formation Rendezvous",
+  "guide": "doc/help/src/Tut_FormationRendezvous.xml",
+  "guide_sha256": "d6277c1205a775098064e2a10f4f5bb091792a2a45ae2a76400a06c7ac04501f",
+  "reference": "application/docs/help/files/scripts/FormationRendezvousTutorial.script",
+  "provenance": "Reviewed current Help instructions, using semantic QtTest widget selectors. Values come from the Help chapter; the generator never reads a completed example mission. Literal code is entered only where the chapter explicitly teaches it.",
+  "stages": [
+    {
+      "name": "Current Help GUI instructions with QtTest selectors",
+      "input": null,
+      "requires_run": true,
+      "actions": [
+        {
+          "action": "key",
+          "keys": "Esc"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+N"
+        },
+        {
+          "action": "window",
+          "state": "maximized"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultSC",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "Sat1",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultProp",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "PropRKV_LowEarth",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Sat1",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DateFormat",
+          "value": "UTCGregorian"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "text",
+          "text": "01 Jan 2000 11:59:27.966",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DisplayStateType",
+          "value": "Keplerian"
+        },
+        {
+          "action": "click",
+          "field_hint": "SMA",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "7600"
+        },
+        {
+          "action": "click",
+          "field_hint": "ECC",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "click",
+          "field_hint": "INC",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "100.51"
+        },
+        {
+          "action": "click",
+          "field_hint": "RAAN",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "278.85"
+        },
+        {
+          "action": "click",
+          "field_hint": "AOP",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "click",
+          "field_hint": "TA",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "90"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Sat1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Clone resource\u2026",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "Sat2",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Clone",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Sat2",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DateFormat",
+          "value": "UTCGregorian"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "text",
+          "text": "01 Jan 2000 11:59:27.966",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DisplayStateType",
+          "value": "Keplerian"
+        },
+        {
+          "action": "click",
+          "field_hint": "SMA",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "7600"
+        },
+        {
+          "action": "click",
+          "field_hint": "ECC",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "0.0005"
+        },
+        {
+          "action": "click",
+          "field_hint": "INC",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "100.515"
+        },
+        {
+          "action": "click",
+          "field_hint": "RAAN",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "278.855"
+        },
+        {
+          "action": "click",
+          "field_hint": "AOP",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "click",
+          "field_hint": "TA",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "90.05"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Sat1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Clone resource\u2026",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "Sat3",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Clone",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Sat3",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DateFormat",
+          "value": "UTCGregorian"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "text",
+          "text": "01 Jan 2000 11:59:27.966",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DisplayStateType",
+          "value": "Keplerian"
+        },
+        {
+          "action": "click",
+          "field_hint": "SMA",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "7600"
+        },
+        {
+          "action": "click",
+          "field_hint": "ECC",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "0.0005"
+        },
+        {
+          "action": "click",
+          "field_hint": "INC",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "100.505"
+        },
+        {
+          "action": "click",
+          "field_hint": "RAAN",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "278.845"
+        },
+        {
+          "action": "click",
+          "field_hint": "AOP",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "click",
+          "field_hint": "TA",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "89.95"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Sat1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Clone resource\u2026",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "Sat4",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Clone",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Sat4",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DateFormat",
+          "value": "UTCGregorian"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "text",
+          "text": "01 Jan 2000 11:59:27.966",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DisplayStateType",
+          "value": "Keplerian"
+        },
+        {
+          "action": "click",
+          "field_hint": "SMA",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "7600"
+        },
+        {
+          "action": "click",
+          "field_hint": "ECC",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "click",
+          "field_hint": "INC",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "100.52"
+        },
+        {
+          "action": "click",
+          "field_hint": "RAAN",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "278.85"
+        },
+        {
+          "action": "click",
+          "field_hint": "AOP",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "0"
+        },
+        {
+          "action": "click",
+          "field_hint": "TA",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "90.1"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "PropRKV_LowEarth",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "text",
+          "text": "0.001",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "900",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "PropRKV_LowEarth_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "key",
+          "keys": "Backspace",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "text",
+          "text": "Earth, Sun, Luna, Jupiter",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Burns",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ImpulsiveBurn",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "Burn1",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Burn1",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "burn_Element1"
+        },
+        {
+          "action": "text",
+          "text": "0.0001",
+          "target_name": "burn_Element1"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Solvers",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add DifferentialCorrector",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_ReportFile"
+        },
+        {
+          "action": "text",
+          "text": "DifferentialCorrectorDC.data",
+          "target_name": "resource_ReportFile"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Coordinate Systems",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add CoordinateSystem",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "Sat1LVLH",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Sat1LVLH",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "text",
+          "text": "Sat1",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_Axes",
+          "value": "ObjectReferenced"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_name": "editCoordinateAxes"
+        },
+        {
+          "action": "select",
+          "target_name": "coordinateAxisType",
+          "value": "ObjectReferenced"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Primary"
+        },
+        {
+          "action": "text",
+          "text": "Earth",
+          "target_name": "resource_Primary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Secondary"
+        },
+        {
+          "action": "text",
+          "text": "Sat1",
+          "target_name": "resource_Secondary"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_XAxis",
+          "value": ""
+        },
+        {
+          "action": "select",
+          "target_name": "resource_YAxis",
+          "value": "-N"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_ZAxis",
+          "value": "-R"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Coordinate Systems",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add CoordinateSystem",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "Sat2VNB",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Sat2VNB",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "text",
+          "text": "Sat2",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_Axes",
+          "value": "ObjectReferenced"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_name": "editCoordinateAxes"
+        },
+        {
+          "action": "select",
+          "target_name": "coordinateAxisType",
+          "value": "ObjectReferenced"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Primary"
+        },
+        {
+          "action": "text",
+          "text": "Earth",
+          "target_name": "resource_Primary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Secondary"
+        },
+        {
+          "action": "text",
+          "text": "Sat2",
+          "target_name": "resource_Secondary"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_XAxis",
+          "value": "V"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_YAxis",
+          "value": "N"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_ZAxis",
+          "value": ""
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ReportFile",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Filename"
+        },
+        {
+          "action": "text",
+          "text": "FormationRendezvousTutorial.data",
+          "target_name": "resource_Filename"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "DataReport",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_SolverIterations",
+          "value": "None"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "PositionX",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "PositionY",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "PositionZ",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "PositionNorm",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "VelocityX",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "VelocityY",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "VelocityZ",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "VelocityNorm",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "PositionAtVelocityX",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "PositionAtVelocityY",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "PositionAtVelocityZ",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "PositionBurnV",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "PositionBurnN",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "PositionBurnB",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "VelocityBurnV",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "VelocityBurnN",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "VelocityBurnB",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ReportFile",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "RendezvousResiduals",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Filename"
+        },
+        {
+          "action": "text",
+          "text": "FormationRendezvousResiduals.data",
+          "target_name": "resource_Filename"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add XYPlot",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "Sat2wrtSat1LVLH",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Sat2wrtSat1LVLH",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "xyXVariable"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.Sat1LVLH.X",
+          "target_name": "xyXVariable"
+        },
+        {
+          "action": "click",
+          "target_name": "xySelectY"
+        },
+        {
+          "action": "click",
+          "target_name": "reportParameterRemoveAll"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "reportParameterEntry"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.Sat1LVLH.Z",
+          "target_name": "reportParameterEntry"
+        },
+        {
+          "action": "click",
+          "target_name": "reportAddParameter"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add XYPlot",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "Sat1wrtSat2VNB",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Sat1wrtSat2VNB",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "xyXVariable"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.Sat2VNB.X",
+          "target_name": "xyXVariable"
+        },
+        {
+          "action": "click",
+          "target_name": "xySelectY"
+        },
+        {
+          "action": "click",
+          "target_name": "reportParameterRemoveAll"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "reportParameterEntry"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.Sat2VNB.Y",
+          "target_name": "reportParameterEntry"
+        },
+        {
+          "action": "click",
+          "target_name": "reportAddParameter"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add XYPlot",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "Sat1wrtSat2VNB2",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Sat1wrtSat2VNB2",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "xyXVariable"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.Sat2VNB.Y",
+          "target_name": "xyXVariable"
+        },
+        {
+          "action": "click",
+          "target_name": "xySelectY"
+        },
+        {
+          "action": "click",
+          "target_name": "reportParameterRemoveAll"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "reportParameterEntry"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.Sat2VNB.Z",
+          "target_name": "reportParameterEntry"
+        },
+        {
+          "action": "click",
+          "target_name": "reportAddParameter"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultOrbitView",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "EarthView",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "EarthView",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitClearObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Sat1"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Sat2"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Sat3"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Sat4"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Earth"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add OrbitView",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "Sat2InSat1LVLH",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Sat2InSat1LVLH",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitClearObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Sat1"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Sat2"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Sat3"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Sat4"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Earth"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_CoordinateSystem",
+          "value": "Sat1LVLH"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewScaleFactor"
+        },
+        {
+          "action": "text",
+          "text": "0.15",
+          "target_name": "orbit_ViewScaleFactor"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewUpAxis",
+          "value": "X"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-formation-resources"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagate",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Delete command",
+          "target_role": "menu"
+        },
+        {
+          "action": "click",
+          "target_text": "Yes",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Toggle"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Subscribers"
+        },
+        {
+          "action": "text",
+          "text": "Sat1wrtSat2VNB",
+          "target_name": "commandField_Subscribers"
+        },
+        {
+          "action": "select",
+          "target_name": "commandToggleState",
+          "value": "On"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Toggle"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Subscribers"
+        },
+        {
+          "action": "text",
+          "text": "Sat2InSat1LVLH",
+          "target_name": "commandField_Subscribers"
+        },
+        {
+          "action": "select",
+          "target_name": "commandToggleState",
+          "value": "On"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Toggle"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Subscribers"
+        },
+        {
+          "action": "text",
+          "text": "Sat1wrtSat2VNB2",
+          "target_name": "commandField_Subscribers"
+        },
+        {
+          "action": "select",
+          "target_name": "commandToggleState",
+          "value": "On"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Toggle"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Subscribers"
+        },
+        {
+          "action": "text",
+          "text": "Sat2wrtSat1LVLH",
+          "target_name": "commandField_Subscribers"
+        },
+        {
+          "action": "select",
+          "target_name": "commandToggleState",
+          "value": "On"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.EarthMJ2000Eq.X Sat1.EarthMJ2000Eq.Y Sat1.EarthMJ2000Eq.Z Sat1.EarthMJ2000Eq.VX Sat1.EarthMJ2000Eq.VY Sat1.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.EarthMJ2000Eq.X Sat2.EarthMJ2000Eq.Y Sat2.EarthMJ2000Eq.Z Sat2.EarthMJ2000Eq.VX Sat2.EarthMJ2000Eq.VY Sat2.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat3.EarthMJ2000Eq.X Sat3.EarthMJ2000Eq.Y Sat3.EarthMJ2000Eq.Z Sat3.EarthMJ2000Eq.VX Sat3.EarthMJ2000Eq.VY Sat3.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat4.EarthMJ2000Eq.X Sat4.EarthMJ2000Eq.Y Sat4.EarthMJ2000Eq.Z Sat4.EarthMJ2000Eq.VX Sat4.EarthMJ2000Eq.VY Sat4.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "DataReport.WriteHeaders",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Off",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "PropRKV_LowEarth"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "Sat1"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Days"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "0.2",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_name": "editPropagationGroups"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+Home",
+          "target_name": "propagationGroupsTable"
+        },
+        {
+          "action": "click",
+          "target_name": "propagationGroupChoose"
+        },
+        {
+          "action": "check",
+          "target_text": "Sat1",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "check",
+          "target_text": "Sat2",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "check",
+          "target_text": "Sat3",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "check",
+          "target_text": "Sat4",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.EarthMJ2000Eq.X Sat1.EarthMJ2000Eq.Y Sat1.EarthMJ2000Eq.Z Sat1.EarthMJ2000Eq.VX Sat1.EarthMJ2000Eq.VY Sat1.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.EarthMJ2000Eq.X Sat2.EarthMJ2000Eq.Y Sat2.EarthMJ2000Eq.Z Sat2.EarthMJ2000Eq.VX Sat2.EarthMJ2000Eq.VY Sat2.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat3.EarthMJ2000Eq.X Sat3.EarthMJ2000Eq.Y Sat3.EarthMJ2000Eq.Z Sat3.EarthMJ2000Eq.VX Sat3.EarthMJ2000Eq.VY Sat3.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat4.EarthMJ2000Eq.X Sat4.EarthMJ2000Eq.Y Sat4.EarthMJ2000Eq.Z Sat4.EarthMJ2000Eq.VX Sat4.EarthMJ2000Eq.VY Sat4.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Target"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Target1",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "select",
+          "target_name": "commandChoice_ExitMode",
+          "value": "DiscardAndContinue"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "Burn1.Element1",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "-0.0001",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "text",
+          "text": "0.001",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "text",
+          "text": "-0.3",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "text",
+          "text": "0.3",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "0.05",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "Burn1.Element2",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "text",
+          "text": "0.001",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "text",
+          "text": "-0.3",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "text",
+          "text": "0.3",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "0.05",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "Burn1.Element3",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "text",
+          "text": "0.001",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "text",
+          "text": "-0.3",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "text",
+          "text": "0.3",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "0.05",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Maneuver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "text",
+          "text": "Burn1",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "text",
+          "text": "Sat2",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "PropRKV_LowEarth"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "Sat1"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Seconds"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "5498.65387429",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_name": "editPropagationGroups"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+Home",
+          "target_name": "propagationGroupsTable"
+        },
+        {
+          "action": "click",
+          "target_name": "propagationGroupChoose"
+        },
+        {
+          "action": "check",
+          "target_text": "Sat1",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "check",
+          "target_text": "Sat2",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "check",
+          "target_text": "Sat3",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "check",
+          "target_text": "Sat4",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.Sat1LVLH.X",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "text",
+          "text": "0.0001",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.Sat1LVLH.Y",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "text",
+          "text": "0.0001",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.Sat1LVLH.Z",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "text",
+          "text": "0.0001",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.EarthMJ2000Eq.X Sat1.EarthMJ2000Eq.Y Sat1.EarthMJ2000Eq.Z Sat1.EarthMJ2000Eq.VX Sat1.EarthMJ2000Eq.VY Sat1.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.EarthMJ2000Eq.X Sat2.EarthMJ2000Eq.Y Sat2.EarthMJ2000Eq.Z Sat2.EarthMJ2000Eq.VX Sat2.EarthMJ2000Eq.VY Sat2.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat3.EarthMJ2000Eq.X Sat3.EarthMJ2000Eq.Y Sat3.EarthMJ2000Eq.Z Sat3.EarthMJ2000Eq.VX Sat3.EarthMJ2000Eq.VY Sat3.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat4.EarthMJ2000Eq.X Sat4.EarthMJ2000Eq.Y Sat4.EarthMJ2000Eq.Z Sat4.EarthMJ2000Eq.VX Sat4.EarthMJ2000Eq.VY Sat4.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "PositionX",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.Sat1LVLH.X",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "PositionY",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.Sat1LVLH.Y",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "PositionZ",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.Sat1LVLH.Z",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "PositionNorm",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "sqrt(PositionX^2 + PositionY^2 + PositionZ^2)",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "PositionBurnV",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Burn1.Element1",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "PositionBurnN",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Burn1.Element2",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "PositionBurnB",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Burn1.Element3",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Target"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Target2",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "select",
+          "target_name": "commandChoice_ExitMode",
+          "value": "DiscardAndContinue"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "Burn1.Element1",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "-0.0001",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "text",
+          "text": "0.001",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "text",
+          "text": "-1",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "text",
+          "text": "1",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "0.5",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "Burn1.Element2",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "text",
+          "text": "0.001",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "text",
+          "text": "-1",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "text",
+          "text": "1",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "0.5",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "Burn1.Element3",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "text",
+          "text": "0.001",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "text",
+          "text": "-1",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "text",
+          "text": "1",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "0.5",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Maneuver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "text",
+          "text": "Burn1",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "text",
+          "text": "Sat2",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "PropRKV_LowEarth"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "Sat1"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Seconds"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "5498.65387429",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_name": "editPropagationGroups"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+Home",
+          "target_name": "propagationGroupsTable"
+        },
+        {
+          "action": "click",
+          "target_name": "propagationGroupChoose"
+        },
+        {
+          "action": "check",
+          "target_text": "Sat1",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "check",
+          "target_text": "Sat2",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "check",
+          "target_text": "Sat3",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "check",
+          "target_text": "Sat4",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.EarthMJ2000Eq.VX",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.EarthMJ2000Eq.VX",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "text",
+          "text": "0.0001",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.EarthMJ2000Eq.VY",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.EarthMJ2000Eq.VY",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "text",
+          "text": "0.0001",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "DC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "text",
+          "text": "0.0001",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.EarthMJ2000Eq.X Sat1.EarthMJ2000Eq.Y Sat1.EarthMJ2000Eq.Z Sat1.EarthMJ2000Eq.VX Sat1.EarthMJ2000Eq.VY Sat1.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.EarthMJ2000Eq.X Sat2.EarthMJ2000Eq.Y Sat2.EarthMJ2000Eq.Z Sat2.EarthMJ2000Eq.VX Sat2.EarthMJ2000Eq.VY Sat2.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat3.EarthMJ2000Eq.X Sat3.EarthMJ2000Eq.Y Sat3.EarthMJ2000Eq.Z Sat3.EarthMJ2000Eq.VX Sat3.EarthMJ2000Eq.VY Sat3.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat4.EarthMJ2000Eq.X Sat4.EarthMJ2000Eq.Y Sat4.EarthMJ2000Eq.Z Sat4.EarthMJ2000Eq.VX Sat4.EarthMJ2000Eq.VY Sat4.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "VelocityX",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.EarthMJ2000Eq.VX - Sat1.EarthMJ2000Eq.VX",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "VelocityY",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.EarthMJ2000Eq.VY - Sat1.EarthMJ2000Eq.VY",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "VelocityZ",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.EarthMJ2000Eq.VZ - Sat1.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "VelocityNorm",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "sqrt(VelocityX^2 + VelocityY^2 + VelocityZ^2)",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "PositionAtVelocityX",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.Sat1LVLH.X",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "PositionAtVelocityY",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.Sat1LVLH.Y",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "PositionAtVelocityZ",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.Sat1LVLH.Z",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "VelocityBurnV",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Burn1.Element1",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "VelocityBurnN",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Burn1.Element2",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "VelocityBurnB",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Burn1.Element3",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "RendezvousResiduals",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "PositionX PositionY PositionZ PositionNorm VelocityX VelocityY VelocityZ VelocityNorm PositionAtVelocityX PositionAtVelocityY PositionAtVelocityZ PositionBurnV PositionBurnN PositionBurnB VelocityBurnV VelocityBurnN VelocityBurnB",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "PropRKV_LowEarth"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "Sat1"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Days"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "0.2",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_name": "editPropagationGroups"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+Home",
+          "target_name": "propagationGroupsTable"
+        },
+        {
+          "action": "click",
+          "target_name": "propagationGroupChoose"
+        },
+        {
+          "action": "check",
+          "target_text": "Sat1",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "check",
+          "target_text": "Sat2",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "check",
+          "target_text": "Sat3",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "check",
+          "target_text": "Sat4",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat1.EarthMJ2000Eq.X Sat1.EarthMJ2000Eq.Y Sat1.EarthMJ2000Eq.Z Sat1.EarthMJ2000Eq.VX Sat1.EarthMJ2000Eq.VY Sat1.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat2.EarthMJ2000Eq.X Sat2.EarthMJ2000Eq.Y Sat2.EarthMJ2000Eq.Z Sat2.EarthMJ2000Eq.VX Sat2.EarthMJ2000Eq.VY Sat2.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat3.EarthMJ2000Eq.X Sat3.EarthMJ2000Eq.Y Sat3.EarthMJ2000Eq.Z Sat3.EarthMJ2000Eq.VX Sat3.EarthMJ2000Eq.VY Sat3.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "DataReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "Sat4.EarthMJ2000Eq.X Sat4.EarthMJ2000Eq.Y Sat4.EarthMJ2000Eq.Z Sat4.EarthMJ2000Eq.VX Sat4.EarthMJ2000Eq.VY Sat4.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+S"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial15-formation.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-formation-two-targets"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+O"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial15-formation.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "screenshot",
+          "label": "own-saved-mission-reopened"
+        }
+      ]
+    }
+  ]
+}

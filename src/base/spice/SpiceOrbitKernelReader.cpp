@@ -824,12 +824,29 @@ Rvector6 SpiceOrbitKernelReader::GetTargetState(const std::string &targetName,
  *
  */
  //------------------------------------------------------------------------------
+namespace {
+std::string RotationFrameName(const std::string &frame)
+{
+   Integer code;
+   if (GmatStringUtil::ToInteger(frame,code))
+   {
+      SpiceChar name[128] = "";
+      frmnam_c(static_cast<SpiceInt>(code),sizeof(name),name);
+      if (name[0] != '\0') return name;
+   }
+   return frame;
+}
+}
+
  Rmatrix66 SpiceOrbitKernelReader::GetRotationMatrix(std::string fromFrame, std::string toFrame, const GmatTime & atTime)
  {
     Rmatrix66 retval = Rmatrix66();
 
-    ConstSpiceChar *spiceFromFrame = fromFrame.c_str();
-    ConstSpiceChar *spiceToFrame   = toFrame.c_str();
+    // GMAT accepts frame names or numeric IDs; CSPICE transforms need names.
+    const std::string resolvedFrom = RotationFrameName(fromFrame);
+    const std::string resolvedTo = RotationFrameName(toFrame);
+    ConstSpiceChar *spiceFromFrame = resolvedFrom.c_str();
+    ConstSpiceChar *spiceToFrame   = resolvedTo.c_str();
     
     //convert to spiceTime
     etSPICE = A1ToSpiceTime(GmatTime(atTime).GetMjd());
@@ -902,8 +919,11 @@ Rvector6 SpiceOrbitKernelReader::GetTargetState(const std::string &targetName,
  {
     Rmatrix33 retval = Rmatrix33();
 
-    ConstSpiceChar *spiceFromFrame = fromFrame.c_str();
-    ConstSpiceChar *spiceToFrame = toFrame.c_str();
+    // GMAT accepts frame names or numeric IDs; CSPICE transforms need names.
+    const std::string resolvedFrom = RotationFrameName(fromFrame);
+    const std::string resolvedTo = RotationFrameName(toFrame);
+    ConstSpiceChar *spiceFromFrame = resolvedFrom.c_str();
+    ConstSpiceChar *spiceToFrame = resolvedTo.c_str();
 
     //convert to spiceTime
     etSPICE = A1ToSpiceTime(GmatTime(atTime).GetMjd());

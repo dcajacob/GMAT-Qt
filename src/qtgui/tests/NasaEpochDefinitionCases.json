@@ -1,0 +1,834 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "A1ModJulian",
+      "system": "A1",
+      "literal": "21561.02426068298611111111111",
+      "invalid": [
+        "6115",
+        "58128",
+        "nan"
+      ],
+      "expected": {
+        "A1": 21561.024260682985,
+        "TAI": 21561.02426028505,
+        "UTC": 21561.02388991468,
+        "TT": 21561.02463278505,
+        "TDB": 21561.02463278925
+      },
+      "conversions": [
+        {
+          "format": "A1ModJulian",
+          "system": "A1",
+          "expected_mjd": 21561.024260682985,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "A1Gregorian",
+          "system": "A1",
+          "expected_mjd": 21561.024260682985,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TAIModJulian",
+          "system": "TAI",
+          "expected_mjd": 21561.02426028505,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TAIGregorian",
+          "system": "TAI",
+          "expected_mjd": 21561.02426028505,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "UTCModJulian",
+          "system": "UTC",
+          "expected_mjd": 21561.02388991468,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "UTCGregorian",
+          "system": "UTC",
+          "expected_mjd": 21561.02388991468,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TTModJulian",
+          "system": "TT",
+          "expected_mjd": 21561.02463278505,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TTGregorian",
+          "system": "TT",
+          "expected_mjd": 21561.02463278505,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TDBModJulian",
+          "system": "TDB",
+          "expected_mjd": 21561.02463278925,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "TDBGregorian",
+          "system": "TDB",
+          "expected_mjd": 21561.02463278925,
+          "tolerance_seconds": 0.0005600000000000001
+        }
+      ],
+      "epoch_tolerance_seconds": 2e-06,
+      "gregorian_origin": "1941-01-05T12:00:00",
+      "source_label_mjd": 21561.024260682985
+    },
+    {
+      "key": "A1Gregorian",
+      "system": "A1",
+      "literal": "17 Feb 2000 12:34:56.123",
+      "invalid": [
+        "03 Oct 1957 12:00:00.000",
+        "01 Jan 2101 12:00:00.000",
+        "not-a-date"
+      ],
+      "expected": {
+        "A1": 21592.02426068287,
+        "TAI": 21592.024260284936,
+        "UTC": 21592.023889914562,
+        "TT": 21592.024632784935,
+        "TDB": 21592.024632798104
+      },
+      "conversions": [
+        {
+          "format": "A1ModJulian",
+          "system": "A1",
+          "expected_mjd": 21592.02426068287,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "A1Gregorian",
+          "system": "A1",
+          "expected_mjd": 21592.02426068287,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TAIModJulian",
+          "system": "TAI",
+          "expected_mjd": 21592.024260284936,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TAIGregorian",
+          "system": "TAI",
+          "expected_mjd": 21592.024260284936,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "UTCModJulian",
+          "system": "UTC",
+          "expected_mjd": 21592.023889914562,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "UTCGregorian",
+          "system": "UTC",
+          "expected_mjd": 21592.023889914562,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TTModJulian",
+          "system": "TT",
+          "expected_mjd": 21592.024632784935,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TTGregorian",
+          "system": "TT",
+          "expected_mjd": 21592.024632784935,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TDBModJulian",
+          "system": "TDB",
+          "expected_mjd": 21592.024632798104,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "TDBGregorian",
+          "system": "TDB",
+          "expected_mjd": 21592.024632798104,
+          "tolerance_seconds": 0.0005600000000000001
+        }
+      ],
+      "epoch_tolerance_seconds": 2e-06,
+      "gregorian_origin": "1941-01-05T12:00:00",
+      "source_label_mjd": 21592.02426068287
+    },
+    {
+      "key": "TAIModJulian",
+      "system": "TAI",
+      "literal": "21621.02426068298611111111111",
+      "invalid": [
+        "6115",
+        "58128",
+        "nan"
+      ],
+      "expected": {
+        "A1": 21621.024261080922,
+        "TAI": 21621.024260682985,
+        "UTC": 21621.023890312616,
+        "TT": 21621.024633182988,
+        "TDB": 21621.024633201152
+      },
+      "conversions": [
+        {
+          "format": "A1ModJulian",
+          "system": "A1",
+          "expected_mjd": 21621.024261080922,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "A1Gregorian",
+          "system": "A1",
+          "expected_mjd": 21621.024261080922,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TAIModJulian",
+          "system": "TAI",
+          "expected_mjd": 21621.024260682985,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TAIGregorian",
+          "system": "TAI",
+          "expected_mjd": 21621.024260682985,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "UTCModJulian",
+          "system": "UTC",
+          "expected_mjd": 21621.023890312616,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "UTCGregorian",
+          "system": "UTC",
+          "expected_mjd": 21621.023890312616,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TTModJulian",
+          "system": "TT",
+          "expected_mjd": 21621.024633182988,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TTGregorian",
+          "system": "TT",
+          "expected_mjd": 21621.024633182988,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TDBModJulian",
+          "system": "TDB",
+          "expected_mjd": 21621.024633201152,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "TDBGregorian",
+          "system": "TDB",
+          "expected_mjd": 21621.024633201152,
+          "tolerance_seconds": 0.0005600000000000001
+        }
+      ],
+      "epoch_tolerance_seconds": 2e-06,
+      "gregorian_origin": "1941-01-05T12:00:00",
+      "source_label_mjd": 21621.024260682985
+    },
+    {
+      "key": "TAIGregorian",
+      "system": "TAI",
+      "literal": "17 Apr 2000 12:34:56.123",
+      "invalid": [
+        "03 Oct 1957 12:00:00.000",
+        "01 Jan 2101 12:00:00.000",
+        "not-a-date"
+      ],
+      "expected": {
+        "A1": 21652.024261080805,
+        "TAI": 21652.02426068287,
+        "UTC": 21652.0238903125,
+        "TT": 21652.02463318287,
+        "TDB": 21652.0246332014
+      },
+      "conversions": [
+        {
+          "format": "A1ModJulian",
+          "system": "A1",
+          "expected_mjd": 21652.024261080805,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "A1Gregorian",
+          "system": "A1",
+          "expected_mjd": 21652.024261080805,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TAIModJulian",
+          "system": "TAI",
+          "expected_mjd": 21652.02426068287,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TAIGregorian",
+          "system": "TAI",
+          "expected_mjd": 21652.02426068287,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "UTCModJulian",
+          "system": "UTC",
+          "expected_mjd": 21652.0238903125,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "UTCGregorian",
+          "system": "UTC",
+          "expected_mjd": 21652.0238903125,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TTModJulian",
+          "system": "TT",
+          "expected_mjd": 21652.02463318287,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TTGregorian",
+          "system": "TT",
+          "expected_mjd": 21652.02463318287,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TDBModJulian",
+          "system": "TDB",
+          "expected_mjd": 21652.0246332014,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "TDBGregorian",
+          "system": "TDB",
+          "expected_mjd": 21652.0246332014,
+          "tolerance_seconds": 0.0005600000000000001
+        }
+      ],
+      "epoch_tolerance_seconds": 2e-06,
+      "gregorian_origin": "1941-01-05T12:00:00",
+      "source_label_mjd": 21652.02426068287
+    },
+    {
+      "key": "UTCModJulian",
+      "system": "UTC",
+      "literal": "21682.02426068298611111111111",
+      "invalid": [
+        "6115",
+        "58128",
+        "nan"
+      ],
+      "expected": {
+        "A1": 21682.02463145129,
+        "TAI": 21682.024631053355,
+        "UTC": 21682.024260682985,
+        "TT": 21682.025003553357,
+        "TDB": 21682.02500356738
+      },
+      "conversions": [
+        {
+          "format": "A1ModJulian",
+          "system": "A1",
+          "expected_mjd": 21682.02463145129,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "A1Gregorian",
+          "system": "A1",
+          "expected_mjd": 21682.02463145129,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TAIModJulian",
+          "system": "TAI",
+          "expected_mjd": 21682.024631053355,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TAIGregorian",
+          "system": "TAI",
+          "expected_mjd": 21682.024631053355,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "UTCModJulian",
+          "system": "UTC",
+          "expected_mjd": 21682.024260682985,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "UTCGregorian",
+          "system": "UTC",
+          "expected_mjd": 21682.024260682985,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TTModJulian",
+          "system": "TT",
+          "expected_mjd": 21682.025003553357,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TTGregorian",
+          "system": "TT",
+          "expected_mjd": 21682.025003553357,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TDBModJulian",
+          "system": "TDB",
+          "expected_mjd": 21682.02500356738,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "TDBGregorian",
+          "system": "TDB",
+          "expected_mjd": 21682.02500356738,
+          "tolerance_seconds": 0.0005600000000000001
+        }
+      ],
+      "epoch_tolerance_seconds": 2e-06,
+      "gregorian_origin": "1941-01-05T12:00:00",
+      "source_label_mjd": 21682.024260682985
+    },
+    {
+      "key": "UTCGregorian",
+      "system": "UTC",
+      "literal": "17 Jun 2000 12:34:56.123",
+      "invalid": [
+        "03 Oct 1957 12:00:00.000",
+        "01 Jan 2101 12:00:00.000",
+        "not-a-date"
+      ],
+      "expected": {
+        "A1": 21713.02463145118,
+        "TAI": 21713.024631053242,
+        "UTC": 21713.02426068287,
+        "TT": 21713.02500355324,
+        "TDB": 21713.025003558923
+      },
+      "conversions": [
+        {
+          "format": "A1ModJulian",
+          "system": "A1",
+          "expected_mjd": 21713.02463145118,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "A1Gregorian",
+          "system": "A1",
+          "expected_mjd": 21713.02463145118,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TAIModJulian",
+          "system": "TAI",
+          "expected_mjd": 21713.024631053242,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TAIGregorian",
+          "system": "TAI",
+          "expected_mjd": 21713.024631053242,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "UTCModJulian",
+          "system": "UTC",
+          "expected_mjd": 21713.02426068287,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "UTCGregorian",
+          "system": "UTC",
+          "expected_mjd": 21713.02426068287,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TTModJulian",
+          "system": "TT",
+          "expected_mjd": 21713.02500355324,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TTGregorian",
+          "system": "TT",
+          "expected_mjd": 21713.02500355324,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TDBModJulian",
+          "system": "TDB",
+          "expected_mjd": 21713.025003558923,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "TDBGregorian",
+          "system": "TDB",
+          "expected_mjd": 21713.025003558923,
+          "tolerance_seconds": 0.0005600000000000001
+        }
+      ],
+      "epoch_tolerance_seconds": 2e-06,
+      "gregorian_origin": "1941-01-05T12:00:00",
+      "source_label_mjd": 21713.02426068287
+    },
+    {
+      "key": "TTModJulian",
+      "system": "TT",
+      "literal": "21743.02426068298611111111111",
+      "invalid": [
+        "6115",
+        "58128",
+        "nan"
+      ],
+      "expected": {
+        "A1": 21743.023888580923,
+        "TAI": 21743.023888182986,
+        "UTC": 21743.023517812617,
+        "TT": 21743.024260682985,
+        "TDB": 21743.024260679143
+      },
+      "conversions": [
+        {
+          "format": "A1ModJulian",
+          "system": "A1",
+          "expected_mjd": 21743.023888580923,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "A1Gregorian",
+          "system": "A1",
+          "expected_mjd": 21743.023888580923,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TAIModJulian",
+          "system": "TAI",
+          "expected_mjd": 21743.023888182986,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TAIGregorian",
+          "system": "TAI",
+          "expected_mjd": 21743.023888182986,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "UTCModJulian",
+          "system": "UTC",
+          "expected_mjd": 21743.023517812617,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "UTCGregorian",
+          "system": "UTC",
+          "expected_mjd": 21743.023517812617,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TTModJulian",
+          "system": "TT",
+          "expected_mjd": 21743.024260682985,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TTGregorian",
+          "system": "TT",
+          "expected_mjd": 21743.024260682985,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TDBModJulian",
+          "system": "TDB",
+          "expected_mjd": 21743.024260679143,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "TDBGregorian",
+          "system": "TDB",
+          "expected_mjd": 21743.024260679143,
+          "tolerance_seconds": 0.0005600000000000001
+        }
+      ],
+      "epoch_tolerance_seconds": 2e-06,
+      "gregorian_origin": "1941-01-05T12:00:00",
+      "source_label_mjd": 21743.024260682985
+    },
+    {
+      "key": "TTGregorian",
+      "system": "TT",
+      "literal": "17 Aug 2000 12:34:56.123",
+      "invalid": [
+        "03 Oct 1957 12:00:00.000",
+        "01 Jan 2101 12:00:00.000",
+        "not-a-date"
+      ],
+      "expected": {
+        "A1": 21774.023888580807,
+        "TAI": 21774.02388818287,
+        "UTC": 21774.0235178125,
+        "TT": 21774.02426068287,
+        "TDB": 21774.02426067023
+      },
+      "conversions": [
+        {
+          "format": "A1ModJulian",
+          "system": "A1",
+          "expected_mjd": 21774.023888580807,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "A1Gregorian",
+          "system": "A1",
+          "expected_mjd": 21774.023888580807,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TAIModJulian",
+          "system": "TAI",
+          "expected_mjd": 21774.02388818287,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TAIGregorian",
+          "system": "TAI",
+          "expected_mjd": 21774.02388818287,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "UTCModJulian",
+          "system": "UTC",
+          "expected_mjd": 21774.0235178125,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "UTCGregorian",
+          "system": "UTC",
+          "expected_mjd": 21774.0235178125,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TTModJulian",
+          "system": "TT",
+          "expected_mjd": 21774.02426068287,
+          "tolerance_seconds": 2e-06
+        },
+        {
+          "format": "TTGregorian",
+          "system": "TT",
+          "expected_mjd": 21774.02426068287,
+          "tolerance_seconds": 0.0005120000000000001
+        },
+        {
+          "format": "TDBModJulian",
+          "system": "TDB",
+          "expected_mjd": 21774.02426067023,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "TDBGregorian",
+          "system": "TDB",
+          "expected_mjd": 21774.02426067023,
+          "tolerance_seconds": 0.0005600000000000001
+        }
+      ],
+      "epoch_tolerance_seconds": 2e-06,
+      "gregorian_origin": "1941-01-05T12:00:00",
+      "source_label_mjd": 21774.02426068287
+    },
+    {
+      "key": "TDBModJulian",
+      "system": "TDB",
+      "literal": "21805.02426068298611111111111",
+      "invalid": [
+        "6115",
+        "58128",
+        "nan"
+      ],
+      "expected": {
+        "A1": 21805.023888598953,
+        "TAI": 21805.023888201016,
+        "UTC": 21805.023517830647,
+        "TT": 21805.02426070102,
+        "TDB": 21805.024260682985
+      },
+      "conversions": [
+        {
+          "format": "A1ModJulian",
+          "system": "A1",
+          "expected_mjd": 21805.023888598953,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "A1Gregorian",
+          "system": "A1",
+          "expected_mjd": 21805.023888598953,
+          "tolerance_seconds": 0.0005600000000000001
+        },
+        {
+          "format": "TAIModJulian",
+          "system": "TAI",
+          "expected_mjd": 21805.023888201016,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "TAIGregorian",
+          "system": "TAI",
+          "expected_mjd": 21805.023888201016,
+          "tolerance_seconds": 0.0005600000000000001
+        },
+        {
+          "format": "UTCModJulian",
+          "system": "UTC",
+          "expected_mjd": 21805.023517830647,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "UTCGregorian",
+          "system": "UTC",
+          "expected_mjd": 21805.023517830647,
+          "tolerance_seconds": 0.0005600000000000001
+        },
+        {
+          "format": "TTModJulian",
+          "system": "TT",
+          "expected_mjd": 21805.02426070102,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "TTGregorian",
+          "system": "TT",
+          "expected_mjd": 21805.02426070102,
+          "tolerance_seconds": 0.0005600000000000001
+        },
+        {
+          "format": "TDBModJulian",
+          "system": "TDB",
+          "expected_mjd": 21805.024260682985,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "TDBGregorian",
+          "system": "TDB",
+          "expected_mjd": 21805.024260682985,
+          "tolerance_seconds": 0.0005600000000000001
+        }
+      ],
+      "epoch_tolerance_seconds": 5e-05,
+      "gregorian_origin": "1941-01-05T12:00:00",
+      "source_label_mjd": 21805.024260682985
+    },
+    {
+      "key": "TDBGregorian",
+      "system": "TDB",
+      "literal": "17 Oct 2000 12:34:56.123",
+      "invalid": [
+        "03 Oct 1957 12:00:00.000",
+        "01 Jan 2101 12:00:00.000",
+        "not-a-date"
+      ],
+      "expected": {
+        "A1": 21835.02388859934,
+        "TAI": 21835.023888201402,
+        "UTC": 21835.023517831032,
+        "TT": 21835.0242607014,
+        "TDB": 21835.02426068287
+      },
+      "conversions": [
+        {
+          "format": "A1ModJulian",
+          "system": "A1",
+          "expected_mjd": 21835.02388859934,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "A1Gregorian",
+          "system": "A1",
+          "expected_mjd": 21835.02388859934,
+          "tolerance_seconds": 0.0005600000000000001
+        },
+        {
+          "format": "TAIModJulian",
+          "system": "TAI",
+          "expected_mjd": 21835.023888201402,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "TAIGregorian",
+          "system": "TAI",
+          "expected_mjd": 21835.023888201402,
+          "tolerance_seconds": 0.0005600000000000001
+        },
+        {
+          "format": "UTCModJulian",
+          "system": "UTC",
+          "expected_mjd": 21835.023517831032,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "UTCGregorian",
+          "system": "UTC",
+          "expected_mjd": 21835.023517831032,
+          "tolerance_seconds": 0.0005600000000000001
+        },
+        {
+          "format": "TTModJulian",
+          "system": "TT",
+          "expected_mjd": 21835.0242607014,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "TTGregorian",
+          "system": "TT",
+          "expected_mjd": 21835.0242607014,
+          "tolerance_seconds": 0.0005600000000000001
+        },
+        {
+          "format": "TDBModJulian",
+          "system": "TDB",
+          "expected_mjd": 21835.02426068287,
+          "tolerance_seconds": 5e-05
+        },
+        {
+          "format": "TDBGregorian",
+          "system": "TDB",
+          "expected_mjd": 21835.02426068287,
+          "tolerance_seconds": 0.0005600000000000001
+        }
+      ],
+      "epoch_tolerance_seconds": 5e-05,
+      "gregorian_origin": "1941-01-05T12:00:00",
+      "source_label_mjd": 21835.02426068287
+    }
+  ],
+  "reference_sources": {
+    "doc/help/src/Resource_SpacecraftEpoch.xml": "b6372950533e9ce11a42de167c494c154031e1237c311389083c983e022076e0",
+    "doc/SystemDocs/MathematicalSpecification/TimeSystems.tex": "31f08f8ea16b6d3429898484a486f2e8ca2b31e122bf549d3304443f23a0e3ec"
+  },
+  "sources": {
+    "TT": "https://www.iers.org/iers/en/service/faqs/time/howisttcomputedfromtai-163",
+    "TDB": "https://aa.usno.navy.mil/downloads/Circular_179.pdf#page=29"
+  },
+  "scope": "Ten epoch formats and100 directed conversions at selected2000 dates; UTC-TAI32s is valid for those dates. TDB uses independent USNO Eq2.6 and50us tolerance, Gregorian display rounding0.51ms. No general microsecond/TDB accuracy, leap boundary or all epoch-domain qualification."
+}

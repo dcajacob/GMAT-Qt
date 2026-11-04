@@ -26,6 +26,10 @@ QStringList spacecraftOrbitRepresentations(CoordinateSystem &frame)
    for (int i=0;i<StateConversionUtil::GetTypeCount();++i) {
       if (StateConversionUtil::RequiresCelestialBodyOrigin(types[i]) && !frame.HasCelestialBodyOrigin()) continue;
       if (StateConversionUtil::RequiresFixedCoordinateSystem(types[i]) && !frame.AreAxesOfType("BodyFixedAxes")) continue;
+      // Brouwer's fixed Earth zonal model is not available for other origins,
+      // even if a user assigns that body an Earth-like gravitational constant.
+      if ((types[i]=="BrouwerMeanShort" || types[i]=="BrouwerMeanLong") &&
+          (!frame.GetOrigin() || frame.GetOrigin()->GetName()!="Earth")) continue;
       choices.append(QString::fromStdString(types[i]));
    }
    return choices;
@@ -106,6 +110,18 @@ QSet<QString> applySpacecraftOrbitProperties(GmatBase &object,const QMap<QString
          consumed.insert(name);
       }
    }
+   // Match the wx orbit panel's input checks before conversion: converters may
+   // normalize invalid inputs (negative eccentricity or spherical magnitude).
+   // Validate coupled values against this complete pending state, not the old
+   // configured state, so valid simultaneous edits remain atomic.
+   const auto errorFormat=spacecraft->GetErrorMessageFormat();
+   for (int i=0;i<6;++i) {
+      int paired=-1;
+      if ((representation=="Keplerian" || representation=="ModifiedKeplerian") && i<2) paired=1-i;
+      if (representation=="Equinoctial" && (i==1 || i==2)) paired=3-i;
+      StateConversionUtil::ValidateValue(names[i].toStdString(),input[i],errorFormat,17,
+         paired>=0 ? names[paired].toStdString() : "",paired>=0 ? input[paired] : 0);
+   }
    // Submit the six elements together. Changing eccentricity or inclination one
    // scalar at a time can make otherwise valid paired state edits fail midway.
    auto *body=dynamic_cast<CelestialBody *>(frame->GetOrigin());
@@ -131,15 +147,27 @@ QSet<QString> applySpacecraftOrbitProperties(GmatBase &object,const QMap<QString
 QString spacecraftOrbitScript(GmatBase &object)
 {
    auto *spacecraft=dynamic_cast<Spacecraft *>(&object);
-   if (!spacecraft || (spacecraft->GetStringParameter("DisplayStateType")!="Planetodetic" && spacecraft->GetAnomalyType()=="TA"))
+   if (!spacecraft)
       return QString::fromStdString(object.GetGeneratingString(Gmat::SCRIPTING));
-   // The engine's Planetodetic forward/inverse conversions are approximate.
-   // Non-TA sixth elements are also omitted by the engine's script writer's
-   // read-only filter. Store Cartesian components in the selected frame while
-   // keeping display/anomaly selections; input state and display are independent.
+   // Display elements are not a lossless serialization of the physical state.
+   // Near-circular Keplerian angle round trips can move the orbit by centimetres;
+   // Planetodetic conversion is approximate and non-TA anomalies are omitted by
+   // the engine writer. Preserve Cartesian input with the independent display
+   // and anomaly selectors for every non-Cartesian GUI orbit.
    std::unique_ptr<GmatBase> copy(spacecraft->Clone());
    copy->SetStringParameter("DisplayStateType","Cartesian");
    auto block=QString::fromStdString(copy->GetGeneratingString(Gmat::SCRIPTING));
+   // The engine writer's general display precision is 16 significant digits.
+   // State serialization needs 17 for an exact double round trip; even one ULP
+   // can change the accepted pass of a sensitive target sequence.
+   for (const auto &element:QStringList{"X","Y","Z","VX","VY","VZ"}) {
+      const QRegularExpression field("(^[ \\t]*(?:GMAT[ \\t]+)?"+QRegularExpression::escape(QString::fromStdString(object.GetName()))+
+         "\\."+element+"[ \\t]*=[ \\t]*)[^;\\n]+([ \\t]*;)",QRegularExpression::MultilineOption);
+      const auto match=field.match(block);
+      if (!match.hasMatch()) throw std::runtime_error("A Cartesian orbit component could not be serialized.");
+      block.replace(match.capturedStart(0),match.capturedLength(0),match.captured(1)+
+         QString::number(copy->GetRealParameter(element.toStdString()),'g',17)+match.captured(2));
+   }
    const QRegularExpression display("(^[ \\t]*(?:GMAT[ \\t]+)?"+QRegularExpression::escape(QString::fromStdString(object.GetName()))+"\\.DisplayStateType[ \\t]*=[ \\t]*)Cartesian([ \\t]*;)",QRegularExpression::MultilineOption);
    if (!display.match(block).hasMatch()) throw std::runtime_error("The spacecraft display selector could not be serialized.");
    block.replace(display,"\\1"+QString::fromStdString(spacecraft->GetStringParameter("DisplayStateType"))+"\\2");

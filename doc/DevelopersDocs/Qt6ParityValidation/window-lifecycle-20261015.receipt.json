@@ -1,0 +1,835 @@
+{
+  "date_utc": "2026-10-15",
+  "scope": "GMAT Qt isolated software lifecycle; physical host acceptance remains open",
+  "branch": "codex/qt6-gui",
+  "base_commit": "215be630",
+  "remote_tip_verified": "ad343e74d9540001b5307e3153249b453a5ce85b",
+  "ahead": 34,
+  "launch_and_test_files": {
+    "application/bin/GmatQt-R2026a": {
+      "size": 6750008,
+      "sha256": "e78e6ad9b27bec4c5f1fa80c060c60e6e76e211d827bc78f9ffbcc878efed865"
+    },
+    "application/bin/libGmatBase.so.R2026a": {
+      "size": 25040656,
+      "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e"
+    },
+    "application/bin/libGmatUtil.so.R2026a": {
+      "size": 2929904,
+      "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8"
+    },
+    "application/bin/gmat_startup_qt.txt": {
+      "size": 10260,
+      "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a"
+    },
+    "build/linux-gui/src/qtgui/GmatQtWindowTests": {
+      "size": 6787400,
+      "sha256": "5e6fa9f5329d8b358e65c919f3c370857652b8e42ed5f1a6cadcdad69575dcd4"
+    },
+    "build/linux-gui/src/qtgui/libGmatQtFrontend.a": {
+      "size": 15112918,
+      "sha256": "42df2e7a6272a6c4409d8313b4ab49b5e28b8f121ae34d9481220a57bdf9c3d5"
+    },
+    "src/qtgui/tests/WindowTests.cpp": {
+      "size": 17685,
+      "sha256": "4af6c02092a62d93b01ab89fe0fcfb46a873093ffa1de4e05fd895e768aa1fd3"
+    },
+    "src/qtgui/tests/IsolatedWaylandSession.py": {
+      "size": 47203,
+      "sha256": "5e29a8c5efbac1d110e6ab36e0c87b37748624a4de3e2f3bd62a3568d5632fee"
+    },
+    "src/qtgui/tests/IsolatedWaylandExitTests.py": {
+      "size": 3544,
+      "sha256": "f93eeaca7353ff0fa89f49113b4cc16d8af333013fccd2eba1d3013ebf785f08"
+    }
+  },
+  "environment": {
+    "os": "Ubuntu 26.04.1",
+    "kernel": "7.0.0-1015-oem",
+    "mutter": "50.1-0ubuntu2.4",
+    "gnome-shell": "50.1-0ubuntu1.3",
+    "mesa": "26.0.8-1ubuntu0.3",
+    "qt-wayland": "6.10.2+dfsg-7",
+    "display": "owned headless device-free GNOME/Mutter 1600x1200, unit scale, surfaceless software renderer"
+  },
+  "operations": {
+    "viewer_close_reopen": {
+      "isolated_wayland": "pass",
+      "evidence": "005/007: actual Orbit close then Output Return, Earth and orbit retained",
+      "physical_host": "unqualified"
+    },
+    "distinct_resize": {
+      "isolated_wayland": "pass",
+      "evidence": "request42:1282x890; request56:1093x782 after held border drag",
+      "limit": "shrinking clips the pre-existing MDI Orbit position; no automatic retiling claim",
+      "physical_host": "unqualified"
+    },
+    "minimize_restore": {
+      "isolated_wayland": "pass",
+      "evidence": "request60 mapped=false/focus=false; request64 same window mapped=true/focus=true; ground map retained, orbit partially clipped",
+      "physical_host": "unqualified"
+    },
+    "normal_interactive_exit": {
+      "isolated_wayland": "pass",
+      "evidence": "original mission session Alt+F4 application=0; helper repaired explicit exit_application session app/compositor/pipewire=0/0/0, sandbox=0",
+      "physical_host": "unqualified"
+    }
+  },
+  "regressions": {
+    "window_test": {
+      "exit": 0,
+      "elapsed_ms": 22676,
+      "cycles": 3,
+      "display": "private Xvfb/xcb/software GL; no window manager; main minimize Qt client state only",
+      "log": "regression/second.log",
+      "assertions": "distinct small/large main+viewer sizes, removed old subwindow, deferred destruction, retained model, rendered texture/trajectory, source retained, accepted close and lastWindowClosed normal event-loop return"
+    },
+    "helper_exit_unit": {
+      "tests": 6,
+      "exit": 0,
+      "elapsed_s": 0.003,
+      "log": "regression/exit-unit.log"
+    }
+  },
+  "first_failures": [
+    "outer sandbox blocked bwrap namespace before app launch",
+    "outer sandbox private Xvfb socket connection failed before test; abort message retained",
+    "initial Escape/click did not dismiss Welcome; held click did",
+    "Alt+F8/pointer attempt did not resize; border drag did",
+    "old helper reported expected app exit0 as fatal; original private compositor exited-11 during subsequent teardown after shutdown message; attribution and mechanism unknown"
+  ],
+  "sessions": {
+    "initial": {
+      "app": "/home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a",
+      "app_sha256": "e78e6ad9b27bec4c5f1fa80c060c60e6e76e211d827bc78f9ffbcc878efed865",
+      "startup": "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt",
+      "original_startup_sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a",
+      "clone_startup_sha256": "85a6b6f87261253c0b9422a996acf2a22e458beba156f2a70b12710433b6bfd0",
+      "startup_change": "OUTPUT_PATH value only",
+      "fixture": {
+        "kind": "application-generated default mission",
+        "sha256": null,
+        "limit": "Source is generated at launch; record GUI-saved source with the fixture action"
+      },
+      "artifacts": "/tmp/gmat-qt-lifecycle-20261015/interactive/isolated-wayland-xgt2zaxd",
+      "seconds": 600,
+      "screen": [
+        1600,
+        1200
+      ],
+      "host_gnome_before": [
+        {
+          "pid": 16588,
+          "start_ticks": "5140"
+        }
+      ],
+      "limits": "Owned private software Wayland only; host GNOME, portals and hardware drivers unqualified",
+      "readonly_external_library_binds": [
+        "/home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/OpenFramesInterface/dep/OpenSceneGraph-git/installed/lib"
+      ],
+      "sandbox_environment": {
+        "PATH": "/usr/bin",
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "HOME": "/evidence/home",
+        "XDG_RUNTIME_DIR": "/evidence/runtime",
+        "XDG_CONFIG_HOME": "/evidence/config",
+        "XDG_CACHE_HOME": "/evidence/cache",
+        "XDG_DATA_HOME": "/evidence/data",
+        "XDG_DATA_DIRS": "/usr/share",
+        "XDG_CURRENT_DESKTOP": "GNOME",
+        "XDG_SESSION_TYPE": "wayland",
+        "XDG_SESSION_DESKTOP": "GMATPrivateWayland",
+        "GSETTINGS_BACKEND": "memory",
+        "DBUS_SYSTEM_BUS_ADDRESS": "unix:path=/run/no-system-bus",
+        "NO_AT_BRIDGE": "1",
+        "QT_ACCESSIBILITY": "0",
+        "LIBGL_ALWAYS_SOFTWARE": "1",
+        "GALLIUM_DRIVER": "llvmpipe",
+        "MESA_LOADER_DRIVER_OVERRIDE": "swrast",
+        "__EGL_VENDOR_LIBRARY_FILENAMES": "/usr/share/glvnd/egl_vendor.d/50_mesa.json",
+        "MUTTER_DEBUG_DISABLE_HW_CURSORS": "1"
+      },
+      "physical_devices_bound": false,
+      "host_runtime_bound": false,
+      "network_namespace": "private",
+      "sandbox_argv": [
+        "/usr/bin/bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--new-session",
+        "--clearenv",
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--proc",
+        "/proc",
+        "--dev",
+        "/dev",
+        "--dir",
+        "/run",
+        "--tmpfs",
+        "/tmp",
+        "--dir",
+        "/etc",
+        "--dir",
+        "/var",
+        "--dir",
+        "/var/cache",
+        "--dir",
+        "/home",
+        "--dir",
+        "/harness",
+        "--bind",
+        "/tmp/gmat-qt-lifecycle-20261015/interactive/isolated-wayland-xgt2zaxd",
+        "/evidence",
+        "--ro-bind",
+        "/home/dan/GIT/GMAT-Qt/application",
+        "/home/dan/GIT/GMAT-Qt/application",
+        "--ro-bind",
+        "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/IsolatedWaylandSession.py",
+        "/harness/IsolatedWaylandSession.py",
+        "--symlink",
+        "usr/bin",
+        "/bin",
+        "--symlink",
+        "usr/sbin",
+        "/sbin",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--symlink",
+        "usr/lib64",
+        "/lib64",
+        "--ro-bind",
+        "/tmp/gmat-qt-lifecycle-20261015/interactive/isolated-wayland-xgt2zaxd/etc/passwd",
+        "/etc/passwd",
+        "--ro-bind",
+        "/tmp/gmat-qt-lifecycle-20261015/interactive/isolated-wayland-xgt2zaxd/etc/group",
+        "/etc/group",
+        "--ro-bind",
+        "/tmp/gmat-qt-lifecycle-20261015/interactive/isolated-wayland-xgt2zaxd/etc/nsswitch.conf",
+        "/etc/nsswitch.conf",
+        "--ro-bind",
+        "/tmp/gmat-qt-lifecycle-20261015/interactive/isolated-wayland-xgt2zaxd/etc/hosts",
+        "/etc/hosts",
+        "--ro-bind",
+        "/tmp/gmat-qt-lifecycle-20261015/interactive/isolated-wayland-xgt2zaxd/etc/machine-id",
+        "/etc/machine-id",
+        "--ro-bind",
+        "/etc/fonts",
+        "/etc/fonts",
+        "--ro-bind",
+        "/etc/ld.so.cache",
+        "/etc/ld.so.cache",
+        "--ro-bind",
+        "/etc/os-release",
+        "/etc/os-release",
+        "--ro-bind",
+        "/etc/mime.types",
+        "/etc/mime.types",
+        "--ro-bind",
+        "/etc/gtk-3.0",
+        "/etc/gtk-3.0",
+        "--ro-bind",
+        "/var/cache/fontconfig",
+        "/var/cache/fontconfig",
+        "--ro-bind",
+        "/home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/OpenFramesInterface/dep/OpenSceneGraph-git/installed/lib",
+        "/home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/OpenFramesInterface/dep/OpenSceneGraph-git/installed/lib",
+        "--setenv",
+        "PATH",
+        "/usr/bin",
+        "--setenv",
+        "LANG",
+        "C.UTF-8",
+        "--setenv",
+        "LC_ALL",
+        "C.UTF-8",
+        "--setenv",
+        "HOME",
+        "/evidence/home",
+        "--setenv",
+        "XDG_RUNTIME_DIR",
+        "/evidence/runtime",
+        "--setenv",
+        "XDG_CONFIG_HOME",
+        "/evidence/config",
+        "--setenv",
+        "XDG_CACHE_HOME",
+        "/evidence/cache",
+        "--setenv",
+        "XDG_DATA_HOME",
+        "/evidence/data",
+        "--setenv",
+        "XDG_DATA_DIRS",
+        "/usr/share",
+        "--setenv",
+        "XDG_CURRENT_DESKTOP",
+        "GNOME",
+        "--setenv",
+        "XDG_SESSION_TYPE",
+        "wayland",
+        "--setenv",
+        "XDG_SESSION_DESKTOP",
+        "GMATPrivateWayland",
+        "--setenv",
+        "GSETTINGS_BACKEND",
+        "memory",
+        "--setenv",
+        "DBUS_SYSTEM_BUS_ADDRESS",
+        "unix:path=/run/no-system-bus",
+        "--setenv",
+        "NO_AT_BRIDGE",
+        "1",
+        "--setenv",
+        "QT_ACCESSIBILITY",
+        "0",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "GALLIUM_DRIVER",
+        "llvmpipe",
+        "--setenv",
+        "MESA_LOADER_DRIVER_OVERRIDE",
+        "swrast",
+        "--setenv",
+        "__EGL_VENDOR_LIBRARY_FILENAMES",
+        "/usr/share/glvnd/egl_vendor.d/50_mesa.json",
+        "--setenv",
+        "MUTTER_DEBUG_DISABLE_HW_CURSORS",
+        "1",
+        "--chdir",
+        "/home/dan/GIT/GMAT-Qt/application/bin",
+        "--",
+        "/usr/bin/dbus-run-session",
+        "--",
+        "/usr/bin/python3",
+        "-u",
+        "/harness/IsolatedWaylandSession.py",
+        "--worker",
+        "/evidence/worker-config.json"
+      ],
+      "display": "gmat-private",
+      "qpa": "wayland",
+      "software_gl_requested": true,
+      "launch_files": {
+        "application": {
+          "path": "/home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a",
+          "sha256": "e78e6ad9b27bec4c5f1fa80c060c60e6e76e211d827bc78f9ffbcc878efed865",
+          "device": 66311,
+          "inode": 134518516,
+          "size": 6750008,
+          "mtime_ns": 1791226750344854345
+        },
+        "helper": {
+          "path": "/harness/IsolatedWaylandSession.py",
+          "sha256": "307c121fdd493909a1f20c9ad3cd4ebcde3eca27943cff244c7c9ec5a2887611",
+          "device": 66311,
+          "inode": 147360445,
+          "size": 45405,
+          "mtime_ns": 1790961009521975870
+        },
+        "startup": {
+          "path": "/evidence/gmat_startup_isolated.txt",
+          "sha256": "85a6b6f87261253c0b9422a996acf2a22e458beba156f2a70b12710433b6bfd0",
+          "device": 51,
+          "inode": 1471118,
+          "size": 10267,
+          "mtime_ns": 1792094975270978070
+        },
+        "original_startup": {
+          "path": "/evidence/original-startup.txt",
+          "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a",
+          "device": 51,
+          "inode": 1471117,
+          "size": 10260,
+          "mtime_ns": 1792094975270947740
+        },
+        "libGmatBase.so.R2026a": {
+          "path": "/home/dan/GIT/GMAT-Qt/application/bin/libGmatBase.so.R2026a",
+          "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e",
+          "device": 66311,
+          "inode": 134517343,
+          "size": 25040656,
+          "mtime_ns": 1791173286426610185
+        },
+        "libGmatUtil.so.R2026a": {
+          "path": "/home/dan/GIT/GMAT-Qt/application/bin/libGmatUtil.so.R2026a",
+          "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8",
+          "device": 66311,
+          "inode": 134517344,
+          "size": 2929904,
+          "mtime_ns": 1791003522524638612
+        }
+      },
+      "launch_fixture": {
+        "kind": "application-generated default mission",
+        "sha256": null
+      },
+      "input": "Mutter RemoteDesktop persistent same-peer virtual input with absolute paired-monitor mapping",
+      "input_monitor": {
+        "position": [
+          0,
+          0
+        ],
+        "size": [
+          1600,
+          1200
+        ],
+        "output-name": "Meta-0",
+        "mapping-id": "d8aa5b9c-3161-4f09-953a-4fcfd6055875"
+      },
+      "input_stream": "/org/gnome/Mutter/ScreenCast/Stream/u1",
+      "pipewire": "owned process and runtime socket in same isolated namespaces",
+      "private_bus_address": "unix:path=/tmp/dbus-UEi5wfQz8g,guid=f5b39519bde4c4c9815ba7506ad132ff",
+      "system_api_bus": "same owned private session bus; host services absent",
+      "isolation_verified": {
+        "physical_devices": false,
+        "host_system_bus": false,
+        "host_display_variables": false,
+        "runtime": "/evidence/runtime"
+      },
+      "windows": [
+        {
+          "window": 3872640120,
+          "title": "Welcome to GMAT",
+          "pid": 490,
+          "class": "GmatQt-R2026a",
+          "mapped": false,
+          "focus": false,
+          "x": 459,
+          "y": 274,
+          "width": 682,
+          "height": 580
+        },
+        {
+          "window": 3872640119,
+          "title": "Untitled \u2014 GMAT Qt 6 - [Untitled 1 \u2014 Active mission]",
+          "pid": 490,
+          "class": "GmatQt-R2026a",
+          "mapped": true,
+          "focus": false,
+          "x": 159,
+          "y": 171,
+          "width": 1282,
+          "height": 890
+        }
+      ],
+      "sandbox_pid": 913988,
+      "failure": "Private worker failed: Owned application exited (0); see application.log",
+      "closed": true,
+      "sandbox_exit": 1,
+      "host_gnome_after": [
+        {
+          "pid": 16588,
+          "start_ticks": "5140"
+        }
+      ],
+      "host_gnome_identity_unchanged": true
+    },
+    "initial_worker_exits": {
+      "compositor": -11,
+      "pipewire": 0,
+      "application": 0
+    },
+    "fixed": {
+      "app": "/home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a",
+      "app_sha256": "e78e6ad9b27bec4c5f1fa80c060c60e6e76e211d827bc78f9ffbcc878efed865",
+      "startup": "/home/dan/GIT/GMAT-Qt/application/bin/gmat_startup_qt.txt",
+      "original_startup_sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a",
+      "clone_startup_sha256": "85a6b6f87261253c0b9422a996acf2a22e458beba156f2a70b12710433b6bfd0",
+      "startup_change": "OUTPUT_PATH value only",
+      "fixture": {
+        "kind": "application-generated default mission",
+        "sha256": null,
+        "limit": "Source is generated at launch; record GUI-saved source with the fixture action"
+      },
+      "artifacts": "/tmp/gmat-qt-lifecycle-20261015/normal-exit-fixed/isolated-wayland-2l2tyl3j",
+      "seconds": 60,
+      "screen": [
+        1600,
+        1200
+      ],
+      "host_gnome_before": [
+        {
+          "pid": 16588,
+          "start_ticks": "5140"
+        }
+      ],
+      "limits": "Owned private software Wayland only; host GNOME, portals and hardware drivers unqualified",
+      "readonly_external_library_binds": [
+        "/home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/OpenFramesInterface/dep/OpenSceneGraph-git/installed/lib"
+      ],
+      "sandbox_environment": {
+        "PATH": "/usr/bin",
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "HOME": "/evidence/home",
+        "XDG_RUNTIME_DIR": "/evidence/runtime",
+        "XDG_CONFIG_HOME": "/evidence/config",
+        "XDG_CACHE_HOME": "/evidence/cache",
+        "XDG_DATA_HOME": "/evidence/data",
+        "XDG_DATA_DIRS": "/usr/share",
+        "XDG_CURRENT_DESKTOP": "GNOME",
+        "XDG_SESSION_TYPE": "wayland",
+        "XDG_SESSION_DESKTOP": "GMATPrivateWayland",
+        "GSETTINGS_BACKEND": "memory",
+        "DBUS_SYSTEM_BUS_ADDRESS": "unix:path=/run/no-system-bus",
+        "NO_AT_BRIDGE": "1",
+        "QT_ACCESSIBILITY": "0",
+        "LIBGL_ALWAYS_SOFTWARE": "1",
+        "GALLIUM_DRIVER": "llvmpipe",
+        "MESA_LOADER_DRIVER_OVERRIDE": "swrast",
+        "__EGL_VENDOR_LIBRARY_FILENAMES": "/usr/share/glvnd/egl_vendor.d/50_mesa.json",
+        "MUTTER_DEBUG_DISABLE_HW_CURSORS": "1"
+      },
+      "physical_devices_bound": false,
+      "host_runtime_bound": false,
+      "network_namespace": "private",
+      "sandbox_argv": [
+        "/usr/bin/bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--new-session",
+        "--clearenv",
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--proc",
+        "/proc",
+        "--dev",
+        "/dev",
+        "--dir",
+        "/run",
+        "--tmpfs",
+        "/tmp",
+        "--dir",
+        "/etc",
+        "--dir",
+        "/var",
+        "--dir",
+        "/var/cache",
+        "--dir",
+        "/home",
+        "--dir",
+        "/harness",
+        "--bind",
+        "/tmp/gmat-qt-lifecycle-20261015/normal-exit-fixed/isolated-wayland-2l2tyl3j",
+        "/evidence",
+        "--ro-bind",
+        "/home/dan/GIT/GMAT-Qt/application",
+        "/home/dan/GIT/GMAT-Qt/application",
+        "--ro-bind",
+        "/home/dan/GIT/GMAT-Qt/src/qtgui/tests/IsolatedWaylandSession.py",
+        "/harness/IsolatedWaylandSession.py",
+        "--symlink",
+        "usr/bin",
+        "/bin",
+        "--symlink",
+        "usr/sbin",
+        "/sbin",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--symlink",
+        "usr/lib64",
+        "/lib64",
+        "--ro-bind",
+        "/tmp/gmat-qt-lifecycle-20261015/normal-exit-fixed/isolated-wayland-2l2tyl3j/etc/passwd",
+        "/etc/passwd",
+        "--ro-bind",
+        "/tmp/gmat-qt-lifecycle-20261015/normal-exit-fixed/isolated-wayland-2l2tyl3j/etc/group",
+        "/etc/group",
+        "--ro-bind",
+        "/tmp/gmat-qt-lifecycle-20261015/normal-exit-fixed/isolated-wayland-2l2tyl3j/etc/nsswitch.conf",
+        "/etc/nsswitch.conf",
+        "--ro-bind",
+        "/tmp/gmat-qt-lifecycle-20261015/normal-exit-fixed/isolated-wayland-2l2tyl3j/etc/hosts",
+        "/etc/hosts",
+        "--ro-bind",
+        "/tmp/gmat-qt-lifecycle-20261015/normal-exit-fixed/isolated-wayland-2l2tyl3j/etc/machine-id",
+        "/etc/machine-id",
+        "--ro-bind",
+        "/etc/fonts",
+        "/etc/fonts",
+        "--ro-bind",
+        "/etc/ld.so.cache",
+        "/etc/ld.so.cache",
+        "--ro-bind",
+        "/etc/os-release",
+        "/etc/os-release",
+        "--ro-bind",
+        "/etc/mime.types",
+        "/etc/mime.types",
+        "--ro-bind",
+        "/etc/gtk-3.0",
+        "/etc/gtk-3.0",
+        "--ro-bind",
+        "/var/cache/fontconfig",
+        "/var/cache/fontconfig",
+        "--ro-bind",
+        "/home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/OpenFramesInterface/dep/OpenSceneGraph-git/installed/lib",
+        "/home/dan/Downloads/GMAT/GMAT-src_and_data-R2026a/GMAT-R2026a/depends/OpenFramesInterface/dep/OpenSceneGraph-git/installed/lib",
+        "--setenv",
+        "PATH",
+        "/usr/bin",
+        "--setenv",
+        "LANG",
+        "C.UTF-8",
+        "--setenv",
+        "LC_ALL",
+        "C.UTF-8",
+        "--setenv",
+        "HOME",
+        "/evidence/home",
+        "--setenv",
+        "XDG_RUNTIME_DIR",
+        "/evidence/runtime",
+        "--setenv",
+        "XDG_CONFIG_HOME",
+        "/evidence/config",
+        "--setenv",
+        "XDG_CACHE_HOME",
+        "/evidence/cache",
+        "--setenv",
+        "XDG_DATA_HOME",
+        "/evidence/data",
+        "--setenv",
+        "XDG_DATA_DIRS",
+        "/usr/share",
+        "--setenv",
+        "XDG_CURRENT_DESKTOP",
+        "GNOME",
+        "--setenv",
+        "XDG_SESSION_TYPE",
+        "wayland",
+        "--setenv",
+        "XDG_SESSION_DESKTOP",
+        "GMATPrivateWayland",
+        "--setenv",
+        "GSETTINGS_BACKEND",
+        "memory",
+        "--setenv",
+        "DBUS_SYSTEM_BUS_ADDRESS",
+        "unix:path=/run/no-system-bus",
+        "--setenv",
+        "NO_AT_BRIDGE",
+        "1",
+        "--setenv",
+        "QT_ACCESSIBILITY",
+        "0",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "GALLIUM_DRIVER",
+        "llvmpipe",
+        "--setenv",
+        "MESA_LOADER_DRIVER_OVERRIDE",
+        "swrast",
+        "--setenv",
+        "__EGL_VENDOR_LIBRARY_FILENAMES",
+        "/usr/share/glvnd/egl_vendor.d/50_mesa.json",
+        "--setenv",
+        "MUTTER_DEBUG_DISABLE_HW_CURSORS",
+        "1",
+        "--chdir",
+        "/home/dan/GIT/GMAT-Qt/application/bin",
+        "--",
+        "/usr/bin/dbus-run-session",
+        "--",
+        "/usr/bin/python3",
+        "-u",
+        "/harness/IsolatedWaylandSession.py",
+        "--worker",
+        "/evidence/worker-config.json"
+      ],
+      "display": "gmat-private",
+      "qpa": "wayland",
+      "software_gl_requested": true,
+      "launch_files": {
+        "application": {
+          "path": "/home/dan/GIT/GMAT-Qt/application/bin/GmatQt-R2026a",
+          "sha256": "e78e6ad9b27bec4c5f1fa80c060c60e6e76e211d827bc78f9ffbcc878efed865",
+          "device": 66311,
+          "inode": 134518516,
+          "size": 6750008,
+          "mtime_ns": 1791226750344854345
+        },
+        "helper": {
+          "path": "/harness/IsolatedWaylandSession.py",
+          "sha256": "5e29a8c5efbac1d110e6ab36e0c87b37748624a4de3e2f3bd62a3568d5632fee",
+          "device": 66311,
+          "inode": 147324948,
+          "size": 47203,
+          "mtime_ns": 1792095272229553723
+        },
+        "startup": {
+          "path": "/evidence/gmat_startup_isolated.txt",
+          "sha256": "85a6b6f87261253c0b9422a996acf2a22e458beba156f2a70b12710433b6bfd0",
+          "device": 51,
+          "inode": 1472966,
+          "size": 10267,
+          "mtime_ns": 1792095290168015728
+        },
+        "original_startup": {
+          "path": "/evidence/original-startup.txt",
+          "sha256": "5f80be1f2dbe46faeb6d226328cace194d7770d086d5447c8b44928fb858559a",
+          "device": 51,
+          "inode": 1472965,
+          "size": 10260,
+          "mtime_ns": 1792095290167982855
+        },
+        "libGmatBase.so.R2026a": {
+          "path": "/home/dan/GIT/GMAT-Qt/application/bin/libGmatBase.so.R2026a",
+          "sha256": "5d455c6b0300e930dd9d9550f03e087b68fcded2508fa1304e5a031af77a100e",
+          "device": 66311,
+          "inode": 134517343,
+          "size": 25040656,
+          "mtime_ns": 1791173286426610185
+        },
+        "libGmatUtil.so.R2026a": {
+          "path": "/home/dan/GIT/GMAT-Qt/application/bin/libGmatUtil.so.R2026a",
+          "sha256": "f9844517a2de0dfa1ddbd7b8180a63452aa6917a8fcd0b87217f304547a717a8",
+          "device": 66311,
+          "inode": 134517344,
+          "size": 2929904,
+          "mtime_ns": 1791003522524638612
+        }
+      },
+      "launch_fixture": {
+        "kind": "application-generated default mission",
+        "sha256": null
+      },
+      "input": "Mutter RemoteDesktop persistent same-peer virtual input with absolute paired-monitor mapping",
+      "input_monitor": {
+        "position": [
+          0,
+          0
+        ],
+        "size": [
+          1600,
+          1200
+        ],
+        "output-name": "Meta-0",
+        "mapping-id": "ff1515aa-2015-44d6-83ec-3575f9f8015f"
+      },
+      "input_stream": "/org/gnome/Mutter/ScreenCast/Stream/u1",
+      "pipewire": "owned process and runtime socket in same isolated namespaces",
+      "private_bus_address": "unix:path=/tmp/dbus-fIQoKpxP0W,guid=51794b3b620ce969a482ee5c6ad1343a",
+      "system_api_bus": "same owned private session bus; host services absent",
+      "isolation_verified": {
+        "physical_devices": false,
+        "host_system_bus": false,
+        "host_display_variables": false,
+        "runtime": "/evidence/runtime"
+      },
+      "windows": [
+        {
+          "window": 4141017697,
+          "title": "Welcome to GMAT",
+          "pid": 557,
+          "class": "GmatQt-R2026a",
+          "mapped": false,
+          "focus": false,
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "window": 4141017696,
+          "title": "Untitled \u2014 GMAT Qt 6 - [Untitled 1 \u2014 Active mission]",
+          "pid": 557,
+          "class": "GmatQt-R2026a",
+          "mapped": true,
+          "focus": false,
+          "x": 159,
+          "y": 171,
+          "width": 1282,
+          "height": 890
+        }
+      ],
+      "sandbox_pid": 950581,
+      "closed": true,
+      "sandbox_exit": 0,
+      "host_gnome_after": [
+        {
+          "pid": 16588,
+          "start_ticks": "5140"
+        }
+      ],
+      "host_gnome_identity_unchanged": true
+    },
+    "fixed_worker_exits": {
+      "compositor": 0,
+      "pipewire": 0,
+      "application": 0
+    },
+    "fixed_exit_action": {
+      "request_id": 8,
+      "action": "exit_application",
+      "result": {
+        "application_exit": 0,
+        "input": "ALT+F4",
+        "focused_window": {
+          "window": 4141017696,
+          "title": "Untitled \u2014 GMAT Qt 6 - [Untitled 1 \u2014 Active mission]",
+          "pid": 557,
+          "class": "GmatQt-R2026a",
+          "mapped": true,
+          "focus": true,
+          "x": 159,
+          "y": 171,
+          "width": 1282,
+          "height": 890
+        },
+        "other_process_exits_before_cleanup": {
+          "compositor": null,
+          "pipewire": null
+        }
+      },
+      "quit": true
+    }
+  },
+  "raw_archive": {
+    "file": "window-lifecycle-20261015.raw.zip",
+    "size": 4556561,
+    "sha256": "22e946a73157236eddce30d67313e6cbfccb9526ba3d91b482edaba2db386d4f"
+  },
+  "screenshots": {
+    "window-lifecycle-20261015/normal-close-ready.png": {
+      "sha256": "16d735d55bb5682a9a6a933e6ea7234cebeed6ef3c77a00c5a38d5c0d1027a23",
+      "size": 305862
+    },
+    "window-lifecycle-20261015/restored.png": {
+      "sha256": "ea7e6da552be1feff679e455256733ce01d93d2640d355d4f4030c924f2307a6",
+      "size": 322364
+    },
+    "window-lifecycle-20261015/minimized.png": {
+      "sha256": "d59d92c6273ba06f83f99e836efb7366232f9f1529f91379abbd799e665c6cf3",
+      "size": 13946
+    },
+    "window-lifecycle-20261015/resized.png": {
+      "sha256": "37aff99a8573fa42693d09afd97b2e5b43eb79d4ffe698a99b62151fe8b26e5e",
+      "size": 322364
+    },
+    "window-lifecycle-20261015/orbit-reopened.png": {
+      "sha256": "f0d2e7a795397b6b0f7879f5b131f80e8c7de4baeea6928668e440ae005a4632",
+      "size": 388795
+    },
+    "window-lifecycle-20261015/orbit-closed.png": {
+      "sha256": "bdde1ecdb88ed62098f3a0321088081d9c203a750eb0637c34c4b56ee3ed0787",
+      "size": 376339
+    },
+    "window-lifecycle-20261015/maximized.png": {
+      "sha256": "6afdea23d9c0b479c571eb03e7b265756ba661f8a373399ddf33bc75d7acedbd",
+      "size": 447632
+    }
+  },
+  "production_application_changes": false,
+  "physical_host_testing_performed": false,
+  "system_security_or_package_changes": false
+}

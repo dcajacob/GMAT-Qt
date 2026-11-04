@@ -1,0 +1,202 @@
+{
+  "cases": [
+    {
+      "id": "Properties",
+      "selected": [
+        "Sat"
+      ],
+      "hardware": false,
+      "burn": false,
+      "shared": false,
+      "diagnostic_only": false,
+      "objects": [
+        "Sat"
+      ],
+      "filename": "Sat.Spacecraft.data",
+      "expected_fuel": [
+        50,
+        75
+      ],
+      "invalid_inputs": [
+        "",
+        "MissingNASA",
+        "Sat.NoSuchField"
+      ],
+      "numeric_literals": {
+        "Sat.DryMass": 825.25,
+        "Sat.Cd": 2.31,
+        "Sat.Cr": 1.42,
+        "Sat.DragArea": 11.125,
+        "Sat.SRPArea": 12.375
+      }
+    },
+    {
+      "id": "Parameters",
+      "selected": [
+        "V",
+        "Text",
+        "Grid"
+      ],
+      "hardware": false,
+      "burn": false,
+      "shared": false,
+      "diagnostic_only": false,
+      "objects": [
+        "V",
+        "Text",
+        "Grid"
+      ],
+      "filename": "V_Text_Grid.data",
+      "expected_fuel": [
+        50,
+        75
+      ],
+      "invalid_inputs": [
+        "",
+        "MissingNASA",
+        "Sat.NoSuchField"
+      ],
+      "numeric_literals": {
+        "V.Value": -12.75
+      }
+    },
+    {
+      "id": "ChemicalAttached",
+      "selected": [
+        "Sat"
+      ],
+      "hardware": true,
+      "burn": true,
+      "shared": false,
+      "diagnostic_only": false,
+      "objects": [
+        "Sat",
+        "FuelA",
+        "FuelB",
+        "Engine"
+      ],
+      "filename": "Sat.Spacecraft.data",
+      "expected_fuel": [
+        49.99975,
+        74.99925
+      ],
+      "invalid_inputs": [
+        "",
+        "MissingNASA",
+        "Sat.NoSuchField"
+      ],
+      "numeric_literals": {
+        "Sat.DryMass": 825.25,
+        "Sat.Cd": 2.31,
+        "Sat.Cr": 1.42,
+        "Sat.DragArea": 11.125,
+        "Sat.SRPArea": 12.375
+      }
+    },
+    {
+      "id": "ExplicitAttached",
+      "selected": [
+        "Sat",
+        "FuelB",
+        "Engine"
+      ],
+      "hardware": true,
+      "burn": true,
+      "shared": false,
+      "diagnostic_only": false,
+      "objects": [
+        "Sat",
+        "FuelA",
+        "FuelB",
+        "Engine"
+      ],
+      "filename": "Sat_FuelB_Engine.data",
+      "expected_fuel": [
+        49.99975,
+        74.99925
+      ],
+      "invalid_inputs": [
+        "",
+        "MissingNASA",
+        "Sat.NoSuchField"
+      ],
+      "numeric_literals": {
+        "Sat.DryMass": 825.25,
+        "Sat.Cd": 2.31,
+        "Sat.Cr": 1.42,
+        "Sat.DragArea": 11.125,
+        "Sat.SRPArea": 12.375
+      }
+    },
+    {
+      "id": "SharedAttached",
+      "selected": [
+        "Sat",
+        "Other"
+      ],
+      "hardware": true,
+      "burn": false,
+      "shared": true,
+      "diagnostic_only": false,
+      "objects": [
+        "Sat",
+        "Other",
+        "FuelA",
+        "FuelB",
+        "Engine"
+      ],
+      "filename": "Sat_Other.data",
+      "expected_fuel": [
+        50,
+        75
+      ],
+      "invalid_inputs": [
+        "",
+        "MissingNASA",
+        "Sat.NoSuchField"
+      ],
+      "numeric_literals": {
+        "Sat.DryMass": 825.25,
+        "Sat.Cd": 2.31,
+        "Sat.Cr": 1.42,
+        "Sat.DragArea": 11.125,
+        "Sat.SRPArea": 12.375
+      }
+    },
+    {
+      "id": "SharedDivergent",
+      "selected": [
+        "Sat",
+        "Other"
+      ],
+      "hardware": true,
+      "burn": true,
+      "shared": true,
+      "diagnostic_only": true,
+      "objects": [
+        "Sat",
+        "Other",
+        "FuelA",
+        "FuelB",
+        "Engine"
+      ],
+      "filename": "Sat_Other.data",
+      "expected_fuel": [
+        49.99975,
+        74.99925
+      ],
+      "invalid_inputs": [
+        "",
+        "MissingNASA",
+        "Sat.NoSuchField"
+      ],
+      "numeric_literals": {
+        "Sat.DryMass": 825.25,
+        "Sat.Cd": 2.31,
+        "Sat.Cr": 1.42,
+        "Sat.DragArea": 11.125,
+        "Sat.SRPArea": 12.375
+      }
+    }
+  ]
+}

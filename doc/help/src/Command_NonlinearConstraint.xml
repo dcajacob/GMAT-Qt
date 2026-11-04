@@ -139,6 +139,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Units of the corresponding scalar expression or parameter; choose compatible units on both sides of the relation.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -190,6 +194,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Relational operator; no physical units.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -239,6 +247,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Optimizer object name; no physical units.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>
@@ -290,6 +302,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Units of the corresponding scalar expression or parameter; choose compatible units on both sides of the relation.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>

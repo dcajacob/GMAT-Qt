@@ -29,6 +29,8 @@
 
 #include "RunSmoother.hpp"
 #include "Smoother.hpp"
+#include <set>
+#include <vector>
 
 //#define DEBUG_INITIALIZATION
 //#define DEBUG_LOAD_SOLVEFORS
@@ -134,32 +136,54 @@ bool RunSmoother::Initialize()
    {
       // Get the name of the SeqEstimator used in the Smoother
       std::string filterName = theEstimator->GetRefObjectName(GmatType::GetTypeId("SeqEstimator"));
-      GmatCommand *prevCmd = GetPrevious();
+      // Sibling links omit estimators inside completed branches. Traverse the
+      // mission graph, then use runtime completion order rather than source
+      // order: skipped/future commands have sequence zero, and a later completed
+      // invocation wins even when it appears earlier in a loop's source.
+      GmatCommand *first = this;
+      std::set<GmatCommand*> ancestors;
+      while (first->GetPrevious() && ancestors.insert(first).second)
+         first = first->GetPrevious();
 
-      while (prevCmd)
+      std::vector<GmatCommand*> pending(1, first);
+      std::set<GmatCommand*> visited;
+      SeqEstimator *forwardFilter = NULL;
+      std::uint64_t latest = 0;
+      while (!pending.empty())
       {
-         // If this command is an estimator, check if it uses a SeqEstimator
-         if (prevCmd->IsOfType("RunEstimator"))
+         GmatCommand *cmd = pending.back();
+         pending.pop_back();
+         if (!cmd || !visited.insert(cmd).second)
+            continue;
+
+         RunEstimator *run = dynamic_cast<RunEstimator*>(cmd);
+         if (run && cmd != this && run->GetSuccessfulExecutionSequence() > latest)
          {
-            GmatBase *obj = prevCmd->GetRefObject(Gmat::SOLVER, filterName);
-
-            if (obj && obj->IsOfType("SeqEstimator"))
+            GmatBase *obj = run->GetRefObject(Gmat::SOLVER, filterName);
+            // GetRefObject may return the command's solver regardless of name.
+            if (obj && obj->GetName() == filterName && obj->IsOfType("SeqEstimator"))
             {
-               std::vector<SeqEstimator::UpdateInfoType> forwardFilterInfo;
-               ObjectArray buffer;
-
-               // Get the filter statistics from this instance.
-               forwardFilterInfo = ((SeqEstimator*) obj)->GetUpdateStats();
-               ((Smoother*) theEstimator)->SetForwardFilterInfo(forwardFilterInfo);
-
-               // Get the buffered objects from this instance.
-               ((SeqEstimator*)obj)->GetObjectBuffer(buffer);
-               ((Smoother*)theEstimator)->SetObjectBuffer(buffer);
-               break;
+               forwardFilter = static_cast<SeqEstimator*>(obj);
+               latest = run->GetSuccessfulExecutionSequence();
             }
          }
 
-         prevCmd = prevCmd->GetPrevious();
+         pending.push_back(cmd->GetNextWhileExecuting());
+         for (Integer branch = 0; ; ++branch)
+         {
+            GmatCommand *child = cmd->GetChildCommand(branch);
+            if (!child)
+               break;
+            pending.push_back(child);
+         }
+      }
+
+      if (forwardFilter)
+      {
+         ((Smoother*)theEstimator)->SetForwardFilterInfo(forwardFilter->GetUpdateStats());
+         ObjectArray buffer;
+         forwardFilter->GetObjectBuffer(buffer);
+         ((Smoother*)theEstimator)->SetObjectBuffer(buffer);
       }
    }
 

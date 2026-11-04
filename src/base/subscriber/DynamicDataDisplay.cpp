@@ -928,7 +928,11 @@ void DynamicDataDisplay::WriteStringArrayValue(Gmat::WriteMode mode,
          for (Integer j = 0; j < displayData[i].size(); ++j)
          {
             stream << ", " <<
-               RgbColor::ToRgbString(displayData[i][j].paramTextColor);
+               // Warning/critical colors are computed display output. Writing
+               // them as a nonzero row color would disable automatic coloring
+               // on reload by marking the cell's color as user-set.
+               RgbColor::ToRgbString(displayData[i][j].isTextColorUserSet ?
+                  displayData[i][j].paramTextColor : 0);
          }
          stream << "};\n";
       }

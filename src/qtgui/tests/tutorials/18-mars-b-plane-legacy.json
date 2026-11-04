@@ -1,0 +1,3197 @@
+{
+  "id": "18-mars-b-plane-legacy",
+  "title": "Mars B-Plane Targeting (Legacy Walkthrough)",
+  "guide": "doc/help/src/Tut_MarsB-PlaneTargeting.xml",
+  "guide_sha256": "d231386c64134039af5d1dd55f582e9a7dcde7a86bd80d84c264479951eb34b3",
+  "reference": "application/docs/help/files/scripts/MarsBPlaneTutorial.script",
+  "provenance": "Reviewed current Help instructions, using semantic QtTest widget selectors. Values come from the Help chapter; the generator never reads a completed example mission. Literal code is entered only where the chapter explicitly teaches it.",
+  "stages": [
+    {
+      "name": "Current Help GUI instructions with QtTest selectors",
+      "input": null,
+      "requires_run": true,
+      "actions": [
+        {
+          "action": "key",
+          "keys": "Esc"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+N"
+        },
+        {
+          "action": "window",
+          "state": "maximized"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultSC",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "MarsSupply",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DateFormat",
+          "value": "TAIModJulian"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "text",
+          "text": "21160",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DisplayStateType",
+          "value": "Keplerian"
+        },
+        {
+          "action": "click",
+          "field_hint": "SMA",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "9999.999999999996"
+        },
+        {
+          "action": "click",
+          "field_hint": "ECC",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "0.09999999999999859"
+        },
+        {
+          "action": "click",
+          "field_hint": "INC",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "24.99999999999999"
+        },
+        {
+          "action": "click",
+          "field_hint": "RAAN",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "332.5000000000001"
+        },
+        {
+          "action": "click",
+          "field_hint": "AOP",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "89.99999999999974"
+        },
+        {
+          "action": "click",
+          "field_hint": "TA",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "359.9999991462263"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultProp",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "EarthProp",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "EarthProp",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "text",
+          "text": "1e-12",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "text",
+          "text": "0.001",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "86400",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MaxStepAttempts"
+        },
+        {
+          "action": "text",
+          "text": "50",
+          "target_name": "resource_MaxStepAttempts"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "EarthProp_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_CentralBody"
+        },
+        {
+          "action": "text",
+          "text": "Earth",
+          "target_name": "resource_CentralBody"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "key",
+          "keys": "Backspace",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "text",
+          "text": "Earth",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagators",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add PropSetup",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "SunProp",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "SunProp",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "text",
+          "text": "1e-12",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "text",
+          "text": "0.001",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "160000",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MaxStepAttempts"
+        },
+        {
+          "action": "text",
+          "text": "500",
+          "target_name": "resource_MaxStepAttempts"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "SunProp_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_CentralBody"
+        },
+        {
+          "action": "text",
+          "text": "Sun",
+          "target_name": "resource_CentralBody"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "key",
+          "keys": "Backspace",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "text",
+          "text": "Sun, Earth, Luna",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagators",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add PropSetup",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "MarsProp",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "MarsProp",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "text",
+          "text": "1e-12",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "text",
+          "text": "0.001",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "86400",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MaxStepAttempts"
+        },
+        {
+          "action": "text",
+          "text": "100",
+          "target_name": "resource_MaxStepAttempts"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "MarsProp_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_CentralBody"
+        },
+        {
+          "action": "text",
+          "text": "Mars",
+          "target_name": "resource_CentralBody"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "key",
+          "keys": "Backspace",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "text",
+          "text": "Mars",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Burns",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ImpulsiveBurn",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "TOI",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "TOI",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "burn_Origin",
+          "value": "Earth"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "burn_Element1"
+        },
+        {
+          "action": "text",
+          "text": "2.85",
+          "target_name": "burn_Element1"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "burn_Element2"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "burn_Element2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "burn_Element3"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "burn_Element3"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Burns",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ImpulsiveBurn",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "MarsMCC",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "MarsMCC",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "burn_Origin",
+          "value": "Sun"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "burn_Element1"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "burn_Element1"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "burn_Element2"
+        },
+        {
+          "action": "text",
+          "text": "-0.8593108944581399",
+          "target_name": "burn_Element2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "burn_Element3"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "burn_Element3"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Burns",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ImpulsiveBurn",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "MarsBPlane",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "MarsBPlane",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "burn_Origin",
+          "value": "Sun"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "burn_Element1"
+        },
+        {
+          "action": "text",
+          "text": "-0.3309163493210106",
+          "target_name": "burn_Element1"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "burn_Element2"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "burn_Element2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "burn_Element3"
+        },
+        {
+          "action": "text",
+          "text": "0.6917117705660262",
+          "target_name": "burn_Element3"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Burns",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ImpulsiveBurn",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "MarsOI",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "MarsOI",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "burn_Origin",
+          "value": "Mars"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "burn_Element1"
+        },
+        {
+          "action": "text",
+          "text": "-4",
+          "target_name": "burn_Element1"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "burn_Element2"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "burn_Element2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "burn_Element3"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "burn_Element3"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Coordinate Systems",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add CoordinateSystem",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "EarthSunRot",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "EarthSunRot",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "text",
+          "text": "Earth",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_Axes",
+          "value": "ObjectReferenced"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_name": "editCoordinateAxes"
+        },
+        {
+          "action": "select",
+          "target_name": "coordinateAxisType",
+          "value": "ObjectReferenced"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Primary"
+        },
+        {
+          "action": "text",
+          "text": "Sun",
+          "target_name": "resource_Primary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Secondary"
+        },
+        {
+          "action": "text",
+          "text": "Earth",
+          "target_name": "resource_Secondary"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_XAxis",
+          "value": "R"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_YAxis",
+          "value": ""
+        },
+        {
+          "action": "select",
+          "target_name": "resource_ZAxis",
+          "value": "N"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Coordinate Systems",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add CoordinateSystem",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "SunMJ2kEc",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "SunMJ2kEc",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "text",
+          "text": "Sun",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_Axes",
+          "value": "MJ2000Ec"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Coordinate Systems",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add CoordinateSystem",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "SunMJ2kEq",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "SunMJ2kEq",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "text",
+          "text": "Sun",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_Axes",
+          "value": "MJ2000Eq"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Coordinate Systems",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add CoordinateSystem",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "MarsMJ2000Eq",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "MarsMJ2000Eq",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "text",
+          "text": "Mars",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_Axes",
+          "value": "MJ2000Eq"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Solvers",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add DifferentialCorrector",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "MarsTOIDC",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_ReportFile"
+        },
+        {
+          "action": "text",
+          "text": "targeter_MarsTOIDC.data",
+          "target_name": "resource_ReportFile"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ReportFile",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "Data",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Filename"
+        },
+        {
+          "action": "text",
+          "text": "Ex_MarsBPlane.report",
+          "target_name": "resource_Filename"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_ColumnWidth"
+        },
+        {
+          "action": "text",
+          "text": "20",
+          "target_name": "resource_ColumnWidth"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultOrbitView",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "EarthView",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "EarthView",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitClearObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "MarsSupply"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Earth"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Sun"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_CoordinateSystem",
+          "value": "EarthMJ2000Eq"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewUpCoordinateSystem",
+          "value": "EarthMJ2000Eq"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewPointReference",
+          "value": "Earth"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewDirection",
+          "value": "Earth"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewPointVector",
+          "value": "Vector"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "text",
+          "text": "30000",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewScaleFactor"
+        },
+        {
+          "action": "text",
+          "text": "1",
+          "target_name": "orbit_ViewScaleFactor"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewUpAxis",
+          "value": "Z"
+        },
+        {
+          "action": "check",
+          "target_name": "orbit_Grid",
+          "checked": true
+        },
+        {
+          "action": "check",
+          "target_name": "orbit_SunLine",
+          "checked": true
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add OrbitView",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "MarsView",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "MarsView",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitClearObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "MarsSupply"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Earth"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Sun"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Mars"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_CoordinateSystem",
+          "value": "MarsMJ2000Eq"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewUpCoordinateSystem",
+          "value": "MarsMJ2000Eq"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewPointReference",
+          "value": "Mars"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewDirection",
+          "value": "Mars"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewPointVector",
+          "value": "Vector"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "text",
+          "text": "30000",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewScaleFactor"
+        },
+        {
+          "action": "text",
+          "text": "2",
+          "target_name": "orbit_ViewScaleFactor"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewUpAxis",
+          "value": "Z"
+        },
+        {
+          "action": "check",
+          "target_name": "orbit_Grid",
+          "checked": true
+        },
+        {
+          "action": "check",
+          "target_name": "orbit_SunLine",
+          "checked": true
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-legacy-mars-resources"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagate",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Delete command",
+          "target_role": "menu"
+        },
+        {
+          "action": "click",
+          "target_text": "Yes",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "Data",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply.A1ModJulian MarsSupply.X MarsSupply.Y MarsSupply.Z MarsSupply.VX MarsSupply.VY MarsSupply.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Assignment"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "text",
+          "text": "Data.WriteHeaders",
+          "target_name": "commandField_Destination"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "text",
+          "text": "Off",
+          "target_name": "commandField_Expression"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "EarthProp"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "MarsSupply"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply.Earth.Periapsis",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "Data",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply.A1ModJulian MarsSupply.X MarsSupply.Y MarsSupply.Z MarsSupply.VX MarsSupply.VY MarsSupply.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Maneuver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "text",
+          "text": "TOI",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "Data",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply.A1ModJulian MarsSupply.X MarsSupply.Y MarsSupply.Z MarsSupply.VX MarsSupply.VY MarsSupply.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "EarthProp"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "MarsSupply"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Days"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "25",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "Data",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply.A1ModJulian MarsSupply.X MarsSupply.Y MarsSupply.Z MarsSupply.VX MarsSupply.VY MarsSupply.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "SunProp"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "MarsSupply"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Days"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "135",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "Data",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply.A1ModJulian MarsSupply.X MarsSupply.Y MarsSupply.Z MarsSupply.VX MarsSupply.VY MarsSupply.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Target"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Target1",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "MarsTOIDC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "select",
+          "target_name": "commandChoice_ExitMode",
+          "value": "DiscardAndContinue"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "MarsTOIDC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "MarsMCC.Element2",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "text",
+          "text": "0.1",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "text",
+          "text": "-8",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "text",
+          "text": "8",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "0.5",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Maneuver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "text",
+          "text": "MarsMCC",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "MarsTOIDC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply.SunMJ2kEq.INC",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "24.677090",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "text",
+          "text": "0.001",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "Data",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply.A1ModJulian MarsSupply.X MarsSupply.Y MarsSupply.Z MarsSupply.VX MarsSupply.VY MarsSupply.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Target"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Target2",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "MarsTOIDC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "select",
+          "target_name": "commandChoice_ExitMode",
+          "value": "DiscardAndContinue"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "MarsTOIDC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "MarsBPlane.Element1",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "-0.233834",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "text",
+          "text": "0.001",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "text",
+          "text": "-3",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "text",
+          "text": "3",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "0.1",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "MarsTOIDC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "MarsBPlane.Element3",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "0.668261",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "text",
+          "text": "0.001",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "text",
+          "text": "-3",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "text",
+          "text": "3",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "0.12",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Maneuver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "text",
+          "text": "MarsBPlane",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "SunProp"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "MarsSupply"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Days"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "50",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "MarsProp"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "MarsSupply"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply.Mars.Periapsis",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "MarsTOIDC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply.MarsMJ2000Eq.BdotT",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "10000",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "text",
+          "text": "50",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Target2",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "text",
+          "text": "MarsTOIDC",
+          "target_name": "commandField_Solver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply.MarsMJ2000Eq.BdotR",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "-10000",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "text",
+          "text": "50",
+          "target_name": "commandField_Tolerance"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "Data",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply.A1ModJulian MarsSupply.X MarsSupply.Y MarsSupply.Z MarsSupply.VX MarsSupply.VY MarsSupply.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Maneuver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "text",
+          "text": "MarsOI",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "Data",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply.A1ModJulian MarsSupply.X MarsSupply.Y MarsSupply.Z MarsSupply.VX MarsSupply.VY MarsSupply.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "MarsProp"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "MarsSupply"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Days"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "0.5",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "Data",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "MarsSupply.A1ModJulian MarsSupply.X MarsSupply.Y MarsSupply.Z MarsSupply.VX MarsSupply.VY MarsSupply.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+S"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial18-mars.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-legacy-mars-completed"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+O"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial18-mars.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "screenshot",
+          "label": "own-saved-mission-reopened"
+        }
+      ]
+    }
+  ]
+}

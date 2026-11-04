@@ -20,6 +20,13 @@ QPair<int,int> backwardSpan(const QString &statement)
    return {start,keyword.hasMatch() ? keyword.capturedLength() : 0};
 }
 bool eventStop(const QString &parameter) { return parameter.endsWith(".Periapsis") || parameter.endsWith(".Apoapsis"); }
+QString replaceEntryValue(QString entry,const QString &value)
+{
+   const auto match=QRegularExpression("=\\s*(.*?)(\\s*)$",QRegularExpression::DotMatchesEverythingOption).match(entry);
+   if (match.hasMatch()) entry.replace(match.capturedStart(1),match.capturedLength(1),value);
+   return entry;
+}
+
 struct Propagation {
    bool valid=false;
    QRegularExpressionMatch match;
@@ -103,7 +110,7 @@ PropagationForm::PropagationForm(const QStringList &propagators,const QStringLis
             entries.append(stopParameter->text()==parsed.stop && (event || duration->text()==parsed.goal) ? entry : stopParameter->text()+(event ? QString() : " = "+duration->text()));
          } else if (i==parsed.toleranceIndex) {
             if (tolerance->text().trimmed().isEmpty()) continue;
-            entries.append(tolerance->text().trimmed()==parsed.tolerance ? entry : "StopTolerance = "+tolerance->text().trimmed());
+            entries.append(tolerance->text().trimmed()==parsed.tolerance ? entry : replaceEntryValue(entry,tolerance->text().trimmed()));
          } else entries.append(entry);
       }
       if (!singleStep->isChecked() && parsed.stopIndex<0) entries.prepend(stopParameter->text()+(eventStop(stopParameter->text()) ? QString() : " = "+duration->text()));
@@ -111,11 +118,20 @@ PropagationForm::PropagationForm(const QStringList &propagators,const QStringLis
       if (singleStep->isChecked()) entries=singleStepOptions(entries);
       QString result=original;
       if (entries!=parsed.entries) {
-         for (auto &entry:entries) entry=entry.trimmed();
+         const bool sameEntries=entries.size()==parsed.entries.size();
+         if (sameEntries) {
+            // Commas and each entry's surrounding whitespace belong to the
+            // authored source. Editing a value must not normalize other spans.
+            for (int i=0;i<entries.size();++i) {
+               const auto trivia=QRegularExpression("^(\\s*)(.*?)(\\s*)$",QRegularExpression::DotMatchesEverythingOption).match(parsed.entries[i]);
+               entries[i]=trivia.captured(1)+entries[i].trimmed()+trivia.captured(3);
+            }
+         } else for (auto &entry:entries) entry=entry.trimmed();
+         const auto separator=sameEntries ? QString(",") : QString(", ");
          if (match.capturedStart(3)>=0) {
             if (entries.isEmpty()) result.remove(match.capturedStart(3),match.capturedLength(3));
-            else result.replace(match.capturedStart(4),match.capturedLength(4),entries.join(", "));
-         } else if (!entries.isEmpty()) result.insert(original.indexOf(')',match.capturedEnd(2))+1," {"+entries.join(", ")+"}");
+            else result.replace(match.capturedStart(4),match.capturedLength(4),entries.join(separator));
+         } else if (!entries.isEmpty()) result.insert(original.indexOf(')',match.capturedEnd(2))+1," {"+entries.join(separator)+"}");
       }
       result.replace(match.capturedStart(2),match.capturedLength(2),spacecraft->currentText());
       result.replace(match.capturedStart(1),match.capturedLength(1),propagator->currentText());

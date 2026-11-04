@@ -1,3 +1,4 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "ResourceDraft.hpp"
 #include "TestSettings.hpp"
@@ -55,7 +56,7 @@ static void earthGravity(ODEModel *model)
 int main(int argc,char **argv)
 {
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv);
-   if (QGuiApplication::platformName()!="offscreen" || argc!=2) return 2;
+   if (!acceptanceWidgetPlatform() || argc!=2) return 2;
    QApplication::setOrganizationName("GMATTests"); QApplication::setApplicationName("PropSetupCreation");
    const char *stage="runtime initialization";
    try {

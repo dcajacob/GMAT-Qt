@@ -36,6 +36,7 @@
 
 #include "GetLastState.hpp"
 #include "ArrayWrapper.hpp"
+#include "Spacecraft.hpp"
 #include "MessageInterface.hpp"
 
 //#define DEBUG_FUNCTION_INIT
@@ -286,8 +287,15 @@ bool GetLastState::Execute(ObjectInitializer *objInit, bool reinitialize)
          ("   outputWrapperTypes[%d] = %d\n", i, outputWrapperTypes[i]);
    #endif
    
-   // Get last state
-   Rvector6 state = ((SpacePoint*)obj)->GetLastState();
+   // The formal object-store entry can be a placeholder in a function frame.
+   // Read the spacecraft actually bound by the input wrapper, as other
+   // object-valued built-ins do, rather than the placeholder's stale state.
+   ElementWrapper *inputWrapper = inputArgMap.begin()->second;
+   Spacecraft *spacecraft = inputWrapper ?
+      dynamic_cast<Spacecraft*>(inputWrapper->GetRefObject()) : NULL;
+   if (spacecraft == NULL)
+      throw GmatBaseException("GetLastState requires a bound Spacecraft input");
+   Rvector6 state = spacecraft->GetLastState();
    
    // Only 1 output
    int index = 0;
@@ -319,13 +327,26 @@ bool GetLastState::Execute(ObjectInitializer *objInit, bool reinitialize)
    MessageInterface::ShowMessage("   rmat = %s", rmat.ToString().c_str());
    #endif
    
-   // Create Array, this array will be deleted when ArrayWrapper is deleted
-   Array *outArray = new Array(ewi->first);
-   #ifdef DEBUG_MEMORY
-   MemoryTracker::Instance()->Add
-      (outArray, "outArray", "GetLastState::Execute()",
-       "outArray = new Array()");
-   #endif
+   // Function frames retain wrappers for their formal output objects. Update
+   // that Array rather than returning a detached Array while the formal stays
+   // unchanged. Keep the legacy detached-output path for callers without one.
+   Array *outArray = NULL;
+   ObjectMap::iterator outputObject = objectStore->find(ewi->first);
+   if (outputObject != objectStore->end())
+   {
+      outArray = dynamic_cast<Array*>(outputObject->second);
+      if (outArray == NULL)
+         throw GmatBaseException("GetLastState requires an Array output object");
+   }
+   else
+   {
+      outArray = new Array(ewi->first);
+      #ifdef DEBUG_MEMORY
+      MemoryTracker::Instance()->Add
+         (outArray, "outArray", "GetLastState::Execute()",
+          "outArray = new Array()");
+      #endif
+   }
    
    outArray->SetSize(numRows, numCols);
    outArray->SetRmatrix(rmat);

@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "scope": "Selected actual leaf insertion at control-flow boundaries and within two-pass For/true If branches of legal Target/Optimize sequences;not private keyword reconstruction.",
+  "cases": [
+    {
+      "key": "VaryTargetBranchAppend",
+      "family": "VaryTarget",
+      "position": "BranchAppend",
+      "historical_key": "H2012:R1279",
+      "source_fingerprint": "673ab190acc9ff38bc1cca790e5726d4dd071b98dac83ca3ffe4b264097a365b"
+    },
+    {
+      "key": "VaryOptimizeBranchAppend",
+      "family": "VaryOptimize",
+      "position": "BranchAppend",
+      "historical_key": "H2012:R1317",
+      "source_fingerprint": "c90d9800e517c65d7eaf12e61e110dd4f8a9ab0daac913ba89754c1dd1f33cd5"
+    },
+    {
+      "key": "AchieveBranchAppend",
+      "family": "Achieve",
+      "position": "BranchAppend",
+      "historical_key": "H2012:R1677",
+      "source_fingerprint": "400a583e7d0d993a4e38c4c94a88dbf5fa92b1574eb11a4c7849ade8f1ca7191"
+    },
+    {
+      "key": "AchieveEndBefore",
+      "family": "Achieve",
+      "position": "EndBefore",
+      "historical_key": "H2012:R1678",
+      "source_fingerprint": "18811762eaa8f99128445dbbe3bbabe5fd21ba294c7f592f7a707aa02f836c7e"
+    },
+    {
+      "key": "MinimizeBranchAppend",
+      "family": "Minimize",
+      "position": "BranchAppend",
+      "historical_key": "H2012:R1722",
+      "source_fingerprint": "d0f6e90e11d8a6e2809bf8dce7d78570c8580f7b7915652ffbfcf3d8713e9a24"
+    },
+    {
+      "key": "MinimizeBlockAfter",
+      "family": "Minimize",
+      "position": "BlockAfter",
+      "historical_key": "H2012:R1723",
+      "source_fingerprint": "b46f0712e1f3297c7222d4a754f476f86bb4b2cf7901f03b6cfc3cc8da7e3637"
+    },
+    {
+      "key": "MinimizeBlockBefore",
+      "family": "Minimize",
+      "position": "BlockBefore",
+      "historical_key": "H2012:R1724",
+      "source_fingerprint": "c4f20ab8291ccd9313b68cacf46de1a29d8e018131f5e1d3e770bdd7cfe85dc0"
+    },
+    {
+      "key": "MinimizeEndAfter",
+      "family": "Minimize",
+      "position": "EndAfter",
+      "historical_key": "H2012:R1725",
+      "source_fingerprint": "1e6634ccc4f5dbc8b3912074293c6006d3e31e7e6ae96222046818ac8ed913a4"
+    },
+    {
+      "key": "MinimizeEndBefore",
+      "family": "Minimize",
+      "position": "EndBefore",
+      "historical_key": "H2012:R1726",
+      "source_fingerprint": "672e63aa1ba0a9bc142dcf35608562e18ffab2f855e15edd4576a083621e08d8"
+    },
+    {
+      "key": "MinimizeLeafAfter",
+      "family": "Minimize",
+      "position": "LeafAfter",
+      "historical_key": "H2012:R1727",
+      "source_fingerprint": "f6c2cd9c217f07d0601984f05ff39131fd26c3ab571af8b24b498ea49ce74c54"
+    },
+    {
+      "key": "MinimizeLeafBefore",
+      "family": "Minimize",
+      "position": "LeafBefore",
+      "historical_key": "H2012:R1728",
+      "source_fingerprint": "ed9c04fdd5fedea9a49c85d4ca71667130acf1d467491577b909f519e80edad9"
+    },
+    {
+      "key": "NonlinearConstraintBranchAppend",
+      "family": "NonlinearConstraint",
+      "position": "BranchAppend",
+      "historical_key": "H2012:R1876",
+      "source_fingerprint": "a1d023d7135ec2197bbad1d0b9881266a2cbf6967590f4dbfcbbefc368941397"
+    },
+    {
+      "key": "NonlinearConstraintBlockAfter",
+      "family": "NonlinearConstraint",
+      "position": "BlockAfter",
+      "historical_key": "H2012:R1877",
+      "source_fingerprint": "2cad4db879035a3ab1b498e5d3ccf2b406af7ec511b8dd98462b2d99996c064c"
+    },
+    {
+      "key": "NonlinearConstraintBlockBefore",
+      "family": "NonlinearConstraint",
+      "position": "BlockBefore",
+      "historical_key": "H2012:R1878",
+      "source_fingerprint": "b5edd10c8b73440f969af47db27c274160b98c96d148e6c22ae4273487cb1b95"
+    },
+    {
+      "key": "NonlinearConstraintEndAfter",
+      "family": "NonlinearConstraint",
+      "position": "EndAfter",
+      "historical_key": "H2012:R1879",
+      "source_fingerprint": "608eeb902a02772a0f626399d823bc2e55a3b4cba19978721f68f53b04c25a65"
+    },
+    {
+      "key": "NonlinearConstraintEndBefore",
+      "family": "NonlinearConstraint",
+      "position": "EndBefore",
+      "historical_key": "H2012:R1880",
+      "source_fingerprint": "77395134ab8400b9ec6e06beb29f07eaabe85b772d06628d89ec9d9312066716"
+    },
+    {
+      "key": "NonlinearConstraintLeafAfter",
+      "family": "NonlinearConstraint",
+      "position": "LeafAfter",
+      "historical_key": "H2012:R1881",
+      "source_fingerprint": "98a7207739fefe19b26dc007213b9b8f68423dda9dc4e16de4eb0d9073e416aa"
+    },
+    {
+      "key": "NonlinearConstraintLeafBefore",
+      "family": "NonlinearConstraint",
+      "position": "LeafBefore",
+      "historical_key": "H2012:R1882",
+      "source_fingerprint": "e1bef0cf6b67907d6e19154861e3eaabc4338dd07ce203f909ffb3d44c6041e9"
+    }
+  ]
+}

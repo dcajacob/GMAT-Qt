@@ -1,0 +1,148 @@
+{
+  "cases": [
+    {
+      "system": "A1",
+      "input_a1_mjd": 21545.0,
+      "offsets_seconds": [
+        0.0,
+        0.0004,
+        0.0008
+      ],
+      "expected_labels": [
+        "2000-01-01T12:00:00.000",
+        "2000-01-01T12:00:00.000",
+        "2000-01-01T12:00:00.001"
+      ],
+      "expected_groups": [
+        {
+          "epoch": "2000-01-01T12:00:00.000",
+          "marker": 2
+        },
+        {
+          "epoch": "2000-01-01T12:00:00.001",
+          "marker": 3
+        }
+      ],
+      "expected_count": 2
+    },
+    {
+      "system": "TAI",
+      "input_a1_mjd": 21545.0,
+      "offsets_seconds": [
+        0.0,
+        0.0004,
+        0.0008
+      ],
+      "expected_labels": [
+        "2000-01-01T11:59:59.966",
+        "2000-01-01T11:59:59.966",
+        "2000-01-01T11:59:59.966"
+      ],
+      "expected_groups": [
+        {
+          "epoch": "2000-01-01T11:59:59.966",
+          "marker": 3
+        }
+      ],
+      "expected_count": 1
+    },
+    {
+      "system": "UTC",
+      "input_a1_mjd": 21545.0,
+      "offsets_seconds": [
+        0.0,
+        0.0004,
+        0.0008
+      ],
+      "expected_labels": [
+        "2000-01-01T11:59:27.966",
+        "2000-01-01T11:59:27.966",
+        "2000-01-01T11:59:27.966"
+      ],
+      "expected_groups": [
+        {
+          "epoch": "2000-01-01T11:59:27.966",
+          "marker": 3
+        }
+      ],
+      "expected_count": 1
+    },
+    {
+      "system": "TT",
+      "input_a1_mjd": 21545.0,
+      "offsets_seconds": [
+        0.0,
+        0.0004,
+        0.0008
+      ],
+      "expected_labels": [
+        "2000-01-01T12:00:32.150",
+        "2000-01-01T12:00:32.150",
+        "2000-01-01T12:00:32.150"
+      ],
+      "expected_groups": [
+        {
+          "epoch": "2000-01-01T12:00:32.150",
+          "marker": 3
+        }
+      ],
+      "expected_count": 1
+    },
+    {
+      "system": "TDB",
+      "input_a1_mjd": 21545.0,
+      "offsets_seconds": [
+        0.0,
+        0.0004,
+        0.0008
+      ],
+      "expected_labels": [
+        "2000-01-01T12:00:32.150",
+        "2000-01-01T12:00:32.150",
+        "2000-01-01T12:00:32.150"
+      ],
+      "expected_groups": [
+        {
+          "epoch": "2000-01-01T12:00:32.150",
+          "marker": 3
+        }
+      ],
+      "expected_count": 1
+    }
+  ],
+  "object_id": "GMAT-OEM-clock-support",
+  "test_interface_profile": {
+    "sender": "OemOutputTimeWriterTests new native fixture",
+    "receiver": "RunOemOutputTimeSupport independent byte checker",
+    "object_id": "GMAT-OEM-clock-support",
+    "object_name": "ClockSat",
+    "originator": "GMAT output-time writer support",
+    "version": "1.0",
+    "center": "EARTH",
+    "frame": "EME2000",
+    "time_systems": [
+      "A1",
+      "TAI",
+      "UTC",
+      "TT",
+      "TDB"
+    ],
+    "A1_definition": "TAI+0.0343817SIseconds",
+    "units": [
+      "km",
+      "km/s"
+    ],
+    "exchange": "private unchanged local bytes,SHA256-bound"
+  },
+  "reference": {
+    "A1_TAI_seconds": 0.0343817,
+    "TT_TAI_seconds": 32.184,
+    "NAIF_K": 0.001657,
+    "NAIF_EB": 0.01671,
+    "NAIF_M0": 6.239996,
+    "NAIF_M1": 1.99096871e-07,
+    "source": "https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/req/time.html",
+    "leap_reference": "2016-12-31 positive UTC leap;TAI-UTC36before,37after",
+    "calendar_precision_seconds": 0.001
+  }
+}

@@ -33,6 +33,7 @@
 #include "Burn.hpp"
 #include "BurnException.hpp"
 #include "ObjectReferencedAxes.hpp"
+#include "CoordinateConverter.hpp"
 #include "MessageInterface.hpp"
 #include <algorithm>                    // for find()
 
@@ -1223,7 +1224,18 @@ void Burn::ConvertDeltaVToInertial(Real *dv, Real *dvInertial, Real epoch)
    {     
       // Now rotate to MJ2000Eq axes, we don't want to translate so
       // set coincident to true
-      coordSystem->ToBaseSystem(A1Mjd(epoch), inDeltaV, outDeltaV, true);  // @todo - need ToMJ2000Eq here?
+      coordSystem->ToBaseSystem(A1Mjd(epoch), inDeltaV, outDeltaV, true);
+      // ToBaseSystem preserves an ICRF-based frame's base. Maneuvers update
+      // the spacecraft's internal FK5/MJ2000Eq state, so rotate the free
+      // vector across bases without translating its origin.
+      if (coordSystem->GetBaseSystem() == "ICRF")
+      {
+         CoordinateConverter converter;
+         const Rvector3 deltaV = converter.GetRotationMatrixFromICRFToFK5(A1Mjd(epoch)) *
+            Rvector3(outDeltaV[0], outDeltaV[1], outDeltaV[2]);
+         for (Integer i = 0; i < 3; ++i)
+            outDeltaV[i] = deltaV[i];
+      }
       
       #ifdef DEBUG_BURN_CONVERT_ROTMAT
       Rmatrix33 rotMat = coordSystem->GetLastRotationMatrix();

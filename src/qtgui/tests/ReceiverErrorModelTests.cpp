@@ -1,3 +1,4 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "ResourceEditor.hpp"
 #include "TestSettings.hpp"
@@ -110,7 +111,7 @@ int main(int argc,char **argv)
 {
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv); app.setOrganizationName("GMATTests"); app.setApplicationName("QtReceiverErrorModels");
    try {
-      require(argc==2 && QGuiApplication::platformName()=="offscreen","Receiver ErrorModels test requires offscreen and one startup argument");
+      require(argc==2 && acceptanceWidgetPlatform(),"Receiver ErrorModels test requires offscreen and one startup argument");
       TestSettings settings; QTemporaryDir files; require(files.isValid(),"Temporary script directory unavailable");
       const auto startup=QFileInfo(QString::fromLocal8Bit(argv[1])).absoluteFilePath(); QDir::setCurrent(QFileInfo(startup).absolutePath());
       MainWindow window; require(window.initialize(startup),"Selected-plugin runtime initialization failed"); window.show();

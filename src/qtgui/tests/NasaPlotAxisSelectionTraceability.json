@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "doc/SystemDocs/Requirements/GMAT Requirements.xlsx": "736847e909ca550731386261073e46a9fa3ac8d78f53f0c37dd5d93b11a85c23",
+    "doc/SystemDocs/Test/Requirements-To-Test Matrix, 2012-05-11 (GMAT Build 2012-05-04).csv": "4693e097b183af76bc7c8dfcc0f62d7696b2e1417c90cb10d0ed4f9577160a97"
+  },
+  "reviews": [
+    {
+      "key": "FRR!E342",
+      "fingerprint": "6b9d79d74e54c0db700065460c0cb4b39f9a8a59ef7666e4e6dffaf5bdbfc3ba",
+      "applicability": "gui",
+      "rationale": "The actual resource-tree XY editor commits all nine scalar-parameter, variable and one-by-one-array X/Y pairs through the real parameter picker. Each raw plot point and report is checked against independent unequal literal values, preserving pending isolation, Cancel, Apply, exact Undo/Redo and Unicode reopening. This closes the named missing accepted X/result routes and preserves both-axis/type-family conjunction; arbitrary parameter science and platform qualification remain separate.",
+      "evidence": [
+        {
+          "test": "QtGui.NativeNasaPlotAxisSelection",
+          "source": "src/qtgui/tests/NasaPlotAxisSelectionTests.cpp",
+          "source_sha256": "c2758e9401c01edbd9d1b0e3ccf6501ef281966df00932f0601c294bd4aa0031",
+          "anchor": "\"both-axis-numeric-families\"",
+          "checkpoint": "both-axis-numeric-families",
+          "expected": {
+            "axis_families": 3,
+            "matrix_cases": 9
+          },
+          "facets": [
+            "accepted-resource-picker-both-axes-three-numeric-families",
+            "scalar-property-frame-browser-and-one-by-one-array-element",
+            "cancel-pending-apply-exact-undo-redo-unicode-reopen",
+            "independent-literal-model-samples-and-raw-report",
+            "source-history-file-and-sentinel-preservation"
+          ],
+          "scope": "The system shall allow the user to set the independent and dependent variables using any of the following:",
+          "reference_sources": {
+            "src/qtgui/tests/FormationAcceptance.hpp": "ce777b39de79f60f8931c7ea6bfa980e305f622a91564937c5b743664df50517",
+            "src/qtgui/tests/AcceptanceView.hpp": "e55fae7e5aaa3bcebba604b089edbb1bda3cee1ec2bd784e3ad5091984198c5d",
+            "src/qtgui/XYPlotDialog.cpp": "480757d45cc75dfda862e7f4fb47b2464f6b50226560aeef8a9674166a2e9c20",
+            "src/qtgui/ReportParameterDialog.cpp": "7794cca193bdbdc8cb628e1f089337525cd68301ef06f87742284dd92f93eb25",
+            "src/qtgui/ResourceEditor.cpp": "1eef02ef052dda9c6f7d45b23ccb62b867dca29a7150527692c56abb679f219f",
+            "src/qtgui/ResourceProperties.cpp": "f3c038fff857c23d75a812ae9592aa1258d309ffe7e9827970e99ba78b9aa0be",
+            "src/qtgui/MainWindow.cpp": "bab88232a5a4e6cb2b588d06619d0a8df8c0e9bc688a20c61391e0d4e6bb7296",
+            "src/qtgui/QtPlotReceiver.cpp": "293f1667dadda496278fd778484dda611086e3923cc3474d0aab391f8ccb9ed0",
+            "src/qtgui/PlotModel.hpp": "bee3f3eba796fbd24d40f8132360e690048bedf8c2650a1df46de723164415aa",
+            "src/base/subscriber/XyPlot.cpp": "dee537a05d9e6a59101e62be90ebe362b9884d62373b1ed17ee0a2ef8d8f77f3",
+            "src/qtgui/CMakeLists.txt": "f7c85320e86103ec461dc9dc68ac2c34828ac186214b79838bf795534fabe1e2"
+          }
+        }
+      ]
+    },
+    {
+      "key": "FRR!E343",
+      "fingerprint": "3dfc4a3caf26aecafd3e15ddff3b73699f4fd2c18430993f7fcf1300f3126d9c",
+      "applicability": "gui",
+      "rationale": "The actual resource-tree XY editor commits all nine scalar-parameter, variable and one-by-one-array X/Y pairs through the real parameter picker. Each raw plot point and report is checked against independent unequal literal values, preserving pending isolation, Cancel, Apply, exact Undo/Redo and Unicode reopening. This closes the named missing accepted X/result routes and preserves both-axis/type-family conjunction; arbitrary parameter science and platform qualification remain separate.",
+      "evidence": [
+        {
+          "test": "QtGui.NativeNasaPlotAxisSelection",
+          "source": "src/qtgui/tests/NasaPlotAxisSelectionTests.cpp",
+          "source_sha256": "c2758e9401c01edbd9d1b0e3ccf6501ef281966df00932f0601c294bd4aa0031",
+          "anchor": "\"both-axis-numeric-families\"",
+          "checkpoint": "both-axis-numeric-families",
+          "expected": {
+            "axis_families": 3,
+            "matrix_cases": 9
+          },
+          "facets": [
+            "accepted-resource-picker-both-axes-three-numeric-families",
+            "scalar-property-frame-browser-and-one-by-one-array-element",
+            "cancel-pending-apply-exact-undo-redo-unicode-reopen",
+            "independent-literal-model-samples-and-raw-report",
+            "source-history-file-and-sentinel-preservation"
+          ],
+          "scope": "1)\u00a0\u00a0\u00a0   Scalar parameter ( see FRR-32 )",
+          "reference_sources": {
+            "src/qtgui/tests/FormationAcceptance.hpp": "ce777b39de79f60f8931c7ea6bfa980e305f622a91564937c5b743664df50517",
+            "src/qtgui/tests/AcceptanceView.hpp": "e55fae7e5aaa3bcebba604b089edbb1bda3cee1ec2bd784e3ad5091984198c5d",
+            "src/qtgui/XYPlotDialog.cpp": "480757d45cc75dfda862e7f4fb47b2464f6b50226560aeef8a9674166a2e9c20",
+            "src/qtgui/ReportParameterDialog.cpp": "7794cca193bdbdc8cb628e1f089337525cd68301ef06f87742284dd92f93eb25",
+            "src/qtgui/ResourceEditor.cpp": "1eef02ef052dda9c6f7d45b23ccb62b867dca29a7150527692c56abb679f219f",
+            "src/qtgui/ResourceProperties.cpp": "f3c038fff857c23d75a812ae9592aa1258d309ffe7e9827970e99ba78b9aa0be",
+            "src/qtgui/MainWindow.cpp": "bab88232a5a4e6cb2b588d06619d0a8df8c0e9bc688a20c61391e0d4e6bb7296",
+            "src/qtgui/QtPlotReceiver.cpp": "293f1667dadda496278fd778484dda611086e3923cc3474d0aab391f8ccb9ed0",
+            "src/qtgui/PlotModel.hpp": "bee3f3eba796fbd24d40f8132360e690048bedf8c2650a1df46de723164415aa",
+            "src/base/subscriber/XyPlot.cpp": "dee537a05d9e6a59101e62be90ebe362b9884d62373b1ed17ee0a2ef8d8f77f3",
+            "src/qtgui/CMakeLists.txt": "f7c85320e86103ec461dc9dc68ac2c34828ac186214b79838bf795534fabe1e2"
+          }
+        }
+      ]
+    },
+    {
+      "key": "FRR!E344",
+      "fingerprint": "6dd26046a409484b4222c380b000800e537be10a6e12f0b60dc778aef00e1cbd",
+      "applicability": "gui",
+      "rationale": "The actual resource-tree XY editor commits all nine scalar-parameter, variable and one-by-one-array X/Y pairs through the real parameter picker. Each raw plot point and report is checked against independent unequal literal values, preserving pending isolation, Cancel, Apply, exact Undo/Redo and Unicode reopening. This closes the named missing accepted X/result routes and preserves both-axis/type-family conjunction; arbitrary parameter science and platform qualification remain separate.",
+      "evidence": [
+        {
+          "test": "QtGui.NativeNasaPlotAxisSelection",
+          "source": "src/qtgui/tests/NasaPlotAxisSelectionTests.cpp",
+          "source_sha256": "c2758e9401c01edbd9d1b0e3ccf6501ef281966df00932f0601c294bd4aa0031",
+          "anchor": "\"both-axis-numeric-families\"",
+          "checkpoint": "both-axis-numeric-families",
+          "expected": {
+            "axis_families": 3,
+            "matrix_cases": 9
+          },
+          "facets": [
+            "accepted-resource-picker-both-axes-three-numeric-families",
+            "scalar-property-frame-browser-and-one-by-one-array-element",
+            "cancel-pending-apply-exact-undo-redo-unicode-reopen",
+            "independent-literal-model-samples-and-raw-report",
+            "source-history-file-and-sentinel-preservation"
+          ],
+          "scope": "2)\u00a0\u00a0\u00a0\u00a0\u00a0 User defined variable",
+          "reference_sources": {
+            "src/qtgui/tests/FormationAcceptance.hpp": "ce777b39de79f60f8931c7ea6bfa980e305f622a91564937c5b743664df50517",
+            "src/qtgui/tests/AcceptanceView.hpp": "e55fae7e5aaa3bcebba604b089edbb1bda3cee1ec2bd784e3ad5091984198c5d",
+            "src/qtgui/XYPlotDialog.cpp": "480757d45cc75dfda862e7f4fb47b2464f6b50226560aeef8a9674166a2e9c20",
+            "src/qtgui/ReportParameterDialog.cpp": "7794cca193bdbdc8cb628e1f089337525cd68301ef06f87742284dd92f93eb25",
+            "src/qtgui/ResourceEditor.cpp": "1eef02ef052dda9c6f7d45b23ccb62b867dca29a7150527692c56abb679f219f",
+            "src/qtgui/ResourceProperties.cpp": "f3c038fff857c23d75a812ae9592aa1258d309ffe7e9827970e99ba78b9aa0be",
+            "src/qtgui/MainWindow.cpp": "bab88232a5a4e6cb2b588d06619d0a8df8c0e9bc688a20c61391e0d4e6bb7296",
+            "src/qtgui/QtPlotReceiver.cpp": "293f1667dadda496278fd778484dda611086e3923cc3474d0aab391f8ccb9ed0",
+            "src/qtgui/PlotModel.hpp": "bee3f3eba796fbd24d40f8132360e690048bedf8c2650a1df46de723164415aa",
+            "src/base/subscriber/XyPlot.cpp": "dee537a05d9e6a59101e62be90ebe362b9884d62373b1ed17ee0a2ef8d8f77f3",
+            "src/qtgui/CMakeLists.txt": "f7c85320e86103ec461dc9dc68ac2c34828ac186214b79838bf795534fabe1e2"
+          }
+        }
+      ]
+    }
+  ]
+}

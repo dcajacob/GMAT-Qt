@@ -104,30 +104,14 @@ void GmatProblemInterface::GetBoundsInfo(Integer numVars, Integer numCons,
       optimizerData->ineqConstraintCount);
    conUB.SetSize(optimizerData->eqConstraintCount +
       optimizerData->ineqConstraintCount);
+   // NonlinearConstraint supplies signed residuals and their derivatives:
+   // equality is lhs-rhs == 0; either inequality is represented as g(x) <= 0.
+   // Keep the same representation here. Freezing a potentially variable RHS
+   // as an NLP bound loses its derivative and makes the result probe-dependent.
    for (Integer i = 0; i < conLB.GetSize(); ++i)
    {
-      if (i < optimizerData->eqConstraintCount)
-      {
-         conLB[i] = optimizerData->eqConstraintDesiredValues[i];
-         conUB[i] = optimizerData->eqConstraintDesiredValues[i];
-      }
-      else
-      {
-         conLB[i] = -inf;
-         conUB[i] = inf;
-         if (optimizerData->ineqConstraintOp[i -
-            optimizerData->eqConstraintCount] == 1)
-         {
-            conLB[i] = optimizerData->ineqConstraintDesiredValues[i -
-               optimizerData->eqConstraintCount];
-         }
-         else if (optimizerData->ineqConstraintOp[i -
-            optimizerData->eqConstraintCount] == -1)
-         {
-            conUB[i] = optimizerData->ineqConstraintDesiredValues[i -
-               optimizerData->eqConstraintCount];
-         }
-      }
+      conLB[i] = (i < optimizerData->eqConstraintCount ? 0.0 : -inf);
+      conUB[i] = 0.0;
    }
 
    conLowerBounds = conLB;
@@ -226,24 +210,10 @@ Rmatrix GmatProblemInterface::EvaluateConJac(Integer numVars,
       for (Integer j = 0; j < optimizerData->eqConstraintCount +
          optimizerData->ineqConstraintCount; ++j)
       {
-         if (j < optimizerData->eqConstraintCount)
-         {
-            conJac(j, i) =
-               optimizerData->jacobian.at(i + optimizerData->variableCount * j);
-         }
-         else
-         {
-            if (conLowerBounds[j] > -inf)
-            {
-               conJac(j, i) =
-                  -optimizerData->jacobian.at(i + optimizerData->variableCount * j);
-            }
-            else
-            {
-               conJac(j, i) =
-                  optimizerData->jacobian.at(i + optimizerData->variableCount * j);
-            }
-         }
+         // The finite-difference Jacobian already differentiates g(x),
+         // including both operands and the >= sign convention.
+         conJac(j, i) =
+            optimizerData->jacobian.at(i + optimizerData->variableCount * j);
       }
    }
 

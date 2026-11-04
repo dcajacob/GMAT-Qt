@@ -97,6 +97,7 @@ public:
 
    // inherited from GmatBase
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
 
    // Parameter access methods - overridden from GmatBase
    virtual std::string         GetParameterText(const Integer id) const;

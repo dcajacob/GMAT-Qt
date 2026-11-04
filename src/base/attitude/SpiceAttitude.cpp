@@ -35,6 +35,8 @@
 #include "Attitude.hpp"
 #include "AttitudeException.hpp"
 #include "SpiceAttitude.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "MessageInterface.hpp"
 #include "AttitudeConversionUtility.hpp"
 
@@ -821,3 +823,15 @@ void SpiceAttitude::ComputeCosineMatrixAndAngularVelocity(GmatTime &atTime)
 //  private methods
 //------------------------------------------------------------------------------
 // none
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void SpiceAttitude::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const SpiceAttitude*>(original);
+   if (!source || typeid(*source) != typeid(SpiceAttitude) ||
+       typeid(*this) != typeid(SpiceAttitude))
+      throw GmatBaseException("Cannot copy incompatible object into SpiceAttitude");
+   if (source == this)
+      return;
+   operator=(*source);
+}

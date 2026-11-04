@@ -1171,7 +1171,7 @@ void SolarFluxReader::PrepareApData(SolarFluxReader::FluxData &fD, GmatEpoch epo
          // records up
 
          // Current epoch data
-         if (!FillRecord(fdData[0], epoch - 1.0))
+         if (!FillRecord(fdData[0], epoch))
             fdData[0].ap[0] = fdData[0].ap[1] = fdData[0].ap[2] =
             fdData[0].ap[3] = fdData[0].ap[4] = fdData[0].ap[5] =
             fdData[0].ap[6] = fdData[0].ap[7] = fdData[0].apAvg = constantAp;
@@ -1179,11 +1179,11 @@ void SolarFluxReader::PrepareApData(SolarFluxReader::FluxData &fD, GmatEpoch epo
             fdData[1].ap[0] = fdData[1].ap[1] = fdData[1].ap[2] =
             fdData[1].ap[3] = fdData[1].ap[4] = fdData[1].ap[5] =
             fdData[1].ap[6] = fdData[1].ap[7] = fdData[1].apAvg = constantAp;
-         if (!FillRecord(fdData[2], epoch - 1.0))
+         if (!FillRecord(fdData[2], epoch - 2.0))
             fdData[2].ap[0] = fdData[2].ap[1] = fdData[2].ap[2] =
             fdData[2].ap[3] = fdData[2].ap[4] = fdData[2].ap[5] =
             fdData[2].ap[6] = fdData[2].ap[7] = fdData[2].apAvg = constantAp;
-         if (!FillRecord(fdData[3], epoch - 1.0))
+         if (!FillRecord(fdData[3], epoch - 3.0))
             fdData[3].ap[0] = fdData[3].ap[1] = fdData[3].ap[2] =
             fdData[3].ap[3] = fdData[3].ap[4] = fdData[3].ap[5] =
             fdData[3].ap[6] = fdData[3].ap[7] = fdData[3].apAvg = constantAp;

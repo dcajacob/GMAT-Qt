@@ -40,6 +40,7 @@
 #include "Rvector.hpp"
 #include "TimeTypes.hpp"
 #include "ICRFFile.hpp"
+#include "ObjectReferencedAxes.hpp"
 #include "MessageInterface.hpp"
 
 //#define DEBUG_FIRST_CALL
@@ -1111,3 +1112,58 @@ void CoordinateConverter::RotationMatrixFromICRFToFK5(const A1Mjd &atEpoch)
 }
 
 
+
+namespace
+{
+template <typename Epoch>
+Rmatrix33 RotationOnlyToBase(const Epoch &epoch, CoordinateSystem *coordinate)
+{
+   if (auto *objectAxes = dynamic_cast<ObjectReferencedAxes *>(coordinate->GetAxisSystem()))
+      if (objectAxes->GetTypeName() == "ObjectReferenced")
+         return objectAxes->GetRotationMatrixOnly(epoch);
+
+   // Other axes retain their existing time and initialization behavior. Omit
+   // translation explicitly; no output position/velocity is being requested.
+   const Real zero[6] = {};
+   Real unused[6];
+   coordinate->ToBaseSystem(epoch, zero, unused, true, true);
+   return coordinate->GetLastRotationMatrix();
+}
+
+template <typename Epoch>
+Rmatrix33 RotationOnly(CoordinateConverter &converter, const Epoch &epoch,
+                      const A1Mjd &alignmentEpoch,
+                      CoordinateSystem *inCoord, CoordinateSystem *outCoord)
+{
+   if (!inCoord || !outCoord)
+      throw CoordinateSystemException("Undefined coordinate system - rotation not performed.");
+   if (inCoord == outCoord)
+      return Rmatrix33(true);
+   const std::string inBase = inCoord->GetBaseSystem();
+   const std::string outBase = outCoord->GetBaseSystem();
+   Rmatrix33 alignment(true);
+   if (inBase != outBase)
+   {
+      if (!((inBase == "FK5" && outBase == "ICRF") ||
+            (inBase == "ICRF" && outBase == "FK5")))
+         throw CoordinateSystemException("Unknown coordinate base type for rotation.");
+      alignment = converter.GetRotationMatrixFromICRFToFK5(alignmentEpoch);
+      if (inBase == "FK5") alignment = alignment.Transpose();
+   }
+   const Rmatrix33 from = RotationOnlyToBase(epoch, inCoord);
+   const Rmatrix33 to = RotationOnlyToBase(epoch, outCoord);
+   return to.Transpose() * alignment * from;
+}
+}
+
+Rmatrix33 CoordinateConverter::GetRotationMatrixOnly(const A1Mjd &epoch,
+   CoordinateSystem *inCoord, CoordinateSystem *outCoord)
+{
+   return RotationOnly(*this, epoch, epoch, inCoord, outCoord);
+}
+
+Rmatrix33 CoordinateConverter::GetRotationMatrixOnly(const GmatTime &epoch,
+   CoordinateSystem *inCoord, CoordinateSystem *outCoord)
+{
+   return RotationOnly(*this, epoch, A1Mjd(epoch.GetMjd()), inCoord, outCoord);
+}

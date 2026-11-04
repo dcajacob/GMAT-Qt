@@ -123,6 +123,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Same dimensional units as the selected control xd in xn = m (xd + a).</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -173,6 +177,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Same units as the selected control parameter; user-defined variables have no independent physical-unit declaration.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>
@@ -226,6 +234,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Same units as the selected control parameter; user-defined variables have no independent physical-unit declaration.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -276,6 +288,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Same units as the selected control parameter; user-defined variables have no independent physical-unit declaration.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>
@@ -333,6 +349,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Reciprocal of the dimensional control units when xn = m (xd + a) is nondimensional; for an untyped variable, use the reciprocal of the chosen numerical scale.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -383,6 +403,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Same units as the selected control parameter; user-defined variables have no independent physical-unit declaration.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>
@@ -439,6 +463,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Solver object name; no physical units.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -490,6 +518,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Same units as the selected control parameter; user-defined variables have no independent physical-unit declaration.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>
@@ -551,6 +583,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Same units as the selected control parameter; user-defined variables have no independent physical-unit declaration.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>

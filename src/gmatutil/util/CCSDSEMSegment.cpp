@@ -38,6 +38,8 @@
 #include "Rvector3.hpp"
 #include "UtcDate.hpp"
 #include "A1Mjd.hpp"
+#include "DateUtil.hpp"
+#include "TimeSystemConverter.hpp"
 
 //#define DEBUG_EM_SET_META
 //#define DEBUG_PARSE_EPOCH
@@ -220,6 +222,33 @@ Real CCSDSEMSegment::ParseEpoch(const std::string &epochString)
 
 }
 
+// Preserve the established format, calendar and leap-second validation while
+// constructing the interpolation clock without a double-MJD intermediate.
+GmatTime CCSDSEMSegment::ParseEpochGT(const std::string &epochString)
+{
+   ParseEpoch(epochString);
+   const auto split = epochString.find_first_of("Tt");
+   const std::string date = epochString.substr(0, split);
+   const std::string time = epochString.substr(split + 1);
+   const Integer year = std::stoi(date.substr(0, 4));
+   const Integer hour = std::stoi(time.substr(0, 2));
+   const Integer minute = std::stoi(time.substr(3, 2));
+   const Real second = std::stod(time.substr(6));
+   UtcDate calendar = GmatStringUtil::NumberOfOccurrences(date, '-') == 1 ?
+         UtcDate(year, std::stoi(date.substr(5)), 0, 0, 0.0) :
+         UtcDate(year, std::stoi(date.substr(5, 2)), std::stoi(date.substr(8, 2)), 0, 0, 0.0);
+   GmatTime utc = ModifiedJulianDateGT(calendar.GetYear(), calendar.GetMonth(),
+         calendar.GetDay(), 0, 0, 0.0);
+   utc.AddSeconds(hour * 3600.0 + minute * 60.0);
+   utc.AddSeconds(second);
+   GmatTime a1 = TimeSystemConverter::Instance()->Convert(utc,
+         TimeSystemConverter::UTCMJD, TimeSystemConverter::A1MJD);
+   // Match UtcDate's validated representation of the inserted UTC second.
+   if (second >= 60.0)
+      a1.SubtractSeconds(1.0);
+   return a1;
+}
+
 //------------------------------------------------------------------------------
 // public methods
 //------------------------------------------------------------------------------
@@ -297,6 +326,8 @@ CCSDSEMSegment::CCSDSEMSegment(const CCSDSEMSegment &copy) :
    {
       ed = new EpochAndData();
       ed->epoch = (copy.dataStore.at(jj))->epoch;
+      ed->preciseEpoch = copy.dataStore.at(jj)->preciseEpoch;
+      ed->hasPrecisionEpoch = copy.dataStore.at(jj)->hasPrecisionEpoch;
       Rvector itsData = (copy.dataStore.at(jj))->data;
       ed->data  = Rvector(itsData);
       dataStore.push_back(ed);
@@ -349,6 +380,8 @@ CCSDSEMSegment& CCSDSEMSegment::operator=(const CCSDSEMSegment &copy)
    {
       ed = new EpochAndData();
       ed->epoch = (copy.dataStore.at(jj))->epoch;
+      ed->preciseEpoch = copy.dataStore.at(jj)->preciseEpoch;
+      ed->hasPrecisionEpoch = copy.dataStore.at(jj)->hasPrecisionEpoch;
       ed->data  = Rvector((copy.dataStore.at(jj))->data);
       dataStore.push_back(ed);
    }
@@ -988,6 +1021,17 @@ bool CCSDSEMSegment::GetEpochAndData(Integer index, Real &epoch, Rvector &data)
    }
    
    return false;
+}
+
+bool CCSDSEMSegment::GetEpochAndData(Integer index, GmatTime &epoch, Rvector &data)
+{
+   if (index < 0 || index >= static_cast<Integer>(dataStore.size()))
+      return false;
+   const auto *point = dataStore[index];
+   epoch = point->hasPrecisionEpoch && point->preciseEpoch.GetMjd() == point->epoch ?
+         point->preciseEpoch : GmatTime(point->epoch);
+   data = point->data;
+   return true;
 }
 
 //------------------------------------------------------------------------------

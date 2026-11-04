@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "scope": "Only actual automatic root-resource identity;retain original reference-resource local-use oracles.",
+  "cases": [
+    {
+      "key": "Barycenter",
+      "type": "Barycenter",
+      "field": "BodyNames",
+      "kind": "list",
+      "first": "Earth,Mars",
+      "second": "Earth,Luna",
+      "dependencies": "Create Barycenter MainBodyIdentity;\nMainBodyIdentity.BodyNames = {Earth, Mars, Luna};\n",
+      "globals": "",
+      "object_settings": "",
+      "reference_kind": "solar-bodies"
+    },
+    {
+      "key": "LibrationPoint",
+      "type": "LibrationPoint",
+      "field": "Secondary",
+      "kind": "string",
+      "first": "Luna",
+      "second": "Mars",
+      "dependencies": "Create Barycenter MainBodyIdentity;\nMainBodyIdentity.BodyNames = {Earth, Mars, Luna};\n",
+      "globals": "",
+      "object_settings": "Primary = Earth;\n",
+      "reference_kind": "solar-bodies"
+    }
+  ]
+}

@@ -54,6 +54,7 @@ public:
 
    // inherited from GmatBase
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
    virtual const std::string& GetGeneratingString(Gmat::WriteMode mode = Gmat::SCRIPTING,
       const std::string &prefix = "", const std::string &useName = "");
 

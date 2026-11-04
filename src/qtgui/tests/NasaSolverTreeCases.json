@@ -1,0 +1,178 @@
+{
+  "cases": [
+    {
+      "key": "TargetRoot",
+      "family": "Target",
+      "group": "Root",
+      "reused_reference_case": "Target",
+      "positions": [
+        {
+          "position": "Empty",
+          "historical_key": "H2012:R1351",
+          "fingerprint": "b5e88526d6d0875a3a069cd1cef7b8ba23697e23cb42d15014e52755515407d6",
+          "operation": "Append Empty",
+          "test_case": "TreeControls_AppendEmpty"
+        },
+        {
+          "position": "Many",
+          "historical_key": "H2012:R1350",
+          "fingerprint": "aadafe2dabfd070cfa70bd3072a584033b44b49451a11888b552abf875b58764",
+          "operation": "Add Many",
+          "test_case": "TreeControls_AddMany"
+        },
+        {
+          "position": "BlockBefore",
+          "historical_key": "H2012:R1355",
+          "fingerprint": "019031e4cd76158b7a64ecc8bcbb1c871ec6d074f1bc60100471ecd441092903",
+          "operation": "Control Logic Block Insert Before",
+          "test_case": "TreeControls_ControlLogicBlockInsertBefore"
+        }
+      ]
+    },
+    {
+      "key": "TargetBoundary",
+      "family": "Target",
+      "group": "Boundary",
+      "reused_reference_case": "Target",
+      "positions": [
+        {
+          "position": "BlockAfter",
+          "historical_key": "H2012:R1354",
+          "fingerprint": "09f383a2099cfd2f7572b0a716af38bceff7c7f45c41d931b241ab423226858e",
+          "operation": "Control Logic Bock Insert After",
+          "test_case": "TreeControls_ControlLogicBlockInsertAfter"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1357",
+          "fingerprint": "9532ae9722af4d54c97fd354a02d67f19fa1e78e01f83847620c35465f7acff7",
+          "operation": "Control Logic End Insert Before",
+          "test_case": "TreeControls_ControlLogicEndInsertBefore"
+        },
+        {
+          "position": "EndAfter",
+          "historical_key": "H2012:R1356",
+          "fingerprint": "a609cc25cf3d65067c3c4182800fdc2cae0e9fc8112cd73cfe8f3e163292794b",
+          "operation": "Control Logic End Insert After",
+          "test_case": "TreeControls_ControlLogicEndInsertAfter"
+        }
+      ]
+    },
+    {
+      "key": "TargetInterior",
+      "family": "Target",
+      "group": "Interior",
+      "reused_reference_case": "Target",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1353",
+          "fingerprint": "c719f21f557b415b7ae3de1ec64ffdada605b433fd04b4f1c0b4c43e1414d124",
+          "operation": "Control Logic Append",
+          "test_case": "TreeControls_ControlLogicAppend"
+        },
+        {
+          "position": "LeafBefore",
+          "historical_key": "H2012:R1359",
+          "fingerprint": "5447a68ddd977223e5587ae462aa57f006ae059a83662eefbfb0e9255bd75212",
+          "operation": "Control Logic Insert Before",
+          "test_case": "TreeControls_ControlLogicInsertBefore"
+        },
+        {
+          "position": "LeafAfter",
+          "historical_key": "H2012:R1358",
+          "fingerprint": "d550e814722e7be8db5317278c4ed9352198ebfd3b98e65b600d3f6e36f42f20",
+          "operation": "Control Logic Insert After",
+          "test_case": "TreeControls_ControlLogicInsertAfter"
+        }
+      ]
+    },
+    {
+      "key": "OptimizeRoot",
+      "family": "Optimize",
+      "group": "Root",
+      "reused_reference_case": "Optimize",
+      "positions": [
+        {
+          "position": "Empty",
+          "historical_key": "H2012:R1218",
+          "fingerprint": "34fb4831b1211f3d351f202e24805810bdad2c6e966aa476c680c44fedb5baf3",
+          "operation": "Append Empty",
+          "test_case": "TreeControls_AppendEmpty"
+        },
+        {
+          "position": "Many",
+          "historical_key": "H2012:R1217",
+          "fingerprint": "6fa7185de021e8d7524389491eb24bd7649d366a8141d03cab496894f7c06eae",
+          "operation": "Add Many",
+          "test_case": "TreeControls_AddMany"
+        },
+        {
+          "position": "BlockBefore",
+          "historical_key": "H2012:R1222",
+          "fingerprint": "89a2fe4f691b6c4e633315791054b685a72515490ad844ba632cd2901f0b1e8c",
+          "operation": "Control Logic Block Insert Before",
+          "test_case": "TreeControls_ControlLogicBlockInsertBefore"
+        }
+      ]
+    },
+    {
+      "key": "OptimizeBoundary",
+      "family": "Optimize",
+      "group": "Boundary",
+      "reused_reference_case": "Optimize",
+      "positions": [
+        {
+          "position": "BlockAfter",
+          "historical_key": "H2012:R1221",
+          "fingerprint": "a9fe56cf7c0a371873af13713ff0773e816b8fe1cc4fa403a5ee11b06a38fff3",
+          "operation": "Control Logic Bock Insert After",
+          "test_case": "TreeControls_ControlLogicBlockInsertAfter"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1224",
+          "fingerprint": "d09980292b21aedf9eec83335f2aa4f130cc5ac370c65eaea613e384e91f1b66",
+          "operation": "Control Logic End Insert Before",
+          "test_case": "TreeControls_ControlLogicEndInsertBefore"
+        },
+        {
+          "position": "EndAfter",
+          "historical_key": "H2012:R1223",
+          "fingerprint": "9a5a08d47ef681948874bd7f29c18dcc4b3bb5a2916e5fa0df61ae70b1f8ebd9",
+          "operation": "Control Logic End Insert After",
+          "test_case": "TreeControls_ControlLogicEndInsertAfter"
+        }
+      ]
+    },
+    {
+      "key": "OptimizeInterior",
+      "family": "Optimize",
+      "group": "Interior",
+      "reused_reference_case": "Optimize",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1220",
+          "fingerprint": "211b38b8d95bfe2d938445431508aff24d9bceb4d549ed49a3928c15920be7e9",
+          "operation": "Control Logic Append",
+          "test_case": "TreeControls_ControlLogicAppend"
+        },
+        {
+          "position": "LeafBefore",
+          "historical_key": "H2012:R1226",
+          "fingerprint": "fd9d65665a9e037e29d8075483394bb6560695d219b60ef15f4ece340b6e2fc5",
+          "operation": "Control Logic Insert Before",
+          "test_case": "TreeControls_ControlLogicInsertBefore"
+        },
+        {
+          "position": "LeafAfter",
+          "historical_key": "H2012:R1225",
+          "fingerprint": "dd3de9367a89ee239acd76a6477bd67e56a5e110cfdd907f32ea2ac1cace663f",
+          "operation": "Control Logic Insert After",
+          "test_case": "TreeControls_ControlLogicInsertAfter"
+        }
+      ]
+    }
+  ]
+}

@@ -30,6 +30,8 @@
 //------------------------------------------------------------------------------
 
 #include "StopCondition.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "StopConditionException.hpp"
 #include "NotAKnotInterpolator.hpp"
 #include "RealUtilities.hpp"           // for Abs()
@@ -2766,4 +2768,16 @@ void StopCondition::CopyDynamicData(const StopCondition &stopCond)
       lhsValueBuffer[i] = stopCond.lhsValueBuffer[i];
       rhsValueBuffer[i] = stopCond.rhsValueBuffer[i];
    }
+}
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void StopCondition::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const StopCondition*>(original);
+   if (!source || typeid(*source) != typeid(StopCondition) ||
+       typeid(*this) != typeid(StopCondition))
+      throw GmatBaseException("Cannot copy incompatible object into StopCondition");
+   if (source == this)
+      return;
+   operator=(*source);
 }

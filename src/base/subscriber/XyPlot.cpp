@@ -552,11 +552,13 @@ bool XyPlot::TakeAction(const std::string &action,
    {
       // Toggle suppresses publications upstream. Notify the receiver as well
       // so reactivation cannot connect across samples it never received.
+      PlotInterface::TakeXYAction(instanceName, "ToggleOff");
       PlotInterface::DeactivateXyPlot(instanceName);
       return true;
    }
    if (action == "ToggleOn")
    {
+      PlotInterface::TakeXYAction(instanceName, "ToggleOn");
       PlotInterface::ActivateXyPlot(instanceName);
       return true;
    }

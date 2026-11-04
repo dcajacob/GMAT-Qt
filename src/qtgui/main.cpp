@@ -1,4 +1,6 @@
 #include "MainWindow.hpp"
+#include "FunctionValidation.hpp"
+#include <cstring>
 #include <QApplication>
 #include <QScreen>
 #include <QCommandLineParser>
@@ -12,6 +14,7 @@
 #include <QSettings>
 int main(int argc, char **argv)
 {
+   if (argc>1 && std::strcmp(argv[1],"--validate-functions")==0) return qtFunctionValidationWorker(argc,argv);
    QApplication app(argc, argv);
    QApplication::setOrganizationName("GMAT");
    QApplication::setApplicationName("GMAT Qt 6");

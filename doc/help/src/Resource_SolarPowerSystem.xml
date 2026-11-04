@@ -266,7 +266,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>kw*AU<superscript>2</superscript></para>
+                    <para>kW*AU<superscript>2</superscript></para>
                   </listitem>
                 </varlistentry>
 
@@ -653,7 +653,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See Remarks</para>
+                    <para>Dimensionless coefficient of r = Sun distance / one AU</para>
                   </listitem>
                 </varlistentry>
 
@@ -708,7 +708,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See Remarks</para>
+                    <para>Dimensionless coefficient of r = Sun distance / one AU</para>
                   </listitem>
                 </varlistentry>
 
@@ -763,7 +763,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See Remarks</para>
+                    <para>Dimensionless coefficient of r = Sun distance / one AU</para>
                   </listitem>
                 </varlistentry>
 
@@ -818,7 +818,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See Remarks</para>
+                    <para>Dimensionless coefficient of r = Sun distance / one AU</para>
                   </listitem>
                 </varlistentry>
 
@@ -873,7 +873,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See Remarks</para>
+                    <para>Dimensionless coefficient of r = Sun distance / one AU</para>
                   </listitem>
                 </varlistentry>
 
@@ -974,6 +974,16 @@
           </imageobject>
         </mediaobject>
       </screenshot>
+
+      <para>The model evaluates the numerical ratio r = D / (one AU), where D
+      is the Sun-to-spacecraft distance. Thus r is dimensionless and all five
+      SolarCoeff values are dimensionless coefficients. The scale factor is
+      (1/r^2) * (C1 + C2/r + C3/r^2) / (1 + C4*r + C5*r^2).
+      Power in kW comes from the separate base-power term, not from these
+      coefficients. Enter coefficients fitted with this AU-normalized distance
+      convention; do not substitute a distance number in km or attach kW to a
+      coefficient. The published default coefficients give a scale factor of
+      one at r=1 before shadow and base-power factors.</para>
 
       <para>where P_Sun is the percent sun ( full sun is 1.0, no sun is 0.0),
       r is the distance from the Sun in Au, and C_1 is

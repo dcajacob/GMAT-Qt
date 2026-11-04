@@ -31,6 +31,9 @@
 //------------------------------------------------------------------------------
 
 #include "StringMatData.hpp"
+#ifdef GMAT_MATLAB_QT_ENGINE
+#include "MatlabLibraryExecutor.hpp"
+#endif
 #include "UtilityException.hpp"
 #include "MessageInterface.hpp"
 
@@ -172,6 +175,9 @@ bool StringMatData::AddData(const std::vector< StringMatrix> &data)
 void StringMatData::WriteData(MATFile *matfile, const std::string &objectName,
       mxArray *mx_struct, mwIndex index)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{WriteData(matfile,objectName,mx_struct,index);});
+#endif
    pmat      = matfile;
    obj_name  = objectName;
    mat_struct = mx_struct;

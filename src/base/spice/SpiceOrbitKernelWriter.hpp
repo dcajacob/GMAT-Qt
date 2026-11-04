@@ -85,12 +85,20 @@ public:
 
    void        WriteSegment(const A1Mjd &start, const A1Mjd &end,
                             const StateArray &states, const EpochArray &epochs);
+   void        WriteSegment(const A1Mjd &start, const A1Mjd &end,
+                            const StateArray &states, const EpochArray &epochs,
+                            const std::vector<GmatTime> &preciseEpochs,
+                            const std::vector<bool> &preciseFlags);
    void        AddMetaData(const std::string &line,  bool done = false);
    void        AddMetaData(const StringArray &lines, bool done = false);
    void        FinalizeKernel(bool done = true, bool writeMetaData = true);
    Integer     GetMinNumberOfStates();
 
 protected:
+   void WriteSegmentImpl(const A1Mjd &start, const A1Mjd &end,
+                         const StateArray &states, const EpochArray &epochs,
+                         const std::vector<GmatTime> *preciseEpochs,
+                         const std::vector<bool> *preciseFlags);
    /// the name of the spacecraft or body for which the SPK is created
    std::string     objectName;
    /// the name of the central body

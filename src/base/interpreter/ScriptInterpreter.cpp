@@ -168,6 +168,10 @@ bool ScriptInterpreter::Interpret()
    #endif
    includeFoundInResource = false;
    beginMissionSeqFound = false;
+   // A preceding function parse may have ignored subsequent definitions.
+   // That file-local state must not truncate this new main script.
+   functionDefined = false;
+   ignoreRest = false;
    userParameterLines.clear();
    
    // Grab the built-in coordinate system list; mark them as Do Not Modify while
@@ -360,6 +364,51 @@ bool ScriptInterpreter::Interpret(GmatCommand *inCmd, bool skipHeader,
 //------------------------------------------------------------------------------
 bool ScriptInterpreter::Interpret(const std::string &scriptfile)
 {
+   return Interpret(scriptfile, false);
+}
+
+namespace
+{
+// Validate scalar UTF-8 encodings before handing the unchanged bytes to the
+// existing parser. Reject overlong sequences, surrogates, out-of-range values,
+// isolated continuation bytes and incomplete sequences. ASCII syntax and
+// identifiers are still checked by the normal language parser.
+bool ValidUtf8Script(std::istream &input)
+{
+   unsigned int value = 0, minimum = 0;
+   int remaining = 0;
+   char raw;
+   while (input.get(raw))
+   {
+      const auto byte = static_cast<unsigned char>(raw);
+      if (remaining == 0)
+      {
+         if (byte < 0x80) continue;
+         if (byte >= 0xc2 && byte <= 0xdf)
+         { value = byte & 0x1f; minimum = 0x80; remaining = 1; }
+         else if (byte >= 0xe0 && byte <= 0xef)
+         { value = byte & 0x0f; minimum = 0x800; remaining = 2; }
+         else if (byte >= 0xf0 && byte <= 0xf4)
+         { value = byte & 0x07; minimum = 0x10000; remaining = 3; }
+         else return false;
+      }
+      else
+      {
+         if ((byte & 0xc0) != 0x80) return false;
+         value = (value << 6) | (byte & 0x3f);
+         if (--remaining == 0 && (value < minimum || value > 0x10ffff ||
+               (value >= 0xd800 && value <= 0xdfff))) return false;
+      }
+   }
+   if (input.bad() || remaining != 0) return false;
+   input.clear();
+   input.seekg(0, std::ios::beg);
+   return static_cast<bool>(input);
+}
+}
+
+bool ScriptInterpreter::Interpret(const std::string &scriptfile, bool allowUtf8)
+{
    #if DBGLVL_SCRIPT_READING
    MessageInterface::ShowMessage
       ("ScriptInterpreter::Interpret(scriptfile) entered, scriptfile='%s'\n   "
@@ -372,11 +421,23 @@ bool ScriptInterpreter::Interpret(const std::string &scriptfile)
    currentScriptBeingRead = mainScriptFilename;
    std::ifstream inFile(mainScriptFilename.c_str());
    inStream = &inFile; // This is needed for CheckEncoding()
+   if (allowUtf8)
+   {
+      errorList.clear();
+      if (!inFile.is_open())
+      {
+         inStream = NULL;
+         const std::string error = "The script \"" + mainScriptFilename +
+               "\" could not be opened.";
+         errorList.push_back(error);
+         throw InterpreterException(error);
+      }
+   }
    
    #if DBGLVL_SCRIPT_READING
    MessageInterface::ShowMessage("   Calling CheckEncoding()\n");
    #endif
-   if (CheckEncoding())
+   if (allowUtf8 ? ValidUtf8Script(inFile) : CheckEncoding())
    {
       #if DBGLVL_SCRIPT_READING
       MessageInterface::ShowMessage("   Calling SetInStream()\n");
@@ -391,6 +452,14 @@ bool ScriptInterpreter::Interpret(const std::string &scriptfile)
    else
    {
       inFile.close();
+      inStream = NULL;
+      if (allowUtf8)
+      {
+         const std::string error = "The script \"" + mainScriptFilename +
+               "\" is not valid UTF-8; please fix the file before proceeding.";
+         errorList.push_back(error);
+         throw InterpreterException(error);
+      }
       throw InterpreterException("The script \"" + mainScriptFilename +
             "\" contains characters outside of the ASCII character set; "
             "please fix the file before proceeding.");
@@ -672,8 +741,26 @@ GmatCommand* ScriptInterpreter::InterpretGmatFunction(Function *funct)
        currentFunction);
    #endif
    
-   GmatCommand *fcs = InterpretGmatFunction(fileName);
-   //return InterpretGmatFunction(fileName);
+   // A declaration/parse exception must not leave FindObject and the
+   // Validator searching the failed function on the next GUI rebuild.
+   // CheckFunctionDefinition can throw before the filename overload reaches
+   // its normal function-mode cleanup.
+   const bool previousContinueOnError = continueOnError;
+   GmatCommand *fcs = NULL;
+   try
+   {
+      fcs = InterpretGmatFunction(fileName);
+   }
+   catch (...)
+   {
+      inFunctionMode = false;
+      hasFunctionDefinition = false;
+      continueOnError = previousContinueOnError;
+      SetFunction(NULL);
+      throw;
+   }
+   continueOnError = previousContinueOnError;
+   SetFunction(NULL);
    
    #if DBGLVL_GMAT_FUNCTION
    MessageInterface::ShowMessage

@@ -132,6 +132,8 @@ struct PlotSensorMask
 {
    QString name,source,hardware,label;
    bool automaticLength=true,drawEdges=true;
+   // Programmatic plot geometry uses km; engine Hardware offsets retain metres.
+   bool originInMetres=false;
    double length=1,sourceRadius=1;
    QColor color=Qt::white;
    std::array<double,3> origin{},axis{0,0,-1};

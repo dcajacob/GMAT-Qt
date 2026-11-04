@@ -30,6 +30,9 @@
 //------------------------------------------------------------------------------
 
 #include <sstream>
+#include <cmath>
+#include <locale>
+#include <set>
 #include "Optimize.hpp"
 #include "MessageInterface.hpp"
 
@@ -145,6 +148,7 @@ Optimize& Optimize::operator=(const Optimize& o)
 //------------------------------------------------------------------------------
 Optimize::~Optimize()
 {
+   if (gmatInt) gmatInt->UnregisterCallbackServer(this);
 }
 
 
@@ -697,6 +701,8 @@ bool Optimize::Execute()
 //------------------------------------------------------------------------------
 void Optimize::RunComplete()
 {
+   if (gmatInt) gmatInt->UnregisterCallbackServer(this);
+   callbackExecuting = false;
    if (theSolver != NULL) {
       theSolver->SetBooleanParameter(theSolver->GetParameterID("Nested"), false);
       theSolver->Finalize();
@@ -728,6 +734,18 @@ bool Optimize::ExecuteBranch(Integer which)
 //------------------------------------------------------------------------------
 // bool ExecuteCallback()
 //------------------------------------------------------------------------------
+bool Optimize::TakeAction(const std::string &action, const std::string &actionData)
+{
+   if (action == "MatlabOptimizerIteration" || action == "ValidateMatlabOptimizerIteration")
+   {
+      if (!theSolver || callbackExecuting || GmatGlobal::Instance()->GetRunInterrupted() ||
+          theSolver->GetTypeName() != "FminconOptimizer")
+         throw CommandException("No active uninterrupted fmincon iteration callback");
+      return theSolver->TakeAction(action, actionData);
+   }
+   return SolverBranchCommand::TakeAction(action, actionData);
+}
+
 bool Optimize::ExecuteCallback()
 {
    #ifdef DEBUG_CALLBACK
@@ -777,31 +795,33 @@ bool Optimize::ExecuteCallback()
       if (!GmatGlobal::Instance()->IsMatlabAvailable())
          throw CommandException("Optimize: ERROR - MATLAB required for Callback");
       
-      callbackExecuting = true;
       // ask Matlab for the value of X
       Integer n = theSolver->GetIntegerParameter(
          theSolver->GetParameterID("NumberOfVariables"));
       
-      //Real X[n];
-      Real *X = new Real[n];
-      
-      // read X values from the callback data string here
+      if (n <= 0)
+         throw CommandException("Optimize: invalid MATLAB callback variable count");
       std::stringstream ins(callbackData.c_str());
+      ins.imbue(std::locale::classic());
+      vars.resize(n);
       for (Integer i=0; i<n; i++)
-         ins >> X[i];
-      // Moved to top (LOJ: 2014.08.19)
-      // std::vector<Real> vars;
-      for (Integer i=0;i<n;i++)
-         vars.push_back(X[i]);
-      
-      delete [] X;
+         if (!(ins >> vars[i]) || !std::isfinite(vars[i]))
+            throw CommandException("Optimize: MATLAB callback requires exactly the finite registered variable values");
+      ins >> std::ws;
+      if (!ins.eof())
+         throw CommandException("Optimize: extra MATLAB callback variable values");
    }
    // Added SNOPT implementation (LOJ: 2014.08.19)
    else if (sourceType == "SNOPT")
    {
-      callbackExecuting = true;
       vars = callbackRealData;
    }
+   callbackExecuting = true;
+   struct CallbackGuard
+   {
+      bool &executing;
+      ~CallbackGuard() { executing = false; }
+   } callbackGuard{callbackExecuting};
    
    
    // get the state of the Optimizer
@@ -976,6 +996,11 @@ bool Optimize::RunInternalSolver(Solver::SolverState state)
             #endif
             LightenSubscribers(1);
             commandComplete = true;
+            // The final clean branch has just evaluated the accepted controls
+            // and both constraint operands. Replace the last probe's progress
+            // values before publishing convergence to the GUI listener.
+            theSolver->ReportProgress(listeners, Solver::CHECKINGRUN);
+            theSolver->ReportProgress(listeners, Solver::FINISHED);
          }
 //         else
 //         {
@@ -1205,6 +1230,31 @@ bool Optimize::RunInternalSolver(Solver::SolverState state)
             MessageInterface::ShowMessage
                ("Optimize::Execute - internal solver in CHECKINGRUN state\n");
             #endif
+            // Finite-difference runs leave reporting values at the last
+            // probe even after the solver restores its nominal decision
+            // vector. Refresh only the report cache before the provider can
+            // declare convergence and write its final variable values.
+            {
+               std::set<GmatCommand *> visited;
+               auto refresh=[&](auto &&self,GmatCommand *command,GmatCommand *owner)->void
+               {
+                  for (;command && command!=owner;command=command->GetNext())
+                  {
+                     if (!visited.insert(command).second) break;
+                     if (command->IsOfType("Vary"))
+                        command->TakeAction("RefreshSolverReporting",solverName);
+                     // A nested solver owns its own decision/report values.
+                     if (!dynamic_cast<SolverBranchCommand *>(command))
+                        for (Integer i=0;auto *child=command->GetChildCommand(i);++i)
+                           self(self,child,command);
+                  }
+               };
+               refresh(refresh,branch[0],this);
+               // Report physical controls only after the last probe's cache
+               // has been replaced by the restored nominal decision values.
+               if (theSolver->GetTypeName() == "VF13ad")
+                  theSolver->ReportProgress(Solver::CHECKINGRUN);
+            }
             break;
             
          case Solver::FINISHED:

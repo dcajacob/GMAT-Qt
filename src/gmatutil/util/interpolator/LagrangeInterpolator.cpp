@@ -123,7 +123,8 @@ LagrangeInterpolator::LagrangeInterpolator(const LagrangeInterpolator &li) :
    y              (NULL)
 {
    bufferSize = li.bufferSize;
-   AllocateArrays();
+   if (li.independent)
+      CopyArrays(li);
 }
 
 
@@ -144,8 +145,9 @@ LagrangeInterpolator::operator=(const LagrangeInterpolator &li)
    if (&li == this)
       return *this;
    
-   CleanupArrays();
-   CopyArrays(li);
+   Interpolator::operator=(li);
+   if (li.independent)
+      CopyArrays(li);
    
    order      = li.order;
    baseOrder  = li.baseOrder;

@@ -1,0 +1,2298 @@
+{
+  "schema_version": 1,
+  "reference_sha256": {
+    "prototype/StateConv/BROLYD.m": "4bba549178fd7a10da7506ba17d0aa6fa98afaeaa4de51682271a583833465f3",
+    "prototype/StateConv/BROLYD_short.m": "c0f3bd3b53cf2ba335530ccec054dd1fd19123326a86e3a11d51a2630960fa24",
+    "src/qtgui/tests/BrouwerPrototypeOracle.py": "3cd4c38046ffb90926c161fd744d37af4859f63d7f6cb336656ed3ac00ac5f5b",
+    "doc/help/src/Resource_SpacecraftOrbitState.xml": "2446259ea11baa976a23b659961761eb8412566820598938c3c8f98995fe2eb4"
+  },
+  "oracle_scope": "Retained NASA prototype source parity plus independently solved Kepler equation/Cartesian basis. Independent physical averaging and historical FreeFlyer agreement remain unqualified.",
+  "position_tolerance_km": 1e-06,
+  "velocity_tolerance_km_s": 1e-09,
+  "samples": [
+    {
+      "case": "Circular_EqPro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4415,
+      "mean": [
+        75123.37492420245,
+        1.17057691071e-05,
+        5.01696573e-08,
+        180.0005833232947,
+        131.01353033534812,
+        180.0
+      ],
+      "historical_cartesian": [
+        -49299.33170034422,
+        56684.18960176151,
+        0.0,
+        -1.738073725783408,
+        -1.511636202776137,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_EqPro_Long.truth",
+      "truth_sha256": "27e2de9e509d58068634cadc7a3ccf6e0b93927a9f10726ebbe6eca7fe01eda8",
+      "osculating_keplerian_MA": [
+        75123.37490361488,
+        2.3606539605348983e-12,
+        4.3632527676196536e-08,
+        90.0011116258005,
+        219.6302769453989,
+        181.3827250874435
+      ],
+      "expected_cartesian": [
+        -49299.33289498443,
+        56684.18856299539,
+        3.7542146027593616e-05,
+        -1.7380736932699672,
+        -1.5116362388307794,
+        1.3236197990902177e-09
+      ]
+    },
+    {
+      "case": "Circular_EqPro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4418,
+      "mean": [
+        75123.37492420245,
+        1.17057691071e-05,
+        5.01696573e-08,
+        180.0005833232947,
+        131.01353033534812,
+        180.0
+      ],
+      "historical_cartesian": [
+        -49299.33170034422,
+        56684.18960176151,
+        0.0,
+        -1.738073725783408,
+        -1.511636202776137,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_EqPro_Long.truth",
+      "truth_sha256": "27e2de9e509d58068634cadc7a3ccf6e0b93927a9f10726ebbe6eca7fe01eda8",
+      "osculating_keplerian_MA": [
+        75123.37490361488,
+        2.3606539605348983e-12,
+        4.3632527676196536e-08,
+        90.0011116258005,
+        219.6302769453989,
+        181.3827250874435
+      ],
+      "expected_cartesian": [
+        -49299.33289498443,
+        56684.18856299539,
+        3.7542146027593616e-05,
+        -1.738073693924033,
+        -1.511636239399633,
+        1.3236197995883178e-09
+      ]
+    },
+    {
+      "case": "Circular_EqPro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4415,
+      "mean": [
+        75123.37492420245,
+        1.17057691071e-05,
+        0.0,
+        0.0,
+        311.01411365864277,
+        180.0
+      ],
+      "historical_cartesian": [
+        -49299.33170034422,
+        56684.18960176151,
+        0.0,
+        -1.738073725783408,
+        -1.511636202776137,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_EqPro_Short.truth",
+      "truth_sha256": "5066c2ae8fdfb7a97c18b26bb5f52b0453a0bf84e0401a80e22591f3ac974d23",
+      "osculating_keplerian_MA": [
+        75123.37490361488,
+        2.29446778247835e-12,
+        0.0,
+        0.0,
+        311.01411369444037,
+        179.9999999642024
+      ],
+      "expected_cartesian": [
+        -49299.33289498752,
+        56684.188562986164,
+        0.0,
+        -1.7380736932699983,
+        -1.5116362388309732,
+        0.0
+      ]
+    },
+    {
+      "case": "Circular_EqPro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4418,
+      "mean": [
+        75123.37492420245,
+        1.17057691071e-05,
+        0.0,
+        0.0,
+        311.01411365864277,
+        180.0
+      ],
+      "historical_cartesian": [
+        -49299.33170034422,
+        56684.18960176151,
+        0.0,
+        -1.738073725783408,
+        -1.511636202776137,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_EqPro_Short.truth",
+      "truth_sha256": "5066c2ae8fdfb7a97c18b26bb5f52b0453a0bf84e0401a80e22591f3ac974d23",
+      "osculating_keplerian_MA": [
+        75123.37490361488,
+        2.29446778247835e-12,
+        0.0,
+        0.0,
+        311.01411369444037,
+        179.9999999642024
+      ],
+      "expected_cartesian": [
+        -49299.33289498752,
+        56684.188562986164,
+        0.0,
+        -1.7380736939240642,
+        -1.5116362393998268,
+        0.0
+      ]
+    },
+    {
+      "case": "Circular_EqRetro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4415,
+      "mean": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "historical_cartesian": [
+        10000.0,
+        0.0,
+        0.0,
+        0.0,
+        -6.31348114592892,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_EqRetro_Long.truth",
+      "truth_sha256": "5be671d02070aa4b0f8c62dc38fdfba4f759ec27fe7413329a0507a3495f2119",
+      "invalid_zero_reference": true,
+      "expected_exception": "RadPer"
+    },
+    {
+      "case": "Circular_EqRetro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4418,
+      "mean": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "historical_cartesian": [
+        10000.0,
+        0.0,
+        0.0,
+        0.0,
+        -6.31348114592892,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_EqRetro_Long.truth",
+      "truth_sha256": "5be671d02070aa4b0f8c62dc38fdfba4f759ec27fe7413329a0507a3495f2119",
+      "invalid_zero_reference": true,
+      "expected_exception": "RadPer"
+    },
+    {
+      "case": "Circular_EqRetro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4415,
+      "mean": [
+        10000.008711350456,
+        0.0006599747125718,
+        180.0,
+        0.0,
+        180.0,
+        180.0
+      ],
+      "historical_cartesian": [
+        10000.0,
+        0.0,
+        0.0,
+        0.0,
+        -6.31348114592892,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_EqRetro_Short.truth",
+      "truth_sha256": "f8d885b47dfe2b70fef876a001774073fd649a389c4b4dc894c8e101efa4ed65",
+      "osculating_keplerian_MA": [
+        10000.000000008333,
+        1.275981187029429e-10,
+        180.0,
+        -180.00000003630444,
+        0.0,
+        179.99999996369556
+      ],
+      "expected_cartesian": [
+        10000.000001284314,
+        -1.991598501119554e-12,
+        7.759753225424e-22,
+        -1.2568815113075172e-15,
+        -6.313481142744837,
+        -7.731784472939638e-16
+      ]
+    },
+    {
+      "case": "Circular_EqRetro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4418,
+      "mean": [
+        10000.008711350456,
+        0.0006599747125718,
+        180.0,
+        0.0,
+        180.0,
+        180.0
+      ],
+      "historical_cartesian": [
+        10000.0,
+        0.0,
+        0.0,
+        0.0,
+        -6.31348114592892,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_EqRetro_Short.truth",
+      "truth_sha256": "f8d885b47dfe2b70fef876a001774073fd649a389c4b4dc894c8e101efa4ed65",
+      "osculating_keplerian_MA": [
+        10000.000000008333,
+        1.275981187029429e-10,
+        180.0,
+        -180.00000003630444,
+        0.0,
+        179.99999996369556
+      ],
+      "expected_cartesian": [
+        10000.000001284314,
+        -1.991598501119554e-12,
+        7.759753225424e-22,
+        -1.2568815117805028e-15,
+        -6.313481145120705,
+        -7.731784475849237e-16
+      ]
+    },
+    {
+      "case": "Circular_IncPro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4415,
+      "mean": [
+        135510.60520405506,
+        5.20461996259e-05,
+        71.29862836322225,
+        236.0666536913216,
+        268.4163938765068,
+        89.85709161847512
+      ],
+      "historical_cartesian": [
+        -76697.86730920085,
+        -111650.0068685209,
+        -3867.242957350657,
+        0.427202009925006,
+        -0.3497092172222175,
+        1.623780430308316
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_IncPro_Long.truth",
+      "truth_sha256": "91934e310d079973f4425cd30ef6cadedffa4dcd01869901fd11717e7c05c300",
+      "osculating_keplerian_MA": [
+        135511.04180688932,
+        6.5773694064297395e-12,
+        71.29865966035432,
+        236.06665169481943,
+        267.5290439933638,
+        90.74443379634337
+      ],
+      "expected_cartesian": [
+        -76697.86731082376,
+        -111650.00686749518,
+        -3867.242952181402,
+        0.4272020097877108,
+        -0.34970921705473956,
+        1.6237804296992302
+      ]
+    },
+    {
+      "case": "Circular_IncPro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4418,
+      "mean": [
+        135510.60520405506,
+        5.20461996259e-05,
+        71.29862836322225,
+        236.0666536913216,
+        268.4163938765068,
+        89.85709161847512
+      ],
+      "historical_cartesian": [
+        -76697.86730920085,
+        -111650.0068685209,
+        -3867.242957350657,
+        0.427202009925006,
+        -0.3497092172222175,
+        1.623780430308316
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_IncPro_Long.truth",
+      "truth_sha256": "91934e310d079973f4425cd30ef6cadedffa4dcd01869901fd11717e7c05c300",
+      "osculating_keplerian_MA": [
+        135511.04180688932,
+        6.5773694064297395e-12,
+        71.29865966035432,
+        236.06665169481943,
+        267.5290439933638,
+        90.74443379634337
+      ],
+      "expected_cartesian": [
+        -76697.86731082376,
+        -111650.00686749518,
+        -3867.242952181402,
+        0.42720200994847396,
+        -0.34970921718634096,
+        1.6237804303102856
+      ]
+    },
+    {
+      "case": "Circular_IncPro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4415,
+      "mean": [
+        135510.60521090665,
+        1.4423303499e-06,
+        71.29862841641263,
+        236.06665368671878,
+        175.69836802414144,
+        182.57511747987164
+      ],
+      "historical_cartesian": [
+        -76697.86730920085,
+        -111650.0068685209,
+        -3867.242957350657,
+        0.427202009925006,
+        -0.3497092172222175,
+        1.623780430308316
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_IncPro_Short.truth",
+      "truth_sha256": "c098315d024ddb0c5ef855264baf5133e4f1121da5d2b4cd52ad2a8f7c34baa9",
+      "osculating_keplerian_MA": [
+        135511.04180673385,
+        3.2185216649205305e-12,
+        71.29865966054598,
+        236.06665169637552,
+        358.19395195810495,
+        0.07952583006425717
+      ],
+      "expected_cartesian": [
+        -76697.86730878911,
+        -111650.00686798351,
+        -3867.242957298937,
+        0.4272020097619215,
+        -0.3497092170886799,
+        1.62378042970573
+      ]
+    },
+    {
+      "case": "Circular_IncPro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4418,
+      "mean": [
+        135510.60521090665,
+        1.4423303499e-06,
+        71.29862841641263,
+        236.06665368671878,
+        175.69836802414144,
+        182.57511747987164
+      ],
+      "historical_cartesian": [
+        -76697.86730920085,
+        -111650.0068685209,
+        -3867.242957350657,
+        0.427202009925006,
+        -0.3497092172222175,
+        1.623780430308316
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_IncPro_Short.truth",
+      "truth_sha256": "c098315d024ddb0c5ef855264baf5133e4f1121da5d2b4cd52ad2a8f7c34baa9",
+      "osculating_keplerian_MA": [
+        135511.04180673385,
+        3.2185216649205305e-12,
+        71.29865966054598,
+        236.06665169637552,
+        358.19395195810495,
+        0.07952583006425717
+      ],
+      "expected_cartesian": [
+        -76697.86730878911,
+        -111650.00686798351,
+        -3867.242957298937,
+        0.42720200992268476,
+        -0.34970921722028125,
+        1.6237804303167855
+      ]
+    },
+    {
+      "case": "Circular_IncRetro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4415,
+      "mean": [
+        9996.702678605032,
+        0.0006968927583503,
+        135.0094792399594,
+        359.9999806586686,
+        230.80325974921718,
+        129.19665841317388
+      ],
+      "historical_cartesian": [
+        10000.0,
+        0.0,
+        0.0,
+        0.0,
+        -4.464305329499764,
+        4.464305329499765
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_IncRetro_Long.truth",
+      "truth_sha256": "60363bed1322ebab2491ac0a2fbb133e60c628883f93cc14c0cd4cf316e38e16",
+      "osculating_keplerian_MA": [
+        9999.999991827992,
+        8.418543095529065e-10,
+        135.00000000192088,
+        2.4687526948986625e-05,
+        184.81783960782198,
+        175.18213570463124
+      ],
+      "expected_cartesian": [
+        10000.000000213622,
+        0.007354560816206902,
+        -0.003045774521617222,
+        4.643473647481475e-06,
+        -4.4643053277265325,
+        4.464305327428784
+      ]
+    },
+    {
+      "case": "Circular_IncRetro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4418,
+      "mean": [
+        9996.702678605032,
+        0.0006968927583503,
+        135.0094792399594,
+        359.9999806586686,
+        230.80325974921718,
+        129.19665841317388
+      ],
+      "historical_cartesian": [
+        10000.0,
+        0.0,
+        0.0,
+        0.0,
+        -4.464305329499764,
+        4.464305329499765
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_IncRetro_Long.truth",
+      "truth_sha256": "60363bed1322ebab2491ac0a2fbb133e60c628883f93cc14c0cd4cf316e38e16",
+      "osculating_keplerian_MA": [
+        9999.999991827992,
+        8.418543095529065e-10,
+        135.00000000192088,
+        2.4687526948986625e-05,
+        184.81783960782198,
+        175.18213570463124
+      ],
+      "expected_cartesian": [
+        10000.000000213622,
+        0.007354560816206902,
+        -0.003045774521617222,
+        4.643473649228892e-06,
+        -4.464305329406526,
+        4.464305329108776
+      ]
+    },
+    {
+      "case": "Circular_IncRetro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4415,
+      "mean": [
+        9996.702663790667,
+        0.0004403572913798,
+        135.0094625589913,
+        0.0,
+        179.99999999999997,
+        180.0
+      ],
+      "historical_cartesian": [
+        10000.0,
+        0.0,
+        0.0,
+        0.0,
+        -4.464305329499764,
+        4.464305329499765
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_IncRetro_Short.truth",
+      "truth_sha256": "accacb0cc86db93e1c66ff069984144eecb5adb78861499e58be8a72f78c4dec",
+      "osculating_keplerian_MA": [
+        9999.999991834915,
+        2.542859062307527e-08,
+        135.00000000118396,
+        6.559214391379406e-18,
+        359.9999999997569,
+        2.43109703285664e-10
+      ],
+      "expected_cartesian": [
+        9999.99973754901,
+        5.954188748757349e-14,
+        -5.839708863800745e-14,
+        5.3332756781511156e-17,
+        -4.46430544493558,
+        4.464305444751081
+      ]
+    },
+    {
+      "case": "Circular_IncRetro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4418,
+      "mean": [
+        9996.702663790667,
+        0.0004403572913798,
+        135.0094625589913,
+        0.0,
+        179.99999999999997,
+        180.0
+      ],
+      "historical_cartesian": [
+        10000.0,
+        0.0,
+        0.0,
+        0.0,
+        -4.464305329499764,
+        4.464305329499765
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_IncRetro_Short.truth",
+      "truth_sha256": "accacb0cc86db93e1c66ff069984144eecb5adb78861499e58be8a72f78c4dec",
+      "osculating_keplerian_MA": [
+        9999.999991834915,
+        2.542859062307527e-08,
+        135.00000000118396,
+        6.559214391379406e-18,
+        359.9999999997569,
+        2.43109703285664e-10
+      ],
+      "expected_cartesian": [
+        9999.99973754901,
+        5.954188748757349e-14,
+        -5.839708863800745e-14,
+        5.333275680158116e-17,
+        -4.4643054466155725,
+        4.464305446431073
+      ]
+    },
+    {
+      "case": "Circular_Polar",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4415,
+      "mean": [
+        142408.08359852358,
+        5.23812092681e-05,
+        89.99999999999999,
+        349.41340143382166,
+        271.83081016043695,
+        129.48986179181233
+      ],
+      "historical_cartesian": [
+        105131.4850587698,
+        -19649.37236994086,
+        94028.46480301057,
+        -1.085850287176959,
+        0.2029484946286078,
+        1.256479769533567
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_Polar_Long.truth",
+      "truth_sha256": "6a293b55d0db8b5ab608c20fb2fb9e5656ceb1707b0545226672b8f29d1b116d",
+      "osculating_keplerian_MA": [
+        142408.14294977763,
+        6.6090520852672444e-12,
+        89.99999999999999,
+        349.41340143382166,
+        273.08079657371263,
+        128.24001419761186
+      ],
+      "expected_cartesian": [
+        105131.48505832208,
+        -19649.372369857156,
+        94028.46480440223,
+        -1.0858502867691775,
+        0.20294849455239242,
+        1.2564797690509122
+      ]
+    },
+    {
+      "case": "Circular_Polar",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4418,
+      "mean": [
+        142408.08359852358,
+        5.23812092681e-05,
+        89.99999999999999,
+        349.41340143382166,
+        271.83081016043695,
+        129.48986179181233
+      ],
+      "historical_cartesian": [
+        105131.4850587698,
+        -19649.37236994086,
+        94028.46480301057,
+        -1.085850287176959,
+        0.2029484946286078,
+        1.256479769533567
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_Polar_Long.truth",
+      "truth_sha256": "6a293b55d0db8b5ab608c20fb2fb9e5656ceb1707b0545226672b8f29d1b116d",
+      "osculating_keplerian_MA": [
+        142408.14294977763,
+        6.6090520852672444e-12,
+        89.99999999999999,
+        349.41340143382166,
+        273.08079657371263,
+        128.24001419761186
+      ],
+      "expected_cartesian": [
+        105131.48505832208,
+        -19649.372369857156,
+        94028.46480440223,
+        -1.085850287177801,
+        0.20294849462876532,
+        1.2564797695237464
+      ]
+    },
+    {
+      "case": "Circular_Polar",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4415,
+      "mean": [
+        142408.0835359972,
+        1.6735926603e-06,
+        89.99999999999999,
+        349.41340143382166,
+        1.2699737873182144,
+        40.05069815491681
+      ],
+      "historical_cartesian": [
+        105131.4850587698,
+        -19649.37236994086,
+        94028.46480301057,
+        -1.085850287176959,
+        0.2029484946286078,
+        1.256479769533567
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_Polar_Short.truth",
+      "truth_sha256": "099f69473c865af913a1203f93e041e751e82a211b7745eeed3951abc2e290dd",
+      "osculating_keplerian_MA": [
+        142408.14294977172,
+        1.012957696955936e-13,
+        89.99999999999999,
+        349.41340143382166,
+        6.9422933695135445,
+        34.37851740183709
+      ],
+      "expected_cartesian": [
+        105131.48505878568,
+        -19649.372369943798,
+        94028.46480295651,
+        -1.085850286767956,
+        0.20294849455216415,
+        1.2564797690613496
+      ]
+    },
+    {
+      "case": "Circular_Polar",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4418,
+      "mean": [
+        142408.0835359972,
+        1.6735926603e-06,
+        89.99999999999999,
+        349.41340143382166,
+        1.2699737873182144,
+        40.05069815491681
+      ],
+      "historical_cartesian": [
+        105131.4850587698,
+        -19649.37236994086,
+        94028.46480301057,
+        -1.085850287176959,
+        0.2029484946286078,
+        1.256479769533567
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Circular_Polar_Short.truth",
+      "truth_sha256": "099f69473c865af913a1203f93e041e751e82a211b7745eeed3951abc2e290dd",
+      "osculating_keplerian_MA": [
+        142408.14294977172,
+        1.012957696955936e-13,
+        89.99999999999999,
+        349.41340143382166,
+        6.9422933695135445,
+        34.37851740183709
+      ],
+      "expected_cartesian": [
+        105131.48505878568,
+        -19649.372369943798,
+        94028.46480295651,
+        -1.0858502871765794,
+        0.20294849462853704,
+        1.2564797695341838
+      ]
+    },
+    {
+      "case": "Elliptic_EqPro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4415,
+      "mean": [
+        213874.15426090473,
+        0.9501537644539724,
+        0.0188407161762569,
+        263.5484298770007,
+        90.0259832917204,
+        358.9615092192951
+      ],
+      "historical_cartesian": [
+        -288.2349803269244,
+        -19027.83272806163,
+        0.0,
+        4.845817348531929,
+        4.067995228947069,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_EqPro_Long.truth",
+      "truth_sha256": "06e602a312e32f199d0738f4aa3f38f66065236beec395bc578d91b66552305e",
+      "osculating_keplerian_MA": [
+        214159.60237071457,
+        0.9502220488249838,
+        4.2652033322503365e-07,
+        173.8481765716863,
+        179.69792548278235,
+        358.9637807237762
+      ],
+      "expected_cartesian": [
+        -288.23497886163034,
+        -19027.83272844347,
+        0.00014106094496373802,
+        4.845817346304601,
+        4.067995227740179,
+        -3.397424107647047e-08
+      ]
+    },
+    {
+      "case": "Elliptic_EqPro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4418,
+      "mean": [
+        213874.15426090473,
+        0.9501537644539724,
+        0.0188407161762569,
+        263.5484298770007,
+        90.0259832917204,
+        358.9615092192951
+      ],
+      "historical_cartesian": [
+        -288.2349803269244,
+        -19027.83272806163,
+        0.0,
+        4.845817348531929,
+        4.067995228947069,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_EqPro_Long.truth",
+      "truth_sha256": "06e602a312e32f199d0738f4aa3f38f66065236beec395bc578d91b66552305e",
+      "osculating_keplerian_MA": [
+        214159.60237071457,
+        0.9502220488249838,
+        4.2652033322503365e-07,
+        173.8481765716863,
+        179.69792548278235,
+        358.9637807237762
+      ],
+      "expected_cartesian": [
+        -288.23497886163034,
+        -19027.83272844347,
+        0.00014106094496373802,
+        4.845817348128162,
+        4.067995229271033,
+        -3.397424108925554e-08
+      ]
+    },
+    {
+      "case": "Elliptic_EqPro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4415,
+      "mean": [
+        213874.15425277792,
+        0.9501537755301975,
+        0.0,
+        0.0,
+        353.57441318253706,
+        358.96150921926795
+      ],
+      "historical_cartesian": [
+        -288.2349803269244,
+        -19027.83272806163,
+        0.0,
+        4.845817348531929,
+        4.067995228947069,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_EqPro_Short.truth",
+      "truth_sha256": "b6145d541e421ff8f176bc41313d1d0b856fa6beabdfea1df74e00334e8d55dc",
+      "osculating_keplerian_MA": [
+        214159.60237079216,
+        0.9502220488250044,
+        0.0,
+        0.0,
+        353.54610205445493,
+        358.96378072377695
+      ],
+      "expected_cartesian": [
+        -288.23497886541986,
+        -19027.832728441987,
+        -0.0,
+        4.845817346305681,
+        4.06799522773936,
+        0.0
+      ]
+    },
+    {
+      "case": "Elliptic_EqPro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4418,
+      "mean": [
+        213874.15425277792,
+        0.9501537755301975,
+        0.0,
+        0.0,
+        353.57441318253706,
+        358.96150921926795
+      ],
+      "historical_cartesian": [
+        -288.2349803269244,
+        -19027.83272806163,
+        0.0,
+        4.845817348531929,
+        4.067995228947069,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_EqPro_Short.truth",
+      "truth_sha256": "b6145d541e421ff8f176bc41313d1d0b856fa6beabdfea1df74e00334e8d55dc",
+      "osculating_keplerian_MA": [
+        214159.60237079216,
+        0.9502220488250044,
+        0.0,
+        0.0,
+        353.54610205445493,
+        358.96378072377695
+      ],
+      "expected_cartesian": [
+        -288.23497886541986,
+        -19027.832728441987,
+        -0.0,
+        4.845817348129243,
+        4.067995229270214,
+        0.0
+      ]
+    },
+    {
+      "case": "Elliptic_EqRetro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4415,
+      "mean": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "historical_cartesian": [
+        8000.0,
+        0.0,
+        0.0,
+        -0.0,
+        -7.732403654103941,
+        9e-16
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_EqRetro_Long.truth",
+      "truth_sha256": "ad27451d84d68aa5f8ece2428d8acd4044e6362d46901adc5423361f4e2241cb",
+      "invalid_zero_reference": true,
+      "expected_exception": "RadPer"
+    },
+    {
+      "case": "Elliptic_EqRetro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4418,
+      "mean": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "historical_cartesian": [
+        8000.0,
+        0.0,
+        0.0,
+        -0.0,
+        -7.732403654103941,
+        9e-16
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_EqRetro_Long.truth",
+      "truth_sha256": "ad27451d84d68aa5f8ece2428d8acd4044e6362d46901adc5423361f4e2241cb",
+      "invalid_zero_reference": true,
+      "expected_exception": "RadPer"
+    },
+    {
+      "case": "Elliptic_EqRetro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4415,
+      "mean": [
+        9996.106342544668,
+        0.1990603786224561,
+        180.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "historical_cartesian": [
+        8000.0,
+        0.0,
+        0.0,
+        -0.0,
+        -7.732403654103941,
+        9e-16
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_EqRetro_Short.truth",
+      "truth_sha256": "65a7a7e2eafe52fbfcb83ae82de8977adfeaaacfb4d44277bacaee324a3b841a",
+      "osculating_keplerian_MA": [
+        9999.999999327109,
+        0.19999999982546465,
+        180.0,
+        -0.0,
+        0.0,
+        0.0
+      ],
+      "expected_cartesian": [
+        8000.0000012070395,
+        -0.0,
+        0.0,
+        -0.0,
+        -7.732403650048454,
+        9.46946337974715e-16
+      ]
+    },
+    {
+      "case": "Elliptic_EqRetro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4418,
+      "mean": [
+        9996.106342544668,
+        0.1990603786224561,
+        180.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "historical_cartesian": [
+        8000.0,
+        0.0,
+        0.0,
+        -0.0,
+        -7.732403654103941,
+        9e-16
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_EqRetro_Short.truth",
+      "truth_sha256": "65a7a7e2eafe52fbfcb83ae82de8977adfeaaacfb4d44277bacaee324a3b841a",
+      "osculating_keplerian_MA": [
+        9999.999999327109,
+        0.19999999982546465,
+        180.0,
+        -0.0,
+        0.0,
+        0.0
+      ],
+      "expected_cartesian": [
+        8000.0000012070395,
+        -0.0,
+        0.0,
+        -0.0,
+        -7.732403652958286,
+        9.469463383310667e-16
+      ]
+    },
+    {
+      "case": "Elliptic_IncPro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4415,
+      "mean": [
+        62523.06176844258,
+        0.4896610474490027,
+        58.17021193671689,
+        271.6861569327349,
+        99.37348328454304,
+        312.71631155508453
+      ],
+      "historical_cartesian": [
+        -1030.94101601426,
+        -54060.43315993006,
+        -4223.930151382009,
+        1.365230211225033,
+        1.174674829035822,
+        2.253921069665939
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_IncPro_Long.truth",
+      "truth_sha256": "8aeeec8676ea5439c1b05c5639622c4ba3b2a65a8325769fc4fbd65c09c42bbe",
+      "osculating_keplerian_MA": [
+        62524.20947350728,
+        0.48976439577456143,
+        58.1681709056755,
+        271.6869487496366,
+        99.36928448400981,
+        312.7193153947117
+      ],
+      "expected_cartesian": [
+        -1031.0550297687257,
+        -54060.44705125996,
+        -4223.7245260026775,
+        1.3652324459273553,
+        1.1746805151896245,
+        2.253916751227273
+      ]
+    },
+    {
+      "case": "Elliptic_IncPro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4418,
+      "mean": [
+        62523.06176844258,
+        0.4896610474490027,
+        58.17021193671689,
+        271.6861569327349,
+        99.37348328454304,
+        312.71631155508453
+      ],
+      "historical_cartesian": [
+        -1030.94101601426,
+        -54060.43315993006,
+        -4223.930151382009,
+        1.365230211225033,
+        1.174674829035822,
+        2.253921069665939
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_IncPro_Long.truth",
+      "truth_sha256": "8aeeec8676ea5439c1b05c5639622c4ba3b2a65a8325769fc4fbd65c09c42bbe",
+      "osculating_keplerian_MA": [
+        62524.20947350728,
+        0.48976439577456143,
+        58.1681709056755,
+        271.6869487496366,
+        99.36928448400981,
+        312.7193153947117
+      ],
+      "expected_cartesian": [
+        -1031.0550297687257,
+        -54060.44705125996,
+        -4223.7245260026775,
+        1.365232446441115,
+        1.1746805156316762,
+        2.2539167520754595
+      ]
+    },
+    {
+      "case": "Elliptic_IncPro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4415,
+      "mean": [
+        62523.0619547658,
+        0.4897670659737157,
+        58.167783275894095,
+        271.6856749749146,
+        99.37072540404918,
+        312.71819449335993
+      ],
+      "historical_cartesian": [
+        -1030.94101601426,
+        -54060.43315993006,
+        -4223.930151382009,
+        1.365230211225033,
+        1.174674829035822,
+        2.253921069665939
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_IncPro_Short.truth",
+      "truth_sha256": "190c43734f784852e69f592b7df37dee27bba36ded8c8d924a444d0d56a01858",
+      "osculating_keplerian_MA": [
+        62524.2094735071,
+        0.489766912758731,
+        58.168113221330884,
+        271.6870484205885,
+        99.36896338888528,
+        312.7194024896596
+      ],
+      "expected_cartesian": [
+        -1031.2470284819258,
+        -54060.3963863757,
+        -4224.173113804717,
+        1.3652376014411567,
+        1.1746650012184006,
+        2.253922430173841
+      ]
+    },
+    {
+      "case": "Elliptic_IncPro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4418,
+      "mean": [
+        62523.0619547658,
+        0.4897670659737157,
+        58.167783275894095,
+        271.6856749749146,
+        99.37072540404918,
+        312.71819449335993
+      ],
+      "historical_cartesian": [
+        -1030.94101601426,
+        -54060.43315993006,
+        -4223.930151382009,
+        1.365230211225033,
+        1.174674829035822,
+        2.253921069665939
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_IncPro_Short.truth",
+      "truth_sha256": "190c43734f784852e69f592b7df37dee27bba36ded8c8d924a444d0d56a01858",
+      "osculating_keplerian_MA": [
+        62524.2094735071,
+        0.489766912758731,
+        58.168113221330884,
+        271.6870484205885,
+        99.36896338888528,
+        312.7194024896596
+      ],
+      "expected_cartesian": [
+        -1031.2470284819258,
+        -54060.3963863757,
+        -4224.173113804717,
+        1.3652376019549182,
+        1.1746650016604465,
+        2.25392243102203
+      ]
+    },
+    {
+      "case": "Elliptic_IncRetro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4415,
+      "mean": [
+        9992.586000414609,
+        0.1993273061883123,
+        135.01326737381805,
+        0.0023618294945535,
+        359.8549320419437,
+        0.1528260853611606
+      ],
+      "historical_cartesian": [
+        8000.0,
+        0.0,
+        0.0,
+        -0.0,
+        -5.467635058688535,
+        5.467635058688536
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_IncRetro_Long.truth",
+      "truth_sha256": "1a9b969ec0bd16d31b27d79f2667fe18a4fd0e06b5a34eb420a58b870bb44742",
+      "osculating_keplerian_MA": [
+        9999.999998548203,
+        0.19999999986990133,
+        135.000005784264,
+        359.99041225864295,
+        0.009587723484756507,
+        2.0051489537003936e-08
+      ],
+      "expected_cartesian": [
+        7999.999617721285,
+        -2.2853072772761833,
+        0.946605888287416,
+        -0.002208864608167668,
+        -5.467635238642622,
+        5.467634427752597
+      ]
+    },
+    {
+      "case": "Elliptic_IncRetro",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4418,
+      "mean": [
+        9992.586000414609,
+        0.1993273061883123,
+        135.01326737381805,
+        0.0023618294945535,
+        359.8549320419437,
+        0.1528260853611606
+      ],
+      "historical_cartesian": [
+        8000.0,
+        0.0,
+        0.0,
+        -0.0,
+        -5.467635058688535,
+        5.467635058688536
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_IncRetro_Long.truth",
+      "truth_sha256": "1a9b969ec0bd16d31b27d79f2667fe18a4fd0e06b5a34eb420a58b870bb44742",
+      "osculating_keplerian_MA": [
+        9999.999998548203,
+        0.19999999986990133,
+        135.000005784264,
+        359.99041225864295,
+        0.009587723484756507,
+        2.0051489537003936e-08
+      ],
+      "expected_cartesian": [
+        7999.999617721285,
+        -2.2853072772761833,
+        0.946605888287416,
+        -0.0022088646089989004,
+        -5.467635240700183,
+        5.4676344298101585
+      ]
+    },
+    {
+      "case": "Elliptic_IncRetro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4415,
+      "mean": [
+        9992.586939419527,
+        0.1992937609068527,
+        135.0128587649723,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "historical_cartesian": [
+        8000.0,
+        0.0,
+        0.0,
+        -0.0,
+        -5.467635058688535,
+        5.467635058688536
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_IncRetro_Short.truth",
+      "truth_sha256": "d0ed9a5e4839f6222b46b147e4ec06f4ea11513175ca90b3fbb29f6243d1c585",
+      "osculating_keplerian_MA": [
+        9999.999998620717,
+        0.19998761239198395,
+        134.99985267734564,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "expected_cartesian": [
+        8000.123874976717,
+        0.0,
+        0.0,
+        0.0,
+        -5.46755044602639,
+        5.467578563145051
+      ]
+    },
+    {
+      "case": "Elliptic_IncRetro",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4418,
+      "mean": [
+        9992.586939419527,
+        0.1992937609068527,
+        135.0128587649723,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "historical_cartesian": [
+        8000.0,
+        0.0,
+        0.0,
+        -0.0,
+        -5.467635058688535,
+        5.467635058688536
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_IncRetro_Short.truth",
+      "truth_sha256": "d0ed9a5e4839f6222b46b147e4ec06f4ea11513175ca90b3fbb29f6243d1c585",
+      "osculating_keplerian_MA": [
+        9999.999998620717,
+        0.19998761239198395,
+        134.99985267734564,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "expected_cartesian": [
+        8000.123874976717,
+        0.0,
+        0.0,
+        0.0,
+        -5.46755044808392,
+        5.467578565202591
+      ]
+    },
+    {
+      "case": "Elliptic_Polar",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4415,
+      "mean": [
+        13630.554370059246,
+        0.0456667008860679,
+        90.00000000000001,
+        250.13830427129415,
+        114.09394261106175,
+        301.1545403036963
+      ],
+      "historical_cartesian": [
+        -2873.795328059257,
+        -7955.385269491484,
+        10297.82315128838,
+        1.498793292037471,
+        4.149035236110483,
+        3.333900624540855
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_Polar_Long.truth",
+      "truth_sha256": "7032c9e27a53716f8ba2729f41addee5552600b44a4bc054c2f8bbd415a2745f",
+      "osculating_keplerian_MA": [
+        13629.434275467243,
+        0.046171390565184,
+        90.00000000000001,
+        250.13830427129417,
+        114.15581279178613,
+        301.10866457551276
+      ],
+      "expected_cartesian": [
+        -2873.795327836125,
+        -7955.385268873796,
+        10297.823152279614,
+        1.4987932914639746,
+        4.149035234522905,
+        3.333900623158552
+      ]
+    },
+    {
+      "case": "Elliptic_Polar",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4418,
+      "mean": [
+        13630.554370059246,
+        0.0456667008860679,
+        90.00000000000001,
+        250.13830427129415,
+        114.09394261106175,
+        301.1545403036963
+      ],
+      "historical_cartesian": [
+        -2873.795328059257,
+        -7955.385269491484,
+        10297.82315128838,
+        1.498793292037471,
+        4.149035236110483,
+        3.333900624540855
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_Polar_Long.truth",
+      "truth_sha256": "7032c9e27a53716f8ba2729f41addee5552600b44a4bc054c2f8bbd415a2745f",
+      "osculating_keplerian_MA": [
+        13629.434275467243,
+        0.046171390565184,
+        90.00000000000001,
+        250.13830427129417,
+        114.15581279178613,
+        301.10866457551276
+      ],
+      "expected_cartesian": [
+        -2873.795327836125,
+        -7955.385268873796,
+        10297.823152279614,
+        1.4987932920279956,
+        4.149035236084256,
+        3.3339006244131544
+      ]
+    },
+    {
+      "case": "Elliptic_Polar",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4415,
+      "mean": [
+        13630.550566604143,
+        0.0461820216895434,
+        90.00000000000001,
+        250.13830427129415,
+        113.80513634927416,
+        301.4423417098003
+      ],
+      "historical_cartesian": [
+        -2873.795328059257,
+        -7955.385269491484,
+        10297.82315128838,
+        1.498793292037471,
+        4.149035236110483,
+        3.333900624540855
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_Polar_Short.truth",
+      "truth_sha256": "8c6aa85afaa1878cfb9c4241229ad207e0c6454483bee3b0d1a616127ba5807d",
+      "osculating_keplerian_MA": [
+        13629.434275466929,
+        0.046171849944965974,
+        90.00000000000001,
+        250.13830427129417,
+        114.15517897380818,
+        301.10929570864306
+      ],
+      "expected_cartesian": [
+        -2873.7947346449478,
+        -7955.383626772039,
+        10297.81293761629,
+        1.4987940289240291,
+        4.149037275997047,
+        3.3339038110579473
+      ]
+    },
+    {
+      "case": "Elliptic_Polar",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4418,
+      "mean": [
+        13630.550566604143,
+        0.0461820216895434,
+        90.00000000000001,
+        250.13830427129415,
+        113.80513634927416,
+        301.4423417098003
+      ],
+      "historical_cartesian": [
+        -2873.795328059257,
+        -7955.385269491484,
+        10297.82315128838,
+        1.498793292037471,
+        4.149035236110483,
+        3.333900624540855
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/Elliptic_Polar_Short.truth",
+      "truth_sha256": "8c6aa85afaa1878cfb9c4241229ad207e0c6454483bee3b0d1a616127ba5807d",
+      "osculating_keplerian_MA": [
+        13629.434275466929,
+        0.046171849944965974,
+        90.00000000000001,
+        250.13830427129417,
+        114.15517897380818,
+        301.10929570864306
+      ],
+      "expected_cartesian": [
+        -2873.7947346449478,
+        -7955.383626772039,
+        10297.81293761629,
+        1.4987940294880502,
+        4.149037277558399,
+        3.3339038123125504
+      ]
+    },
+    {
+      "case": "GUI-Circular-Equatorial",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4415,
+      "mean": [
+        7000.025345216889,
+        0.0013454967273721,
+        6.68024265015e-05,
+        138.17452700759281,
+        86.82547041647751,
+        180.0000025647672
+      ],
+      "historical_cartesian": [
+        4949.747468305833,
+        4949.747468305833,
+        0.0,
+        -5.3358654526301,
+        5.335865452630101,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-Circular-Equatorial_Long.truth",
+      "truth_sha256": "b35fc41a075eb9bc3d50bea2bb860845e393d9801fa9d25e5bb0308d80ee5d1d",
+      "osculating_keplerian_MA": [
+        7000.000000004962,
+        2.635212423883181e-10,
+        3.7075705121094316e-06,
+        228.18302183981677,
+        355.92324258746606,
+        180.8937355615431
+      ],
+      "expected_cartesian": [
+        4949.747470619558,
+        4949.747468607534,
+        2.5151182009821772e-05,
+        -5.335865448151724,
+        5.335865450276837,
+        -4.875466025588289e-07
+      ]
+    },
+    {
+      "case": "GUI-Circular-Equatorial",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4418,
+      "mean": [
+        7000.025345216889,
+        0.0013454967273721,
+        6.68024265015e-05,
+        138.17452700759281,
+        86.82547041647751,
+        180.0000025647672
+      ],
+      "historical_cartesian": [
+        4949.747468305833,
+        4949.747468305833,
+        0.0,
+        -5.3358654526301,
+        5.335865452630101,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-Circular-Equatorial_Long.truth",
+      "truth_sha256": "b35fc41a075eb9bc3d50bea2bb860845e393d9801fa9d25e5bb0308d80ee5d1d",
+      "osculating_keplerian_MA": [
+        7000.000000004962,
+        2.635212423883181e-10,
+        3.7075705121094316e-06,
+        228.18302183981677,
+        355.92324258746606,
+        180.8937355615431
+      ],
+      "expected_cartesian": [
+        4949.747470619558,
+        4949.747468607534,
+        2.5151182009821772e-05,
+        -5.335865450159699,
+        5.3358654522848115,
+        -4.875466027423008e-07
+      ]
+    },
+    {
+      "case": "GUI-Circular-Equatorial",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4415,
+      "mean": [
+        7000.025345235818,
+        0.0013454977349687,
+        0.0,
+        0.0,
+        225.00000000002936,
+        180.0
+      ],
+      "historical_cartesian": [
+        4949.747468305833,
+        4949.747468305833,
+        0.0,
+        -5.3358654526301,
+        5.335865452630101,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-Circular-Equatorial_Short.truth",
+      "truth_sha256": "095a487a2b06e6141e17ab265801d3512422782851705850b6615704a8bab302",
+      "osculating_keplerian_MA": [
+        7000.000000004962,
+        2.6347270979526494e-10,
+        0.0,
+        0.0,
+        225.00000003588627,
+        179.9999999641431
+      ],
+      "expected_cartesian": [
+        4949.747469610929,
+        4949.747469616,
+        0.0,
+        -5.3358654492171125,
+        5.335865449211647,
+        0.0
+      ]
+    },
+    {
+      "case": "GUI-Circular-Equatorial",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4418,
+      "mean": [
+        7000.025345235818,
+        0.0013454977349687,
+        0.0,
+        0.0,
+        225.00000000002936,
+        180.0
+      ],
+      "historical_cartesian": [
+        4949.747468305833,
+        4949.747468305833,
+        0.0,
+        -5.3358654526301,
+        5.335865452630101,
+        0.0
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-Circular-Equatorial_Short.truth",
+      "truth_sha256": "095a487a2b06e6141e17ab265801d3512422782851705850b6615704a8bab302",
+      "osculating_keplerian_MA": [
+        7000.000000004962,
+        2.6347270979526494e-10,
+        0.0,
+        0.0,
+        225.00000003588627,
+        179.9999999641431
+      ],
+      "expected_cartesian": [
+        4949.747469610929,
+        4949.747469616,
+        0.0,
+        -5.335865451225088,
+        5.335865451219621,
+        0.0
+      ]
+    },
+    {
+      "case": "GUI-Circular-Inclined",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4415,
+      "mean": [
+        6895.2650129075755,
+        0.0008961910189834,
+        98.00277173177409,
+        0.0048134143916514,
+        252.67401513672078,
+        317.2759604967484
+      ],
+      "historical_cartesian": [
+        -5975.575286112627,
+        480.14719831222703,
+        -3416.4248371584185,
+        3.800269068467867,
+        0.9160734115247813,
+        -6.5182010158446495
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-Circular-Inclined_Long.truth",
+      "truth_sha256": "91b92bca85a22dd32ae6975e4be396f8bfee9ba06092865f5b81bbd2ee5304bc",
+      "osculating_keplerian_MA": [
+        6899.999999073142,
+        1.168086813584852e-10,
+        97.99999999920671,
+        6.914539513877455e-06,
+        243.4526982568158,
+        326.5472948197957
+      ],
+      "expected_cartesian": [
+        -5975.575760000586,
+        480.1463764132918,
+        -3416.4241205740213,
+        3.8002681613130065,
+        0.9160739338061953,
+        -6.5182014694597745
+      ]
+    },
+    {
+      "case": "GUI-Circular-Inclined",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4418,
+      "mean": [
+        6895.2650129075755,
+        0.0008961910189834,
+        98.00277173177409,
+        0.0048134143916514,
+        252.67401513672078,
+        317.2759604967484
+      ],
+      "historical_cartesian": [
+        -5975.575286112627,
+        480.14719831222703,
+        -3416.4248371584185,
+        3.800269068467867,
+        0.9160734115247813,
+        -6.5182010158446495
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-Circular-Inclined_Long.truth",
+      "truth_sha256": "91b92bca85a22dd32ae6975e4be396f8bfee9ba06092865f5b81bbd2ee5304bc",
+      "osculating_keplerian_MA": [
+        6899.999999073142,
+        1.168086813584852e-10,
+        97.99999999920671,
+        6.914539513877455e-06,
+        243.4526982568158,
+        326.5472948197957
+      ],
+      "expected_cartesian": [
+        -5975.575760000586,
+        480.1463764132918,
+        -3416.4241205740213,
+        3.8002681627431105,
+        0.9160739341509292,
+        -6.518201471912682
+      ]
+    },
+    {
+      "case": "GUI-Circular-Inclined",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4415,
+      "mean": [
+        6895.300580784681,
+        0.0004026715720433,
+        98.00274577549352,
+        0.0047856762699492,
+        132.38446996388885,
+        77.56554054626356
+      ],
+      "historical_cartesian": [
+        -5975.575286112627,
+        480.14719831222703,
+        -3416.4248371584185,
+        3.800269068467867,
+        0.9160734115247813,
+        -6.5182010158446495
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-Circular-Inclined_Short.truth",
+      "truth_sha256": "555ea07edb0fdafd28b4a25ac94e730b34de157dc142ed34b2e3c48e5196190d",
+      "osculating_keplerian_MA": [
+        6899.999999065315,
+        1.7962240736877245e-08,
+        98.00000000055184,
+        1.9128823965151845e-09,
+        47.91468052410883,
+        162.08531946534734
+      ],
+      "expected_cartesian": [
+        -5975.575349960914,
+        480.14721532384635,
+        -3416.4249593831582,
+        3.800269037469787,
+        0.9160733929498986,
+        -6.518200882319192
+      ]
+    },
+    {
+      "case": "GUI-Circular-Inclined",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4418,
+      "mean": [
+        6895.300580784681,
+        0.0004026715720433,
+        98.00274577549352,
+        0.0047856762699492,
+        132.38446996388885,
+        77.56554054626356
+      ],
+      "historical_cartesian": [
+        -5975.575286112627,
+        480.14719831222703,
+        -3416.4248371584185,
+        3.800269068467867,
+        0.9160734115247813,
+        -6.5182010158446495
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-Circular-Inclined_Short.truth",
+      "truth_sha256": "555ea07edb0fdafd28b4a25ac94e730b34de157dc142ed34b2e3c48e5196190d",
+      "osculating_keplerian_MA": [
+        6899.999999065315,
+        1.7962240736877245e-08,
+        98.00000000055184,
+        1.9128823965151845e-09,
+        47.91468052410883,
+        162.08531946534734
+      ],
+      "expected_cartesian": [
+        -5975.575349960914,
+        480.14721532384635,
+        -3416.4249593831582,
+        3.8002690388998914,
+        0.9160733932946322,
+        -6.518200884772099
+      ]
+    },
+    {
+      "case": "GUI-EllipticInclinded2",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4415,
+      "mean": [
+        42094.99752512679,
+        0.0012051803690978,
+        0.0380106204905648,
+        287.43934795396933,
+        124.77420971672248,
+        310.89479034597997
+      ],
+      "historical_cartesian": [
+        42002.44777007185,
+        2204.0767245333473,
+        27.01465792147381,
+        -0.1641908073486443,
+        3.0753468197705223,
+        0.0005074018136035
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-EllipticInclinded2_Long.truth",
+      "truth_sha256": "8c4d3edd385127d6868f45f2d6d76927b312d63d0f090f09cb50b84cb31cb9f7",
+      "osculating_keplerian_MA": [
+        42095.000000005995,
+        0.001229999994081665,
+        0.03800000056373453,
+        287.4294011901239,
+        123.46505609487151,
+        312.21388390278116
+      ],
+      "expected_cartesian": [
+        42002.4477695427,
+        2204.07672601096,
+        27.015926949048126,
+        -0.16419080718137857,
+        3.075346818651942,
+        0.0005070407547634192
+      ]
+    },
+    {
+      "case": "GUI-EllipticInclinded2",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4418,
+      "mean": [
+        42094.99752512679,
+        0.0012051803690978,
+        0.0380106204905648,
+        287.43934795396933,
+        124.77420971672248,
+        310.89479034597997
+      ],
+      "historical_cartesian": [
+        42002.44777007185,
+        2204.0767245333473,
+        27.01465792147381,
+        -0.1641908073486443,
+        3.0753468197705223,
+        0.0005074018136035
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-EllipticInclinded2_Long.truth",
+      "truth_sha256": "8c4d3edd385127d6868f45f2d6d76927b312d63d0f090f09cb50b84cb31cb9f7",
+      "osculating_keplerian_MA": [
+        42095.000000005995,
+        0.001229999994081665,
+        0.03800000056373453,
+        287.4294011901239,
+        123.46505609487151,
+        312.21388390278116
+      ],
+      "expected_cartesian": [
+        42002.4477695427,
+        2204.07672601096,
+        27.015926949048126,
+        -0.1641908072431663,
+        3.075346819809246,
+        0.000507040754954227
+      ]
+    },
+    {
+      "case": "GUI-EllipticInclinded2",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4415,
+      "mean": [
+        42094.997524770304,
+        0.0012052764350829,
+        0.038000621186928,
+        287.4393354786054,
+        124.7710515147705,
+        310.89796101439725
+      ],
+      "historical_cartesian": [
+        42002.44777007185,
+        2204.0767245333473,
+        27.01465792147381,
+        -0.1641908073486443,
+        3.0753468197705223,
+        0.0005074018136035
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-EllipticInclinded2_Short.truth",
+      "truth_sha256": "5349d78a7529c31141911ea0e03ec27b764f7958094dde402ab56b6bce4a95c3",
+      "osculating_keplerian_MA": [
+        42095.00000000607,
+        0.0012299999950365148,
+        0.03800000000532201,
+        287.43985699947257,
+        123.454600256039,
+        312.2138839322648
+      ],
+      "expected_cartesian": [
+        42002.44777038882,
+        2204.076724551009,
+        27.01465792552538,
+        -0.16419080728571323,
+        3.0753468185902424,
+        0.000507401813461595
+      ]
+    },
+    {
+      "case": "GUI-EllipticInclinded2",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4418,
+      "mean": [
+        42094.997524770304,
+        0.0012052764350829,
+        0.038000621186928,
+        287.4393354786054,
+        124.7710515147705,
+        310.89796101439725
+      ],
+      "historical_cartesian": [
+        42002.44777007185,
+        2204.0767245333473,
+        27.01465792147381,
+        -0.1641908073486443,
+        3.0753468197705223,
+        0.0005074018136035
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-EllipticInclinded2_Short.truth",
+      "truth_sha256": "5349d78a7529c31141911ea0e03ec27b764f7958094dde402ab56b6bce4a95c3",
+      "osculating_keplerian_MA": [
+        42095.00000000607,
+        0.0012299999950365148,
+        0.03800000000532201,
+        287.43985699947257,
+        123.454600256039,
+        312.2138839322648
+      ],
+      "expected_cartesian": [
+        42002.44777038882,
+        2204.076724551009,
+        27.01465792552538,
+        -0.16419080734750094,
+        3.0753468197475464,
+        0.0005074018136525387
+      ]
+    },
+    {
+      "case": "GUI-EllipticInclinded",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4415,
+      "mean": [
+        9996.713144463673,
+        0.2492667503923346,
+        10.009822959489474,
+        24.9965844508528,
+        34.82701370571883,
+        27.393331872706867
+      ],
+      "historical_cartesian": [
+        -2011.5546393499562,
+        7587.193672855249,
+        1362.3820290177816,
+        -7.694247419297342,
+        -0.9065479143602474,
+        0.4284953759895481
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-EllipticInclinded_Long.truth",
+      "truth_sha256": "cb901787ef97fb018f2f2c6afe660f345f4b31e26989df8519415fd871a0fd83",
+      "osculating_keplerian_MA": [
+        9999.99999935607,
+        0.24999999986249927,
+        10.00000239011558,
+        25.03628368922741,
+        34.963716278642515,
+        27.24378913985677
+      ],
+      "expected_cartesian": [
+        -2011.4918585027817,
+        7587.237624700199,
+        1362.2299512734116,
+        -7.694195946483668,
+        -0.9066020079153554,
+        0.42930435526754934
+      ]
+    },
+    {
+      "case": "GUI-EllipticInclinded",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4418,
+      "mean": [
+        9996.713144463673,
+        0.2492667503923346,
+        10.009822959489474,
+        24.9965844508528,
+        34.82701370571883,
+        27.393331872706867
+      ],
+      "historical_cartesian": [
+        -2011.5546393499562,
+        7587.193672855249,
+        1362.3820290177816,
+        -7.694247419297342,
+        -0.9065479143602474,
+        0.4284953759895481
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-EllipticInclinded_Long.truth",
+      "truth_sha256": "cb901787ef97fb018f2f2c6afe660f345f4b31e26989df8519415fd871a0fd83",
+      "osculating_keplerian_MA": [
+        9999.99999935607,
+        0.24999999986249927,
+        10.00000239011558,
+        25.03628368922741,
+        34.963716278642515,
+        27.24378913985677
+      ],
+      "expected_cartesian": [
+        -2011.4918585027817,
+        7587.237624700199,
+        1362.2299512734116,
+        -7.694195949379122,
+        -0.9066020082565248,
+        0.4293043554291037
+      ]
+    },
+    {
+      "case": "GUI-EllipticInclinded",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4415,
+      "mean": [
+        9996.709281305411,
+        0.249332275355041,
+        10.00414602734932,
+        25.009683186037773,
+        34.83775237554883,
+        27.371800857358735
+      ],
+      "historical_cartesian": [
+        -2011.5546393499562,
+        7587.193672855249,
+        1362.3820290177816,
+        -7.694247419297342,
+        -0.9065479143602474,
+        0.4284953759895481
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-EllipticInclinded_Short.truth",
+      "truth_sha256": "57a78ecdf4e81284f6141fafa70724d3bf2e307b09ecd686c6771d3c0e23f169",
+      "osculating_keplerian_MA": [
+        9999.99999942801,
+        0.24999973129001682,
+        10.00002331923825,
+        25.000364834796322,
+        34.999824662911934,
+        27.243627113960603
+      ],
+      "expected_cartesian": [
+        -2011.5418261250263,
+        7587.193516904906,
+        1362.3827383938078,
+        -7.694249864569809,
+        -0.9065450469293337,
+        0.4285052959247772
+      ]
+    },
+    {
+      "case": "GUI-EllipticInclinded",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4418,
+      "mean": [
+        9996.709281305411,
+        0.249332275355041,
+        10.00414602734932,
+        25.009683186037773,
+        34.83775237554883,
+        27.371800857358735
+      ],
+      "historical_cartesian": [
+        -2011.5546393499562,
+        7587.193672855249,
+        1362.3820290177816,
+        -7.694247419297342,
+        -0.9065479143602474,
+        0.4284953759895481
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-EllipticInclinded_Short.truth",
+      "truth_sha256": "57a78ecdf4e81284f6141fafa70724d3bf2e307b09ecd686c6771d3c0e23f169",
+      "osculating_keplerian_MA": [
+        9999.99999942801,
+        0.24999973129001682,
+        10.00002331923825,
+        25.000364834796322,
+        34.999824662911934,
+        27.243627113960603
+      ],
+      "expected_cartesian": [
+        -2011.5418261250263,
+        7587.193516904906,
+        1362.3827383938078,
+        -7.694249867465283,
+        -0.9065450472704817,
+        0.4285052960860309
+      ]
+    },
+    {
+      "case": "GUI-Other",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4415,
+      "mean": [
+        42098.949518183304,
+        0.8181757572899337,
+        23.36491457523905,
+        325.11870667971505,
+        22.91058245913033,
+        271.83825425709085
+      ],
+      "historical_cartesian": [
+        -60072.4832989428,
+        -4091.93458626603,
+        -16258.9236962179,
+        1.49641430481871,
+        -1.03625797448493,
+        0.0014375710307264
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-Other_Long.truth",
+      "truth_sha256": "90bb4022974b3b15bd8d1db80dfaf41356f2198f51c8737b3ffd8edbdbd822b8",
+      "osculating_keplerian_MA": [
+        42095.00000077136,
+        0.818181800001028,
+        23.356735594175888,
+        325.2026502058892,
+        22.82106184669648,
+        271.83661935830264
+      ],
+      "expected_cartesian": [
+        -60073.33096944231,
+        -4092.146255006582,
+        -16255.738172279913,
+        1.4964289172017564,
+        -1.0362370358486814,
+        0.0013140409158869262
+      ]
+    },
+    {
+      "case": "GUI-Other",
+      "representation": "BrouwerMeanLong",
+      "mu": 398600.4418,
+      "mean": [
+        42098.949518183304,
+        0.8181757572899337,
+        23.36491457523905,
+        325.11870667971505,
+        22.91058245913033,
+        271.83825425709085
+      ],
+      "historical_cartesian": [
+        -60072.4832989428,
+        -4091.93458626603,
+        -16258.9236962179,
+        1.49641430481871,
+        -1.03625797448493,
+        0.0014375710307264
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-Other_Long.truth",
+      "truth_sha256": "90bb4022974b3b15bd8d1db80dfaf41356f2198f51c8737b3ffd8edbdbd822b8",
+      "osculating_keplerian_MA": [
+        42095.00000077136,
+        0.818181800001028,
+        23.356735594175888,
+        325.2026502058892,
+        22.82106184669648,
+        271.83661935830264
+      ],
+      "expected_cartesian": [
+        -60073.33096944231,
+        -4092.146255006582,
+        -16255.738172279913,
+        1.4964289177648875,
+        -1.0362370362386348,
+        0.0013140409163814217
+      ]
+    },
+    {
+      "case": "GUI-Other",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4415,
+      "mean": [
+        42098.95083092129,
+        0.8181973410529095,
+        23.357849265948065,
+        325.1666667924757,
+        22.87993653595318,
+        271.8356627156361
+      ],
+      "historical_cartesian": [
+        -60072.4832989428,
+        -4091.93458626603,
+        -16258.9236962179,
+        1.49641430481871,
+        -1.03625797448493,
+        0.0014375710307264
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-Other_Short.truth",
+      "truth_sha256": "c7fe346afcb65b431514dc1b0390d867bf982e4bde2658f9276fef43d495c4f3",
+      "osculating_keplerian_MA": [
+        42095.00000077328,
+        0.818180272858635,
+        23.35723175689796,
+        325.19419498737625,
+        22.830071403478964,
+        271.83655622175263
+      ],
+      "expected_cartesian": [
+        -60072.37925328148,
+        -4092.5008650229297,
+        -16259.010883196142,
+        1.4964261631963554,
+        -1.0362448524294656,
+        0.0014266204546535164
+      ]
+    },
+    {
+      "case": "GUI-Other",
+      "representation": "BrouwerMeanShort",
+      "mu": 398600.4418,
+      "mean": [
+        42098.95083092129,
+        0.8181973410529095,
+        23.357849265948065,
+        325.1666667924757,
+        22.87993653595318,
+        271.8356627156361
+      ],
+      "historical_cartesian": [
+        -60072.4832989428,
+        -4091.93458626603,
+        -16258.9236962179,
+        1.49641430481871,
+        -1.03625797448493,
+        0.0014375710307264
+      ],
+      "truth": "prototype/StateConv/test/truth/BrouwerLyddane/FF/GUI-Other_Short.truth",
+      "truth_sha256": "c7fe346afcb65b431514dc1b0390d867bf982e4bde2658f9276fef43d495c4f3",
+      "osculating_keplerian_MA": [
+        42095.00000077328,
+        0.818180272858635,
+        23.35723175689796,
+        325.19419498737625,
+        22.830071403478964,
+        271.83655622175263
+      ],
+      "expected_cartesian": [
+        -60072.37925328148,
+        -4092.5008650229297,
+        -16259.010883196142,
+        1.4964261637594853,
+        -1.0362448528194217,
+        0.0014266204551903773
+      ]
+    }
+  ]
+}

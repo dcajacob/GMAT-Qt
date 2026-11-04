@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "FirstJupiter",
+      "add": [
+        "Jupiter"
+      ],
+      "historical_key": "H2012:R1071"
+    },
+    {
+      "key": "PairJupiterNeptune",
+      "add": [
+        "Jupiter",
+        "Neptune"
+      ],
+      "historical_key": "H2012:R1072"
+    },
+    {
+      "key": "LastVenus",
+      "add": [
+        "Venus"
+      ],
+      "historical_key": "H2012:R1073"
+    },
+    {
+      "key": "MiddleNeptune",
+      "add": [
+        "Neptune"
+      ],
+      "historical_key": "H2012:R1074"
+    },
+    {
+      "key": "Clear",
+      "add": [],
+      "historical_key": "H2012:R1081"
+    }
+  ],
+  "scope": "Available-choice rank is distinct from selected-list insertion:legacy BarycenterPanel::OnButton appends. GUI empty Apply rejects perlegacy SaveData;script{} resets defaults perguide/native interpreter. Finite shared-ephemeris mass-weighted results,not independent ephemeris truth/private keyword equivalence/drag/domain/platform qualification."
+}

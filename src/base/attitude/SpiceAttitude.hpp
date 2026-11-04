@@ -66,6 +66,7 @@ public:
 
    /// inherited from GmatBase
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
 
    /// Set the object's identifying information
    virtual void SetObjectID(const std::string &objName, Integer objNaifId, Integer objRefFrameNaifId);

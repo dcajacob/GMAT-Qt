@@ -231,6 +231,17 @@ bool GmatInterface::RegisterCallbackServer(GmatBase *callbackObject)
    return true;
 }
 
+bool GmatInterface::PublishCallbackIteration(const std::string &data, bool validateOnly)
+{
+   return callbackObj && callbackObj->TakeAction(validateOnly ?
+      "ValidateMatlabOptimizerIteration" : "MatlabOptimizerIteration", data);
+}
+
+void GmatInterface::UnregisterCallbackServer(GmatBase *callbackObject)
+{
+   if (callbackObj == callbackObject) callbackObj = NULL;
+}
+
 
 //------------------------------------------------------------------------------
 // char* GetCallbackStatus()
@@ -321,7 +332,9 @@ char* GmatInterface::GetCallbackResults()
    }
    else
    {
-      std::string results = callbackObj->GetCallbackResults();
+      std::string results = GetCallbackResultString();
+      if (results.size() >= sizeof(dataString))
+         throw InterfaceException("Callback results exceed the legacy character-buffer capacity");
       sprintf(dataString, "%s", results.c_str());
    }
    #ifdef DEBUG_TEST_CALLBACK
@@ -329,6 +342,13 @@ char* GmatInterface::GetCallbackResults()
       ("GmatInterface::GetCallbackData() dataString=<%s>\n", dataString);
    #endif
    return dataString;
+}
+
+std::string GmatInterface::GetCallbackResultString()
+{
+   if (!callbackObj)
+      throw InterfaceException("No active GMAT callback server is registered");
+   return callbackObj->GetCallbackResults();
 }
 
 //------------------------------------------------------------------------------

@@ -35,6 +35,8 @@
 #include "Attitude.hpp"
 #include "AttitudeException.hpp"
 #include "CSFixed.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "MessageInterface.hpp"
 
 //#define DEBUG_CSFIXED
@@ -233,3 +235,15 @@ void CSFixed::ComputeCosineMatrixAndAngularVelocity(GmatTime &atTime)
 //  private methods
 //------------------------------------------------------------------------------
 // none 
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void CSFixed::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const CSFixed*>(original);
+   if (!source || typeid(*source) != typeid(CSFixed) ||
+       typeid(*this) != typeid(CSFixed))
+      throw GmatBaseException("Cannot copy incompatible object into CSFixed");
+   if (source == this)
+      return;
+   operator=(*source);
+}

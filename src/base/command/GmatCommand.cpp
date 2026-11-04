@@ -52,6 +52,13 @@
 #include <iostream>
 #include <iomanip>
 
+namespace
+{
+   // A render-scoped request, not command configuration or simulation state.
+   // Mission/branch summary recursion uses the same thread-local context.
+   thread_local bool includeA1SummaryEpoch = false;
+}
+
 //#define DEBUG_COMMAND_DEALLOCATION
 //#define DEBUG_COMMAND_SUMMARY_LIST
 //#define DEBUG_COMMAND_INIT 1
@@ -1455,6 +1462,17 @@ bool GmatCommand::SetStringParameter(const Integer id, const std::string &value,
 std::string GmatCommand::GetStringParameter(const std::string &label) const
 {
    return GetStringParameter(GetParameterID(label));
+}
+
+std::string GmatCommand::GetSummaryWithA1Epochs(bool entireMission) const
+{
+   struct RestorePresentation
+   {
+      bool previous;
+      ~RestorePresentation() { includeA1SummaryEpoch = previous; }
+   } restore{includeA1SummaryEpoch};
+   includeA1SummaryEpoch = true;
+   return GetStringParameter(entireMission ? MISSION_SUMMARY : SUMMARY);
 }
 
 
@@ -2953,7 +2971,10 @@ void GmatCommand::BuildCommandSummaryString(bool commandCompleted)
                  << "        UTC Epoch:    " << utcString << "      " << utcModJulEpoch <<"\n"
                  << "        TAI Epoch:    " << taiString << "      " << taiModJulEpoch <<"\n"
                  << "        TT  Epoch:    " << ttString  << "      " << ttModJulEpoch  <<"\n"
-                 << "        TDB Epoch:    " << tdbString << "      " << tdbModJulEpoch <<"\n\n";
+                 << "        TDB Epoch:    " << tdbString << "      " << tdbModJulEpoch <<"\n";
+            if (includeA1SummaryEpoch)
+               data << "        A1 Epoch:                                    " << epochData[i] << "\n";
+            data << "\n";
 
             data.unsetf(std::ios::fixed);
             data.unsetf(std::ios::floatfield);
@@ -3354,10 +3375,25 @@ void GmatCommand::InsertCommandName(std::string &genString)
 {
    if (instanceName != "")
    {
-      // An assignment without the optional GMAT keyword puts its accepted
-      // command name before the LHS. Searching for letters from "GMAT" in
-      // that LHS can omit the name or insert it into an operand instead.
-      if (typeName == "GMAT" && !GmatGlobal::Instance()->IsWritingGmatKeyword())
+      if (typeName == "CallBuiltinGmatFunction")
+      {
+         // Builtin calls serialize as an assignment or a bare function call,
+         // not with their internal command type as a keyword. Preserve the
+         // label before the outputs, using the actual serialized GMAT prefix.
+         std::string::size_type first = genString.find_first_not_of(" \t\r\n");
+         if (first != genString.npos)
+         {
+            if (genString.compare(first, 5, "GMAT ") == 0)
+               first += 5;
+            genString.insert(first, "'" + instanceName + "' ");
+         }
+         return;
+      }
+      // Assignments and MATLAB calls without the optional GMAT keyword put
+      // their command name before the LHS. Searching an empty substitute
+      // keyword cannot find that position and silently drops a MATLAB label.
+      if ((typeName == "GMAT" || typeName == "CallMatlabFunction") &&
+          !GmatGlobal::Instance()->IsWritingGmatKeyword())
       {
          std::string::size_type first = genString.find_first_not_of(" \t\r\n");
          if (first != genString.npos)

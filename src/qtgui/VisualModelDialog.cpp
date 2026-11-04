@@ -93,6 +93,19 @@ VisualModelDialog::VisualModelDialog(const QMap<QString,QString> &initial,Normal
    auto *autoscale=new QPushButton("Autoscale model",controls); autoscale->setObjectName("visualAutoscale"); resets->addWidget(autoscale);
    connect(recenter,&QPushButton::clicked,this,[this] { for (const auto &axis:QStringList{"X","Y","Z"}) fields["ModelOffset"+axis]->setText("0"); });
    connect(autoscale,&QPushButton::clicked,this,[this] { fields["ModelScale"]->setText("1"); });
+   // NASA's model panel enables transforms only after a model is selected.
+   // Empty-model native properties are unavailable;their omitted values must
+   // not leave active sliders next to blank inputs.
+   auto availability=[this,file,recenter,autoscale] {
+      const bool selected=!file->text().trimmed().isEmpty();
+      for (auto it=fields.cbegin();it!=fields.cend();++it)
+         if (it.key().startsWith("ModelRotation") || it.key().startsWith("ModelOffset") || it.key()=="ModelScale") {
+            it.value()->setEnabled(selected);
+            if (auto *slider=findChild<QSlider *>("visualSlider_"+it.key())) slider->setEnabled(selected);
+         }
+      recenter->setEnabled(selected); autoscale->setEnabled(selected);
+   };
+   connect(file,&QLineEdit::textChanged,this,availability); availability();
    auto *colors=new QGroupBox("Colors",controls); auto *colorForm=new QFormLayout(colors);
    for (const auto &name:QStringList{"OrbitColor","TargetColor"}) {
       auto *row=new QWidget(colors); auto *line=new QHBoxLayout(row); line->setContentsMargins(0,0,0,0);

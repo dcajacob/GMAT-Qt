@@ -592,7 +592,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>Same as variable being reported</para>
+                    <para>Decimal digits (formatting count; reported physical units are unchanged)</para>
                   </listitem>
                 </varlistentry>
 

@@ -186,6 +186,7 @@ public:
    // methods inherited from Parameter
    virtual bool Evaluate();
    virtual void SetRvector(Rvector& val);
+   void SetRvector(const Rvector& val) override;
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
@@ -206,6 +207,7 @@ public:
    // methods inherited from Parameter
    virtual bool Evaluate();
    virtual void SetRvector(Rvector& val);
+   void SetRvector(const Rvector& val) override;
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;

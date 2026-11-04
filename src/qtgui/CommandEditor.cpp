@@ -24,7 +24,7 @@
 #include "Moderator.hpp"
 #include "GmatBase.hpp"
 CommandEditor::CommandEditor(const QString &statement,bool adding,const QMap<QString,QString> &templates,
-                             Apply apply,const QStringList &propagators,const QStringList &spacecraft,QWidget *parent,const QStringList &formations,std::function<void()> summary,std::function<QString()> corrections)
+                             Apply apply,const QStringList &propagators,const QStringList &spacecraft,QWidget *parent,const QStringList &formations,std::function<void()> summary,std::function<QString()> corrections,std::function<QString(const QString &)> commandValidation,const QMap<QString,QString> &pendingFiniteResources)
    : EditablePanel(parent),original(statement),inserting(adding)
 {
    auto *layout=new QVBoxLayout(this);
@@ -33,6 +33,10 @@ CommandEditor::CommandEditor(const QString &statement,bool adding,const QMap<QSt
    choices->addItem("Choose a command template…"); choices->addItems(templates.keys());
    if (adding) layout->addWidget(choices); else choices->hide();
    source=new QPlainTextEdit(statement,this); source->setObjectName("commandSource");
+   connect(source,&QPlainTextEdit::textChanged,this,[this] {
+      if (!synchronizingName) rawSourceEdited=true;
+   });
+   source->setTabChangesFocus(true);
    name=new QLineEdit(this); name->setObjectName("commandName");
    name->setPlaceholderText("Optional command name");
    name->setToolTip("Names appear in the Mission tree. Apply commits the name with the other pending command edits.");
@@ -75,8 +79,8 @@ CommandEditor::CommandEditor(const QString &statement,bool adding,const QMap<QSt
    auto *groups=new QPushButton("Propagators and spacecraft…",this); groups->setObjectName("editPropagationGroups"); typedLayout->addWidget(groups);
    auto showGroups=[this,groups] { groups->setVisible(PropagationGroupsDialog::supports(source->toPlainText())); };
    connect(source,&QPlainTextEdit::textChanged,this,showGroups); showGroups();
-   connect(groups,&QPushButton::clicked,this,[this,propagators,spacecraft,formations] {
-      PropagationGroupsDialog dialog(source->toPlainText(),propagators,spacecraft+formations,this);
+   connect(groups,&QPushButton::clicked,this,[this,propagators,spacecraft,formations,commandValidation] {
+      PropagationGroupsDialog dialog(source->toPlainText(),propagators,spacecraft+formations,this,commandValidation);
       if (dialog.exec()!=QDialog::Accepted) return;
       auto cursor=source->textCursor(); cursor.beginEditBlock(); cursor.select(QTextCursor::Document); cursor.insertText(dialog.statement()); cursor.endEditBlock();
    });
@@ -98,7 +102,8 @@ CommandEditor::CommandEditor(const QString &statement,bool adding,const QMap<QSt
    auto *command=new CommandForm([this](const QString &text) {
       auto cursor=source->textCursor(); cursor.beginEditBlock(); cursor.select(QTextCursor::Document);
       cursor.insertText(text); cursor.endEditBlock();
-   },this);
+      rawSourceEdited=false;
+   },this,pendingFiniteResources);
    typedLayout->addWidget(command);
    auto showTyped=[typedScroll,propagation,groups,stops,color,command] { typedScroll->setVisible(!propagation->isHidden() || !groups->isHidden() || !stops->isHidden() || !color->isHidden() || !command->isHidden()); };
    connect(source,&QPlainTextEdit::textChanged,command,[this,command] { command->setStatement(source->toPlainText()); });
@@ -165,17 +170,18 @@ CommandEditor::CommandEditor(const QString &statement,bool adding,const QMap<QSt
          });
       }
    }
-   connect(buttons->button(QDialogButtonBox::Apply),&QPushButton::clicked,this,[this,apply,status,command] {
+   connect(buttons->button(QDialogButtonBox::Apply),&QPushButton::clicked,this,[this,apply,status,command,commandValidation] {
       // A retained clean panel has nothing to commit. Rebuilding it would
       // invalidate run results and put a no-op ahead of the actual Undo edit.
       if (!hasChanges()) return;
       auto error=nameError;
-      if (error.isEmpty()) error=command->validationError();
+      if (error.isEmpty()) error=command->validationError(rawSourceEdited);
+      if (error.isEmpty() && commandValidation) error=commandValidation(source->toPlainText());
       if (error.isEmpty()) error=apply(source->toPlainText());
       if (error.isEmpty()) { applied=true; appliedSuccessfully(); }
       else status->setText(error);
    });
-   connect(buttons,&QDialogButtonBox::rejected,this,[this] { parentWidget()->close(); });
+   connect(buttons->button(QDialogButtonBox::Close),&QPushButton::clicked,this,[this] { parentWidget()->close(); });
 }
 bool CommandEditor::hasChanges() const
 {

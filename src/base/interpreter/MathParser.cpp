@@ -42,6 +42,7 @@
 #include "MathFactory.hpp"
 #else
 #include "Moderator.hpp"
+#include "SandboxException.hpp"
 #endif
 
 //#define DEBUG_PARSE 1
@@ -3568,7 +3569,23 @@ void MathParser::BuildGmatFunctionList(const std::string &str)
          ("   BuildGmatFunctionList() checking '%s'\n", names[i].c_str());
       #endif
       
-      if (fm->GetGmatFunctionPath(names[i]) != "")
+      // A declared callable need not have a same-name .gmf file. Built-in
+      // instances are stored in the native sandbox-global function registry.
+      GmatBase *callable = NULL;
+      if (theObjectMap)
+      {
+         const auto found = theObjectMap->find(names[i]);
+         if (found != theObjectMap->end()) callable = found->second;
+      }
+#ifndef __UNIT_TEST__
+      if (!callable)
+      {
+         try { callable = Moderator::Instance()->GetInternalObject(names[i]); }
+         catch (const SandboxException &) {}
+      }
+#endif
+      if ((callable && callable->IsOfType(Gmat::FUNCTION)) ||
+          fm->GetGmatFunctionPath(names[i]) != "")
       {         
          // if GmatFunction not registered, add to the list
          if (find(gmatFuncList.begin(), gmatFuncList.end(), names[i]) == gmatFuncList.end())

@@ -432,10 +432,23 @@ int main(int argc,char **argv)
             delimiter->setCurrentText("Tab");
             panel.findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
             require(changes.value("Delimiter")=="\t","Tab label was not translated to a literal tab");
+         }
+         // Standalone Apply closes its owner and retires the accepted snapshot.
+         // Each following independent control check needs a fresh editor.
+         {
+            QWidget host;
+            QMap<QString,QString> changes;
+            ResourceEditor panel(*report,[&](const auto &value) { changes=value; return QString(); },&host);
+            auto *delimiter=panel.findChild<QComboBox *>("reportDelimiter");
             delimiter->setEditText(":");
             panel.findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
             require(changes.value("Delimiter")==":" && delimiter->insertPolicy()==QComboBox::NoInsert,
                "Custom delimiter was lost or can be inserted without its value");
+         }
+         {
+            QWidget host;
+            QMap<QString,QString> changes;
+            ResourceEditor panel(*report,[&](const auto &value) { changes=value; return QString(); },&host);
             bool reordered=false;
             QTimer::singleShot(0,[&] {
                auto *dialog=panel.findChild<QDialog *>("reportParameterDialog");

@@ -8,6 +8,7 @@
 #include "OrbitSensorMasks.hpp"
 #include "OrbitStars.hpp"
 #include "PlotInterpolation.hpp"
+#include "PlotPresentation.hpp"
 #include <osg/PolygonMode>
 #include <osg/BlendFunc>
 #include <QOpenGLContext>
@@ -210,7 +211,12 @@ struct OrbitRenderer::Scene
       const auto &r=source.modelRotation,&offset=source.modelOffset;
       constexpr double radians=3.14159265358979323846/180;
       const double scale=source.modelScale*(source.radius==0 ? 1000 : 1);
-      const auto rotation=osg::Matrixd::rotate(r[0]*radians,osg::Vec3d(1,0,0),r[1]*radians,osg::Vec3d(0,1,0),r[2]*radians,osg::Vec3d(0,0,1));
+      // wx builds the model's local X/Y/Z rotations for OpenGL column
+      // vectors. OSG multiplies row vectors, so compose Z/Y/X here to
+      // preserve that order when more than one model angle is nonzero.
+      const auto rotation=osg::Matrixd::rotate(r[2]*radians,osg::Vec3d(0,0,1))*
+         osg::Matrixd::rotate(r[1]*radians,osg::Vec3d(0,1,0))*
+         osg::Matrixd::rotate(r[0]*radians,osg::Vec3d(1,0,0));
       return source.radius==0 ? osg::Matrixd::translate(offset[0],offset[1],offset[2])*osg::Matrixd::scale(scale,scale,scale)*rotation :
          osg::Matrixd::scale(scale,scale,scale)*rotation*osg::Matrixd::translate(offset[0],offset[1],offset[2]);
    }
@@ -450,12 +456,6 @@ struct OrbitRenderer::Scene
          osg::Vec3d sun(sample->sunPosition[0],sample->sunPosition[1],sample->sunPosition[2]);
          if (sun.normalize()>0) line({0,0,0},sun*(extent*1.25),{1,.82f,.2f,1});
       }
-      if (model->grid) for (int i=0;i<=5;++i) {
-         const double x=halfWidth*(-1+2.0*i/5),y=halfHeight*(-1+2.0*i/5);
-         const auto back=center-outward*extent*2;
-         line(back+right*x-up*halfHeight,back+right*x+up*halfHeight,{.11f,.14f,.19f,1});
-         line(back+up*y-right*halfWidth,back+up*y+right*halfWidth,{.11f,.14f,.19f,1});
-      }
       for (const auto &source:model->curves) if (source.visible && source.objectVelocity) {
          const auto first=model->firstVisibleFrame(source,frame);
          for (const auto &point:plotDisplayedPoints(source,frame)) if (point.frame>=first)
@@ -471,10 +471,12 @@ struct OrbitRenderer::Scene
       }
       const auto guideProjection=viewer.getCamera()->getViewMatrix()*viewer.getCamera()->getProjectionMatrix();
       for (auto it=model->curves.cbegin();it!=model->curves.cend();++it) {
-         const auto &source=it.value(); if (!source.visible || (!source.objectGrid && !source.objectXYPlane)) continue;
+         const auto &source=it.value();
+         const bool celestialGrid=model->grid && source.showObject && source.radius>0;
+         if (!source.visible || (!source.objectGrid && !source.objectXYPlane && !celestialGrid)) continue;
          const auto *pose=orbitObjectPose(source,frame); if (!pose) continue;
          const auto &prepared=curves.at(it.key());
-         const auto geometry=orbitObjectGuides(source,*pose,orbitObjectGuideRadius(source,prepared.modelLoaded ? prepared.modelPose->getBound().radius() : 0));
+         const auto geometry=orbitObjectGuides(source,*pose,celestialGrid && !source.objectGrid ? source.radius : orbitObjectGuideRadius(source,prepared.modelLoaded ? prepared.modelPose->getBound().radius() : 0),celestialGrid);
          for (const auto &edge:geometry.lines) {
             const auto &c=edge.color; osg::Vec4 tint(float(c.redF()),float(c.greenF()),float(c.blueF()),float(c.alphaF()));
             if (edge.width==1) { line(edge.start,edge.end,tint); continue; }
@@ -726,7 +728,10 @@ void OrbitRenderer::drawOverlay(QPainter &painter)
 {
    const QColor foreground=scene->model->printBackground ? QColor(25,35,45) : QColor(220,225,235);
    painter.setPen(foreground);
-   painter.drawText(QRectF(10,height()-28,width()-20,22),Qt::AlignCenter,scene->model->coordinates+" · km");
+   painter.drawText(QRectF(10,height()-50,width()-20,22),Qt::AlignCenter,scene->model->coordinates+" · km");
+   const auto caption=plotUtcCaption(*scene->model,scene->frame);
+   setAccessibleDescription(caption);
+   painter.drawText(QRectF(10,height()-28,width()-20,22),Qt::AlignCenter,caption);
    {
       const auto projection=scene->viewer.getCamera()->getViewMatrix()*scene->viewer.getCamera()->getProjectionMatrix();
       for (const auto &label:orbitCoordinateLabels(*scene->model,scene->coordinateAxisExtent)) {

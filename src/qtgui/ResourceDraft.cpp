@@ -12,6 +12,7 @@
 #include "PropSetup.hpp"
 #include "Propagator.hpp"
 #include "ODEModel.hpp"
+#include "CalculatedPoint.hpp"
 #include <algorithm>
 #include <stdexcept>
 
@@ -80,6 +81,16 @@ QtResourcePreview resourceDraft(const QString &type,const QString &name)
       if (frame) { spacecraft->SetInternalCoordSystem(frame); spacecraft->SetRefObject(frame,Gmat::COORDINATE_SYSTEM,"EarthMJ2000Eq"); }
    }
    if (auto *array=dynamic_cast<Array *>(draft.get())) array->SetSize(1,1);
+   // Match Moderator::CreateCalculatedPoint without registering a pending
+   // resource. Factory constructors alone leave these defaults empty.
+   if (type=="LibrationPoint") {
+      draft->SetStringParameter("Primary","Sun");
+      draft->SetStringParameter("Secondary","Earth");
+      draft->SetStringParameter("Point","L1");
+   } else if (type=="Barycenter") {
+      auto *point=dynamic_cast<CalculatedPoint *>(draft.get());
+      point->SetDefaultBody("Earth"); point->SetDefaultBody("Luna");
+   }
    const auto spacecraft=moderator->GetListOfObjects(Gmat::SPACECRAFT);
    if (type=="EphemerisFile" && !spacecraft.empty()) draft->SetStringParameter("Spacecraft",spacecraft.front());
    if (draft->IsOfType("EventLocator") && !spacecraft.empty()) {

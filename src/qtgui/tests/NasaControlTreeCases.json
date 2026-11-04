@@ -1,0 +1,330 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "ForRoot",
+      "family": "For",
+      "group": "Root",
+      "legacy_object": "For",
+      "recipe_key": "For",
+      "positions": [
+        {
+          "position": "Empty",
+          "historical_key": "H2012:R1409",
+          "fingerprint": "05a9ccfbdebf4afc242d573c6d5f433b3c48758ade35c62d89b01652a825de02",
+          "operation": "Append Empty"
+        },
+        {
+          "position": "Many",
+          "historical_key": "H2012:R1408",
+          "fingerprint": "2d0bdcf23bc1d1292d1c232666211cbffd2cdd3d55ed09ba4afb3a37949c9f0f",
+          "operation": "Add Many"
+        },
+        {
+          "position": "BlockBefore",
+          "historical_key": "H2012:R1413",
+          "fingerprint": "e55ae65f977b36b5f2adcaa78136ec599af48b249f402c1f1205c726ec97a2c1",
+          "operation": "Control Logic Block Insert Before"
+        }
+      ]
+    },
+    {
+      "key": "ForBoundary",
+      "family": "For",
+      "group": "Boundary",
+      "legacy_object": "For",
+      "recipe_key": "For",
+      "positions": [
+        {
+          "position": "BlockAfter",
+          "historical_key": "H2012:R1412",
+          "fingerprint": "44d56a97f17c41ce3f79da414f0f3045d667750c0acb7dbfe8a91539de4cc584",
+          "operation": "Control Logic Bock Insert After"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1415",
+          "fingerprint": "0a4182901ca461333310f4a3024c4a315313c0a7c2d42a63ac588d63272069a6",
+          "operation": "Control Logic End Insert Before"
+        },
+        {
+          "position": "EndAfter",
+          "historical_key": "H2012:R1414",
+          "fingerprint": "b29221a8848e4af587cec3f2ee3ff686db148025b7fc0f56dc10b21ca5fe0d79",
+          "operation": "Control Logic End Insert After"
+        }
+      ]
+    },
+    {
+      "key": "ForInterior",
+      "family": "For",
+      "group": "Interior",
+      "legacy_object": "For",
+      "recipe_key": "For",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1411",
+          "fingerprint": "a9bac0fd245adb9e3ba7a885604513e4964a269463f3256ffaacb6c5f111b2fa",
+          "operation": "Control Logic Append"
+        },
+        {
+          "position": "LeafBefore",
+          "historical_key": "H2012:R1417",
+          "fingerprint": "2a0c0af15cea0cce557a88f8e8760902c8049a5c1c84d38dd74853148cd38767",
+          "operation": "Control Logic Insert Before"
+        },
+        {
+          "position": "LeafAfter",
+          "historical_key": "H2012:R1416",
+          "fingerprint": "a0f1b8a32f43f84ac54c87f9389089471a62b99a38af7264a28b52707472d9f3",
+          "operation": "Control Logic Insert After"
+        }
+      ]
+    },
+    {
+      "key": "IfRoot",
+      "family": "If",
+      "group": "Root",
+      "legacy_object": "If",
+      "recipe_key": "IfNoElse",
+      "positions": [
+        {
+          "position": "Empty",
+          "historical_key": "H2012:R1475",
+          "fingerprint": "ca76af42aa7f9cc2172eb490ac7469336509db77b8e7942024aca15edea43014",
+          "operation": "Append Empty"
+        },
+        {
+          "position": "Many",
+          "historical_key": "H2012:R1474",
+          "fingerprint": "5d4c52a14088ef3e56fb5e35dd976353a380ac4245a40b3f1b231c880ceb28a1",
+          "operation": "Add Many"
+        },
+        {
+          "position": "BlockBefore",
+          "historical_key": "H2012:R1479",
+          "fingerprint": "016eedfe770fd7d45aa9d9e52bab3c39488c71eb56d124d4643b0bb3222bf227",
+          "operation": "Control Logic Block Insert Before"
+        }
+      ]
+    },
+    {
+      "key": "IfBoundary",
+      "family": "If",
+      "group": "Boundary",
+      "legacy_object": "If",
+      "recipe_key": "IfNoElse",
+      "positions": [
+        {
+          "position": "BlockAfter",
+          "historical_key": "H2012:R1478",
+          "fingerprint": "619d5b1d8d212be88d4a6bc97ae2b184de667fa6435b6b8d3b703e10b3c320d4",
+          "operation": "Control Logic Bock Insert After"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1481",
+          "fingerprint": "fd0a3a4cae1c47aee381148eeb4244aebc3dd570d745c0a5879941140e18b019",
+          "operation": "Control Logic End Insert Before"
+        },
+        {
+          "position": "EndAfter",
+          "historical_key": "H2012:R1480",
+          "fingerprint": "3aa694a31d5e4e87c4019bc3682333c44d82e0d7058eaa3f3014c660404c9ee5",
+          "operation": "Control Logic End Insert After"
+        }
+      ]
+    },
+    {
+      "key": "IfInterior",
+      "family": "If",
+      "group": "Interior",
+      "legacy_object": "If",
+      "recipe_key": "IfNoElse",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1477",
+          "fingerprint": "f90d023d4d9c8b5c4cb0e1c3290f3e39b5236ce9798b961d03a2b390a2c26962",
+          "operation": "Control Logic Append"
+        },
+        {
+          "position": "LeafBefore",
+          "historical_key": "H2012:R1483",
+          "fingerprint": "0dd308c2ac91ec478636a25a6cd9e1a9e6e0e3b8dbba9448759861b65e64e034",
+          "operation": "Control Logic Insert Before"
+        },
+        {
+          "position": "LeafAfter",
+          "historical_key": "H2012:R1482",
+          "fingerprint": "30cf112a5b4450d0a629f486100121e110a4c4cbc26c5cfb13c8c9d0d1818f44",
+          "operation": "Control Logic Insert After"
+        }
+      ]
+    },
+    {
+      "key": "IfElseRoot",
+      "family": "IfElse",
+      "group": "Root",
+      "legacy_object": "If-Else",
+      "recipe_key": "If",
+      "positions": [
+        {
+          "position": "Empty",
+          "historical_key": "H2012:R1544",
+          "fingerprint": "e9b12262fc41c3c55930a4bd41836f7247a28f9d58e45b33241663524eca7be0",
+          "operation": "Append Empty"
+        },
+        {
+          "position": "Many",
+          "historical_key": "H2012:R1543",
+          "fingerprint": "3d823de64e4e16ddbbd47eabdc1ea7cc6d25f6fb199bb36a4ccd34422b150d79",
+          "operation": "Add Many"
+        },
+        {
+          "position": "BlockBefore",
+          "historical_key": "H2012:R1548",
+          "fingerprint": "a0c69e0c37b232a0f19dd96df81770d42411f68476739c3b61758119a851e156",
+          "operation": "Control Logic Block Insert Before"
+        }
+      ]
+    },
+    {
+      "key": "IfElseBoundary",
+      "family": "IfElse",
+      "group": "Boundary",
+      "legacy_object": "If-Else",
+      "recipe_key": "If",
+      "positions": [
+        {
+          "position": "BlockAfter",
+          "historical_key": "H2012:R1547",
+          "fingerprint": "0c0ffac695407eaa81c2c836fbb6138194d8f00d8d5980cb81d7a5ed79a0170d",
+          "operation": "Control Logic Bock Insert After"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1550",
+          "fingerprint": "3ab108e492ecd026f35d9cf6739401a7ffb15f4727a2d42b0fcf03cb46267fc9",
+          "operation": "Control Logic End Insert Before"
+        },
+        {
+          "position": "EndAfter",
+          "historical_key": "H2012:R1549",
+          "fingerprint": "56d1eea5925495965d95947e546407a101140d2aa69fbb210438ede304725f06",
+          "operation": "Control Logic End Insert After"
+        }
+      ]
+    },
+    {
+      "key": "IfElseInterior",
+      "family": "IfElse",
+      "group": "Interior",
+      "legacy_object": "If-Else",
+      "recipe_key": "If",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1546",
+          "fingerprint": "f0ffb215ba183681b1bd3a6bddedafece75a32fc1f286f9f99aa4c0d53d9eaa1",
+          "operation": "Control Logic Append"
+        },
+        {
+          "position": "LeafBefore",
+          "historical_key": "H2012:R1552",
+          "fingerprint": "2cfe1e29ceaf2f4002dc8c2f1cab69578ddae3209ca5b30c8b62a59209af50fd",
+          "operation": "Control Logic Insert Before"
+        },
+        {
+          "position": "LeafAfter",
+          "historical_key": "H2012:R1551",
+          "fingerprint": "2ac8fa2038f9680fc24fbd92073a767c34b33601342258095d782009577fa7cc",
+          "operation": "Control Logic Insert After"
+        }
+      ]
+    },
+    {
+      "key": "WhileRoot",
+      "family": "While",
+      "group": "Root",
+      "legacy_object": "While",
+      "recipe_key": "While",
+      "positions": [
+        {
+          "position": "Empty",
+          "historical_key": "H2012:R1615",
+          "fingerprint": "b1dca77eeea1a2e69aae31d94061d6ec93d893a34ce5def0f42145e2eaf4cdca",
+          "operation": "Append Empty"
+        },
+        {
+          "position": "Many",
+          "historical_key": "H2012:R1614",
+          "fingerprint": "4be857be7f8eacab383420a5b9c0dd760cde613752e1cf49b0aaed56ce1d86da",
+          "operation": "Add Many"
+        },
+        {
+          "position": "BlockBefore",
+          "historical_key": "H2012:R1619",
+          "fingerprint": "2f011d7510a5ffafa002016259e834f9447bb98138d6b1b74b2b06a42031903f",
+          "operation": "Control Logic Block Insert Before"
+        }
+      ]
+    },
+    {
+      "key": "WhileBoundary",
+      "family": "While",
+      "group": "Boundary",
+      "legacy_object": "While",
+      "recipe_key": "While",
+      "positions": [
+        {
+          "position": "BlockAfter",
+          "historical_key": "H2012:R1618",
+          "fingerprint": "6df07fc9b3e10294caaaab9517e93359008800b2eda03e7ce09e6a1265165468",
+          "operation": "Control Logic Bock Insert After"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1621",
+          "fingerprint": "76ac7244afc511ed36148f691a4e2d2a1488926a261073351ec8fe64ac02f7db",
+          "operation": "Control Logic End Insert Before"
+        },
+        {
+          "position": "EndAfter",
+          "historical_key": "H2012:R1620",
+          "fingerprint": "af31b1e726891d2450d95c71f56bf94a8ff052284e0156b8deede5e44ad31af8",
+          "operation": "Control Logic End Insert After"
+        }
+      ]
+    },
+    {
+      "key": "WhileInterior",
+      "family": "While",
+      "group": "Interior",
+      "legacy_object": "While",
+      "recipe_key": "While",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1617",
+          "fingerprint": "45e0a7159f8860dfc3e8292abc38c7466a67e924cc87d58ee1b94cecc6a334fb",
+          "operation": "Control Logic Append"
+        },
+        {
+          "position": "LeafBefore",
+          "historical_key": "H2012:R1623",
+          "fingerprint": "2b84ed80f094699dc705b29e0f131cb418016f22346b63ddbe67005817c2d535",
+          "operation": "Control Logic Insert Before"
+        },
+        {
+          "position": "LeafAfter",
+          "historical_key": "H2012:R1622",
+          "fingerprint": "f91378b8033ad6c9a81da5f8aeaf1c088d45e0e63b4f216c3cb4fbcf6ba4b7f2",
+          "operation": "Control Logic Insert After"
+        }
+      ]
+    }
+  ],
+  "scope": "Finite documented insertion positions for four control-command identities in an outer For/inner If fixture. Original private keyword recipes, all possible parent types/filters/solver contexts and native OS input remain unqualified."
+}

@@ -53,6 +53,8 @@
 NotAKnotInterpolator::NotAKnotInterpolator(const std::string &name,
                                            Integer dim) :
    Interpolator        (name, "NotAKnotInterpolator", dim),
+   h                   {},
+   A                   {},
    lastX               (-9.9999e75)
 {
    bufferSize = 5;
@@ -109,14 +111,14 @@ NotAKnotInterpolator::NotAKnotInterpolator(const NotAKnotInterpolator &csi) :
    s[3]  = NULL;
    s[4]  = NULL;
    
-   CopyArrays(csi);
-   
    Integer i, j;
    for (i = 0; i < bufferSize; ++i)
    {
       x[i]  = -9.9999e75;
       y[i]  = NULL;
    }
+   if (csi.independent)
+      CopyArrays(csi);
    
    for (i = 0; i < 4; i++)
       h[i] = csi.h[i];
@@ -146,11 +148,12 @@ NotAKnotInterpolator& NotAKnotInterpolator::operator=
    if (&csi == this)
       return *this;
    
-   CleanupArrays();
+   Interpolator::operator=(csi);
    
    lastX = csi.lastX;
    
-   CopyArrays(csi);
+   if (csi.independent)
+      CopyArrays(csi);
    
    Integer i, j;
    

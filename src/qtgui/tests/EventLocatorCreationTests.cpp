@@ -1,3 +1,4 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "ResourceDraft.hpp"
 #include "ResourcePreview.hpp"
@@ -40,7 +41,7 @@ int main(int argc,char **argv)
 {
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
    QApplication app(argc,argv);
-   if (QGuiApplication::platformName()!="offscreen" || argc!=2) return 2;
+   if (!acceptanceWidgetPlatform() || argc!=2) return 2;
    QApplication::setOrganizationName("GMATTests"); QApplication::setApplicationName("EventLocatorCreation");
    try {
       TestSettings settings; QTemporaryDir files; require(files.isValid(),"Temporary fixtures unavailable");

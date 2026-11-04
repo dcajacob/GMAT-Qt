@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "kernel": "@GMAT_FUNCTION_BODY_KERNEL@",
+  "kernel_sha256": "@GMAT_FUNCTION_BODY_KERNEL_SHA256@",
+  "scope": "Four original NASA custom-body creation classes plus existing-Sun shared-model use;the custom-Star probe remains a separate known failure,not an exclusion or creation pass.",
+  "cases": [
+    {
+      "key": "Star",
+      "type": "Star",
+      "central": "Sun",
+      "creation_mode": "custom-create-probe"
+    },
+    {
+      "key": "Planet",
+      "type": "Planet",
+      "central": "Sun",
+      "creation_mode": "function-side-create"
+    },
+    {
+      "key": "Moon",
+      "type": "Moon",
+      "central": "Earth",
+      "creation_mode": "function-side-create"
+    },
+    {
+      "key": "Comet",
+      "type": "Comet",
+      "central": "Sun",
+      "creation_mode": "function-side-create"
+    },
+    {
+      "key": "Asteroid",
+      "type": "Asteroid",
+      "central": "Sun",
+      "creation_mode": "function-side-create"
+    },
+    {
+      "key": "Sun",
+      "type": "Star",
+      "central": "Earth",
+      "creation_mode": "existing-solar-model"
+    }
+  ]
+}

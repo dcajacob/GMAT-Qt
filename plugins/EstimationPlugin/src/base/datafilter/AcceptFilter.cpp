@@ -30,6 +30,8 @@
 
 
 #include "AcceptFilter.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "GmatBase.hpp"
 #include "MessageInterface.hpp"
 #include "MeasurementException.hpp"
@@ -1035,4 +1037,16 @@ bool AcceptFilter::IsThin(ObservationData* dataObject)
       throw MeasurementException("Error: " + GetName() + ".ThinMode parameter has an invalid value ('" + thinMode + "'.\n");
 
    return isAccepted;
+}
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void AcceptFilter::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const AcceptFilter*>(original);
+   if (!source || typeid(*source) != typeid(AcceptFilter) ||
+       typeid(*this) != typeid(AcceptFilter))
+      throw GmatBaseException("Cannot copy incompatible object into AcceptFilter");
+   if (source == this)
+      return;
+   operator=(*source);
 }

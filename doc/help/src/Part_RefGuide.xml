@@ -226,6 +226,7 @@
       <xi:include href="Command_For.xml" />
       <xi:include href="Command_Global.xml" />
       <xi:include href="Command_If.xml" />
+      <xi:include href="Command_Save.xml" />
       <xi:include href="Command_Stop.xml" />
       <xi:include href="Command_While.xml" />
    </section>
@@ -259,7 +260,9 @@
   <title>System Level Components</title>
       <xi:include href="System_CalculationParameters.xml" />
       <xi:include href="System_CommandLineUsage.xml" />
-      <xi:include href="System_KeyboardShortcuts.xml" />      
+      <xi:include href="System_KeyboardShortcuts.xml" />
+      <xi:include href="Resource_QtInputConventions.xml" />
+      <xi:include href="Resource_QtControlUnits.xml" />      
       <xi:include href="System_ScriptLanguage.xml" />
       <xi:include href="System_StartupFile.xml" />
    </section>

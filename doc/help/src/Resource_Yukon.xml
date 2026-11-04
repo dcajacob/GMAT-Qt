@@ -72,9 +72,7 @@
           <row>
             <entry><guilabel>FeasibilityTolerance</guilabel></entry>
 
-            <entry><para>The tolerance on the maximum non-dimensional
-            constraint violation that must be satisfied for convergence.
-            </para> <variablelist>
+            <entry><para>Tolerance on the maximum violation of the supplied nonlinear constraints and bounds, used to determine feasibility. Choose constraint expressions with consistent numerical scaling; the optimizer does not automatically convert unlike physical units.</para> <variablelist>
                 <varlistentry>
                   <term>Data Type</term>
 
@@ -111,7 +109,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Constraint-residual numerical units; dimensionless only when the supplied constraints are nondimensional</para>
                   </listitem>
                 </varlistentry>
 
@@ -128,12 +126,7 @@
           <row>
             <entry><guilabel>FunctionTolerance</guilabel></entry>
 
-            <entry><para>The tolerance on the change in the cost function
-            value to trigger convergence. If the change in the cost function
-            from one iteration to the next is less than FunctionTolerance, and
-            the maximum (non-dimensional) constraint violation is less than
-            <guilabel>OptimalityTolerance</guilabel>, then the algorithm
-            terminates. </para> <variablelist>
+            <entry><para>Tolerance on the objective-change convergence metric. When the absolute previous cost exceeds 1e-7, the metric is the absolute relative change; otherwise it is the absolute change in objective value. This criterion also requires the feasibility check to pass.</para> <variablelist>
                 <varlistentry>
                   <term>Data Type</term>
 
@@ -170,7 +163,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Dimensionless relative objective change when abs(previous cost) exceeds 1e-7; objective-value units otherwise</para>
                   </listitem>
                 </varlistentry>
 
@@ -247,13 +240,7 @@
           <row>
             <entry><guilabel>MaximumElasticWeight</guilabel></entry>
 
-            <entry><para>The maximum elastic weight allowed when attempting to
-            minimize constraint infeasiblities if the problem appears to be
-            infeasible. When possible infeasibility is detected, the elastic
-            weight is initialized to zero, and increases by a factor of 10 for
-            every failed iterations, until the
-            <guilabel>MaximumElasticWeight</guilabel> setting is reached and
-            the algorithm terminates. </para> <variablelist>
+            <entry><para>Maximum penalty weight used when attempting to minimize infeasibility. Elastic mode adds the weighted sum of its elastic residual variables to the objective. The weight can grow by a factor of ten on unsuccessful iterations until the configured maximum is reached; it is a penalty limit, not an iteration count.</para> <variablelist>
                 <varlistentry>
                   <term>Data Type</term>
 
@@ -290,7 +277,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Numerical objective-value units per elastic-residual unit; dimensionless for consistently nondimensional objective and residuals</para>
                   </listitem>
                 </varlistentry>
 
@@ -345,7 +332,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Integer count or order (samples, segments, iterations or polynomial degree as described)</para>
                   </listitem>
                 </varlistentry>
 
@@ -400,7 +387,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Integer count or order (samples, segments, iterations or polynomial degree as described)</para>
                   </listitem>
                 </varlistentry>
 
@@ -417,12 +404,7 @@
           <row>
             <entry><guilabel>OptimalityTolerance</guilabel></entry>
 
-            <entry><para>The tolerance on the change in the gradient of the
-            Lagrangian to trigger convergence. If the gradient of the
-            Lagrangian is less than <guilabel>FeasibilityTolerance</guilabel>
-            and the maximum (non-dimensional) constraint violation is less
-            than <guilabel>Optimality Tolerance</guilabel>, then the algorithm
-            terminates.</para> <variablelist>
+            <entry><para>Tolerance on the infinity norm of the Lagrangian gradient in solver-variable coordinates. The gradient is compared with OptimalityTolerance, and feasibility is checked using FeasibilityTolerance. Normalize coordinates and the objective consistently before choosing a common gradient threshold.</para> <variablelist>
                 <varlistentry>
                   <term>Data Type</term>
 
@@ -459,7 +441,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Lagrangian-gradient numerical units in the selected solver-variable coordinates</para>
                   </listitem>
                 </varlistentry>
 
@@ -759,6 +741,8 @@
 
   <refsection>
     <title>Remarks</title>
+
+    <para>The solver uses the supplied objective, constraint and solver-variable numerical scales. FeasibilityTolerance follows the constraint residuals. FunctionTolerance uses relative objective change away from zero and absolute objective change near zero. OptimalityTolerance applies to gradient components in solver coordinates. MaximumElasticWeight multiplies elastic residuals in the objective. These settings acquire no automatic physical-unit conversion; nondimensionalizing the objective, variables and constraints makes their numerical interpretation consistent.</para>
 
     <refsection>
       <title>Yukon Optimizer Availability</title>

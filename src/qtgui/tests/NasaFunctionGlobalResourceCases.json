@@ -1,0 +1,406 @@
+{
+  "schema_version": 1,
+  "scope": "Global use and returned-reference identity for existing selected local-resource witnesses;direct and nested calls. Whole E491/E493/E497 and provider/scientific qualification remain open.",
+  "source_catalogs": [
+    {
+      "path": "src/qtgui/tests/NasaFunctionResourceCases.json",
+      "sha256": "3f0ee405bb0d38c5ff906b6dd26253e262dfb44af1261b0b4bd7f5df43c928ac"
+    },
+    {
+      "path": "src/qtgui/tests/NasaFunctionExtendedResourceCases.json",
+      "sha256": "6873ca028441ebe179514db9e3fbb78313f85c352162fa8f264233d13badc1d3"
+    },
+    {
+      "path": "src/qtgui/tests/NasaFunctionAdditionalFactoryCases.json",
+      "sha256": "9ae30a6f538269715ef80b8a091ed83bb614135d22a22997808b7d4a1f0ae190"
+    },
+    {
+      "path": "src/qtgui/tests/NasaFunctionReferenceCases.json",
+      "sha256": "bc65ce159594d144e3739ae995792763248c4be799f77de350ee3e7d87f3e2ab"
+    }
+  ],
+  "cases": [
+    {
+      "key": "ChemicalTank",
+      "type": "ChemicalTank",
+      "category": "Hardware",
+      "field": "FuelMass",
+      "kind": "real",
+      "first": "12.25",
+      "second": "24.5",
+      "requirement": "FRAC-6.1.2",
+      "legacy_groups": [
+        "Spacecraft Tank Panel"
+      ],
+      "clone_allowed": true,
+      "source_catalog": "src/qtgui/tests/NasaFunctionResourceCases.json",
+      "source_case_sha256": "83c2009df8478114b05a40116fcb09ecbe4e1c3a473845d33dd3938e57627876"
+    },
+    {
+      "key": "ChemicalThruster",
+      "type": "ChemicalThruster",
+      "category": "Hardware",
+      "field": "DutyCycle",
+      "kind": "real",
+      "first": "0.5",
+      "second": "0.75",
+      "requirement": "FRAC-6.1.3",
+      "legacy_groups": [
+        "Spacecraft Actuators"
+      ],
+      "clone_allowed": true,
+      "source_catalog": "src/qtgui/tests/NasaFunctionResourceCases.json",
+      "source_case_sha256": "924611d185d085e81bf1f1666ca2bbe27cec071982b7494f765c200e97469e6b"
+    },
+    {
+      "key": "Transmitter",
+      "type": "Transmitter",
+      "category": "Hardware",
+      "field": "Frequency",
+      "kind": "real",
+      "first": "2200",
+      "second": "2300",
+      "requirement": "FRAC-6.1.4",
+      "legacy_groups": [],
+      "clone_allowed": true,
+      "source_catalog": "src/qtgui/tests/NasaFunctionResourceCases.json",
+      "source_case_sha256": "674e66eca3d202a4480b1c09d02ad1e087d51c7bf49ea48f34e9ae0aa47c9c4d"
+    },
+    {
+      "key": "Transponder",
+      "type": "Transponder",
+      "category": "Hardware",
+      "field": "HardwareDelay",
+      "kind": "real",
+      "first": "0.1",
+      "second": "0.2",
+      "requirement": "FRAC-6.1.5",
+      "legacy_groups": [],
+      "clone_allowed": true,
+      "source_catalog": "src/qtgui/tests/NasaFunctionResourceCases.json",
+      "source_case_sha256": "27ee8028ced51cf22f3e1d142943f6c46fd0db48624f805d82e6709e1cbf8288"
+    },
+    {
+      "key": "GroundStation",
+      "type": "GroundStation",
+      "category": "Ground Stations",
+      "field": "MinimumElevationAngle",
+      "kind": "real",
+      "first": "5",
+      "second": "10",
+      "requirement": "FRAC-6.1.8",
+      "legacy_groups": [
+        "Ground Station"
+      ],
+      "clone_allowed": true,
+      "source_catalog": "src/qtgui/tests/NasaFunctionResourceCases.json",
+      "source_case_sha256": "956bfe4fa958c473157c71c73cd67a541f27f31a02c9bf696982303885cf5c87"
+    },
+    {
+      "key": "ImpulsiveBurn",
+      "type": "ImpulsiveBurn",
+      "category": "Burns",
+      "field": "Element1",
+      "kind": "real",
+      "first": "0.1",
+      "second": "0.2",
+      "requirement": "FRAC-6.1.10",
+      "legacy_groups": [
+        "ImpulsiveBurn"
+      ],
+      "clone_allowed": true,
+      "source_catalog": "src/qtgui/tests/NasaFunctionResourceCases.json",
+      "source_case_sha256": "3413c0e92a6c3667c0192e932b41272392901ca5a3ca3822b5e803b90a158e29"
+    },
+    {
+      "key": "DifferentialCorrector",
+      "type": "DifferentialCorrector",
+      "category": "Solvers",
+      "field": "MaximumIterations",
+      "kind": "integer",
+      "first": "15",
+      "second": "30",
+      "requirement": "FRAC-6.1.18",
+      "legacy_groups": [
+        "Differential Corrector"
+      ],
+      "clone_allowed": true,
+      "source_catalog": "src/qtgui/tests/NasaFunctionResourceCases.json",
+      "source_case_sha256": "e149813e3197d0bdbba3973f4f62cf7d47db925e0e8ffbe89b503769b72e44ae"
+    },
+    {
+      "key": "BatchEstimator",
+      "type": "BatchEstimator",
+      "category": "Solvers",
+      "field": "MaximumIterations",
+      "kind": "integer",
+      "first": "7",
+      "second": "8",
+      "requirement": "FRAC-6.1.21",
+      "legacy_groups": [],
+      "clone_allowed": true,
+      "source_catalog": "src/qtgui/tests/NasaFunctionResourceCases.json",
+      "source_case_sha256": "f67207ab9f5528ea592ad1f2ad737e56e6f89b99ee54d8be00ff040696938aec"
+    },
+    {
+      "key": "ExtendedKalmanFilter",
+      "type": "ExtendedKalmanFilter",
+      "category": "Solvers",
+      "field": "ScaledResidualThreshold",
+      "kind": "real",
+      "first": "4",
+      "second": "5",
+      "requirement": "FRAC-6.1.22",
+      "legacy_groups": [],
+      "clone_allowed": true,
+      "source_catalog": "src/qtgui/tests/NasaFunctionResourceCases.json",
+      "source_case_sha256": "bd00e1202bd7707090180b897a17373f657e7fd3ece32582d781b9bf2e2c39eb"
+    },
+    {
+      "key": "Simulator",
+      "type": "Simulator",
+      "category": "Solvers",
+      "field": "MeasurementTimeStep",
+      "kind": "real",
+      "first": "30",
+      "second": "90",
+      "requirement": "FRAC-6.1.23",
+      "legacy_groups": [],
+      "clone_allowed": true,
+      "source_catalog": "src/qtgui/tests/NasaFunctionResourceCases.json",
+      "source_case_sha256": "015308354db2f5acbe301b448d1205e766ec7fa7a7c651605d50924ec35f56d4"
+    },
+    {
+      "key": "Yukon",
+      "type": "Yukon",
+      "category": "Solvers",
+      "field": "MaximumIterations",
+      "kind": "integer",
+      "first": "15",
+      "second": "30",
+      "requirement": "",
+      "legacy_groups": [],
+      "clone_allowed": true,
+      "source_catalog": "src/qtgui/tests/NasaFunctionResourceCases.json",
+      "source_case_sha256": "bbe5482cd39b159d4d5d0b4970a6a93b34bd4bbff7e24def5a96f7f54f5888c9"
+    },
+    {
+      "key": "ElectricTank",
+      "type": "ElectricTank",
+      "field": "FuelMass",
+      "kind": "real",
+      "first": "15.25",
+      "second": "31.5",
+      "native_source": "src/base/hardware/ElectricTank.cpp",
+      "native_source_sha256": "2a6b023eac1ba458aa1c7764508638c9cbbf6fa6ecb7737ce3c9692867344bea",
+      "source_catalog": "src/qtgui/tests/NasaFunctionExtendedResourceCases.json",
+      "source_case_sha256": "e22476498262d6e3b91808cc67abbedde4bc0bdb95c13efe9278ac7cc161abb8"
+    },
+    {
+      "key": "ElectricThruster",
+      "type": "ElectricThruster",
+      "field": "DutyCycle",
+      "kind": "real",
+      "first": "0.4",
+      "second": "0.8",
+      "native_source": "src/base/hardware/ElectricThruster.cpp",
+      "native_source_sha256": "ea5fa795ce8d73e508f1d9d8f4c0760ef79bb82b66e287e26521a083ed039f6d",
+      "source_catalog": "src/qtgui/tests/NasaFunctionExtendedResourceCases.json",
+      "source_case_sha256": "8bd15f42fd2b6b0630f0d8949e6772da2886062ac189c647f9db0deb5be3709f"
+    },
+    {
+      "key": "SolarPowerSystem",
+      "type": "SolarPowerSystem",
+      "field": "InitialMaxPower",
+      "kind": "real",
+      "first": "12.5",
+      "second": "22.5",
+      "native_source": "src/base/hardware/SolarPowerSystem.cpp",
+      "native_source_sha256": "a063885f59b006b62d5aa9f24139f4e53ddf523a5fe033d1d885aef342829b11",
+      "source_catalog": "src/qtgui/tests/NasaFunctionExtendedResourceCases.json",
+      "source_case_sha256": "e6703f090cc86367e2adac113a3fca4bf6e542d949a8705f757f53f4edab7cc7"
+    },
+    {
+      "key": "NuclearPowerSystem",
+      "type": "NuclearPowerSystem",
+      "field": "InitialMaxPower",
+      "kind": "real",
+      "first": "3.25",
+      "second": "6.5",
+      "native_source": "src/base/hardware/NuclearPowerSystem.cpp",
+      "native_source_sha256": "9d485f8c0adcfa5681e1010b360b34965c3e059c78bcc48602d85560a0234b16",
+      "source_catalog": "src/qtgui/tests/NasaFunctionExtendedResourceCases.json",
+      "source_case_sha256": "89d3d53a4d0fc2b97fb3109f17be39492459dce2e34c3eda17ed81ab6b813eb7"
+    },
+    {
+      "key": "ConicalFOV",
+      "type": "ConicalFOV",
+      "field": "FieldOfViewAngle",
+      "kind": "real",
+      "first": "12.5",
+      "second": "25",
+      "native_source": "src/base/hardware/ConicalFOV.cpp",
+      "native_source_sha256": "4f2001da007e06f27a0210039390dfa9dd2a1bf0f174b38e8c5846da5fc40c73",
+      "source_catalog": "src/qtgui/tests/NasaFunctionExtendedResourceCases.json",
+      "source_case_sha256": "be0637481e5b115af00bed22cc93fc9780af73b6ef8448f1f2cde2ebc0b37014"
+    },
+    {
+      "key": "RectangularFOV",
+      "type": "RectangularFOV",
+      "field": "AngleWidth",
+      "kind": "real",
+      "first": "10",
+      "second": "20",
+      "native_source": "src/base/hardware/RectangularFOV.cpp",
+      "native_source_sha256": "4eee8a6a772e19568ed2852530f0f2dcc826dd44aa644102bbc930987588a624",
+      "source_catalog": "src/qtgui/tests/NasaFunctionExtendedResourceCases.json",
+      "source_case_sha256": "455d82f1e8a036d2525755aea7ec4efbc54b077dc49404d82ad70b66c4dc8936"
+    },
+    {
+      "key": "ErrorModel",
+      "type": "ErrorModel",
+      "field": "NoiseSigma",
+      "kind": "real",
+      "first": "0.125",
+      "second": "0.25",
+      "native_source": "plugins/EstimationPlugin/src/base/errormodel/ErrorModel.cpp",
+      "native_source_sha256": "2c1bf079f6c8d5b6733f8bf38102b44d339cbadec65659cb55e79386eda4b858",
+      "source_catalog": "src/qtgui/tests/NasaFunctionExtendedResourceCases.json",
+      "source_case_sha256": "646ac0b6dd0ce9bd6ef9751d8cf36b54e2214afc83e85e92a4d1495816d20d4a"
+    },
+    {
+      "key": "ProcessNoiseModel",
+      "type": "ProcessNoiseModel",
+      "field": "UpdateTimeStep",
+      "kind": "real",
+      "first": "30",
+      "second": "60",
+      "native_source": "plugins/ExtendedKalmanFilterPlugin/src/base/noise/ProcessNoiseModel.cpp",
+      "native_source_sha256": "c9065e43dbf6a920ea68025618d4ce4d9eccea3f02d7fcc53fa82e3792a6b698",
+      "source_catalog": "src/qtgui/tests/NasaFunctionExtendedResourceCases.json",
+      "source_case_sha256": "986929c0573c8317c811344d39dff0eb21727d5bf2f3a2a67734ef23d9104618"
+    },
+    {
+      "key": "EstimatedParameter",
+      "type": "EstimatedParameter",
+      "field": "HalfLife",
+      "kind": "real",
+      "first": "300",
+      "second": "600",
+      "native_source": "plugins/ExtendedKalmanFilterPlugin/src/base/estimatedparam/EstimatedParameter.cpp",
+      "native_source_sha256": "522f260dbc9f03063a1d102bb85960f801567cd59f42b1546874d17c2f83baaf",
+      "source_catalog": "src/qtgui/tests/NasaFunctionExtendedResourceCases.json",
+      "source_case_sha256": "e4f472ef274aae9cf19d9cab358e4955cd81dd2a0fd1742007e8a4f30599beef"
+    },
+    {
+      "key": "OrbitView",
+      "type": "OrbitView",
+      "field": "NumPointsToRedraw",
+      "kind": "integer",
+      "first": "10",
+      "second": "20",
+      "native_source": "src/base/subscriber/OrbitView.cpp",
+      "native_source_sha256": "28c24f69f27c5a32012736766321f4b1247e354863fdbf559f86c974fb874326",
+      "source_catalog": "src/qtgui/tests/NasaFunctionExtendedResourceCases.json",
+      "source_case_sha256": "94cd90690953418a1212d510df5784b92636b348859e9d5cfa14c5e4de666b40"
+    },
+    {
+      "key": "ReportFile",
+      "type": "ReportFile",
+      "field": "Precision",
+      "kind": "integer",
+      "first": "12",
+      "second": "14",
+      "native_source": "src/base/subscriber/ReportFile.cpp",
+      "native_source_sha256": "fa56e756516e4ddf5ac8977860f07f4703a8c12ea556169db31e7163bc3b3888",
+      "source_catalog": "src/qtgui/tests/NasaFunctionExtendedResourceCases.json",
+      "source_case_sha256": "28019a3c71b33fb4c1607f674f6aa5ba973291ee3278f60d807749fd46e7079e"
+    },
+    {
+      "key": "Plate",
+      "type": "Plate",
+      "field": "Area",
+      "kind": "real",
+      "first": "2.5",
+      "second": "7.25",
+      "native_source": "src/base/spacecraft/Plate.cpp",
+      "native_source_sha256": "29632d11e59cd6f8f8769a39fd6f174839f133846bd46297cb733665522b1b58",
+      "source_catalog": "src/qtgui/tests/NasaFunctionAdditionalFactoryCases.json",
+      "source_case_sha256": "77f650bd80a36e999984b79036c9d27c88221bd9d49f5a9ec7bb8c68dedff68e"
+    },
+    {
+      "key": "FirstOrderGaussMarkov",
+      "type": "FirstOrderGaussMarkov",
+      "field": "HalfLife",
+      "kind": "real",
+      "first": "300",
+      "second": "600",
+      "native_source": "plugins/ExtendedKalmanFilterPlugin/src/base/estimatedparam/FirstOrderGaussMarkov.cpp",
+      "native_source_sha256": "f200c1d5a7b404fb4886701016c33d252cee69f5f81d7cabdde54ae255ffc8c5",
+      "source_catalog": "src/qtgui/tests/NasaFunctionAdditionalFactoryCases.json",
+      "source_case_sha256": "a9ccf338496bc703266459e2be9f2112bca46d59bb57daf2e09c7abad18377c9"
+    },
+    {
+      "key": "Receiver",
+      "type": "Receiver",
+      "field": "Id",
+      "kind": "string",
+      "first": "1",
+      "second": "2",
+      "dependencies": "",
+      "globals": "",
+      "object_settings": "",
+      "source_catalog": "src/qtgui/tests/NasaFunctionReferenceCases.json",
+      "source_case_sha256": "2c07318c6d843802d1f0e084aca8d1e8d5f6f7dda69633c891cc86b782527ca3"
+    },
+    {
+      "key": "Antenna",
+      "type": "Antenna",
+      "field": "FieldOfView",
+      "kind": "string",
+      "first": "Cone1",
+      "second": "Cone2",
+      "dependencies": "Create ConicalFOV Cone1 Cone2;\n",
+      "globals": "Global Cone1 Cone2;\n",
+      "object_settings": "",
+      "reference_kind": "fov",
+      "source_catalog": "src/qtgui/tests/NasaFunctionReferenceCases.json",
+      "source_case_sha256": "b6b35fa50cd592607b068d9e27814993d1436fc2e8babb9036a27ed73891dcf3"
+    },
+    {
+      "key": "Formation",
+      "type": "Formation",
+      "field": "Add",
+      "kind": "list",
+      "first": "Anchor",
+      "second": "Anchor,Other",
+      "dependencies": "Create Spacecraft Anchor Other ShadowA ShadowB FirstA FirstB SecondA SecondB PrivateA PrivateB;\n",
+      "globals": "Global Anchor Other ShadowA ShadowB FirstA FirstB SecondA SecondB PrivateA PrivateB;\n",
+      "object_settings": "",
+      "reference_kind": "formation",
+      "main_seeds": {
+        "out": "ShadowA,ShadowB",
+        "First": "FirstA,FirstB",
+        "Second": "SecondA,SecondB"
+      },
+      "private_seed": "PrivateA,PrivateB",
+      "second_output": "Other",
+      "source_catalog": "src/qtgui/tests/NasaFunctionReferenceCases.json",
+      "source_case_sha256": "fea4416d90946e3a0576a2a6c9717f95abe7ca1a206aa435392a70de6d4015fb"
+    },
+    {
+      "key": "FiniteBurn",
+      "type": "FiniteBurn",
+      "field": "Thrusters",
+      "kind": "list",
+      "first": "Engine",
+      "second": "Engine,Engine2",
+      "dependencies": "Create ChemicalThruster Engine Engine2;\n",
+      "globals": "Global Engine Engine2;\n",
+      "object_settings": "",
+      "reference_kind": "unexecuted-thruster-names",
+      "source_catalog": "src/qtgui/tests/NasaFunctionReferenceCases.json",
+      "source_case_sha256": "4cd5c568ba707b15cf10eef2f9afa816425c1a9c66c4fac67b73faeb96b81d1e"
+    }
+  ]
+}

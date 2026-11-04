@@ -1355,6 +1355,21 @@ void Sandbox::Clear()
       ("Sandbox::Clear() entered, errorInPreviousFcs=%d\n", errorInPreviousFcs);
    #endif
    
+   // Function sequences can retain calls to other sandbox functions after
+   // failed initialization. Finalize them before deleting any of their
+   // function or parameter owners. The main sequence is borrowed and may
+   // already have been deleted by Moderator, so it cannot be used here.
+   std::vector<UserDefinedFunction*> pendingFunctions;
+   for (const ObjectMap *map : {&objectMap, &globalObjectMap})
+      for (const auto &entry : *map)
+         if (auto *function = dynamic_cast<UserDefinedFunction*>(entry.second))
+            if (std::find(pendingFunctions.begin(), pendingFunctions.end(),
+                          function) == pendingFunctions.end())
+               pendingFunctions.push_back(function);
+   for (auto *function : pendingFunctions)
+      if (!function->IsFcsFinalized())
+         function->Finalize(true);
+
    sequence  = NULL;
    current   = NULL;
    
@@ -1946,6 +1961,12 @@ bool Sandbox::HandleGmatFunction(GmatCommand *cmd,
                fcsCmd = fcsCmd->GetNext();
             }
          }
+         // Function commands use this sandbox's event-manager clones just as
+         // main-sequence commands do. Refresh existing FCS bindings on reuse;
+         // branch commands forward the managers to their children.
+         for (GmatCommand *functionCmd = udf->GetFunctionControlSequence();
+              functionCmd; functionCmd = functionCmd->GetNext())
+            functionCmd->SetTriggerManagers(&triggerManagers);
       }
    }
    #ifdef DEBUG_SANDBOX_GMATFUNCTION

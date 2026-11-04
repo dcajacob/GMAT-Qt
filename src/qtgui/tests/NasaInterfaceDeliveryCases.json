@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "ExplicitStartup",
+      "radius": 7000,
+      "duration": 60,
+      "initial_input": 3,
+      "input": 5,
+      "slope": 3,
+      "offset": 2,
+      "expected_output": 17,
+      "cli_mode": "explicit-startup"
+    },
+    {
+      "key": "Positional",
+      "radius": 9000,
+      "duration": 90,
+      "initial_input": 2,
+      "input": -4,
+      "slope": -2,
+      "offset": 7,
+      "expected_output": 15,
+      "cli_mode": "positional-default-startup"
+    }
+  ],
+  "scope": "Finite documented7-bitASCII GUI/script/console capability at Unicode filenames. Actual resource/mission edits and toolbar Save/Run hand off the identical saved script to real console children with explicit/positional startup. Independent scalar/circle/continuation,fresh output,invalid syntax and non-ASCII-content rejection,parent isolation;not full interface/CLI/character-domain/platform/science parity."
+}

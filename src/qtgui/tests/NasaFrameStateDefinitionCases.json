@@ -1,0 +1,4800 @@
+{
+  "scope": "Missing actual primary state-definition/frame combinations only. Reuse the existing EarthMJ2000Eq cases. Whole FRR!E9 credit requires all original declared frame/origin categories, all three representations, inherited modes, independent equations and the generic frame binding argument. No full state-conversion/attitude/science qualification.",
+  "position_tolerance_km": 1e-06,
+  "velocity_tolerance_km_s": 1e-09,
+  "display_tolerance": 1e-06,
+  "physical_inputs": {
+    "application/data/planetary_ephem/spk/ceres_1900_2100.bsp": "17e73febbf23ad34dd108793c19d90e5d6142080af642a26f3282e90be91eeec",
+    "src/qtgui/tests/frame-consumer-station-origin.bsp": "9acdc9616cd09fc65292af37b611a77df2d52194c2e1ac019fbb37c7bd3f2b9a"
+  },
+  "cases": [
+    {
+      "key": "MOEEq_Cartesian",
+      "frame_key": "MOEEq",
+      "frame": "CreatedFrame",
+      "axis": "MOEEq",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = MOEEq;\nCreatedFrame.Epoch = 25300.25;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "MOEEq_SphericalAZFPA",
+      "frame_key": "MOEEq",
+      "frame": "CreatedFrame",
+      "axis": "MOEEq",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = MOEEq;\nCreatedFrame.Epoch = 25300.25;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "MOEEq_SphericalRADEC",
+      "frame_key": "MOEEq",
+      "frame": "CreatedFrame",
+      "axis": "MOEEq",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = MOEEq;\nCreatedFrame.Epoch = 25300.25;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "MOEEc_Cartesian",
+      "frame_key": "MOEEc",
+      "frame": "CreatedFrame",
+      "axis": "MOEEc",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = MOEEc;\nCreatedFrame.Epoch = 25300.25;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "MOEEc_SphericalAZFPA",
+      "frame_key": "MOEEc",
+      "frame": "CreatedFrame",
+      "axis": "MOEEc",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = MOEEc;\nCreatedFrame.Epoch = 25300.25;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "MOEEc_SphericalRADEC",
+      "frame_key": "MOEEc",
+      "frame": "CreatedFrame",
+      "axis": "MOEEc",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = MOEEc;\nCreatedFrame.Epoch = 25300.25;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "TOEEq_Cartesian",
+      "frame_key": "TOEEq",
+      "frame": "CreatedFrame",
+      "axis": "TOEEq",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = TOEEq;\nCreatedFrame.Epoch = 25300.25;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "TOEEq_SphericalAZFPA",
+      "frame_key": "TOEEq",
+      "frame": "CreatedFrame",
+      "axis": "TOEEq",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = TOEEq;\nCreatedFrame.Epoch = 25300.25;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "TOEEq_SphericalRADEC",
+      "frame_key": "TOEEq",
+      "frame": "CreatedFrame",
+      "axis": "TOEEq",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = TOEEq;\nCreatedFrame.Epoch = 25300.25;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "TOEEc_Cartesian",
+      "frame_key": "TOEEc",
+      "frame": "CreatedFrame",
+      "axis": "TOEEc",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = TOEEc;\nCreatedFrame.Epoch = 25300.25;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "TOEEc_SphericalAZFPA",
+      "frame_key": "TOEEc",
+      "frame": "CreatedFrame",
+      "axis": "TOEEc",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = TOEEc;\nCreatedFrame.Epoch = 25300.25;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "TOEEc_SphericalRADEC",
+      "frame_key": "TOEEc",
+      "frame": "CreatedFrame",
+      "axis": "TOEEc",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = TOEEc;\nCreatedFrame.Epoch = 25300.25;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "BodyInertialCustom_Cartesian",
+      "frame_key": "BodyInertialCustom",
+      "frame": "CreatedFrame",
+      "axis": "BodyInertial",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Probe;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Probe;\nCreatedFrame.Axes = BodyInertial;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "BodyInertialCustom_SphericalAZFPA",
+      "frame_key": "BodyInertialCustom",
+      "frame": "CreatedFrame",
+      "axis": "BodyInertial",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Probe;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Probe;\nCreatedFrame.Axes = BodyInertial;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "BodyInertialCustom_SphericalRADEC",
+      "frame_key": "BodyInertialCustom",
+      "frame": "CreatedFrame",
+      "axis": "BodyInertial",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Probe;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Probe;\nCreatedFrame.Axes = BodyInertial;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "BodyInertialMars_Cartesian",
+      "frame_key": "BodyInertialMars",
+      "frame": "CreatedFrame",
+      "axis": "BodyInertial",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Mars;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Mars;\nCreatedFrame.Axes = BodyInertial;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "BodyInertialMars_SphericalAZFPA",
+      "frame_key": "BodyInertialMars",
+      "frame": "CreatedFrame",
+      "axis": "BodyInertial",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Mars;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Mars;\nCreatedFrame.Axes = BodyInertial;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "BodyInertialMars_SphericalRADEC",
+      "frame_key": "BodyInertialMars",
+      "frame": "CreatedFrame",
+      "axis": "BodyInertial",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent inertial axes mission \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.Flattening = 0;\nProbe.OrientationEpoch = 21544.99962789878;\nProbe.SpinAxisRAConstant = 20;\nProbe.SpinAxisRARate = 36525;\nProbe.SpinAxisDECConstant = 55;\nProbe.SpinAxisDECRate = -18262.5;\nProbe.RotationConstant = 120;\nProbe.RotationRate = 720;\nCreate Spacecraft Vehicle;\nCreate GroundStation Site;\nSite.CentralBody = Earth;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Mars;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Mars;\nCreatedFrame.Axes = BodyInertial;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "MODEq_Cartesian",
+      "frame_key": "MODEq",
+      "frame": "CreatedFrame",
+      "axis": "MODEq",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent dynamic axes mission \u0394\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = MODEq;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "MODEq_SphericalAZFPA",
+      "frame_key": "MODEq",
+      "frame": "CreatedFrame",
+      "axis": "MODEq",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent dynamic axes mission \u0394\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = MODEq;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "MODEq_SphericalRADEC",
+      "frame_key": "MODEq",
+      "frame": "CreatedFrame",
+      "axis": "MODEq",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent dynamic axes mission \u0394\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = MODEq;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "MODEc_Cartesian",
+      "frame_key": "MODEc",
+      "frame": "CreatedFrame",
+      "axis": "MODEc",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent dynamic axes mission \u0394\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = MODEc;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "MODEc_SphericalAZFPA",
+      "frame_key": "MODEc",
+      "frame": "CreatedFrame",
+      "axis": "MODEc",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent dynamic axes mission \u0394\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = MODEc;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "MODEc_SphericalRADEC",
+      "frame_key": "MODEc",
+      "frame": "CreatedFrame",
+      "axis": "MODEc",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent dynamic axes mission \u0394\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = MODEc;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "TODEq_Cartesian",
+      "frame_key": "TODEq",
+      "frame": "CreatedFrame",
+      "axis": "TODEq",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent dynamic axes mission \u0394\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = TODEq;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "TODEq_SphericalAZFPA",
+      "frame_key": "TODEq",
+      "frame": "CreatedFrame",
+      "axis": "TODEq",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent dynamic axes mission \u0394\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = TODEq;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "TODEq_SphericalRADEC",
+      "frame_key": "TODEq",
+      "frame": "CreatedFrame",
+      "axis": "TODEq",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent dynamic axes mission \u0394\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = TODEq;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "TODEc_Cartesian",
+      "frame_key": "TODEc",
+      "frame": "CreatedFrame",
+      "axis": "TODEc",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent dynamic axes mission \u0394\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = TODEc;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "TODEc_SphericalAZFPA",
+      "frame_key": "TODEc",
+      "frame": "CreatedFrame",
+      "axis": "TODEc",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent dynamic axes mission \u0394\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = TODEc;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "TODEc_SphericalRADEC",
+      "frame_key": "TODEc",
+      "frame": "CreatedFrame",
+      "axis": "TODEc",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent dynamic axes mission \u0394\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = TODEc;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "GSE_Cartesian",
+      "frame_key": "GSE",
+      "frame": "CreatedFrame",
+      "axis": "GSE",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent solar axes mission \u0394\nCreate CoordinateSystem ReferenceFixed;\nReferenceFixed.Origin = Earth;\nReferenceFixed.Axes = BodyFixed;\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = GSE;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "GSE_SphericalAZFPA",
+      "frame_key": "GSE",
+      "frame": "CreatedFrame",
+      "axis": "GSE",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent solar axes mission \u0394\nCreate CoordinateSystem ReferenceFixed;\nReferenceFixed.Origin = Earth;\nReferenceFixed.Axes = BodyFixed;\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = GSE;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "GSE_SphericalRADEC",
+      "frame_key": "GSE",
+      "frame": "CreatedFrame",
+      "axis": "GSE",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent solar axes mission \u0394\nCreate CoordinateSystem ReferenceFixed;\nReferenceFixed.Origin = Earth;\nReferenceFixed.Axes = BodyFixed;\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = GSE;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "GSM_Cartesian",
+      "frame_key": "GSM",
+      "frame": "CreatedFrame",
+      "axis": "GSM",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent solar axes mission \u0394\nCreate CoordinateSystem ReferenceFixed;\nReferenceFixed.Origin = Earth;\nReferenceFixed.Axes = BodyFixed;\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = GSM;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "GSM_SphericalAZFPA",
+      "frame_key": "GSM",
+      "frame": "CreatedFrame",
+      "axis": "GSM",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent solar axes mission \u0394\nCreate CoordinateSystem ReferenceFixed;\nReferenceFixed.Origin = Earth;\nReferenceFixed.Axes = BodyFixed;\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = GSM;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "GSM_SphericalRADEC",
+      "frame_key": "GSM",
+      "frame": "CreatedFrame",
+      "axis": "GSM",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Retain independent solar axes mission \u0394\nCreate CoordinateSystem ReferenceFixed;\nReferenceFixed.Origin = Earth;\nReferenceFixed.Axes = BodyFixed;\nCreate CoordinateSystem InputFrame;\nInputFrame.Origin = Earth;\nInputFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = InputFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Axes = GSM;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Topocentric_Cartesian",
+      "frame_key": "Topocentric",
+      "frame": "CreatedFrame",
+      "axis": "Topocentric",
+      "origin_class": "GroundStation",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Preserve independent origin frame acceptance \u0394\nEarth.Mu = 400000;\nLuna.Mu = 5000;\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@STATION@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 6400;\nProbe.Flattening = 0.01;\nProbe.OrientationEpoch = 21545;\nProbe.SpinAxisRAConstant = 270;\nProbe.SpinAxisRARate = 0;\nProbe.SpinAxisDECConstant = 90;\nProbe.SpinAxisDECRate = 0;\nProbe.RotationConstant = 30;\nProbe.RotationRate = 120;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate LibrationPoint LP;\nLP.Primary = Earth;\nLP.Secondary = Luna;\nLP.Point = L1;\nCreate GroundStation Site;\nSite.CentralBody = Probe;\nSite.StateType = Spherical;\nSite.HorizonReference = Sphere;\nSite.Location1 = 31.25;\nSite.Location2 = -81.5;\nSite.Location3 = 1.2;\nCreate CoordinateSystem Baseline;\nBaseline.Origin = Earth;\nBaseline.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Site;\nCreatedFrame.Axes = Topocentric;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Topocentric_SphericalAZFPA",
+      "frame_key": "Topocentric",
+      "frame": "CreatedFrame",
+      "axis": "Topocentric",
+      "origin_class": "GroundStation",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Preserve independent origin frame acceptance \u0394\nEarth.Mu = 400000;\nLuna.Mu = 5000;\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@STATION@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 6400;\nProbe.Flattening = 0.01;\nProbe.OrientationEpoch = 21545;\nProbe.SpinAxisRAConstant = 270;\nProbe.SpinAxisRARate = 0;\nProbe.SpinAxisDECConstant = 90;\nProbe.SpinAxisDECRate = 0;\nProbe.RotationConstant = 30;\nProbe.RotationRate = 120;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate LibrationPoint LP;\nLP.Primary = Earth;\nLP.Secondary = Luna;\nLP.Point = L1;\nCreate GroundStation Site;\nSite.CentralBody = Probe;\nSite.StateType = Spherical;\nSite.HorizonReference = Sphere;\nSite.Location1 = 31.25;\nSite.Location2 = -81.5;\nSite.Location3 = 1.2;\nCreate CoordinateSystem Baseline;\nBaseline.Origin = Earth;\nBaseline.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Site;\nCreatedFrame.Axes = Topocentric;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Topocentric_SphericalRADEC",
+      "frame_key": "Topocentric",
+      "frame": "CreatedFrame",
+      "axis": "Topocentric",
+      "origin_class": "GroundStation",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Preserve independent origin frame acceptance \u0394\nEarth.Mu = 400000;\nLuna.Mu = 5000;\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@STATION@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 6400;\nProbe.Flattening = 0.01;\nProbe.OrientationEpoch = 21545;\nProbe.SpinAxisRAConstant = 270;\nProbe.SpinAxisRARate = 0;\nProbe.SpinAxisDECConstant = 90;\nProbe.SpinAxisDECRate = 0;\nProbe.RotationConstant = 30;\nProbe.RotationRate = 120;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate LibrationPoint LP;\nLP.Primary = Earth;\nLP.Secondary = Luna;\nLP.Point = L1;\nCreate GroundStation Site;\nSite.CentralBody = Probe;\nSite.StateType = Spherical;\nSite.HorizonReference = Sphere;\nSite.Location1 = 31.25;\nSite.Location2 = -81.5;\nSite.Location3 = 1.2;\nCreate CoordinateSystem Baseline;\nBaseline.Origin = Earth;\nBaseline.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Site;\nCreatedFrame.Axes = Topocentric;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "BodyFixed_Cartesian",
+      "frame_key": "BodyFixed",
+      "frame": "CreatedFrame",
+      "axis": "BodyFixed",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Preserve independent origin frame acceptance \u0394\nEarth.Mu = 400000;\nLuna.Mu = 5000;\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@STATION@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 6400;\nProbe.Flattening = 0.01;\nProbe.OrientationEpoch = 21545;\nProbe.SpinAxisRAConstant = 270;\nProbe.SpinAxisRARate = 0;\nProbe.SpinAxisDECConstant = 90;\nProbe.SpinAxisDECRate = 0;\nProbe.RotationConstant = 30;\nProbe.RotationRate = 120;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate LibrationPoint LP;\nLP.Primary = Earth;\nLP.Secondary = Luna;\nLP.Point = L1;\nCreate GroundStation Site;\nSite.CentralBody = Probe;\nSite.StateType = Spherical;\nSite.HorizonReference = Sphere;\nSite.Location1 = 31.25;\nSite.Location2 = -81.5;\nSite.Location3 = 1.2;\nCreate CoordinateSystem Baseline;\nBaseline.Origin = Earth;\nBaseline.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Probe;\nCreatedFrame.Axes = BodyFixed;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "BodyFixed_SphericalAZFPA",
+      "frame_key": "BodyFixed",
+      "frame": "CreatedFrame",
+      "axis": "BodyFixed",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Preserve independent origin frame acceptance \u0394\nEarth.Mu = 400000;\nLuna.Mu = 5000;\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@STATION@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 6400;\nProbe.Flattening = 0.01;\nProbe.OrientationEpoch = 21545;\nProbe.SpinAxisRAConstant = 270;\nProbe.SpinAxisRARate = 0;\nProbe.SpinAxisDECConstant = 90;\nProbe.SpinAxisDECRate = 0;\nProbe.RotationConstant = 30;\nProbe.RotationRate = 120;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate LibrationPoint LP;\nLP.Primary = Earth;\nLP.Secondary = Luna;\nLP.Point = L1;\nCreate GroundStation Site;\nSite.CentralBody = Probe;\nSite.StateType = Spherical;\nSite.HorizonReference = Sphere;\nSite.Location1 = 31.25;\nSite.Location2 = -81.5;\nSite.Location3 = 1.2;\nCreate CoordinateSystem Baseline;\nBaseline.Origin = Earth;\nBaseline.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Probe;\nCreatedFrame.Axes = BodyFixed;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "BodyFixed_SphericalRADEC",
+      "frame_key": "BodyFixed",
+      "frame": "CreatedFrame",
+      "axis": "BodyFixed",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Preserve independent origin frame acceptance \u0394\nEarth.Mu = 400000;\nLuna.Mu = 5000;\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@STATION@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 6400;\nProbe.Flattening = 0.01;\nProbe.OrientationEpoch = 21545;\nProbe.SpinAxisRAConstant = 270;\nProbe.SpinAxisRARate = 0;\nProbe.SpinAxisDECConstant = 90;\nProbe.SpinAxisDECRate = 0;\nProbe.RotationConstant = 30;\nProbe.RotationRate = 120;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate LibrationPoint LP;\nLP.Primary = Earth;\nLP.Secondary = Luna;\nLP.Point = L1;\nCreate GroundStation Site;\nSite.CentralBody = Probe;\nSite.StateType = Spherical;\nSite.HorizonReference = Sphere;\nSite.Location1 = 31.25;\nSite.Location2 = -81.5;\nSite.Location3 = 1.2;\nCreate CoordinateSystem Baseline;\nBaseline.Origin = Earth;\nBaseline.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Probe;\nCreatedFrame.Axes = BodyFixed;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Barycenter_Cartesian",
+      "frame_key": "Barycenter",
+      "frame": "CreatedFrame",
+      "axis": "MJ2000Eq",
+      "origin_class": "Barycenter",
+      "setup": "Create Barycenter FrameCenter;\nFrameCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem CreatedFrame;\nCreatedFrame.Origin = FrameCenter;\nCreatedFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Barycenter_SphericalAZFPA",
+      "frame_key": "Barycenter",
+      "frame": "CreatedFrame",
+      "axis": "MJ2000Eq",
+      "origin_class": "Barycenter",
+      "setup": "Create Barycenter FrameCenter;\nFrameCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem CreatedFrame;\nCreatedFrame.Origin = FrameCenter;\nCreatedFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Barycenter_SphericalRADEC",
+      "frame_key": "Barycenter",
+      "frame": "CreatedFrame",
+      "axis": "MJ2000Eq",
+      "origin_class": "Barycenter",
+      "setup": "Create Barycenter FrameCenter;\nFrameCenter.BodyNames = {Earth, Luna};\nCreate CoordinateSystem CreatedFrame;\nCreatedFrame.Origin = FrameCenter;\nCreatedFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Libration_Cartesian",
+      "frame_key": "Libration",
+      "frame": "CreatedFrame",
+      "axis": "MJ2000Eq",
+      "origin_class": "LibrationPoint",
+      "setup": "Create LibrationPoint FrameL1;\nFrameL1.Primary = Earth;\nFrameL1.Secondary = Luna;\nFrameL1.Point = L1;\nCreate CoordinateSystem CreatedFrame;\nCreatedFrame.Origin = FrameL1;\nCreatedFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Libration_SphericalAZFPA",
+      "frame_key": "Libration",
+      "frame": "CreatedFrame",
+      "axis": "MJ2000Eq",
+      "origin_class": "LibrationPoint",
+      "setup": "Create LibrationPoint FrameL1;\nFrameL1.Primary = Earth;\nFrameL1.Secondary = Luna;\nFrameL1.Point = L1;\nCreate CoordinateSystem CreatedFrame;\nCreatedFrame.Origin = FrameL1;\nCreatedFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Libration_SphericalRADEC",
+      "frame_key": "Libration",
+      "frame": "CreatedFrame",
+      "axis": "MJ2000Eq",
+      "origin_class": "LibrationPoint",
+      "setup": "Create LibrationPoint FrameL1;\nFrameL1.Primary = Earth;\nFrameL1.Secondary = Luna;\nFrameL1.Point = L1;\nCreate CoordinateSystem CreatedFrame;\nCreatedFrame.Origin = FrameL1;\nCreatedFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "BodyInertialEarth_Cartesian",
+      "frame_key": "BodyInertialEarth",
+      "frame": "CreatedFrame",
+      "axis": "BodyInertial",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\nCreatedFrame.Origin = Earth;\nCreatedFrame.Axes = BodyInertial;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "BodyInertialEarth_SphericalAZFPA",
+      "frame_key": "BodyInertialEarth",
+      "frame": "CreatedFrame",
+      "axis": "BodyInertial",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\nCreatedFrame.Origin = Earth;\nCreatedFrame.Axes = BodyInertial;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "BodyInertialEarth_SphericalRADEC",
+      "frame_key": "BodyInertialEarth",
+      "frame": "CreatedFrame",
+      "axis": "BodyInertial",
+      "origin_class": "CelestialBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\nCreatedFrame.Origin = Earth;\nCreatedFrame.Axes = BodyInertial;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "NamedEcliptic_Cartesian",
+      "frame_key": "NamedEcliptic",
+      "frame": "EarthMJ2000Ec",
+      "axis": "MJ2000Ec",
+      "origin_class": "CelestialBody",
+      "setup": "% Preserve thruster frame creation \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nCreate CoordinateSystem ProbeEq;\nProbeEq.Origin = Probe;\nProbeEq.Axes = MJ2000Eq;\nCreate Spacecraft Anchor Reference Sat;\nAnchor.CoordinateSystem = EarthMJ2000Eq;\nAnchor.DateFormat = A1ModJulian;\nAnchor.Epoch = '21545';\nAnchor.DisplayStateType = Cartesian;\nAnchor.X = 1000;\nAnchor.Y = 2000;\nAnchor.Z = -500;\nAnchor.VX = 1;\nAnchor.VY = -0.29999999999999999;\nAnchor.VZ = 0.20000000000000001;\nReference.CoordinateSystem = EarthMJ2000Eq;\nReference.DateFormat = A1ModJulian;\nReference.Epoch = '21545';\nReference.DisplayStateType = Cartesian;\nReference.X = 8000;\nReference.Y = 800;\nReference.Z = 400;\nReference.VX = 1.7;\nReference.VY = 6.5;\nReference.VZ = -1;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = -1200;\nSat.Z = 900;\nSat.VX = 1.5;\nSat.VY = 6.75;\nSat.VZ = -2;\nSat.DryMass = 400;\nSat.Attitude = Spinner;\nSat.AttitudeCoordinateSystem = EarthMJ2000Eq;\nSat.AttitudeRateDisplayStateType = AngularVelocity;\nSat.AngularVelocityX = 0;\nSat.AngularVelocityY = 0;\nSat.AngularVelocityZ = 0;\nSat.AttitudeDisplayStateType = DirectionCosineMatrix;\nSat.DCM11 = 0;\nSat.DCM12 = 1;\nSat.DCM13 = 0;\nSat.DCM21 = -1;\nSat.DCM22 = 0;\nSat.DCM23 = 0;\nSat.DCM31 = 0;\nSat.DCM32 = 0;\nSat.DCM33 = 1;\nCreate CoordinateSystem Geometry;\nGeometry.Origin = Anchor;\nGeometry.Axes = ObjectReferenced;\nGeometry.Primary = Anchor;\nGeometry.Secondary = Reference;\nGeometry.XAxis = R;\nGeometry.ZAxis = N;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "NamedEcliptic_SphericalAZFPA",
+      "frame_key": "NamedEcliptic",
+      "frame": "EarthMJ2000Ec",
+      "axis": "MJ2000Ec",
+      "origin_class": "CelestialBody",
+      "setup": "% Preserve thruster frame creation \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nCreate CoordinateSystem ProbeEq;\nProbeEq.Origin = Probe;\nProbeEq.Axes = MJ2000Eq;\nCreate Spacecraft Anchor Reference Sat;\nAnchor.CoordinateSystem = EarthMJ2000Eq;\nAnchor.DateFormat = A1ModJulian;\nAnchor.Epoch = '21545';\nAnchor.DisplayStateType = Cartesian;\nAnchor.X = 1000;\nAnchor.Y = 2000;\nAnchor.Z = -500;\nAnchor.VX = 1;\nAnchor.VY = -0.29999999999999999;\nAnchor.VZ = 0.20000000000000001;\nReference.CoordinateSystem = EarthMJ2000Eq;\nReference.DateFormat = A1ModJulian;\nReference.Epoch = '21545';\nReference.DisplayStateType = Cartesian;\nReference.X = 8000;\nReference.Y = 800;\nReference.Z = 400;\nReference.VX = 1.7;\nReference.VY = 6.5;\nReference.VZ = -1;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = -1200;\nSat.Z = 900;\nSat.VX = 1.5;\nSat.VY = 6.75;\nSat.VZ = -2;\nSat.DryMass = 400;\nSat.Attitude = Spinner;\nSat.AttitudeCoordinateSystem = EarthMJ2000Eq;\nSat.AttitudeRateDisplayStateType = AngularVelocity;\nSat.AngularVelocityX = 0;\nSat.AngularVelocityY = 0;\nSat.AngularVelocityZ = 0;\nSat.AttitudeDisplayStateType = DirectionCosineMatrix;\nSat.DCM11 = 0;\nSat.DCM12 = 1;\nSat.DCM13 = 0;\nSat.DCM21 = -1;\nSat.DCM22 = 0;\nSat.DCM23 = 0;\nSat.DCM31 = 0;\nSat.DCM32 = 0;\nSat.DCM33 = 1;\nCreate CoordinateSystem Geometry;\nGeometry.Origin = Anchor;\nGeometry.Axes = ObjectReferenced;\nGeometry.Primary = Anchor;\nGeometry.Secondary = Reference;\nGeometry.XAxis = R;\nGeometry.ZAxis = N;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "NamedEcliptic_SphericalRADEC",
+      "frame_key": "NamedEcliptic",
+      "frame": "EarthMJ2000Ec",
+      "axis": "MJ2000Ec",
+      "origin_class": "CelestialBody",
+      "setup": "% Preserve thruster frame creation \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nCreate CoordinateSystem ProbeEq;\nProbeEq.Origin = Probe;\nProbeEq.Axes = MJ2000Eq;\nCreate Spacecraft Anchor Reference Sat;\nAnchor.CoordinateSystem = EarthMJ2000Eq;\nAnchor.DateFormat = A1ModJulian;\nAnchor.Epoch = '21545';\nAnchor.DisplayStateType = Cartesian;\nAnchor.X = 1000;\nAnchor.Y = 2000;\nAnchor.Z = -500;\nAnchor.VX = 1;\nAnchor.VY = -0.29999999999999999;\nAnchor.VZ = 0.20000000000000001;\nReference.CoordinateSystem = EarthMJ2000Eq;\nReference.DateFormat = A1ModJulian;\nReference.Epoch = '21545';\nReference.DisplayStateType = Cartesian;\nReference.X = 8000;\nReference.Y = 800;\nReference.Z = 400;\nReference.VX = 1.7;\nReference.VY = 6.5;\nReference.VZ = -1;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = -1200;\nSat.Z = 900;\nSat.VX = 1.5;\nSat.VY = 6.75;\nSat.VZ = -2;\nSat.DryMass = 400;\nSat.Attitude = Spinner;\nSat.AttitudeCoordinateSystem = EarthMJ2000Eq;\nSat.AttitudeRateDisplayStateType = AngularVelocity;\nSat.AngularVelocityX = 0;\nSat.AngularVelocityY = 0;\nSat.AngularVelocityZ = 0;\nSat.AttitudeDisplayStateType = DirectionCosineMatrix;\nSat.DCM11 = 0;\nSat.DCM12 = 1;\nSat.DCM13 = 0;\nSat.DCM21 = -1;\nSat.DCM22 = 0;\nSat.DCM23 = 0;\nSat.DCM31 = 0;\nSat.DCM32 = 0;\nSat.DCM33 = 1;\nCreate CoordinateSystem Geometry;\nGeometry.Origin = Anchor;\nGeometry.Axes = ObjectReferenced;\nGeometry.Primary = Anchor;\nGeometry.Secondary = Reference;\nGeometry.XAxis = R;\nGeometry.ZAxis = N;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "NamedObject_Cartesian",
+      "frame_key": "NamedObject",
+      "frame": "Geometry",
+      "axis": "ObjectReferenced",
+      "origin_class": "Spacecraft",
+      "setup": "% Preserve thruster frame creation \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nCreate CoordinateSystem ProbeEq;\nProbeEq.Origin = Probe;\nProbeEq.Axes = MJ2000Eq;\nCreate Spacecraft Anchor Reference Sat;\nAnchor.CoordinateSystem = EarthMJ2000Eq;\nAnchor.DateFormat = A1ModJulian;\nAnchor.Epoch = '21545';\nAnchor.DisplayStateType = Cartesian;\nAnchor.X = 1000;\nAnchor.Y = 2000;\nAnchor.Z = -500;\nAnchor.VX = 1;\nAnchor.VY = -0.29999999999999999;\nAnchor.VZ = 0.20000000000000001;\nReference.CoordinateSystem = EarthMJ2000Eq;\nReference.DateFormat = A1ModJulian;\nReference.Epoch = '21545';\nReference.DisplayStateType = Cartesian;\nReference.X = 8000;\nReference.Y = 800;\nReference.Z = 400;\nReference.VX = 1.7;\nReference.VY = 6.5;\nReference.VZ = -1;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = -1200;\nSat.Z = 900;\nSat.VX = 1.5;\nSat.VY = 6.75;\nSat.VZ = -2;\nSat.DryMass = 400;\nSat.Attitude = Spinner;\nSat.AttitudeCoordinateSystem = EarthMJ2000Eq;\nSat.AttitudeRateDisplayStateType = AngularVelocity;\nSat.AngularVelocityX = 0;\nSat.AngularVelocityY = 0;\nSat.AngularVelocityZ = 0;\nSat.AttitudeDisplayStateType = DirectionCosineMatrix;\nSat.DCM11 = 0;\nSat.DCM12 = 1;\nSat.DCM13 = 0;\nSat.DCM21 = -1;\nSat.DCM22 = 0;\nSat.DCM23 = 0;\nSat.DCM31 = 0;\nSat.DCM32 = 0;\nSat.DCM33 = 1;\nCreate CoordinateSystem Geometry;\nGeometry.Origin = Anchor;\nGeometry.Axes = ObjectReferenced;\nGeometry.Primary = Anchor;\nGeometry.Secondary = Reference;\nGeometry.XAxis = R;\nGeometry.ZAxis = N;\n",
+      "representation": "Cartesian",
+      "names": [
+        "X",
+        "Y",
+        "Z",
+        "VX",
+        "VY",
+        "VZ"
+      ],
+      "units": [
+        "km",
+        "km",
+        "km",
+        "km/s",
+        "km/s",
+        "km/s"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "NamedObject_SphericalAZFPA",
+      "frame_key": "NamedObject",
+      "frame": "Geometry",
+      "axis": "ObjectReferenced",
+      "origin_class": "Spacecraft",
+      "setup": "% Preserve thruster frame creation \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nCreate CoordinateSystem ProbeEq;\nProbeEq.Origin = Probe;\nProbeEq.Axes = MJ2000Eq;\nCreate Spacecraft Anchor Reference Sat;\nAnchor.CoordinateSystem = EarthMJ2000Eq;\nAnchor.DateFormat = A1ModJulian;\nAnchor.Epoch = '21545';\nAnchor.DisplayStateType = Cartesian;\nAnchor.X = 1000;\nAnchor.Y = 2000;\nAnchor.Z = -500;\nAnchor.VX = 1;\nAnchor.VY = -0.29999999999999999;\nAnchor.VZ = 0.20000000000000001;\nReference.CoordinateSystem = EarthMJ2000Eq;\nReference.DateFormat = A1ModJulian;\nReference.Epoch = '21545';\nReference.DisplayStateType = Cartesian;\nReference.X = 8000;\nReference.Y = 800;\nReference.Z = 400;\nReference.VX = 1.7;\nReference.VY = 6.5;\nReference.VZ = -1;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = -1200;\nSat.Z = 900;\nSat.VX = 1.5;\nSat.VY = 6.75;\nSat.VZ = -2;\nSat.DryMass = 400;\nSat.Attitude = Spinner;\nSat.AttitudeCoordinateSystem = EarthMJ2000Eq;\nSat.AttitudeRateDisplayStateType = AngularVelocity;\nSat.AngularVelocityX = 0;\nSat.AngularVelocityY = 0;\nSat.AngularVelocityZ = 0;\nSat.AttitudeDisplayStateType = DirectionCosineMatrix;\nSat.DCM11 = 0;\nSat.DCM12 = 1;\nSat.DCM13 = 0;\nSat.DCM21 = -1;\nSat.DCM22 = 0;\nSat.DCM23 = 0;\nSat.DCM31 = 0;\nSat.DCM32 = 0;\nSat.DCM33 = 1;\nCreate CoordinateSystem Geometry;\nGeometry.Origin = Anchor;\nGeometry.Axes = ObjectReferenced;\nGeometry.Primary = Anchor;\nGeometry.Secondary = Reference;\nGeometry.XAxis = R;\nGeometry.ZAxis = N;\n",
+      "representation": "SphericalAZFPA",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "AZI",
+        "FPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            106.35381974316815,
+            89.33285614890613
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            336.3647700801278,
+            28.40507038095936
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            95.06149759790893,
+            102.41964880244888
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "key": "NamedObject_SphericalRADEC",
+      "frame_key": "NamedObject",
+      "frame": "Geometry",
+      "axis": "ObjectReferenced",
+      "origin_class": "Spacecraft",
+      "setup": "% Preserve thruster frame creation \u0394\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@CERES@'};\nCreate CoordinateSystem ProbeEq;\nProbeEq.Origin = Probe;\nProbeEq.Axes = MJ2000Eq;\nCreate Spacecraft Anchor Reference Sat;\nAnchor.CoordinateSystem = EarthMJ2000Eq;\nAnchor.DateFormat = A1ModJulian;\nAnchor.Epoch = '21545';\nAnchor.DisplayStateType = Cartesian;\nAnchor.X = 1000;\nAnchor.Y = 2000;\nAnchor.Z = -500;\nAnchor.VX = 1;\nAnchor.VY = -0.29999999999999999;\nAnchor.VZ = 0.20000000000000001;\nReference.CoordinateSystem = EarthMJ2000Eq;\nReference.DateFormat = A1ModJulian;\nReference.Epoch = '21545';\nReference.DisplayStateType = Cartesian;\nReference.X = 8000;\nReference.Y = 800;\nReference.Z = 400;\nReference.VX = 1.7;\nReference.VY = 6.5;\nReference.VZ = -1;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = -1200;\nSat.Z = 900;\nSat.VX = 1.5;\nSat.VY = 6.75;\nSat.VZ = -2;\nSat.DryMass = 400;\nSat.Attitude = Spinner;\nSat.AttitudeCoordinateSystem = EarthMJ2000Eq;\nSat.AttitudeRateDisplayStateType = AngularVelocity;\nSat.AngularVelocityX = 0;\nSat.AngularVelocityY = 0;\nSat.AngularVelocityZ = 0;\nSat.AttitudeDisplayStateType = DirectionCosineMatrix;\nSat.DCM11 = 0;\nSat.DCM12 = 1;\nSat.DCM13 = 0;\nSat.DCM21 = -1;\nSat.DCM22 = 0;\nSat.DCM23 = 0;\nSat.DCM31 = 0;\nSat.DCM32 = 0;\nSat.DCM33 = 1;\nCreate CoordinateSystem Geometry;\nGeometry.Origin = Anchor;\nGeometry.Axes = ObjectReferenced;\nGeometry.Primary = Anchor;\nGeometry.Secondary = Reference;\nGeometry.XAxis = R;\nGeometry.ZAxis = N;\n",
+      "representation": "SphericalRADEC",
+      "names": [
+        "RMagnitude",
+        "RA",
+        "DEC",
+        "VMagnitude",
+        "RAV",
+        "DECV"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/s",
+        "deg",
+        "deg"
+      ],
+      "samples": [
+        {
+          "epoch": 21545,
+          "values": [
+            7158.9105316381765,
+            350.2724214485984,
+            7.222189677057378,
+            7.198090024443984,
+            77.47119229084849,
+            -16.132016362082368
+          ],
+          "cartesian": [
+            7000,
+            -1200,
+            900,
+            1.5,
+            6.75,
+            -2
+          ]
+        },
+        {
+          "epoch": 25300.25,
+          "values": [
+            6909.41386804988,
+            139.86451443776053,
+            -15.100571470911284,
+            6.523994175349944,
+            128.6598082540901,
+            11.046197414538403
+          ],
+          "cartesian": [
+            -5100,
+            4300,
+            -1800,
+            -4,
+            5,
+            1.25
+          ]
+        },
+        {
+          "epoch": 30000.75,
+          "values": [
+            7406.753674856482,
+            241.58733855692742,
+            20.550387413153526,
+            6.4031242374328485,
+            341.565051177078,
+            -8.984876931685683
+          ],
+          "cartesian": [
+            -3300,
+            -6100,
+            2600,
+            6,
+            -2,
+            -1
+          ]
+        }
+      ]
+    }
+  ]
+}

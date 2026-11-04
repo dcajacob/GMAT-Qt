@@ -110,6 +110,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Units of the selected objective expression or parameter. GMAT does not assign a new unit to a user-defined objective.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -159,6 +163,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Optimizer object name; no physical units.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>

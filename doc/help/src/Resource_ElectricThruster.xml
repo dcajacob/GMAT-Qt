@@ -345,7 +345,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless duty fraction (0 to 1)</para>
                   </listitem>
                 </varlistentry>
 
@@ -401,7 +401,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>Decimal Percent</para>
+                    <para>Dimensionless efficiency fraction; 0.7 represents 70 percent</para>
                   </listitem>
                 </varlistentry>
 
@@ -735,8 +735,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See <xref linkend="ElectricThruster_Models"
-                    xrefstyle="select:title"/></para>
+                    <para>mg/s (ThrustMassPolynomial; input power in kW)</para>
                   </listitem>
                 </varlistentry>
 
@@ -790,8 +789,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See <xref linkend="ElectricThruster_Models"
-                    xrefstyle="select:title"/></para>
+                    <para>mg/(s kW) (ThrustMassPolynomial; input power in kW)</para>
                   </listitem>
                 </varlistentry>
 
@@ -845,8 +843,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See <xref linkend="ElectricThruster_Models"
-                    xrefstyle="select:title"/></para>
+                    <para>mg/(s kW<superscript>2</superscript>) (ThrustMassPolynomial; input power in kW)</para>
                   </listitem>
                 </varlistentry>
 
@@ -900,8 +897,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See <xref linkend="ElectricThruster_Models"
-                    xrefstyle="select:title"/></para>
+                    <para>mg/(s kW<superscript>3</superscript>) (ThrustMassPolynomial; input power in kW)</para>
                   </listitem>
                 </varlistentry>
 
@@ -955,8 +951,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See <xref linkend="ElectricThruster_Models"
-                    xrefstyle="select:title"/></para>
+                    <para>mg/(s kW<superscript>4</superscript>) (ThrustMassPolynomial; input power in kW)</para>
                   </listitem>
                 </varlistentry>
 
@@ -1131,7 +1126,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless relative mixture weights</para>
                   </listitem>
                 </varlistentry>
 
@@ -1318,8 +1313,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See <xref linkend="ElectricThruster_Models"
-                    xrefstyle="select:title"/></para>
+                    <para>mN (ThrustMassPolynomial; input power in kW)</para>
                   </listitem>
                 </varlistentry>
 
@@ -1373,8 +1367,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See <xref linkend="ElectricThruster_Models"
-                    xrefstyle="select:title"/></para>
+                    <para>mN/kW (ThrustMassPolynomial; input power in kW)</para>
                   </listitem>
                 </varlistentry>
 
@@ -1428,8 +1421,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See <xref linkend="ElectricThruster_Models"
-                    xrefstyle="select:title"/></para>
+                    <para>mN/kW<superscript>2</superscript> (ThrustMassPolynomial; input power in kW)</para>
                   </listitem>
                 </varlistentry>
 
@@ -1483,8 +1475,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See <xref linkend="ElectricThruster_Models"
-                    xrefstyle="select:title"/></para>
+                    <para>mN/kW<superscript>3</superscript> (ThrustMassPolynomial; input power in kW)</para>
                   </listitem>
                 </varlistentry>
 
@@ -1538,8 +1529,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See <xref linkend="ElectricThruster_Models"
-                    xrefstyle="select:title"/></para>
+                    <para>mN/kW<superscript>4</superscript> (ThrustMassPolynomial; input power in kW)</para>
                   </listitem>
                 </varlistentry>
 
@@ -1596,7 +1586,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -1653,7 +1643,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -1708,7 +1698,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -1825,7 +1815,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless multiplicative factor</para>
                   </listitem>
                 </varlistentry>
 

@@ -560,10 +560,15 @@ bool RunSimulator::Execute()
             GetTypeName().c_str());
    #endif
 
-   // Reset the command if called after it has completed execution
-   // todo: Debug this piece; reentrance in a For loop doesn't work yet
-//   if (commandComplete)
-//      TakeAction("Reset");
+   // A containing loop can invoke this command again after FINISHED. Rebuild
+   // the command-local simulator and propagators before resetting its state;
+   // resetting only the state machine retains stale measurement adapters.
+   if (commandComplete)
+   {
+      if (!Initialize())
+         throw CommandException("Cannot reinitialize RunSimulator on reentry.");
+      TakeAction("Reset");
+   }
 
 
    // Here we should check to see if the command is currently propagating and

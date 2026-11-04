@@ -33,6 +33,9 @@
 //
 
 #include "MatWriter.hpp"
+#ifdef GMAT_MATLAB_QT_ENGINE
+#include "MatlabLibraryExecutor.hpp"
+#endif
 #include "RealMatData.hpp"
 #include "StringMatData.hpp"
 
@@ -183,6 +186,9 @@ bool MatWriter::Initialize(const std::string &fname,  const std::string &mytype)
 //------------------------------------------------------------------------------
 bool MatWriter::OpenFile()
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return OpenFile();});
+#endif
     // check mat_file_rev
    if ( (format != "w4") && (format != "w6") &&
         (format != "w7") && (format != "w7.3") &&
@@ -222,6 +228,9 @@ bool MatWriter::OpenFile()
 //------------------------------------------------------------------------------
 bool MatWriter::WriteData(const std::string &obj_name)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return WriteData(obj_name);});
+#endif
    if (mat_struct == NULL)
       throw UtilityException("Cannot write MATLAB data: MAT Structure array "
               "not created");
@@ -247,6 +256,9 @@ bool MatWriter::WriteData(const std::string &obj_name)
 //------------------------------------------------------------------------------
 bool MatWriter::CloseFile()
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return CloseFile();});
+#endif
    // close file
    if (pmat)
    {
@@ -288,6 +300,9 @@ bool MatWriter::DescribeData(const StringArray &variableList, UnsignedInt size)
 //------------------------------------------------------------------------------
 void MatWriter::SetMxArray(const StringArray &variable_list, mwSize size)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{SetMxArray(variable_list,size);});
+#endif
    // get number of fields
    int number_of_fields = variable_list.size();
 
@@ -314,6 +329,9 @@ void MatWriter::SetMxArray(const StringArray &variable_list, mwSize size)
  */
  //------------------------------------------------------------------------------
 void MatWriter::UnsetMxArray() {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{UnsetMxArray();});
+#endif
    if (mat_struct) {
       mxDestroyArray(mat_struct);
       mat_struct = NULL;

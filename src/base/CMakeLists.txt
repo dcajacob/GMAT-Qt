@@ -445,6 +445,7 @@ SET(BASE_SRCS
     plugin/DynamicLibrary.cpp
     plugin/GmatEventHandler.cpp
     plugin/GuiInterface.cpp
+    propagator/AcceptedStepHistory.cpp
     propagator/AdamsBashforthMoulton.cpp
     propagator/DormandElMikkawyPrince68.cpp
     propagator/Integrator.cpp

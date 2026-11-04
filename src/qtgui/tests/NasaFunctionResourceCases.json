@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "scope": "Current selected numeric-property resource types for function-local creation,whole-object outputs,caller shadow/local isolation and repeat Unicode reload;not universal all-resource coverage.",
+  "cases": [
+    {
+      "key": "ChemicalTank",
+      "type": "ChemicalTank",
+      "category": "Hardware",
+      "field": "FuelMass",
+      "kind": "real",
+      "first": "12.25",
+      "second": "24.5",
+      "requirement": "FRAC-6.1.2",
+      "legacy_groups": [
+        "Spacecraft Tank Panel"
+      ],
+      "clone_allowed": true
+    },
+    {
+      "key": "ChemicalThruster",
+      "type": "ChemicalThruster",
+      "category": "Hardware",
+      "field": "DutyCycle",
+      "kind": "real",
+      "first": "0.5",
+      "second": "0.75",
+      "requirement": "FRAC-6.1.3",
+      "legacy_groups": [
+        "Spacecraft Actuators"
+      ],
+      "clone_allowed": true
+    },
+    {
+      "key": "Transmitter",
+      "type": "Transmitter",
+      "category": "Hardware",
+      "field": "Frequency",
+      "kind": "real",
+      "first": "2200",
+      "second": "2300",
+      "requirement": "FRAC-6.1.4",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "Transponder",
+      "type": "Transponder",
+      "category": "Hardware",
+      "field": "HardwareDelay",
+      "kind": "real",
+      "first": "0.1",
+      "second": "0.2",
+      "requirement": "FRAC-6.1.5",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "GroundStation",
+      "type": "GroundStation",
+      "category": "Ground Stations",
+      "field": "MinimumElevationAngle",
+      "kind": "real",
+      "first": "5",
+      "second": "10",
+      "requirement": "FRAC-6.1.8",
+      "legacy_groups": [
+        "Ground Station"
+      ],
+      "clone_allowed": true
+    },
+    {
+      "key": "ImpulsiveBurn",
+      "type": "ImpulsiveBurn",
+      "category": "Burns",
+      "field": "Element1",
+      "kind": "real",
+      "first": "0.1",
+      "second": "0.2",
+      "requirement": "FRAC-6.1.10",
+      "legacy_groups": [
+        "ImpulsiveBurn"
+      ],
+      "clone_allowed": true
+    },
+    {
+      "key": "DifferentialCorrector",
+      "type": "DifferentialCorrector",
+      "category": "Solvers",
+      "field": "MaximumIterations",
+      "kind": "integer",
+      "first": "15",
+      "second": "30",
+      "requirement": "FRAC-6.1.18",
+      "legacy_groups": [
+        "Differential Corrector"
+      ],
+      "clone_allowed": true
+    },
+    {
+      "key": "BatchEstimator",
+      "type": "BatchEstimator",
+      "category": "Solvers",
+      "field": "MaximumIterations",
+      "kind": "integer",
+      "first": "7",
+      "second": "8",
+      "requirement": "FRAC-6.1.21",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "ExtendedKalmanFilter",
+      "type": "ExtendedKalmanFilter",
+      "category": "Solvers",
+      "field": "ScaledResidualThreshold",
+      "kind": "real",
+      "first": "4",
+      "second": "5",
+      "requirement": "FRAC-6.1.22",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "Simulator",
+      "type": "Simulator",
+      "category": "Solvers",
+      "field": "MeasurementTimeStep",
+      "kind": "real",
+      "first": "30",
+      "second": "90",
+      "requirement": "FRAC-6.1.23",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "Yukon",
+      "type": "Yukon",
+      "category": "Solvers",
+      "field": "MaximumIterations",
+      "kind": "integer",
+      "first": "15",
+      "second": "30",
+      "requirement": "",
+      "legacy_groups": [],
+      "clone_allowed": true
+    }
+  ]
+}

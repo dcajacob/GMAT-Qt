@@ -22,7 +22,15 @@ if(NOT Matlab_FOUND)
   RETURN()
 endif()
 
-if(UNIX AND (NOT wxWidgets_FOUND))
+# The Unix wx client sources provide the legacy MATLAB-to-wx-GMAT IPC path.
+# GMAT-to-MATLAB Engine calls do not depend on them. Build that Engine path
+# for the Linux Qt application without adding the legacy wx application client.
+SET(MATLAB_USE_WX_IPC ${UNIX})
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GMAT_INCLUDE_QT_GUI)
+  SET(MATLAB_USE_WX_IPC FALSE)
+endif()
+
+if(MATLAB_USE_WX_IPC AND (NOT wxWidgets_FOUND))
   MESSAGE(WARNING "Skipping MatlabInterface: wxWidgets missing")
   RETURN()
 endif()
@@ -32,7 +40,7 @@ SET(TargetName MatlabInterface)
 # ====================================================================
 # list of directories containing source/header files
 SET(PLUGIN_DIRS command factory function include interface matwriter plugin subscriber)
-if(UNIX)
+if(MATLAB_USE_WX_IPC)
   SET(PLUGIN_DIRS ${PLUGIN_DIRS} "../matlab/gmat_mex/src")
 endif()
 
@@ -54,12 +62,16 @@ SET(PLUGIN_SRCS
     matwriter/RealMatData.cpp
     matwriter/StringMatData.cpp
     )
-if(UNIX)
+if(MATLAB_USE_WX_IPC)
   SET(PLUGIN_SRCS
     ${PLUGIN_SRCS}
     ../matlab/gmat_mex/src/MatlabClient.cpp
     ../matlab/gmat_mex/src/MatlabConnection.cpp
     )
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GMAT_INCLUDE_QT_GUI)
+  LIST(APPEND PLUGIN_SRCS interface/MatlabLibraryExecutor.cpp)
 endif()
 
 # ====================================================================
@@ -68,6 +80,11 @@ _SETUPPLUGIN(${TargetName} "${PLUGIN_DIRS}" "${PLUGIN_SRCS}" plugins)
 
 # Rename DLL export preproccessor definition
 SET_TARGET_PROPERTIES(${TargetName} PROPERTIES DEFINE_SYMBOL "MATLAB_EXPORTS")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GMAT_INCLUDE_QT_GUI)
+  FIND_PACKAGE(Threads REQUIRED)
+  TARGET_COMPILE_DEFINITIONS(${TargetName} PRIVATE GMAT_MATLAB_QT_ENGINE)
+  TARGET_LINK_LIBRARIES(${TargetName} PRIVATE Threads::Threads)
+endif()
 
 # Enforce the available Matlab architecture on macOS
 SET_TARGET_PROPERTIES(${TargetName} PROPERTIES OSX_ARCHITECTURES "${Matlab_OSX_ARCHITECTURE}")
@@ -75,7 +92,7 @@ SET_TARGET_PROPERTIES(${TargetName} PROPERTIES OSX_ARCHITECTURES "${Matlab_OSX_A
 # ====================================================================
 # Includes
 TARGET_INCLUDE_DIRECTORIES(${TargetName} PRIVATE ${Matlab_INCLUDE_DIRS})
-if(UNIX)
+if(MATLAB_USE_WX_IPC)
   TARGET_INCLUDE_DIRECTORIES(${TargetName} PRIVATE
     "${PROJECT_SOURCE_DIR}/src/gui/include"
     "${PROJECT_SOURCE_DIR}/src/gui/app"
@@ -85,8 +102,12 @@ endif()
 
 # ====================================================================
 # Additional link libraries
-TARGET_LINK_LIBRARIES(${TargetName} PUBLIC ${Matlab_LIBRARIES})
-if(UNIX)
+# This plugin uses the C Engine, Matrix and MAT-file APIs. Linking every
+# discovered MATLAB library also pulls in the unused C++ Engine/MEX runtimes
+# and their bundled Qt dependencies, which conflict with the host Qt build.
+TARGET_LINK_LIBRARIES(${TargetName} PRIVATE
+  ${Matlab_ENG_LIBRARY} ${Matlab_MX_LIBRARY} ${Matlab_MAT_LIBRARY})
+if(MATLAB_USE_WX_IPC)
   TARGET_LINK_LIBRARIES(${TargetName} PUBLIC ${wxWidgets_LIBRARIES})
 endif()
 

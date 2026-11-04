@@ -107,7 +107,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Local model-coordinate units, before ModelScale and rotation</para>
                   </listitem>
                 </varlistentry>
 
@@ -162,7 +162,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Local model-coordinate units, before ModelScale and rotation</para>
                   </listitem>
                 </varlistentry>
 
@@ -217,7 +217,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Local model-coordinate units, before ModelScale and rotation</para>
                   </listitem>
                 </varlistentry>
 
@@ -440,7 +440,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless model scale</para>
                   </listitem>
                 </varlistentry>
 

@@ -36,7 +36,73 @@
 #include "MatlabInterface.hpp"     // for Matlab Engine functions
 #include "InterfaceException.hpp"
 #include "MessageInterface.hpp"
+#include <algorithm>               // for formal output aliases
 #include <sstream>                 // for ostringstream
+#include <vector>
+#include <cmath>
+
+namespace
+{
+   template <typename Lookup>
+   std::string ResolveMatlabArrayElement(const std::string &expression,
+                                        const Lookup &lookup);
+
+   template <typename Lookup>
+   Real MatlabIndexValue(const std::string &expression, const Lookup &lookup)
+   {
+      Real value;
+      if (GmatStringUtil::ToReal(expression, value))
+         return value;
+
+      if (expression.find('(') != std::string::npos)
+      {
+         const std::string resolved = ResolveMatlabArrayElement(expression, lookup);
+         std::string name, rowText, columnText;
+         Integer row, column;
+         GmatStringUtil::GetArrayIndex(resolved, rowText, columnText, row, column, name);
+         Array *array = dynamic_cast<Array*>(lookup(name));
+         return array->GetRealParameter("SingleValue", row, column);
+      }
+
+      Parameter *parameter = dynamic_cast<Parameter*>(lookup(expression));
+      if (!parameter || parameter->GetReturnType() != Gmat::REAL_TYPE)
+         throw CommandException("MATLAB array element index must resolve to a real "
+                                "number or Parameter: " + expression);
+      return parameter->EvaluateReal();
+   }
+
+   Integer MatlabArrayIndex(Real value, Integer limit, const std::string &expression)
+   {
+      // Match native ArrayElementWrapper's integer, one-based index contract.
+      // Check the real value before converting it, including overflow cases.
+      if (!std::isfinite(value) || value < 1 || value > limit ||
+          std::floor(value) != value)
+         throw CommandException("MATLAB array element index must be an integer "
+            "within the configured array dimensions: " + expression);
+      return static_cast<Integer>(value);
+   }
+
+   template <typename Lookup>
+   std::string ResolveMatlabArrayElement(const std::string &expression,
+                                        const Lookup &lookup)
+   {
+      // IsParenPartOfArray deliberately recognizes only simple indices.
+      // GetArrayIndexVar also handles recursively indexed native Arrays.
+      if (expression.find('(') == std::string::npos)
+         return expression;
+
+      std::string name, rowText, columnText;
+      GmatStringUtil::GetArrayIndexVar(expression, rowText, columnText, name);
+      Array *array = dynamic_cast<Array*>(lookup(name));
+      if (!array)
+         throw CommandException("MATLAB array element does not reference an Array: " + expression);
+      const Integer row = MatlabArrayIndex(MatlabIndexValue(rowText, lookup),
+                                           array->GetRowCount(), expression);
+      const Integer column = MatlabArrayIndex(MatlabIndexValue(columnText, lookup),
+                                              array->GetColCount(), expression);
+      return name + "(" + std::to_string(row) + "," + std::to_string(column) + ")";
+   }
+}
 
 // If using MatlabInterface::EvalMatlabString() to send data to Matlab workspace
 //#define __USE_EVAL_STRING__
@@ -137,14 +203,16 @@ std::string CallMatlabFunction::FormEvalString()
       evalString = evalString + "[";
       //Parameter *param = (Parameter *)mOutputList[0];
       //evalString = evalString + param->GetName();
-      std::string outName = mOutputNames[0];
+      std::string outName = ResolveMatlabArrayElement(mOutputNames[0],
+         [this](const std::string &name) { return FindObject(name); });
       evalString = evalString + outName;
       //for (unsigned int i=1; i<mOutputList.size(); i++)
       for (unsigned int i=1; i<mOutputNames.size(); i++)
       {
          //param = (Parameter *)mOutputList[i];
          //evalString = evalString + ", " + param->GetName();
-         outName = mOutputNames[i];
+         outName = ResolveMatlabArrayElement(mOutputNames[i],
+            [this](const std::string &name) { return FindObject(name); });
          evalString = evalString + ", " + outName;
       }
       
@@ -154,7 +222,8 @@ std::string CallMatlabFunction::FormEvalString()
    {
       //Parameter *param = (Parameter *)mOutputList[0];
       //evalString = "[" + evalString + param->GetName() + "]";
-      std::string outName = mOutputNames[0];
+      std::string outName = ResolveMatlabArrayElement(mOutputNames[0],
+         [this](const std::string &name) { return FindObject(name); });
       evalString = "[" + evalString + outName + "]";
       evalString = evalString + " = ";
    }
@@ -177,14 +246,16 @@ std::string CallMatlabFunction::FormEvalString()
    {
       //Parameter *param = (Parameter *)mInputList[0];
       //evalString = evalString + param->GetName();
-      std::string inName = mInputNames[0];
+      std::string inName = ResolveMatlabArrayElement(mInputNames[0],
+         [this](const std::string &name) { return FindObject(name); });
       evalString = evalString + inName;
       //for (unsigned int i=1; i<mInputList.size(); i++)
       for (unsigned int i=1; i<mInputNames.size(); i++)
       {
          //param = (Parameter *)mInputList[i];
          //evalString = evalString + ", " + param->GetName();
-         inName = mInputNames[i];
+         inName = ResolveMatlabArrayElement(mInputNames[i],
+            [this](const std::string &name) { return FindObject(name); });
          evalString = evalString + ", " + inName;
       }
    }
@@ -324,6 +395,25 @@ bool CallMatlabFunction::Initialize()
       {
          if ((mapObj = FindObject(*i))  == NULL)
             throw CommandException("CallMatlabFunction command cannot find Parameter " + (*i));
+
+         // A formal input used as an output has no static object during
+         // parsing. Validate its actual instance before accepting the alias.
+         if (currentFunction)
+         {
+            const StringArray formalInputs =
+               currentFunction->GetStringArrayParameter("Input");
+            if (std::find(formalInputs.begin(), formalInputs.end(), *i) !=
+                formalInputs.end())
+            {
+               Parameter *parameter = dynamic_cast<Parameter*>(mapObj);
+               if (!parameter || (mapObj->GetTypeName() != "Array" &&
+                   parameter->GetReturnType() != Gmat::REAL_TYPE &&
+                   parameter->GetReturnType() != Gmat::STRING_TYPE))
+                  throw CommandException("\"" + *i +
+                     "\" has unsupported MATLAB output type \"" +
+                     mapObj->GetTypeName() + "\"");
+            }
+         }
          
          #ifdef DEBUG_CALL_FUNCTION_INIT
          MessageInterface::ShowMessage("   Adding output parameter '%s'\n", i->c_str());
@@ -569,11 +659,13 @@ void CallMatlabFunction::SendInParam(Parameter *param, const std::string &inStr)
       #endif
       
       // If sending array element, use EvalString (GMT-3324 fix, LOJ:2013.01.04)
-      if (GmatStringUtil::IsParenPartOfArray(inStr))
+      if (inStr.find('(') != std::string::npos)
       {
          std::string name, rowStr, colStr;
          Integer row, col;
-         GmatStringUtil::GetArrayIndex(inStr, rowStr, colStr, row, col, name);
+         const std::string resolved = ResolveMatlabArrayElement(inStr,
+            [this](const std::string &name) { return FindObject(name); });
+         GmatStringUtil::GetArrayIndex(resolved, rowStr, colStr, row, col, name);
          
          #ifdef DEBUG_SEND_PARAM
          MessageInterface::ShowMessage
@@ -676,8 +768,12 @@ void CallMatlabFunction::SendInParam(Parameter *param, const std::string &inStr)
    else if (param->GetTypeName() == "String")
    {
       StringVar *stringVar = (StringVar *)param;
+      // MATLAB character literals encode each payload apostrophe as two.
+      // Preserve the GMAT value rather than interpreting its bytes as code.
+      const std::string value =
+         GmatStringUtil::Replace(stringVar->GetString(), "'", "''");
       std::string inParamString = paramName + " = '" +
-         stringVar->GetString() +"';";
+         value +"';";
       
       EvalMatlabString(inParamString);
    }
@@ -713,7 +809,8 @@ void CallMatlabFunction::SendInParam(Parameter *param, const std::string &inStr)
                paramAllowed = false;
             }
             else
-               inParamString = paramName + " = " + "'" + sval + "'";
+               inParamString = paramName + " = " + "'" +
+                  GmatStringUtil::Replace(sval, "'", "''") + "'";
          }
          else
          {
@@ -769,7 +866,8 @@ void CallMatlabFunction::GetOutParams()
       {
          Parameter *outParam = (Parameter *)mOutputList[i];
          std::string varName = outParam->GetName();
-         std::string outStr = mOutputNames[i];
+         std::string outStr = ResolveMatlabArrayElement(mOutputNames[i],
+            [this](const std::string &name) { return FindObject(name); });
          
          #ifdef DEBUG_GET_OUTPUT
          MessageInterface::ShowMessage
@@ -856,17 +954,20 @@ void CallMatlabFunction::GetOutParams()
             
             // Since MATLAB stores array in column major order, it needs to take transpose
             // before putting array to matrix.
-            Rmatrix colMajorMat(numCols, numRows);
-            for (int i = 0; i < numCols; i++)
-               for (int j = 0; j < numRows; j++)
-                  colMajorMat(i,j) = outArray[i*numRows+j];
+            // An element output can create a smaller MATLAB matrix than the
+            // configured destination. Its returned dimensions determine the
+            // column-major stride; the destination dimensions do not.
+            Rmatrix colMajorMat(numColsReceived, numRowsReceived);
+            for (int i = 0; i < numColsReceived; i++)
+               for (int j = 0; j < numRowsReceived; j++)
+                  colMajorMat(i,j) = outArray[i*numRowsReceived+j];
             
             #ifdef DEBUG_SHOW_ARRAY
             MessageInterface::ShowMessage("colMajorMat=\n%s\n", colMajorMat.ToString(16).c_str());
             #endif
             
             // Create row major matrix
-            Rmatrix rowMajorMat(numRows, numCols);
+            Rmatrix rowMajorMat(numRowsReceived, numColsReceived);
             rowMajorMat = colMajorMat.Transpose();
             
             #ifdef DEBUG_SHOW_ARRAY
@@ -885,10 +986,17 @@ void CallMatlabFunction::GetOutParams()
                   ("'%s' is an array element, rows=%d, cols=%d\n", outStr.c_str(), row, col);
                #endif
                
-               if (row == -1 || col == -1)
+               if (row < 0 || col < 0)
                {
                   std::string errMsg =
                      "Output array element index is invalid, it must be greater than 0 in " + outStr;
+                  HandleError(&outArray, errMsg, numRows, numCols, numRowsReceived, numColsReceived);
+               }
+               else if (row >= numRows || col >= numCols ||
+                        row >= numRowsReceived || col >= numColsReceived)
+               {
+                  std::string errMsg =
+                     "Output array element index is outside the configured or returned array dimensions in " + outStr;
                   HandleError(&outArray, errMsg, numRows, numCols, numRowsReceived, numColsReceived);
                }
                else
@@ -999,6 +1107,31 @@ void CallMatlabFunction::GetOutParams()
             //----------------------------------------------
             #endif
             //----------------------------------------------
+         }
+         else if (outParam->IsOfType(Gmat::PARAMETER) &&
+                  outParam->IsSettable() &&
+                  outParam->GetReturnType() == Gmat::RVECTOR_TYPE)
+         {
+            const Integer size = outParam->EvaluateRvector().GetSize();
+            if (size <= 0)
+               throw CommandException("CallMatlabFunction output vector has no configured size: " + varName);
+
+            // A qualified Parameter is a MATLAB structure field, which
+            // engGetVariable cannot read directly. The previous text-output
+            // path also evaluated this field into the MATLAB ans variable.
+            EvalMatlabString("ans = " + varName + ";");
+            std::vector<double> values(size);
+            Integer rows = 0, columns = 0;
+            const Integer received = matlabIf->GetRealArray(
+               "ans", size, values.data(), rows, columns);
+            if (received != size || (rows != 1 && columns != 1))
+               throw CommandException("CallMatlabFunction cannot assign result to \"" +
+                  varName + "\": type or dimension mismatch");
+
+            Rvector result(size);
+            for (Integer j = 0; j < size; ++j)
+               result[j] = values[j];
+            outParam->SetRvector(result);
          }
          else // Other Parameters or whole object
          {

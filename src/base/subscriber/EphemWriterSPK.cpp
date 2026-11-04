@@ -158,6 +158,8 @@ EphemWriterSPK& EphemWriterSPK::operator=(const EphemWriterSPK& ef)
    spkWriter            = NULL;
    spkWriteFailed       = ef.spkWriteFailed;
    numSPKSegmentsWritten = ef.numSPKSegmentsWritten;
+   publishedEpochValid = false;
+   if (a1MjdArray.empty()) { preciseEpochArray.clear(); preciseEpochFlags.clear(); }
    
    return *this;
 }
@@ -233,6 +235,12 @@ void EphemWriterSPK::Copy(const EphemerisWriter* orig)
 //------------------------------------------------------------------------------
 // void BufferOrbitData(Real epochInDays, const Real state[6], const Real cov[21], const Real quat[4], const Real accel[3])
 //------------------------------------------------------------------------------
+void EphemWriterSPK::SetPublishedEpoch(const GmatTime *epoch)
+{
+   publishedEpochValid = epoch != NULL;
+   if (epoch) publishedEpoch = *epoch;
+}
+
 void EphemWriterSPK::BufferOrbitData(Real epochInDays, const Real state[6], const Real cov[21],
                                      const Real quat[4], const Real accel[3])
 {
@@ -243,12 +251,24 @@ void EphemWriterSPK::BufferOrbitData(Real epochInDays, const Real state[6], cons
    DebugWriteTime("   epochInDays = ", epochInDays, true, 2);
    #endif
    
+   // Base reset paths can clear the ordinary buffer between publications.
+   if (a1MjdArray.empty())
+   {
+      preciseEpochArray.clear();
+      preciseEpochFlags.clear();
+   }
+   if (preciseEpochArray.size() != a1MjdArray.size() ||
+       preciseEpochFlags.size() != a1MjdArray.size())
+      throw SubscriberException("SPK precise epoch buffer is not aligned with its states.");
+
    // if buffer is full, dump the data
    if (a1MjdArray.size() >= maxSegmentSize)
    {
       // Save last data to become first data of next segment
       A1Mjd *a1mjd  = new A1Mjd(*a1MjdArray.back());
       Rvector6 *rv6 = new Rvector6(*stateArray.back());
+      const GmatTime preciseLast = preciseEpochArray.back();
+      const bool preciseLastValid = preciseEpochFlags.back();
       
       // Write a segment and delete data array pointers
       WriteSpkOrbitDataSegment();
@@ -256,6 +276,8 @@ void EphemWriterSPK::BufferOrbitData(Real epochInDays, const Real state[6], cons
       // Add saved data to arrays
       a1MjdArray.push_back(a1mjd);
       stateArray.push_back(rv6);
+      preciseEpochArray.push_back(preciseLast);
+      preciseEpochFlags.push_back(preciseLastValid);
    }
    
    // Add new data point
@@ -263,6 +285,9 @@ void EphemWriterSPK::BufferOrbitData(Real epochInDays, const Real state[6], cons
    Rvector6 *rv6 = new Rvector6(state);
    a1MjdArray.push_back(a1mjd);
    stateArray.push_back(rv6);
+   const bool precise = publishedEpochValid && publishedEpoch.GetMjd() == epochInDays;
+   preciseEpochArray.push_back(precise ? publishedEpoch : GmatTime(epochInDays));
+   preciseEpochFlags.push_back(precise);
    
    #ifdef DEBUG_EPHEMFILE_BUFFER
    MessageInterface::ShowMessage
@@ -887,14 +912,19 @@ void EphemWriterSPK::WriteSpkOrbitDataSegment()
       spkWriteFailed = false;
       try
       {
-         spkWriter->WriteSegment(*start, *end, stateArray, a1MjdArray);
+         spkWriter->WriteSegment(*start, *end, stateArray, a1MjdArray,
+                                 preciseEpochArray, preciseEpochFlags);
          ClearOrbitData();
+         preciseEpochArray.clear();
+         preciseEpochFlags.clear();
          numSPKSegmentsWritten++;
          insufficientDataPoints = false;
       }
       catch (BaseException &e)
       {
          ClearOrbitData();
+         preciseEpochArray.clear();
+         preciseEpochFlags.clear();
          spkWriteFailed = true;
          dstream.flush();
          dstream.close();
@@ -1038,6 +1068,8 @@ void EphemWriterSPK::FinalizeSpkFile(bool done, bool writeMetaData)
             // a new SPK file after this one
             A1Mjd *a1mjd  = new A1Mjd(*a1MjdArray.back());
             Rvector6 *rv6 = new Rvector6(*stateArray.back());
+            const GmatTime preciseLast = preciseEpochArray.back();
+            const bool preciseLastValid = preciseEpochFlags.back();
 
             // Write a segment and delete data array pointers
             WriteSpkOrbitDataSegment();
@@ -1047,6 +1079,8 @@ void EphemWriterSPK::FinalizeSpkFile(bool done, bool writeMetaData)
             {
                a1MjdArray.push_back(a1mjd);
                stateArray.push_back(rv6);
+               preciseEpochArray.push_back(preciseLast);
+               preciseEpochFlags.push_back(preciseLastValid);
             }
             insufficientDataPoints = false;
             #ifdef DEBUG_EPHEMFILE_SPICE
@@ -1079,6 +1113,8 @@ void EphemWriterSPK::FinalizeSpkFile(bool done, bool writeMetaData)
       e.GetMessageType();
 
       ClearOrbitData();
+      preciseEpochArray.clear();
+      preciseEpochFlags.clear();
       spkWriteFailed = true;
       #ifdef DEBUG_EPHEMFILE_SPICE
       MessageInterface::ShowMessage("spkWriter->FinalizeSpkFile() failed\n");

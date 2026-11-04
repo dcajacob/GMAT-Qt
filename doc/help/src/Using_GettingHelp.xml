@@ -13,6 +13,9 @@
   feature. But if you have further questions, or want to provide feedback,
   here are some additional resources:</para>
 
+  <para>From the Help menu, choose Report An Issue to open the project tracker,
+  or Provide Feedback to compose an email to the official contact.</para>
+
   <itemizedlist>
     <listitem>
       <para>Wiki:
@@ -21,7 +24,12 @@
 
     <listitem>
       <para>Downloads and source code:
-      <uri>http://sourceforge.net/projects/gmat</uri></para>
+      <uri>https://sourceforge.net/projects/gmat/</uri></para>
+    </listitem>
+
+    <listitem>
+      <para>Community forum:
+      <uri>https://github.com/nasa/GMAT/discussions</uri></para>
     </listitem>
 
     <listitem>

@@ -770,7 +770,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Integer count or order (samples, segments, iterations or polynomial degree as described)</para>
                   </listitem>
                 </varlistentry>
 
@@ -1304,7 +1304,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>Unit</para>
+                    <para>Boolean switch; no physical quantity</para>
                   </listitem>
                 </varlistentry>
 

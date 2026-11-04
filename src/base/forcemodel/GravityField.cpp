@@ -66,6 +66,8 @@
 // **************************************************************************
 
 #include "GravityField.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "ODEModelException.hpp"
 #include "CelestialBody.hpp"
 #include "RealUtilities.hpp"
@@ -767,9 +769,6 @@ bool GravityField::GetDerivatives(Real * state, Real dt, Integer dvorder,
 //------------------------------------------------------------------------------
 Rvector6 GravityField::GetDerivativesForSpacecraft(Spacecraft *sc)
 {
-   Rvector6 dv;
-   Real satState[6];
-
    Real theEpoch = sc->GetEpoch();
    GmatTime theEpochGT = sc->GetEpochGT();
    Real *j2kState = sc->GetState().GetState();
@@ -777,13 +776,70 @@ Rvector6 GravityField::GetDerivativesForSpacecraft(Spacecraft *sc)
    epoch = theEpoch;
    epochGT = theEpochGT;
 
+   const Rvector6 dv = EvaluateCartesianAcceleration(j2kState, false);
+   epoch = theEpoch;
+   epochGT = theEpochGT;
+   return dv;
+}
+
+Rvector6 GravityField::GetDerivativesAtState(const Rvector6 &cartesian,
+      const GmatTime &atEpoch)
+{
+   // Calculate uses epoch + elapsedTime. An absolute sample must not inherit
+   // the later propagator's elapsed clock. Restore every clock input even if
+   // a frame, ephemeris, or gravity provider throws.
+   struct ClockGuard
+   {
+      Real &epoch, &elapsed;
+      GmatTime &preciseEpoch;
+      A1Mjd &tideEpoch;
+      GmatTime &preciseTideEpoch;
+      bool &precision;
+      const Real savedEpoch, savedElapsed;
+      const GmatTime savedPreciseEpoch;
+      const A1Mjd savedTideEpoch;
+      const GmatTime savedPreciseTideEpoch;
+      const bool savedPrecision;
+      ClockGuard(Real &e, GmatTime &gt, Real &t, bool &p,
+                 A1Mjd &bodyEpoch, GmatTime &bodyEpochGT) :
+         epoch(e), elapsed(t), preciseEpoch(gt), tideEpoch(bodyEpoch),
+         preciseTideEpoch(bodyEpochGT), precision(p), savedEpoch(e),
+         savedElapsed(t), savedPreciseEpoch(gt), savedTideEpoch(bodyEpoch),
+         savedPreciseTideEpoch(bodyEpochGT), savedPrecision(p) {}
+      ~ClockGuard()
+      {
+         epoch = savedEpoch;
+         preciseEpoch = savedPreciseEpoch;
+         tideEpoch = savedTideEpoch;
+         preciseTideEpoch = savedPreciseTideEpoch;
+         elapsed = savedElapsed;
+         precision = savedPrecision;
+      }
+   } guard(epoch, epochGT, elapsedTime, hasPrecisionTime, now, nowGT);
+   epoch = atEpoch.GetMjd();
+   epochGT = atEpoch;
+   // GetTideData reads these cached epochs rather than Calculate's local ones.
+   now = atEpoch.GetMjd();
+   nowGT = atEpoch;
+   elapsedTime = 0.0;
+   hasPrecisionTime = true;
+   return EvaluateCartesianAcceleration(cartesian.GetDataVector(), true);
+}
+
+Rvector6 GravityField::EvaluateCartesianAcceleration(const Real *j2kState,
+      bool sampledEpoch)
+{
+   Rvector6 dv;
+   Real satState[6];
+
    Rmatrix33 gradnew (0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0);
 
    for (Integer i = 0; i < 6; ++i)
       satState[i] = j2kState[i];
 
    // Make sure to use the state relative to the force model origin
-   Rvector6 ostate = forceOrigin->GetMJ2000State(theEpoch);
+   Rvector6 ostate = sampledEpoch ? forceOrigin->GetMJ2000State(epochGT) :
+                                   forceOrigin->GetMJ2000State(epoch);
 
    satState[0] -= ostate[0];
    satState[1] -= ostate[1];
@@ -831,9 +887,6 @@ Rvector6 GravityField::GetDerivativesForSpacecraft(Spacecraft *sc)
          MessageInterface::ShowMessage("GravityField Accel: [%le %le %le]\n", dv[3],
                dv[4], dv[5]);
    #endif
-
-   epoch = theEpoch;
-   epochGT = theEpochGT;
 
    return dv;
 }
@@ -960,11 +1013,11 @@ bool GravityField::IsParameterReadOnly(const Integer id) const
    if (id == TIDE_FILENAME)
       return false;
 
-   if ((id == TIDE_MODEL) && (bodyName == GmatSolarSystemDefaults::EARTH_NAME)) return false;
-   if ((id == TIDE_MODEL) && (bodyName == GmatSolarSystemDefaults::MOON_NAME)) return false;
-   if ((id == TIDE_MODEL) && (bodyName == GmatSolarSystemDefaults::MERCURY_NAME)) return false;
-   if ((id == TIDE_MODEL) && (bodyName == GmatSolarSystemDefaults::VENUS_NAME)) return false;
-   if ((id == TIDE_MODEL) && (bodyName == GmatSolarSystemDefaults::MARS_NAME)) return false;
+   // The supported choices depend on the loaded gravity/tide data, rather
+   // than a fixed list of body names. SetStringParameter checks HaveTideModel
+   // (including the Earth-only pole-tide rule) for every body. In particular,
+   // custom bodies must be able to retain None or select supplied solid tides.
+   if (id == TIDE_MODEL) return false;
 
    return true;
 }
@@ -1853,4 +1906,16 @@ Rvector3 GravityField::GetTorquesForSpacecraft(Spacecraft *sc)
    #endif
 
    return gravityTorque;
+}
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void GravityField::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const GravityField*>(original);
+   if (!source || typeid(*source) != typeid(GravityField) ||
+       typeid(*this) != typeid(GravityField))
+      throw GmatBaseException("Cannot copy incompatible object into GravityField");
+   if (source == this)
+      return;
+   operator=(*source);
 }

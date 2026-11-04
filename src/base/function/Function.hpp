@@ -70,6 +70,7 @@ public:
    virtual void         Finalize(bool cleanUp = false);
    
    virtual void         SetSolarSystem(SolarSystem *ss);
+   const SolarSystem*   GetSolarSystem() const;
    virtual void         SetInternalCoordSystem(CoordinateSystem *cs);
    virtual void         SetTransientForces(std::vector<PhysicalModel*> *tf);
    

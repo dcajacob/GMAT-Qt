@@ -1,3 +1,4 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "ResourceDraft.hpp"
 #include "ResourcePreview.hpp"
@@ -38,7 +39,7 @@ int main(int argc,char **argv)
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv);
    app.setOrganizationName("GMATTests"); app.setApplicationName("CustomFovPaths");
    try {
-      require(argc==2 && QGuiApplication::platformName()=="offscreen","FOV paths requires an offscreen startup");
+      require(argc==2 && acceptanceWidgetPlatform(),"FOV paths requires an offscreen startup");
       TestSettings settings; QTemporaryDir masks,documents;
       require(masks.isValid() && documents.isValid(),"Temporary FOV paths unavailable");
       const auto startup=QFileInfo(QString::fromLocal8Bit(argv[1])).absoluteFilePath(); QDir::setCurrent(QFileInfo(startup).absolutePath());

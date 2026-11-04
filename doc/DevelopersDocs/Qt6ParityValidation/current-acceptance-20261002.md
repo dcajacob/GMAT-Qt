@@ -1,5 +1,32 @@
 # Current Linux Qt acceptance reconciliation — 2026-10-02
 
+## Windows native rendering and regression integration — 2026-10-25
+
+[Windows native validation](windows-native-20261025.md) records working software
+OpenGL 3D orbit/camera/animation in the dedicated VM, final Windows 9/9 and Linux
+12/12 affected tests, and native Windows three-cycle lifecycle/normal exit.
+Seven portability fixes and focused Unicode report, tolerance trivia and plugin
+teardown repairs are integrated locally with unrelated work preserved. Source
+hashes, exact binaries, earlier failures, commands and cleanup receipts are linked.
+This does not qualify hardware GPU drivers or the physical Intel/Wayland lifecycle;
+the full platform matrices and distribution work remain open.
+
+## Window lifecycle — 2026-10-15
+
+[Focused lifecycle validation](window-lifecycle-20261015.md) adds current-binary
+actual-input device-free software Wayland viewer close/Return reopen, distinct
+border-drag resize and compositor-observed minimize/restore. The strengthened
+window regression passes three private Xvfb cycles and normal last-window close
+in22.676s. An explicit normal-exit helper action repairs expected-exit
+misclassification, with six passing contract checks and one actual private
+application/compositor/PipeWire0/0/0, sandbox0 close session. The first private
+teardown compositor-11 is retained without attribution. GmatQt remains unchanged
+at6,750,008bytes/SHAe78e6ad9…; base/util/startup are unchanged. **All four
+physical Intel/Wayland lifecycle operations remain unqualified.** The linked
+record gives the exact interruptible native-session procedure and needed user
+participation; no active-desktop input, host compositor restart or security change
+was performed. No completed audit/tutorial/matrix was repeated.
+
 ## Playback layout — 2026-10-05
 
 [Compact playback controls](playback-layout-20261005.md) group transport, mode, speed arrows/multiplier

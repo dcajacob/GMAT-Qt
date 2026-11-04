@@ -144,6 +144,12 @@ protected:
    /// Flag used to indicate propagation to estimation epoch is executing
    bool                    advanceToEstimationEpoch;
 
+   /// Output-only propagation of the converged solution; never another fit.
+   bool                    finalPass;
+   GmatTime                finalPassEndEpochGT;
+   GmatState               finalPassState;
+   ObjectArray             finalPassBuffer;
+
    /// Estimation status
    Integer                 estimationStatus;
    /// String to show reason of convergence
@@ -196,6 +202,7 @@ protected:
 
    virtual void            CompleteInitialization();
    virtual void            FindTimeStep();
+   void                    RestoreFinalPassObjects();
    virtual void            CalculateData();
    virtual void            ProcessEvent();
    virtual void            CheckCompletion();

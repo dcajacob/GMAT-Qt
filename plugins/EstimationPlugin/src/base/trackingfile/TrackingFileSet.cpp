@@ -28,6 +28,8 @@
 //------------------------------------------------------------------------------
 
 #include "TrackingFileSet.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "TFSMagicNumbers.hpp"
 #include "MeasurementException.hpp"
 #include "MessageInterface.hpp"
@@ -3685,4 +3687,15 @@ Integer TrackingFileSet::FrequencyBand(Real frequency)
    }
 
    return freqBand;
+}
+// Reset/copy through the inherited polymorphic contract without slicing.
+void TrackingFileSet::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const TrackingFileSet*>(original);
+   if (!source || typeid(*source) != typeid(TrackingFileSet) ||
+       typeid(*this) != typeid(TrackingFileSet))
+      throw GmatBaseException("Cannot copy incompatible object into TrackingFileSet");
+   if (source == this)
+      return;
+   operator=(*source);
 }

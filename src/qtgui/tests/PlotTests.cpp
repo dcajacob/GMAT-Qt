@@ -11,6 +11,7 @@
 #include "Spacecraft.hpp"
 #include "SolarSystem.hpp"
 #include "CelestialBody.hpp"
+#include "AcceptanceView.hpp"
 #include <QDialogButtonBox>
 #include <QDialog>
 #include <QColorDialog>
@@ -34,6 +35,10 @@
 #include <QTimer>
 #include <QSlider>
 #include <QTabWidget>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QTabWidget>
 #include <QMouseEvent>
 #include <fstream>
 #include <iostream>
@@ -45,9 +50,90 @@ static const PlotCurve &curve(const PlotModel &model,const QString &name)
    for (const auto &c:model.curves) if (c.name==name) return c;
    throw std::runtime_error("Expected curve missing");
 }
+static void xyStyleWidgetChecks()
+{
+   auto model=std::make_shared<PlotModel>(PlotModel::Kind::XY);
+   model->title="Style widget fixture"; model->grid=false; model->legend=false;
+   model->xAxis.minimum=0; model->xAxis.maximum=4; model->yAxis.minimum=0; model->yAxis.maximum=4;
+   auto &first=model->curves[0]; first.name="Edited curve"; first.color=Qt::red; first.width=3; first.lines=true; first.markers=false; first.errorBars=false;
+   auto &second=model->curves[1]; second.name="Unchanged curve"; second.color=QColor(20,180,30); second.width=3; second.lines=true; second.markers=false; second.errorBars=false;
+   // Wide fixture strokes contain fully colored interior pixels at both DPRs;
+   // the color oracle must not depend on subpixel antialiasing of a one-pixel line.
+   for (int i=0;i<3;++i) { model->frame=i+1; model->append(0,i+1,i==1 ? 2 : 1,0,0,true,false,.5,.25); model->append(1,i+1,3.5); }
+   PlotWidget view(model); view.resize(800,600); view.show(); acceptanceView(view); QApplication::processEvents();
+   const auto original=view.canvas()->captureImage(); require(!original.isNull(),"XY style fixture did not render");
+   auto samples=[&] {
+      require(model->curves[0].points.size()==3 && model->curves[1].points.size()==3,"Style controls changed sample counts");
+      for (int i=0;i<3;++i) {
+         const auto &a=model->curves[0].points[i],&b=model->curves[1].points[i];
+         require(a.x==i+1 && a.y==(i==1 ? 2 : 1) && a.high==.5 && a.low==.25 && b.x==i+1 && b.y==3.5,"Style controls changed numerical samples or error values");
+      }
+      require(model->curves[1].color==QColor(20,180,30) && model->curves[1].lines && !model->curves[1].markers && !model->curves[1].errorBars,"Style controls changed an unselected curve");
+   };
+   auto pixels=[](const QImage &image,bool green=false) {
+      int count=0;
+      // Inspect only the plot interior. Subpixel text antialiasing can leave
+      // red fringes in black title/tick glyphs outside the curve area.
+      for (int y=image.height()/10;y<9*image.height()/10;++y) for (int x=image.width()/8;x<7*image.width()/8;++x) {
+         const auto c=image.pixelColor(x,y);
+         if (green ? c.green()>140 && c.red()<100 && c.blue()<100 : c.red()>160 && c.green()<110 && c.blue()<110) ++count;
+      }
+      return count;
+   };
+   auto edit=[&](const std::function<void(QDialog &,QWidget &)> &change,bool accept) {
+      std::exception_ptr failure; bool visited=false; QTimer timer; timer.setSingleShot(true);
+      QObject::connect(&timer,&QTimer::timeout,&view,[&] {
+         auto *dialog=view.findChild<QDialog *>("plotStyleDialog");
+         try {
+            require(dialog,"XY style dialog did not open"); dialog->findChild<QTabWidget *>("plotStyleTabs")->setCurrentIndex(3);
+            auto *page=dialog->findChild<QWidget *>("curveStyle_0"); require(page && page->isVisible(),"Selected curve style page is not visible"); visited=true; change(*dialog,*page);
+            dialog->findChild<QDialogButtonBox *>()->button(accept ? QDialogButtonBox::Ok : QDialogButtonBox::Cancel)->click();
+         } catch (...) { failure=std::current_exception(); if (dialog) dialog->reject(); }
+      });
+      timer.start(qEnvironmentVariable("GMAT_QT_ACCEPTANCE_MODE")=="visible" ? 100 : 0);
+      view.findChild<QAction *>("plotStyleAction")->trigger(); timer.stop();
+      if (failure) std::rethrow_exception(failure); require(visited,"Curve style controls were not visited"); samples();
+   };
+   auto check=[](QWidget &page,const char *name,bool value) {
+      auto *box=page.findChild<QCheckBox *>(name); require(box && box->isVisible() && box->isEnabled(),"Curve style checkbox is not usable");
+      if (box->isChecked()!=value) box->click(); require(box->isChecked()==value,"Curve style checkbox did not change");
+   };
+   auto color=[&](QDialog &owner,QWidget &page,const QColor &value,bool accept) {
+      auto *button=page.findChild<QPushButton *>("Curve color"); require(button && button->isVisible(),"Curve color button is not visible");
+      const auto previous=button->property("selectedColor").value<QColor>(); bool visited=false; std::exception_ptr failure;
+      QTimer timer; timer.setSingleShot(true); QObject::connect(&timer,&QTimer::timeout,&owner,[&] {
+         auto *picker=qobject_cast<QColorDialog *>(QApplication::activeModalWidget());
+         try { require(picker,"Actual color picker did not open"); visited=true; picker->setCurrentColor(value); if (accept) picker->accept(); else picker->reject(); }
+         catch (...) { failure=std::current_exception(); if (picker) picker->reject(); }
+      });
+      timer.start(qEnvironmentVariable("GMAT_QT_ACCEPTANCE_MODE")=="visible" ? 100 : 0); button->click(); timer.stop();
+      if (failure) std::rethrow_exception(failure); require(visited,"Color picker was not exercised");
+      require(button->property("selectedColor").value<QColor>()==(accept ? value : previous),"Color picker returned the wrong accepted/cancelled color");
+   };
+   const QColor blue(20,80,220);
+   edit([&](QDialog &d,QWidget &p) { check(p,"Visible",false); color(d,p,blue,false); color(d,p,blue,true); require(model->curves[0].color==Qt::red,"Pending color changed the rendered model"); },false);
+   require(view.canvas()->captureImage()==original && model->curves[0].visible && model->curves[0].color==Qt::red,"Style Cancel changed existing appearance");
+   edit([&](QDialog &,QWidget &p) { check(p,"Visible",false); },true);
+   auto hidden=view.canvas()->captureImage(); require(!model->curves[0].visible && pixels(hidden)==0 && pixels(hidden,true)>0,qPrintable(QString("Visible checkbox failed: visible=%1, red=%2, green=%3").arg(model->curves[0].visible).arg(pixels(hidden)).arg(pixels(hidden,true))));
+   edit([&](QDialog &,QWidget &p) { check(p,"Visible",true); check(p,"Lines",false); check(p,"Markers",false); check(p,"Error bars",false); },true);
+   const auto blank=view.canvas()->captureImage(); require(pixels(blank)==0,"Disabled curve features left a red trace");
+   edit([&](QDialog &,QWidget &p) { check(p,"Markers",true); },true);
+   const auto markers=view.canvas()->captureImage(); require(model->curves[0].markers && pixels(markers)>0 && markers!=blank,"Markers checkbox did not render markers");
+   edit([&](QDialog &,QWidget &p) { check(p,"Markers",false); check(p,"Error bars",true); },true);
+   const auto errors=view.canvas()->captureImage(); require(model->curves[0].errorBars && pixels(errors)>0 && errors!=markers,"Error-bars checkbox did not render the stored error values");
+   edit([&](QDialog &d,QWidget &p) { check(p,"Lines",true); check(p,"Markers",true); color(d,p,blue,true); },true);
+   require(model->curves[0].lines && model->curves[0].markers && model->curves[0].color==blue,"Accepted style widgets did not update the selected curve");
+   for (const auto &point:model->curves[0].points) require(point.color==blue,"Accepted color did not update retained point colors");
+   const auto changed=view.canvas()->captureImage(); require(changed!=original && pixels(changed)==0 && pixels(changed,true)>0,"Accepted color failed to replace red while preserving the other curve");
+   samples(); view.close();
+   const QJsonObject proof{{"kind","xy-style-widgets"},{"outcome","passed"},{"controls",QJsonArray{"Visible","Lines","Markers","Error bars","Curve color"}},
+      {"checks",QJsonArray{"widget-clicks","color-dialog-accept-cancel","parent-cancel","selected-curve-only","rendered-features","retained-sample-values"}}};
+   std::cout<<"GUI_ROUTE_CHECK "<<QJsonDocument(proof).toJson(QJsonDocument::Compact).constData()<<std::endl;
+}
 int main(int argc,char **argv)
 {
    QApplication app(argc,argv);
+   if (argc==2 && QString::fromLocal8Bit(argv[1])=="--style-controls") { try { xyStyleWidgetChecks(); return 0; } catch (const std::exception &error) { std::cerr<<error.what()<<'\n'; return 1; } }
    QApplication::setOrganizationName("GMATTests"); QApplication::setApplicationName("QtPlots");
    if (argc<3 || argc>4) return 2;
    const auto startup=QFileInfo(argv[1]).absoluteFilePath(),script=QFileInfo(argv[2]).absoluteFilePath();
@@ -594,6 +680,7 @@ int main(int argc,char **argv)
       }
       std::cout<<"PASS: subscriber lists, GUI Apply, actual XY Z output, added orbit body, visibility by name, empty lists and invalid inputs\n";
       std::cout<<"PASS: real orbit/XY/geodetic samples, map, dateline, sparse data, close-during-run/reopen/rerun, bounded history, replay retention, reversible zoom, dynamic values/colors, Output report viewer\n";
+      xyStyleWidgetChecks();
    } catch (const std::exception &error) { std::cerr<<"FAIL: "<<error.what()<<'\n'; return 1; }
    return 0;
 }

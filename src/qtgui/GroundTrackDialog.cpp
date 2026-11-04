@@ -65,11 +65,12 @@ GroundTrackDialog::GroundTrackDialog(GmatBase &plot,const QMap<QString,QString> 
    }
    row->addStretch(); drawForm->addRow(actions);
    auto *sampling=new QGroupBox("Data",content); auto *dataForm=new QFormLayout(sampling); groups->addWidget(sampling);
-   const QMap<QString,QString> labels={{"DataCollectFrequency","Collect every N samples"},{"UpdatePlotFrequency","Update every N samples"},{"MaxPlotPoints","Maximum retained points"},{"NumPointsToRedraw","Recent segments to redraw"}};
-   for (const auto &name:QStringList{"DataCollectFrequency","UpdatePlotFrequency","MaxPlotPoints","NumPointsToRedraw"}) {
-      auto *spin=new QSpinBox(sampling); spin->setObjectName("ground_"+name); spin->setRange(name=="NumPointsToRedraw" ? 0 : 1,std::numeric_limits<int>::max());
+   const QMap<QString,QString> labels={{"IntegrationStepsToSkip","Integration steps to skip"},{"DataCollectFrequency","Collect every N samples"},{"UpdatePlotFrequency","Update every N samples"},{"MaxPlotPoints","Maximum retained points"},{"NumPointsToRedraw","Recent segments to redraw"}};
+   for (const auto &name:QStringList{"IntegrationStepsToSkip","DataCollectFrequency","UpdatePlotFrequency","MaxPlotPoints","NumPointsToRedraw"}) {
+      auto *spin=new QSpinBox(sampling); spin->setObjectName("ground_"+name); spin->setRange(name=="IntegrationStepsToSkip" ? -1 : name=="NumPointsToRedraw" ? 0 : 1,std::numeric_limits<int>::max());
       if (name=="NumPointsToRedraw") { spin->setSpecialValueText("All retained points"); spin->setToolTip("Limits recent trajectory segments during runs and replay. The complete retained trajectory appears at run completion."); }
-      spin->setValue(initial.value(name).toInt()); data.insert(name,spin); dataForm->addRow(labels.value(name),spin);
+      if (name=="IntegrationStepsToSkip") { spin->setSpecialValueText("Use publication samples"); spin->setToolTip("0 collects every accepted integration step. Positive values skip that many steps between points. Overrides publication collection frequency."); }
+      spin->setValue(initial.value(name, name=="IntegrationStepsToSkip" ? "-1" : "0").toInt()); data.insert(name,spin); dataForm->addRow(labels.value(name),spin);
    }
    auto *options=new QGroupBox("Other options",content); auto *optionForm=new QFormLayout(options); groups->addWidget(options);
    show=new QCheckBox("Show plot",options); show->setObjectName("groundShowPlot"); show->setChecked(initial.value("ShowPlot")=="true"); optionForm->addRow(show);

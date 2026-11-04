@@ -1,0 +1,676 @@
+{
+  "schema_version": 1,
+  "scope": "Persistence-only default/user body, global and region fixtures. Synthetic property values, no physical ephemeris/propagation qualification. Existing Ceres SPK is explicit positional input only.",
+  "cases": [
+    {
+      "key": "DefaultSun",
+      "setup": "Sun.Mu = 101.25;\nSun.EquatorialRadius = 1000.5;\nSun.Flattening = 0.01;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "Sun"
+      ],
+      "objects": [
+        "Sun"
+      ],
+      "filename": "Sun.Star.data",
+      "definitions": [],
+      "witnesses": [
+        {
+          "object": "Sun",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 101.25
+        },
+        {
+          "object": "Sun",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 1000.5
+        },
+        {
+          "object": "Sun",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.01
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "DefaultMercury",
+      "setup": "Mercury.Mu = 102.25;\nMercury.EquatorialRadius = 1001.5;\nMercury.Flattening = 0.01;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "Mercury"
+      ],
+      "objects": [
+        "Mercury"
+      ],
+      "filename": "Mercury.Planet.data",
+      "definitions": [],
+      "witnesses": [
+        {
+          "object": "Mercury",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 102.25
+        },
+        {
+          "object": "Mercury",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 1001.5
+        },
+        {
+          "object": "Mercury",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.01
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "DefaultVenus",
+      "setup": "Venus.Mu = 103.25;\nVenus.EquatorialRadius = 1002.5;\nVenus.Flattening = 0.01;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "Venus"
+      ],
+      "objects": [
+        "Venus"
+      ],
+      "filename": "Venus.Planet.data",
+      "definitions": [],
+      "witnesses": [
+        {
+          "object": "Venus",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 103.25
+        },
+        {
+          "object": "Venus",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 1002.5
+        },
+        {
+          "object": "Venus",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.01
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "DefaultEarth",
+      "setup": "Earth.Mu = 104.25;\nEarth.EquatorialRadius = 1003.5;\nEarth.Flattening = 0.01;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "Earth"
+      ],
+      "objects": [
+        "Earth"
+      ],
+      "filename": "Earth.Planet.data",
+      "definitions": [],
+      "witnesses": [
+        {
+          "object": "Earth",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 104.25
+        },
+        {
+          "object": "Earth",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 1003.5
+        },
+        {
+          "object": "Earth",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.01
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "DefaultLuna",
+      "setup": "Luna.Mu = 105.25;\nLuna.EquatorialRadius = 1004.5;\nLuna.Flattening = 0.01;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "Luna"
+      ],
+      "objects": [
+        "Luna"
+      ],
+      "filename": "Luna.Moon.data",
+      "definitions": [],
+      "witnesses": [
+        {
+          "object": "Luna",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 105.25
+        },
+        {
+          "object": "Luna",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 1004.5
+        },
+        {
+          "object": "Luna",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.01
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "DefaultMars",
+      "setup": "Mars.Mu = 106.25;\nMars.EquatorialRadius = 1005.5;\nMars.Flattening = 0.01;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "Mars"
+      ],
+      "objects": [
+        "Mars"
+      ],
+      "filename": "Mars.Planet.data",
+      "definitions": [],
+      "witnesses": [
+        {
+          "object": "Mars",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 106.25
+        },
+        {
+          "object": "Mars",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 1005.5
+        },
+        {
+          "object": "Mars",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.01
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "DefaultJupiter",
+      "setup": "Jupiter.Mu = 107.25;\nJupiter.EquatorialRadius = 1006.5;\nJupiter.Flattening = 0.01;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "Jupiter"
+      ],
+      "objects": [
+        "Jupiter"
+      ],
+      "filename": "Jupiter.Planet.data",
+      "definitions": [],
+      "witnesses": [
+        {
+          "object": "Jupiter",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 107.25
+        },
+        {
+          "object": "Jupiter",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 1006.5
+        },
+        {
+          "object": "Jupiter",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.01
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "DefaultSaturn",
+      "setup": "Saturn.Mu = 108.25;\nSaturn.EquatorialRadius = 1007.5;\nSaturn.Flattening = 0.01;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "Saturn"
+      ],
+      "objects": [
+        "Saturn"
+      ],
+      "filename": "Saturn.Planet.data",
+      "definitions": [],
+      "witnesses": [
+        {
+          "object": "Saturn",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 108.25
+        },
+        {
+          "object": "Saturn",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 1007.5
+        },
+        {
+          "object": "Saturn",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.01
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "DefaultUranus",
+      "setup": "Uranus.Mu = 109.25;\nUranus.EquatorialRadius = 1008.5;\nUranus.Flattening = 0.01;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "Uranus"
+      ],
+      "objects": [
+        "Uranus"
+      ],
+      "filename": "Uranus.Planet.data",
+      "definitions": [],
+      "witnesses": [
+        {
+          "object": "Uranus",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 109.25
+        },
+        {
+          "object": "Uranus",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 1008.5
+        },
+        {
+          "object": "Uranus",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.01
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "DefaultNeptune",
+      "setup": "Neptune.Mu = 110.25;\nNeptune.EquatorialRadius = 1009.5;\nNeptune.Flattening = 0.01;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "Neptune"
+      ],
+      "objects": [
+        "Neptune"
+      ],
+      "filename": "Neptune.Planet.data",
+      "definitions": [],
+      "witnesses": [
+        {
+          "object": "Neptune",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 110.25
+        },
+        {
+          "object": "Neptune",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 1009.5
+        },
+        {
+          "object": "Neptune",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.01
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "DefaultPluto",
+      "setup": "Pluto.Mu = 111.25;\nPluto.EquatorialRadius = 1010.5;\nPluto.Flattening = 0.01;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "Pluto"
+      ],
+      "objects": [
+        "Pluto"
+      ],
+      "filename": "Pluto.Planet.data",
+      "definitions": [],
+      "witnesses": [
+        {
+          "object": "Pluto",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 111.25
+        },
+        {
+          "object": "Pluto",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 1010.5
+        },
+        {
+          "object": "Pluto",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.01
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "UserPlanet",
+      "setup": "Create Planet Subject;\nSubject.CentralBody = Sun;\nSubject.NAIFId = 2000001;\nSubject.OrbitSpiceKernelName = {'../data/planetary_ephem/spk/ceres_1900_2100.bsp'};\nSubject.Mu = 63.25;\nSubject.EquatorialRadius = 470.5;\nSubject.Flattening = 0.01;\nSubject.OrientationEpoch = 21545;\nSubject.SpinAxisRAConstant = 20;\nSubject.SpinAxisRARate = 2;\nSubject.SpinAxisDECConstant = 55;\nSubject.SpinAxisDECRate = -1;\nSubject.RotationConstant = 120;\nSubject.RotationRate = 720;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Planet.data",
+      "definitions": [
+        "Create Planet Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 63.25
+        },
+        {
+          "object": "Subject",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 470.5
+        },
+        {
+          "object": "Subject",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.01
+        },
+        {
+          "object": "Subject",
+          "field": "RotationConstant",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Subject",
+          "field": "RotationRate",
+          "type": "Real",
+          "expected": 720
+        },
+        {
+          "object": "Subject",
+          "field": "CentralBody",
+          "type": "String",
+          "expected": "Sun"
+        },
+        {
+          "object": "Subject",
+          "field": "NAIFId",
+          "type": "Integer",
+          "expected": 2000001
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "UserMoon",
+      "setup": "Create Moon Subject;\nSubject.CentralBody = Sun;\nSubject.NAIFId = 2000001;\nSubject.OrbitSpiceKernelName = {'../data/planetary_ephem/spk/ceres_1900_2100.bsp'};\nSubject.Mu = 63.25;\nSubject.EquatorialRadius = 470.5;\nSubject.Flattening = 0.01;\nSubject.OrientationEpoch = 21545;\nSubject.SpinAxisRAConstant = 20;\nSubject.SpinAxisRARate = 2;\nSubject.SpinAxisDECConstant = 55;\nSubject.SpinAxisDECRate = -1;\nSubject.RotationConstant = 120;\nSubject.RotationRate = 720;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Moon.data",
+      "definitions": [
+        "Create Moon Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 63.25
+        },
+        {
+          "object": "Subject",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 470.5
+        },
+        {
+          "object": "Subject",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.01
+        },
+        {
+          "object": "Subject",
+          "field": "RotationConstant",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Subject",
+          "field": "RotationRate",
+          "type": "Real",
+          "expected": 720
+        },
+        {
+          "object": "Subject",
+          "field": "CentralBody",
+          "type": "String",
+          "expected": "Sun"
+        },
+        {
+          "object": "Subject",
+          "field": "NAIFId",
+          "type": "Integer",
+          "expected": 2000001
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "UserComet",
+      "setup": "Create Comet Subject;\nSubject.CentralBody = Sun;\nSubject.NAIFId = 2000001;\nSubject.OrbitSpiceKernelName = {'../data/planetary_ephem/spk/ceres_1900_2100.bsp'};\nSubject.Mu = 63.25;\nSubject.EquatorialRadius = 470.5;\nSubject.Flattening = 0.01;\nSubject.OrientationEpoch = 21545;\nSubject.SpinAxisRAConstant = 20;\nSubject.SpinAxisRARate = 2;\nSubject.SpinAxisDECConstant = 55;\nSubject.SpinAxisDECRate = -1;\nSubject.RotationConstant = 120;\nSubject.RotationRate = 720;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Comet.data",
+      "definitions": [
+        "Create Comet Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 63.25
+        },
+        {
+          "object": "Subject",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 470.5
+        },
+        {
+          "object": "Subject",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.01
+        },
+        {
+          "object": "Subject",
+          "field": "RotationConstant",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Subject",
+          "field": "RotationRate",
+          "type": "Real",
+          "expected": 720
+        },
+        {
+          "object": "Subject",
+          "field": "CentralBody",
+          "type": "String",
+          "expected": "Sun"
+        },
+        {
+          "object": "Subject",
+          "field": "NAIFId",
+          "type": "Integer",
+          "expected": 2000001
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "UserAsteroid",
+      "setup": "Create Asteroid Subject;\nSubject.CentralBody = Sun;\nSubject.NAIFId = 2000001;\nSubject.OrbitSpiceKernelName = {'../data/planetary_ephem/spk/ceres_1900_2100.bsp'};\nSubject.Mu = 63.25;\nSubject.EquatorialRadius = 470.5;\nSubject.Flattening = 0.01;\nSubject.OrientationEpoch = 21545;\nSubject.SpinAxisRAConstant = 20;\nSubject.SpinAxisRARate = 2;\nSubject.SpinAxisDECConstant = 55;\nSubject.SpinAxisDECRate = -1;\nSubject.RotationConstant = 120;\nSubject.RotationRate = 720;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Asteroid.data",
+      "definitions": [
+        "Create Asteroid Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 63.25
+        },
+        {
+          "object": "Subject",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 470.5
+        },
+        {
+          "object": "Subject",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.01
+        },
+        {
+          "object": "Subject",
+          "field": "RotationConstant",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Subject",
+          "field": "RotationRate",
+          "type": "Real",
+          "expected": 720
+        },
+        {
+          "object": "Subject",
+          "field": "CentralBody",
+          "type": "String",
+          "expected": "Sun"
+        },
+        {
+          "object": "Subject",
+          "field": "NAIFId",
+          "type": "Integer",
+          "expected": 2000001
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "SolarSystem",
+      "setup": "SolarSystem.UseTTForEphemeris = false;\nSolarSystem.EphemerisUpdateInterval = 37.5;\nCreate Spacecraft BodyObserver;\nBodyObserver.NAIFId = -101071;\nBodyObserver.NAIFIdReferenceFrame = -910071;\n",
+      "selected": [
+        "SolarSystem"
+      ],
+      "objects": [
+        "SolarSystem"
+      ],
+      "filename": "SolarSystem.SolarSystem.data",
+      "definitions": [],
+      "witnesses": [
+        {
+          "object": "SolarSystem",
+          "field": "UseTTForEphemeris",
+          "type": "Boolean",
+          "expected": false
+        },
+        {
+          "object": "SolarSystem",
+          "field": "EphemerisUpdateInterval",
+          "type": "Real",
+          "expected": 37.5
+        }
+      ],
+      "runtime_solar_system_probe": "BodyObserver"
+    },
+    {
+      "key": "Region",
+      "setup": "Create PlanetographicRegion Subject;\nSubject.CentralBody = Earth;\nSubject.Latitude = [10 10 20 20];\nSubject.Longitude = [30 40 40 30];\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.PlanetographicRegion.data",
+      "definitions": [
+        "Create PlanetographicRegion Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "CentralBody",
+          "type": "Object",
+          "expected": "Earth"
+        },
+        {
+          "object": "Subject",
+          "field": "Latitude",
+          "type": "Rvector",
+          "expected": [
+            10,
+            10,
+            20,
+            20
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Longitude",
+          "type": "Rvector",
+          "expected": [
+            30,
+            40,
+            40,
+            30
+          ]
+        }
+      ]
+    }
+  ]
+}

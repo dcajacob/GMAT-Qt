@@ -2,6 +2,7 @@
 <chapter version="5.0" xml:id="FilterSmoother_GpsPosVec"
          xmlns="http://docbook.org/ns/docbook">
   <title>Filter and Smoother Orbit Determination using GPS_PosVec Data</title>
+  <para>The numerical baseline below uses the shipped Ex_FilterSmoother_GpsPosVec.script: June 2010, 50 kg spacecraft, seed 1, VNB process noise and the covariance and drag settings shown here. The guide separates simulation and estimation into files; the example combines them. Compare the one-day smoother milestone before the later warm-start, ephemeris and prediction exercises. Older screenshots and the illustrative measurement rows can show the former June 2014 setup.</para>
 
   <variablelist>
     <varlistentry>
@@ -123,7 +124,7 @@
 Create Spacecraft SimSat;
 
 SimSat.DateFormat        = UTCGregorian;
-SimSat.Epoch             = '10 Jun 2014 00:00:00.000';
+SimSat.Epoch             = '10 Jun 2010 00:00:00.000';
 SimSat.CoordinateSystem  = EarthMJ2000Eq;
 SimSat.DisplayStateType  = Cartesian;
 SimSat.X                 = 576.869556
@@ -132,7 +133,7 @@ SimSat.Z                 = -4170.593691
 SimSat.VX                = -1.76450794
 SimSat.VY                = 4.18128798
 SimSat.VZ                = -5.96578986
-SimSat.DryMass           = 10;
+SimSat.DryMass           = 50;
 SimSat.Cd                = 2.2;
 SimSat.Cr                = 1.8;
 SimSat.DragArea          = 10;
@@ -337,6 +338,8 @@ Create TrackingFileSet SimData;
 
 SimData.AddTrackingConfig = {{SimSat.GpsReceiver}, 'GPS_PosVec'};
 SimData.FileName          = {'gps_posvec.gmd'};
+SimData.UseLightTime      = false;
+SimData.UseETminusTAI     = true;
 </programlisting><orderedlist continuation="continues">
         <listitem>
           <para>At the bottom of the script window, click on the “Save,Sync”
@@ -344,9 +347,9 @@ SimData.FileName          = {'gps_posvec.gmd'};
         </listitem>
       </orderedlist>Here we create an instance of a tracking file set that
     will write out the simulated measurements. For GPS_PosVec measurement
-    data, we only need to specify two things – the tracking configuration (or
+    data, we specify the tracking configuration (or
     measurement path) for the simulated data, and the name of the output file
-    that will contain the simulated measurements. The inner curly braces of
+    that will contain the simulated measurements. The explicit light-time and ET-TAI selectors match the shipped example; GPS_PosVec does not use those corrections. The inner curly braces of
     the AddTrackingConfig parameter specify the measurement path for the
     simulated data. GPS_PosVec data, while in reality derived from measuring
     the location of the spacecraft relative to multiple GPS satellites,
@@ -430,6 +433,7 @@ Create Propagator Prop;
 Prop.FM              = FM;
 Prop.Type            = 'RungeKutta89';
 Prop.InitialStepSize = 60;
+Prop.Accuracy        = 1e-13;
 Prop.MinStep         = 0;
 Prop.MaxStep         = 60;
 </programlisting><orderedlist continuation="continues">
@@ -467,8 +471,8 @@ Create Simulator Sim;
 
 Sim.AddData              = {SimData};
 Sim.EpochFormat          = 'UTCGregorian';
-Sim.InitialEpoch         = '10 Jun 2014 00:00:00.000';
-Sim.FinalEpoch           = '11 Jun 2014 00:00:00.000'; 
+Sim.InitialEpoch         = '10 Jun 2010 00:00:00.000';
+Sim.FinalEpoch           = '11 Jun 2010 00:00:00.000';
 Sim.MeasurementTimeStep  = 600;
 Sim.Propagator           = Prop;
 Sim.AddNoise             = On;
@@ -509,6 +513,7 @@ Sim.AddNoise             = On;
 
 BeginMissionSequence
 
+SetSeed(1);
 RunSimulator Sim;
 </programlisting>The RunSimulator command has one argument – the name of the
     simulator instance to execute. This command instructs GMAT to generate the
@@ -663,7 +668,7 @@ RunSimulator Sim;
     <programlisting>Create Spacecraft EstSat;
 
 EstSat.DateFormat        = UTCGregorian;
-EstSat.Epoch             = '10 Jun 2014 00:00:00.000';
+EstSat.Epoch             = '10 Jun 2010 00:00:00.000';
 EstSat.CoordinateSystem  = EarthMJ2000Eq;
 EstSat.DisplayStateType  = Cartesian;
 EstSat.X                 =  576.8
@@ -672,9 +677,9 @@ EstSat.Z                 = -4170.5
 EstSat.VX                = -1.7645
 EstSat.VY                =  4.1813
 EstSat.VZ                = -5.9658
-EstSat.DryMass           = 10;
-EstSat.Cd                = 2.0;
-EstSat.CdSigma           = 0.1;
+EstSat.DryMass           = 50;
+EstSat.Cd                = 2.2;
+EstSat.CdSigma           = 0.2;
 EstSat.Cr                = 1.8;
 EstSat.DragArea          = 10;
 EstSat.SRPArea           = 10;
@@ -802,6 +807,8 @@ PosVecModel.NoiseSigma = 0.010;
 Create TrackingFileSet EstData;
 
 EstData.FileName = {'gps_posvec.gmd'};
+EstData.UseLightTime  = false;
+EstData.UseETminusTAI = true;
 
 %
 %   Force model
@@ -829,6 +836,7 @@ Create Propagator Prop;
 Prop.FM              = FM;
 Prop.Type            = 'RungeKutta89';
 Prop.InitialStepSize = 60;
+Prop.Accuracy        = 1e-13;
 Prop.MinStep         = 0;
 Prop.MaxStep         = 60;
 </programlisting>
@@ -937,11 +945,19 @@ EKF.MatlabFile           = 'filter.mat';
 %   Process noise model
 %
 
+Create CoordinateSystem EstSatVNB;
+EstSatVNB.Origin    = EstSat;
+EstSatVNB.Axes      = ObjectReferenced;
+EstSatVNB.XAxis     = V;
+EstSatVNB.YAxis     = N;
+EstSatVNB.Primary   = Earth;
+EstSatVNB.Secondary = EstSat;
+
 Create ProcessNoiseModel SNC;
 
 SNC.Type             = 'StateNoiseCompensation';
-SNC.CoordinateSystem = EarthMJ2000Eq;
-SNC.AccelNoiseSigma  = [1.0e-9 1.0e-9 1.0e-9];
+SNC.CoordinateSystem = EstSatVNB;
+SNC.AccelNoiseSigma  = [1.0e-9 1.0e-8 1.0e-8];
 SNC.UpdateTimeStep   = 120.
 
 EstSat.ProcessNoiseModel = SNC;
@@ -1005,8 +1021,16 @@ Create EstimatedParameter FogmCd
 FogmCd.Model            = 'FirstOrderGaussMarkov';
 FogmCd.SolveFor         = 'Cd';
 FogmCd.SteadyStateValue = 2.0;
-FogmCd.SteadyStateSigma = 0.05;
-FogmCd.HalfLife         = 864000;
+FogmCd.SteadyStateSigma = 0.2;
+FogmCd.HalfLife         = 86400;
+
+% Record the forward filter's estimated drag coefficient, as in the example.
+Create ReportFile FilterCdReport;
+FilterCdReport.Filename    = 'fogm_cd.csv';
+FilterCdReport.Add         = {EstSat.UTCGregorian, EstSat.Cd};
+FilterCdReport.Delimiter   = ',';
+FilterCdReport.WriteReport = false;
+FilterCdReport.FixedWidth  = Off;
 </programlisting>
 
     <para><orderedlist continuation="continues">
@@ -1090,9 +1114,11 @@ FogmCd.HalfLife         = 864000;
 
 BeginMissionSequence
 
-EstSat.OrbitErrorCovariance = diag([1e-2 1e-2 1e-2 4e-10 4e-10 4e-10]);
+EstSat.OrbitErrorCovariance = diag([1e-2 1e-2 1e-2 2.5e-7 2.5e-7 2.5e-7]);
 
-RunEstimator EKF;</programlisting>
+Toggle FilterCdReport On;
+RunEstimator EKF;
+Toggle FilterCdReport Off;</programlisting>
 
     <para>You probably expected to see the RunEstimator command. Just like
     RunSimulator, the RunEstimator command has one argument – the name of the
@@ -1544,7 +1570,7 @@ Create Smoother FPS;
 
 FPS.Filter               = EKF;
 FPS.ShowProgress         = True;
-FPS.ShowAllResiduals     = On;
+FPS.ShowAllResiduals     = Off;
 FPS.ReportFile           = 'smoother.txt';
 FPS.MatlabFile           = 'smoother.mat';
 </programlisting>
@@ -1579,9 +1605,11 @@ FPS.MatlabFile           = 'smoother.mat';
 
 BeginMissionSequence
 
-EstSat.OrbitErrorCovariance = diag([1e-2 1e-2 1e-2 4e-10 4e-10 4e-10]);
+EstSat.OrbitErrorCovariance = diag([1e-2 1e-2 1e-2 2.5e-7 2.5e-7 2.5e-7]);
 
+Toggle FilterCdReport On;
 RunEstimator EKF;
+Toggle FilterCdReport Off;
 RunSmoother FPS;
 </programlisting>
 
@@ -1918,7 +1946,7 @@ EKF.Propagator           = Prop;
 EKF.ShowAllResiduals     = On;
 EKF.InputWarmStartFile   = 'filter.csv';
 EKF.WarmStartEpochFormat = 'UTCGregorian';
-EKF.WarmStartEpoch       = '10 Jun 2014 18:00:00.000';
+EKF.WarmStartEpoch       = '10 Jun 2010 18:00:00.000';
 EKF.ReportFile           = 'filter.txt';
 EKF.MatlabFile           = 'filter.mat';
 </programlisting>
@@ -1964,7 +1992,7 @@ EKF.MatlabFile           = 'filter.mat';
     to a full covariance).</para>
 
     <para>Next, scroll down in the output to the filter measurement residuals
-    report. Notice that the residual report begins with the 10 Jun 2014 18:10
+    report. Notice that the residual report begins with the 10 Jun 2010 18:10
     measurement. When warm-starting the filter, it will automatically ignore
     any measurements prior to the selected warm start epoch and begin forward
     processing from the first measurement after the warm start epoch. This is
@@ -2381,10 +2409,12 @@ SmootherEphem.WriteEphemeris    = False;
 
 BeginMissionSequence
 
-EstSat.OrbitErrorCovariance = diag([1e-2 1e-2 1e-2 4e-10 4e-10 4e-10]);
+EstSat.OrbitErrorCovariance = diag([1e-2 1e-2 1e-2 2.5e-7 2.5e-7 2.5e-7]);
 
 Toggle FilterEphem On;
+Toggle FilterCdReport On;
 RunEstimator EKF;
+Toggle FilterCdReport Off;
 Toggle FilterEphem Off;
 
 Toggle SmootherEphem On;

@@ -32,6 +32,7 @@
 #include <stdlib.h>         // for NULL
 #include <string.h>         // for memcpy()
 #include <sstream>          // for std::stringstream
+#include <algorithm>        // for bounded engine-array copies
 
 // Clear a build error with Visual Studio 2010
 #ifdef _CHAR16T
@@ -40,6 +41,9 @@
 
 #include "engine.h"         // for Matlab Engine
 #include "matrix.h"         // for Matlab mxArray
+#ifdef GMAT_MATLAB_QT_ENGINE
+#include "MatlabLibraryExecutor.hpp"
+#endif
 
 #ifdef __WXMAC__
 #include <stdlib.h>         // for system() to launch X11 application
@@ -109,6 +113,9 @@ MatlabInterface* MatlabInterface::Instance()
 //------------------------------------------------------------------------------
 int MatlabInterface::Open(const std::string &name)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return Open(name);});
+#endif
    //=======================================================
    #ifdef __WXMAC__
    //=======================================================
@@ -152,6 +159,9 @@ int MatlabInterface::Open(const std::string &name)
 //------------------------------------------------------------------------------
 int MatlabInterface::Close(const std::string &name)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return Close(name);});
+#endif
    //=======================================================
    #ifdef __WXMAC__
    //=======================================================
@@ -187,6 +197,9 @@ int MatlabInterface::Close(const std::string &name)
 //------------------------------------------------------------------------------
 void MatlabInterface::SetCallingObjectName(const std::string &calledFrom)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   MatlabLibraries().EnsureIdle();
+#endif
    callingObjectName = calledFrom;
    #ifdef DEBUG_CALLED_FROM
    MessageInterface::ShowMessage
@@ -201,6 +214,9 @@ void MatlabInterface::SetCallingObjectName(const std::string &calledFrom)
 //------------------------------------------------------------------------------
 std::string MatlabInterface::GetCallingObjectName()
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   MatlabLibraries().EnsureIdle();
+#endif
    return callingObjectName;
 }
 
@@ -221,6 +237,9 @@ std::string MatlabInterface::GetCallingObjectName()
 int MatlabInterface::PutRealArray(const std::string &matlabVarName,
                                   int numRows, int numCols, const double *inArray)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return PutRealArray(matlabVarName,numRows,numCols,inArray);});
+#endif
    #ifdef DEBUG_MATLAB_PUT_REAL
    MessageInterface::ShowMessage
       ("MatlabInterface::PutRealArray() entered, matlabVarName='%s', numRows=%d, "
@@ -306,6 +325,13 @@ int MatlabInterface::GetRealArray(const std::string &matlabVarName,
                                   int numElements, double outArray[],
                                   Integer &numRowsReceived, Integer &numColsReceived)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return GetRealArray(matlabVarName,numElements,outArray,numRowsReceived,numColsReceived);});
+#endif
+   numRowsReceived = 0;
+   numColsReceived = 0;
+   if (numElements <= 0 || outArray == NULL)
+      return 0;
    #ifdef DEBUG_MATLAB_GET_REAL
    MessageInterface::ShowMessage
       ("MatlabInterface::GetRealArray() entered, matlabVarName=%s, numElements=%d\n",
@@ -338,7 +364,8 @@ int MatlabInterface::GetRealArray(const std::string &matlabVarName,
        numElementsReceived, numRowsReceived, numColsReceived);
    #endif
    
-   if (mxIsDouble(mxArrayPtr))
+   if (mxIsDouble(mxArrayPtr) && !mxIsComplex(mxArrayPtr) &&
+       !mxIsSparse(mxArrayPtr) && mxGetNumberOfDimensions(mxArrayPtr) == 2)
    {
       #ifdef DEBUG_MATLAB_GET_REAL
       MessageInterface::ShowMessage
@@ -349,14 +376,21 @@ int MatlabInterface::GetRealArray(const std::string &matlabVarName,
       // If real numeric pointer is NULL, throw an exception
       double *realPtr = mxGetPr(mxArrayPtr);
       if (realPtr == NULL)
+      {
+         mxDestroyArray(mxArrayPtr);
          throw InterfaceException("Received empty real output from MATLAB");
+      }
       
-      memcpy((char*)outArray, (char*)mxGetPr(mxArrayPtr),
-             numElements*sizeof(double));
+      // numElements is the caller's capacity, not the returned allocation's
+      // size. Element outputs can return a smaller matrix. Return the full
+      // received count for caller validation without reading past either end.
+      const size_t copyCount = std::min(static_cast<size_t>(numElements),
+                                        numElementsReceived);
+      memcpy(outArray, realPtr, copyCount*sizeof(double));
       
       #ifdef DEBUG_MATLAB_GET_REAL
       MessageInterface::ShowMessage("      outArray  = \n");
-      for (unsigned int ii=0; ii < numElementsReceived; ii++)
+      for (size_t ii=0; ii < copyCount; ii++)
          MessageInterface::ShowMessage("         %.12f\n", outArray[ii]);
       MessageInterface::ShowMessage("   Now destroying mxArrayPtr <%p>\n", mxArrayPtr);
       #endif
@@ -378,8 +412,7 @@ int MatlabInterface::GetRealArray(const std::string &matlabVarName,
          outArray[0] = 0.0;
       
       #ifdef DEBUG_MATLAB_GET_REAL
-      for (Integer ii=0; ii < numElements; ii++)
-         MessageInterface::ShowMessage("      outArray[%d] = %f\n", ii, outArray[ii]);
+      MessageInterface::ShowMessage("      outArray[0] = %f\n", outArray[0]);
       MessageInterface::ShowMessage("   Now destroying mxArrayPtr <%p>\n", mxArrayPtr);
       #endif
       
@@ -394,6 +427,7 @@ int MatlabInterface::GetRealArray(const std::string &matlabVarName,
           "is not a double array or logical scalar.\n", matlabVarName.c_str());
       #endif
       
+      mxDestroyArray(mxArrayPtr);
       return 0;
    }
 } // end GetRealArray()
@@ -414,6 +448,9 @@ int MatlabInterface::GetRealArray(const std::string &matlabVarName,
 int MatlabInterface::GetString(const std::string &matlabVarName,
                                std::string &outStr)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return GetString(matlabVarName,outStr);});
+#endif
    #ifdef DEBUG_MATLAB_GET_STRING
    MessageInterface::ShowMessage
       ("MatlabInterface::GetString() entered, matlabVarName='%s', outStr='%s'\n",
@@ -484,6 +521,9 @@ int MatlabInterface::GetString(const std::string &matlabVarName,
 //------------------------------------------------------------------------------
 int MatlabInterface::EvalString(const std::string &evalString)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return EvalString(evalString);});
+#endif
    #ifdef DEBUG_MATLAB_EVAL
    MessageInterface::ShowMessage
       ("MatlabInterface::EvalString() calling engEvalString with\n"
@@ -517,6 +557,9 @@ int MatlabInterface::EvalString(const std::string &evalString)
 //------------------------------------------------------------------------------
 int MatlabInterface::SetOutputBuffer(int size)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return SetOutputBuffer(size);});
+#endif
    outBuffer[0] = '\0';
    int sizeToUse = size-1;
 
@@ -538,6 +581,9 @@ int MatlabInterface::SetOutputBuffer(int size)
 //------------------------------------------------------------------------------
 char* MatlabInterface::GetOutputBuffer()
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   MatlabLibraries().EnsureIdle();
+#endif
    return outBuffer;
 }
 
@@ -552,6 +598,9 @@ char* MatlabInterface::GetOutputBuffer()
 //------------------------------------------------------------------------------
 bool MatlabInterface::IsOpen(const std::string &name)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return IsOpen(name);});
+#endif
    #ifdef DEBUG_MATLAB_OPEN_CLOSE
    MessageInterface::ShowMessage
       ("MatlabInterface::IsOpen() entered, name='%s', matlabMode=%d, enginePtr=<%p>\n",
@@ -601,6 +650,9 @@ bool MatlabInterface::IsOpen(const std::string &name)
 //------------------------------------------------------------------------------
 void MatlabInterface::RunMatlabString(const std::string &evalString)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   MatlabLibraries().EnsureIdle();
+#endif
    #ifdef DEBUG_MATLAB_EVAL
    MessageInterface::ShowMessage
       ("MatlabInterface::RunMatlabString() entered\n"
@@ -640,20 +692,40 @@ void MatlabInterface::RunMatlabString(const std::string &evalString)
       #endif
    }
    
-   // add try/catch to string to evaluate
-   newEvalStr = "try,\n  beep off;\n  " + newEvalStr + "\ncatch\n  errormsg = lasterr;\nend";
+   // Track this evaluation independently of any preceding error message.
+   // Do not use a scratch name referenced by the expression's inputs/outputs.
+   std::string statusName;
+   for (size_t suffix = 0; ; ++suffix)
+   {
+      statusName = "gmat_eval_status_" + std::to_string(suffix);
+      if (newEvalStr.find(statusName) == std::string::npos) break;
+   }
+   newEvalStr = "try,\n  beep off;\n  " + newEvalStr + "\n  " + statusName +
+      " = 0;\ncatch\n  errormsg = lasterr;\n  " + statusName + " = 1;\nend";
    
    bool errorReturned = false;
    std::string errorStr;
    // call to evaluate string
-   if (EvalString(newEvalStr) == 0)
+   // Initialize separately: a syntax error can prevent the entire try/catch
+   // command from parsing. Such an evaluation must not reuse an old success.
+   if (EvalString(statusName + " = -1;") == 0 && EvalString(newEvalStr) == 0)
    {
       // if there was an error throw an exception
       #ifdef DEBUG_MATLAB_EVAL
       MessageInterface::ShowMessage("   Now checking if there was an error\n");
       #endif
-      if (GetString("errormsg", errorStr) == 1)
+      Real status = -1;
+      Integer rows = 0, columns = 0;
+      if (GetRealArray(statusName, 1, &status, rows, columns) != 1 ||
+          rows != 1 || columns != 1 || (status != 0 && status != 1))
       {
+         errorReturned = true;
+         errorStr = "MATLAB evaluation did not report completion";
+      }
+      else if (status == 1)
+      {
+         if (GetString("errormsg", errorStr) != 1)
+            errorStr = "MATLAB reported an error without a character message";
          #ifdef DEBUG_MATLAB_EVAL
          MessageInterface::ShowMessage
             ("Error occurred in Matlab function '%s'\n'%s'\n",
@@ -694,6 +766,9 @@ void MatlabInterface::RunMatlabString(const std::string &evalString)
 //------------------------------------------------------------------------------
 void MatlabInterface::SetMatlabMode(int mode)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   MatlabLibraries().EnsureIdle();
+#endif
    matlabMode = mode;
 }
 
@@ -1333,7 +1408,7 @@ Integer MatlabInterface::SetIntegerParameter(const Integer id, const Integer val
    switch (id)
    {
    case MATLAB_MODE:
-      matlabMode = value;
+      SetMatlabMode(value);
       return matlabMode;
    default:
       return Interface::SetIntegerParameter(id, value);

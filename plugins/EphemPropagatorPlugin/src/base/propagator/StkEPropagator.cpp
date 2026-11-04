@@ -660,7 +660,10 @@ bool StkEPropagator::Initialize()
             ephem.CloseForRead();
 			
             currentEpoch = initialEpoch;
-			   Rvector6 interpVal = ephem.InterpolatePoint(currentEpoch);
+            if (hasPrecisionTime)
+               currentEpochGT = initialEpochGT;
+			   Rvector6 interpVal = hasPrecisionTime ? ephem.InterpolatePoint(currentEpochGT) :
+                  ephem.InterpolatePoint(currentEpoch);
 
             if (ephemCoord)
             {
@@ -980,7 +983,7 @@ bool StkEPropagator::StepGT()
 	//May need to completly rewrite Interpolate to avoid this...
 	currentEpoch = currentEpochGT.GetMjd();
 	
-	Rvector6 interpVal = ephem.InterpolatePoint(currentEpoch);
+	Rvector6 interpVal = ephem.InterpolatePoint(currentEpochGT);
 
    if (ephemCoord)
    {
@@ -1076,7 +1079,8 @@ void StkEPropagator::UpdateState()
    if (hasPrecisionTime)
 	   currentEpoch = currentEpochGT.GetMjd();
 
-   Rvector6 theState = ephem.InterpolatePoint(currentEpoch);
+   Rvector6 theState = hasPrecisionTime ? ephem.InterpolatePoint(currentEpochGT) :
+         ephem.InterpolatePoint(currentEpoch);
 
    if (ephemCoord)
    {
@@ -1103,6 +1107,9 @@ void StkEPropagator::UpdateState()
 void StkEPropagator::SetEphemSpan(Integer whichOne)
 {
    ephem.GetStartAndEndEpochs(ephemStart, ephemEnd, &ephemRecords);
+   if (ephem.theEphem.empty() || ephem.theEphem.front().points.empty())
+      throw PropagatorException("The ephemeris has no state at its start boundary.");
+   ephemStartGT = ephem.theEphem.front().points.front().GetEpoch();
    spanStart.push_back(ephemStart);
    spanEnd.push_back(ephemEnd);
    EphemerisPropagator::SetEphemSpan(whichOne);

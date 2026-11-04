@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "position_tolerance_km": 1e-06,
+  "velocity_tolerance_km_s": 1e-09,
+  "cases": [
+    {
+      "key": "Sphere",
+      "representation": "Planetodetic",
+      "frame": "PlanetodeticFixed",
+      "flattening": 0.0,
+      "equatorial_radius": 6378.0,
+      "values": [
+        7300,
+        35,
+        42,
+        7.2,
+        63,
+        12
+      ],
+      "names": [
+        "PlanetodeticRMAG",
+        "PlanetodeticLON",
+        "PlanetodeticLAT",
+        "PlanetodeticVMAG",
+        "PlanetodeticAZI",
+        "PlanetodeticHFPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/sec",
+        "deg",
+        "deg"
+      ],
+      "invalid_field": "PlanetodeticLAT",
+      "invalid": [
+        "nan",
+        "91",
+        "-91"
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09,
+      "cartesian": [
+        4443.8648018459335,
+        3111.6276330373203,
+        4884.653426419665,
+        -4.440455015746474,
+        4.551191806415724,
+        3.3777229599756042
+      ],
+      "altitude": 922.0,
+      "geocentric_latitude_deg": 42.0,
+      "normal_radius": 6378.0
+    },
+    {
+      "key": "Earthlike",
+      "representation": "Planetodetic",
+      "frame": "PlanetodeticFixed",
+      "flattening": 0.0033333333333333335,
+      "equatorial_radius": 6378.0,
+      "values": [
+        7300,
+        125,
+        47,
+        7.5,
+        122,
+        -8
+      ],
+      "names": [
+        "PlanetodeticRMAG",
+        "PlanetodeticLON",
+        "PlanetodeticLAT",
+        "PlanetodeticVMAG",
+        "PlanetodeticAZI",
+        "PlanetodeticHFPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/sec",
+        "deg",
+        "deg"
+      ],
+      "invalid_field": "PlanetodeticLAT",
+      "invalid": [
+        "nan",
+        "91",
+        "-91"
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09,
+      "cartesian": [
+        -2864.4863236673823,
+        4090.910433485619,
+        5324.3938553342405,
+        -6.396318881597252,
+        -1.846143552911182,
+        -3.4538179956342443
+      ],
+      "altitude": 933.3318657779328,
+      "geocentric_latitude_deg": 46.83352293537053,
+      "normal_radius": 6389.38295957839
+    },
+    {
+      "key": "Oblate",
+      "representation": "Planetodetic",
+      "frame": "PlanetodeticFixed",
+      "flattening": 0.1,
+      "equatorial_radius": 6378.0,
+      "values": [
+        9000,
+        215,
+        61,
+        6.8,
+        238,
+        17
+      ],
+      "names": [
+        "PlanetodeticRMAG",
+        "PlanetodeticLON",
+        "PlanetodeticLAT",
+        "PlanetodeticVMAG",
+        "PlanetodeticAZI",
+        "PlanetodeticHFPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/sec",
+        "deg",
+        "deg"
+      ],
+      "invalid_field": "PlanetodeticLAT",
+      "invalid": [
+        "nan",
+        "91",
+        "-91"
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09,
+      "cartesian": [
+        -3965.5864131301896,
+        -2776.7334998957635,
+        7587.086098796682,
+        -6.418783818118773,
+        2.2377840263309263,
+        -0.17758645149541966
+      ],
+      "altitude": 3086.506510301896,
+      "geocentric_latitude_deg": 57.45930039585239,
+      "normal_radius": 6899.036103780752
+    },
+    {
+      "key": "Southern",
+      "representation": "Planetodetic",
+      "frame": "PlanetodeticFixed",
+      "flattening": 0.05,
+      "equatorial_radius": 6378.0,
+      "values": [
+        8500,
+        -75,
+        -58,
+        7.1,
+        315,
+        -23
+      ],
+      "names": [
+        "PlanetodeticRMAG",
+        "PlanetodeticLON",
+        "PlanetodeticLAT",
+        "PlanetodeticVMAG",
+        "PlanetodeticAZI",
+        "PlanetodeticHFPA"
+      ],
+      "units": [
+        "km",
+        "deg",
+        "deg",
+        "km/sec",
+        "deg",
+        "deg"
+      ],
+      "invalid_field": "PlanetodeticLAT",
+      "invalid": [
+        "nan",
+        "91",
+        "-91"
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09,
+      "cartesian": [
+        1228.734000631506,
+        -4585.69771934415,
+        -7050.644593403778,
+        -3.8727698218914854,
+        -3.402175059226766,
+        4.882300561520352
+      ],
+      "altitude": 2344.7364928165043,
+      "geocentric_latitude_deg": -56.04613798219877,
+      "normal_radius": 6614.1067495922
+    }
+  ]
+}

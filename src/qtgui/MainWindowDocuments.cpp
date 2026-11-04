@@ -92,7 +92,7 @@ bool MainWindow::saveScriptDocumentTo(const std::shared_ptr<ScriptDocument> &doc
 bool MainWindow::resolveDocumentPanels()
 {
    for (auto *child:workspace->subWindowList()) {
-      auto *panel=dynamic_cast<EditablePanel *>(child->widget()); if (!panel || !panel->hasChanges()) continue;
+      auto *panel=dynamic_cast<EditablePanel *>(child->widget()); if (!panel || !panel->hasUnappliedInput()) continue;
       const auto choice=QMessageBox::question(this,"Pending active-mission changes","Apply or discard this panel's changes before changing the active mission?\n\n"+child->windowTitle(),QMessageBox::Apply|QMessageBox::Discard|QMessageBox::Cancel,QMessageBox::Cancel);
       if (choice==QMessageBox::Cancel) return false;
       if (choice==QMessageBox::Discard) { panel->discardChanges(); child->close(); continue; }
@@ -100,7 +100,7 @@ bool MainWindow::resolveDocumentPanels()
       if (!apply) { statusBar()->showMessage("Apply this panel's changes before changing the active mission"); return false; }
       apply->click();
       auto *current=dynamic_cast<EditablePanel *>(child->widget());
-      if (current && current->hasChanges()) { statusBar()->showMessage("Panel changes were rejected; correct them before changing the active mission"); return false; }
+      if (current && current->hasUnappliedInput()) { statusBar()->showMessage("Panel changes were rejected; correct them before changing the active mission"); return false; }
    }
    return true;
 }

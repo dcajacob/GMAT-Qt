@@ -183,6 +183,7 @@ bool CommandEcho::Execute()
 {
    echoChanged = true;
    GmatGlobal::Instance()->SetCommandEchoMode(echoStatus);
+   BuildCommandSummary(true);
    return true;
 }
 

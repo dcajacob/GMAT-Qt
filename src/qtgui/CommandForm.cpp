@@ -5,6 +5,10 @@
 #include "FindEvents.hpp"
 #include "Vary.hpp"
 #include "Achieve.hpp"
+#include "RHSEquation.hpp"
+#include "Validator.hpp"
+#include "MathTree.hpp"
+#include "MathNode.hpp"
 #include <memory>
 #include <QFormLayout>
 #include <QLineEdit>
@@ -29,8 +33,8 @@
 #include <QLabel>
 #include <QSignalBlocker>
 
-CommandForm::CommandForm(std::function<void(const QString &)> callback,QWidget *parent)
-   : QGroupBox("Command settings",parent),layout(new QFormLayout(this)),changed(std::move(callback))
+CommandForm::CommandForm(std::function<void(const QString &)> callback,QWidget *parent,const QMap<QString,QString> &pending)
+   : QGroupBox("Command settings",parent),layout(new QFormLayout(this)),pendingFiniteResources(pending),changed(std::move(callback))
 {
    setObjectName("commandForm"); hide();
 }
@@ -65,7 +69,7 @@ void CommandForm::updateSource()
    synchronizing=true; changed(result); synchronizing=false;
 }
 
-QString CommandForm::validationError() const
+QString CommandForm::validationError(bool deferGlobalReferences) const
 {
    if (fields.isEmpty()) return {};
    if (title()=="File thrust") {
@@ -79,6 +83,113 @@ QString CommandForm::validationError() const
       return {};
    }
    if (!Moderator::Instance()->IsInitialized()) return {};
+   const auto plotCommand=QRegularExpression(R"(^\s*(?:%[^\n]*\n\s*)*(ClearPlot|MarkPoint|PenUp|PenDown)\b)").match(original);
+   if (title()=="Plot output" && plotCommand.hasMatch()) {
+      const auto command=plotCommand.captured(1);
+      const bool xyOnly=command=="ClearPlot" || command=="MarkPoint";
+      const auto *input=findChild<QLineEdit *>("commandField_Subscribers");
+      const auto names=input ? input->text().split(QRegularExpression("\\s+"),Qt::SkipEmptyParts) : QStringList{};
+      if (names.isEmpty()) return "Select at least one "+QString(xyOnly ? "XYPlot":"plot")+" for "+command+".";
+      for (const auto &name:names) {
+         auto *object=Moderator::Instance()->GetConfiguredObject(name.toStdString());
+         if (!object || (!object->IsOfType("XYPlot") &&
+             (xyOnly || (!object->IsOfType("OrbitView") && !object->IsOfType("GroundTrack")))))
+            return command+" requires existing "+QString(xyOnly ? "XYPlot":"XYPlot, OrbitView or GroundTrack")+" names separated by spaces: "+name;
+      }
+      return {};
+   }
+   const auto finiteCommand=QRegularExpression(R"(^\s*(?:%[^\n]*\n\s*)*(BeginFiniteBurn|EndFiniteBurn)\b)").match(original);
+   if (title()=="Finite burn" && finiteCommand.hasMatch()) {
+      // Reject malformed references before a failed mission rebuild can retire
+      // the native command and leave this correction draft on a stale model.
+      const auto command=finiteCommand.captured(1);
+      const auto *burnInput=findChild<QLineEdit *>("commandField_Burn");
+      const auto *satInput=findChild<QLineEdit *>("commandField_Spacecraft");
+      const auto burn=burnInput ? burnInput->text().trimmed() : QString();
+      static const QRegularExpression identifier("^[A-Za-z][A-Za-z0-9_]*$");
+      const auto burnError=command+" requires an existing FiniteBurn name.";
+      if (!identifier.match(burn).hasMatch()) return burnError;
+      auto *resource=Moderator::Instance()->GetConfiguredObject(burn.toStdString());
+      if (resource ? !resource->IsOfType("FiniteBurn") : pendingFiniteResources.value(burn)!="FiniteBurn") return burnError;
+      const auto spacecraftText=satInput ? satInput->text().trimmed() : QString();
+      if (spacecraftText.isEmpty()) return command+" requires one spacecraft.";
+      static const QRegularExpression spacecraftList("^[A-Za-z][A-Za-z0-9_]*(?:\\s*,\\s*[A-Za-z][A-Za-z0-9_]*)*$");
+      if (!spacecraftList.match(spacecraftText).hasMatch()) return command+" requires spacecraft names separated by commas.";
+      auto satellites=spacecraftText.split(',');
+      for (auto &name:satellites) name=name.trimmed();
+      for (const auto &name:satellites) {
+         if (!identifier.match(name).hasMatch()) return command+" requires existing Spacecraft names: "+name;
+         auto *spacecraft=Moderator::Instance()->GetConfiguredObject(name.toStdString());
+         if (spacecraft ? !spacecraft->IsOfType("Spacecraft") : pendingFiniteResources.value(name)!="Spacecraft") return command+" requires existing Spacecraft names: "+name;
+      }
+      // Both native finite-burn commands deduplicate repeated references to
+      // the same spacecraft, but reject a second distinct spacecraft.
+      satellites.removeDuplicates();
+      if (satellites.size()!=1) return command+" supports one distinct spacecraft. Use separate commands for separate spacecraft.";
+      return {};
+   }
+   const auto objectCommand=QRegularExpression(R"(^\s*(?:%[^\n]*\n\s*)*(Global|Save)\b)").match(original);
+   if (title()=="Objects" && objectCommand.hasMatch()) {
+      const auto command=objectCommand.captured(1);
+      const bool save=command=="Save";
+      const auto *input=findChild<QLineEdit *>("commandField_Objects");
+      const auto names=input ? input->text().split(QRegularExpression("\\s+"),Qt::SkipEmptyParts):QStringList{};
+      if (names.isEmpty()) return "Select at least one existing object for "+command+".";
+      static const QRegularExpression identifier("^[A-Za-z][A-Za-z0-9_]*$");
+      for (const auto &name:names) {
+         auto *object=Moderator::Instance()->GetConfiguredObject(name.toStdString());
+         const bool solarSystem=save && name=="SolarSystem" && Moderator::Instance()->GetSolarSystemInUse();
+         // Global resolves dynamic/local names in Execute. Preserve that
+         // native contract for the raw script fallback, while typed selectors
+         // and every Save edit still require configured objects.
+         if (!identifier.match(name).hasMatch() ||
+             (!object && !solarSystem && (save || !deferGlobalReferences)))
+            return command+" requires existing object names separated by spaces: "+name;
+         if (save && object && object->IsOfType(Gmat::PARAMETER) &&
+             !object->IsOfType("Variable") && !object->IsOfType("Array") && !object->IsOfType("String"))
+            return "Save requires resources, variables, strings or arrays, not computed parameters: "+name;
+      }
+      return {};
+   }
+   if (title()=="Assignment") {
+      const auto *left=findChild<QLineEdit *>("commandField_Destination");
+      const auto *right=findChild<QLineEdit *>("commandField_Expression");
+      auto *moderator=Moderator::Instance();
+      auto *target=left ? moderator->GetConfiguredObject(left->text().trimmed().toStdString()) : nullptr;
+      // Whole-array expressions defer shape checks until mission initialization.
+      // Validate a temporary equation without executing it or committing its text.
+      // Parameter-dependent expressions retain their normal interpreter path.
+      // GetConfiguredObject also resolves indexed names to their parent Array.
+      // An indexed destination requires a scalar result, not the array shape.
+      const bool wholeArray=left && QRegularExpression(R"(^[A-Za-z][A-Za-z0-9_]*$)").match(left->text().trimmed()).hasMatch();
+      if (target && target->IsOfType("Array") && right &&
+          !QRegularExpression(R"([A-Za-z][A-Za-z0-9_]*\.)").match(right->text()).hasMatch()) {
+         auto *configured=moderator->GetConfiguredObjectMap();
+         ObjectMap local=*configured,global;
+         auto *validator=Validator::Instance();
+         struct RestoreMap { Validator *validator; ObjectMap *original; ~RestoreMap() { validator->SetObjectMap(original); } } restore{validator,configured};
+         validator->SetObjectMap(&local);
+         try {
+            RHSEquation expression;
+            if (!expression.BuildExpression(right->text().trimmed().toStdString(),&local,true)) return {};
+            // Function and property-dependent expressions need mission context.
+            // Never install a temporary command in the shared Validator.
+            if (!expression.GetFunctionNames().empty()) return {};
+            if (!validator->ValidateEquation(&expression) || !expression.Initialize(&local,&global))
+               return "The array expression is invalid. Check its operands and dimensions.";
+            if (auto *tree=expression.GetMathTree(false)) {
+               Integer type=0,rows=0,columns=0;
+               tree->GetTopNode()->GetOutputInfo(type,rows,columns);
+               const Integer requiredRows=wholeArray ? target->GetIntegerParameter("NumRows") : 1;
+               const Integer requiredColumns=wholeArray ? target->GetIntegerParameter("NumCols") : 1;
+               if (rows!=requiredRows || columns!=requiredColumns)
+                  return wholeArray ? "The array assignment result must match the destination dimensions."
+                                    : "An array element assignment requires a scalar result.";
+            }
+         } catch (BaseException &error) { return QString::fromStdString(error.GetFullMessage()); }
+         catch (const std::exception &error) { return QString::fromUtf8(error.what()); }
+      }
+   }
    QStringList operands;
    if (title()=="Constraint") operands={"Left side","Right side"};
    else if (title()=="Vary") operands={"Variable","Initial value","Perturbation","Lower","Upper","MaxStep","AdditiveScaleFactor","MultiplicativeScaleFactor"};
@@ -103,6 +214,20 @@ QString CommandForm::validationError() const
          return side+QString(" array indices must be within rows 1–%1 and columns 1–%2.").arg(rows).arg(columns);
    }
    if (title()=="Vary") {
+      for (const auto &field:fields) {
+         const auto name=field.input->objectName().mid(QString("commandField_").size());
+         if (!QStringList{"Initial value","Lower","Upper","AdditiveScaleFactor","MultiplicativeScaleFactor"}.contains(name) ||
+             field.input->text()==original.mid(field.start,field.length)) continue;
+         // Preserve expressions/references for native validation. Numeric
+         // literals must remain finite before any mission replacement occurs.
+         const auto text=field.input->text().trimmed();
+         bool valid=false;const auto value=text.toDouble(&valid);
+         static const QRegularExpression literal(R"(^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$)");
+         if ((valid && !std::isfinite(value)) || (!valid && literal.match(text).hasMatch()))
+            return name+" requires a finite numeric value or a valid reference/expression.";
+         if (name=="MultiplicativeScaleFactor" && valid && value<=0)
+            return "The multiplicative scale factor must be greater than zero.";
+      }
       // wx checks literal ranges when initial/bound fields change. Keep
       // untouched legacy settings and reference-valued ranges intact.
       bool rangeChanged=false;
@@ -142,7 +267,7 @@ void CommandForm::setStatement(const QString &statement)
    struct Spec { QString type,pattern; QStringList labels; };
    const QVector<Spec> specs={
       {"Maneuver","Maneuver\\s+"+label+"(?:BackProp\\s+)?"+name+"\\s*\\(\\s*"+name+"\\s*\\)"+end,{"Burn","Spacecraft"}},
-      {"Finite burn","(?:BeginFiniteBurn|EndFiniteBurn)\\s+"+label+name+"\\s*\\(\\s*"+expression+"\\s*\\)"+end,{"Burn","Spacecraft"}},
+      {"Finite burn","(?:BeginFiniteBurn|EndFiniteBurn)\\s+"+label+name+"\\s*\\(\\s*([^;{}\\n]+?)\\s*\\)"+end,{"Burn","Spacecraft"}},
       {"File thrust","(?:BeginFileThrust|EndFileThrust)\\s+"+label+name+"\\s*\\(\\s*([^;()\\n]+?)\\s*\\)"+end,{"Thrust history","Spacecraft"}},
       {"Vary","Vary\\s+"+label+name+"\\s*\\(\\s*"+scalar+"\\s*=\\s*"+scalar+"\\s*(?:,\\s*\\{([^{};]*)\\})?\\s*\\)"+end,{"Solver","Variable","Initial value"}},
       {"Achieve","Achieve\\s+"+label+name+"\\s*\\(\\s*"+scalar+"\\s*=\\s*"+scalar+"\\s*(?:,\\s*\\{([^{};]*)\\})?\\s*\\)"+end,{"Solver","Goal","Value"}},
@@ -153,7 +278,7 @@ void CommandForm::setStatement(const QString &statement)
       {"Dynamic update","UpdateDynamicData\\s+"+label+name+"([^;%\\n]*?)"+end,{"Display","Parameters"}},
       {"File import","Set\\s+"+label+name+"\\s+"+name+"([ \\t]*(?:\\(\\s*Data\\s*=\\s*\\{[^{}();%\\n]*\\}\\s*\\))?)"+end,{"Target","Data source","Data"}},
       {"Measurement simulation","RunSimulator\\s+"+label+name+end,{"Simulator"}},
-      {"Orbit estimation","RunEstimator\\s+"+label+name+end,{"Estimator"}},
+      {"Orbit estimation","RunEstimator\\s+"+label+name+"(?:\\s*\\{([^{};]*)\\})?"+end,{"Estimator"}},
       {"Orbit smoothing","RunSmoother\\s+"+label+name+end,{"Smoother"}},
       {"Event search","FindEvents\\s+"+label+name+"(?:\\s*\\{([^{};]*)\\})?"+end,{"Locator"}},
       {"Python call",label+"(\\[[^\\];\\n]*\\]|[A-Za-z][A-Za-z0-9_]*)\\s*=\\s*Python\\."+pythonName+"\\."+pythonName+"\\s*\\(([^;\\n]*?)\\)"+end,{"Outputs","Module","Function","Inputs"}},
@@ -165,6 +290,7 @@ void CommandForm::setStatement(const QString &statement)
       {"Function call",label+"(\\[[^\\];\\n]*\\]|[A-Za-z][A-Za-z0-9_]*)\\s*=\\s*"+name+"()"+end,{"Outputs","Function","Inputs"}},
       {"Function call",label+name+"()"+end,{"Function","Inputs"}},
       {"Toggle","Toggle\\s+"+label+"([A-Za-z][A-Za-z0-9_]*(?:\\s+[A-Za-z][A-Za-z0-9_]*)*)\\s+(On|Off)"+end,{"Subscribers","State"}},
+      {"Plot output","(?:PenUp|PenDown|ClearPlot|MarkPoint)\\s+"+label+"([A-Za-z][A-Za-z0-9_]*(?:\\s+[A-Za-z][A-Za-z0-9_]*)*)"+end,{"Subscribers"}},
       {"Command echo","CommandEcho\\s+"+label+"(On|Off)"+end,{"State"}},
       {"Objects","(?:Global|Clear|Save)\\s+"+label+"([^;%\\n]+?)"+end,{"Objects"}},
       {"Assignment","(?:GMAT\\s+)?"+label+"([A-Za-z][A-Za-z0-9_.]*(?:\\([^;\\n]*?\\))?)\\s*=\\s*([^;\\n]+?)"+end,{"Destination","Expression"}},
@@ -294,10 +420,14 @@ void CommandForm::setStatement(const QString &statement)
             if (dialog.exec()!=QDialog::Accepted) return;
             const auto values=dialog.selection().join(", "); input->setText(outputs ? "["+values+"]" : values);
          });
-      } else if (title()=="Solver branch" && (name=="SolveMode" || name=="ExitMode")) {
+      } else if ((title()=="Solver branch" && (name=="SolveMode" || name=="ExitMode")) ||
+                 (title()=="Orbit estimation" && name=="SolveMode")) {
          Target prototype;
          auto *choice=new QComboBox(this); choice->setObjectName("commandChoice_"+name);
-         for (const auto &option:prototype.GetStringArrayParameter((name+"Options").toStdString())) choice->addItem(QString::fromStdString(option));
+         if (title()=="Orbit estimation")
+            choice->addItems({"Solve","RunInitialGuess"}); // RunEstimator guide; RunCorrected is not supported.
+         else
+            for (const auto &option:prototype.GetStringArrayParameter((name+"Options").toStdString())) choice->addItem(QString::fromStdString(option));
          if (choice->findText(input->text())<0) choice->addItem(input->text());
          choice->setCurrentText(input->text()); input->setParent(choice); input->hide(); layout->addRow(name,choice);
          connect(choice,&QComboBox::currentTextChanged,input,&QLineEdit::setText);
@@ -327,12 +457,15 @@ void CommandForm::setStatement(const QString &statement)
          state->setCurrentText(input->text()); input->setParent(state); input->hide(); layout->addRow(name,state);
          connect(state,&QComboBox::currentTextChanged,input,&QLineEdit::setText);
          connect(input,&QLineEdit::textChanged,state,&QComboBox::setCurrentText);
-      } else if ((title()=="Toggle" && name=="Subscribers") || (title()=="Objects" && name=="Objects")) {
-         const bool subscribers=title()=="Toggle";
+      } else if (((title()=="Toggle" || title()=="Plot output") && name=="Subscribers") || (title()=="Objects" && name=="Objects")) {
+         const bool subscribers=title()=="Toggle" || title()=="Plot output";
+         const bool plotsOnly=title()=="Plot output";
+         const bool xyOnly=QRegularExpression(prefix+"(?:ClearPlot|MarkPoint)\\b").match(statement).hasMatch();
          const bool global=QRegularExpression(prefix+"Global\\b").match(statement).hasMatch();
+         const bool save=QRegularExpression(prefix+"Save\\b").match(statement).hasMatch();
          auto *container=new QWidget(this); auto *row=new QHBoxLayout(container); row->setContentsMargins(0,0,0,0); row->addWidget(input);
          auto *choose=new QPushButton("Select…",container); choose->setObjectName("commandChoose_"+name); row->addWidget(choose); layout->addRow(name,container);
-         connect(choose,&QPushButton::clicked,this,[this,input,subscribers,global] {
+         connect(choose,&QPushButton::clicked,this,[this,input,subscribers,plotsOnly,xyOnly,global,save] {
             QDialog dialog(this); dialog.setObjectName(subscribers ? "toggleSubscriberDialog" : "commandObjectDialog"); dialog.setWindowTitle(subscribers ? "Select outputs" : "Select objects"); dialog.resize(400,350);
             auto *layout=new QVBoxLayout(&dialog); auto *list=new QListWidget(&dialog); list->setObjectName(subscribers ? "toggleSubscriberList" : "commandObjectList");
             list->setDragDropMode(QAbstractItemView::InternalMove); layout->addWidget(list);
@@ -346,12 +479,29 @@ void CommandForm::setStatement(const QString &statement)
             }
             for (const auto &name:candidates) {
                auto *object=moderator->GetConfiguredObject(name); if (!object) continue;
+               if (plotsOnly && !object->IsOfType("XYPlot") &&
+                   (xyOnly || (!object->IsOfType("OrbitView") && !object->IsOfType("GroundTrack")))) continue;
                if (global && object->IsAutomaticGlobal()) continue;
                if (!subscribers && object->IsOfType(Gmat::PARAMETER) && !object->IsOfType("Variable") &&
                   !object->IsOfType("Array") && !object->IsOfType("String")) continue;
                available.append(QString::fromStdString(name));
             }
+            // SolarSystem is supported by native Save but is not a configured
+            // resource or celestial body, so the ordinary lists omit it.
+            if (save && moderator->GetSolarSystemInUse()) available.append("SolarSystem");
             available.removeDuplicates();
+            if (plotsOnly) {
+               QStringList existing,unavailable;
+               for (const auto &name:names) {
+                  if (available.contains(name)) existing.append(name);
+                  else unavailable.append(name);
+               }
+               existing.removeDuplicates(); unavailable.removeDuplicates(); names=existing;
+               if (!unavailable.isEmpty()) {
+                  auto *note=new QLabel("Unavailable plot references: "+unavailable.join(", "),&dialog);
+                  note->setObjectName("unavailablePlotReferences"); note->setWordWrap(true); layout->insertWidget(0,note);
+               }
+            }
             if (global) {
                auto *note=new QLabel("Automatically global resources are omitted from new choices.",&dialog);
                note->setWordWrap(true); layout->insertWidget(0,note);
@@ -402,6 +552,8 @@ void CommandForm::setStatement(const QString &statement)
                   if (resourceType=="Solver" && !object->IsOfType("BoundaryValueSolver") && !object->IsOfType("Optimizer")) continue;
                   resources.append(QString::fromStdString(value));
                }
+               if (title()=="Finite burn") for (auto i=pendingFiniteResources.cbegin();i!=pendingFiniteResources.cend();++i)
+                  if (i.value()==resourceType && !resources.contains(i.key())) resources.append(i.key());
                resources.sort(); bool accepted=false;
                const auto chosen=QInputDialog::getItem(this,"Select "+name,name,resources,
                   std::max(0,static_cast<int>(resources.indexOf(input->text()))),false,&accepted);
@@ -418,11 +570,19 @@ void CommandForm::setStatement(const QString &statement)
    for (const auto &spec:specs) {
       const auto match=QRegularExpression(prefix+spec.pattern).match(statement);
       if (!match.hasMatch()) continue;
-      if (spec.type=="Function call" && match.captured(spec.labels.indexOf("Inputs")+1).isEmpty() &&
-          match.capturedStart(spec.labels.indexOf("Inputs")+1)==match.capturedEnd(spec.labels.indexOf("Function")+1)) {
+      // A parenthesized RHS can be a math expression or array element.
+      // Follow the interpreter's built-in function registry as well as
+      // configured Function objects; built-ins need no Create statement.
+      if (spec.type=="Function call") {
          auto *moderator=Moderator::Instance();
-         auto *function=moderator->IsInitialized() ? moderator->GetConfiguredObject(match.captured(spec.labels.indexOf("Function")+1).toStdString()) : nullptr;
-         if (!function || !function->IsOfType("Function")) continue;
+         const auto callee=match.captured(spec.labels.indexOf("Function")+1).toStdString();
+         auto *function=moderator->IsInitialized() ? moderator->GetConfiguredObject(callee) : nullptr;
+         bool builtin=false;
+         if (moderator->IsInitialized()) {
+            const auto &functions=moderator->GetListOfFactoryItems(Gmat::FUNCTION);
+            builtin=std::find(functions.begin(),functions.end(),callee)!=functions.end();
+         }
+         if ((!function || !function->IsOfType("Function")) && !builtin) continue;
       }
       setTitle(spec.type);
       if (spec.type=="Maneuver") {
@@ -451,7 +611,7 @@ void CommandForm::setStatement(const QString &statement)
             add(setting.captured(1),match.capturedStart(options)+setting.capturedStart(2),setting.capturedLength(2));
          }
       }
-      if (spec.type=="Solver branch" || spec.type=="Event search" || spec.type=="Vary" || spec.type=="Achieve") {
+      if (spec.type=="Solver branch" || spec.type=="Event search" || spec.type=="Vary" || spec.type=="Achieve" || spec.type=="Orbit estimation") {
          std::unique_ptr<GmatCommand> prototype;
          if (spec.type=="Event search") prototype=std::make_unique<FindEvents>();
          else if (spec.type=="Vary") prototype=std::make_unique<Vary>();
@@ -460,6 +620,7 @@ void CommandForm::setStatement(const QString &statement)
          else prototype=std::make_unique<Target>();
          QStringList missing;
          const QStringList keys=spec.type=="Event search" ? QStringList{"Append"} :
+            spec.type=="Orbit estimation" ? QStringList{"SolveMode"} :
             spec.type=="Vary" ? QStringList{"Perturbation","Lower","Upper","MaxStep","AdditiveScaleFactor","MultiplicativeScaleFactor"} :
             spec.type=="Achieve" ? QStringList{"Tolerance"} : QStringList{"SolveMode","ExitMode","ShowProgressWindow"};
          for (const auto &key:keys) {

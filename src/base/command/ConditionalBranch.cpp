@@ -36,6 +36,7 @@
 #include "Parameter.hpp"
 #include "StringUtil.hpp"         // for GetArrayIndex()
 #include "MessageInterface.hpp"
+#include <cmath>
 
 //#define DEBUG_CONDITIONS 1
 //#define DEBUG_CONDITIONS_INIT 1
@@ -1176,6 +1177,12 @@ bool ConditionalBranch::SetElementWrapper(ElementWrapper *toWrapper,
                   " [ Real Number, Variable, Array Element, or Parameter ]. "); 
    }
    CheckDataType(toWrapper, Gmat::REAL_TYPE, "ConditionalBranch", true);
+   if (toWrapper->GetWrapperType() == Gmat::NUMBER_WT &&
+       !std::isfinite(toWrapper->EvaluateReal()))
+   {
+      throw CommandException("The numeric literal \"" + withName +
+         "\" on command \"" + typeName + "\" must be finite.");
+   }
    
    
    #ifdef DEBUG_WRAPPER_CODE   

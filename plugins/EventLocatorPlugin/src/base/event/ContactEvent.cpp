@@ -57,20 +57,9 @@ ContactEvent::~ContactEvent()
    // nothing to do here
 }
 
-ContactEvent::ContactEvent(const ContactEvent& copy) :
-   LocatedEvent(copy)
-{
-}
-
-ContactEvent& ContactEvent::operator=(const ContactEvent& copy)
-{
-   if (&copy != this)
-   {
-      LocatedEvent::operator=(copy);
-   }
-
-   return *this;
-}
+// All report columns, sampled arrays and metadata have ordinary value ownership.
+ContactEvent::ContactEvent(const ContactEvent& copy) = default;
+ContactEvent& ContactEvent::operator=(const ContactEvent& copy) = default;
 
 std::string ContactEvent::GetReportStringLegacy()
 {

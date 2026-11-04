@@ -178,7 +178,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>km in the Qt body-model display coordinate frame</para>
                   </listitem>
                 </varlistentry>
 
@@ -234,7 +234,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>km in the Qt body-model display coordinate frame</para>
                   </listitem>
                 </varlistentry>
 
@@ -290,7 +290,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>km in the Qt body-model display coordinate frame</para>
                   </listitem>
                 </varlistentry>
 
@@ -513,7 +513,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless model scale</para>
                   </listitem>
                 </varlistentry>
 
@@ -863,7 +863,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless ratio</para>
                   </listitem>
                 </varlistentry>
 
@@ -1098,7 +1098,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Integer identifier or type code; no physical quantity</para>
                   </listitem>
                 </varlistentry>
 
@@ -1331,7 +1331,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>A1 Modified Julian Epoch</para>
+                    <para>GMAT A1 modified Julian days</para>
                   </listitem>
                 </varlistentry>
 

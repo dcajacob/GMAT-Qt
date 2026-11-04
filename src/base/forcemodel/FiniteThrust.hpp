@@ -51,6 +51,7 @@ public:
    bool                    operator==(const FiniteThrust& ft) const;
 
    virtual GmatBase*       Clone() const;
+   void Copy(const GmatBase *original) override;
 
    virtual void            Clear(const UnsignedInt
                                  type = Gmat::UNKNOWN_OBJECT);

@@ -1058,8 +1058,11 @@ Rvector NLPFunctionGenerator::GetElasticW(Rvector decVector)
 //------------------------------------------------------------------------------
 Real NLPFunctionGenerator::GetMaxElasticVar(Rvector decVector)
 {
+   // Unconstrained problems have no V/W entries in the decision vector.
+   if (numUserConstraints == 0)
+      return 0.0;
    Real maxElasticVar = GmatMathUtil::Abs(decVector[elasticVarVStartIdx]);
-   for (Integer i = elasticVarVStartIdx + 1; i < elasticVarWStopIdx; ++i)
+   for (Integer i = elasticVarVStartIdx + 1; i <= elasticVarWStopIdx; ++i)
    {
       if (GmatMathUtil::Abs(decVector[i]) > maxElasticVar)
          maxElasticVar = GmatMathUtil::Abs(decVector[i]);
@@ -1099,6 +1102,9 @@ void NLPFunctionGenerator::SetElasticWeight(Real elasticWeightInput)
 Real NLPFunctionGenerator::MaxUserConViolation(Rvector conViolation,
                                                   Rvector decVector)
 {
+   // Variable-bound rows are not user constraints and need no elastic shift.
+   if (numUserConstraints == 0)
+      return 0.0;
    Rvector conViolationCopy = conViolation;
    conViolation.SetSize(numUserConstraints);
    for (Integer i = 0; i < numUserConstraints; ++i)

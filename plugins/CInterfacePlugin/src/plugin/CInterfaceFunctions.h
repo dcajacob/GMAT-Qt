@@ -58,6 +58,17 @@ const char CINTERFACE_API *GetStateDescription();
 int CINTERFACE_API SetState(double epoch, double state[], int stateDim);
 double CINTERFACE_API *GetState();
 
+/* Read the named run-sandbox spacecraft's epoch in GMAT A1 modified Julian
+ * days (JD - 2430000.0). Call after RunScript, including a stopped or failed
+ * execution. A new StartGmat/LoadScript invalidates access until another run.
+ * Returns 0 on success; -1 for null/empty arguments, -2 without an initialized
+ * run sandbox, -3 for a missing/non-spacecraft object, -4 for a read error.
+ * On failure *epochA1Mjd is unchanged; getLastMessage describes the result.
+ * This copies a scalar and does not select an ODE model or change any state.
+ */
+int CINTERFACE_API GetSpacecraftEpoch(const char *spacecraftName,
+      double *epochA1Mjd);
+
 double CINTERFACE_API *GetDerivativesForState(double epoch, double state[], 
       int stateDim, double dt, int order, int *pdim);
 double CINTERFACE_API *GetDerivatives(double dt, int order, int *pdim);

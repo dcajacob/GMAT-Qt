@@ -108,7 +108,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Constraint-residual numerical units; use consistent scaling for unlike constraints</para>
                   </listitem>
                 </varlistentry>
 
@@ -217,7 +217,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Integer count or order (samples, segments, iterations or polynomial degree as described)</para>
                   </listitem>
                 </varlistentry>
 
@@ -462,7 +462,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Numerical objective-value units used by the solver (HSL ACC accuracy)</para>
                   </listitem>
                 </varlistentry>
 
@@ -584,7 +584,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Integer count or order (samples, segments, iterations or polynomial degree as described)</para>
                   </listitem>
                 </varlistentry>
 
@@ -694,6 +694,9 @@
 
   <refsection>
     <title>Remarks</title>
+
+    <para>Tolerance is passed as the HSL objective-accuracy argument ACC. Its numerical units follow the objective supplied to the solver. FeasibilityTolerance follows the numerical constraint-residual scale used by the optimizer. Vary variable scaling does not by itself declare a universal physical unit for an arbitrary objective or constraint. Normalize unlike functions and use consistent scales when choosing global tolerances.</para>
+    <para>Vendor accuracy reference: <link xlink:href="https://www.hsl.rl.ac.uk/archive-specs/vf13.pdf">HSL VF13 package specification</link>, ACC argument definition. The published library specification and the current wrapper binding establish this input convention; they do not certify every numerical problem.</para>
 
     <refsection>
       <title>VF13ad Optimizer Availability</title>

@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "VaryTarget",
+      "historical_key": "H2012:R1276",
+      "fingerprint": "6e4625aa8ca386f336f0ef0235dce0a62b0fc471c77d8bfe849dfddb6b849538",
+      "insertions": 3,
+      "branches": 1
+    },
+    {
+      "key": "VaryOptimize",
+      "historical_key": "H2012:R1314",
+      "fingerprint": "df12d2c4b7f498bfeb3c45c39ccff8f5dda1b458ac35780d31e6d0c7e4000edd",
+      "insertions": 3,
+      "branches": 1
+    },
+    {
+      "key": "Achieve",
+      "historical_key": "H2012:R1674",
+      "fingerprint": "88a0c344febd649fabdd08d2a6f9f0cabeebe276d2ab1f32dd42531b864997e4",
+      "insertions": 3,
+      "branches": 1
+    },
+    {
+      "key": "Minimize",
+      "historical_key": "H2012:R1719",
+      "fingerprint": "c93598124543ec52ce5306181835a454b3a6b6f0b8948285923ea224df5aa838",
+      "insertions": 3,
+      "branches": 3
+    },
+    {
+      "key": "NonlinearConstraint",
+      "historical_key": "H2012:R1873",
+      "fingerprint": "836e2a0cd2a36e26a8c7e7416b513cfda27b037acc32652730c042e8f8323ba2",
+      "insertions": 3,
+      "branches": 1
+    }
+  ],
+  "scope": "Three repeated legal insertions;Minimize uses one objective in each of three separate Optimize sequences plus duplicate rejection. Original private AddMany recipes remain unknown."
+}

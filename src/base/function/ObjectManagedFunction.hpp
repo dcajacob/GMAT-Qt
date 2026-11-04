@@ -58,6 +58,7 @@ public:
    virtual void         SetFunctionObjectMap(ObjectMap *objMap);
    virtual ObjectMap*   GetFunctionObjectStore();
    virtual void         SetGlobalObjectMap(ObjectMap *objMap);
+   const ObjectMap*     GetGlobalObjectStore() const;
    
    virtual bool         SetInputElementWrapper(const std::string &forName,
                                                ElementWrapper *wrapper);

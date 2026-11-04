@@ -28,7 +28,9 @@ int main(int argc,char **argv)
       require(argc==2,"Expected startup path"); TestSettings settings;
       MainWindow window; window.resize(1280,1000); window.show(); require(window.initialize(QString::fromLocal8Bit(argv[1])),"Initialization failed");
       auto *editor=window.findChild<QPlainTextEdit *>("scriptEditor");
-      const QString source="% Preserve pending command source Δ\nCreate Spacecraft Sat;\nCreate ImpulsiveBurn Burn;\nCreate DifferentialCorrector DC;\nBeginMissionSequence;\nStop;\n";
+      // Achieve and Vary are offered only inside a Target branch. Geometry
+      // checks must use that legal insertion context, even without execution.
+      const QString source="% Preserve pending command source Δ\nCreate Spacecraft Sat;\nCreate ImpulsiveBurn Burn;\nCreate DifferentialCorrector DC;\nBeginMissionSequence;\nTarget DC;\nStop;\nEndTarget;\n";
       editor->setPlainText(source); require(window.buildScript(),"Geometry fixture failed to build");
       auto *tree=window.findChild<QTreeWidget *>("Mission"); auto *area=window.findChild<QMdiArea *>("workspace"); require(tree && area,"Mission UI absent");
       struct Cleanup { QMdiArea *area; ~Cleanup() { for(auto *child:area->subWindowList()) if(dynamic_cast<CommandEditor *>(child->widget())) dynamic_cast<CommandEditor *>(child->widget())->discardChanges(); } } cleanup{area};

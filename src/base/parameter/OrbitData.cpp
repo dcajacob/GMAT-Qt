@@ -32,6 +32,7 @@
 //------------------------------------------------------------------------------
 #include "gmatdefs.hpp"
 #include "OrbitData.hpp"
+#include "Publisher.hpp"
 #include "ParameterException.hpp"
 #include "Rvector3.hpp"
 #include "RealUtilities.hpp"
@@ -233,6 +234,12 @@ OrbitData::~OrbitData()
 //------------------------------------------------------------------------------
 void OrbitData::SetReal(Integer item, Real rval)
 {
+   if (item == KEP_RADN)
+   {
+      item = KEP_RAAN;
+      rval = AngleUtil::PutAngleInDegRange(rval - 180.0, 0.0, 360.0);
+   }
+
    #ifdef DEBUG_ORBITDATA_SET
    MessageInterface::ShowMessage
       ("\nOrbitData::SetReal() '%s' entered, item=%d, rval=%f\n",
@@ -565,6 +572,15 @@ Rvector6 OrbitData::GetCartState()
    }
 
    Rvector6 lastCartState = mSpacePoint->GetLastState();
+   GmatTime sampleEpoch;
+   Rvector6 sampleState;
+   const bool publishedSample = Publisher::GetParameterCartesianState(
+      mSpacePoint, sampleEpoch, sampleState);
+   if (publishedSample)
+   {
+      mCartEpoch = sampleEpoch.GetMjd();
+      lastCartState = sampleState;
+   }
    #ifdef DEBUG_ORBITDATA_RUN
    MessageInterface::ShowMessage
       ("   epoch from spacepoint is %le\n", mCartEpoch);
@@ -606,6 +622,12 @@ Rvector6 OrbitData::GetCartState()
          ("OrbitData::GetCartState() internal or output CoordinateSystem is NULL.\n");
    }
    
+   // Canonical publication samples take priority over the live local cache.
+   const bool localState = !publishedSample && mSpacecraft &&
+      mInternalCS == mSpacecraft->GetInternalCoordSystem() &&
+      mSpacecraft->GetOriginRelativeState(mParameterCS->GetOrigin(),
+         mSpacecraft->GetEpochGT(), lastCartState);
+
    //-----------------------------------------------------------------
    // Convert to Parameter CoordinateSystem
    //-----------------------------------------------------------------
@@ -683,7 +705,7 @@ Rvector6 OrbitData::GetCartState()
                   mParameterCS->GetName().c_str());
          #endif
          mCoordConverter.Convert(A1Mjd(mCartEpoch), lastCartState, mInternalCS,
-                                 lastCartState, mParameterCS, true);
+                                 lastCartState, mParameterCS, true, localState);
          #ifdef DEBUG_ORBITDATA_CONVERT
             MessageInterface::ShowMessage
                ("   GetCartState() --> After convert: mCartEpoch=%f\n"
@@ -3349,7 +3371,7 @@ void OrbitData::SetRealParameters(Integer item, Real rval)
 
    // Spherical RADEC
    case RADEC_RMAG:
-      mSpacecraft->SetRealParameter("RMAG", rval);
+      mSpacecraft->SetRealParameter("RMagnitude", rval);
       break;
    case RADEC_RA:
       mSpacecraft->SetRealParameter("RA", rval);
@@ -3358,7 +3380,7 @@ void OrbitData::SetRealParameters(Integer item, Real rval)
       mSpacecraft->SetRealParameter("DEC", rval);
       break;
    case RADEC_VMAG:
-      mSpacecraft->SetRealParameter("VMAG", rval);
+      mSpacecraft->SetRealParameter("VMagnitude", rval);
       break;
    case RADEC_RAV:
       mSpacecraft->SetRealParameter("RAV", rval);
@@ -3369,7 +3391,7 @@ void OrbitData::SetRealParameters(Integer item, Real rval)
    
    // Spherical AZFPA
    case AZIFPA_RMAG:
-      mSpacecraft->SetRealParameter("RMAG", rval);
+      mSpacecraft->SetRealParameter("RMagnitude", rval);
       break;
    case AZIFPA_RA:
       mSpacecraft->SetRealParameter("RA", rval);
@@ -3378,7 +3400,7 @@ void OrbitData::SetRealParameters(Integer item, Real rval)
       mSpacecraft->SetRealParameter("DEC", rval);
       break;
    case AZIFPA_VMAG:
-      mSpacecraft->SetRealParameter("VMAG", rval);
+      mSpacecraft->SetRealParameter("VMagnitude", rval);
       break;
    case AZIFPA_AZI:
       mSpacecraft->SetRealParameter("AZI", rval);

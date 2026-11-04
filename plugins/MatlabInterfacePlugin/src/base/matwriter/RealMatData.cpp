@@ -31,6 +31,9 @@
  */
 
 #include "RealMatData.hpp"
+#ifdef GMAT_MATLAB_QT_ENGINE
+#include "MatlabLibraryExecutor.hpp"
+#endif
 #include "MessageInterface.hpp"
 
 
@@ -152,6 +155,9 @@ bool RealMatData::AddData(const std::vector<Matrix> &data)
 void RealMatData::WriteData(MATFile *pmat, const std::string &obj_name,
       mxArray *mat_struct, mwIndex index)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{WriteData(pmat,obj_name,mat_struct,index);});
+#endif
    // find place to write the data within the struct
    int data_field_number = mxGetFieldNumber(mat_struct, varName.c_str());
    double *dataPtr = NULL;

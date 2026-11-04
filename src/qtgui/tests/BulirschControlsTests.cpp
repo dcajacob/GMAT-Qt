@@ -3,6 +3,8 @@
 #include "ResourcePreview.hpp"
 #include "ResourceProperties.hpp"
 #include "TestSettings.hpp"
+#include "AcceptancePlatform.hpp"
+#include "AcceptanceView.hpp"
 #include "Moderator.hpp"
 #include "PropSetup.hpp"
 #include "Propagator.hpp"
@@ -49,7 +51,8 @@ static ResourceEditor *openPanel(MainWindow &window)
    auto *tree=window.findChild<QTreeWidget *>("Resources");
    const auto items=tree->findItems("Prop",Qt::MatchExactly|Qt::MatchRecursive); require(items.size()==1,"Propagator tree item missing");
    tree->itemDoubleClicked(items.front(),0);
-   auto *panel=dynamic_cast<ResourceEditor *>(panelWindow(window)->widget()); require(panel,"Propagator form missing"); return panel;
+   auto *panel=dynamic_cast<ResourceEditor *>(panelWindow(window)->widget()); require(panel,"Propagator form missing");
+   acceptanceView(*panelWindow(window)); return panel;
 }
 static QString withoutReductions(QString source)
 {
@@ -59,11 +62,13 @@ int main(int argc,char **argv)
 {
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv);
    app.setOrganizationName("GMATTests"); app.setApplicationName("BulirschControls");
-   if (argc!=2 || QGuiApplication::platformName()!="offscreen") return 2;
+   // The same source/native assertions work on the opt-in visible widget
+   // platform; unattended execution retains the ordinary offscreen route.
+   if (argc!=2 || !acceptanceWidgetPlatform()) return 2;
    try {
       TestSettings isolated; QTemporaryDir files; require(files.isValid(),"Temporary files unavailable");
       const auto startup=QFileInfo(argv[1]).absoluteFilePath(); QDir::setCurrent(QFileInfo(startup).absolutePath());
-      MainWindow window; require(window.initialize(startup),"Runtime initialization failed"); window.show();
+      MainWindow window; require(window.initialize(startup),"Runtime initialization failed"); window.show(); acceptanceView(window);
       auto *editor=window.findChild<QPlainTextEdit *>("scriptEditor"); require(editor,"Script editor missing");
       const auto report=files.filePath("endpoint.txt");
       const QString baseline=QString("%% Preserve source α and original numeric spelling\nCreate Spacecraft Vehicle;\nVehicle.X = 7100;\nVehicle.Y = 0;\nVehicle.Z = 1300;\nVehicle.VX = 0;\nVehicle.VY = 7.35;\nVehicle.VZ = 1;\nCreate ForceModel Gravity;\nGravity.PrimaryBodies = {};\nGravity.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = Gravity;\nProp.Type = BulirschStoer;\nProp.InitialStepSize = 60;\nProp.Accuracy = 1e-11;\nProp.MinimumReduction = 0.7;\nProp.MaximumReduction = 1e-05;\nCreate ReportFile Endpoint;\nEndpoint.Filename = '%1';\nEndpoint.Precision = 16;\nEndpoint.WriteReport = false;\nBeginMissionSequence;\nPropagate Prop(Vehicle) {Vehicle.ElapsedSecs = 60};\nReport Endpoint Vehicle.ElapsedSecs Vehicle.X Vehicle.Y Vehicle.Z;\n").arg(report);
@@ -79,8 +84,18 @@ int main(int argc,char **argv)
       require(minimum && maximum && !panel->findChild<QWidget *>("resource_MinimumTolerance"),"Bulirsch controls incorrect");
       minimum->setText("0.6"); maximum->setText("0.0001");
       require(panel->hasChanges() && editor->toPlainText()==baseline,"Pending reduction fields committed before Apply");
+      acceptanceView(*panelWindow(window));
       panel->requestApply(); QApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
+      acceptanceView(*panelWindow(window));
       const auto edited=editor->toPlainText();
+      const auto evidence=qEnvironmentVariable("GMAT_QT_ACCEPTANCE_DIR");
+      if (!evidence.isEmpty()) {
+         QFile script(QDir(evidence).filePath("post-apply.script")); if (script.open(QIODevice::WriteOnly)) script.write(edited.toUtf8());
+         auto *configured=Moderator::Instance()->GetConfiguredObject("Prop");
+         auto *current=dynamic_cast<ResourceEditor *>(panelWindow(window)->widget());
+         QFile diagnostic(QDir(evidence).filePath("post-apply.txt"));
+         if (diagnostic.open(QIODevice::WriteOnly)) diagnostic.write(("minimum="+QString::number(setup(configured)->GetPropagator()->GetRealParameter("MinimumReduction"),'g',17)+"\nmaximum="+QString::number(setup(configured)->GetPropagator()->GetRealParameter("MaximumReduction"),'g',17)+"\npending="+QString::number(current&&current->hasChanges())+"\n").toUtf8());
+      }
       require(edited!=baseline && edited.contains("Prop.MinimumReduction = 0.6;") && edited.contains("Prop.MaximumReduction = 0.0001;"),"GUI Apply serialized default reduction values");
       require(withoutReductions(edited)==withoutReductions(baseline),"Reduction Apply changed unrelated source");
       checkSettings(Moderator::Instance()->GetConfiguredObject("Prop"));

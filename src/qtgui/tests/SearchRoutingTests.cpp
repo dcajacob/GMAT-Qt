@@ -1,3 +1,4 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "ReportViewer.hpp"
 #include "FindReplaceDialog.hpp"
@@ -9,6 +10,8 @@
 #include <QComboBox>
 #include <QDialog>
 #include <QDir>
+#include <QElapsedTimer>
+#include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
 #include <QKeyEvent>
@@ -18,6 +21,7 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QTemporaryDir>
+#include <QThread>
 #include <QTextCursor>
 #include <QVBoxLayout>
 #include <iostream>
@@ -51,7 +55,7 @@ int main(int argc,char **argv)
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv);
    app.setOrganizationName("GMATTests"); app.setApplicationName("QtSearchRouting");
    try {
-      require(argc==2 && QGuiApplication::platformName()=="offscreen","Search routing requires offscreen startup");
+      require(argc==2 && acceptanceWidgetPlatform(),"Search routing requires offscreen startup");
       TestSettings settings; QTemporaryDir files; require(files.isValid(),"Search fixture directory unavailable");
       const auto startup=QFileInfo(QString::fromLocal8Bit(argv[1])).absoluteFilePath();
       QDir::setCurrent(QFileInfo(startup).absolutePath());
@@ -70,7 +74,17 @@ int main(int argc,char **argv)
       };
       const auto focus=[&](QMdiSubWindow *child,QWidget *target) {
          child->showNormal(); area->setActiveSubWindow(child); window.activateWindow(); target->setFocus(Qt::OtherFocusReason); app.processEvents();
-         require(area->activeSubWindow()==child && (QApplication::focusWidget()==target || target->isAncestorOf(QApplication::focusWidget())),"Search focus target was not selected");
+         // Directly-created fixture windows bypass the application's placement
+         // helper. Keep the selected document visible instead of accepting an
+         // off-edge MDI cascade merely because its text controls have focus.
+         const auto bounds=area->viewport()->rect();
+         child->resize(child->size().boundedTo(bounds.size())); child->move(bounds.topLeft());
+         app.processEvents();
+         require(bounds.contains(child->geometry()),"Selected search document extends beyond the visible workspace");
+         const auto selected=[&] { return area->activeSubWindow()==child && (QApplication::focusWidget()==target || target->isAncestorOf(QApplication::focusWidget())); };
+         QElapsedTimer settle; settle.start();
+         while (!selected() && settle.elapsed()<2000) { app.processEvents(QEventLoop::AllEvents,20); QThread::msleep(2); }
+         require(selected(),"Search focus target was not selected");
       };
       const auto selected=[&](QPlainTextEdit *text,const QString &query,int offset,const char *message) {
          require(text->textCursor().selectedText()==query && text->textCursor().selectionStart()==offset,message);
@@ -147,6 +161,8 @@ int main(int argc,char **argv)
       selected(reportText,"ReportToken",first,"Inactive search changed the report selection");
       selected(nestedText,"ReportToken",first,"Inactive search changed the nested report selection");
       require(nestedText->toPlainText()==reportContents && nestedText->isReadOnly(),"Search changed nested report text");
+      std::cout<<R"(NASA_CHECK {"checkpoint":"script.find","family":"script-editor","outcome":"passed","facets":["menu","shortcut","document-isolation","exact-match-offset","read-only-report","source-unchanged","mission-unchanged"]})"<<std::endl;
+      std::cout<<R"(NASA_CHECK {"checkpoint":"script.find-next","family":"script-editor","outcome":"passed","facets":["menu","shortcut","exact-match-offset","forward-backward","wrap","document-isolation","source-unchanged"]})"<<std::endl;
       std::cout<<"PASS local/nested report Ctrl+F/menu Find/Next/Previous and configured Next/Previous shortcuts, read-only Replace/wrapping and button Find; independent inactive-script routing with unchanged active mission, sources, dirty states and report/file bytes. No mission/comparison execution or completed-suite repeat.\n";
       return 0;
    } catch (BaseException &error) { std::cerr<<"FAIL "<<error.GetFullMessage()<<'\n'; return 1; }

@@ -72,8 +72,29 @@ void MissionNavigation::restorePlacement()
    if (QSettings().value("MissionTree/detached",false).toBool()) setDetached(true);
    else dock->hide();
 }
+void MissionNavigation::setExpansion(int level)
+{
+   const int index=depth->findData(level);
+   if (index>=0) { depth->setCurrentIndex(index); refresh(); }
+}
+void MissionNavigation::setDetailed(bool value)
+{
+   detailed=value; refreshLabels();
+}
+void MissionNavigation::refreshLabels()
+{
+   std::function<void(QTreeWidgetItem *)> label=[&](QTreeWidgetItem *item) {
+      if (item->data(0,Qt::UserRole+3).isValid()) {
+         const auto text=item->data(0,Qt::UserRole+(detailed ? 4 : 3)).toString();
+         item->setText(0,(item->data(0,Qt::UserRole+2).toBool() ? QString("● ") : QString())+text);
+      }
+      for (int i=0;i<item->childCount();++i) label(item->child(i));
+   };
+   for (int i=0;i<tree->topLevelItemCount();++i) label(tree->topLevelItem(i));
+}
 void MissionNavigation::refresh()
 {
+   refreshLabels();
    std::function<bool(QTreeWidgetItem *)> visible=[&](QTreeWidgetItem *item) {
       bool descendant=false;
       for (int i=0;i<item->childCount();++i) descendant=visible(item->child(i)) || descendant;

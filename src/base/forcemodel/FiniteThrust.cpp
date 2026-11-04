@@ -32,6 +32,8 @@
 
 
 #include "FiniteThrust.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 
 //#define DEBUG_FINITETHRUST_INIT
 //#define DEBUG_REGISTRATION
@@ -1006,4 +1008,16 @@ bool FiniteThrust::SetStart(Gmat::StateElementId id, Integer index,
    }
    
    return retval;
+}
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void FiniteThrust::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const FiniteThrust*>(original);
+   if (!source || typeid(*source) != typeid(FiniteThrust) ||
+       typeid(*this) != typeid(FiniteThrust))
+      throw GmatBaseException("Cannot copy incompatible object into FiniteThrust");
+   if (source == this)
+      return;
+   operator=(*source);
 }

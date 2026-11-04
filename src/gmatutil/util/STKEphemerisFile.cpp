@@ -445,8 +445,8 @@ bool STKEphemerisFile::GetInitialAndFinalStates(Real &initialA1Mjd, Real &finalA
    if (ReadDataRecords())
    {
       int numRecords = ephemRecords.size();
-      initialA1Mjd = scenarioEpochA1Mjd + ephemRecords[0].timeFromEpoch / 86400.0;
-      finalA1Mjd = scenarioEpochA1Mjd + ephemRecords[numRecords - 1].timeFromEpoch / 86400.0;
+      initialA1Mjd = a1StartEpoch;
+      finalA1Mjd = a1EndEpoch;
       initialState = ephemRecords[0].theState;
       finalState = ephemRecords[numRecords - 1].theState;
       
@@ -1367,6 +1367,11 @@ bool STKEphemerisFile::UTCGregorianToA1ModJulian(const std::string &utcGreg, Rea
 //------------------------------------------------------------------------------
 bool STKEphemerisFile::ReadDataRecords(int logOption)
 {
+   // STK's supported reader policy is Lagrange, including its documented
+   // Hermite-header fallback. Do not inherit the OEM base's Hermite default.
+   useHermite = false;
+   GmatTime scenarioEpoch;
+   RealArray segmentOffsets;
 
    //Map of tested coordinate systems to be updated when new systems have been tested and verified to work.
    //Add the central body as the key and then any coordinate systems verified for STK files and that central body can be added in the value vector.
@@ -1442,6 +1447,23 @@ bool STKEphemerisFile::ReadDataRecords(int logOption)
          // Convert epoch from UTCGregorian to A1Mjd
          if (UTCGregorianToA1ModJulian(item, scenarioEpochA1Mjd))
          {
+            std::string gregorian = item;
+            if (gregorian.size() > 1 && gregorian[1] == ' ')
+               gregorian = "0" + gregorian;
+            // GregorianDate stores seconds-of-day as Real. Read midnight
+            // through it and add the original clock fields separately, so
+            // GetSecond's subtraction cannot discard fractional input bits.
+            GmatTime utc = theTimeConverter->ConvertGregorianToMjdGT(
+                  gregorian.substr(0, 12) + "00:00:00.000");
+            utc.AddSeconds(std::stoi(gregorian.substr(12, 2)) * 3600.0 +
+                  std::stoi(gregorian.substr(15, 2)) * 60.0);
+            const Real second = std::stod(gregorian.substr(18));
+            utc.AddSeconds(second);
+            scenarioEpoch = theTimeConverter->Convert(utc,
+                  TimeSystemConverter::UTCMJD, TimeSystemConverter::A1MJD);
+            if (second >= 60.0)
+               scenarioEpoch.SubtractSeconds(1.0);
+            scenarioEpochA1Mjd = scenarioEpoch.GetMjd();
             // Default start epoch to match scenario
             a1StartEpoch = scenarioEpochA1Mjd;
             scenarioEpochFound = true;
@@ -1539,7 +1561,8 @@ bool STKEphemerisFile::ReadDataRecords(int logOption)
             segTime << line;
             Real dTime;
             segTime >> dTime;
-            
+            segmentOffsets.push_back(dTime);
+
             // Set first segment start time as the start epoch
             if (segmentStartTimes.size() == 0)
             {
@@ -1683,6 +1706,7 @@ bool STKEphemerisFile::ReadDataRecords(int logOption)
                      {
                         a1StartEpoch += time / GmatTimeConstants::SECS_PER_DAY;
                         segmentStartTimes.push_back(a1StartEpoch);
+                        segmentOffsets.push_back(time);
                      }
                      if (segmentStartTimes[0] != a1StartEpoch)
                         MessageInterface::ShowMessage("Warning!  The first "
@@ -1727,23 +1751,21 @@ bool STKEphemerisFile::ReadDataRecords(int logOption)
       theEphem.push_back(seg);
    }
    Integer segNum = 0;
-   GmatEpoch nextSegEpoch = (theEphem.size() > segNum+1 ?
-         theEphem[segNum+1].segStart : 999999.0);
-
    GmatEpoch currentEpoch;
    EphemPoint currentPoint;
    currentPoint.theEpoch = 0.0;
    for (UnsignedInt i = 0; i < ephemRecords.size(); ++i)
    {
-      currentEpoch = scenarioEpochA1Mjd + ephemRecords[i].timeFromEpoch /
-            GmatTimeConstants::SECS_PER_DAY;
-
+      currentPoint.preciseEpoch = scenarioEpoch;
+      currentPoint.preciseEpoch.AddSeconds(ephemRecords[i].timeFromEpoch);
+      currentPoint.hasPrecisionEpoch = true;
+      currentEpoch = currentPoint.preciseEpoch.GetMjd();
       currentPoint.theEpoch = currentEpoch;
       for (UnsignedInt j = 0; j < 6; ++j)
          currentPoint.posvel[j] = ephemRecords[i].theState[j];
-      if (theEphem[segNum].points.size() > 1)
+      if (!theEphem[segNum].points.empty())
       {
-         if (theEphem[segNum].points[theEphem[segNum].points.size() - 1].theEpoch == currentPoint.theEpoch)
+         if (theEphem[segNum].points.back().GetEpoch() == currentPoint.GetEpoch())
          {
 
             if (theEphem[segNum].points[theEphem[segNum].points.size() - 1].posvel != currentPoint.posvel)
@@ -1763,19 +1785,33 @@ bool STKEphemerisFile::ReadDataRecords(int logOption)
                errmsg += ". Ephemeris data can only be discontinuous at segment boundaries.";
                throw UtilityException(errmsg);
             }
+            // An identical repeated record adds no interpolation information.
+            // Boundary repeats are retained in their separate new segment.
+            continue;
          }
       }
       theEphem[segNum].points.push_back(currentPoint);
       theEphem[segNum].segEnd = currentEpoch;
 
       // At a segment boundary, write the end epoch and update the segment index
-      if (currentEpoch >= nextSegEpoch)
+      if (segNum + 1 < static_cast<Integer>(segmentOffsets.size()) &&
+            ephemRecords[i].timeFromEpoch >= segmentOffsets[segNum + 1])
       {
          ++segNum;
-         nextSegEpoch = (theEphem.size() > segNum+1 ?
-                  theEphem[segNum+1].segStart : 999999.0);
       }
    }
+   // Publish rounded bounds from the same exact endpoint clocks used by
+   // interpolation, rather than a separately rounded MJD-plus-offset sum.
+   for (UnsignedInt i = 0; i < theEphem.size(); ++i)
+   {
+      if (!theEphem[i].points.empty())
+      {
+         theEphem[i].segStart = theEphem[i].points.front().theEpoch;
+         theEphem[i].segEnd = theEphem[i].points.back().theEpoch;
+         segmentStartTimes[i] = theEphem[i].segStart;
+      }
+   }
+   a1StartEpoch = theEphem.front().segStart;
    a1EndEpoch = currentEpoch;
 
    if (centralBody == "Moon")
@@ -1849,10 +1885,8 @@ void STKEphemerisFile::GetStartAndEndEpochs(GmatEpoch& startEpoch,
 {
    if (ephemRecords.size() > 0)
    {
-      startEpoch = scenarioEpochA1Mjd + ephemRecords[0].timeFromEpoch /
-            GmatTimeConstants::SECS_PER_DAY;
-      endEpoch = scenarioEpochA1Mjd + ephemRecords[ephemRecords.size()-1].timeFromEpoch /
-            GmatTimeConstants::SECS_PER_DAY;;
+      startEpoch = a1StartEpoch;
+      endEpoch = a1EndEpoch;
    }
    else
       MessageInterface::ShowMessage("Warning: STK Ephemeris file %s contains "

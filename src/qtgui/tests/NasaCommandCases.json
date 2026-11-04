@@ -1,0 +1,308 @@
+[
+  {
+    "key": "Assignment",
+    "template": "Assignment",
+    "before": "'NASA original' V = 1; % keep RHS comment",
+    "field": "Expression",
+    "value": "2 + 3",
+    "after": "'NASA original' V = 2 + 3; % keep RHS comment",
+    "expected": [
+      [
+        5,
+        7
+      ]
+    ]
+  },
+  {
+    "key": "For",
+    "template": "For",
+    "before": "For 'NASA original' i = 1:1:3; % keep header\n   V = V + 2; % NASA body\nEndFor; % keep footer",
+    "field": "End",
+    "value": "4",
+    "after": "For 'NASA original' i = 1:1:4; % keep header\n   V = V + 2; % NASA body\nEndFor; % keep footer",
+    "expected": [
+      [
+        8,
+        4
+      ]
+    ]
+  },
+  {
+    "key": "If",
+    "template": "If",
+    "before": "If 'NASA original' V == 0; % keep header\n   V = 2; % NASA body\nElse;\n   V = 3;\nEndIf; % keep footer",
+    "field": "Condition",
+    "value": "V > 0",
+    "after": "If 'NASA original' V > 0; % keep header\n   V = 2; % NASA body\nElse;\n   V = 3;\nEndIf; % keep footer",
+    "expected": [
+      [
+        3,
+        7
+      ]
+    ]
+  },
+  {
+    "key": "While",
+    "template": "While",
+    "before": "While 'NASA original' V < 2; % keep header\n   V = V + 1; % NASA body\nEndWhile; % keep footer",
+    "field": "Condition",
+    "value": "V < 4",
+    "after": "While 'NASA original' V < 4; % keep header\n   V = V + 1; % NASA body\nEndWhile; % keep footer",
+    "expected": [
+      [
+        4,
+        7
+      ]
+    ]
+  },
+  {
+    "key": "ScriptEvent",
+    "template": "Script event",
+    "before": "BeginScript 'NASA original';\n   V = 6; % NASA body\nEndScript; % keep footer",
+    "field": "",
+    "value": "",
+    "after": "BeginScript 'NASA edited';\n   V = 6; % NASA body\nEndScript; % keep footer",
+    "expected": [
+      [
+        6,
+        7
+      ]
+    ]
+  },
+  {
+    "key": "Report",
+    "template": "Report",
+    "before": "Report 'NASA original' Truth V i; % keep report",
+    "field": "Parameters",
+    "value": "i V",
+    "after": "Report 'NASA original' Truth i V; % keep report",
+    "expected": [
+      [
+        7,
+        0
+      ],
+      [
+        0,
+        7
+      ]
+    ]
+  },
+  {
+    "key": "Write",
+    "template": "Write",
+    "before": "Write 'NASA original' V; % keep write",
+    "field": "Parameters",
+    "value": "V i",
+    "after": "Write 'NASA original' V i; % keep write",
+    "expected": [
+      [
+        0,
+        7
+      ]
+    ]
+  },
+  {
+    "key": "Toggle",
+    "template": "Toggle",
+    "before": "Toggle 'NASA original' Idle On; % keep toggle",
+    "field": "Subscribers",
+    "value": "OtherIdle",
+    "after": "Toggle 'NASA original' OtherIdle On; % keep toggle",
+    "expected": [
+      [
+        0,
+        7
+      ]
+    ]
+  },
+  {
+    "key": "Stop",
+    "template": "Stop",
+    "before": "Stop 'NASA original'; % keep command",
+    "field": "",
+    "value": "OtherIdle",
+    "after": "Stop 'NASA edited'; % keep command"
+  },
+  {
+    "key": "Save",
+    "template": "Save",
+    "before": "Save 'NASA original' Sat; % keep command",
+    "field": "Objects",
+    "value": "Other",
+    "after": "Save 'NASA original' Other; % keep command"
+  },
+  {
+    "key": "Global",
+    "template": "Global",
+    "before": "Global 'NASA original' V; % keep command",
+    "field": "Objects",
+    "value": "i",
+    "after": "Global 'NASA original' i; % keep command",
+    "expected": [
+      [
+        0,
+        7
+      ]
+    ]
+  },
+  {
+    "key": "CommandEcho",
+    "template": "CommandEcho",
+    "before": "CommandEcho 'NASA original' Off; % keep command",
+    "field": "",
+    "value": "OtherIdle",
+    "after": "CommandEcho 'NASA edited' Off; % keep command",
+    "expected": [
+      [
+        0,
+        7
+      ]
+    ]
+  },
+  {
+    "key": "PenUp",
+    "template": "PenUp",
+    "before": "PenUp 'NASA original' Idle; % keep command",
+    "field": "Subscribers",
+    "value": "Surface",
+    "after": "PenUp 'NASA original' Surface; % keep command"
+  },
+  {
+    "key": "PenDown",
+    "template": "PenDown",
+    "before": "PenDown 'NASA original' Idle; % keep command",
+    "field": "Subscribers",
+    "value": "ThreeD",
+    "after": "PenDown 'NASA original' ThreeD; % keep command"
+  },
+  {
+    "key": "Maneuver",
+    "template": "Maneuver",
+    "before": "Maneuver 'NASA original' Burn(Sat); % keep maneuver",
+    "field": "Burn",
+    "value": "OtherBurn",
+    "after": "Maneuver 'NASA original' OtherBurn(Sat); % keep maneuver"
+  },
+  {
+    "key": "BeginFiniteBurn",
+    "template": "BeginFiniteBurn",
+    "before": "BeginFiniteBurn 'NASA original' FB(Sat); % keep finite",
+    "field": "Burn",
+    "value": "OtherFB",
+    "after": "BeginFiniteBurn 'NASA original' OtherFB(Sat); % keep finite"
+  },
+  {
+    "key": "EndFiniteBurn",
+    "template": "EndFiniteBurn",
+    "before": "EndFiniteBurn 'NASA original' FB(Sat); % keep finite",
+    "field": "Burn",
+    "value": "OtherFB",
+    "after": "EndFiniteBurn 'NASA original' OtherFB(Sat); % keep finite"
+  },
+  {
+    "key": "Target",
+    "template": "Target",
+    "before": "Target 'NASA original' DC {SolveMode = RunInitialGuess, ShowProgressWindow = false};\n   Vary DC(V = 1);\n   Achieve DC(V = 2); % NASA body\nEndTarget; % keep footer",
+    "field": "source",
+    "value": "",
+    "after": "Target 'NASA original' OtherDC {SolveMode = RunInitialGuess, ShowProgressWindow = false};\n   Vary OtherDC(V = 1);\n   Achieve OtherDC(V = 2); % NASA body\nEndTarget; % keep footer"
+  },
+  {
+    "key": "Optimize",
+    "template": "Optimize",
+    "before": "Optimize 'NASA original' Opt {SolveMode = RunInitialGuess, ShowProgressWindow = false};\n   Vary Opt(V = 1);\n   Minimize Opt(V); % NASA body\nEndOptimize; % keep footer",
+    "field": "source",
+    "value": "",
+    "after": "Optimize 'NASA original' OtherOpt {SolveMode = RunInitialGuess, ShowProgressWindow = false};\n   Vary OtherOpt(V = 1);\n   Minimize OtherOpt(V); % NASA body\nEndOptimize; % keep footer"
+  },
+  {
+    "key": "ClearPlot",
+    "template": "ClearPlot",
+    "before": "ClearPlot 'NASA original' Idle; % keep plot",
+    "field": "Subscribers",
+    "value": "OtherIdle",
+    "after": "ClearPlot 'NASA original' OtherIdle; % keep plot"
+  },
+  {
+    "key": "MarkPoint",
+    "template": "MarkPoint",
+    "before": "MarkPoint 'NASA original' Idle; % keep plot",
+    "field": "Subscribers",
+    "value": "OtherIdle",
+    "after": "MarkPoint 'NASA original' OtherIdle; % keep plot"
+  },
+  {
+    "key": "Propagate",
+    "template": "Propagate",
+    "before": "Propagate 'NASA original' Prop(Sat) {Sat.ElapsedSecs = 60}; % preserve stop",
+    "field": "source",
+    "value": "",
+    "after": "Propagate 'NASA original' Prop(Sat) {Sat.ElapsedSecs = 120}; % preserve stop"
+  },
+  {
+    "key": "Vary",
+    "template": "Vary",
+    "before": "Vary 'NASA original' DC(V = 1, {Perturbation = 0.001}); % keep vary",
+    "field": "Initial value",
+    "value": "2",
+    "after": "Vary 'NASA original' DC(V = 2, {Perturbation = 0.001}); % keep vary",
+    "wrapper": "Target 'NASA wrapper' DC {SolveMode = RunInitialGuess, ShowProgressWindow = false};\n",
+    "footer": "EndTarget;\n"
+  },
+  {
+    "key": "Achieve",
+    "template": "Achieve",
+    "before": "Achieve 'NASA original' DC(V = 2, {Tolerance = 0.1}); % keep achieve",
+    "field": "Value",
+    "value": "3",
+    "after": "Achieve 'NASA original' DC(V = 3, {Tolerance = 0.1}); % keep achieve",
+    "wrapper": "Target 'NASA wrapper' DC {SolveMode = RunInitialGuess, ShowProgressWindow = false};\n",
+    "footer": "EndTarget;\n"
+  },
+  {
+    "key": "Minimize",
+    "template": "Minimize",
+    "before": "Minimize 'NASA original' Opt(V); % keep cost",
+    "field": "Objective",
+    "value": "i",
+    "after": "Minimize 'NASA original' Opt(i); % keep cost",
+    "wrapper": "Optimize 'NASA wrapper' Opt {SolveMode = RunInitialGuess, ShowProgressWindow = false};\n",
+    "footer": "EndOptimize;\n"
+  },
+  {
+    "key": "NonlinearConstraint",
+    "template": "NonlinearConstraint",
+    "before": "NonlinearConstraint 'NASA original' Opt(V <= 1); % keep constraint",
+    "field": "Right side",
+    "value": "2",
+    "after": "NonlinearConstraint 'NASA original' Opt(V <= 2); % keep constraint",
+    "wrapper": "Optimize 'NASA wrapper' Opt {SolveMode = RunInitialGuess, ShowProgressWindow = false};\n",
+    "footer": "EndOptimize;\n"
+  },
+  {
+    "key": "VaryOptimize",
+    "template": "Vary",
+    "before": "Vary 'NASA original' Opt(V = 1, {Perturbation = 0.001}); % keep vary",
+    "field": "Initial value",
+    "value": "2",
+    "after": "Vary 'NASA original' Opt(V = 2, {Perturbation = 0.001}); % keep vary",
+    "wrapper": "Optimize 'NASA wrapper' Opt {SolveMode = RunInitialGuess, ShowProgressWindow = false};\n",
+    "footer": "EndOptimize;\n"
+  },
+  {
+    "key": "RunSimulator",
+    "template": "RunSimulator",
+    "before": "RunSimulator 'NASA original' Sim; % keep solver",
+    "field": "Simulator",
+    "value": "OtherSim",
+    "after": "RunSimulator 'NASA original' OtherSim; % keep solver"
+  },
+  {
+    "key": "RunEstimator",
+    "template": "RunEstimator",
+    "before": "RunEstimator 'NASA original' Est; % keep solver",
+    "field": "Estimator",
+    "value": "OtherEst",
+    "after": "RunEstimator 'NASA original' OtherEst; % keep solver"
+  }
+]

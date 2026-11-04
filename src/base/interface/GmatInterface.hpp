@@ -52,10 +52,13 @@ public:
    // methods to manage execution of GMAT callback
    bool  ExecuteCallback();
    bool  RegisterCallbackServer(GmatBase *callbackObject);
+   void  UnregisterCallbackServer(GmatBase *callbackObject);
    char* GetCallbackStatus();
    void  PutCallbackData(std::string &data);
    void  PutCallbackRealData(RealArray &data);
    char* GetCallbackResults();
+   std::string GetCallbackResultString();
+   bool PublishCallbackIteration(const std::string &data, bool validateOnly = false);
    
    char* GetRunState();
    char* GetGmatObject(const char *name);

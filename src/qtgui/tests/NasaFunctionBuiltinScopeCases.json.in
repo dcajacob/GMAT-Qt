@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "scope": "New main/direct/nested function-local built-in use; distinct caller/private literals and OEM endpoints, no universal or science approval.",
+  "cases": [
+    {
+      "key": "Angle",
+      "builtin_type": "Angle",
+      "kind": "array",
+      "oracle": "literal",
+      "columns": 1,
+      "tolerance": 1e-09,
+      "declarations": "Create Angle NativeHelper;\nCreate Spacecraft Vertex;\nVertex.CoordinateSystem = EarthMJ2000Eq;\nVertex.DateFormat = A1ModJulian;\nVertex.Epoch = '21545';\nVertex.DisplayStateType = Cartesian;\nVertex.NAIFId = -130001;\nVertex.NAIFIdReferenceFrame = -8130001;\nVertex.X = 7000;\nVertex.Y = 0;\nVertex.Z = 0;\nVertex.VX = 0;\nVertex.VY = 7.5;\nVertex.VZ = 0;\nCreate Spacecraft EndOne;\nEndOne.CoordinateSystem = EarthMJ2000Eq;\nEndOne.DateFormat = A1ModJulian;\nEndOne.Epoch = '21545';\nEndOne.DisplayStateType = Cartesian;\nEndOne.NAIFId = -130002;\nEndOne.NAIFIdReferenceFrame = -8130002;\nEndOne.X = 7001;\nEndOne.Y = 0;\nEndOne.Z = 0;\nEndOne.VX = 0;\nEndOne.VY = 7.5;\nEndOne.VZ = 0;\nCreate Spacecraft EndTwo;\nEndTwo.CoordinateSystem = EarthMJ2000Eq;\nEndTwo.DateFormat = A1ModJulian;\nEndTwo.Epoch = '21545';\nEndTwo.DisplayStateType = Cartesian;\nEndTwo.NAIFId = -130003;\nEndTwo.NAIFIdReferenceFrame = -8130003;\nEndTwo.X = 7000;\nEndTwo.Y = 1;\nEndTwo.Z = 0;\nEndTwo.VX = 0;\nEndTwo.VY = 7.5;\nEndTwo.VZ = 0;\nCreate Variable Measured;\n",
+      "execution": "[Measured] = NativeHelper(Vertex, EndOne, EndTwo);\nout(1,1) = Measured;\n",
+      "main_declarations": "Create Angle CallerHelper;\nCreate Spacecraft Vertex;\nVertex.CoordinateSystem = EarthMJ2000Eq;\nVertex.DateFormat = A1ModJulian;\nVertex.Epoch = '21545';\nVertex.DisplayStateType = Cartesian;\nVertex.NAIFId = -130001;\nVertex.NAIFIdReferenceFrame = -8130001;\nVertex.X = 7000;\nVertex.Y = 0;\nVertex.Z = 0;\nVertex.VX = 0;\nVertex.VY = 7.5;\nVertex.VZ = 0;\nCreate Spacecraft EndOne;\nEndOne.CoordinateSystem = EarthMJ2000Eq;\nEndOne.DateFormat = A1ModJulian;\nEndOne.Epoch = '21545';\nEndOne.DisplayStateType = Cartesian;\nEndOne.NAIFId = -130002;\nEndOne.NAIFIdReferenceFrame = -8130002;\nEndOne.X = 7001;\nEndOne.Y = 0;\nEndOne.Z = 0;\nEndOne.VX = 0;\nEndOne.VY = 7.5;\nEndOne.VZ = 0;\nCreate Spacecraft EndTwo;\nEndTwo.CoordinateSystem = EarthMJ2000Eq;\nEndTwo.DateFormat = A1ModJulian;\nEndTwo.Epoch = '21545';\nEndTwo.DisplayStateType = Cartesian;\nEndTwo.NAIFId = -130003;\nEndTwo.NAIFIdReferenceFrame = -8130003;\nEndTwo.X = 7001;\nEndTwo.Y = 1;\nEndTwo.Z = 0;\nEndTwo.VX = 0;\nEndTwo.VY = 7.5;\nEndTwo.VZ = 0;\nCreate Variable Measured;\n",
+      "main_execution": "[Measured] = CallerHelper(Vertex, EndOne, EndTwo);\nout(1,1) = Measured;\n",
+      "expected": [
+        90
+      ],
+      "main_expected": [
+        45
+      ],
+      "caller_objects": [
+        "CallerHelper",
+        "Vertex",
+        "EndOne",
+        "EndTwo",
+        "Measured"
+      ],
+      "main_runtime_expected": {
+        "Vertex": {
+          "type": "Spacecraft",
+          "values": [
+            7000,
+            0,
+            0,
+            0,
+            7.5,
+            0
+          ],
+          "epoch": 21545
+        },
+        "EndOne": {
+          "type": "Spacecraft",
+          "values": [
+            7001,
+            0,
+            0,
+            0,
+            7.5,
+            0
+          ],
+          "epoch": 21545
+        },
+        "EndTwo": {
+          "type": "Spacecraft",
+          "values": [
+            7001,
+            1,
+            0,
+            0,
+            7.5,
+            0
+          ],
+          "epoch": 21545
+        },
+        "Measured": {
+          "type": "Variable",
+          "value": 45
+        }
+      }
+    },
+    {
+      "key": "GetLastState",
+      "builtin_type": "GetLastState",
+      "kind": "array",
+      "oracle": "literal",
+      "columns": 6,
+      "tolerance": 1e-09,
+      "declarations": "Create GetLastState NativeHelper;\nCreate Spacecraft Local;\nLocal.CoordinateSystem = EarthMJ2000Eq;\nLocal.DateFormat = A1ModJulian;\nLocal.Epoch = '21545';\nLocal.DisplayStateType = Cartesian;\nLocal.NAIFId = -130011;\nLocal.NAIFIdReferenceFrame = -8130011;\nLocal.X = 7100;\nLocal.Y = 20;\nLocal.Z = -30;\nLocal.VX = -0.125;\nLocal.VY = 7.25;\nLocal.VZ = 0.375;\nCreate Array State[6,1];\n",
+      "execution": "[State] = NativeHelper(Local);\nout(1,1) = State(1,1);\nout(1,2) = State(2,1);\nout(1,3) = State(3,1);\nout(1,4) = State(4,1);\nout(1,5) = State(5,1);\nout(1,6) = State(6,1);\n",
+      "main_declarations": "Create GetLastState CallerHelper;\nCreate Spacecraft Local;\nLocal.CoordinateSystem = EarthMJ2000Eq;\nLocal.DateFormat = A1ModJulian;\nLocal.Epoch = '21545';\nLocal.DisplayStateType = Cartesian;\nLocal.NAIFId = -130011;\nLocal.NAIFIdReferenceFrame = -8130011;\nLocal.X = 8100;\nLocal.Y = -40;\nLocal.Z = 60;\nLocal.VX = 0.25;\nLocal.VY = 6.75;\nLocal.VZ = -0.5;\nCreate Array State[6,1];\n",
+      "main_execution": "[State] = CallerHelper(Local);\nout(1,1) = State(1,1);\nout(1,2) = State(2,1);\nout(1,3) = State(3,1);\nout(1,4) = State(4,1);\nout(1,5) = State(5,1);\nout(1,6) = State(6,1);\n",
+      "expected": [
+        7100,
+        20,
+        -30,
+        -0.125,
+        7.25,
+        0.375
+      ],
+      "main_expected": [
+        8100,
+        -40,
+        60,
+        0.25,
+        6.75,
+        -0.5
+      ],
+      "caller_objects": [
+        "CallerHelper",
+        "Local",
+        "State"
+      ],
+      "main_runtime_expected": {
+        "Local": {
+          "type": "Spacecraft",
+          "values": [
+            8100,
+            -40,
+            60,
+            0.25,
+            6.75,
+            -0.5
+          ],
+          "epoch": 21545
+        },
+        "State": {
+          "type": "Array",
+          "values": [
+            8100,
+            -40,
+            60,
+            0.25,
+            6.75,
+            -0.5
+          ],
+          "rows": 6,
+          "columns": 1
+        }
+      }
+    },
+    {
+      "key": "GetEphemStates",
+      "builtin_type": "GetEphemStates",
+      "kind": "array",
+      "oracle": "literal",
+      "columns": 14,
+      "tolerance": 1e-09,
+      "declarations": "Create GetEphemStates NativeHelper;\nCreate Spacecraft Local;\nLocal.CoordinateSystem = EarthMJ2000Eq;\nLocal.DateFormat = A1ModJulian;\nLocal.Epoch = '21545';\nLocal.DisplayStateType = Cartesian;\nLocal.NAIFId = -130021;\nLocal.NAIFIdReferenceFrame = -8130021;\nLocal.X = 7100;\nLocal.Y = 20;\nLocal.Z = -30;\nLocal.VX = -0.125;\nLocal.VY = 7.25;\nLocal.VZ = 0.375;\nLocal.EphemerisName = '@GMAT_BUILTIN_SCOPE_PRIVATE_OEM@';\nCreate String StartEpoch EndEpoch;\nCreate Array StartState[6,1] EndState[6,1];\n",
+      "execution": "[StartEpoch, StartState, EndEpoch, EndState] = NativeHelper('CCSDS-OEM', Local, 'UTCGregorian', EarthMJ2000Eq);\nWrite StartEpoch EndEpoch {Style = Script, MessageWindow = true, LogFile = false};\nout(1,1) = strcmp(StartEpoch, '01 Jan 2018 00:00:00.000');\nout(1,14) = strcmp(EndEpoch, '01 Jan 2018 00:01:00.000');\nout(1,2) = StartState(1,1);\nout(1,8) = EndState(1,1);\nout(1,3) = StartState(2,1);\nout(1,9) = EndState(2,1);\nout(1,4) = StartState(3,1);\nout(1,10) = EndState(3,1);\nout(1,5) = StartState(4,1);\nout(1,11) = EndState(4,1);\nout(1,6) = StartState(5,1);\nout(1,12) = EndState(5,1);\nout(1,7) = StartState(6,1);\nout(1,13) = EndState(6,1);\n",
+      "main_declarations": "Create GetEphemStates CallerHelper;\nCreate Spacecraft Local;\nLocal.CoordinateSystem = EarthMJ2000Eq;\nLocal.DateFormat = A1ModJulian;\nLocal.Epoch = '21545';\nLocal.DisplayStateType = Cartesian;\nLocal.NAIFId = -130021;\nLocal.NAIFIdReferenceFrame = -8130021;\nLocal.X = 7100;\nLocal.Y = 20;\nLocal.Z = -30;\nLocal.VX = -0.125;\nLocal.VY = 7.25;\nLocal.VZ = 0.375;\nLocal.EphemerisName = '@GMAT_BUILTIN_SCOPE_CALLER_OEM@';\nCreate String StartEpoch EndEpoch;\nCreate Array StartState[6,1] EndState[6,1];\n",
+      "main_execution": "[StartEpoch, StartState, EndEpoch, EndState] = CallerHelper('CCSDS-OEM', Local, 'UTCGregorian', EarthMJ2000Eq);\nWrite StartEpoch EndEpoch {Style = Script, MessageWindow = true, LogFile = false};\nout(1,1) = strcmp(StartEpoch, '02 Jan 2018 00:00:00.000');\nout(1,14) = strcmp(EndEpoch, '02 Jan 2018 00:02:00.000');\nout(1,2) = StartState(1,1);\nout(1,8) = EndState(1,1);\nout(1,3) = StartState(2,1);\nout(1,9) = EndState(2,1);\nout(1,4) = StartState(3,1);\nout(1,10) = EndState(3,1);\nout(1,5) = StartState(4,1);\nout(1,11) = EndState(4,1);\nout(1,6) = StartState(5,1);\nout(1,12) = EndState(5,1);\nout(1,7) = StartState(6,1);\nout(1,13) = EndState(6,1);\n",
+      "expected": [
+        1,
+        7000,
+        0,
+        0,
+        0,
+        7.5,
+        0,
+        7001,
+        2,
+        3,
+        0.1,
+        7.4,
+        0.2,
+        1
+      ],
+      "main_expected": [
+        1,
+        8000,
+        100,
+        -20,
+        -0.2,
+        6.5,
+        0.4,
+        8002,
+        104,
+        -18,
+        -0.1,
+        6.6,
+        0.5,
+        1
+      ],
+      "caller_objects": [
+        "CallerHelper",
+        "Local",
+        "StartEpoch",
+        "EndEpoch",
+        "StartState",
+        "EndState"
+      ],
+      "main_runtime_expected": {
+        "Local": {
+          "type": "Spacecraft",
+          "values": [
+            7100,
+            20,
+            -30,
+            -0.125,
+            7.25,
+            0.375
+          ],
+          "epoch": 21545,
+          "ephemeris": "@GMAT_BUILTIN_SCOPE_CALLER_OEM@"
+        },
+        "StartEpoch": {
+          "type": "String",
+          "value": "02 Jan 2018 00:00:00.000"
+        },
+        "EndEpoch": {
+          "type": "String",
+          "value": "02 Jan 2018 00:02:00.000"
+        },
+        "StartState": {
+          "type": "Array",
+          "values": [
+            8000,
+            100,
+            -20,
+            -0.2,
+            6.5,
+            0.4
+          ],
+          "rows": 6,
+          "columns": 1
+        },
+        "EndState": {
+          "type": "Array",
+          "values": [
+            8002,
+            104,
+            -18,
+            -0.1,
+            6.6,
+            0.5
+          ],
+          "rows": 6,
+          "columns": 1
+        }
+      }
+    }
+  ]
+}

@@ -32,6 +32,15 @@
 #include "FileManager.hpp"      // for GetPathname()
 #include "MessageInterface.hpp"
 #include "GmatGlobal.hpp"       // for GetDataPrecision()
+#include "CoordinateSystem.hpp"
+#include "PropSetup.hpp"
+#include "Propagator.hpp"
+#include "ODEModel.hpp"
+#include <functional>
+#include <memory>
+#include <map>
+#include <set>
+#include <vector>
 
 // for writing to single file per Save command, if not defined
 // it will create files per Save objects
@@ -40,6 +49,67 @@
 //#define DEBUG_SAVE_INIT
 //#define DEBUG_SAVE_EXEC
 //#define DEBUG_SAVE_OUTPUT
+
+namespace
+{
+// Save a self-contained tank/thruster graph, using attached runtime clones
+// rather than the configured prototypes that may still have initial fuel.
+ObjectArray SaveObjectsWithAttachments(const ObjectArray &roots)
+{
+   ObjectArray ordered;
+   std::map<std::string, GmatBase*> objects;
+   std::set<GmatBase*> active;
+   std::function<void(GmatBase*)> collect = [&](GmatBase *object)
+   {
+      if (!object)
+         throw CommandException("Save encountered a missing attached object");
+      if (active.count(object))
+         throw CommandException("Save encountered a cyclic attachment graph");
+      const std::string name = object->GetName();
+      const auto previous = objects.find(name);
+      if (previous != objects.end())
+      {
+         if (previous->second != object &&
+             (previous->second->GetTypeName() != object->GetTypeName() ||
+              previous->second->GetGeneratingString(Gmat::NO_COMMENTS) !=
+                 object->GetGeneratingString(Gmat::NO_COMMENTS)))
+            throw CommandException("Save cannot export objects named \"" + name +
+               "\" with different runtime states into one script");
+         return;
+      }
+      objects[name] = object;
+      active.insert(object);
+      if (object->IsOfType(Gmat::SPACECRAFT))
+      {
+         for (auto *tank : object->GetRefObjectArray(Gmat::FUEL_TANK)) collect(tank);
+         for (auto *thruster : object->GetRefObjectArray(Gmat::THRUSTER)) collect(thruster);
+      }
+      else if (object->IsOfType(Gmat::THRUSTER))
+      {
+         for (auto *tank : object->GetRefObjectArray(Gmat::HARDWARE)) collect(tank);
+      }
+      else if (auto *prop = dynamic_cast<PropSetup*>(object))
+      {
+         if (prop->GetPropagator() && prop->GetPropagator()->UsesODEModel() &&
+             prop->GetODEModel())
+            collect(prop->GetODEModel());
+      }
+      active.erase(object);
+      ordered.push_back(object);
+   };
+   // Prefer spacecraft-owned runtime values if the same hardware is also
+   // explicitly selected. Repeated references produce one definition.
+   for (auto *object : roots)
+      if (object && object->IsOfType(Gmat::SPACECRAFT)) collect(object);
+   // Numerical propagators serialize their owned runtime force model. Visit
+   // them before explicit force-model roots, just as for spacecraft hardware.
+   for (auto *object : roots)
+      if (object && object->IsOfType(Gmat::PROP_SETUP)) collect(object);
+   for (auto *object : roots)
+      if (!object || objects.find(object->GetName()) == objects.end()) collect(object);
+   return ordered;
+}
+}
 
 //---------------------------------
 //  static data
@@ -521,6 +591,15 @@ bool Save::Execute()
    if (!objArray[0])
       throw CommandException("Object not set for Save command");
    
+   // Build and validate each export before opening/truncating any file.
+   std::vector<ObjectArray> exports;
+#ifdef __USE_SINGLE_FILE__
+   exports.push_back(SaveObjectsWithAttachments(objArray));
+#else
+   for (auto *object : objArray)
+      exports.push_back(SaveObjectsWithAttachments(ObjectArray(1, object)));
+#endif
+
    try
    {
       for (UnsignedInt i = 0; i < fileNameArray.size(); ++i)
@@ -536,8 +615,9 @@ bool Save::Execute()
             throw CommandException("Save command cannot open output file \"" + fileNameArray[i] + "\"");
          fileArray[i].precision(prec);
       }
-      for (UnsignedInt i = 0; i < objArray.size(); ++i)
-         WriteObject(i, objArray[i]);
+      for (UnsignedInt i = 0; i < exports.size(); ++i)
+         for (auto *object : exports[i])
+            WriteObject(i, object);
       for (UnsignedInt i = 0; i < fileNameArray.size(); ++i)
       {
          fileArray[i].flush();
@@ -722,6 +802,48 @@ void Save::WriteObject(UnsignedInt i, GmatBase *o)
          o->GetParameterCount());
    #endif
    
+   // Built-in coordinate systems are supplied by the interpreter and reject
+   // every assignment on reload. Their immutable definition is identified by
+   // the reserved name: emit its declaration without illegal assignments.
+   // Custom systems continue through the complete native serializer below.
+   auto *coordinate = dynamic_cast<CoordinateSystem*>(o);
+   if (coordinate && coordinate->IsBuiltIn())
+   {
+      #ifdef __USE_SINGLE_FILE__
+         fileArray[0] << "Create CoordinateSystem " << o->GetName() << ";\n";
+      #else
+         fileArray[i] << "Create CoordinateSystem " << o->GetName() << ";\n";
+      #endif
+      return;
+   }
+
+   // The graph walker writes each numerical propagator's force model once.
+   // Suppress the propagator serializer's embedded copy on a detached clone;
+   // never change the live include-ODE-model flag used by later commands.
+   std::unique_ptr<GmatBase> runtimePropagator;
+   if (auto *prop = dynamic_cast<PropSetup*>(o))
+   {
+      if (prop->GetPropagator() && prop->GetPropagator()->UsesODEModel() &&
+          prop->GetODEModel())
+      {
+         runtimePropagator.reset(prop->Clone());
+         runtimePropagator->TakeAction("ExcludeODEModel");
+         o = runtimePropagator.get();
+      }
+   }
+
+   // StringVar serializes its configured expression rather than the current
+   // mission value. Export a detached literal snapshot without changing the
+   // live object's expression or dependency used by later mission commands.
+   std::unique_ptr<GmatBase> runtimeString;
+   if (o->GetTypeName() == "String")
+   {
+      runtimeString.reset(o->Clone());
+      runtimeString->SetStringParameter("Expression", o->GetStringParameter("Value"));
+      runtimeString->SetStringParameter("DepObject", "");
+      o = runtimeString.get();
+   }
+
    std::string objectname = o->GetName();
    std::string prefix = "";
 

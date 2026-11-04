@@ -29,6 +29,7 @@
 #define EphemWriterSPK_hpp
 
 #include "EphemerisWriter.hpp"
+#include "GmatTime.hpp"
 
 class SpiceOrbitKernelWriter;
 
@@ -48,6 +49,7 @@ public:
    virtual bool             Initialize();
    virtual EphemerisWriter* Clone(void) const;
    virtual void             Copy(const EphemerisWriter* orig);
+   void SetPublishedEpoch(const GmatTime *epoch);
    
 protected:
    
@@ -57,6 +59,10 @@ protected:
    
    /// number of SPK segments that have been written
    Integer     numSPKSegmentsWritten;
+   GmatTime publishedEpoch;
+   bool publishedEpochValid = false;
+   std::vector<GmatTime> preciseEpochArray;
+   std::vector<bool> preciseEpochFlags;
    
    // Abstract methods required by all subclasses
    virtual void BufferOrbitData(Real epochInDays, const Real state[6], const Real cov[21],

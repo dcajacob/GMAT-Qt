@@ -1,0 +1,68 @@
+{
+  "cases": [
+    {
+      "key": "GroundStationCreate",
+      "type": "GroundStation",
+      "operation": "Create",
+      "historical_key": "H2012:R376",
+      "fingerprint": "513431c68af7fe47be4c7292acf324bb70984269fed07ad951cc571fffa84a4a"
+    },
+    {
+      "key": "GroundStationClone",
+      "type": "GroundStation",
+      "operation": "Clone",
+      "historical_key": "H2012:R376",
+      "fingerprint": "513431c68af7fe47be4c7292acf324bb70984269fed07ad951cc571fffa84a4a"
+    },
+    {
+      "key": "GroundStationRename",
+      "type": "GroundStation",
+      "operation": "Rename",
+      "historical_key": "H2012:R376",
+      "fingerprint": "513431c68af7fe47be4c7292acf324bb70984269fed07ad951cc571fffa84a4a"
+    },
+    {
+      "key": "BarycenterCreate",
+      "type": "Barycenter",
+      "operation": "Create",
+      "historical_key": "H2012:R1065",
+      "fingerprint": "876b0dff750449b8564d8cd4ffc3198f1592a3318855aba9d06eddbf86dbcc0a"
+    },
+    {
+      "key": "BarycenterClone",
+      "type": "Barycenter",
+      "operation": "Clone",
+      "historical_key": "H2012:R1065",
+      "fingerprint": "876b0dff750449b8564d8cd4ffc3198f1592a3318855aba9d06eddbf86dbcc0a"
+    },
+    {
+      "key": "BarycenterRename",
+      "type": "Barycenter",
+      "operation": "Rename",
+      "historical_key": "H2012:R1065",
+      "fingerprint": "876b0dff750449b8564d8cd4ffc3198f1592a3318855aba9d06eddbf86dbcc0a"
+    },
+    {
+      "key": "ReportFileCreate",
+      "type": "ReportFile",
+      "operation": "Create",
+      "historical_key": "H2012:R1195",
+      "fingerprint": "868029800fbde798663fe55671b327dbe34cb02f7b6a6495f0e266d25728f532"
+    },
+    {
+      "key": "ReportFileClone",
+      "type": "ReportFile",
+      "operation": "Clone",
+      "historical_key": "H2012:R1195",
+      "fingerprint": "868029800fbde798663fe55671b327dbe34cb02f7b6a6495f0e266d25728f532"
+    },
+    {
+      "key": "ReportFileRename",
+      "type": "ReportFile",
+      "operation": "Rename",
+      "historical_key": "H2012:R1195",
+      "fingerprint": "868029800fbde798663fe55671b327dbe34cb02f7b6a6495f0e266d25728f532"
+    }
+  ],
+  "scope": "Three concrete resource types across Create,Clone,Rename name controls;full current command/folder census and specified lexical/keyword/collision/equivalence inputs. Private historical recipes and untested arbitrary domains remain unresolved."
+}

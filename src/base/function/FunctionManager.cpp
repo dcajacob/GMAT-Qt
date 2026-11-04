@@ -42,6 +42,7 @@
 #include "StringVar.hpp"
 #include "UserDefinedFunction.hpp"
 #include "MessageInterface.hpp"
+#include "GmatGlobal.hpp"
 
 //#define DO_NOT_EXECUTE_NESTED_GMAT_FUNCTIONS
 
@@ -100,6 +101,7 @@ FunctionManager::FunctionManager() :
    localObjectStore    (NULL),
    globalObjectStore   (NULL),
    solarSys            (NULL),
+   forces              (NULL),
    functionName        (""),
    currentFunction     (NULL),
    firstExecution      (true),
@@ -229,7 +231,13 @@ FunctionManager& FunctionManager::operator=(const FunctionManager &fm)
       //inputWrapperMap       = fm.inputWrapperMap; // is that right?
       outputWrappers      = fm.outputWrappers; // is that right?
       realResult          = fm.realResult;
-      matResult           = fm.matResult;
+      if (fm.matResult.IsSized())
+      {
+         if (!matResult.IsSized() || matResult.GetNumRows() != fm.matResult.GetNumRows() ||
+             matResult.GetNumColumns() != fm.matResult.GetNumColumns())
+            matResult.SetSize(fm.matResult.GetNumRows(), fm.matResult.GetNumColumns());
+         matResult = fm.matResult;
+      }
       objectResult        = fm.objectResult;
       blankResult         = fm.blankResult;
       outputType          = fm.outputType;
@@ -237,6 +245,8 @@ FunctionManager& FunctionManager::operator=(const FunctionManager &fm)
       internalCS          = fm.internalCS;  // right?
       fcs                 = NULL;
       callingFunction     = NULL;
+      while (!savedLocalObjectStates.empty())
+         savedLocalObjectStates.pop();
    }
    return *this;
 }
@@ -933,6 +943,31 @@ bool FunctionManager::Execute(FunctionManager *callingFM)
    MessageInterface::ShowMessage("   === firstExecution=%d\n", firstExecution);
    #endif
    
+   // Solver Parameters read the most recently used clone through a name cache.
+   // A private solver declared by this function can shadow a caller solver of
+   // the same name. Keep that private result inside this call, including when
+   // initialization, execution or result assignment throws. Explicitly Global
+   // solvers keep the shared cache and their completed status.
+   struct CallerSolverStatuses
+   {
+      std::map<std::string, Integer> saved;
+      ~CallerSolverStatuses()
+      {
+         for (const auto &entry : saved)
+            GmatGlobal::Instance()->SetSolverStatus(entry.first, entry.second);
+      }
+   } callerSolverStatuses;
+   if (currentFunction->IsOfType("UserDefinedFunction") && localObjectStore)
+   {
+      for (const auto &entry : *localObjectStore)
+      {
+         auto *object = entry.second;
+         if (object && object->IsOfType(Gmat::SOLVER) && !object->IsGlobal())
+            callerSolverStatuses.saved[object->GetName()] =
+               GmatGlobal::Instance()->GetSolverStatus(object->GetName());
+      }
+   }
+
    PrepareObjectMap();
    PrepareExecution(callingFM);
    
@@ -1583,8 +1618,56 @@ bool FunctionManager::CreatePassingArgWrappers()
       #endif // -------------------------------------------------------------- end debug ---
    }
    
-   // Outputs cannot be numeric or string literals or array elements, etc.
-   // They must be found in the object store; and we do not need to clone them
+   // Built-ins write through their formal output objects even when the caller
+   // consumes an unnamed result in a math expression. Allocate those objects
+   // before choosing whether a caller output wrapper is needed.
+   if (currentFunction->IsOfType("BuiltinGmatFunction"))
+   {
+      IntegerArray rowCounts, colCounts;
+      WrapperTypeArray outWrapperTypes = currentFunction->GetOutputTypes(rowCounts, colCounts);
+      #ifdef DEBUG_FM_INIT
+      MessageInterface::ShowMessage
+         ("   Current function is BuiltinGmatFunction, outWrapperTypes.size() = %d\n",
+          outWrapperTypes.size());
+      #endif
+      for (unsigned int ii=0; ii<outFormalNames.size(); ii++)
+      {
+         GmatBase *obj = NULL;
+         std::string outName = outFormalNames[ii];
+         Gmat::WrapperDataType wType = outWrapperTypes[ii];
+         Integer numRows = rowCounts[ii];
+         Integer numCols = colCounts[ii];
+         #ifdef DEBUG_FM_INIT
+         MessageInterface::ShowMessage
+            ("   wType=%d, numRos=%d, numCols=%d\n", wType, numRows, numCols);
+         #endif
+         
+         obj = CreateObjectForBuiltinGmatFunction(outName, wType, numRows, numCols);
+         
+         if (obj)
+         {
+            #ifdef DEBUG_FM_INIT
+            MessageInterface::ShowMessage
+               ("   Adding object '%s' to the FOS\n", outName.c_str());
+            #endif
+            functionObjectStore->insert(std::make_pair(outName,obj));
+         }
+         else
+         {
+            std::string errMsg = "FunctionManager: error creating output object \"";
+            errMsg += outName + "\"\n";
+            #ifdef DEBUG_FM_INIT
+            MessageInterface::ShowMessage(errMsg + " so throwing an exception\n");
+            #endif
+            throw FunctionException(errMsg);
+         }
+      }
+   }
+   
+
+   // Outputs must refer to caller objects or writable array elements, not
+   // numeric/string literals. Resolve the owner; the wrapper validates indices.
+   // We do not need to clone these caller objects.
    // Handle the case with one blank output (called from FunctionRunner) first   
    if ((passedOuts.size() == 1) && (passedOuts.at(0) == ""))
    {
@@ -1595,54 +1678,9 @@ bool FunctionManager::CreatePassingArgWrappers()
    }
    else
    {
-      // If function is BuiltinGmatFunction, create objects with formal output names
-      // and add to FOS
-      if (currentFunction->IsOfType("BuiltinGmatFunction"))
-      {
-         IntegerArray rowCounts, colCounts;
-         WrapperTypeArray outWrapperTypes = currentFunction->GetOutputTypes(rowCounts, colCounts);
-         #ifdef DEBUG_FM_INIT
-         MessageInterface::ShowMessage
-            ("   Current function is BuiltinGmatFunction, outWrapperTypes.size() = %d\n",
-             outWrapperTypes.size());
-         #endif
-         for (unsigned int ii=0; ii<outFormalNames.size(); ii++)
-         {
-            GmatBase *obj = NULL;
-            std::string outName = outFormalNames[ii];
-            Gmat::WrapperDataType wType = outWrapperTypes[ii];
-            Integer numRows = rowCounts[ii];
-            Integer numCols = colCounts[ii];
-            #ifdef DEBUG_FM_INIT
-            MessageInterface::ShowMessage
-               ("   wType=%d, numRos=%d, numCols=%d\n", wType, numRows, numCols);
-            #endif
-            
-            obj = CreateObjectForBuiltinGmatFunction(outName, wType, numRows, numCols);
-            
-            if (obj)
-            {
-               #ifdef DEBUG_FM_INIT
-               MessageInterface::ShowMessage
-                  ("   Adding object '%s' to the FOS\n", outName.c_str());
-               #endif
-               functionObjectStore->insert(std::make_pair(outName,obj));
-            }
-            else
-            {
-               std::string errMsg = "FunctionManager: error creating output object \"";
-               errMsg += outName + "\"\n";
-               #ifdef DEBUG_FM_INIT
-               MessageInterface::ShowMessage(errMsg + " so throwing an exception\n");
-               #endif
-               throw FunctionException(errMsg);
-            }
-         }
-      }
-      
       for (unsigned int jj = 0; jj < passedOuts.size(); jj++)
       {
-         if (!(obj = FindObject(passedOuts.at(jj))))
+         if (!(obj = FindObject(passedOuts.at(jj), true)))
          {
             std::string errMsg = "Output \"" + passedOuts.at(jj);
             errMsg += " not found for function \"" + functionName + "\"";
@@ -2520,8 +2558,25 @@ void FunctionManager::PushToStack()
    ShowObjectMap(functionObjectStore, "FOS at beg. of PushToStack");
    #endif
    
-   // Put the FOS onto the stack
+   // Recursive entries refresh the same function object store. A saved map
+   // pointer alone therefore loses the caller's inputs and local values.
+   LocalObjectState saved;
+   if (functionObjectStore)
+   {
+      for (ObjectMap::const_iterator i = functionObjectStore->begin();
+           i != functionObjectStore->end(); ++i)
+      {
+         GmatBase *object = i->second;
+         if (!object || object->IsGlobal() ||
+             object->IsOfType(Gmat::FUNCTION) ||
+             object->IsOfType(Gmat::SUBSCRIBER) ||
+             object->IsOfType(Gmat::GROUND_STATION))
+            continue;
+         saved[i->first] = std::shared_ptr<GmatBase>(object->Clone());
+      }
+   }
    callStack.push(functionObjectStore);
+   savedLocalObjectStates.push(std::move(saved));
 }
 
 //------------------------------------------------------------------------------
@@ -2542,9 +2597,57 @@ bool FunctionManager::PopFromStack(ObjectMap* cloned, const StringArray &outName
    if (callStack.empty())
       throw FunctionException(
             "ERROR popping object store from call stack - stack is empty\n");
+   if (savedLocalObjectStates.empty())
+      throw FunctionException("Missing caller value frame on function return\n");
+
+   // Preserve callee outputs before restoring an aliased caller map: otherwise
+   // restoring 'out' can erase the value that must be copied to 'child'.
+   auto findScoped = [this](ObjectMap *local, const std::string &name) -> GmatBase*
+   {
+      if (local)
+      {
+         auto found = local->find(name);
+         if (found != local->end() && found->second)
+            return found->second;
+      }
+      if (globalObjectStore)
+      {
+         auto found = globalObjectStore->find(name);
+         if (found != globalObjectStore->end())
+            return found->second;
+      }
+      return NULL;
+   };
+   std::vector<std::shared_ptr<GmatBase> > returnValues;
+   for (UnsignedInt i = 0; i < callingNames.size(); ++i)
+   {
+      GmatBase *value = findScoped(cloned, outNames.at(i));
+      if (!value)
+         throw FunctionException("Missing function output on stack return\n");
+      const bool isGlobalValue = globalObjectStore &&
+         globalObjectStore->find(outNames.at(i)) != globalObjectStore->end() &&
+         globalObjectStore->at(outNames.at(i)) == value;
+      if (isGlobalValue)
+         // Global values are not restored with the local frame; keep their
+         // borrowed identity and leave ownership with the global store.
+         returnValues.emplace_back(value, [](GmatBase*) {});
+      else
+         returnValues.push_back(std::shared_ptr<GmatBase>(value->Clone()));
+   }
+
    ObjectMap *topMap = callStack.top();
-   callStack.pop();   
+   callStack.pop();
+   LocalObjectState saved = std::move(savedLocalObjectStates.top());
+   savedLocalObjectStates.pop();
    functionObjectStore = topMap;
+   for (LocalObjectState::const_iterator i = saved.begin(); i != saved.end(); ++i)
+   {
+      ObjectMap::iterator found = functionObjectStore->find(i->first);
+      if (found == functionObjectStore->end())
+         functionObjectStore->insert(std::make_pair(i->first, i->second->Clone()));
+      else
+         found->second->Copy(i->second.get());
+   }
    
    #ifdef DEBUG_FM_STACK
       MessageInterface::ShowMessage("PopFromStack::outNames are: \n");
@@ -2566,15 +2669,12 @@ bool FunctionManager::PopFromStack(ObjectMap* cloned, const StringArray &outName
       // If name found then assign to object pointer since [] operator
       // inserts the item if it doesn't exist (LOJ: 2010.05.19)
       GmatBase *clonedObj = NULL;
-      if (cloned->find(outNames.at(jj)) != cloned->end())
-          clonedObj = (*cloned)[outNames.at(jj)];
+      clonedObj = returnValues.at(jj).get();
       
       // Find output name from popped object store
       // If name found then assign to object pointer since [] operator
       // inserts the item if it doesn't exist (LOJ: 2010.05.19)
-      GmatBase *fosObj = NULL;
-      if (functionObjectStore->find(callingNames.at(jj)) != functionObjectStore->end())
-         fosObj = (*functionObjectStore)[callingNames.at(jj)];
+      GmatBase *fosObj = findScoped(functionObjectStore, callingNames.at(jj));
       
       if (clonedObj == NULL)
       {
@@ -2583,7 +2683,37 @@ bool FunctionManager::PopFromStack(ObjectMap* cloned, const StringArray &outName
          errMsg += functionName + "\"\n";
          throw FunctionException(errMsg);
       }
-      if (fosObj == NULL)
+      if (fosObj == NULL && callingNames.at(jj).find('(') != std::string::npos)
+      {
+         // AssignResult wrote through the caller's element wrapper before
+         // restoring its saved frame. Reapply the scalar after restoration,
+         // rather than silently dropping an indexed name absent from the map.
+         const std::string targetName = callingNames.at(jj);
+         const std::string ownerName = targetName.substr(0, targetName.find('('));
+         GmatBase *owner = findScoped(functionObjectStore, ownerName);
+         if (!owner || !owner->IsOfType(Gmat::ARRAY))
+            throw FunctionException("Missing caller Array for output " + targetName);
+         Real result;
+         if (clonedObj->IsOfType(Gmat::VARIABLE))
+            result = clonedObj->GetRealParameter("Value");
+         else if (clonedObj->IsOfType(Gmat::ARRAY) &&
+                  clonedObj->GetIntegerParameter("NumRows") == 1 &&
+                  clonedObj->GetIntegerParameter("NumCols") == 1)
+            result = clonedObj->GetRealParameter("SingleValue", 0, 0);
+         else
+            throw FunctionException("Array-element output requires a scalar: " + targetName);
+         combinedObjectStore = *globalObjectStore;
+         for (const auto &entry : *functionObjectStore)
+            combinedObjectStore[entry.first] = entry.second;
+         validator->SetFunction(currentFunction);
+         validator->SetObjectMap(&combinedObjectStore);
+         validator->SetSolarSystem(solarSys);
+         std::unique_ptr<ElementWrapper> target(validator->CreateElementWrapper(targetName));
+         if (!target || target->GetWrapperType() != Gmat::ARRAY_ELEMENT_WT ||
+             !target->SetRefObject(owner) || !target->SetReal(result))
+            throw FunctionException("Cannot assign caller Array-element output " + targetName);
+      }
+      else if (fosObj == NULL)
       {
          // We don't want to throw exception here (loj: 2008.09.12)
          //std::string errMsg = "PopFromStack::Error setting output named \"";
@@ -2602,7 +2732,8 @@ bool FunctionManager::PopFromStack(ObjectMap* cloned, const StringArray &outName
                "PopFromStack::Copying value of %s into popped stack element %s\n",
                (outNames.at(jj)).c_str(), (callingNames.at(jj)).c_str());
          #endif
-         fosObj->Copy(clonedObj);
+         if (fosObj != clonedObj)
+            fosObj->Copy(clonedObj);
       }
    }
    
@@ -2680,6 +2811,11 @@ void FunctionManager::Cleanup()
    //}
    //clonedObjectStores.clear();
    
+
+   // Drop value-only snapshots on exceptional unwinding as well as normal
+   // PopFromStack. Their ownership is separate from the live object maps.
+   while (!savedLocalObjectStates.empty())
+      savedLocalObjectStates.pop();
 
    ObjectArray toDeleteObjects;
    if (functionObjectStore && isObjStoreOwner)

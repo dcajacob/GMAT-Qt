@@ -734,7 +734,10 @@ std::string PowerSystem::GetStringParameter(const Integer id) const
       return epochFormat;
 
    if (id == INITIAL_EPOCH)
-      return initialEpoch;
+      // Return the string value, not script delimiters. SetEpoch retains
+      // quotes internally for Gregorian input, while the default is bare.
+      // GmatBase's string serializer supplies exactly one enclosing pair.
+      return GmatStringUtil::RemoveEnclosingString(initialEpoch, "'");
 
    return Hardware::GetStringParameter(id);
 }

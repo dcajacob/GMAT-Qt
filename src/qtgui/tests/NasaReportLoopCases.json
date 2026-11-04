@@ -1,0 +1,464 @@
+{
+  "cases": [
+    {
+      "key": "Precision",
+      "iterations": 3,
+      "parameters": [
+        "V",
+        "W"
+      ],
+      "body": "V = I * 12.34567890125;\nW = I * -0.003125;\nIf I == 1;\n'Runtime precision 1' Output.Precision = 9;\nEndIf;\nIf I == 2;\n'Runtime precision 2' Output.Precision = 9;\nEndIf;\nIf I == 3;\n'Runtime precision 3' Output.Precision = 9;\nEndIf;\n",
+      "edits": [
+        {
+          "label": "Runtime precision 1",
+          "destination": "Output.Precision",
+          "before": "9",
+          "expression": "3"
+        },
+        {
+          "label": "Runtime precision 2",
+          "destination": "Output.Precision",
+          "before": "9",
+          "expression": "8"
+        },
+        {
+          "label": "Runtime precision 3",
+          "destination": "Output.Precision",
+          "before": "9",
+          "expression": "13"
+        }
+      ],
+      "expected": [
+        {
+          "settings": {
+            "Precision": 3,
+            "ColumnWidth": 18,
+            "FixedWidth": false,
+            "Delimiter": ",",
+            "LeftJustify": "Off",
+            "ZeroFill": "Off",
+            "WriteHeaders": false,
+            "WriteReport": true,
+            "Filename": "@FILE0@"
+          },
+          "native": {
+            "I": 1,
+            "V": 12.34567890125,
+            "W": -0.003125,
+            "element": 0.25,
+            "S": "initial",
+            "mass": 850,
+            "Keep": 41,
+            "Count": 0
+          },
+          "output_index": 0,
+          "row": "12.3,-0.00313\n"
+        },
+        {
+          "settings": {
+            "Precision": 8,
+            "ColumnWidth": 18,
+            "FixedWidth": false,
+            "Delimiter": ",",
+            "LeftJustify": "Off",
+            "ZeroFill": "Off",
+            "WriteHeaders": false,
+            "WriteReport": true,
+            "Filename": "@FILE0@"
+          },
+          "native": {
+            "I": 2,
+            "V": 24.6913578025,
+            "W": -0.00625,
+            "element": 0.25,
+            "S": "initial",
+            "mass": 850,
+            "Keep": 41,
+            "Count": 0
+          },
+          "output_index": 0,
+          "row": "24.691358,-0.00625\n"
+        },
+        {
+          "settings": {
+            "Precision": 13,
+            "ColumnWidth": 18,
+            "FixedWidth": false,
+            "Delimiter": ",",
+            "LeftJustify": "Off",
+            "ZeroFill": "Off",
+            "WriteHeaders": false,
+            "WriteReport": true,
+            "Filename": "@FILE0@"
+          },
+          "native": {
+            "I": 3,
+            "V": 37.03703670375,
+            "W": -0.009375,
+            "element": 0.25,
+            "S": "initial",
+            "mass": 850,
+            "Keep": 41,
+            "Count": 0
+          },
+          "output_index": 0,
+          "row": "37.03703670375,-0.009375\n"
+        }
+      ]
+    },
+    {
+      "key": "Presentation",
+      "iterations": 4,
+      "parameters": [
+        "V",
+        "W"
+      ],
+      "body": "If I == 1;\n'Presentation 1 FixedWidth' Output.FixedWidth = false;\n'Presentation 1 ColumnWidth' Output.ColumnWidth = 19;\n'Presentation 1 LeftJustify' Output.LeftJustify = Off;\n'Presentation 1 ZeroFill' Output.ZeroFill = On;\nEndIf;\nIf I == 2;\n'Presentation 2 FixedWidth' Output.FixedWidth = false;\n'Presentation 2 ColumnWidth' Output.ColumnWidth = 19;\n'Presentation 2 LeftJustify' Output.LeftJustify = On;\n'Presentation 2 ZeroFill' Output.ZeroFill = Off;\nEndIf;\nIf I == 3;\n'Presentation 3 FixedWidth' Output.FixedWidth = false;\n'Presentation 3 ColumnWidth' Output.ColumnWidth = 18;\n'Presentation 3 LeftJustify' Output.LeftJustify = Off;\n'Presentation 3 ZeroFill' Output.ZeroFill = On;\nEndIf;\nIf I == 4;\n'Presentation 4 FixedWidth' Output.FixedWidth = true;\n'Presentation 4 ColumnWidth' Output.ColumnWidth = 18;\n'Presentation 4 LeftJustify' Output.LeftJustify = On;\n'Presentation 4 ZeroFill' Output.ZeroFill = On;\n'Presentation 4 Delimiter' Output.Delimiter = ',';\n'Presentation 4 WriteReport' Output.WriteReport = true;\nEndIf;\n",
+      "edits": [
+        {
+          "label": "Presentation 1 FixedWidth",
+          "destination": "Output.FixedWidth",
+          "before": "false",
+          "expression": "true"
+        },
+        {
+          "label": "Presentation 1 ColumnWidth",
+          "destination": "Output.ColumnWidth",
+          "before": "19",
+          "expression": "18"
+        },
+        {
+          "label": "Presentation 1 LeftJustify",
+          "destination": "Output.LeftJustify",
+          "before": "Off",
+          "expression": "On"
+        },
+        {
+          "label": "Presentation 1 ZeroFill",
+          "destination": "Output.ZeroFill",
+          "before": "On",
+          "expression": "Off"
+        },
+        {
+          "label": "Presentation 2 FixedWidth",
+          "destination": "Output.FixedWidth",
+          "before": "false",
+          "expression": "true"
+        },
+        {
+          "label": "Presentation 2 ColumnWidth",
+          "destination": "Output.ColumnWidth",
+          "before": "19",
+          "expression": "18"
+        },
+        {
+          "label": "Presentation 2 LeftJustify",
+          "destination": "Output.LeftJustify",
+          "before": "On",
+          "expression": "Off"
+        },
+        {
+          "label": "Presentation 2 ZeroFill",
+          "destination": "Output.ZeroFill",
+          "before": "Off",
+          "expression": "On"
+        },
+        {
+          "label": "Presentation 3 FixedWidth",
+          "destination": "Output.FixedWidth",
+          "before": "false",
+          "expression": "true"
+        },
+        {
+          "label": "Presentation 3 ColumnWidth",
+          "destination": "Output.ColumnWidth",
+          "before": "18",
+          "expression": "8"
+        },
+        {
+          "label": "Presentation 3 LeftJustify",
+          "destination": "Output.LeftJustify",
+          "before": "Off",
+          "expression": "On"
+        },
+        {
+          "label": "Presentation 3 ZeroFill",
+          "destination": "Output.ZeroFill",
+          "before": "On",
+          "expression": "Off"
+        },
+        {
+          "label": "Presentation 4 FixedWidth",
+          "destination": "Output.FixedWidth",
+          "before": "true",
+          "expression": "false"
+        },
+        {
+          "label": "Presentation 4 ColumnWidth",
+          "destination": "Output.ColumnWidth",
+          "before": "18",
+          "expression": "8"
+        },
+        {
+          "label": "Presentation 4 LeftJustify",
+          "destination": "Output.LeftJustify",
+          "before": "On",
+          "expression": "Off"
+        },
+        {
+          "label": "Presentation 4 ZeroFill",
+          "destination": "Output.ZeroFill",
+          "before": "On",
+          "expression": "Off"
+        },
+        {
+          "label": "Presentation 4 Delimiter",
+          "destination": "Output.Delimiter",
+          "before": "','",
+          "expression": "';'"
+        },
+        {
+          "label": "Presentation 4 WriteReport",
+          "destination": "Output.WriteReport",
+          "before": "true",
+          "expression": "false"
+        }
+      ],
+      "expected": [
+        {
+          "settings": {
+            "Precision": 8,
+            "ColumnWidth": 18,
+            "FixedWidth": true,
+            "Delimiter": ",",
+            "LeftJustify": "On",
+            "ZeroFill": "Off",
+            "WriteHeaders": false,
+            "WriteReport": true,
+            "Filename": "@FILE0@"
+          },
+          "native": {
+            "I": 1,
+            "V": 12.5,
+            "W": -0.003125,
+            "element": 0.25,
+            "S": "initial",
+            "mass": 850,
+            "Keep": 41,
+            "Count": 0
+          },
+          "output_index": 0,
+          "row": "12.5                 -0.003125            \n"
+        },
+        {
+          "settings": {
+            "Precision": 8,
+            "ColumnWidth": 18,
+            "FixedWidth": true,
+            "Delimiter": ",",
+            "LeftJustify": "Off",
+            "ZeroFill": "On",
+            "WriteHeaders": false,
+            "WriteReport": true,
+            "Filename": "@FILE0@"
+          },
+          "native": {
+            "I": 2,
+            "V": 12.5,
+            "W": -0.003125,
+            "element": 0.25,
+            "S": "initial",
+            "mass": 850,
+            "Keep": 41,
+            "Count": 0
+          },
+          "output_index": 0,
+          "row": "            12.500000        -0.0031250000\n"
+        },
+        {
+          "settings": {
+            "Precision": 8,
+            "ColumnWidth": 8,
+            "FixedWidth": true,
+            "Delimiter": ",",
+            "LeftJustify": "On",
+            "ZeroFill": "Off",
+            "WriteHeaders": false,
+            "WriteReport": true,
+            "Filename": "@FILE0@"
+          },
+          "native": {
+            "I": 3,
+            "V": 12.5,
+            "W": -0.003125,
+            "element": 0.25,
+            "S": "initial",
+            "mass": 850,
+            "Keep": 41,
+            "Count": 0
+          },
+          "output_index": 0,
+          "row": "12.5       -0.003125  \n"
+        },
+        {
+          "settings": {
+            "Precision": 8,
+            "ColumnWidth": 8,
+            "FixedWidth": false,
+            "Delimiter": ";",
+            "LeftJustify": "Off",
+            "ZeroFill": "Off",
+            "WriteHeaders": false,
+            "WriteReport": false,
+            "Filename": "@FILE0@"
+          },
+          "native": {
+            "I": 4,
+            "V": 12.5,
+            "W": -0.003125,
+            "element": 0.25,
+            "S": "initial",
+            "mass": 850,
+            "Keep": 41,
+            "Count": 0
+          },
+          "output_index": 0,
+          "row": "12.5;-0.003125\n"
+        }
+      ]
+    },
+    {
+      "key": "FilenameTypes",
+      "iterations": 3,
+      "parameters": [
+        "V",
+        "A(2,1)",
+        "S",
+        "Sat.DryMass",
+        "Keep",
+        "I"
+      ],
+      "body": "V = I * 12.5;\nA(2,1) = I * 0.25;\nSat.DryMass = 800 + 25 * I;\nIf I == 1;\nS = 'Alpha';\n'Filename 1' Output.Filename = '@OTHER@';\nEndIf;\nIf I == 2;\nS = 'Beta';\n'Filename 2' Output.Filename = '@OTHER@';\nEndIf;\nIf I == 3;\nS = 'Gamma';\n'Filename 3' Output.Filename = '@OTHER@';\nEndIf;\n",
+      "edits": [
+        {
+          "label": "Filename 1",
+          "destination": "Output.Filename",
+          "before": "'@OTHER@'",
+          "expression": "'@FILE0@'"
+        },
+        {
+          "label": "Filename 2",
+          "destination": "Output.Filename",
+          "before": "'@OTHER@'",
+          "expression": "'@FILE1@'"
+        },
+        {
+          "label": "Filename 3",
+          "destination": "Output.Filename",
+          "before": "'@OTHER@'",
+          "expression": "'@FILE2@'"
+        }
+      ],
+      "expected": [
+        {
+          "settings": {
+            "Precision": 8,
+            "ColumnWidth": 18,
+            "FixedWidth": false,
+            "Delimiter": ",",
+            "LeftJustify": "Off",
+            "ZeroFill": "Off",
+            "WriteHeaders": false,
+            "WriteReport": true,
+            "Filename": "@FILE0@"
+          },
+          "native": {
+            "I": 1,
+            "V": 12.5,
+            "W": -0.003125,
+            "element": 0.25,
+            "S": "Alpha",
+            "mass": 825,
+            "Keep": 41,
+            "Count": 0
+          },
+          "output_index": 0,
+          "row": "12.5,0.25,Alpha,825,41,1\n"
+        },
+        {
+          "settings": {
+            "Precision": 8,
+            "ColumnWidth": 18,
+            "FixedWidth": false,
+            "Delimiter": ",",
+            "LeftJustify": "Off",
+            "ZeroFill": "Off",
+            "WriteHeaders": false,
+            "WriteReport": true,
+            "Filename": "@FILE1@"
+          },
+          "native": {
+            "I": 2,
+            "V": 25.0,
+            "W": -0.003125,
+            "element": 0.5,
+            "S": "Beta",
+            "mass": 850,
+            "Keep": 41,
+            "Count": 0
+          },
+          "output_index": 1,
+          "row": "25,0.5,Beta,850,41,2\n"
+        },
+        {
+          "settings": {
+            "Precision": 8,
+            "ColumnWidth": 18,
+            "FixedWidth": false,
+            "Delimiter": ",",
+            "LeftJustify": "Off",
+            "ZeroFill": "Off",
+            "WriteHeaders": false,
+            "WriteReport": true,
+            "Filename": "@FILE2@"
+          },
+          "native": {
+            "I": 3,
+            "V": 37.5,
+            "W": -0.003125,
+            "element": 0.75,
+            "S": "Gamma",
+            "mass": 875,
+            "Keep": 41,
+            "Count": 0
+          },
+          "output_index": 2,
+          "row": "37.5,0.75,Gamma,875,41,3\n"
+        }
+      ]
+    }
+  ],
+  "base": {
+    "Precision": 8,
+    "ColumnWidth": 18,
+    "FixedWidth": false,
+    "Delimiter": ",",
+    "LeftJustify": "Off",
+    "ZeroFill": "Off",
+    "WriteHeaders": false,
+    "WriteReport": true,
+    "Filename": "@FILE0@"
+  },
+  "fields": [
+    "Precision",
+    "ColumnWidth",
+    "FixedWidth",
+    "Delimiter",
+    "LeftJustify",
+    "ZeroFill",
+    "WriteHeaders",
+    "WriteReport",
+    "Filename"
+  ],
+  "scope": "Finite runtime ReportFile property changes in a For loop,with immediate native before/after Report boundaries and independently prescribed exact ASCII bytes. Precision3/8/13;fixed/delimited,left/right/left,width18/8,zero-fill,explicit Report with WriteReportfalse;three distinct Unicode filenames and changing Variable,Array element,String and spacecraft DryMass. No private historical keyword-body reconstruction,Append/Add runtime setters,solver policy,whole-array changes,all locales/domains,current NASA/native OS/GPU/hardware/platform/stress or full newest-build inference."
+}

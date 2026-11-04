@@ -35,8 +35,11 @@
 #include "SubscriberException.hpp"
 #include "StringUtil.hpp"            // for GmatStringUtil::ReplaceName(), GetArrayName()
 #include "MessageInterface.hpp"      // for ShowMessage()
+#include "SpaceObject.hpp"
+#include <cstring>
 #include <cmath>
 #include <limits>
+#include <iomanip>
 #include <sstream>                   // for <<
 #include "AngleUtil.hpp"
 
@@ -61,7 +64,8 @@ GroundTrack::PARAMETER_TEXT[GroundTrackParamCount - SubscriberParamCount] =
          "ShowFootPrints",
          "UseGrid",            // USE_GRID,
          "LatitudeLineCount",  // LATLINE_COUNT,
-         "LongitudeLineCount"  // LONGLINE_COUNT,
+         "LongitudeLineCount", // LONGLINE_COUNT
+         "IntegrationStepsToSkip"
       };
 
 const Gmat::ParameterType
@@ -80,12 +84,15 @@ GroundTrack::PARAMETER_TYPE[GroundTrackParamCount - SubscriberParamCount] =
          Gmat::STRING_TYPE,
          Gmat::BOOLEAN_TYPE,
          Gmat::INTEGER_TYPE,
+         Gmat::INTEGER_TYPE,
          Gmat::INTEGER_TYPE
       };
 
 void GroundTrack::SetRunState(Gmat::RunState state)
 {
-   Subscriber::SetRunState(SolverBranchCommand::GetPlotRunState(state));
+   const auto next = SolverBranchCommand::GetPlotRunState(state);
+   if (next != runstate) previousSample = BoundarySample{};
+   Subscriber::SetRunState(next);
 }
 
 //------------------------------------------------------------------------------
@@ -181,6 +188,9 @@ GroundTrack& GroundTrack::operator=(const GroundTrack& gt)
       mapFile = gt.mapFile;
       lineWidth = gt.lineWidth;
       collectFrequency = gt.collectFrequency;
+      integrationStepsToSkip = gt.integrationStepsToSkip;
+      integrationSampler.Reset();
+      previousSample = BoundarySample{};
       samplesUntilCollect = 0;
       updateFrequency = gt.updateFrequency;
       redrawCount = gt.redrawCount;
@@ -256,6 +266,9 @@ void GroundTrack::Copy(const GmatBase* orig)
  */
 bool GroundTrack::Initialize()
 {
+   integrationSampler.Reset();
+   previousSample = BoundarySample{};
+   Publisher::SetIntegrationStepConsumer(this, integrationStepsToSkip >= 0);
    bool retval = false;
    Integer stationCount = 0;
 
@@ -432,10 +445,20 @@ bool GroundTrack::IsParameterReadOnly(const Integer id) const
    if ((id == TEXTURE_MAP) && (mapFile == ""))
       return true;
 
-   // Hidden but usable settings
-   if ( (id == USE_GRID) || (id == LATLINE_COUNT) ||
-        (id == LONGLINE_COUNT) || (id == SHOWNAME) )
+   // Add supplies true name flags by default. Preserve an explicit false
+   // flag on export; hiding the setting must not erase its configured value.
+   if (id == SHOWNAME)
+   {
+      for (bool flag : showName)
+         if (!flag) return false;
       return true;
+   }
+
+   // Hidden controls still configure the native plot. Keep defaults implicit,
+   // but serialize nondefaults so Save/reload does not reset the grid.
+   if (id == USE_GRID) return useGrid;
+   if (id == LATLINE_COUNT) return latLineCount == 6;
+   if (id == LONGLINE_COUNT) return longLineCount == 12;
 
    if ((id == LINE_WIDTH) && (lineWidth == 2))
       return true;
@@ -915,6 +938,7 @@ Real GroundTrack::SetRealParameter(const std::string &label, const Real value)
  */
 Integer GroundTrack::GetIntegerParameter(const Integer id) const
 {
+   if (id == INTEGRATION_STEPS_TO_SKIP) return integrationStepsToSkip;
    if (id == LINE_WIDTH)
       return lineWidth;
 
@@ -954,6 +978,15 @@ Integer GroundTrack::GetIntegerParameter(const Integer id) const
  */
 Integer GroundTrack::SetIntegerParameter(const Integer id, const Integer value)
 {
+   if (id == INTEGRATION_STEPS_TO_SKIP)
+   {
+      if (value < -1) throw SubscriberException("IntegrationStepsToSkip must be -1 (publication sampling) or nonnegative");
+      integrationStepsToSkip = value;
+      integrationSampler.Reset();
+      previousSample = BoundarySample{};
+      if (isInitialized) Publisher::SetIntegrationStepConsumer(this, value >= 0);
+      return value;
+   }
    if (id == LINE_WIDTH)
    {
       if (value > 0)
@@ -965,6 +998,7 @@ Integer GroundTrack::SetIntegerParameter(const Integer id, const Integer value)
    {
       if (value <= 0)
          throw SubscriberException("DataCollectFrequency must be a positive integer for " + instanceName);
+      previousSample = BoundarySample{};
       collectFrequency = value;
       samplesUntilCollect = 0;
       return collectFrequency;
@@ -1624,6 +1658,55 @@ void GroundTrack::SetSegmentOrbitColor(GmatBase *, bool overrideColor,
    PlotInterface::TakeGroundTrackAction(instanceName, action.str());
 }
 
+// In a decimated regular trajectory a Propagate command echoes its initial
+// state even when the preceding command just delivered that very sample.
+// Only that explicit command-start echo is ineligible for the countdown.
+// Ordinary publications and solver trial packets retain their original phase.
+bool GroundTrack::RepeatsPropagationStart(const Real *data, Integer count)
+{
+   bool initial = false;
+   const auto *roots = Publisher::GetPublishedPropagationObjects(data, count, initial);
+   if (!roots || roots->empty() || runstate != Gmat::RUNNING || theDataLabels.empty())
+   {
+      previousSample = BoundarySample{};
+      return false;
+   }
+   // Equal numeric packets from other runtime spacecraft are distinct. Include
+   // formation members and each object's clock, even for multi-provider packets.
+   ObjectArray objects;
+   for (auto *root : *roots)
+   {
+      objects.push_back(root);
+      if (root && root->IsOfType(Gmat::FORMATION))
+      {
+         const auto &members = root->GetRefObjectArray(Gmat::SPACECRAFT);
+         objects.insert(objects.end(), members.begin(), members.end());
+      }
+   }
+   std::vector<GmatTime> epochs;
+   epochs.reserve(objects.size());
+   for (auto *object : objects)
+   {
+      auto *space = dynamic_cast<SpaceObject*>(object);
+      if (!space)
+      {
+         previousSample = BoundarySample{};
+         return false;
+      }
+      epochs.push_back(space->HasPrecisionTime() ? space->GetEpochGT() : GmatTime(space->GetEpoch()));
+   }
+   const bool repeated = initial && objects == previousSample.objects &&
+      epochs == previousSample.epochs && propDirection == previousSample.direction &&
+      theDataLabels[0] == previousSample.labels && previousSample.packet.size() == size_t(count) &&
+      std::memcmp(previousSample.packet.data(), data, size_t(count) * sizeof(Real)) == 0;
+   previousSample.objects = std::move(objects);
+   previousSample.epochs = std::move(epochs);
+   previousSample.labels = theDataLabels[0];
+   previousSample.packet.assign(data, data + count);
+   previousSample.direction = propDirection;
+   return repeated;
+}
+
 //------------------------------------------------------------------------------
 // bool Distribute(const double * dat, Integer len)
 //------------------------------------------------------------------------------
@@ -1654,7 +1737,8 @@ bool GroundTrack::Distribute(const double * dat, Integer len)
       // FlushData also ends individual propagation/solver blocks. Only the
       // engine's SetEndOfRun notification completes the retained display.
       PlotInterface::TakeGroundTrackAction(instanceName,
-            isEndOfRun ? "RunComplete" : "Refresh");
+            isEndOfRun ? "RunComplete" :
+            integrationStepsToSkip >= 0 ? "RefreshPreservingCadence" : "Refresh");
 
       // if targetting and draw target is None, just return
       if (mSolverIterations == "None" &&
@@ -1680,7 +1764,59 @@ bool GroundTrack::Distribute(const double * dat, Integer len)
    if (mSolverIterations == "None" && solving)
       return true;
 
-   // Keep the initial point and then every collectFrequency-th publication.
+   if (integrationStepsToSkip >= 0)
+   {
+      const auto *steps = Publisher::GetPublishedIntegrationSteps(dat, len);
+      if (!steps) return true; // Nonintegrating providers have no step identity.
+      const StringArray originalLabels = theDataLabels.empty() ? StringArray{} : theDataLabels[0];
+      std::map<const GmatBase*,int> packetSpacecraft;
+      for (const auto &record : *steps)
+         for (const auto &sample : record.states)
+            packetSpacecraft[sample.object] = 3; // Present in this packet, not necessarily this step.
+      try
+      {
+         for (const auto &step : *steps)
+         {
+            StringArray labels(1, "Epoch");
+            RealArray values(1, step.epoch.GetMjd());
+            const char *components[] = {".X", ".Y", ".Z", ".Vx", ".Vy", ".Vz"};
+            auto selection = packetSpacecraft;
+            for (const auto &sample : step.states)
+            {
+               bool newArc = false;
+               if (std::find(theSats.begin(), theSats.end(), sample.object) == theSats.end()) continue;
+               if (!integrationSampler.Select(step, sample, integrationStepsToSkip, &newArc))
+               {
+                  selection[sample.object] = 3; // Present but intentionally uncollected.
+                  continue;
+               }
+               selection[sample.object] = newArc ? 2 : 1;
+               for (Integer c = 0; c < 6; ++c)
+               {
+                  labels.push_back(sample.object->GetName() + components[c]);
+                  values.push_back(sample.state[c]);
+               }
+            }
+            if (values.size() == 1) continue;
+            SetDataLabels(labels);
+            std::ostringstream mask;
+            mask.imbue(std::locale::classic());
+            mask << "PlotStepAvailability:" << std::setprecision(17) << values[0] << ' ' << theSats.size();
+            for (const auto *sat : theSats)
+               mask << ' ' << std::quoted(sat->GetName()) << ' ' << selection[sat];
+            PlotInterface::TakeGroundTrackAction(instanceName, mask.str());
+            if (!PlotSample(values.data(), values.size(), solving))
+            { PlotInterface::TakeGroundTrackAction(instanceName, "ClearStepAvailability"); SetDataLabels(originalLabels); return false; }
+         }
+      }
+      catch (...) { PlotInterface::TakeGroundTrackAction(instanceName, "ClearStepAvailability"); SetDataLabels(originalLabels); throw; }
+      SetDataLabels(originalLabels);
+      return true;
+   }
+
+   if (collectFrequency > 1 && RepeatsPropagationStart(dat, len)) return true;
+
+   // Keep the initial point and then every collectFrequency-th eligible publication.
    // A bounded countdown avoids overflow during long missions.
    if (samplesUntilCollect > 0)
    {
@@ -1688,7 +1824,12 @@ bool GroundTrack::Distribute(const double * dat, Integer len)
       return true;
    }
    samplesUntilCollect = collectFrequency - 1;
+   return PlotSample(dat, len, solving);
+}
 
+bool GroundTrack::PlotSample(const Real *dat, Integer len, bool solving)
+{
+   bool retval = false;
    // A publication may contain only a subset of the tracked spacecraft.
    // Preserve curve slots and explicitly mark absent states for the receiver.
    const double absent = std::numeric_limits<double>::quiet_NaN();
@@ -1708,7 +1849,7 @@ bool GroundTrack::Distribute(const double * dat, Integer len)
             // The finite SPICE unavailable marker must not become a
             // plausible latitude/longitude after coordinate conversion.
             complete = std::isfinite(state[component]) &&
-                  std::abs(state[component])<std::numeric_limits<double>::max();
+                  std::abs(state[component])<(std::numeric_limits<double>::max)();
          }
       }
       if (!complete || !std::isfinite(dat[0]))
@@ -1766,6 +1907,9 @@ bool GroundTrack::Distribute(const double * dat, Integer len)
 bool GroundTrack::TakeAction(const std::string &action,
                                  const std::string &actionData)
 {
+   integrationSampler.Action(action, actionData);
+   if (action == "ToggleOn" || action == "ToggleOff" || action == "MarkBreak" ||
+       action == "ClearFromBreak" || action == "Clear") previousSample = BoundarySample{};
    if (action == "Clear")
    {
       theObjects.clear();

@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "tests": {
+    "QtAcceptance.ComparatorContracts": {
+      "earliest_build_date": null,
+      "latest_build_date": null,
+      "requirements": [
+        "All Others!E303",
+        "All Others!E304",
+        "All Others!E305",
+        "All Others!E307",
+        "All Others!E309",
+        "All Others!E330"
+      ],
+      "author": "Codex",
+      "truth_data": [
+        {
+          "kind": "file",
+          "path": "src/qtgui/tests/AcceptanceCompareTests.py",
+          "sha256": "9a70daeaab9746fd0fb97665c0580a08a54f1916df4a33673e175ed2493bef5f"
+        }
+      ],
+      "tolerances": {
+        "absolute": 0,
+        "relative": 0
+      },
+      "comparator": "independent-literal-comparator-contract",
+      "extensions": {
+        "execution_kind": "backend-support",
+        "truth_role": "known literal numeric differences, identity/structure mutations, actual CLI JSON/HTML and plugin fixtures"
+      },
+      "comments": "Tests comparator capability only. Input policy examples exercise tolerance boundaries; no GMAT fixture tolerance changes.",
+      "creation_date": "2026-11-01",
+      "platform_dependencies": [],
+      "test_type": "Acceptance"
+    }
+  }
+}

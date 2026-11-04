@@ -370,6 +370,15 @@ void UserDefinedFunction::ClearFunctionObjects()
           obj ? obj->GetTypeName().c_str() : "NULL", (omi->first).c_str());
       #endif
       
+      // Sandbox objects may already have been destroyed before this function.
+      // Compare borrowed identities before dereferencing the template map entry.
+      if (find(sandboxObjects.begin(), sandboxObjects.end(), obj) !=
+          sandboxObjects.end())
+      {
+         ++omi;
+         continue;
+      }
+
       // If object is not NULL and not this function, delete
       if (obj != NULL && (!obj->IsOfType("GmatFunction")))
       {

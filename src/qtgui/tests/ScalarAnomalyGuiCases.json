@@ -1,0 +1,413 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "EllipticNearPeri",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000,
+        0.2,
+        47,
+        112,
+        38,
+        1e-08
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -5476.0007114139071;\nSat.Y = 4586.7279019168245;\nSat.Z = 3602.1303921946051;\nSat.VX = -2.069641181536062;\nSat.VY = -5.9706003787015272;\nSat.VZ = 4.4562969742308685;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.Earth.EA",
+      "read_only": true,
+      "reject_destination": "Sat.Earth.EA",
+      "report": "R Sat.Earth.EA Sat.Earth.MA Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        8.16496580927726e-09,
+        8.16496580927726e-09,
+        6.5319726474218085e-09,
+        1e-08,
+        -5476.000711413907,
+        4586.7279019168245,
+        3602.130392194605,
+        -2.069641181536062,
+        -5.970600378701527,
+        4.4562969742308685
+      ],
+      "scope": "Selected origin-qualified readonly anomaly calculations,Assignment/direct Report values,unchanged Cartesian witness;not all anomaly/threshold/dynamical domains."
+    },
+    {
+      "key": "EllipticNearApo",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        12000,
+        0.95,
+        47,
+        112,
+        38,
+        179.999999
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 16017.301970479008;\nSat.Y = -13416.179431613022;\nSat.Z = -10536.231159444544;\nSat.VX = 0.24701702627156166;\nSat.VY = 0.71260577157889149;\nSat.VZ = -0.531870236176061;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.Earth.MA",
+      "read_only": true,
+      "reject_destination": "Sat.Earth.MA",
+      "report": "R Sat.Earth.EA Sat.Earth.MA Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        179.9999878222538,
+        179.99999375500195,
+        179.9999878222538,
+        179.999999,
+        16017.301970479008,
+        -13416.179431613022,
+        -10536.231159444544,
+        0.24701702627156166,
+        0.7126057715788915,
+        -0.531870236176061
+      ],
+      "scope": "Selected origin-qualified readonly anomaly calculations,Assignment/direct Report values,unchanged Cartesian witness;not all anomaly/threshold/dynamical domains."
+    },
+    {
+      "key": "EllipticInbound",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000,
+        0.2,
+        179.9999999,
+        112,
+        38,
+        359.999999
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 2205.0987123185419;\nSat.Y = 7690.0936059927853;\nSat.Z = 8.5962560840984139e-06;\nSat.VX = 7.4328634784255732;\nSat.VY = -2.1313391884182389;\nSat.VZ = 1.063467090593353e-08;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.Earth.MA",
+      "read_only": true,
+      "reject_destination": "Sat.Earth.MA",
+      "report": "R Sat.Earth.EA Sat.Earth.MA Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        359.9999993468027,
+        359.9999991835034,
+        359.9999993468027,
+        359.999999,
+        2205.098712318542,
+        7690.093605992785,
+        8.596256084098414e-06,
+        7.432863478425573,
+        -2.131339188418239,
+        1.063467090593353e-08
+      ],
+      "scope": "Selected origin-qualified readonly anomaly calculations,Assignment/direct Report values,unchanged Cartesian witness;not all anomaly/threshold/dynamical domains."
+    },
+    {
+      "key": "CircularRetrograde",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        9000,
+        0,
+        180,
+        112,
+        38,
+        143
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 3225.3115459077007;\nSat.Y = -8402.2238384748161;\nSat.Z = -1.9235730312754345e-14;\nSat.VX = -6.2129716321478474;\nSat.VY = -2.3849363602768445;\nSat.VZ = -8.1487751514021874e-16;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.Earth.EA",
+      "read_only": true,
+      "reject_destination": "Sat.Earth.EA",
+      "report": "R Sat.Earth.EA Sat.Earth.MA Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        69.0,
+        69.0,
+        69.0,
+        69.0,
+        3225.3115459077007,
+        -8402.223838474816,
+        -1.9235730312754345e-14,
+        -6.212971632147847,
+        -2.3849363602768445,
+        -8.148775151402187e-16
+      ],
+      "scope": "Selected origin-qualified readonly anomaly calculations,Assignment/direct Report values,unchanged Cartesian witness;not all anomaly/threshold/dynamical domains."
+    },
+    {
+      "key": "CircularInclined",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        9000,
+        0,
+        47,
+        112,
+        38,
+        143
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 3470.2682085034794;\nSat.Y = -8303.2549225930688;\nSat.Z = -114.87493845062707;\nSat.VX = 4.1640545211423934;\nSat.VY = 1.8076543518297272;\nSat.VZ = -4.8664128096277537;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.Earth.MA",
+      "read_only": true,
+      "reject_destination": "Sat.Earth.MA",
+      "report": "R Sat.Earth.EA Sat.Earth.MA Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        181.0,
+        181.0,
+        181.0,
+        181.0,
+        3470.2682085034794,
+        -8303.254922593069,
+        -114.87493845062707,
+        4.164054521142393,
+        1.8076543518297272,
+        -4.866412809627754
+      ],
+      "scope": "Selected origin-qualified readonly anomaly calculations,Assignment/direct Report values,unchanged Cartesian witness;not all anomaly/threshold/dynamical domains."
+    },
+    {
+      "key": "HyperbolicOutbound",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        -15000,
+        1.2,
+        47,
+        112,
+        38,
+        37
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -2385.2216350500862;\nSat.Y = -22.926998045148512;\nSat.Z = 2380.7953643004503;\nSat.VX = -0.95594489122311743;\nSat.VY = -14.674640407985864;\nSat.VZ = 6.8455232700593394;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.Earth.HA",
+      "read_only": true,
+      "reject_destination": "Sat.Earth.HA",
+      "report": "R Sat.Earth.HA Sat.Earth.MA Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        11.59994820285981,
+        11.59994820285981,
+        2.415278669495782,
+        37.0,
+        -2385.221635050086,
+        -22.926998045148512,
+        2380.7953643004503,
+        -0.9559448912231174,
+        -14.674640407985864,
+        6.845523270059339
+      ],
+      "scope": "Selected origin-qualified readonly anomaly calculations,Assignment/direct Report values,unchanged Cartesian witness;not all anomaly/threshold/dynamical domains."
+    },
+    {
+      "key": "HyperbolicInbound",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        -15000,
+        1.2,
+        179.9999999,
+        112,
+        38,
+        -37
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -1207.7581814712667;\nSat.Y = 3146.3176313452691;\nSat.Z = 1.026558098422885e-07;\nSat.VX = 16.219558391984787;\nSat.VY = 0.21451374936538906;\nSat.VZ = 2.6387408982936033e-08;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.Earth.HA",
+      "read_only": true,
+      "reject_destination": "Sat.Earth.HA",
+      "report": "R Sat.Earth.HA Sat.Earth.MA Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        -11.59994820285981,
+        -11.59994820285981,
+        -2.415278669495782,
+        323.0,
+        -1207.7581814712667,
+        3146.317631345269,
+        1.026558098422885e-07,
+        16.219558391984787,
+        0.21451374936538906,
+        2.6387408982936033e-08
+      ],
+      "scope": "Selected origin-qualified readonly anomaly calculations,Assignment/direct Report values,unchanged Cartesian witness;not all anomaly/threshold/dynamical domains."
+    },
+    {
+      "key": "HyperbolicNearPeri",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        -15000,
+        1.2,
+        47,
+        112,
+        38,
+        1e-08
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = -2053.500266780215;\nSat.Y = 1720.0229632188089;\nSat.Z = 1350.7988970729766;\nSat.VX = -4.5761488339889853;\nSat.VY = -13.201494152223171;\nSat.VZ = 9.8532433457888402;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.Earth.MA",
+      "read_only": true,
+      "reject_destination": "Sat.Earth.MA",
+      "report": "R Sat.Earth.HA Sat.Earth.MA Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        6.030226891555268e-10,
+        3.015113445777636e-09,
+        6.030226891555268e-10,
+        1e-08,
+        -2053.500266780215,
+        1720.0229632188089,
+        1350.7988970729766,
+        -4.576148833988985,
+        -13.201494152223171,
+        9.85324334578884
+      ],
+      "scope": "Selected origin-qualified readonly anomaly calculations,Assignment/direct Report values,unchanged Cartesian witness;not all anomaly/threshold/dynamical domains."
+    }
+  ]
+}

@@ -34,6 +34,7 @@
 
 #include "gmatdefs.hpp"
 #include "Subscriber.hpp"
+#include "IntegrationStepSampler.hpp"
 #include "GroundstationInterface.hpp"
 
 #include "CelestialBody.hpp"
@@ -159,7 +160,10 @@ public:
    virtual void SetSolarSystem(SolarSystem *ss);
 
 protected:
+   Integer integrationStepsToSkip = -1;
+   IntegrationStepSampler integrationSampler;
    void ClearRuntimeResources();
+   bool PlotSample(const Real *dat, Integer len, bool solving);
 
    /// Central body for the track
    std::string theBodyName;
@@ -181,6 +185,16 @@ protected:
    int collectFrequency;
    /// Remaining published points to skip before the next sample
    int samplesUntilCollect;
+   struct BoundarySample
+   {
+      ObjectArray objects;
+      std::vector<GmatTime> epochs;
+      StringArray labels;
+      RealArray packet;
+      Real direction = 0.0;
+   };
+   BoundarySample previousSample;
+   bool RepeatsPropagationStart(const Real *data, Integer count);
    /// Frequency for updates to teh display
    int updateFrequency;
    /// Length of the redraw on a track
@@ -251,6 +265,7 @@ protected:
       USE_GRID,
       LATLINE_COUNT,
       LONGLINE_COUNT,
+      INTEGRATION_STEPS_TO_SKIP,
       GroundTrackParamCount
    };
 

@@ -60,6 +60,7 @@ public:
 
    /// inherited from GmatBase
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
    
    // overrides GmatBase to allow commanding of angular velocity
    virtual bool IsParameterCommandModeSettable(const Integer id) const;

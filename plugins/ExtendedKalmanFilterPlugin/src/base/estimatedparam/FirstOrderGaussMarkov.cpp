@@ -249,6 +249,17 @@ GmatBase* FirstOrderGaussMarkov::Clone(void) const
    return (new FirstOrderGaussMarkov(*this));
 }
 
+// Whole-object assignment and function outputs dispatch through this API.
+// Reuse the class assignment operator, preserving the destination identity.
+void FirstOrderGaussMarkov::Copy(const GmatBase* source)
+{
+   const auto* typed = dynamic_cast<const FirstOrderGaussMarkov*>(source);
+   if (!typed || typed->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Cannot copy into " + GetTypeName() +
+                             " from a null or incompatible object");
+   operator=(*typed);
+}
+
 
 //------------------------------------------------------------------------------
 // Gmat::ParameterType GetParameterType(const Integer id) const

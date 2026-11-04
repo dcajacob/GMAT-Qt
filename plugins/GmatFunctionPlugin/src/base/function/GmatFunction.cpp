@@ -39,6 +39,9 @@
 #include "Parameter.hpp"         // for GetReturnType()
 #include "BranchCommand.hpp"     // for ResetExecutionState()
 #include "MessageInterface.hpp"
+#include "Moderator.hpp"
+#include "Publisher.hpp"
+#include "SpacePoint.hpp"
 
 //#define DEBUG_FUNCTION_CONSTRUCT
 //#define DEBUG_FUNCTION_SET
@@ -395,7 +398,24 @@ bool GmatFunction::Initialize(ObjectInitializer *objInit, bool reinitialize,
 
             // Copy data of fresh local objects
             if (resetLocalObjects)
+            {
                objectStore->at(funcObjName)->Copy(omi->second);
+               // Copying an uninitialized prototype clears borrowed context.
+               // Commands (including SPK Propagate) may query a local state
+               // during Initialize, before Execute's typed initialization.
+               if (mapObj->IsOfType(Gmat::SPACE_POINT))
+               {
+                  SpacePoint *point = static_cast<SpacePoint*>(mapObj);
+                  SpacePoint *body = dynamic_cast<SpacePoint*>(
+                     FindObject(point->GetJ2000BodyName()));
+                  if (!body)
+                     throw FunctionException("Cannot restore J2000 body '" +
+                        point->GetJ2000BodyName() + "' for local object '" +
+                        funcObjName + "'.");
+                  point->SetSolarSystem(solarSys);
+                  point->SetJ2000Body(body);
+               }
+            }
          }
       }
    }
@@ -744,6 +764,12 @@ bool GmatFunction::Execute(ObjectInitializer *objInit, bool reinitialize)
       if (!objInit->InitializeObjects(true, Gmat::CALCULATED_POINT))
          throw FunctionException
             ("Failed to re-initialize CalculatedPoints in the \"" + functionName + "\"");
+      // Local hardware is refreshed from uninitialized prototypes on repeated
+      // calls too. Rebind borrowed dependencies (for example an Antenna FOV)
+      // before execution and whole-object output assignment.
+      if (!objInit->InitializeObjects(true, Gmat::HARDWARE))
+         throw FunctionException
+            ("Failed to re-initialize Hardware in the \"" + functionName + "\"");
       if (!objInit->InitializeObjects(true, Gmat::SPACECRAFT))
          throw FunctionException
             ("Failed to re-initialize Spacecrafts in the \"" + functionName + "\"");
@@ -753,6 +779,13 @@ bool GmatFunction::Execute(ObjectInitializer *objInit, bool reinitialize)
       if (!objInit->InitializeObjects(true, Gmat::SOLVER))
          throw FunctionException
             ("Failed to re-initialize Solvers in the \"" + functionName + "\"");
+      // Copying a local ForceModel's uninitialized prototype on the next
+      // call also resets its SolarSystem and coordinate references. Restore
+      // that context before Parameters request forces; full ODE initialization
+      // remains demand-driven, since a propagation state may not exist yet.
+      for (const auto &entry : *objectStore)
+         if (entry.second->IsOfType(Gmat::ODE_MODEL))
+            objInit->BuildReferences(entry.second);
       if (!objInit->InitializeObjects(true, Gmat::PARAMETER))
          throw FunctionException
             ("Failed to re-initialize Parameters in the \"" + functionName + "\"");
@@ -766,10 +799,28 @@ bool GmatFunction::Execute(ObjectInitializer *objInit, bool reinitialize)
    ShowObjects("In GmatFunction::Execute()");
    #endif
    
+   // A function owns its command dispatcher while the Sandbox waits in the
+   // CallFunction command. Service GUI controls here at the Sandbox cadence.
+   // Only poll during mission execution: initialization-time math functions
+   // may run while the Moderator/Publisher is idle.
+   const bool serviceRunControls =
+      Publisher::Instance()->GetRunState() == Gmat::RUNNING;
+   Integer controlPollCount = 0;
+
    // Go through each command in the sequence and execute.
    // Once it gets to a real command, initialize local and automatic objects.
    while (current)
    {
+      if (serviceRunControls && ++controlPollCount == 50)
+      {
+         controlPollCount = 0;
+         Gmat::RunState runState = Moderator::Instance()->GetUserInterrupt();
+         while (runState == Gmat::PAUSED)
+            runState = Moderator::Instance()->GetUserInterrupt();
+         if (runState == Gmat::IDLE)
+            throw FunctionException("Execution interrupted by user in function \"" +
+                                    functionName + "\"\n");
+      }
       // Call to IsNextAFunction is necessary for branch commands in particular
       #ifdef DEBUG_FUNCTION_EXEC
       MessageInterface::ShowMessage

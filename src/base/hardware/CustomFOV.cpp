@@ -31,6 +31,8 @@
 #include <sstream>
 #include "utildefs.hpp"
 #include "CustomFOV.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "MessageInterface.hpp"
 #include "FieldOfViewException.hpp"
 #include "GmatConstants.hpp"
@@ -2005,3 +2007,15 @@ bool CompareFOVElements(const FOVElement &e1, const FOVElement &e2)
 	return e1.value < e2.value;
 }
 
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void CustomFOV::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const CustomFOV*>(original);
+   if (!source || typeid(*source) != typeid(CustomFOV) ||
+       typeid(*this) != typeid(CustomFOV))
+      throw GmatBaseException("Cannot copy incompatible object into CustomFOV");
+   if (source == this)
+      return;
+   operator=(*source);
+}

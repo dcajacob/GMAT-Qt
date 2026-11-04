@@ -17,7 +17,7 @@ MESSAGE("GMAT FminconOptimizer Plugin setup " ${VERSION})
 
 # ====================================================================
 # Major error checks
-if(NOT WIN32)
+if(NOT WIN32 AND NOT (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GMAT_INCLUDE_QT_GUI))
   MESSAGE(WARNING "Skipping FminconOptimizer: Not supported on ${CMAKE_SYSTEM_NAME}")
   RETURN()
 endif()
@@ -54,6 +54,9 @@ _SETUPPLUGIN(${TargetName} "${PLUGIN_DIRS}" "${PLUGIN_SRCS}" plugins)
 
 # Rename DLL export preproccessor definition
 SET_TARGET_PROPERTIES(${TargetName} PROPERTIES DEFINE_SYMBOL "FMINCON_EXPORTS")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GMAT_INCLUDE_QT_GUI)
+  TARGET_COMPILE_DEFINITIONS(${TargetName} PRIVATE GMAT_QT_FMINCON_CALLBACK)
+endif()
 
 # ====================================================================
 # Additional includes
@@ -62,4 +65,8 @@ TARGET_INCLUDE_DIRECTORIES(${TargetName} PRIVATE ${Matlab_INCLUDE_DIRS})
 # ====================================================================
 # Additional link libraries
 TARGET_LINK_LIBRARIES(${TargetName} PRIVATE MatlabInterface)
-TARGET_LINK_LIBRARIES(${TargetName} PRIVATE ${Matlab_LIBRARIES})
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GMAT_INCLUDE_QT_GUI)
+  TARGET_LINK_LIBRARIES(${TargetName} PRIVATE ${Matlab_ENG_LIBRARY} ${Matlab_MX_LIBRARY})
+else()
+  TARGET_LINK_LIBRARIES(${TargetName} PRIVATE ${Matlab_LIBRARIES})
+endif()

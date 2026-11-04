@@ -948,6 +948,8 @@ bool Simulator::SetStringParameter(const Integer id, const std::string &value,
 //------------------------------------------------------------------------------
 const StringArray& Simulator::GetStringArrayParameter(const Integer id) const
 {
+   if (id == PROPAGATOR)
+      return propagatorNames;
    if (id == MEASUREMENTS)
    {
       return measList; // temporary

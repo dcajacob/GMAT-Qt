@@ -688,7 +688,10 @@ bool CcsdsEphPropagator::Initialize()
 
             ephem.CloseForRead();
 			   currentEpoch = initialEpoch;
-            Rvector6 interpVal = ephem.InterpolatePoint(currentEpoch);
+            if (hasPrecisionTime)
+               currentEpochGT = initialEpochGT;
+            Rvector6 interpVal = hasPrecisionTime ? ephem.InterpolatePoint(currentEpochGT) :
+                  ephem.InterpolatePoint(currentEpoch);
             std::memcpy(state, interpVal.GetDataVector(),
                6 * sizeof(Real));
 
@@ -931,7 +934,7 @@ bool CcsdsEphPropagator::Step()
    Rvector6 interpVal;
    if (hasPrecisionTime)
    {
-      interpVal = ephem.InterpolatePoint(currentEpochGT.GetMjd());
+      interpVal = ephem.InterpolatePoint(currentEpochGT);
       lastEpochGT = currentEpochGT;
    }
    else
@@ -1030,7 +1033,7 @@ void CcsdsEphPropagator::UpdateState()
    // Update state
    Rvector6 theState;
    if (hasPrecisionTime)
-      theState = ephem.InterpolatePoint(currentEpochGT.GetMjd());
+      theState = ephem.InterpolatePoint(currentEpochGT);
    else
       theState = ephem.InterpolatePoint(currentEpoch);
    
@@ -1071,6 +1074,9 @@ void CcsdsEphPropagator::UpdateState()
 void CcsdsEphPropagator::SetEphemSpan(Integer whichOne)
 {
    ephem.GetStartAndEndEpochs(ephemStart, ephemEnd, &ephemRecords);
+   if (ephem.theEphem.empty() || ephem.theEphem.front().points.empty())
+      throw PropagatorException("The ephemeris has no state at its start boundary.");
+   ephemStartGT = ephem.theEphem.front().points.front().GetEpoch();
    spanStart.push_back(ephemStart);
    spanEnd.push_back(ephemEnd);
    if (!initialEphemEpochSet)

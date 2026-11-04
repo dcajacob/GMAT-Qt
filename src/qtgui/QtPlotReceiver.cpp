@@ -62,7 +62,8 @@ PlotSensorMask sensorMaskGeometry(const QtSensorMaskSetting &definition)
    const auto axis=rotation*osg::Vec3d(0,0,-1);
    mask.axis={axis.x(),axis.y(),axis.z()};
    for (int i=0;i<3;++i) mask.origin[i]=location[i];
-   if (!PlotModel::usableOrbitPosition(mask.origin[0],mask.origin[1],mask.origin[2])) throw std::runtime_error((definition.name+": Hardware location is not renderable").toStdString());
+   mask.originInMetres=true;
+   if (!PlotModel::usableOrbitPosition(.001*mask.origin[0],.001*mask.origin[1],.001*mask.origin[2])) throw std::runtime_error((definition.name+": Hardware location is not renderable").toStdString());
    auto vertex=[&](double x,double y) {
       const auto body=rotation*osg::Vec3d(x,y,-1);
       if (!PlotModel::usableOrbitPosition(body.x(),body.y(),body.z())) throw std::runtime_error((definition.name+": FOV boundary is not renderable").toStdString());
@@ -733,12 +734,33 @@ bool QtPlotReceiver::RefreshGlPlot(const std::string &name) { if (auto *entry=fi
 bool QtPlotReceiver::DeleteGlPlot(const std::string &name) { return remove(name); }
 bool QtPlotReceiver::SetGlEndOfRun(const std::string &name) { if (auto *entry=find(name)) { entry->data->endOfRun=true; refresh(*entry,true); return true; } return false; }
 void QtPlotReceiver::SetMaxGlDataPoints(const std::string &name,Integer count) { if (auto *entry=find(name)) { entry->data->maxPoints=static_cast<int>(std::clamp<Integer>(count,1,std::numeric_limits<int>::max())); entry->data->trim(); if (cameraSettings.value(text(name)).solverLastN) entry->trialHistory.synchronize(*entry->data); } }
+void QtPlotReceiver::clearOrbitSolverSamples(Entry &entry)
+{
+   entry.trialHistory.clear();
+   entry.dataAvailability.reset();
+   auto clearSolver=[](std::deque<PlotCamera> &cameras) {
+      cameras.erase(std::remove_if(cameras.begin(),cameras.end(),[](const PlotCamera &camera) { return camera.solver; }),cameras.end());
+   };
+   for (auto &vector:entry.data->vectors)
+      vector.samples.erase(std::remove_if(vector.samples.begin(),vector.samples.end(),[](const PlotVectorSample &sample) { return sample.source.solver; }),vector.samples.end());
+   clearSolver(entry.data->cameras);
+   if (entry.data->resetView) clearSolver(entry.data->resetView->cameras);
+   for (auto &view:entry.data->cameraViews) { clearSolver(view.cameras); if (view.reset) clearSolver(view.reset->cameras); }
+   for (auto &curve:entry.data->curves) {
+      curve.points.erase(std::remove_if(curve.points.begin(),curve.points.end(),[](const PlotPoint &point) { return point.solver; }),curve.points.end());
+      curve.breakNext=true;
+   }
+}
 bool QtPlotReceiver::UpdateGlPlot(const std::string &name,const std::string &,const StringArray &names,const Real &epoch,
       const RealArray &x,const RealArray &y,const RealArray &z,const RealArray &vx,const RealArray &vy,const RealArray &vz,
       const ColorMap &colors,const ColorMap &targetColors,bool solving,Integer,bool update,bool drawing,bool)
 {
    auto *entry=find(name); if (!entry) return false;
    auto availability=entry->dataAvailability;
+   if (entry->clearSolverOnNextOrbitUpdate && !entry->arcMetadataOnly) {
+      entry->clearSolverOnNextOrbitUpdate=false;
+      clearOrbitSolverSamples(*entry);
+   }
    if (!entry->arcMetadataOnly) entry->dataAvailability.reset();
    if (availability) {
       // Arc poses contain only requested/present spacecraft; the real callback
@@ -945,13 +967,19 @@ bool QtPlotReceiver::UpdateGlPlot(const std::string &name,const std::string &,co
          converter.Convert(epoch,sunState,entry->internal,converted,entry->view); sunState=converted;
       }
    }
-   if (!entry->ignoreTimeSequence && data.frame>1 && epoch<data.lastEpoch) data.breakLines();
+   // A committed packet can contain independent, interleaved provider clocks.
+   // Its object selection and arc-start metadata determine line continuity.
+   if (!entry->ignoreTimeSequence && data.frame>1 && epoch<data.lastEpoch &&
+       !(availability && availability->committedSteps)) data.breakLines();
    for (size_t i=0;i<entry->objects.size();++i) {
       const auto &object=entry->objects[i];
       auto &curve=data.curves[static_cast<int>(i)];
       const auto &palette=solving ? targetColors : colors;
       const auto color=palette.find(object); if (color!=palette.end()) curve.color=rgb(color->second);
+      if (availability && availability->skipped.contains(text(object))) continue;
       if (absent(text(object))) { curve.breakNext=true; continue; }
+      if (!entry->arcMetadataOnly && availability && availability->arcStarts.contains(text(object)))
+         curve.breakNext=true;
       auto found=std::find(names.begin(),names.end(),object);
       double px=0,py=0,pz=0; std::array<double,3> velocity{}; bool hasVelocity=false;
       if (found!=names.end()) {
@@ -1088,17 +1116,22 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
 {
    if (action=="ClearObjects" && qtResourcePreviewCleanupActive()) return true;
    auto *entry=find(name); if (!entry) return false;
+   if (action=="ClearObjects" || action=="ClearData") { entry->clearSolverOnNextOrbitUpdate=false; entry->bufferedOrbitReplay=false; }
    if (action=="NeedsOrbitDataAvailability") return true;
-   if (action.compare(0,22,"OrbitDataAvailability:")==0) {
+   const std::string stepPrefix = "PlotStepAvailability:";
+   const bool stepMask = action.compare(0,stepPrefix.size(),stepPrefix)==0;
+   if (stepMask || action.compare(0,22,"OrbitDataAvailability:")==0) {
       // A malformed replacement must not leave an older valid mask armed.
       entry->dataAvailability.reset();
-      std::istringstream stream(action.substr(22)); stream.imbue(std::locale::classic());
-      OrbitDataAvailability sample; size_t count;
-      if (!(stream>>sample.epoch>>count) || !PlotModel::usableValue(sample.epoch) || count>entry->objects.size()) return false;
+      std::istringstream stream(action.substr(stepMask ? stepPrefix.size() : 22)); stream.imbue(std::locale::classic());
+      OrbitDataAvailability sample; sample.committedSteps=stepMask; size_t count;
+      if (!(stream>>sample.epoch>>count) || !PlotModel::usableValue(sample.epoch) || count>(stepMask && entry->data->kind==PlotModel::Kind::GroundTrack ? entry->data->curves.size() : entry->objects.size())) return false;
       for (size_t i=0;i<count;++i) {
          std::string object; int present;
-         if (!(stream>>std::quoted(object)>>present) || object.empty() || (present!=0 && present!=1) || sample.objects.contains(text(object))) return false;
-         sample.objects.insert(text(object),present!=0);
+         if (!(stream>>std::quoted(object)>>present) || object.empty() || (present<0 || present>(stepMask ? 3 : 1)) || sample.objects.contains(text(object))) return false;
+         sample.objects.insert(text(object),present==1 || present==2);
+         if (present==3) sample.skipped.insert(text(object));
+         if (present==2) sample.arcStarts.insert(text(object));
       }
       stream>>std::ws; if (!stream.eof()) return false;
       entry->dataAvailability=std::move(sample); return true;
@@ -1120,6 +1153,10 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
    }
    if (action=="NeedsOrbitArcMetadata") {
       if (simulationClocks.enabled(text(name))) return true;
+      // Current publishes accepted samples immediately. Supplying the existing
+      // arc context keeps the native subscriber from replaying them as trials.
+      if (auto *plot=Moderator::Instance()->GetConfiguredObject(name))
+         if (plot->IsOfType("OrbitPlot") && plot->GetStringParameter("SolverIterations")=="Current") return true;
       const auto setting=cameraSettings.value(text(name));
       if (setting.solverLastN) return true;
       for (bool enabled:setting.objectSegmentLabels) if (enabled) return true;
@@ -1222,6 +1259,7 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
       entry->bufferedArcCameras[text(action.substr(19)).toInt()]=std::move(cameras); return true;
    }
    if (action.compare(0,21,"ReplayOrbitArcCamera:")==0) {
+      entry->bufferedOrbitReplay=entry->arcTrial;
       entry->replayArcCamera=true; entry->replayArcCameras=entry->bufferedArcCameras.take(text(action.substr(21)).toInt()); return true;
    }
    if (action=="FinalizeOrbitArc") {
@@ -1243,24 +1281,23 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
    else if (action=="ToggleOn") entry->data->active=true;
    else if (action=="ClearObjects") { entry->rawClockPublication=false; simulationClocks.reset(text(name)); syncSimulationClock(text(name)); updateSimulationTimer(); entry->trialHistory.clear(); entry->dataAvailability.reset(); entry->arcProvider.clear(); entry->provider.clear(); entry->arcTrial=false; entry->arcMetadataOnly=false; entry->data->regularArcs.clear(); entry->data->nextRegularArc=0; entry->arcPublishedPoses.clear(); entry->preparedArcCameras.clear(); entry->bufferedArcCameras.clear(); entry->replayArcCameras.clear(); entry->replayArcCamera=false; entry->objects.clear(); entry->points.clear(); entry->data->sensorMasks.clear(); entry->data->curves.clear(); entry->data->cameras.clear(); for (auto &vector:entry->data->vectors) vector.samples.clear(); if (entry->data->resetView) entry->data->resetView->cameras.clear(); for (auto &view:entry->data->cameraViews) { view.cameras.clear(); if (view.reset) view.reset->cameras.clear(); } }
    else if (action=="ClearSolverData") {
+      const bool bufferedReplay=entry->bufferedOrbitReplay;
+      entry->bufferedOrbitReplay=false;
       entry->dataAvailability.reset();
       if (cameraSettings.value(text(name)).solverLastN) {
          entry->trialHistory.clearTrials(*entry->data);
          refresh(*entry,true); return true;
       }
-      entry->trialHistory.clear();
-      auto clearSolver=[](std::deque<PlotCamera> &cameras) {
-         cameras.erase(std::remove_if(cameras.begin(),cameras.end(),[](const PlotCamera &camera) { return camera.solver; }),cameras.end());
-      };
-      for (auto &vector:entry->data->vectors)
-         vector.samples.erase(std::remove_if(vector.samples.begin(),vector.samples.end(),[](const PlotVectorSample &sample) { return sample.source.solver; }),vector.samples.end());
-      clearSolver(entry->data->cameras);
-      if (entry->data->resetView) clearSolver(entry->data->resetView->cameras);
-      for (auto &view:entry->data->cameraViews) { clearSolver(view.cameras); if (view.reset) clearSolver(view.reset->cameras); }
-      for (auto &curve:entry->data->curves) {
-         curve.points.erase(std::remove_if(curve.points.begin(),curve.points.end(),[](const PlotPoint &point) { return point.solver; }),curve.points.end());
-         curve.breakNext=true;
-      }
+      // Keep the completed Current trial visible between native flushes.
+      // Its successor clears it immediately before appending new data, so
+      // accepted points remain and previous trials cannot accumulate.
+      if (auto *plot=bufferedReplay ? Moderator::Instance()->GetConfiguredObject(name) : nullptr)
+         if (plot->IsOfType("OrbitPlot") && plot->GetStringParameter("SolverIterations")=="Current") {
+            entry->clearSolverOnNextOrbitUpdate=true;
+            return true;
+         }
+      entry->clearSolverOnNextOrbitUpdate=false;
+      clearOrbitSolverSamples(*entry);
    } else if (action=="IgnoreTimeSequence") entry->ignoreTimeSequence=true;
    else if (action=="ClearData") { entry->rawClockPublication=false; simulationClocks.reset(text(name)); syncSimulationClock(text(name)); updateSimulationTimer(); entry->trialHistory.clear(); entry->dataAvailability.reset(); entry->arcProvider.clear(); entry->provider.clear(); entry->arcTrial=false; entry->arcMetadataOnly=false; entry->arcPublishedPoses.clear(); entry->preparedArcCameras.clear(); entry->bufferedArcCameras.clear(); entry->replayArcCameras.clear(); entry->replayArcCamera=false; entry->data->clear(); entry->solverBreaks.clear(); entry->solverScope.clear(); }
    else { warn(name,action); return false; }
@@ -1440,14 +1477,24 @@ bool QtPlotReceiver::UpdateGroundTrackData(const std::string &name,const double 
 {
    auto *entry=find(name); if (!entry || count<0 || (count>0 && !points)) return false;
    auto &data=*entry->data; ++data.frame;
-   if (data.frame>1 && epoch<data.lastEpoch) data.breakLines();
-   for (int i=0;i<count;++i) data.append(i,points[2*i],points[2*i+1],0,epoch,true,entry->solverData);
+   const auto mask=std::move(entry->dataAvailability);
+   entry->dataAvailability.reset();
+   bool matches=mask && mask->epoch==epoch && mask->objects.size()==count && count<=data.curves.size();
+   for (int i=0;matches && i<count;++i) matches=mask->objects.contains(data.curves[i].name);
+   if (data.frame>1 && epoch<data.lastEpoch && !(matches && mask->committedSteps)) data.breakLines();
+   for (int i=0;i<count;++i) {
+      if (matches && mask->skipped.contains(data.curves[i].name)) continue;
+      if (matches && mask->arcStarts.contains(data.curves[i].name)) data.curves[i].breakNext=true;
+      data.append(i,points[2*i],points[2*i+1],0,epoch,true,entry->solverData);
+   }
    refresh(*entry); return true;
 }
 bool QtPlotReceiver::TakeGroundTrackAction(const std::string &name,const std::string &action)
 {
    auto *entry=find(name); if (!entry) return false;
    const auto command=text(action).section('=',0,0), argument=text(action).section('=',1);
+   if (action.compare(0,21,"PlotStepAvailability:")==0) return TakeGlAction(name,action);
+   if (command=="ClearStepAvailability") { entry->dataAvailability.reset(); return true; }
    if (command=="SolverScope") entry->solverScope=argument;
    else if (command=="SolverData") {
       entry->solverData=argument=="On";
@@ -1500,6 +1547,13 @@ bool QtPlotReceiver::TakeGroundTrackAction(const std::string &name,const std::st
       entry->dataAvailability.reset();
       entry->data->clear(); entry->data->stations.clear(); entry->solverBreaks.clear(); entry->solverScope.clear();
       if (command=="Reinitialize") { entry->data->curves.clear(); entry->segmentColors.clear(); entry->orbitColors.clear(); entry->targetColors.clear(); }
+   } else if (command=="RefreshPreservingCadence") {
+      // An explicit integration-step consumer can end a propagation block
+      // between scheduled redraws. Display that block without consuming or
+      // restarting the every-N-collected-points redraw interval.
+      const int pending=entry->data->pendingUpdates;
+      refresh(*entry,true);
+      entry->data->pendingUpdates=pending;
    } else if (command=="Refresh" || command=="RunComplete") {
       if (command=="RunComplete") entry->data->endOfRun=true;
       refresh(*entry,true);

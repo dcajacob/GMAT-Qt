@@ -47,8 +47,66 @@
 #include "TimeTypes.hpp"
 #include "ICRFFile.hpp"
 #include "GmatConstants.hpp"
+#include <cmath>
+#include <limits>
+#include <algorithm>
 #ifdef __USE_SPICE__
    #include "SpiceInterface.hpp"
+namespace
+{
+   struct StationElevationContext
+   {
+      const std::string &target, &frame, &correction, &observer;
+   };
+   thread_local const StationElevationContext *stationElevationContext = nullptr;
+   struct StationElevationScope
+   {
+      const StationElevationContext *previous;
+      explicit StationElevationScope(const StationElevationContext &context) :
+         previous(stationElevationContext) { stationElevationContext=&context; }
+      ~StationElevationScope() { stationElevationContext=previous; }
+   };
+   bool StationElevationState(SpiceDouble epoch, SpiceDouble *state)
+   {
+      if (failed_c()) return false;
+      if (!stationElevationContext)
+      {
+         setmsg_c("Station elevation callback has no active context.");
+         sigerr_c("SPICE(NOCONTEXT)"); return false;
+      }
+      const auto &context=*stationElevationContext;
+      SpiceDouble lightTime;
+      spkezr_c(context.target.c_str(),epoch,context.frame.c_str(),
+            context.correction.c_str(),context.observer.c_str(),state,&lightTime);
+      if (failed_c()) return false;
+      for (Integer i=0;i<6;++i) if (!std::isfinite(state[i]))
+      {
+         setmsg_c("Station elevation state is not finite.");
+         sigerr_c("SPICE(NONFINITESTATE)"); return false;
+      }
+      return true;
+   }
+   void StationElevationValue(SpiceDouble epoch, SpiceDouble *value)
+   {
+      *value=0; SpiceDouble state[6];
+      if (StationElevationState(epoch,state))
+         *value=std::atan2(state[2],std::hypot(state[0],state[1]));
+   }
+   void StationElevationDecreasing(void (*)(SpiceDouble,SpiceDouble*),
+         SpiceDouble epoch, SpiceBoolean *decreasing)
+   {
+      *decreasing=SPICEFALSE; SpiceDouble state[6];
+      if (!StationElevationState(epoch,state)) return;
+      const SpiceDouble horizontal2=state[0]*state[0]+state[1]*state[1];
+      const SpiceDouble slope=horizontal2*state[5]-state[2]*(state[0]*state[3]+state[1]*state[4]);
+      if (!std::isfinite(slope))
+      {
+         setmsg_c("Station elevation derivative is not finite.");
+         sigerr_c("SPICE(NONFINITESTATE)"); return;
+      }
+      *decreasing=slope < 0 ? SPICETRUE : SPICEFALSE;
+   }
+}
 #endif
 
 //#define DEBUG_EPHEM_MANAGER
@@ -1012,6 +1070,190 @@ bool EphemManager::GetContactIntervals(const std::string &observerID,
    scard_c(0, &occultResults);   // reset (empty) the window cell
    scard_c(0, &resultMax);          // reset (empty) the window cell
 
+   return true;
+#endif
+}
+
+//------------------------------------------------------------------------------
+// bool GetStationElevationCrossings(...)
+//------------------------------------------------------------------------------
+bool EphemManager::GetStationElevationCrossings(
+      const std::string &observerID, Real minElevation,
+      const std::string &obsFrameName, const StringArray &occultingBodies,
+      const std::string &abCorrection, Real start, Real stop,
+      bool useEntireInterval, bool useLightTime, bool transmit, Real stepSize,
+      RealArray &rises, RealArray &sets)
+{
+   rises.clear(); sets.clear();
+   if (!theObj || !theObj->IsOfType("Spacecraft") ||
+       !std::isfinite(minElevation) || minElevation < -90 || minElevation > 90 ||
+       !std::isfinite(stepSize) || stepSize <= 0 ||
+       (!useEntireInterval && (!std::isfinite(start) || !std::isfinite(stop) || start > stop)))
+      throw SubscriberException("Station crossing search requires a spacecraft, a valid elevation and a positive finite search step.");
+#ifndef __USE_SPICE__
+   throw SubscriberException("Station crossing search requires SPICE.");
+#else
+   Integer observerNaif;
+   if (!GmatStringUtil::ToInteger(observerID, observerNaif))
+      throw SubscriberException("Station crossing observer must have a numeric NAIF ID.");
+   const std::string target = GmatStringUtil::ToString(theObj->GetIntegerParameter("NAIFId"));
+   auto checkSpice = [](const char *operation)
+   {
+      if (failed_c())
+      {
+         SpiceChar message[MAX_LONG_MESSAGE_VALUE];
+         getmsg_c("LONG", MAX_LONG_MESSAGE_VALUE, message);
+         const std::string detail = message; reset_c();
+         throw SubscriberException(std::string(operation) + ": " + detail);
+      }
+   };
+   SPICEDOUBLE_CELL(confinement, 200000);
+   SPICEDOUBLE_CELL(available, 200000);
+   SPICEDOUBLE_CELL(roots, 200000);
+   scard_c(0, &confinement); scard_c(0, &available); scard_c(0, &roots);
+   // Keep the usable ephemeris window for two-sided crossing checks. Search
+   // confinement remains the requested interval, including its endpoints.
+   GetRequiredCoverageWindow(&available, start, stop, true,
+         abCorrection, true, useLightTime, transmit, stepSize, observerNaif);
+   GetRequiredCoverageWindow(&confinement, start, stop, useEntireInterval,
+         abCorrection, true, useLightTime, transmit, stepSize, observerNaif);
+   {
+      // Equality searches expand evaluation outside confinement. Use the
+      // positive elevation windows instead, with an analytic derivative;
+      // independently verify their boundaries below before admitting events.
+      // Never extrapolate the orbit or discard its end intervals.
+      const StationElevationContext context{target,obsFrameName,abCorrection,observerID};
+      StationElevationScope scope(context);
+      gfuds_c(StationElevationValue,StationElevationDecreasing,">",
+            minElevation * GmatMathConstants::RAD_PER_DEG,0,stepSize,
+            1000000,&confinement,&roots);
+   }
+   checkSpice("Station elevation window search");
+   const Real elevation = minElevation * GmatMathConstants::RAD_PER_DEG;
+   const Real angularRoundoff = 32 * std::numeric_limits<Real>::epsilon() *
+         std::max(1.0, std::abs(elevation));
+   auto apparentState = [&](SpiceDouble time, SpiceDouble *state)
+   {
+      SpiceDouble lightTime;
+      spkezr_c(target.c_str(), time, obsFrameName.c_str(),
+            abCorrection.c_str(), observerID.c_str(), state, &lightTime);
+      checkSpice("Station crossing apparent state");
+      for (Integer k=0; k<6; ++k) if (!std::isfinite(state[k]))
+         throw SubscriberException("Station crossing state is not finite.");
+   };
+   auto latitude = [](const SpiceDouble *state)
+   {
+      return std::atan2(state[2], std::hypot(state[0], state[1]));
+   };
+   RealArray boundaryRoots, candidates;
+   for (SpiceInt index=0; index<wncard_c(&confinement); ++index)
+   {
+      SpiceDouble first, last;
+      wnfetd_c(&confinement, index, &first, &last);
+      for (const auto time : {first, last})
+      {
+         SpiceDouble state[6]; apparentState(time, state);
+         const Real horizontal = std::hypot(state[0], state[1]);
+         const Real residual = latitude(state) - elevation;
+         if (horizontal == 0 || std::abs(residual) > angularRoundoff) continue;
+         // Angular roundoff alone is insufficient for a shallow crossing:
+         // an accurately nonzero tiny angle can be many seconds from a root.
+         // A Newton correction is not a bound for a flat-slope crossing,
+         // either. Require a real bracket within GF's temporal resolution.
+         // Exact equality also admits flat-slope candidates at coverage ends.
+         bool equal = residual == 0;
+         if (!equal) for (SpiceInt j=0; j<wncard_c(&available); ++j)
+         {
+            SpiceDouble begin, end; wnfetd_c(&available,j,&begin,&end);
+            const SpiceDouble before=time-SPICE_GF_CNVTOL, after=time+SPICE_GF_CNVTOL;
+            if (before < begin || after > end || before == time || after == time) continue;
+            SpiceDouble a[6], b[6]; apparentState(before,a); apparentState(after,b);
+            const Real left=latitude(a)-elevation, right=latitude(b)-elevation;
+            equal = (left <= 0 && right >= 0) || (left >= 0 && right <= 0);
+            break;
+         }
+         if (equal) boundaryRoots.push_back(time);
+      }
+   }
+   candidates = boundaryRoots;
+   for (SpiceInt index=0; index<wncard_c(&roots); ++index)
+   {
+      SpiceDouble first, last;
+      wnfetd_c(&roots, index, &first, &last);
+      for (auto candidate : {first,last})
+      {
+         // An interior elevation-window boundary is a threshold root. A
+         // confinement endpoint can merely clip a positive interval and must
+         // have the independent equality/bracket proof established above.
+         for (const auto boundary : boundaryRoots)
+            if (std::abs(candidate-boundary) <= 2*SPICE_GF_CNVTOL)
+            { candidate=boundary; break; }
+         bool interior=false;
+         for (SpiceInt j=0;j<wncard_c(&confinement);++j)
+         {
+            SpiceDouble begin,end; wnfetd_c(&confinement,j,&begin,&end);
+            if (candidate > begin && candidate < end) { interior=true; break; }
+         }
+         if (interior) candidates.push_back(candidate);
+      }
+   }
+   std::sort(candidates.begin(), candidates.end());
+   candidates.erase(std::unique(candidates.begin(), candidates.end()), candidates.end());
+   for (const auto first : candidates)
+   {
+      SpiceDouble state[6]; apparentState(first, state);
+      const Real horizontal2 = state[0]*state[0] + state[1]*state[1];
+      if (horizontal2 == 0) continue; // Latitude pole: no defined crossing slope.
+      // The denominator of d(latitude)/dt is strictly positive here. Use its
+      // numerator to classify the same apparent vector searched above.
+      const Real up = horizontal2 * state[5];
+      const Real radial = state[2] * (state[0]*state[3] + state[1]*state[4]);
+      const Real slope = up - radial;
+      const Real roundoff = 16 * std::numeric_limits<Real>::epsilon() *
+            (std::abs(up) + std::abs(radial));
+      if (!std::isfinite(slope))
+         throw SubscriberException("Station crossing slope is not finite.");
+      // A GF root approximation at a tangency has a small nonzero velocity.
+      // Check the actual sides beyond GF's root-refinement uncertainty rather
+      // than misclassifying that approximation as a rise or set. The usable
+      // ephemeris may extend beyond a requested search boundary.
+      const Real probe = std::max(10*SPICE_GF_CNVTOL,
+            32*std::numeric_limits<Real>::epsilon()*std::max(1.0,std::abs(first)));
+      Integer direction = 0;
+      bool twoSided = false;
+      for (SpiceInt index=0; index<wncard_c(&available); ++index)
+      {
+         SpiceDouble begin, end; wnfetd_c(&available, index, &begin, &end);
+         if (first-probe < begin || first+probe > end) continue;
+         SpiceDouble before[6], after[6];
+         apparentState(first-probe, before); apparentState(first+probe, after);
+         const Real left=latitude(before)-elevation, right=latitude(after)-elevation;
+         if (left < 0 && right > 0) direction=1;
+         else if (left > 0 && right < 0) direction=-1;
+         twoSided=true; break;
+      }
+      // At an ephemeris boundary there may be no samples on one side. A
+      // defined nonzero derivative still establishes a simple crossing.
+      if (!twoSided && std::abs(slope) > roundoff)
+         direction = slope > 0 ? 1 : -1;
+      if (direction == 0) continue;
+      bool blocked = false;
+      for (const auto &name : occultingBodies)
+      {
+         CelestialBody *body = solarSys ? solarSys->GetBody(name) : NULL;
+         if (!body) throw SubscriberException("Unknown station crossing occulting body: " + name);
+         const std::string front = GmatStringUtil::ToString(body->GetIntegerParameter(body->GetParameterID("NAIFId")));
+         const std::string frame = body->GetStringParameter(body->GetParameterID("SpiceFrameId"));
+         SpiceInt code;
+         occult_c(front.c_str(), "ELLIPSOID", frame.c_str(), target.c_str(),
+               "POINT", obsFrameName.c_str(), abCorrection.c_str(), observerID.c_str(), first, &code);
+         checkSpice("Station crossing occultation");
+         // Positive means the configured body hides the spacecraft. A
+         // negative code describes the reversed ordering and is not a block.
+         if (code > 0) { blocked = true; break; }
+      }
+      if (!blocked) (direction > 0 ? rises : sets).push_back(spice->SpiceTimeToA1(first));
+   }
    return true;
 #endif
 }

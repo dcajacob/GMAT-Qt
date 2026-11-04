@@ -42,6 +42,8 @@
 #include "EphemManager.hpp"
 #include "EclipseEvent.hpp"
 #include "StringUtil.hpp"
+#include <set>
+#include <algorithm>
 
 
 //#define DEBUG_TYPELIST
@@ -831,6 +833,44 @@ bool EclipseLocator::ReportEventData(const std::string &reportNotice)
       theReport << "Maximum duration (s)        : "   << GmatStringUtil::BuildNumber(maxDuration, false, 14)   << "\n";
       theReport << "Maximum duration at the "         <<
                    GmatStringUtil::ToOrdinal(maxIndex + 1) << " eclipse.\n\n\n";
+   }
+   // Keep the existing individual-event table and total-event statistics.
+   // Per-type statistics describe individual intervals, including overlapping
+   // occultations from different bodies, rather than their combined union.
+   theReport << "\nEclipse type summary (individual intervals)\n";
+   theReport << "Type          Count    Maximum duration (s)    Participants (spacecraft/body)\n";
+   for (const auto &type : eclipseTypes)
+   {
+      Integer count = 0;
+      Real maximum = 0.0;
+      for (auto *total : theEvents)
+         for (Integer jj = 0; jj < total->NumberOfEvents(); ++jj)
+         {
+            auto *event = total->GetEvent(jj);
+            if (event->GetEclipseType() != type) continue;
+            ++count;
+            maximum = (std::max)(maximum, event->GetDuration());
+         }
+      std::set<std::string> participants;
+      for (auto *total : theEvents)
+         for (Integer jj = 0; jj < total->NumberOfEvents(); ++jj)
+         {
+            auto *event = total->GetEvent(jj);
+            // The GF search resolves boundaries to approximately a microsecond;
+            // report all participants tied within that resolution.
+            if (event->GetEclipseType() == type &&
+                GmatMathUtil::Abs(event->GetDuration() - maximum) <= 1.0e-6)
+               participants.insert(itsName + "/" + event->GetBodyName());
+         }
+      theReport << GmatStringUtil::PadWithBlanks(type, 12) << "  " << count
+                << "    " << GmatStringUtil::BuildNumber(maximum, false, 14) << "    ";
+      if (participants.empty()) theReport << "-";
+      for (auto item = participants.begin(); item != participants.end(); ++item)
+      {
+         if (item != participants.begin()) theReport << ",";
+         theReport << *item;
+      }
+      theReport << "\n";
    }
    theReport.close();
    return true;

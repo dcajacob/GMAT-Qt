@@ -361,6 +361,10 @@ GmatBase* Formation::Clone() const
 void Formation::Copy(const GmatBase* orig)
 {
    operator=(*((Formation *)(orig)));
+   // Whole-object assignment must copy the borrowed member bindings together
+   // with their names and state. The assignment operator deliberately retains
+   // bindings for propagation stop-condition work; Copy has object semantics.
+   components = static_cast<const Formation *>(orig)->components;
 }
 
 
@@ -468,7 +472,10 @@ Gmat::ParameterType Formation::GetParameterType(const Integer id) const
 //---------------------------------------------------------------------------
 bool Formation::IsParameterReadOnly(const Integer id) const
 {
-   if (id == EPOCH_PARAM)
+   // STM is a computed propagation output, not writable configuration. Its
+   // propagation item is currently unimplemented (GetPropItem returns null).
+   // Do not advertise it as a script-persistent matrix with no setter/getter.
+   if (id == EPOCH_PARAM || id == FORMATION_STM)
       return true;
 
    if ((id == REMOVED_SPACECRAFT) || (id == CLEAR_NAMES))

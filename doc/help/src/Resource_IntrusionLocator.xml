@@ -534,7 +534,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless illuminated fraction (0 to 1)</para>
                   </listitem>
                 </varlistentry>
 

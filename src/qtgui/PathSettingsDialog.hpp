@@ -18,8 +18,9 @@ private:
    void loadControls();
    PathSettings settings;
    QString missionFile;
-   QListWidget *functions,*pythonModules;
-   QLineEdit *output,*entry,*pythonEntry,*startup;
+   QListWidget *functions,*pythonModules,*matlabFunctions;
+   QLineEdit *output,*entry,*pythonEntry,*matlabEntry,*startup;
+   QMap<QString,QLineEdit *> scientificFiles;
    QLabel *status,*saved;
    QPlainTextEdit *preview;
 };

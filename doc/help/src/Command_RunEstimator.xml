@@ -122,6 +122,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Solver-mode selection; no physical units.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
         </tbody>

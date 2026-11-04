@@ -37,8 +37,48 @@
 #include "StringUtil.hpp"  // for Replace()
 #include "MessageInterface.hpp"
 #include "TextParser.hpp"
+#include <map>
+#include <set>
+#include <mutex>
 #include <sstream>         // for std::stringstream
 
+
+namespace
+{
+// Keep authored-option provenance outside the command layout: existing binary
+// plugins retain Vary's size and virtual interface. Do not infer author intent
+// by comparing a value against a default; an explicitly supplied default still
+// needs a warning when the solver does not support that field.
+struct VaryOptions
+{
+   std::mutex mutex;
+   std::map<const Vary*, std::set<Integer>> commands;
+};
+VaryOptions &varyOptions() { static auto *options=new VaryOptions; return *options; }
+void clearVaryOptions(const Vary *command)
+{
+   auto &state=varyOptions();std::lock_guard<std::mutex> lock(state.mutex);
+   state.commands.erase(command);
+}
+void copyVaryOptions(const Vary *to,const Vary *from)
+{
+   auto &state=varyOptions();std::lock_guard<std::mutex> lock(state.mutex);
+   const auto found=state.commands.find(from);
+   if (found==state.commands.end()) state.commands.erase(to);
+   else state.commands[to]=found->second;
+}
+void setVaryOption(const Vary *command,Integer id)
+{
+   auto &state=varyOptions();std::lock_guard<std::mutex> lock(state.mutex);
+   state.commands[command].insert(id);
+}
+std::set<Integer> authoredVaryOptions(const Vary *command)
+{
+   auto &state=varyOptions();std::lock_guard<std::mutex> lock(state.mutex);
+   const auto found=state.commands.find(command);
+   return found==state.commands.end() ? std::set<Integer>{} : found->second;
+}
+}
 
 //#define DEBUG_VARIABLE_RANGES
 //#define DEBUG_VARY_EXECUTE
@@ -122,6 +162,7 @@ Vary::Vary() :
    solverDataFinalized           (false),
    isThisLastVaryCommand         (false)
 {
+   clearVaryOptions(this);
    objectTypeNames.push_back("SolverCommand");
    objectTypeNames.push_back("Vary");
    settables.push_back("Perturbation"); 
@@ -172,6 +213,7 @@ Vary::Vary(const Vary& t) :
    solverDataFinalized           (t.solverDataFinalized),
    isThisLastVaryCommand         (t.isThisLastVaryCommand)
 {
+    copyVaryOptions(this,&t);
     parameterCount = t.parameterCount;
 }
 
@@ -191,6 +233,7 @@ Vary& Vary::operator=(const Vary& t)
       return *this;
 
    SolverSequenceCommand::operator=(t);
+   copyVaryOptions(this,&t);
         
    solverName                    = t.solverName;
    variableName                  = t.variableName;
@@ -222,6 +265,7 @@ Vary& Vary::operator=(const Vary& t)
 //------------------------------------------------------------------------------
 Vary::~Vary()
 {
+   clearVaryOptions(this);
    ClearWrappers();
 }
 
@@ -788,6 +832,7 @@ bool Vary::SetStringParameter(const Integer id, const std::string &value)
             throw GmatBaseException("Unknown property for Vary command\n");
       }
       
+      if (id>=PERTURBATION && id<=MULTIPLICATIVE_SCALE_FACTOR) setVaryOption(this,id);
       return true;
    }
     
@@ -840,7 +885,11 @@ void Vary::SetField(const Integer id, const Real value)
       if (perturbation)
       {
          if (value != 0.0)
+         {
             perturbation->SetReal(value);
+            setVaryOption(this,id);
+            WarnUnsupportedSetting(id);
+         }
          return;
       }
       break;
@@ -849,6 +898,8 @@ void Vary::SetField(const Integer id, const Real value)
       if (variableLower)
       {
          variableLower->SetReal(value);
+         setVaryOption(this,id);
+         WarnUnsupportedSetting(id);
          return;
       }
       break;
@@ -857,6 +908,8 @@ void Vary::SetField(const Integer id, const Real value)
       if (variableUpper)
       {
          variableUpper->SetReal(value);
+         setVaryOption(this,id);
+         WarnUnsupportedSetting(id);
          return;
       }
       break;
@@ -865,6 +918,8 @@ void Vary::SetField(const Integer id, const Real value)
       if (variableMaximumStep)
       {
          variableMaximumStep->SetReal(value);
+         setVaryOption(this,id);
+         WarnUnsupportedSetting(id);
          return;
       }
       break;
@@ -873,6 +928,8 @@ void Vary::SetField(const Integer id, const Real value)
       if (additiveScaleFactor)
       {
          additiveScaleFactor->SetReal(value);
+         setVaryOption(this,id);
+         WarnUnsupportedSetting(id);
          return;
       }
       break;
@@ -881,6 +938,8 @@ void Vary::SetField(const Integer id, const Real value)
       if (multiplicativeScaleFactor)
       {
          multiplicativeScaleFactor->SetReal(value);
+         setVaryOption(this,id);
+         WarnUnsupportedSetting(id);
          return;
       }
       break;
@@ -1027,6 +1086,7 @@ bool Vary::SetRefObject(GmatBase *obj, const UnsignedInt type,
 bool Vary::InterpretAction()
 {
    // Clean out any old data
+   clearVaryOptions(this);
    wrapperObjectNames.clear();
    ClearWrappers();
 
@@ -1438,9 +1498,20 @@ bool Vary::Initialize()
       MessageInterface::ShowMessage("Vary command Initialization complete\n");
    #endif
 
+   if (retval) for (Integer option : authoredVaryOptions(this)) WarnUnsupportedSetting(option);
    return retval;
 }
 
+
+void Vary::WarnUnsupportedSetting(Integer id) const
+{
+   if (!solver || id<PERTURBATION || id>MULTIPLICATIVE_SCALE_FACTOR) return;
+   static const char *capabilities[]={"AllowVariablePertSetting","AllowRangeSettings",
+      "AllowRangeSettings","AllowStepsizeSetting","AllowScaleSetting","AllowScaleSetting"};
+   if (!solver->GetBooleanParameter(capabilities[id-PERTURBATION]))
+      MessageInterface::ShowMessage("*** Warning *** Vary for '%s': setting '%s' is not supported by solver '%s' (%s).\n",
+         variableName.c_str(),GetParameterText(id).c_str(),solver->GetName().c_str(),solver->GetTypeName().c_str());
+}
 
 //------------------------------------------------------------------------------
 //  bool Execute()
@@ -1686,6 +1757,21 @@ void Vary::RunComplete()
 //------------------------------------------------------------------------------
 bool Vary::TakeAction(const std::string &action, const std::string &actionData)
 {
+   if (action == "RefreshSolverReporting")
+   {
+      if (actionData != solverName) return false;
+      if (!solver || !solverDataFinalized || !multiplicativeScaleFactor ||
+          !additiveScaleFactor)
+         throw CommandException("Cannot refresh reporting for an uninitialized Vary command.");
+      // Use the same physical-unit transformation as Execute, without
+      // assigning the varied object, notifying subscribers, or changing the
+      // accepted solver decision vector.
+      const Real value=solver->GetSolverVariable(variableID) /
+         multiplicativeScaleFactor->EvaluateReal() - additiveScaleFactor->EvaluateReal();
+      solver->SetUnscaledVariable(variableID,value);
+      return true;
+   }
+
    if (action == "SolverReset")
    {
       // Prep to refresh the solver data if called again

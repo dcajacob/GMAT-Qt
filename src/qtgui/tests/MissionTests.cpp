@@ -1,3 +1,4 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "TestSettings.hpp"
 #include "CommandEditor.hpp"
@@ -37,6 +38,8 @@
 #include <QDockWidget>
 #include <cmath>
 #include <iostream>
+#include <memory>
+#include <vector>
 #include <stdexcept>
 static void require(bool condition,const char *message) { if (!condition) throw std::runtime_error(message); }
 static int find(const MissionSnapshot &snapshot,const QString &type,const QString &parent={})
@@ -98,9 +101,11 @@ static void insertionTests(MainWindow &window,QPlainTextEdit *editor)
       auto *buttons=child->widget()->findChild<QDialogButtonBox *>();
       require(buttons && buttons->button(QDialogButtonBox::Apply),"Insertion Apply unavailable"); buttons->button(QDialogButtonBox::Apply)->click();
    };
-   // A mapped nested terminator must belong to the selected branch itself.
+   // The mapped closing terminator belongs to the selected branch. NASA's
+   // MissionTree::Append inserts at its own Else when present, otherwise at
+   // that closing terminator (src/gui/mission/MissionTree.cpp).
    const QMap<QString,QString> boundaries={{"For","   EndFor; % inner for end\n"},
-      {"While","   EndWhile; % while end\n"},{"If","EndIf; % outer if end\n"},
+      {"While","   EndWhile; % while end\n"},{"If","Else; % alternate branch\n"},
       {"Target","EndTarget; % target end\n"},{"Optimize","EndOptimize; % optimizer end\n"}};
    for (auto it=boundaries.cbegin();it!=boundaries.cend();++it) {
       build(); const auto snapshot=window.missionSnapshot(); const int index=find(snapshot,it.key());
@@ -111,6 +116,20 @@ static void insertionTests(MainWindow &window,QPlainTextEdit *editor)
       require(source,"Insertion source missing"); source->setPlainText("V = V + 5;");
       require(editor->toPlainText()==baseline,"Pending insertion changed mission source"); apply(child);
       auto expected=baseline; expected.replace(it.value(),"V = V + 5;\n"+it.value());
+      if (editor->toPlainText()!=expected || !child->isVisible() || dynamic_cast<CommandEditor *>(child->widget())->hasChanges()) {
+         const auto evidence=qEnvironmentVariable("GMAT_QT_ACCEPTANCE_DIR");
+         if (!evidence.isEmpty()) {
+            const QMap<QString,QString> values{{"actual",editor->toPlainText()},{"expected",expected}};
+            for (auto entry=values.cbegin();entry!=values.cend();++entry) {
+               QFile file(QDir(evidence).filePath("insertion-"+it.key()+"-"+entry.key()+".script"));
+               if (file.open(QIODevice::WriteOnly)) file.write(entry.value().toUtf8());
+            }
+         }
+         const auto *status=child->findChild<QLabel *>("commandStatus");
+         std::cerr<<"Branch insertion "<<it.key().toStdString()<<" source_match="<<(editor->toPlainText()==expected)
+            <<" child_visible="<<child->isVisible()<<" panel_changed="<<dynamic_cast<CommandEditor *>(child->widget())->hasChanges()
+            <<" status="<<(status ? status->text().toStdString() : "missing")<<'\n';
+      }
       require(editor->toPlainText()==expected && child->isVisible() && !dynamic_cast<CommandEditor *>(child->widget())->hasChanges(),"Branch append changed outside source or did not retain the accepted editor");
       source=child->widget()->findChild<QPlainTextEdit *>("commandSource");
       require(source && source->toPlainText().trimmed()=="V = V + 5;","Accepted branch insertion points to its terminator or enclosing branch");
@@ -159,12 +178,25 @@ int main(int argc,char **argv)
    if (argc<3 || argc>4) return 2;
    const auto startup=QFileInfo(argv[1]).absoluteFilePath(), script=QFileInfo(argv[2]).absoluteFilePath();
    const bool insertionOnly=argc==4 && QString::fromLocal8Bit(argv[3])=="--insertion";
-   if (insertionOnly && QApplication::platformName()!="offscreen") return 2;
+   if (insertionOnly && !acceptanceWidgetPlatform()) return 2;
    const auto screenshot=argc==4 && !insertionOnly ? QFileInfo(argv[3]).absoluteFilePath() : QString();
    QDir::setCurrent(QFileInfo(startup).absolutePath());
    try {
       TestSettings isolatedSettings;
+      // Saved scripts and referenced assets must outlive the open window.
+      std::vector<std::unique_ptr<QTemporaryDir>> fixtureDirectories;
+      auto fixtureDirectory=[&]() -> QTemporaryDir & {
+         fixtureDirectories.emplace_back(new QTemporaryDir);
+         return *fixtureDirectories.back();
+      };
+      MainWindow window; window.show(); require(window.initialize(startup),"Runtime failed");
       if (!insertionOnly) {
+         // Function-call forms follow the initialized native registry and
+         // declared function resources, just like forms opened by the GUI.
+         require(Moderator::Instance()->CreateFunction("GmatFunction","myFunction"),"Standalone function-form fixture unavailable");
+         // The shipped Ex_GMATFunction_Math.script likewise declares cross as
+         // a GmatFunction; it is not registered as a Function factory type.
+         require(Moderator::Instance()->CreateFunction("GmatFunction","cross"),"Cross-product function-form fixture unavailable");
          QString result;
          CommandForm form([&](const QString &text) { result=text; });
          const QString vary="  Vary 'Change X' DC(x = 1, {Upper = 10, Perturbation = 0.001, Lower = -10}); % keep this\n";
@@ -267,7 +299,6 @@ int main(int argc,char **argv)
          }
          form.setStatement("% Preserve advanced script\nUnknown foo;"); require(form.isHidden(),"Unknown command was simplified");
       }
-      MainWindow window; window.show(); require(window.initialize(startup),"Runtime failed");
       require(window.loadScript(script) && window.buildScript(),"Mission failed to build");
       auto *editor=window.findChild<QPlainTextEdit *>("scriptEditor");
       const QString original=editor->toPlainText();
@@ -301,7 +332,7 @@ int main(int argc,char **argv)
          require(replacement==accepted && replacement=="Maneuver 'Named burn' SecondBurn(SecondSat); % keep", "Resource pickers changed labels, comments or cancelled values");
          const auto snapshot=window.missionSnapshot();
          require(window.applyMissionChange(snapshot,find(snapshot,"Maneuver"),MissionEdit::Replace,replacement).isEmpty(),"Picked maneuver references failed to apply");
-         QTemporaryDir selectedMission;
+         auto &selectedMission=fixtureDirectory();
          require(selectedMission.isValid() && window.saveScriptTo(selectedMission.filePath("picked.script")) &&
             window.loadScript(selectedMission.filePath("picked.script")) && window.buildScript(),"Picked command save/reopen failed");
          auto *before=Moderator::Instance()->GetConfiguredObject("SecondSat"); const double vx=before->GetRealParameter("VX");
@@ -359,7 +390,12 @@ int main(int argc,char **argv)
       require(snapshot.nodes[find(snapshot,"If","If")].parent>=0,"Nested branch not represented");
       require(find(snapshot,"Else","If")>=0 && find(snapshot,"EndFor","For")>=0,"Branch structure missing");
       auto total=[&] {
-         require(window.runMission()==MainWindow::RunResult::Completed,"Mission did not run");
+         const auto result=window.runMission();
+         if (result!=MainWindow::RunResult::Completed) {
+            std::cerr<<"Mission execution failure source:\n"<<editor->toPlainText().toStdString()<<'\n';
+            if (auto *messages=window.findChild<QPlainTextEdit *>("messageWindow")) std::cerr<<messages->toPlainText().toStdString()<<'\n';
+         }
+         require(result==MainWindow::RunResult::Completed,"Mission did not run");
          auto *value=Moderator::Instance()->GetInternalObject("total"); require(value!=nullptr,"Result variable missing");
          return value->GetRealParameter("Value");
       };
@@ -449,7 +485,11 @@ int main(int argc,char **argv)
       for (auto *widget:window.findChildren<QWidget *>()) if (auto *candidate=dynamic_cast<CommandEditor *>(widget)) panel=candidate;
       require(panel!=nullptr,"Mission double click did not open editor");
       auto *commandSource=panel->findChild<QPlainTextEdit *>("commandSource");
-      commandSource->setFocus(); QApplication::processEvents();
+      auto *commandWindow=qobject_cast<QMdiSubWindow *>(panel->parentWidget());
+      require(commandWindow,"Command editor has no workspace window");
+      window.findChild<QMdiArea *>("workspace")->setActiveSubWindow(commandWindow);
+      window.activateWindow(); commandSource->setFocus(); QApplication::processEvents();
+      require(QApplication::focusWidget()==commandSource,"Command source did not receive focus before clipboard routing");
       const auto scriptBeforeTextEdit=editor->toPlainText();
       const auto commandBeforeTextEdit=commandSource->toPlainText();
       commandSource->selectAll(); QApplication::clipboard()->setText("total = total + 4;");
@@ -500,7 +540,7 @@ int main(int argc,char **argv)
          source->undo(); require(source->toPlainText().contains("Propagate Missing"),"Structured event changes are not one undo step"); source->redo(); require(source->toPlainText()==pending,"Event redo changed pending source");
          event.findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click(); require(error.isEmpty() && total()==12,"Corrected script event did not execute through GUI Apply"); const auto applied=editor->toPlainText();
          editor->undo(); require(editor->toPlainText()==before && window.buildScript() && total()==10,"Script-event Undo did not restore exact source/results"); editor->redo(); require(editor->toPlainText()==applied && window.buildScript() && total()==12,"Script-event Redo changed source/results");
-         QTemporaryDir events; require(events.isValid(),"Event round-trip directory failed"); const auto path=events.filePath("script event ü.script"); require(window.saveScriptTo(path) && window.loadScript(path) && total()==12,"Script-event Unicode save/reopen changed execution");
+         auto &events=fixtureDirectory(); require(events.isValid(),"Event round-trip directory failed"); const auto path=events.filePath("script event ü.script"); require(window.saveScriptTo(path) && window.loadScript(path) && total()==12,"Script-event Unicode save/reopen changed execution");
          const auto emptySnapshot=window.missionSnapshot(); const int emptyIndex=find(emptySnapshot,"BeginScript"); ScriptEventDialog empty(emptySnapshot.nodes[emptyIndex].statement); empty.findChild<QPlainTextEdit *>("scriptEventBody")->clear();
          require(window.applyMissionChange(emptySnapshot,emptyIndex,MissionEdit::Replace,empty.statement()).isEmpty() && total()==5,"Empty script-event body failed or retained old commands");
          require(window.loadScript(script) && window.buildScript(),"Script-event test restoration failed");
@@ -511,7 +551,7 @@ int main(int argc,char **argv)
          "Vary DC(goalValue = 1, {Perturbation = 0.001, Lower = -20, Upper = 20, MaxStep = 10});\n"
          "Achieve DC(x = 7, {Tolerance = 0.000001});\nEndTarget;\n");
       require(window.buildScript(),"Targeting fixture did not build");
-      QTemporaryDir solverOutput; require(solverOutput.isValid(),"Solver report directory failed");
+      auto &solverOutput=fixtureDirectory(); require(solverOutput.isValid(),"Solver report directory failed");
       const auto solverReport=solverOutput.filePath("target report.txt");
       {
          const auto before=editor->toPlainText(); QString error; QWidget owner;
@@ -612,7 +652,7 @@ int main(int argc,char **argv)
          require(std::abs(Moderator::Instance()->GetInternalObject("x")->GetRealParameter("Value")-1)<1e-12,"Initial-guess mode unexpectedly solved the target");
          editor->undo(); require(editor->toPlainText()==before && window.buildScript(),"Solver mode Undo failed");
       }
-      QTemporaryDir selectedGoal;
+      auto &selectedGoal=fixtureDirectory();
       require(selectedGoal.isValid() && window.saveScriptTo(selectedGoal.filePath("target.script")) &&
          window.loadScript(selectedGoal.filePath("target.script")) && window.buildScript(),"Selected target save/reopen failed");
       require(window.runMission()==MainWindow::RunResult::Completed,"Targeting did not execute");
@@ -646,7 +686,7 @@ int main(int argc,char **argv)
          const auto snapshot=window.missionSnapshot(); const int index=find(snapshot,"For"); QString changed; CommandForm form([&](const QString &value) { changed=value; }); form.setStatement(snapshot.nodes[index].statement);
          auto *end=form.findChild<QLineEdit *>("commandField_End"); require(end && !form.findChild<QLineEdit *>("commandField_Step"),"Original two-bound semicolon-free loop was not retained in controls"); end->setText("3");
          auto expected=original; expected.replace("i = 1:2","i = 1:3"); require(window.applyMissionChange(snapshot,index,MissionEdit::Replace,changed).isEmpty() && editor->toPlainText()==expected && window.runMission()==MainWindow::RunResult::Completed && Moderator::Instance()->GetInternalObject("total")->GetRealParameter("Value")==6,"Implicit-step source edit changed comments/configuration or execution");
-         editor->undo(); require(editor->toPlainText()==original,"Implicit-step Undo not exact"); editor->redo(); require(editor->toPlainText()==expected,"Implicit-step Redo not exact"); QTemporaryDir files; require(window.saveScriptTo(files.filePath("implicit loop ü.script")) && window.loadScript(files.filePath("implicit loop ü.script")) && window.runMission()==MainWindow::RunResult::Completed && Moderator::Instance()->GetInternalObject("total")->GetRealParameter("Value")==6,"Implicit-step loop save/reopen failed");
+         editor->undo(); require(editor->toPlainText()==original,"Implicit-step Undo not exact"); editor->redo(); require(editor->toPlainText()==expected,"Implicit-step Redo not exact"); auto &files=fixtureDirectory(); require(window.saveScriptTo(files.filePath("implicit loop ü.script")) && window.loadScript(files.filePath("implicit loop ü.script")) && window.runMission()==MainWindow::RunResult::Completed && Moderator::Instance()->GetInternalObject("total")->GetRealParameter("Value")==6,"Implicit-step loop save/reopen failed");
          editor->setPlainText(expected); require(window.runMission()==MainWindow::RunResult::Completed && Moderator::Instance()->GetInternalObject("total")->GetRealParameter("Value")==6,"Independent implicit-step edited source differs");
       }
       std::cout<<"PASS: nested branches, duplicate-command identity, replace/insert/delete/append, script-event comments/body/nested labels and quoted literals, pending/Cancel/empty body/Unicode round trips, invalid-edit rollback, stale panel, undo, Mission tree and Apply\n";

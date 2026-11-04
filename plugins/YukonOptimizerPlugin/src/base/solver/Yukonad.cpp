@@ -114,7 +114,8 @@ runOptimizer(NULL)
    tolerance = 1.0e-5;
    maxIterations = 200;
    parameterCount = YukonadParamCount;
-   AllowRangeLimits = false;
+   // GmatProblemInterface passes Vary bounds to the native NLP problem.
+   AllowRangeLimits = true;
 
    isInitialized = false;
    setNewConValues = false;
@@ -1096,15 +1097,17 @@ void Yukonad::SetResultValue(Integer id, Real value,
       if (resultType == "EqConstraint")
       {
          idToUse = id - 1000;
-         if (currentState == NOMINAL)
+         if (currentState == NOMINAL || currentState == FINISHED)
          {
             eqConstraintValues[idToUse] = value;
-            setNewConValues = true;
+            setNewConValues = (currentState == NOMINAL);
          }
+         // The NLP function and its Jacobian must both use the cached nominal
+         // signed residual, not an achieved value from the first probe.
          else if (currentState == PERTURBING && setNewConValues)
          {
             gmatProblem->SetConFunction(idToUse,
-               eqConstraintAchievedValues[idToUse], "EqCon");
+               eqConstraintValues[idToUse], "EqCon");
             if (idToUse == eqConstraintCount + ineqConstraintCount - 1)
                setNewConValues = false;
          }
@@ -1112,15 +1115,15 @@ void Yukonad::SetResultValue(Integer id, Real value,
       else
       {
          idToUse = id - 2000;
-         if (currentState == NOMINAL)
+         if (currentState == NOMINAL || currentState == FINISHED)
          {
             ineqConstraintValues[idToUse] = value;
-            setNewConValues = true;
+            setNewConValues = (currentState == NOMINAL);
          }
          else if ((currentState == PERTURBING) && (setNewConValues))
          {
             gmatProblem->SetConFunction(idToUse,
-               ineqConstraintAchievedValues[idToUse], "IneqCon");
+               ineqConstraintValues[idToUse], "IneqCon");
             if (idToUse == eqConstraintCount + ineqConstraintCount - 1)
                setNewConValues = false;
          }

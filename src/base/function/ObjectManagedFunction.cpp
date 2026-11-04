@@ -188,6 +188,11 @@ ObjectMap* ObjectManagedFunction::GetFunctionObjectStore()
    return objectStore;
 }
 
+const ObjectMap* ObjectManagedFunction::GetGlobalObjectStore() const
+{
+   return globalObjectStore;
+}
+
 //------------------------------------------------------------------------------
 // void SetGlobalObjectMap(ObjectMap *objMap)
 //------------------------------------------------------------------------------

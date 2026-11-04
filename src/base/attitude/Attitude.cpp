@@ -1683,7 +1683,8 @@ bool Attitude::IsParameterReadOnly(const Integer id) const
       if ((id >= NUTATION_REFERENCE_VECTOR_X) && (id <= SPIN_RATE))
          return true;
    }
-   if (attitudeModelName != "NadirPointing")
+   if (attitudeModelName != "NadirPointing" &&
+       attitudeModelName != "CommandableNadirPointing")
    {
       if ((id >= ATTITUDE_REFERENCE_BODY) && (id <= BODY_CONSTRAINT_VECTOR_Z))
          return true;
@@ -3331,8 +3332,9 @@ const std::string& Attitude::GetGeneratingString(Gmat::WriteMode   mode,
    data.precision(18);   // Crank up data precision so we don't lose anything
    std::string preface = "", nomme;
 
-   if ((mode == Gmat::SCRIPTING) || (mode == Gmat::OWNED_OBJECT) ||
-       (mode == Gmat::SHOW_SCRIPT))
+   if ((mode == Gmat::SCRIPTING)     || (mode == Gmat::OWNED_OBJECT) ||
+       (mode == Gmat::SHOW_SCRIPT)   || (mode == Gmat::NO_COMMENTS)  ||
+       (mode == Gmat::OBJECT_EXPORT) || (mode == Gmat::DEBUG_INSPECT))
       inMatlabMode = false;
    if (mode == Gmat::MATLAB_STRUCT || mode == Gmat::EPHEM_HEADER)
       inMatlabMode = true;

@@ -52,6 +52,9 @@
 #include "RealUtilities.hpp"
 #include "FileUtil.hpp"
 #include "ICRFFile.hpp"
+#include <cmath>
+#include <limits>
+#include <vector>
 
 //#define DEBUG_SPK_WRITING
 //#define DEBUG_SPK_INIT
@@ -400,43 +403,93 @@ SpiceOrbitKernelWriter* SpiceOrbitKernelWriter::Clone(void) const
 void SpiceOrbitKernelWriter::WriteSegment(const A1Mjd &start, const A1Mjd &end,
                                      const StateArray &states, const EpochArray &epochs)
 {
+   WriteSegmentImpl(start, end, states, epochs, NULL, NULL);
+}
+
+void SpiceOrbitKernelWriter::WriteSegment(const A1Mjd &start, const A1Mjd &end,
+      const StateArray &states, const EpochArray &epochs,
+      const std::vector<GmatTime> &preciseEpochs, const std::vector<bool> &preciseFlags)
+{
+   WriteSegmentImpl(start, end, states, epochs, &preciseEpochs, &preciseFlags);
+}
+
+void SpiceOrbitKernelWriter::WriteSegmentImpl(const A1Mjd &start, const A1Mjd &end,
+      const StateArray &states, const EpochArray &epochs,
+      const std::vector<GmatTime> *preciseEpochs, const std::vector<bool> *preciseFlags)
+{
    #ifdef DEBUG_SPK_KERNELS
       MessageInterface::ShowMessage("In SOKW::WriteSegment, start = %12.10, end = %12.10\n",
             start.Get(), end.Get());
       MessageInterface::ShowMessage("   writing %d states\n", (Integer) states.size());
       MessageInterface::ShowMessage("   fileOpen = %s\n", (fileOpen? "true": "false"));
    #endif
-   // If the file has not been set up yet, open it
-   if (!fileOpen)
-      OpenFileForWriting();
-
-   SpiceInt numStates = states.size();
-   if ((Integer) epochs.size() != (Integer) numStates)
+   // Validate and prepare all record data before opening native output. A
+   // rejected packet must not create a file or acquire a DAF handle.
+   if (fileFinalized)
+      throw UtilityException("Cannot write records to a finalized SPK file.");
+   if (states.size() != epochs.size())
    {
       std::string errmsg = "Error writing segment to SPK file \"";
       errmsg += kernelFileName + "\" - size of epoch array does not match size of state array.\n";
       throw UtilityException(errmsg);
    }
-   // do time conversions here, for start, end, and all epochs
-   SpiceDouble  startSPICE = A1ToSpiceTime(start.Get());
-
-   SpiceDouble  endSPICE = A1ToSpiceTime(end.Get());
+   if ((preciseEpochs == NULL) != (preciseFlags == NULL) ||
+       (preciseEpochs && (preciseEpochs->size() != epochs.size() ||
+                         preciseFlags->size() != epochs.size())))
+      throw UtilityException("SPK precise epoch metadata must align with its state records.");
+   if (degree < 1 || states.size() < (static_cast<size_t>(degree) + 1) / 2 ||
+       states.size() > static_cast<size_t>(std::numeric_limits<SpiceInt>::max()))
+      throw UtilityException("SPK records must contain enough states for the interpolation degree.");
+   if (!std::isfinite(start.Get()) || !std::isfinite(end.Get()))
+      throw UtilityException("SPK descriptor epochs must be finite.");
+   for (size_t i = 0; i < states.size(); ++i)
+   {
+      if (!states[i] || !epochs[i] || !std::isfinite(epochs[i]->Get()))
+         throw UtilityException("SPK state and epoch records must be non-null and finite.");
+      for (Integer j = 0; j < 6; ++j)
+         if (!std::isfinite((*states[i])[j]))
+            throw UtilityException("SPK Cartesian state records must be finite.");
+      if (preciseEpochs && preciseFlags->at(i) &&
+          (!std::isfinite(preciseEpochs->at(i).GetFracSec()) ||
+           preciseEpochs->at(i).GetMjd() != epochs[i]->Get()))
+         throw UtilityException("SPK precise epoch does not match its state record epoch.");
+   }
+   const SpiceInt numStates = static_cast<SpiceInt>(states.size());
 
    #ifdef DEBUG_SPK_WRITING
       MessageInterface::ShowMessage("In WriteSegment, epochs are:\n");
    #endif
-   SpiceDouble  *epochArray;     // (deleted at end of method)
-   epochArray = new SpiceDouble[numStates];
+   // Scoped arrays also release storage if conversion, frame rotation or
+   // CSPICE rejects the write. Keep ownership until the native call returns.
+   std::vector<SpiceDouble> epochStorage(numStates);
+   SpiceDouble *epochArray = epochStorage.data();
    for (Integer ii = 0; ii < numStates; ++ii)
    {
-      epochArray[ii] = A1ToSpiceTime(epochs.at(ii)->Get());
+      if (preciseEpochs && preciseFlags->at(ii))
+      {
+         epochArray[ii] = A1ToSpiceTime(preciseEpochs->at(ii));
+      }
+      else
+         epochArray[ii] = A1ToSpiceTime(epochs.at(ii)->Get());
+      if (!std::isfinite(epochArray[ii]) ||
+          (ii > 0 && epochArray[ii] <= epochArray[ii-1]))
+         throw UtilityException("SPK encoded epochs must be finite and strictly increasing.");
       #ifdef DEBUG_SPK_WRITING
          MessageInterface::ShowMessage("epochArray[%d] = %12.10f\n", ii, (Real) epochArray[ii]);
       #endif
    }
    // put states into SpiceDouble arrays
-   SpiceDouble* stateArray;
-   stateArray = new SpiceDouble[numStates * 6];
+   const SpiceDouble startSPICE = numStates > 0 && start.Get() == epochs.front()->Get()
+      ? epochArray[0] : A1ToSpiceTime(start.Get());
+   const SpiceDouble endSPICE = numStates > 0 && end.Get() == epochs.back()->Get()
+      ? epochArray[numStates-1] : A1ToSpiceTime(end.Get());
+   if (!std::isfinite(startSPICE) || !std::isfinite(endSPICE) ||
+       startSPICE >= endSPICE || startSPICE < epochArray[0] ||
+       endSPICE > epochArray[numStates-1])
+      throw UtilityException("SPK descriptor interval must be increasing and covered by its records.");
+
+   std::vector<SpiceDouble> stateStorage(states.size() * 6);
+   SpiceDouble *stateArray = stateStorage.data();
 
    if (frameName == "J2000")
    {
@@ -465,6 +518,9 @@ void SpiceOrbitKernelWriter::WriteSegment(const A1Mjd &start, const A1Mjd &end,
       }
    }
 
+   if (!fileOpen)
+      OpenFileForWriting();
+
    // create a segment ID
    std::string         segmentID = "SPK_SEGMENT";
    ConstSpiceChar      *segmentIDSPICE = segmentID.c_str();
@@ -477,15 +533,13 @@ void SpiceOrbitKernelWriter::WriteSegment(const A1Mjd &start, const A1Mjd &end,
    {
       ConstSpiceChar option[]   = "LONG"; // retrieve long error message
       SpiceInt       numErrChar = MAX_LONG_MESSAGE_VALUE;
-      //SpiceChar      err[MAX_LONG_MESSAGE_VALUE];
-      SpiceChar      *err = new SpiceChar[MAX_LONG_MESSAGE_VALUE];
+      SpiceChar      err[MAX_LONG_MESSAGE_VALUE];
       getmsg_c(option, numErrChar, err);
       std::string errStr(err);
       std::string errmsg = "Error writing ephemeris data to SPK file \"";
       errmsg += kernelFileName + "\".  Message received from CSPICE is: ";
       errmsg += errStr + "\n";
       reset_c();
-      delete [] err;
       throw UtilityException(errmsg);
    }
 
@@ -495,8 +549,6 @@ void SpiceOrbitKernelWriter::WriteSegment(const A1Mjd &start, const A1Mjd &end,
       MessageInterface::ShowMessage("In SOKW::WriteSegment, data has been written\n");
    #endif
 
-   delete [] epochArray;
-   delete [] stateArray;
 }
 
 //------------------------------------------------------------------------------
@@ -646,6 +698,20 @@ void SpiceOrbitKernelWriter::FinalizeKernel(bool done, bool writeMetaData)
          }
          reset_c();
          delete [] err;
+      }
+   }
+   else if (fileOpen)
+   {
+      // SPKCLS rejects an empty kernel, but the underlying DAF handle still
+      // needs closing after a failed first segment. Do not invent a segment.
+      dafcls_c(handle);
+      if (failed_c())
+      {
+         SpiceChar err[MAX_LONG_MESSAGE_VALUE];
+         getmsg_c("LONG", MAX_LONG_MESSAGE_VALUE, err);
+         reset_c();
+         MessageInterface::ShowMessage("Unable to close empty SPK file %s: %s\n",
+                                       kernelFileName.c_str(), err);
       }
    }
    if (done)

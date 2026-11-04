@@ -992,6 +992,14 @@ void ObjectInitializer::InitializeSubscribers(ObjectMap *objMap)
          {
             if (subName == obj->GetName())
             {
+               // The caller already bound this global step plot to its runtime
+               // spacecraft. A function must not reset its sampling cursor or
+               // rebind those references to same-name local spacecraft.
+               if (inFunction && objMap == GOS && obj == *subiter && obj->IsGlobal() &&
+                   obj->IsInitialized() && (obj->IsOfType("OrbitPlot") || obj->IsOfType("GroundTrack")) &&
+                   obj->GetIntegerParameter("IntegrationStepsToSkip") >= 0)
+                  continue;
+
                #if defined(DEBUG_OBJECT_INITIALIZER) || defined(DEBUG_SUBSCRIBER)
                MessageInterface::ShowMessage
                   ("   Calling BuildReferencesAndInitialize() for <%p>[%s]'%s'\n",
@@ -1110,6 +1118,12 @@ void ObjectInitializer::InitializeAllOtherObjects(ObjectMap *objMap)
             // PropSetup initialization is handled by the commands, since the
             // state that is propagated may change as spacecraft are added or
             // removed.
+            BuildReferences(obj);
+         }
+         else if (obj->GetType() == Gmat::ATTITUDE)
+         {
+            // Named standalone attitudes need the same reference context as
+            // owned attitudes. Provider initialization remains demand-driven.
             BuildReferences(obj);
          }
          else

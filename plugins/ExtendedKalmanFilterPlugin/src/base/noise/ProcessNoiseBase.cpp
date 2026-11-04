@@ -237,10 +237,8 @@ void ProcessNoiseBase::ConvertMatrix(Rmatrix &mat, const GmatTime &epoch)
    Integer stateSize = mat.GetNumRows();
 
    CoordinateConverter cc;
-   Rvector inState(stateSize); // At origin of local coordinate system
-   Rvector outState(stateSize); // Placeholder, only the rotation matrix is needed
-   cc.Convert(epoch, inState, coordinateSystem, outState, j2k, true, false);
-   Rmatrix33 vnbRot = cc.GetLastRotationMatrix();
+   // Process-noise components use orientation, not a state/frame-rate conversion.
+   Rmatrix33 vnbRot = cc.GetRotationMatrixOnly(epoch, coordinateSystem, j2k);
 
    Rmatrix transform = Rmatrix::Identity(stateSize);
 
@@ -309,10 +307,8 @@ void ProcessNoiseBase::ConvertMatrix(Rmatrix &mat, const Real &epoch)
    Integer stateSize = mat.GetNumRows();
 
    CoordinateConverter cc;
-   Rvector inState(stateSize); // At origin of local coordinate system
-   Rvector outState(stateSize); // Placeholder, only the rotation matrix is needed
-   cc.Convert(epoch, inState, coordinateSystem, outState, j2k, true, false);
-   Rmatrix33 vnbRot = cc.GetLastRotationMatrix();
+   // Process-noise components use orientation, not a state/frame-rate conversion.
+   Rmatrix33 vnbRot = cc.GetRotationMatrixOnly(epoch, coordinateSystem, j2k);
 
    Rmatrix transform = Rmatrix::Identity(stateSize);
 

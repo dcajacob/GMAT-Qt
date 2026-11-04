@@ -30,6 +30,8 @@
 
 
 #include "RejectFilter.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "GmatBase.hpp"
 #include "MessageInterface.hpp"
 #include "MeasurementException.hpp"
@@ -727,4 +729,15 @@ bool RejectFilter::IsInRecordNumberList(Integer recNum)
    }
 
    return false;
+}
+// Reset/copy through the inherited polymorphic contract without slicing.
+void RejectFilter::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const RejectFilter*>(original);
+   if (!source || typeid(*source) != typeid(RejectFilter) ||
+       typeid(*this) != typeid(RejectFilter))
+      throw GmatBaseException("Cannot copy incompatible object into RejectFilter");
+   if (source == this)
+      return;
+   operator=(*source);
 }

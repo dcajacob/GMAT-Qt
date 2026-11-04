@@ -1,0 +1,727 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "Optimize",
+      "command": "Optimize",
+      "reference": "Opt",
+      "renamed_reference": "RefOpt",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate Yukon Opt;\nOpt.ShowProgress = false;\nOpt.ReportFile = '@OPT@';\nOpt.FeasibilityTolerance = 0.00000001;\nOpt.OptimalityTolerance = 0.00000001;\nOpt.FunctionTolerance = 0.00000001;\n% Keep literal and prefix: Opt OptSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Opt';\nCreate Variable OptSuffix;\nOptSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nOptimize 'Probe' Opt {ShowProgressWindow = false, ExitMode = SaveAndContinue};\nVary Opt(U = 1, {Perturbation = 0.000001, Lower = 0, Upper = 5, MaxStep = 5, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nCost = (U - 2)^2;\nMinimize Opt(Cost);\nEndOptimize;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate Yukon RefOpt;\nRefOpt.ShowProgress = false;\nRefOpt.ReportFile = '@OPT@';\nRefOpt.FeasibilityTolerance = 0.00000001;\nRefOpt.OptimalityTolerance = 0.00000001;\nRefOpt.FunctionTolerance = 0.00000001;\n% Keep literal and prefix: Opt OptSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Opt';\nCreate Variable OptSuffix;\nOptSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nOptimize 'Probe' RefOpt {ShowProgressWindow = false, ExitMode = SaveAndContinue};\nVary RefOpt(U = 1, {Perturbation = 0.000001, Lower = 0, Upper = 5, MaxStep = 5, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nCost = (U - 2)^2;\nMinimize RefOpt(Cost);\nEndOptimize;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate Yukon RefOpt;\nRefOpt.ShowProgress = false;\nRefOpt.ReportFile = '@OPT@';\nRefOpt.FeasibilityTolerance = 0.00000001;\nRefOpt.OptimalityTolerance = 0.00000001;\nRefOpt.FunctionTolerance = 0.00000001;\n% Keep literal and prefix: Opt OptSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Opt';\nCreate Variable OptSuffix;\nOptSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "Optimize 'Probe' RefOpt {ShowProgressWindow = false, ExitMode = SaveAndContinue};\nVary RefOpt(U = 1, {Perturbation = 0.000001, Lower = 0, Upper = 5, MaxStep = 5, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nCost = (U - 2)^2;\nMinimize RefOpt(Cost);\nEndOptimize;\n",
+      "expected_tail": [
+        0,
+        2,
+        0,
+        0
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/Optimize.json",
+      "reused_fixture_sha256": "b7a692ef456a4c57570d2455b5bccd6f0a32a54a19caa09a3d0ca026a31c3d05",
+      "delete_historical_key": "H2012:R1228",
+      "held_rename_historical_key": "H2012:R1236"
+    },
+    {
+      "key": "VaryTarget",
+      "command": "Vary",
+      "reference": "DC",
+      "renamed_reference": "RefDC",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate DifferentialCorrector DC;\nDC.ShowProgress = false;\nDC.MaximumIterations = 20;\nDC.DerivativeMethod = CentralDifference;\nDC.ReportFile = '@DC@';\n% Keep literal and prefix: DC DCSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'DC';\nCreate Variable DCSuffix;\nDCSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nTarget DC {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary 'Probe' DC(U = 1, {Perturbation = 0.01, Lower = -10, Upper = 10, MaxStep = 10, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nQuantity = 2 * U + 1;\nAchieve DC(Quantity = 9, {Tolerance = 0.000000001});\nEndTarget;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate DifferentialCorrector RefDC;\nRefDC.ShowProgress = false;\nRefDC.MaximumIterations = 20;\nRefDC.DerivativeMethod = CentralDifference;\nRefDC.ReportFile = '@DC@';\n% Keep literal and prefix: DC DCSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'DC';\nCreate Variable DCSuffix;\nDCSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nTarget RefDC {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary 'Probe' RefDC(U = 1, {Perturbation = 0.01, Lower = -10, Upper = 10, MaxStep = 10, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nQuantity = 2 * U + 1;\nAchieve RefDC(Quantity = 9, {Tolerance = 0.000000001});\nEndTarget;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate DifferentialCorrector RefDC;\nRefDC.ShowProgress = false;\nRefDC.MaximumIterations = 20;\nRefDC.DerivativeMethod = CentralDifference;\nRefDC.ReportFile = '@DC@';\n% Keep literal and prefix: DC DCSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'DC';\nCreate Variable DCSuffix;\nDCSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nTarget RefDC {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nQuantity = 2 * U + 1;\nAchieve RefDC(Quantity = 9, {Tolerance = 0.000000001});\nEndTarget;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "Vary 'Probe' RefDC(U = 1, {Perturbation = 0.01, Lower = -10, Upper = 10, MaxStep = 10, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\n",
+      "expected_tail": [
+        0,
+        4,
+        0,
+        9
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        4,
+        0,
+        9
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "No goals or variables are set.",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/VaryTarget.json",
+      "reused_fixture_sha256": "5e1173c6d24f7f1ac35866c9d207dbdd9d27eaa7b8849ffd7f8253b9abe0aea1",
+      "delete_historical_key": "H2012:R1283",
+      "held_rename_historical_key": "H2012:R1289"
+    },
+    {
+      "key": "VaryOptimize",
+      "command": "Vary",
+      "reference": "Opt",
+      "renamed_reference": "RefOpt",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate Yukon Opt;\nOpt.ShowProgress = false;\nOpt.ReportFile = '@OPT@';\nOpt.FeasibilityTolerance = 0.00000001;\nOpt.OptimalityTolerance = 0.00000001;\nOpt.FunctionTolerance = 0.00000001;\n% Keep literal and prefix: Opt OptSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Opt';\nCreate Variable OptSuffix;\nOptSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nOptimize Opt {ShowProgressWindow = false, ExitMode = SaveAndContinue};\nVary 'Probe' Opt(U = 1, {Perturbation = 0.000001, Lower = 0, Upper = 5, MaxStep = 5, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nCost = (U - 2)^2;\nMinimize Opt(Cost);\nEndOptimize;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate Yukon RefOpt;\nRefOpt.ShowProgress = false;\nRefOpt.ReportFile = '@OPT@';\nRefOpt.FeasibilityTolerance = 0.00000001;\nRefOpt.OptimalityTolerance = 0.00000001;\nRefOpt.FunctionTolerance = 0.00000001;\n% Keep literal and prefix: Opt OptSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Opt';\nCreate Variable OptSuffix;\nOptSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nOptimize RefOpt {ShowProgressWindow = false, ExitMode = SaveAndContinue};\nVary 'Probe' RefOpt(U = 1, {Perturbation = 0.000001, Lower = 0, Upper = 5, MaxStep = 5, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nCost = (U - 2)^2;\nMinimize RefOpt(Cost);\nEndOptimize;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate Yukon RefOpt;\nRefOpt.ShowProgress = false;\nRefOpt.ReportFile = '@OPT@';\nRefOpt.FeasibilityTolerance = 0.00000001;\nRefOpt.OptimalityTolerance = 0.00000001;\nRefOpt.FunctionTolerance = 0.00000001;\n% Keep literal and prefix: Opt OptSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Opt';\nCreate Variable OptSuffix;\nOptSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nOptimize RefOpt {ShowProgressWindow = false, ExitMode = SaveAndContinue};\nCost = (U - 2)^2;\nMinimize RefOpt(Cost);\nEndOptimize;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "Vary 'Probe' RefOpt(U = 1, {Perturbation = 0.000001, Lower = 0, Upper = 5, MaxStep = 5, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\n",
+      "expected_tail": [
+        0,
+        2,
+        0,
+        0
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        2,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "No variables are set.",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/VaryOptimize.json",
+      "reused_fixture_sha256": "230853c08ec6f2cb17b43a1f994d5f33d1c4348dfa99d42f66ac02af79041280",
+      "delete_historical_key": "H2012:R1321",
+      "held_rename_historical_key": "H2012:R1327"
+    },
+    {
+      "key": "Target",
+      "command": "Target",
+      "reference": "DC",
+      "renamed_reference": "RefDC",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate DifferentialCorrector DC;\nDC.ShowProgress = false;\nDC.MaximumIterations = 20;\nDC.DerivativeMethod = CentralDifference;\nDC.ReportFile = '@DC@';\n% Keep literal and prefix: DC DCSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'DC';\nCreate Variable DCSuffix;\nDCSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nTarget 'Probe' DC {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary DC(U = 1, {Perturbation = 0.01, Lower = -10, Upper = 10, MaxStep = 10, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nQuantity = 2 * U + 1;\nAchieve DC(Quantity = 9, {Tolerance = 0.000000001});\nEndTarget;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate DifferentialCorrector RefDC;\nRefDC.ShowProgress = false;\nRefDC.MaximumIterations = 20;\nRefDC.DerivativeMethod = CentralDifference;\nRefDC.ReportFile = '@DC@';\n% Keep literal and prefix: DC DCSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'DC';\nCreate Variable DCSuffix;\nDCSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nTarget 'Probe' RefDC {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary RefDC(U = 1, {Perturbation = 0.01, Lower = -10, Upper = 10, MaxStep = 10, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nQuantity = 2 * U + 1;\nAchieve RefDC(Quantity = 9, {Tolerance = 0.000000001});\nEndTarget;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate DifferentialCorrector RefDC;\nRefDC.ShowProgress = false;\nRefDC.MaximumIterations = 20;\nRefDC.DerivativeMethod = CentralDifference;\nRefDC.ReportFile = '@DC@';\n% Keep literal and prefix: DC DCSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'DC';\nCreate Variable DCSuffix;\nDCSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "Target 'Probe' RefDC {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary RefDC(U = 1, {Perturbation = 0.01, Lower = -10, Upper = 10, MaxStep = 10, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nQuantity = 2 * U + 1;\nAchieve RefDC(Quantity = 9, {Tolerance = 0.000000001});\nEndTarget;\n",
+      "expected_tail": [
+        0,
+        4,
+        0,
+        9
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/Target.json",
+      "reused_fixture_sha256": "e7bb256314b4696f4bff5ea06d3891a582d690283f3379613eca51d86120ac23",
+      "delete_historical_key": "H2012:R1361",
+      "held_rename_historical_key": "H2012:R1369"
+    },
+    {
+      "key": "For",
+      "command": "For",
+      "reference": "I",
+      "renamed_reference": "RefI",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: I ISuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'I';\nCreate Variable ISuffix;\nISuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nFor 'Probe' I = 1:1:3;\nCount = Count + 1;\nEndFor;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep RefI Count U Quantity Cost;\nKeep = 41;\nRefI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: I ISuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'I';\nCreate Variable ISuffix;\nISuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nFor 'Probe' RefI = 1:1:3;\nCount = Count + 1;\nEndFor;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep RefI Count U Quantity Cost;\nKeep = 41;\nRefI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: I ISuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'I';\nCreate Variable ISuffix;\nISuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "For 'Probe' RefI = 1:1:3;\nCount = Count + 1;\nEndFor;\n",
+      "expected_tail": [
+        3,
+        1,
+        0,
+        0
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/For.json",
+      "reused_fixture_sha256": "1484822341e1e67a521a633dce338b44c843e7062af5ebabdd1cec83909a72be",
+      "delete_historical_key": "H2012:R1419",
+      "held_rename_historical_key": "H2012:R1427"
+    },
+    {
+      "key": "If",
+      "command": "If",
+      "reference": "Count",
+      "renamed_reference": "RefCount",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Count CountSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Count';\nCreate Variable CountSuffix;\nCountSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nIf 'Probe' Count < 2;\nCount = 7;\nEndIf;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I RefCount U Quantity Cost;\nKeep = 41;\nI = 0;\nRefCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Count CountSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Count';\nCreate Variable CountSuffix;\nCountSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nIf 'Probe' RefCount < 2;\nRefCount = 7;\nEndIf;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep RefCount U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I RefCount U Quantity Cost;\nKeep = 41;\nI = 0;\nRefCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Count CountSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Count';\nCreate Variable CountSuffix;\nCountSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep RefCount U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "If 'Probe' RefCount < 2;\nRefCount = 7;\nEndIf;\n",
+      "expected_tail": [
+        7,
+        1,
+        0,
+        0
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/If.json",
+      "reused_fixture_sha256": "ccbcc84f353b1c0840faed2b7bb4b31ad568bc12932b12ef657afadeff2bd1cf",
+      "delete_historical_key": "H2012:R1485",
+      "held_rename_historical_key": "H2012:R1493"
+    },
+    {
+      "key": "IfElse",
+      "command": "If",
+      "reference": "Count",
+      "renamed_reference": "RefCount",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Count CountSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Count';\nCreate Variable CountSuffix;\nCountSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nIf 'Probe' Count > 2;\nCount = 7;\nElse;\nCount = -7;\nEndIf;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I RefCount U Quantity Cost;\nKeep = 41;\nI = 0;\nRefCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Count CountSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Count';\nCreate Variable CountSuffix;\nCountSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nIf 'Probe' RefCount > 2;\nRefCount = 7;\nElse;\nRefCount = -7;\nEndIf;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep RefCount U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I RefCount U Quantity Cost;\nKeep = 41;\nI = 0;\nRefCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Count CountSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Count';\nCreate Variable CountSuffix;\nCountSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep RefCount U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "If 'Probe' RefCount > 2;\nRefCount = 7;\nElse;\nRefCount = -7;\nEndIf;\n",
+      "expected_tail": [
+        -7,
+        1,
+        0,
+        0
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/IfElse.json",
+      "reused_fixture_sha256": "6cb9b9705dcaa172976c4d2fa6a67b87fc3dd774d7db0fb57df673666515c7c9",
+      "delete_historical_key": "H2012:R1554",
+      "held_rename_historical_key": "H2012:R1562"
+    },
+    {
+      "key": "While",
+      "command": "While",
+      "reference": "Count",
+      "renamed_reference": "RefCount",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Count CountSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Count';\nCreate Variable CountSuffix;\nCountSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nWhile 'Probe' Count < 3;\nCount = Count + 1;\nEndWhile;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I RefCount U Quantity Cost;\nKeep = 41;\nI = 0;\nRefCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Count CountSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Count';\nCreate Variable CountSuffix;\nCountSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nWhile 'Probe' RefCount < 3;\nRefCount = RefCount + 1;\nEndWhile;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep RefCount U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I RefCount U Quantity Cost;\nKeep = 41;\nI = 0;\nRefCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Count CountSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Count';\nCreate Variable CountSuffix;\nCountSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep RefCount U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "While 'Probe' RefCount < 3;\nRefCount = RefCount + 1;\nEndWhile;\n",
+      "expected_tail": [
+        3,
+        1,
+        0,
+        0
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/While.json",
+      "reused_fixture_sha256": "a3f0fca99db8cdc9e4ae336adcd90a9dff116689231f54baf7969b26409e4377",
+      "delete_historical_key": "H2012:R1625",
+      "held_rename_historical_key": "H2012:R1633"
+    },
+    {
+      "key": "Achieve",
+      "command": "Achieve",
+      "reference": "DC",
+      "renamed_reference": "RefDC",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate DifferentialCorrector DC;\nDC.ShowProgress = false;\nDC.MaximumIterations = 20;\nDC.DerivativeMethod = CentralDifference;\nDC.ReportFile = '@DC@';\n% Keep literal and prefix: DC DCSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'DC';\nCreate Variable DCSuffix;\nDCSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nTarget DC {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary DC(U = 1, {Perturbation = 0.01, Lower = -10, Upper = 10, MaxStep = 10, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nQuantity = 2 * U + 1;\nAchieve 'Probe' DC(Quantity = 9, {Tolerance = 0.000000001});\nEndTarget;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate DifferentialCorrector RefDC;\nRefDC.ShowProgress = false;\nRefDC.MaximumIterations = 20;\nRefDC.DerivativeMethod = CentralDifference;\nRefDC.ReportFile = '@DC@';\n% Keep literal and prefix: DC DCSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'DC';\nCreate Variable DCSuffix;\nDCSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nTarget RefDC {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary RefDC(U = 1, {Perturbation = 0.01, Lower = -10, Upper = 10, MaxStep = 10, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nQuantity = 2 * U + 1;\nAchieve 'Probe' RefDC(Quantity = 9, {Tolerance = 0.000000001});\nEndTarget;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate DifferentialCorrector RefDC;\nRefDC.ShowProgress = false;\nRefDC.MaximumIterations = 20;\nRefDC.DerivativeMethod = CentralDifference;\nRefDC.ReportFile = '@DC@';\n% Keep literal and prefix: DC DCSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'DC';\nCreate Variable DCSuffix;\nDCSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nTarget RefDC {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary RefDC(U = 1, {Perturbation = 0.01, Lower = -10, Upper = 10, MaxStep = 10, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nQuantity = 2 * U + 1;\nEndTarget;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "Achieve 'Probe' RefDC(Quantity = 9, {Tolerance = 0.000000001});\n",
+      "expected_tail": [
+        0,
+        4,
+        0,
+        9
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        4,
+        0,
+        9
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "No goals or variables are set.",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/Achieve.json",
+      "reused_fixture_sha256": "43eb3478bac2b1e872e0e3f20dd24ddb4adbc50f90155924a6ec6ecb95030e91",
+      "delete_historical_key": "H2012:R1680",
+      "held_rename_historical_key": "H2012:R1688"
+    },
+    {
+      "key": "Minimize",
+      "command": "Minimize",
+      "reference": "Opt",
+      "renamed_reference": "RefOpt",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate Yukon Opt;\nOpt.ShowProgress = false;\nOpt.ReportFile = '@OPT@';\nOpt.FeasibilityTolerance = 0.00000001;\nOpt.OptimalityTolerance = 0.00000001;\nOpt.FunctionTolerance = 0.00000001;\n% Keep literal and prefix: Opt OptSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Opt';\nCreate Variable OptSuffix;\nOptSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nOptimize Opt {ShowProgressWindow = false, ExitMode = SaveAndContinue};\nVary Opt(U = 1, {Perturbation = 0.000001, Lower = 0, Upper = 5, MaxStep = 5, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nCost = (U - 2)^2;\nMinimize 'Probe' Opt(Cost);\nEndOptimize;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate Yukon RefOpt;\nRefOpt.ShowProgress = false;\nRefOpt.ReportFile = '@OPT@';\nRefOpt.FeasibilityTolerance = 0.00000001;\nRefOpt.OptimalityTolerance = 0.00000001;\nRefOpt.FunctionTolerance = 0.00000001;\n% Keep literal and prefix: Opt OptSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Opt';\nCreate Variable OptSuffix;\nOptSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nOptimize RefOpt {ShowProgressWindow = false, ExitMode = SaveAndContinue};\nVary RefOpt(U = 1, {Perturbation = 0.000001, Lower = 0, Upper = 5, MaxStep = 5, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nCost = (U - 2)^2;\nMinimize 'Probe' RefOpt(Cost);\nEndOptimize;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate Yukon RefOpt;\nRefOpt.ShowProgress = false;\nRefOpt.ReportFile = '@OPT@';\nRefOpt.FeasibilityTolerance = 0.00000001;\nRefOpt.OptimalityTolerance = 0.00000001;\nRefOpt.FunctionTolerance = 0.00000001;\n% Keep literal and prefix: Opt OptSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Opt';\nCreate Variable OptSuffix;\nOptSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nOptimize RefOpt {ShowProgressWindow = false, ExitMode = SaveAndContinue};\nVary RefOpt(U = 1, {Perturbation = 0.000001, Lower = 0, Upper = 5, MaxStep = 5, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nCost = (U - 2)^2;\nEndOptimize;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "Minimize 'Probe' RefOpt(Cost);\n",
+      "expected_tail": [
+        0,
+        2,
+        0,
+        0
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        2,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "Optimizers require either a cost function",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/Minimize.json",
+      "reused_fixture_sha256": "93a7b028f0033afde8be03edef5c49959b8ba2c63396e37482cdb4bc46a952c1",
+      "delete_historical_key": "H2012:R1730",
+      "held_rename_historical_key": "H2012:R1738"
+    },
+    {
+      "key": "Propagate",
+      "command": "Propagate",
+      "reference": "P",
+      "renamed_reference": "RefP",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: P PSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'P';\nCreate Variable PSuffix;\nPSuffix = 43;\nBeginMissionSequence;\nPropagate 'Probe' P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator RefP;\nRefP.FM = FM;\nRefP.Type = RungeKutta89;\nRefP.InitialStepSize = 10;\nRefP.MinStep = 10;\nRefP.MaxStep = 10;\nRefP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: P PSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'P';\nCreate Variable PSuffix;\nPSuffix = 43;\nBeginMissionSequence;\nPropagate 'Probe' RefP(Sat) {Sat.ElapsedSecs = 10};\nPropagate RefP(Sat) {Sat.ElapsedSecs = 10};\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator RefP;\nRefP.FM = FM;\nRefP.Type = RungeKutta89;\nRefP.InitialStepSize = 10;\nRefP.MinStep = 10;\nRefP.MaxStep = 10;\nRefP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: P PSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'P';\nCreate Variable PSuffix;\nPSuffix = 43;\nBeginMissionSequence;\nPropagate RefP(Sat) {Sat.ElapsedSecs = 10};\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "Propagate 'Probe' RefP(Sat) {Sat.ElapsedSecs = 10};\n",
+      "expected_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 10,
+      "deleted_failure": "",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/Propagate.json",
+      "reused_fixture_sha256": "44aea4317b1a4213424f0f2331db326da86c18250b540af1c83b73225fdadad3",
+      "delete_historical_key": "H2012:R1781",
+      "held_rename_historical_key": "H2012:R1789"
+    },
+    {
+      "key": "Maneuver",
+      "command": "Maneuver",
+      "reference": "Kick",
+      "renamed_reference": "RefKick",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate ImpulsiveBurn Kick;\nKick.CoordinateSystem = EarthMJ2000Eq;\nKick.Element1 = 0.01;\nKick.Element2 = 0;\nKick.Element3 = 0;\nKick.DecrementMass = false;\n% Keep literal and prefix: Kick KickSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Kick';\nCreate Variable KickSuffix;\nKickSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nManeuver 'Probe' Kick(Sat);\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate ImpulsiveBurn RefKick;\nRefKick.CoordinateSystem = EarthMJ2000Eq;\nRefKick.Element1 = 0.01;\nRefKick.Element2 = 0;\nRefKick.Element3 = 0;\nRefKick.DecrementMass = false;\n% Keep literal and prefix: Kick KickSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Kick';\nCreate Variable KickSuffix;\nKickSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nManeuver 'Probe' RefKick(Sat);\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate ImpulsiveBurn RefKick;\nRefKick.CoordinateSystem = EarthMJ2000Eq;\nRefKick.Element1 = 0.01;\nRefKick.Element2 = 0;\nRefKick.Element3 = 0;\nRefKick.DecrementMass = false;\n% Keep literal and prefix: Kick KickSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Kick';\nCreate Variable KickSuffix;\nKickSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "Maneuver 'Probe' RefKick(Sat);\n",
+      "expected_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "velocity_increment": [
+        0.01,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/Maneuver.json",
+      "reused_fixture_sha256": "30a96f53dc9f48ab4d2ad4dbba9eb90a4329efb56555fd6b6d604044243baf89",
+      "delete_historical_key": "H2012:R1831",
+      "held_rename_historical_key": "H2012:R1839"
+    },
+    {
+      "key": "NonlinearConstraint",
+      "command": "NonlinearConstraint",
+      "reference": "Opt",
+      "renamed_reference": "RefOpt",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate Yukon Opt;\nOpt.ShowProgress = false;\nOpt.ReportFile = '@OPT@';\nOpt.FeasibilityTolerance = 0.00000001;\nOpt.OptimalityTolerance = 0.00000001;\nOpt.FunctionTolerance = 0.00000001;\n% Keep literal and prefix: Opt OptSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Opt';\nCreate Variable OptSuffix;\nOptSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nOptimize Opt {ShowProgressWindow = false, ExitMode = SaveAndContinue};\nVary Opt(U = 1, {Perturbation = 0.000001, Lower = 0, Upper = 5, MaxStep = 5, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nCost = (U - 2)^2;\nNonlinearConstraint 'Probe' Opt(U >= 3);\nMinimize Opt(Cost);\nEndOptimize;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate Yukon RefOpt;\nRefOpt.ShowProgress = false;\nRefOpt.ReportFile = '@OPT@';\nRefOpt.FeasibilityTolerance = 0.00000001;\nRefOpt.OptimalityTolerance = 0.00000001;\nRefOpt.FunctionTolerance = 0.00000001;\n% Keep literal and prefix: Opt OptSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Opt';\nCreate Variable OptSuffix;\nOptSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nOptimize RefOpt {ShowProgressWindow = false, ExitMode = SaveAndContinue};\nVary RefOpt(U = 1, {Perturbation = 0.000001, Lower = 0, Upper = 5, MaxStep = 5, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nCost = (U - 2)^2;\nNonlinearConstraint 'Probe' RefOpt(U >= 3);\nMinimize RefOpt(Cost);\nEndOptimize;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate Yukon RefOpt;\nRefOpt.ShowProgress = false;\nRefOpt.ReportFile = '@OPT@';\nRefOpt.FeasibilityTolerance = 0.00000001;\nRefOpt.OptimalityTolerance = 0.00000001;\nRefOpt.FunctionTolerance = 0.00000001;\n% Keep literal and prefix: Opt OptSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Opt';\nCreate Variable OptSuffix;\nOptSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nOptimize RefOpt {ShowProgressWindow = false, ExitMode = SaveAndContinue};\nVary RefOpt(U = 1, {Perturbation = 0.000001, Lower = 0, Upper = 5, MaxStep = 5, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nCost = (U - 2)^2;\nMinimize RefOpt(Cost);\nEndOptimize;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "NonlinearConstraint 'Probe' RefOpt(U >= 3);\n",
+      "expected_tail": [
+        0,
+        3,
+        1,
+        0
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        2,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/NonlinearConstraint.json",
+      "reused_fixture_sha256": "4f357fcea2da1981555449d9353aa11a968b46f9288b9826cb4119df7d09a9b6",
+      "delete_historical_key": "H2012:R1884",
+      "held_rename_historical_key": "H2012:R1892"
+    },
+    {
+      "key": "Report",
+      "command": "Report",
+      "reference": "Extra",
+      "renamed_reference": "RefExtra",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Extra ExtraSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Extra';\nCreate Variable ExtraSuffix;\nExtraSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nReport 'Probe' Extra Keep;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values RefExtra;\nValues.Filename = '@VALUES@';\nRefExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nRefExtra.WriteHeaders = false;\nRefExtra.FixedWidth = false;\nRefExtra.Precision = 17;\n% Keep literal and prefix: Extra ExtraSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Extra';\nCreate Variable ExtraSuffix;\nExtraSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nReport 'Probe' RefExtra Keep;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values RefExtra;\nValues.Filename = '@VALUES@';\nRefExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nRefExtra.WriteHeaders = false;\nRefExtra.FixedWidth = false;\nRefExtra.Precision = 17;\n% Keep literal and prefix: Extra ExtraSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Extra';\nCreate Variable ExtraSuffix;\nExtraSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "Report 'Probe' RefExtra Keep;\n",
+      "expected_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/Report.json",
+      "reused_fixture_sha256": "24827cdc2a0e9f8b2fc1635a39d162b031f3b43df5007f41e4528856161428c2",
+      "delete_historical_key": "H2012:R1928",
+      "held_rename_historical_key": "H2012:R1936"
+    },
+    {
+      "key": "Toggle",
+      "command": "Toggle",
+      "reference": "Trace",
+      "renamed_reference": "RefTrace",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Trace TraceSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Trace';\nCreate Variable TraceSuffix;\nTraceSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nToggle 'Probe' Trace Off;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot RefTrace Control;\nRefTrace.XVariable = Sat.ElapsedSecs;\nRefTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Trace TraceSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Trace';\nCreate Variable TraceSuffix;\nTraceSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nToggle 'Probe' RefTrace Off;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot RefTrace Control;\nRefTrace.XVariable = Sat.ElapsedSecs;\nRefTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Trace TraceSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Trace';\nCreate Variable TraceSuffix;\nTraceSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "Toggle 'Probe' RefTrace Off;\n",
+      "expected_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/Toggle.json",
+      "reused_fixture_sha256": "59613c41a7fd85c507346f75df8757bd4acb7b1f5d27a52676c625512ae1cde6",
+      "delete_historical_key": "H2012:R1969",
+      "held_rename_historical_key": "H2012:R1977"
+    },
+    {
+      "key": "Save",
+      "command": "Save",
+      "reference": "Sat",
+      "renamed_reference": "RefSat",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Sat SatSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Sat';\nCreate Variable SatSuffix;\nSatSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nSave 'Probe' Sat;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft RefSat;\nRefSat.DateFormat = A1ModJulian;\nRefSat.Epoch = 21545;\nRefSat.CoordinateSystem = EarthMJ2000Eq;\nRefSat.DisplayStateType = Cartesian;\nRefSat.X = 7000;\nRefSat.Y = 0;\nRefSat.Z = 0;\nRefSat.VX = 0;\nRefSat.VY = @SPEED@;\nRefSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = RefSat.ElapsedSecs;\nTrace.YVariables = {RefSat.ElapsedSecs};\nControl.XVariable = RefSat.ElapsedSecs;\nControl.YVariables = {RefSat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Sat SatSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Sat';\nCreate Variable SatSuffix;\nSatSuffix = 43;\nBeginMissionSequence;\nPropagate P(RefSat) {RefSat.ElapsedSecs = 10};\nPropagate P(RefSat) {RefSat.ElapsedSecs = 10};\nSave 'Probe' RefSat;\nReport 'Witness' Values RefSat.ElapsedSecs RefSat.EarthMJ2000Eq.X RefSat.EarthMJ2000Eq.Y RefSat.EarthMJ2000Eq.Z RefSat.EarthMJ2000Eq.VX RefSat.EarthMJ2000Eq.VY RefSat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft RefSat;\nRefSat.DateFormat = A1ModJulian;\nRefSat.Epoch = 21545;\nRefSat.CoordinateSystem = EarthMJ2000Eq;\nRefSat.DisplayStateType = Cartesian;\nRefSat.X = 7000;\nRefSat.Y = 0;\nRefSat.Z = 0;\nRefSat.VX = 0;\nRefSat.VY = @SPEED@;\nRefSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = RefSat.ElapsedSecs;\nTrace.YVariables = {RefSat.ElapsedSecs};\nControl.XVariable = RefSat.ElapsedSecs;\nControl.YVariables = {RefSat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Sat SatSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Sat';\nCreate Variable SatSuffix;\nSatSuffix = 43;\nBeginMissionSequence;\nPropagate P(RefSat) {RefSat.ElapsedSecs = 10};\nPropagate P(RefSat) {RefSat.ElapsedSecs = 10};\nReport 'Witness' Values RefSat.ElapsedSecs RefSat.EarthMJ2000Eq.X RefSat.EarthMJ2000Eq.Y RefSat.EarthMJ2000Eq.Z RefSat.EarthMJ2000Eq.VX RefSat.EarthMJ2000Eq.VY RefSat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "Save 'Probe' RefSat;\n",
+      "expected_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/Save.json",
+      "reused_fixture_sha256": "dac4294d875e999a1f13068510e3c3cbfbb737778f6bf42f1444e2ac8141e735",
+      "delete_historical_key": "H2012:R2015",
+      "held_rename_historical_key": "H2012:R2023"
+    },
+    {
+      "key": "BeginFiniteBurn",
+      "command": "BeginFiniteBurn",
+      "reference": "Burn",
+      "renamed_reference": "RefBurn",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate ChemicalTank Fuel;\nFuel.FuelMass = 1;\nCreate ChemicalThruster Engine;\nEngine.Tank = {Fuel};\nSat.Tanks = {Fuel};\nEngine.DecrementMass = false;\nEngine.CoordinateSystem = EarthMJ2000Eq;\nEngine.ThrustDirection1 = 1;\nEngine.ThrustDirection2 = 0;\nEngine.ThrustDirection3 = 0;\nEngine.C1 = 10;\nSat.Thrusters = {Engine};\nCreate FiniteBurn Burn;\nBurn.Thrusters = {Engine};\n% Keep literal and prefix: Burn BurnSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Burn';\nCreate Variable BurnSuffix;\nBurnSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nBeginFiniteBurn 'Probe' Burn(Sat);\nEndFiniteBurn 'Companion' Burn(Sat);\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate ChemicalTank Fuel;\nFuel.FuelMass = 1;\nCreate ChemicalThruster Engine;\nEngine.Tank = {Fuel};\nSat.Tanks = {Fuel};\nEngine.DecrementMass = false;\nEngine.CoordinateSystem = EarthMJ2000Eq;\nEngine.ThrustDirection1 = 1;\nEngine.ThrustDirection2 = 0;\nEngine.ThrustDirection3 = 0;\nEngine.C1 = 10;\nSat.Thrusters = {Engine};\nCreate FiniteBurn RefBurn;\nRefBurn.Thrusters = {Engine};\n% Keep literal and prefix: Burn BurnSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Burn';\nCreate Variable BurnSuffix;\nBurnSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nBeginFiniteBurn 'Probe' RefBurn(Sat);\nEndFiniteBurn 'Companion' RefBurn(Sat);\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate ChemicalTank Fuel;\nFuel.FuelMass = 1;\nCreate ChemicalThruster Engine;\nEngine.Tank = {Fuel};\nSat.Tanks = {Fuel};\nEngine.DecrementMass = false;\nEngine.CoordinateSystem = EarthMJ2000Eq;\nEngine.ThrustDirection1 = 1;\nEngine.ThrustDirection2 = 0;\nEngine.ThrustDirection3 = 0;\nEngine.C1 = 10;\nSat.Thrusters = {Engine};\nCreate FiniteBurn RefBurn;\nRefBurn.Thrusters = {Engine};\n% Keep literal and prefix: Burn BurnSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Burn';\nCreate Variable BurnSuffix;\nBurnSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nEndFiniteBurn 'Companion' RefBurn(Sat);\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "BeginFiniteBurn 'Probe' RefBurn(Sat);\n",
+      "expected_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/BeginFiniteBurn.json",
+      "reused_fixture_sha256": "7450c4253362b02b50639016047797b661394f83d22e080074cb066129858aaa",
+      "delete_historical_key": "H2012:R2067",
+      "held_rename_historical_key": "H2012:R2076"
+    },
+    {
+      "key": "EndFiniteBurn",
+      "command": "EndFiniteBurn",
+      "reference": "Burn",
+      "renamed_reference": "RefBurn",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate ChemicalTank Fuel;\nFuel.FuelMass = 1;\nCreate ChemicalThruster Engine;\nEngine.Tank = {Fuel};\nSat.Tanks = {Fuel};\nEngine.DecrementMass = false;\nEngine.CoordinateSystem = EarthMJ2000Eq;\nEngine.ThrustDirection1 = 1;\nEngine.ThrustDirection2 = 0;\nEngine.ThrustDirection3 = 0;\nEngine.C1 = 10;\nSat.Thrusters = {Engine};\nCreate FiniteBurn Burn;\nBurn.Thrusters = {Engine};\n% Keep literal and prefix: Burn BurnSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Burn';\nCreate Variable BurnSuffix;\nBurnSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nBeginFiniteBurn 'Companion' Burn(Sat);\nEndFiniteBurn 'Probe' Burn(Sat);\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate ChemicalTank Fuel;\nFuel.FuelMass = 1;\nCreate ChemicalThruster Engine;\nEngine.Tank = {Fuel};\nSat.Tanks = {Fuel};\nEngine.DecrementMass = false;\nEngine.CoordinateSystem = EarthMJ2000Eq;\nEngine.ThrustDirection1 = 1;\nEngine.ThrustDirection2 = 0;\nEngine.ThrustDirection3 = 0;\nEngine.C1 = 10;\nSat.Thrusters = {Engine};\nCreate FiniteBurn RefBurn;\nRefBurn.Thrusters = {Engine};\n% Keep literal and prefix: Burn BurnSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Burn';\nCreate Variable BurnSuffix;\nBurnSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nBeginFiniteBurn 'Companion' RefBurn(Sat);\nEndFiniteBurn 'Probe' RefBurn(Sat);\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate ChemicalTank Fuel;\nFuel.FuelMass = 1;\nCreate ChemicalThruster Engine;\nEngine.Tank = {Fuel};\nSat.Tanks = {Fuel};\nEngine.DecrementMass = false;\nEngine.CoordinateSystem = EarthMJ2000Eq;\nEngine.ThrustDirection1 = 1;\nEngine.ThrustDirection2 = 0;\nEngine.ThrustDirection3 = 0;\nEngine.C1 = 10;\nSat.Thrusters = {Engine};\nCreate FiniteBurn RefBurn;\nRefBurn.Thrusters = {Engine};\n% Keep literal and prefix: Burn BurnSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Burn';\nCreate Variable BurnSuffix;\nBurnSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nBeginFiniteBurn 'Companion' RefBurn(Sat);\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "EndFiniteBurn 'Probe' RefBurn(Sat);\n",
+      "expected_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/EndFiniteBurn.json",
+      "reused_fixture_sha256": "cd5a498184ff561ea7310bf03955ab4c006694e72add9fba0ef9b7e49b55479d",
+      "delete_historical_key": "H2012:R2116",
+      "held_rename_historical_key": "H2012:R2125"
+    },
+    {
+      "key": "Global",
+      "command": "Global",
+      "reference": "Keep",
+      "renamed_reference": "RefKeep",
+      "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Keep KeepSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Keep';\nCreate Variable KeepSuffix;\nKeepSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nGlobal 'Probe' Keep;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "renamed_script": "% Preserve mission-name source \u0394\nCreate Variable RefKeep I Count U Quantity Cost;\nRefKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Keep KeepSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Keep';\nCreate Variable KeepSuffix;\nKeepSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nGlobal 'Probe' RefKeep;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ RefKeep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deleted_script": "% Preserve mission-name source \u0394\nCreate Variable RefKeep I Count U Quantity Cost;\nRefKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\n% Keep literal and prefix: Keep KeepSuffix\nCreate String ReferenceLiteral;\nReferenceLiteral = 'Keep';\nCreate Variable KeepSuffix;\nKeepSuffix = 43;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ RefKeep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+      "deletion_fragment": "Global 'Probe' RefKeep;\n",
+      "expected_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_tail": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "deleted_velocity_increment": [
+        0,
+        0,
+        0
+      ],
+      "deleted_elapsed": 20,
+      "deleted_failure": "",
+      "reused_fixture": "src/qtgui/tests/mission-command-names/Global.json",
+      "reused_fixture_sha256": "d95a62e64f9945e03b6d5cc81f032c24a077b5afef26371aa52f6f02b04f28e6",
+      "delete_historical_key": "H2012:R2347",
+      "held_rename_historical_key": "H2012:R2355"
+    }
+  ]
+}

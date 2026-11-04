@@ -1,6 +1,9 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "TestSettings.hpp"
 #include "Moderator.hpp"
+#include "GmatBase.hpp"
+#include "AcceptanceView.hpp"
 #include <QApplication>
 #include <QAction>
 #include <QComboBox>
@@ -17,14 +20,101 @@
 #include <QTreeWidget>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QTreeWidgetItemIterator>
+#include <QMenu>
+#include <QKeyEvent>
+#include <QPointer>
+#include <QTextDocument>
+#include <QSet>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <iostream>
 #include <stdexcept>
 
 static void require(bool value,const char *message) { if (!value) throw std::runtime_error(message); }
+static QMap<QString,QPair<quintptr,QString>> configuredResources()
+{
+   auto *moderator=Moderator::Instance();
+   StringArray names=moderator->GetListOfObjects(Gmat::UNKNOWN_OBJECT);
+   const StringArray bodies=moderator->GetListOfObjects(Gmat::CELESTIAL_BODY);
+   names.insert(names.end(),bodies.begin(),bodies.end()); names.push_back("SolarSystem");
+   QMap<QString,QPair<quintptr,QString>> result;
+   for (const auto &name:names) {
+      auto *object=moderator->GetConfiguredObject(name);
+      require(object,"Configured resource disappeared during menu-route check");
+      result.insert(QString::fromStdString(name),{reinterpret_cast<quintptr>(object),QString::fromStdString(object->GetGeneratingString(Gmat::SHOW_SCRIPT))});
+   }
+   return result;
+}
+template<class Inspect> static void resourceMenu(MainWindow &window,QTreeWidget &tree,QTreeWidgetItem &category,Inspect inspect)
+{
+   tree.expandAll(); tree.scrollToItem(&category); tree.setCurrentItem(&category);
+   acceptanceView(tree); QApplication::processEvents();
+   std::exception_ptr failure; bool inspected=false; QTimer timer; timer.setSingleShot(true);
+   QObject::connect(&timer,&QTimer::timeout,&window,[&] {
+      auto *menu=qobject_cast<QMenu *>(QApplication::activePopupWidget());
+      try { require(menu && menu->objectName()=="resourceContextMenu","Resource context popup missing"); inspected=true; inspect(*menu); }
+      catch (...) { failure=std::current_exception(); if (menu) menu->close(); }
+   });
+   timer.start(qEnvironmentVariable("GMAT_QT_ACCEPTANCE_MODE")=="visible" ? 120 : 0); tree.customContextMenuRequested(tree.visualItemRect(&category).center()); timer.stop();
+   if (failure) std::rethrow_exception(failure); require(inspected,"Resource context menu was not inspected");
+}
+static void resourceAddRoutes(MainWindow &window,QPlainTextEdit &editor)
+{
+   auto *tree=window.findChild<QTreeWidget *>("Resources"); require(tree,"Resources tree missing");
+   const auto original=editor.toPlainText(); const auto objects=configuredResources();
+   const auto undo=editor.document()->availableUndoSteps(); const auto modified=editor.document()->isModified();
+   QList<QTreeWidgetItem *> categories;
+   for (QTreeWidgetItemIterator it(tree);*it;++it) if ((*it)->data(0,Qt::UserRole+1).isValid()) categories.append(*it);
+   require(!categories.isEmpty(),"No typed resource categories found"); QSet<QString> types; int actions=0;
+   for (auto *category:categories) {
+      QStringList offered;
+      resourceMenu(window,*tree,*category,[&](QMenu &menu) {
+         for (auto *action:menu.actions()) if (action->objectName().startsWith("addResource_") && action->isEnabled()) {
+            const auto type=action->data().toString(); require(!type.isEmpty(),"Add action has no resource type");
+            require(action->objectName()=="addResource_"+type && action->text()=="Add "+type+"…","Add label, name and target type disagree"); offered.append(type);
+         }
+         menu.close();
+      });
+      for (const auto &type:offered) {
+         bool creatorSeen=false; std::exception_ptr failure; QPointer<QMenu> oldPopup;
+         QTimer inspect; inspect.setSingleShot(true);
+         QObject::connect(&inspect,&QTimer::timeout,&window,[&] {
+            auto *dialog=window.findChild<QDialog *>("newResourceDialog");
+            try {
+               require(oldPopup.isNull() && !QApplication::activePopupWidget(),"Resource popup survived into the creation dialog");
+               require(dialog && dialog->isVisible(),"Add action did not open the creation dialog"); creatorSeen=true;
+               auto *choice=dialog->findChild<QComboBox *>("resourceType");
+               require(choice && choice->currentText()==type,qPrintable("Wrong creator type for Add "+type));
+               require(editor.toPlainText()==original && configuredResources()==objects,"Opening Add changed the mission before acceptance");
+               auto *buttons=dialog->findChild<QDialogButtonBox *>(); auto *cancel=buttons ? buttons->button(QDialogButtonBox::Cancel) : nullptr;
+               require(cancel && cancel->isEnabled(),"Creation Cancel button missing"); cancel->click();
+            } catch (...) { failure=std::current_exception(); if (dialog) dialog->reject(); }
+         });
+         resourceMenu(window,*tree,*category,[&](QMenu &menu) {
+            oldPopup=&menu; QAction *chosen=nullptr;
+            for (auto *action:menu.actions()) if (action->objectName()=="addResource_"+type) chosen=action;
+            require(chosen && chosen->isEnabled(),"Offered Add action disappeared");
+            inspect.start(qEnvironmentVariable("GMAT_QT_ACCEPTANCE_MODE")=="visible" ? 120 : 0); menu.setActiveAction(chosen);
+            QKeyEvent enter(QEvent::KeyPress,Qt::Key_Return,Qt::NoModifier); QApplication::sendEvent(&menu,&enter);
+         });
+         inspect.stop(); if (failure) std::rethrow_exception(failure);
+         require(creatorSeen,"Add action returned without opening its resource creator");
+         QApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
+         require(editor.toPlainText()==original && editor.document()->availableUndoSteps()==undo && editor.document()->isModified()==modified && configuredResources()==objects,"Cancel from resource-tree Add changed source, history, dirty state or configured objects");
+         types.insert(type); ++actions;
+         const QJsonObject proof{{"type",type},{"category",category->text(0)},{"outcome","passed"},{"checks",QJsonArray{"context-menu-action","preset-type","popup-retired","cancel","unchanged-model-source-history"}}};
+         std::cout<<"GUI_ROUTE_CHECK "<<QJsonDocument(proof).toJson(QJsonDocument::Compact).constData()<<std::endl;
+      }
+   }
+   for (const auto &type:QStringList{"Spacecraft","Variable","Planet","ImpulsiveBurn","ReportFile"}) require(types.contains(type),qPrintable("Required Add route was not exercised: "+type));
+   std::cout<<"Resource-tree Add routes: "<<actions<<" menu actions across "<<types.size()<<" types passed preset/Cancel invariants.\n";
+}
 int main(int argc,char **argv)
 {
    QApplication app(argc,argv);
-   if (QGuiApplication::platformName()!="offscreen" || argc<2 || argc>3) return 2;
+   if (!acceptanceWidgetPlatform() || argc<2 || argc>3) return 2;
    QApplication::setOrganizationName("GMATTests"); QApplication::setApplicationName("ResourceCreationDefaults");
    const bool starProbe=argc==3 && QString::fromLocal8Bit(argv[2])=="--star";
    const bool probe=starProbe || (argc==3 && QString::fromLocal8Bit(argv[2])=="--probe");
@@ -125,6 +215,7 @@ int main(int argc,char **argv)
          editor->redo(); require(editor->toPlainText()==created && window.buildScript() && Moderator::Instance()->GetConfiguredObject("Ephemeris")->GetStringParameter("Spacecraft")=="Another","Ephemeris Redo failed");
          const auto saved=files.filePath("ephemeris α.script"); require(window.saveScriptTo(saved) && window.loadScript(saved) && window.buildScript() && editor->toPlainText()==created && Moderator::Instance()->GetConfiguredObject("Ephemeris")->GetStringParameter("Spacecraft")=="Another","Ephemeris Unicode Save/reopen failed");
          std::cout << "PASS: required spacecraft selection/default, missing/wrong-type correction before transaction, pending selection and Cancel, selected spacecraft/source/tree/editor, Undo/Redo/Unicode Save/reopen; uncreatable Star not offered. No mission or old plugin matrix.\n";
+         resourceAddRoutes(window,*editor);
       }
       return 0;
    } catch (const std::exception &error) { std::cerr << error.what() << '\n'; return 1; }

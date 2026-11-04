@@ -723,7 +723,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Integer identifier or type code; no physical quantity</para>
                   </listitem>
                 </varlistentry>
 
@@ -780,7 +780,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Integer identifier or type code; no physical quantity</para>
                   </listitem>
                 </varlistentry>
 

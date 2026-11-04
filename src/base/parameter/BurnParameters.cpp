@@ -218,7 +218,7 @@ GmatBase* ImpBurnElements::Clone(void) const
 TotalMassFlowRate::TotalMassFlowRate(const std::string &type, const std::string &name,
                                  GmatBase *obj)
    : BurnReal(name, type, Gmat::FINITE_BURN, obj, "Finite Burn " + type,
-              "Km/s", GmatParam::NO_DEP, true)
+              "kg/s", GmatParam::NO_DEP, false)
 {
    #ifdef USE_PREDEFINED_COLORS
       mColor = GmatColor::BLUE32;
@@ -354,7 +354,7 @@ GmatBase* TotalMassFlowRate::Clone(void) const
 TotalAcceleration::TotalAcceleration(const std::string &type, const std::string &name,
                                      GmatBase *obj)
    : BurnReal(name, type, Gmat::FINITE_BURN, obj, "Finite Burn " + type,
-              "Km/s", GmatParam::NO_DEP, true)
+              "km/s^2", GmatParam::NO_DEP, false)
 {
    #ifdef USE_PREDEFINED_COLORS
       mColor = GmatColor::RED32;
@@ -507,7 +507,7 @@ GmatBase* TotalAcceleration::Clone(void) const
 TotalThrust::TotalThrust(const std::string &type, const std::string &name,
                          GmatBase *obj)
    : BurnReal(name, type, Gmat::FINITE_BURN, obj, "Finite Burn " + type,
-              "Km/s", GmatParam::NO_DEP, true)
+              "N", GmatParam::NO_DEP, false)
 {
    #ifdef USE_PREDEFINED_COLORS
       mColor = GmatColor::RED32;

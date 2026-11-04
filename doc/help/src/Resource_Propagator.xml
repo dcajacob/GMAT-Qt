@@ -186,7 +186,7 @@
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Selected error-metric numerical scale: dimensionless in normalized branches; propagated-component scale in absolute fallbacks</para>
                     </listitem>
                   </varlistentry>
                 </variablelist></entry>
@@ -362,7 +362,7 @@
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Selected error-metric numerical scale: dimensionless in normalized branches; propagated-component scale in absolute fallbacks</para>
                     </listitem>
                   </varlistentry>
                 </variablelist></entry>
@@ -418,7 +418,7 @@
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>s</para>
                     </listitem>
                   </varlistentry>
                 </variablelist></entry>
@@ -474,7 +474,7 @@
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Integer count or order (samples, segments, iterations or polynomial degree as described)</para>
                     </listitem>
                   </varlistentry>
                 </variablelist></entry>
@@ -646,7 +646,7 @@
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Selected error-metric numerical scale: dimensionless in normalized branches; propagated-component scale in absolute fallbacks</para>
                     </listitem>
                   </varlistentry>
                 </variablelist></entry>
@@ -752,6 +752,8 @@
 
   <refsection xml:id="Propagator_Numeric_Remarks">
     <title>Remarks</title>
+
+    <para>Accuracy, LowerError and TargetError share the numerical error metric selected by ForceModel.ErrorControl. Relative-error branches divide by state/step norms and are dimensionless. Below the relative-error threshold, absolute fallback errors retain the propagated component scale (for example km for position or km/s for velocity). Non-Cartesian components follow their own numerical scales. One tolerance is applied to the resulting combined metric, so it does not define an independent universal SI unit. ErrorControl=None suppresses that accuracy control. The field reference and selected state/error model should be considered together.</para>
 
     <refsection>
       <title>Best Practices for Using Numerical Integrators</title>
@@ -1023,6 +1025,29 @@
       </mediaobject>
     </refsection>
 
+    <refsection xml:id="Propagator_BulirschStoerReductionUnits">
+      <title>BulirschStoer Step-Reduction Factors</title>
+      <para>When Type is BulirschStoer, MinimumReduction and MaximumReduction
+      bound the multiplier used to reduce an attempted integration step. The
+      new step is the old step multiplied by the selected factor. These fields
+      are dimensionless ratios, not times in seconds. MaximumReduction is the
+      lower clamp on that factor; MinimumReduction is the upper clamp. Their
+      names describe the amount of reduction rather than the ordering of the
+      multiplier values.</para>
+      <informaltable><tgroup cols="2"><tbody>
+        <row><entry><guilabel>MaximumReduction</guilabel></entry><entry>
+          <para>Lower clamp on the step-reduction multiplier, limiting the
+          largest reduction of an attempted step.</para>
+          <variablelist><varlistentry><term>Units</term><listitem><para>Dimensionless ratio of new step to old step</para></listitem></varlistentry></variablelist>
+        </entry></row>
+        <row><entry><guilabel>MinimumReduction</guilabel></entry><entry>
+          <para>Upper clamp on the step-reduction multiplier, setting the
+          smallest reduction of an attempted step.</para>
+          <variablelist><varlistentry><term>Units</term><listitem><para>Dimensionless ratio of new step to old step</para></listitem></varlistentry></variablelist>
+        </entry></row>
+      </tbody></tgroup></informaltable>
+    </refsection>
+
     <refsection>
       <title>Fields Unique to the AdamsBashforthMoulton Integrator</title>
 
@@ -1265,8 +1290,7 @@ Propagate aProp(aSat) {aSat.ElapsedDays = .2}</code></programlisting>
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A unless Mod Julian and in that case Modified
-                      Julian Date</para>
+                      <para>Time-system and date-representation selector; no physical quantity. StartEpoch uses the selected representation.</para>
                     </listitem>
                   </varlistentry>
 
@@ -1384,7 +1408,7 @@ Propagate aProp(aSat) {aSat.ElapsedDays = .2}</code></programlisting>
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Seconds (ephemeris-propagator step interval)</para>
                     </listitem>
                   </varlistentry>
 
@@ -1879,8 +1903,7 @@ Propagate spkProp(aSpacecraft) {aSpacecraft.ElapsedDays = 12}</code></programlis
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A unless Mod Julian and in that case Modified
-                      Julian Date</para>
+                      <para>Time-system and date-representation selector; no physical quantity. StartEpoch uses the selected representation.</para>
                     </listitem>
                   </varlistentry>
 
@@ -2001,7 +2024,7 @@ Propagate spkProp(aSpacecraft) {aSpacecraft.ElapsedDays = 12}</code></programlis
                     <term>Units</term>
 
                     <listitem>
-                      <para>Seconds</para>
+                      <para>Seconds (ephemeris-propagator step interval)</para>
                     </listitem>
                   </varlistentry>
 
@@ -2355,8 +2378,7 @@ EndWhile</code></programlisting>
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A unless Mod Julian and in that case Modified
-                      Julian Date</para>
+                      <para>Time-system and date-representation selector; no physical quantity. StartEpoch uses the selected representation.</para>
                     </listitem>
                   </varlistentry>
 
@@ -2477,7 +2499,7 @@ EndWhile</code></programlisting>
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Seconds (ephemeris-propagator step interval)</para>
                     </listitem>
                   </varlistentry>
 
@@ -2963,8 +2985,7 @@ EndWhile;</code></programlisting>
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A unless Mod Julian and in that case Modified
-                      Julian Date</para>
+                      <para>Time-system and date-representation selector; no physical quantity. StartEpoch uses the selected representation.</para>
                     </listitem>
                   </varlistentry>
 
@@ -3085,7 +3106,7 @@ EndWhile;</code></programlisting>
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Seconds (ephemeris-propagator step interval)</para>
                     </listitem>
                   </varlistentry>
 
@@ -3501,7 +3522,7 @@ EndWhile;</code></programlisting>
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Seconds (ephemeris-propagator step interval)</para>
                     </listitem>
                   </varlistentry>
 

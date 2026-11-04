@@ -1,0 +1,161 @@
+{
+  "family": "For",
+  "command": "For",
+  "operand": "I = 1:1:3;",
+  "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nFor 'Probe' I = 1:1:3;\nCount = Count + 1;\nEndFor;\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n% Preserve mission-name tail \u03a9\n",
+  "expected_tail": [
+    3,
+    1,
+    0,
+    0
+  ],
+  "velocity_increment": [
+    0,
+    0,
+    0
+  ],
+  "historical_keys": [
+    "H2012:R1422",
+    "H2012:R1424",
+    "H2012:R1425",
+    "H2012:R1426",
+    "H2012:R1428"
+  ],
+  "historical_rows": [
+    {
+      "key": "H2012:R1422",
+      "row": 1422,
+      "source_fields": {
+        "Enabled": "TRUE",
+        "Object": "For",
+        "Operation": "Open and Name",
+        "Requirement(s)": "",
+        "Path": "Commands\\FRC-4_ControlFlow\\ControlFlow",
+        "Project Suite": "ControlFlow",
+        "Project": "ControlFlow",
+        "Test Case": "TreeControls_Open_and_Name",
+        "IsKeywordTest": "TRUE",
+        "Pretest": "",
+        "Tester": "SJH",
+        "% Complete": "100",
+        "Results": "NotRunnable",
+        "Comments": "",
+        "Start Time": "5/11/2012 12:31",
+        "Stop Time": "5/11/2012 12:31",
+        "Log": "Error opening project suite"
+      },
+      "fingerprint": "387b730e445ff373ebb6bcfbb020fd67bbb4bf7f0d8285f28a0d8039e51aab77",
+      "applicability": "unreviewed"
+    },
+    {
+      "key": "H2012:R1424",
+      "row": 1424,
+      "source_fields": {
+        "Enabled": "TRUE",
+        "Object": "For",
+        "Operation": "Rename",
+        "Requirement(s)": "",
+        "Path": "Commands\\FRC-4_ControlFlow\\ControlFlow",
+        "Project Suite": "ControlFlow",
+        "Project": "ControlFlow",
+        "Test Case": "TreeControls_Rename",
+        "IsKeywordTest": "TRUE",
+        "Pretest": "",
+        "Tester": "SJH",
+        "% Complete": "100",
+        "Results": "NotRunnable",
+        "Comments": "",
+        "Start Time": "5/11/2012 12:31",
+        "Stop Time": "5/11/2012 12:31",
+        "Log": "Error opening project suite"
+      },
+      "fingerprint": "381931129b43fca0ac22adbe6f3e9e24cc79b384cdd501e99b4157a104ee284b",
+      "applicability": "unreviewed"
+    },
+    {
+      "key": "H2012:R1425",
+      "row": 1425,
+      "source_fields": {
+        "Enabled": "TRUE",
+        "Object": "For",
+        "Operation": "Cancel Rename",
+        "Requirement(s)": "",
+        "Path": "Commands\\FRC-4_ControlFlow\\ControlFlow",
+        "Project Suite": "ControlFlow",
+        "Project": "ControlFlow",
+        "Test Case": "TreeControls_RenameCancel",
+        "IsKeywordTest": "TRUE",
+        "Pretest": "",
+        "Tester": "SJH",
+        "% Complete": "100",
+        "Results": "NotRunnable",
+        "Comments": "",
+        "Start Time": "5/11/2012 12:31",
+        "Stop Time": "5/11/2012 12:31",
+        "Log": "Error opening project suite"
+      },
+      "fingerprint": "44cae74a85dbf6691fbe75f04b53e2b941b8a067c02a29841ee0fd0f7d1a9bf2",
+      "applicability": "unreviewed"
+    },
+    {
+      "key": "H2012:R1426",
+      "row": 1426,
+      "source_fields": {
+        "Enabled": "TRUE",
+        "Object": "For",
+        "Operation": "Rename Error",
+        "Requirement(s)": "",
+        "Path": "Commands\\FRC-4_ControlFlow\\ControlFlow",
+        "Project Suite": "ControlFlow",
+        "Project": "ControlFlow",
+        "Test Case": "TreeControls_RenameError",
+        "IsKeywordTest": "TRUE",
+        "Pretest": "",
+        "Tester": "SJH",
+        "% Complete": "100",
+        "Results": "NotRunnable",
+        "Comments": "",
+        "Start Time": "5/11/2012 12:31",
+        "Stop Time": "5/11/2012 12:31",
+        "Log": "Error opening project suite"
+      },
+      "fingerprint": "ba377437d1563f0fc4ef441a487e7aae586e3b5578ceae420503a4e3eb571f5a",
+      "applicability": "unreviewed"
+    },
+    {
+      "key": "H2012:R1428",
+      "row": 1428,
+      "source_fields": {
+        "Enabled": "TRUE",
+        "Object": "For",
+        "Operation": "Rename Used Name",
+        "Requirement(s)": "",
+        "Path": "Commands\\FRC-4_ControlFlow\\ControlFlow",
+        "Project Suite": "ControlFlow",
+        "Project": "ControlFlow",
+        "Test Case": "TreeControls_RenameUsedName",
+        "IsKeywordTest": "TRUE",
+        "Pretest": "",
+        "Tester": "SJH",
+        "% Complete": "100",
+        "Results": "NotRunnable",
+        "Comments": "",
+        "Start Time": "5/11/2012 12:31",
+        "Stop Time": "5/11/2012 12:31",
+        "Log": "Error opening project suite"
+      },
+      "fingerprint": "594f35f3b620b05ff44c6fc59c8499c3bcb43da58ee3413eaeee7085d2af1f79",
+      "applicability": "unreviewed"
+    }
+  ],
+  "scope": "Selected named-command Rename/editor/source/native-execution behavior. Finite-burn start/end pair has no propagation interval; no thrust integration or general science qualification. Historical keyword payloads unavailable; metadata and current NASA Rename rules define bounded scope; old Passed/NotRunnable fields are not evidence.",
+  "effect_family": "For",
+  "orbit_duration": 20,
+  "orbit_inclination_degrees": 0,
+  "operation_summary_seconds": 20,
+  "scalar_tolerance": 1e-12,
+  "operation_fixture_origin": "src/qtgui/tests/mission-command-names/For.json",
+  "operation_fixture_origin_sha256": "1484822341e1e67a521a633dce338b44c843e7062af5ebabdd1cec83909a72be",
+  "original_parent": "Root",
+  "operation_label": "Probe"
+}

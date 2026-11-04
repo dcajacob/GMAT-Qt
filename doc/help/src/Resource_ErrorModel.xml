@@ -146,7 +146,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See Remarks section</para>
+                    <para>Selected measurement units: km, km/s, Hz, degrees, or range units (RU); see Tracking Data Types</para>
                   </listitem>
                 </varlistentry>
 
@@ -208,7 +208,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See Remarks section</para>
+                    <para>Selected measurement units: km, km/s, Hz, degrees, or range units (RU); see Tracking Data Types</para>
                   </listitem>
                 </varlistentry>
 
@@ -268,7 +268,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>See Remarks section</para>
+                    <para>Selected measurement units: km, km/s, Hz, degrees, or range units (RU); see Tracking Data Types</para>
                   </listitem>
                 </varlistentry>
 
