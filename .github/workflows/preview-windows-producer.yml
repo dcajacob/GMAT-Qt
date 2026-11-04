@@ -1,19 +1,33 @@
-name: Qt preview Windows producer
+name: Qt preview platform producer
 
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Native package platform
+        type: choice
+        options: [windows-x64, macos-arm64, macos-x64]
+        default: windows-x64
+        required: true
+      reuse_native_run:
+        description: Optional prior run containing exact compiled native inputs
+        type: string
+        default: ''
+        required: false
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   package:
-    name: package (windows-2022, windows-x64)
-    runs-on: windows-2022
+    name: package (${{ inputs.platform == 'macos-arm64' && 'macos-15' || inputs.platform == 'macos-x64' && 'macos-15-intel' || 'windows-2022' }}, ${{ inputs.platform }})
+    runs-on: ${{ inputs.platform == 'macos-arm64' && 'macos-15' || inputs.platform == 'macos-x64' && 'macos-15-intel' || 'windows-2022' }}
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - name: Restore Windows dependency SDK
+        if: inputs.platform == 'windows-x64' && inputs.reuse_native_run == ''
         id: windows-sdk
         uses: actions/cache/restore@v4
         with:
@@ -21,18 +35,26 @@ jobs:
             build/preview-package/deps/osg
             C:\vcpkg\installed
           key: gmat-qt-preview-windows-2022-osg365-sdk-v1
+      - name: Restore compiled native inputs for packaging retry
+        if: inputs.reuse_native_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: native-inputs-${{ inputs.platform }}
+          run-id: ${{ inputs.reuse_native_run }}
+          github-token: ${{ github.token }}
+          path: build/preview-package/reuse-native
       - name: Build and verify portable package
-        run: python tools/preview/BuildPreviewPackage.py --platform windows-x64
+        run: python tools/preview/BuildPreviewPackage.py --platform ${{ inputs.platform }}
       - name: Preserve build diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: diagnostics-windows-x64
+          name: diagnostics-${{ inputs.platform }}
           path: build/preview-package/logs/
           if-no-files-found: warn
           retention-days: 14
       - name: Preserve completed Windows dependency SDK
-        if: always() && steps.windows-sdk.outputs.cache-hit != 'true' && hashFiles('build/preview-package/deps/osg/preview-sdk-sha256.json') != ''
+        if: always() && inputs.platform == 'windows-x64' && steps.windows-sdk.outputs.cache-hit != 'true' && hashFiles('build/preview-package/deps/osg/preview-sdk-sha256.json') != ''
         uses: actions/cache/save@v4
         with:
           path: |
@@ -43,14 +65,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: native-inputs-windows-x64
+          name: native-inputs-${{ inputs.platform }}
           path: build/preview-package/native-inputs-*.tar.gz
           if-no-files-found: ignore
           retention-days: 3
       - name: Upload verified package
         uses: actions/upload-artifact@v4
         with:
-          name: package-windows-x64
+          name: package-${{ inputs.platform }}
           path: build/preview-package/dist/*
           if-no-files-found: error
           retention-days: 30
