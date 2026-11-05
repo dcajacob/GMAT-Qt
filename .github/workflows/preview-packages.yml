@@ -40,7 +40,14 @@ jobs:
             platform: macos-arm64
           - runner: macos-15-intel
             platform: macos-x64
-    runs-on: ${{ matrix.runner }}
+    # Exact ZIP/source verification is platform independent; native execution
+    # already happened in the selected producer. Use a native runner only
+    # when this job actually builds and executes the application.
+    runs-on: >-
+      ${{ ((matrix.platform == 'windows-x64' && inputs.reuse_windows_run != '') ||
+           (matrix.platform == 'macos-arm64' && inputs.reuse_macos_arm64_run != '') ||
+           (matrix.platform == 'macos-x64' && inputs.reuse_macos_x64_run != '')) &&
+          'ubuntu-latest' || matrix.runner }}
     env:
       REUSE_PACKAGE_RUN: ${{ matrix.platform == 'windows-x64' && inputs.reuse_windows_run || matrix.platform == 'macos-arm64' && inputs.reuse_macos_arm64_run || matrix.platform == 'macos-x64' && inputs.reuse_macos_x64_run || '' }}
     timeout-minutes: 180
