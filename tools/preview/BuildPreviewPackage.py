@@ -25,12 +25,24 @@ BUILD_JOBS = str(max(1, min(4, os.cpu_count() or 2)))
 
 def run(command, name, *, env=None, cwd=None):
     print(name + ': ' + ' '.join(map(str, command)), flush=True)
-    with (LOGS / (name + '.log')).open('w', encoding='utf-8') as stream:
-        result = subprocess.run(list(map(str, command)), cwd=cwd or REPO,
-                                env=env, stdout=stream, stderr=subprocess.STDOUT)
-    if result.returncode:
+    log = LOGS / (name + '.log')
+    with log.open('w', encoding='utf-8') as stream:
+        process = subprocess.Popen(list(map(str, command)), cwd=cwd or REPO,
+                                   env=env, stdout=stream, stderr=subprocess.STDOUT)
+        while True:
+            try:
+                code = process.wait(timeout=45)
+                break
+            except subprocess.TimeoutExpired:
+                # Preserve the complete log and expose bounded live progress so
+                # a long native compile/download is distinguishable from a hang.
+                with log.open('rb') as current:
+                    current.seek(max(0, log.stat().st_size - 2048))
+                    tail = current.read().decode('utf-8', errors='replace').splitlines()[-3:]
+                print(name + ' still running:\n' + '\n'.join(tail), flush=True)
+    if code:
         print((LOGS / (name + '.log')).read_text(errors='replace')[-14000:], flush=True)
-        raise RuntimeError(f'{name} failed with exit {result.returncode}')
+        raise RuntimeError(f'{name} failed with exit {code}')
 
 
 def download(url, target):

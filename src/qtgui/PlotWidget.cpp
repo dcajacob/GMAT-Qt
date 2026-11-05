@@ -475,9 +475,9 @@ void PlotCanvas::paintEvent(QPaintEvent *)
             if (curve.lines && previous && point.connect) {
                const PlotPoint *a=previous,*b=&point;
                if (data->perspective) {
-                  const double near=std::max(1e-6,std::min(extent*.01,camera.distance*.001));
-                  const double da=camera.distance-(osg::Vec3d(a->x,a->y,a->z)-camera.target)*camera.outward-near;
-                  const double db=camera.distance-(osg::Vec3d(b->x,b->y,b->z)-camera.target)*camera.outward-near;
+                  const double nearDistance=std::max(1e-6,std::min(extent*.01,camera.distance*.001));
+                  const double da=camera.distance-(osg::Vec3d(a->x,a->y,a->z)-camera.target)*camera.outward-nearDistance;
+                  const double db=camera.distance-(osg::Vec3d(b->x,b->y,b->z)-camera.target)*camera.outward-nearDistance;
                   if (da<0 && db<0) a=nullptr;
                   else if (da<0 || db<0) {
                      const double t=da/(da-db); PlotPoint clipped=*a;
@@ -492,9 +492,9 @@ void PlotCanvas::paintEvent(QPaintEvent *)
             if (curve.objectVelocity) if (const auto velocity=orbitVelocitySegment(point)) {
                auto from=velocity->start,to=velocity->end; bool visible=true;
                if (data->perspective) {
-                  const double near=1e-6;
-                  const double da=camera.distance-(from-camera.target)*camera.outward-near;
-                  const double db=camera.distance-(to-camera.target)*camera.outward-near;
+                  const double nearDistance=1e-6;
+                  const double da=camera.distance-(from-camera.target)*camera.outward-nearDistance;
+                  const double db=camera.distance-(to-camera.target)*camera.outward-nearDistance;
                   if (da<0 && db<0) visible=false;
                   else if (da<0 || db<0) { const auto clipped=from+(to-from)*(da/(da-db)); if (da<0) from=clipped; else to=clipped; }
                }
@@ -511,9 +511,9 @@ void PlotCanvas::paintEvent(QPaintEvent *)
             auto line=[&](const osg::Vec3d &from,const osg::Vec3d &to) {
                PlotPoint a=*last,b=*last; a.x=from.x(); a.y=from.y(); a.z=from.z(); b.x=to.x(); b.y=to.y(); b.z=to.z();
                if (data->perspective) {
-                  const double near=1e-6;
-                  const double da=camera.distance-(from-camera.target)*camera.outward-near;
-                  const double db=camera.distance-(to-camera.target)*camera.outward-near;
+                  const double nearDistance=1e-6;
+                  const double da=camera.distance-(from-camera.target)*camera.outward-nearDistance;
+                  const double db=camera.distance-(to-camera.target)*camera.outward-nearDistance;
                   if (da<0 && db<0) return;
                   if (da<0 || db<0) { const auto clipped=from+(to-from)*(da/(da-db)); auto &point=da<0 ? a : b; point.x=clipped.x(); point.y=clipped.y(); point.z=clipped.z(); }
                }
@@ -573,7 +573,7 @@ void PlotCanvas::paintEvent(QPaintEvent *)
                const auto delta=origin-osg::Vec3d(center->x,center->y,center->z);
                const double a=direction*direction,b=delta*direction,c=delta*delta-body.radius*body.radius;
                const double discriminant=b*b-a*c;
-               if (a>0 && discriminant>=0) { const double near=(-b-std::sqrt(discriminant))/a; if (near>=0 && near<reach-1e-9) { occluded=true; break; } }
+               if (a>0 && discriminant>=0) { const double nearDistance=(-b-std::sqrt(discriminant))/a; if (nearDistance>=0 && nearDistance<reach-1e-9) { occluded=true; break; } }
             }
             if (!occluded) objects.append({depth(point),&curve,&point,nullptr,marker.endpoint ? 2 : 1});
          }
@@ -584,9 +584,9 @@ void PlotCanvas::paintEvent(QPaintEvent *)
             PlotPoint a,b; a.color=b.color=vector.color;
             a.x=from.x(); a.y=from.y(); a.z=from.z(); b.x=to.x(); b.y=to.y(); b.z=to.z();
             if (data->perspective) {
-               const double near=1e-6;
-               const double da=camera.distance-(from-camera.target)*camera.outward-near;
-               const double db=camera.distance-(to-camera.target)*camera.outward-near;
+               const double nearDistance=1e-6;
+               const double da=camera.distance-(from-camera.target)*camera.outward-nearDistance;
+               const double db=camera.distance-(to-camera.target)*camera.outward-nearDistance;
                if (da<0 && db<0) return;
                if (da<0 || db<0) { const auto clipped=from+(to-from)*(da/(da-db)); auto &point=da<0 ? a : b; point.x=clipped.x(); point.y=clipped.y(); point.z=clipped.z(); }
             }

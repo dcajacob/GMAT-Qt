@@ -410,12 +410,12 @@ struct OrbitRenderer::Scene
          auto positions=new osg::Vec3Array;
          for (const auto &segment:model->constellationCatalog.segments) {
             auto a=rotateSky(segment.first),b=rotateSky(segment.second);
-            const double fa=-(a*outward),fb=-(b*outward),near=.001;
-            if (fa<near && fb<near) continue;
+            const double fa=-(a*outward),fb=-(b*outward),nearDistance=.001;
+            if (fa<nearDistance && fb<nearDistance) continue;
             // Clip against the forward celestial hemisphere before projection.
             // Frustum clipping handles segments crossing a screen edge.
-            if (fa<near) a=a+(b-a)*((near-fa)/(fb-fa));
-            else if (fb<near) b=b+(a-b)*((near-fb)/(fa-fb));
+            if (fa<nearDistance) a=a+(b-a)*((nearDistance-fa)/(fb-fa));
+            else if (fb<nearDistance) b=b+(a-b)*((nearDistance-fb)/(fa-fb));
             positions->push_back(skyPosition(a)); positions->push_back(skyPosition(b));
          }
          geometry->setVertexArray(positions);
