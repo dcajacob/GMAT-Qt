@@ -78,7 +78,8 @@ target_compile_definitions(GmatQtFrontend PRIVATE
 target_include_directories(GmatQtFrontend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 if(WIN32)
    # Engine headers expose Windows headers; retain the C++ min/max functions.
-   target_compile_definitions(GmatQtFrontend PUBLIC NOMINMAX)
+   # Import GMAT DLL data as well as functions through the existing API macros.
+   target_compile_definitions(GmatQtFrontend PUBLIC NOMINMAX _DYNAMICLINK)
 endif()
 add_executable(GmatQt main.cpp)
 find_package(Python3 QUIET COMPONENTS Interpreter)
