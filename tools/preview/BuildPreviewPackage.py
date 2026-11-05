@@ -110,6 +110,7 @@ def dependencies(target):
 
 
 def build(target, qt, osg, prefix):
+    build_env = None
     options = ['-DCMAKE_BUILD_TYPE=Release', '-DGMAT_INCLUDE_QT_GUI=ON',
                '-DGMAT_INCLUDE_GUI=OFF', '-DGMAT_QT_BUILD_TESTS=OFF',
                '-DGMAT_INCLUDE_API=OFF', '-DPLUGIN_MATLABINTERFACE=OFF',
@@ -120,13 +121,21 @@ def build(target, qt, osg, prefix):
                f'-DCMAKE_PREFIX_PATH={qt};{osg};{prefix}']
     if target.startswith('windows'):
         options += ['-G', 'Visual Studio 17 2022', '-A', 'x64']
+        # gmatdefs.hpp includes Windows headers for every native plugin. Keep
+        # their min/max macros from replacing standard C++ calls (including
+        # Yukon), just as the Qt frontend's existing NOMINMAX definition does.
+        # CL supplements MSVC's normal flags instead of replacing CMake's
+        # exception-handling, runtime-library or release configuration.
+        build_env = dict(os.environ)
+        build_env['CL'] = (build_env.get('CL', '') + ' /DNOMINMAX').strip()
+        print('MSVC native build: add /DNOMINMAX', flush=True)
     else:
         architecture = 'arm64' if target.endswith('arm64') else 'x86_64'
         options += ['-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
                     f'-DCMAKE_OSX_ARCHITECTURES={architecture}']
-    run(['cmake', '-S', REPO, '-B', ROOT / 'gmat-build', *options], 'gmat-configure')
+    run(['cmake', '-S', REPO, '-B', ROOT / 'gmat-build', *options], 'gmat-configure', env=build_env)
     run(['cmake', '--build', ROOT / 'gmat-build', '--config', 'Release',
-         '--target', 'GmatQt', '--parallel', BUILD_JOBS], 'gmat-build')
+         '--target', 'GmatQt', '--parallel', BUILD_JOBS], 'gmat-build', env=build_env)
 
 
 def production_tree():
