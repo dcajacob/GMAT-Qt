@@ -13,6 +13,16 @@ on:
         required: false
         default: ''
         type: string
+      reuse_macos_arm64_run:
+        description: Optional run containing a verified Apple Silicon package with identical production sources
+        required: false
+        default: ''
+        type: string
+      reuse_macos_x64_run:
+        description: Optional run containing a verified Intel Mac package with identical production sources
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -31,11 +41,13 @@ jobs:
           - runner: macos-15-intel
             platform: macos-x64
     runs-on: ${{ matrix.runner }}
+    env:
+      REUSE_PACKAGE_RUN: ${{ matrix.platform == 'windows-x64' && inputs.reuse_windows_run || matrix.platform == 'macos-arm64' && inputs.reuse_macos_arm64_run || matrix.platform == 'macos-x64' && inputs.reuse_macos_x64_run || '' }}
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - name: Restore Windows dependency SDK
-        if: matrix.platform == 'windows-x64' && inputs.reuse_windows_run == '' && inputs.reuse_native_run == ''
+        if: matrix.platform == 'windows-x64' && env.REUSE_PACKAGE_RUN == '' && inputs.reuse_native_run == ''
         id: windows-sdk
         uses: actions/cache/restore@v4
         with:
@@ -44,7 +56,7 @@ jobs:
             C:\vcpkg\installed
           key: gmat-qt-preview-windows-2022-osg365-sdk-v1
       - name: Restore compiled native inputs for packaging retry
-        if: inputs.reuse_native_run != '' && (matrix.platform != 'windows-x64' || inputs.reuse_windows_run == '')
+        if: inputs.reuse_native_run != '' && env.REUSE_PACKAGE_RUN == ''
         uses: actions/download-artifact@v4
         with:
           name: native-inputs-${{ matrix.platform }}
@@ -52,25 +64,25 @@ jobs:
           github-token: ${{ github.token }}
           path: build/preview-package/reuse-native
       - name: Wait for the existing Windows native build
-        if: matrix.platform == 'windows-x64' && inputs.reuse_windows_run != ''
+        if: matrix.platform == 'windows-x64' && env.REUSE_PACKAGE_RUN != ''
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          REUSE_RUN_ID: ${{ inputs.reuse_windows_run }}
+          REUSE_RUN_ID: ${{ env.REUSE_PACKAGE_RUN }}
         run: python tools/preview/WaitForWindowsPackage.py
-      - name: Reuse verified Windows package
-        if: matrix.platform == 'windows-x64' && inputs.reuse_windows_run != ''
+      - name: Reuse verified native package
+        if: env.REUSE_PACKAGE_RUN != ''
         uses: actions/download-artifact@v4
         with:
-          name: package-windows-x64
-          run-id: ${{ inputs.reuse_windows_run }}
+          name: package-${{ matrix.platform }}
+          run-id: ${{ env.REUSE_PACKAGE_RUN }}
           github-token: ${{ github.token }}
           path: build/preview-package/dist
-      - name: Verify reused Windows source and artifact identities
-        if: matrix.platform == 'windows-x64' && inputs.reuse_windows_run != ''
-        run: python tools/preview/VerifyReusedPackage.py build/preview-package/dist
+      - name: Verify reused source and artifact identities
+        if: env.REUSE_PACKAGE_RUN != ''
+        run: python tools/preview/VerifyReusedPackage.py build/preview-package/dist ${{ matrix.platform }}
       - name: Build and verify portable package
-        if: matrix.platform != 'windows-x64' || inputs.reuse_windows_run == ''
+        if: env.REUSE_PACKAGE_RUN == ''
         run: python tools/preview/BuildPreviewPackage.py --platform ${{ matrix.platform }}
       - name: Preserve build diagnostics
         if: always()
