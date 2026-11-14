@@ -132,7 +132,7 @@ def main():
                             subprocess.run(['install_name_tool', '-change', old, '@loader_path/'+relative, str(destination)], check=True)
                     subprocess.run(['install_name_tool', '-id', '@rpath/'+destination.name, str(destination)], check=True)
                     subprocess.run(['codesign', '--force', '--sign', '-', str(destination)], check=True)
-                patches.append({'file': str(destination.relative_to(root.resolve())),
+                patches.append({'file': str(destination.resolve().relative_to(root.resolve())),
                                 'original_sha256': original_hash,
                                 'patched_sha256': hashlib.sha256(destination.read_bytes()).hexdigest(),
                                 'reason': 'Tutorial regression repairs'})

@@ -32,11 +32,22 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: '1'
     steps:
       - uses: actions/checkout@v4
+      - name: Select affected native platforms
+        id: selected
+        shell: bash
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          if [[ "$COMMIT_MESSAGE" == *'[windows-only]'* && '${{ matrix.platform }}' != 'windows-x64' ]]; then
+            echo 'run=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Restore Windows tutorial SDK
-        if: matrix.platform == 'windows-x64'
+        if: steps.selected.outputs.run == 'true' && matrix.platform == 'windows-x64'
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -54,6 +65,7 @@ jobs:
       - name: Check tutorial runner contracts
         run: python src/qtgui/tests/TutorialRunnerTests.py
       - name: Build observer and reconstruct tutorials through GUI input
+        if: steps.selected.outputs.run == 'true'
         env:
           TUTORIAL_SELECTION: ${{ inputs.tutorials }}
         shell: bash
