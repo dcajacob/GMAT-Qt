@@ -97,6 +97,9 @@ if(GMAT_EVENT_RESULT_TESTS)
       file(READ "${GMAT_SOURCE_DIR}/src/qtgui/tests/Nasa${family}ResultTests.cpp" event_source)
       string(REPLACE "click(buttons,QDialogButtonBox::Close)" "child->close(); events()"
          event_source "${event_source}")
+      string(REPLACE "auto text=QString::fromUtf8(bytes);"
+         "auto text=QString::fromUtf8(bytes).replace(\"\\r\\n\",\"\\n\");"
+         event_source "${event_source}")
       if(GMAT_TUTORIAL_BUILD_BASE)
          string(REPLACE "#include \"SpiceUsr.h\"" "#include \"EventSpiceDiagnostics.hpp\""
             event_source "${event_source}")
