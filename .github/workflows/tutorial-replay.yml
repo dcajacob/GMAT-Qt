@@ -65,7 +65,7 @@ jobs:
           archives = [p for p in Path('build/tutorial-archive').iterdir() if p.suffix == '.zip']
           assert len(archives) == 1
           command = [sys.executable, 'tools/preview/RunPackagedTutorials.py',
-                     '--platform', '${{ matrix.platform }}', '--archive', str(archives[0])]
+                     '--platform', '${{ matrix.platform }}', '--archive', str(archives[0]), '--smoother-fix']
           for number in filter(None, os.environ.get('TUTORIAL_SELECTION', '').split(',')):
               command += ['--tutorial', number]
           raise SystemExit(subprocess.call(command))

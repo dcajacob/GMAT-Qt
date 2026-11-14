@@ -1,5 +1,6 @@
 #pragma once
 #include "PlotReceiver.hpp"
+#include "Publisher.hpp"
 #include "PlotModel.hpp"
 #include "PlotSimulationClock.hpp"
 #include <QElapsedTimer>
@@ -232,6 +233,14 @@ private:
       std::optional<OrbitDataAvailability> dataAvailability;
       QString arcProvider;
       bool arcTrial=false, arcMetadataOnly=false, replayArcCamera=false;
+      struct FrameSnapshot {
+         RealArray values;
+         std::vector<Publisher::CartesianColumns> columns;
+         std::vector<std::weak_ptr<const void>> identities;
+         GmatTime epoch;
+      };
+      std::shared_ptr<FrameSnapshot> frameSnapshot, replayFrameSnapshot;
+      QMap<int,std::shared_ptr<FrameSnapshot>> bufferedFrameSnapshots;
       QMap<QString,PlotPoint> arcPublishedPoses;
       QMap<int,PlotCamera> preparedArcCameras, replayArcCameras;
       QMap<int,QMap<int,PlotCamera>> bufferedArcCameras;

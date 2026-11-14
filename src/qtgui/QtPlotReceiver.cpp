@@ -22,6 +22,7 @@
 #include "SolarSystem.hpp"
 #include "FileManager.hpp"
 #include "CoordinateConverter.hpp"
+#include "PlotOriginScope.hpp"
 #include "Moderator.hpp"
 #include "MessageInterface.hpp"
 #include "GmatDefaults.hpp"
@@ -763,6 +764,21 @@ bool QtPlotReceiver::UpdateGlPlot(const std::string &name,const std::string &,co
       const ColorMap &colors,const ColorMap &targetColors,bool solving,Integer,bool update,bool drawing,bool)
 {
    auto *entry=find(name); if (!entry) return false;
+   const auto frame=std::move(entry->replayFrameSnapshot);
+   std::unique_ptr<Publisher::CartesianColumnScope> frameColumns;
+   std::unique_ptr<PlotOriginScope::Packet> framePacket;
+   std::unique_ptr<PlotOriginScope> frameScope;
+   if (frame) {
+      std::vector<SpaceObject*> objects;
+      for (size_t i=0;i<frame->columns.size();++i) {
+         if (!GmatBase::IsLiveReference(frame->columns[i].object,frame->identities[i]))
+            throw std::runtime_error("Buffered plot frame reference was retired");
+         objects.push_back(static_cast<SpaceObject*>(const_cast<GmatBase*>(frame->columns[i].object)));
+      }
+      frameColumns=std::make_unique<Publisher::CartesianColumnScope>(frame->values.data(),frame->values.size(),frame->columns);
+      framePacket=std::make_unique<PlotOriginScope::Packet>(frame->values.data(),frame->values.size(),objects);
+      frameScope=std::make_unique<PlotOriginScope>(*framePacket,frame->epoch);
+   }
    auto availability=entry->dataAvailability;
    if (entry->clearSolverOnNextOrbitUpdate && !entry->arcMetadataOnly) {
       entry->clearSolverOnNextOrbitUpdate=false;
@@ -1141,7 +1157,10 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
          if (present==2) sample.arcStarts.insert(text(object));
       }
       stream>>std::ws; if (!stream.eof()) return false;
-      entry->dataAvailability=std::move(sample); return true;
+      entry->dataAvailability=std::move(sample);
+      if (!entry->replayArcCamera)
+         TakeGlAction(name,"CaptureOrbitFrame:"+action.substr(stepMask ? stepPrefix.size() : 22));
+      return true;
    }
    if (action=="NeedsOrbitSolverLifecycle") return cameraSettings.value(text(name)).solverLastN.has_value();
    if (action.compare(0,25,"FinalizeOrbitSolverState:")==0) {
@@ -1188,7 +1207,43 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
       entry->arcProvider=text(identity); entry->arcTrial=trial!=0; entry->provider=text(provider); return true;
    }
    if (action=="BeginOrbitArcSample") {
+      entry->frameSnapshot.reset();
       entry->arcPublishedPoses.clear(); entry->preparedArcCameras.clear(); return true;
+   }
+   if (action.compare(0,18,"CaptureOrbitFrame:")==0) {
+      std::istringstream stream(action.substr(18)); stream.imbue(std::locale::classic());
+      Real epoch;
+      if (!(stream>>epoch) || !std::isfinite(epoch)) return false;
+      std::vector<SpaceObject*> objects;
+      for (auto *view : {entry->view,entry->viewUp}) PlotOriginScope::CollectReferences(view,objects);
+      if (objects.empty()) return true;
+      auto snapshot=std::make_shared<Entry::FrameSnapshot>();
+      snapshot->values.push_back(epoch);
+      snapshot->epoch=GmatTime(epoch);
+      for (auto *object : objects) {
+         GmatTime precise(epoch);
+         Rvector6 live;
+         const auto *state=PlotOriginScope::Find(object,epoch);
+         if (state) PlotOriginScope::Epoch(object,epoch,precise);
+         else {
+            if (object->GetEpoch()!=epoch) return false;
+            for (size_t i=0;i<6;++i) live[i]=object->GetState()[i];
+            state=&live;
+            if (object->GetState().HasPrecisionTime()) precise=object->GetEpochGT();
+         }
+         if (!snapshot->columns.empty() && snapshot->epoch!=precise) return false;
+         snapshot->epoch=precise;
+         Publisher::CartesianColumns column;
+         column.object=object; column.hasEpoch=true; column.epoch=precise;
+         for (size_t i=0;i<6;++i) {
+            column.indices[i]=snapshot->values.size();
+            snapshot->values.push_back((*state)[i]);
+         }
+         snapshot->columns.push_back(column);
+         snapshot->identities.push_back(object->GetLifetimeToken());
+      }
+      entry->frameSnapshot=std::move(snapshot);
+      return true;
    }
    if (action.compare(0,13,"OrbitArcPose:")==0) {
       if (entry->arcTrial) return true;
@@ -1263,9 +1318,12 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
    if (action.compare(0,19,"SaveOrbitArcCamera:")==0) {
       auto cameras=entry->preparedArcCameras;
       for (auto &camera:cameras) camera.solver=entry->arcTrial;
-      entry->bufferedArcCameras[text(action.substr(19)).toInt()]=std::move(cameras); return true;
+      const auto index=text(action.substr(19)).toInt();
+      entry->bufferedFrameSnapshots[index]=entry->frameSnapshot;
+      entry->bufferedArcCameras[index]=std::move(cameras); return true;
    }
    if (action.compare(0,21,"ReplayOrbitArcCamera:")==0) {
+      entry->replayFrameSnapshot=entry->bufferedFrameSnapshots.take(text(action.substr(21)).toInt());
       entry->bufferedOrbitReplay=entry->arcTrial;
       entry->replayArcCamera=true; entry->replayArcCameras=entry->bufferedArcCameras.take(text(action.substr(21)).toInt()); return true;
    }
@@ -1286,7 +1344,7 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
    else if (action=="PenDown") entry->data->penDown=true;
    else if (action=="ToggleOff") { entry->data->active=false; entry->data->breakLines(); }
    else if (action=="ToggleOn") entry->data->active=true;
-   else if (action=="ClearObjects") { entry->rawClockPublication=false; simulationClocks.reset(text(name)); syncSimulationClock(text(name)); updateSimulationTimer(); entry->trialHistory.clear(); entry->dataAvailability.reset(); entry->arcProvider.clear(); entry->provider.clear(); entry->arcTrial=false; entry->arcMetadataOnly=false; entry->data->regularArcs.clear(); entry->data->nextRegularArc=0; entry->arcPublishedPoses.clear(); entry->preparedArcCameras.clear(); entry->bufferedArcCameras.clear(); entry->replayArcCameras.clear(); entry->replayArcCamera=false; entry->objects.clear(); entry->points.clear(); entry->data->sensorMasks.clear(); entry->data->curves.clear(); entry->data->cameras.clear(); for (auto &vector:entry->data->vectors) vector.samples.clear(); if (entry->data->resetView) entry->data->resetView->cameras.clear(); for (auto &view:entry->data->cameraViews) { view.cameras.clear(); if (view.reset) view.reset->cameras.clear(); } }
+   else if (action=="ClearObjects") { entry->rawClockPublication=false; simulationClocks.reset(text(name)); syncSimulationClock(text(name)); updateSimulationTimer(); entry->trialHistory.clear(); entry->dataAvailability.reset(); entry->arcProvider.clear(); entry->provider.clear(); entry->arcTrial=false; entry->arcMetadataOnly=false; entry->data->regularArcs.clear(); entry->data->nextRegularArc=0; entry->arcPublishedPoses.clear(); entry->preparedArcCameras.clear(); entry->bufferedArcCameras.clear(); entry->bufferedFrameSnapshots.clear(); entry->frameSnapshot.reset(); entry->replayFrameSnapshot.reset(); entry->replayArcCameras.clear(); entry->replayArcCamera=false; entry->objects.clear(); entry->points.clear(); entry->data->sensorMasks.clear(); entry->data->curves.clear(); entry->data->cameras.clear(); for (auto &vector:entry->data->vectors) vector.samples.clear(); if (entry->data->resetView) entry->data->resetView->cameras.clear(); for (auto &view:entry->data->cameraViews) { view.cameras.clear(); if (view.reset) view.reset->cameras.clear(); } }
    else if (action=="ClearSolverData") {
       const bool bufferedReplay=entry->bufferedOrbitReplay;
       entry->bufferedOrbitReplay=false;
@@ -1306,7 +1364,7 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
       entry->clearSolverOnNextOrbitUpdate=false;
       clearOrbitSolverSamples(*entry);
    } else if (action=="IgnoreTimeSequence") entry->ignoreTimeSequence=true;
-   else if (action=="ClearData") { entry->rawClockPublication=false; simulationClocks.reset(text(name)); syncSimulationClock(text(name)); updateSimulationTimer(); entry->trialHistory.clear(); entry->dataAvailability.reset(); entry->arcProvider.clear(); entry->provider.clear(); entry->arcTrial=false; entry->arcMetadataOnly=false; entry->arcPublishedPoses.clear(); entry->preparedArcCameras.clear(); entry->bufferedArcCameras.clear(); entry->replayArcCameras.clear(); entry->replayArcCamera=false; entry->data->clear(); entry->solverBreaks.clear(); entry->solverScope.clear(); }
+   else if (action=="ClearData") { entry->rawClockPublication=false; simulationClocks.reset(text(name)); syncSimulationClock(text(name)); updateSimulationTimer(); entry->trialHistory.clear(); entry->dataAvailability.reset(); entry->arcProvider.clear(); entry->provider.clear(); entry->arcTrial=false; entry->arcMetadataOnly=false; entry->arcPublishedPoses.clear(); entry->preparedArcCameras.clear(); entry->bufferedArcCameras.clear(); entry->bufferedFrameSnapshots.clear(); entry->frameSnapshot.reset(); entry->replayFrameSnapshot.reset(); entry->replayArcCameras.clear(); entry->replayArcCamera=false; entry->data->clear(); entry->solverBreaks.clear(); entry->solverScope.clear(); }
    else { warn(name,action); return false; }
    refresh(*entry,true); return true;
 }

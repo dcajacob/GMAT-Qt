@@ -808,7 +808,7 @@ Solver::SolverState SmootherBase::AdvanceState()
          CheckCompletion();
 
          // Add .mat data
-         if (matWriter != NULL)
+         if (currentState == FINISHED && matWriter != NULL)
             if (!AddMatData(matData))
                throw EstimatorException("Error adding .mat data file");
          break;
@@ -1280,40 +1280,20 @@ bool SmootherBase::Initialize()
       propagatorNames = filter->GetStringArrayParameter("Propagator");
       propagatorSatMap = filter->GetPropSatMap();
 
-      // Propagators are set/cloned in Estimator base class; why clone here?
-      /// @todo  Smoothers don't use propagators right now, but if they do in the
-      /// future, an update will be necessary here.
-      std::map<std::string, PropSetup*> filterSatPropMap = filter->GetSatPropMap();
-
-      if (filterSatPropMap.size() == 0)
+      // The filter's spacecraft map is populated later, when its solve-for
+      // objects are attached. Copy the owned definitions at this stage.
+      const auto &definitions = filter->GetOwnedPropagationDefinitions();
+      NavigationPropagationCopies::Validate(definitions);
+      NavigationPropagationCopies::Values prepared;
+      std::set<GmatBase*> forbidden{this, filter};
+      for (auto *existing : propagators) forbidden.insert(existing);
+      for (auto *definition : definitions)
       {
-         filter->BuildSatPropMap();
-         filterSatPropMap = filter->GetSatPropMap();
+         auto value = NavigationPropagationCopies::Clone(*definition, *this, true, forbidden);
+         forbidden.insert(value.get());
+         prepared.push_back(std::move(value));
       }
-
-      bool foundInList = false;
-      std::string propName;
-      for (std::map<std::string, PropSetup*>::iterator it = filterSatPropMap.begin(); it != filterSatPropMap.end(); ++it)
-      {
-         for (int j = 0; j < propagators.size(); j++)
-         {
-            propName = ((PropSetup*)filter->GetPropagator(it->first))->GetName();
-            if (propName == propagators[j]->GetName())
-               foundInList = true;
-         }
-         if (!foundInList)
-         {
-            auto *definition = filter->GetPropagator(it->first);
-            std::set<GmatBase*> forbidden{this, filter};
-            for (auto *existing : propagators) forbidden.insert(existing);
-            auto value = NavigationPropagationCopies::Clone(*definition, *this, true, forbidden);
-            propagators.push_back(value.get());
-            value.release();
-         }
-         foundInList = false;
-      }
-
-      BuildSatPropMap();
+      NavigationPropagationCopies::Publish(propagators, prepared);
 
       measurementNames = filter->GetStringArrayParameter("Measurements");
       measManager = *(filter->GetMeasurementManager());
@@ -1321,6 +1301,7 @@ bool SmootherBase::Initialize()
       measManager.SetPropagators(&propagators, &propagatorSatMap);
       esm = *(filter->GetEstimationStateManager());
       esm.RebindMeasurementReferences(*filter->GetEstimationStateManager(), measManager);
+      BuildSatPropMap();
       dataFilterStrings = filter->GetStringArrayParameter("DataFilters");
    }
 

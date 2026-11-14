@@ -12,12 +12,21 @@ from unittest import mock
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).parent))
-from RunTutorials import RECIPES, REPO, TutorialSession, compare_outputs, compare_states, normalized_source, relocate, control_target, semantic_action, reference_milestone, configure_display, scale_value
+from RunTutorials import RECIPES, REPO, TutorialSession, compare_outputs, compare_states, normalized_source, relocate, control_target, semantic_action, reference_milestone, configure_display, scale_value, installation_base
 from IsolatedX11Session import IsolatedX11Session
 from AnalyzeTutorialGoals import analyze
 
 
 class TutorialContracts(unittest.TestCase):
+    def test_packaged_startup_resolves_from_the_runtime_binary_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            runtime = root / 'GMAT-Qt.app/Contents/MacOS/GmatQt'
+            with mock.patch.dict('os.environ', {'GMAT_QT_TUTORIAL_RUNTIME': str(runtime)}):
+                self.assertEqual(installation_base(root/'gmat_startup_qt.txt'), runtime.parent)
+            with mock.patch.dict('os.environ', {}, clear=True):
+                self.assertEqual(installation_base(root/'bin/startup.txt'), root/'bin')
+
     def test_visible_scaling_uses_host_and_keeps_explicit_pixel_sizes(self):
         host={'scale':3.0,'logical_size':[1536,960],'available_logical_size':[1469,928]}
         args=SimpleNamespace(visible=True,driver='qttest',scale=None,width=None,height=None)

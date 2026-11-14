@@ -35,6 +35,11 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def installation_base(startup):
+    runtime = os.environ.get('GMAT_QT_TUTORIAL_RUNTIME')
+    return Path(runtime).resolve().parent if runtime else Path(startup).resolve().parent
+
+
 def save_json(path, value):
     path.write_text(json.dumps(value, indent=2) + '\n')
 
@@ -251,7 +256,7 @@ class TutorialSession(IsolatedX11Session):
         # literals against the supplied *installation* startup, not that tree.
         text = self.clone.read_text()
         text = re.sub(r'^(\w+\s*=\s*)([^\n]*)$', lambda m: m[1] + (
-            str((self.startup.parent / m[2].strip()).resolve())
+            str((installation_base(self.startup) / m[2].strip()).resolve())
             if m[2].strip().startswith(('../', './')) else m[2]), text, flags=re.M)
         self.clone.write_text(text)
         self.record['startup_change'] = 'Private output and absolute installation-relative literals'
@@ -864,7 +869,7 @@ def execute_reference(reference, args, directory, probe, authored_work, input_al
     input_baseline = {p.name: (p.stat().st_mtime_ns, digest(p)) for p in output.iterdir() if p.is_file()}
     startup_text = args.startup.read_text()
     startup_text = re.sub(r'^(\w+\s*=\s*)([^\n]*)$', lambda m: m[1] + (
-        str((args.startup.parent / m[2].strip()).resolve())
+        str((installation_base(args.startup) / m[2].strip()).resolve())
         if m[2].strip().startswith(('../', './')) else m[2]), startup_text, flags=re.M)
     startup_text = re.sub(r'^OUTPUT_PATH\s*=.*$', lambda _: 'OUTPUT_PATH = ' + output.as_posix() + '/', startup_text, flags=re.M)
     startup = root / 'startup.txt'

@@ -30,10 +30,10 @@ def windows_build_environment():
     return environment
 
 
-def import_libraries(binary, output, environment):
+def import_libraries(binary, plugins, output, environment):
     output.mkdir()
-    for name in ['GmatBase', 'GmatUtil']:
-        dll = binary/('lib'+name+'.dll')
+    for name in ['GmatBase', 'GmatUtil', 'GmatEstimation']:
+        dll = (plugins if name == 'GmatEstimation' else binary)/('lib'+name+'.dll')
         exports = subprocess.check_output(['dumpbin', '/nologo', '/exports', str(dll)],
                                           env=environment, text=True)
         symbols = re.findall(r'^\s+\d+\s+[0-9A-F]+\s+[0-9A-F]+\s+(\S+)', exports, re.M)
@@ -49,6 +49,7 @@ def main():
     parser.add_argument('--platform', required=True)
     parser.add_argument('--archive', type=Path, required=True)
     parser.add_argument('--tutorial', action='append')
+    parser.add_argument('--smoother-fix', action='store_true')
     parser.add_argument('--output', type=Path, default=builder.REPO/'build/tutorial-release')
     args = parser.parse_args()
     output = args.output.resolve()
@@ -82,7 +83,7 @@ def main():
                '-DCMAKE_PREFIX_PATH='+str(qt)+';'+str(osg)+';'+str(prefix)]
     if os.name == 'nt':
         imports = output/'import-libraries'
-        import_libraries(binary, imports, environment)
+        import_libraries(binary, root/'plugins', imports, environment)
         options += ['-G', 'Visual Studio 17 2022', '-A', 'x64', '-DGMAT_IMPORT_LIBRARIES='+str(imports)]
         environment['PATH'] = os.pathsep.join([str(binary), str(qt/'bin'), str(osg/'bin'),
                                               str(prefix/'bin'), environment['PATH']])
@@ -95,10 +96,26 @@ def main():
         environment['LD_LIBRARY_PATH'] = os.pathsep.join([str(binary), str(root/'lib'), str(qt/'lib')])
         environment['QT_PLUGIN_PATH'] = str(qt/'plugins')
         environment['GMAT_QT_TUTORIAL_PLUGIN_PATH'] = str(qt/'plugins')
+    if args.smoother_fix:
+        options += ['-DGMAT_TUTORIAL_PATCH_SMOOTHER=ON']
     builder.run(['cmake', '-S', builder.REPO/'tools/preview/tutorial-probe', '-B', build, *options],
                 'tutorial-probe-configure', env=environment)
     builder.run(['cmake', '--build', build, '--config', 'Release', '--parallel', builder.BUILD_JOBS],
                 'tutorial-probe-build', env=environment)
+    patches = []
+    if args.smoother_fix:
+        suffix = '.dll' if os.name == 'nt' else '.dylib' if args.platform.startswith('macos') else '.so'
+        repaired = next(build.rglob('libEKF'+suffix))
+        plugins = root/'Contents/PlugIns' if args.platform.startswith('macos') else root/'plugins'
+        destination = plugins/('libEKF'+suffix)
+        original_hash = hashlib.sha256(destination.read_bytes()).hexdigest()
+        shutil.copyfile(repaired, destination.resolve())
+        if args.platform.startswith('macos'):
+            subprocess.run(['codesign', '--force', '--sign', '-', str(destination)], check=True)
+        patches.append({'file': str(destination.relative_to(root)),
+                        'original_sha256': original_hash,
+                        'patched_sha256': hashlib.sha256(destination.read_bytes()).hexdigest(),
+                        'reason': 'Smoother propagation initialization and MATLAB output block repair'})
     suffix = '.exe' if os.name == 'nt' else ''
     probe = next(build.rglob('GmatQtTutorialProbe'+suffix))
     driver = next(build.rglob('GmatQtTutorialDriverTests'+suffix))
@@ -122,7 +139,17 @@ def main():
     for tutorial in selected:
         command += ['--tutorial', tutorial]
     with (output/'replay.log').open('w') as log:
-        result = subprocess.run(list(map(str, command)), env=environment, stdout=log, stderr=subprocess.STDOUT)
+        result = subprocess.Popen(list(map(str, command)), env=environment, stdout=log, stderr=subprocess.STDOUT)
+        while True:
+            try:
+                result.wait(timeout=45)
+                break
+            except subprocess.TimeoutExpired:
+                with (output/'replay.log').open('rb') as current:
+                    current.seek(0, 2)
+                    current.seek(max(0, current.tell()-2048))
+                    tail = current.read().decode('utf-8', errors='replace').splitlines()[-4:]
+                print('Tutorial replay progress\n'+'\n'.join(tail), flush=True)
     receipt = {'platform': args.platform, 'archive': str(args.archive),
         'archive_sha256': hashlib.sha256(args.archive.read_bytes()).hexdigest(),
         'release_source': metadata['source_commit'],
@@ -131,6 +158,7 @@ def main():
         'extracted_root': str(root), 'replay': str(output/'replay/results.json'),
         'observer': 'Matching frontend source linked to the archived GMAT native libraries',
         'desktop': desktop, 'unavailable_tutorials': unavailable, 'full_regression_run': False}
+    receipt['targeted_plugin_patches'] = patches
     (output/'verification.json').write_text(json.dumps(receipt, indent=2)+'\n')
     print(json.dumps(receipt))
     return result.returncode
