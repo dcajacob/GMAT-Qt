@@ -341,7 +341,9 @@ def relocate_macos(bundle):
     frameworks = bundle / 'Contents/Frameworks'
     frameworks.mkdir(exist_ok=True)
     binary = bundle / 'Contents/MacOS/GmatQt'
-    queue = [p for p in bundle.rglob('*') if macho(p)]
+    # Framework aliases share one Mach-O file. Resolve them before computing
+    # @loader_path so each binary uses its actual Versions/A directory.
+    queue = [p.resolve() for p in bundle.rglob('*') if macho(p)]
     done = set()
     copied_sources = {}
     while queue:
