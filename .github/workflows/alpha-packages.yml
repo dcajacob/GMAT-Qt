@@ -7,12 +7,17 @@ on:
     inputs:
       version:
         description: Package version
-        default: '0.1.0-alpha.2'
+        default: '0.1.0-alpha.3'
         required: true
+      platform:
+        description: Native platform to build
+        type: choice
+        default: all
+        options: [all, linux-x86_64, windows-x64, macos-arm64, macos-x64]
       reuse_run:
-        description: Shared-suite run containing the matching compiled application
-        default: '43573128861'
-        required: true
+        description: Optional run containing matching API-enabled native inputs
+        default: ''
+        required: false
 
 permissions:
   contents: read
@@ -24,24 +29,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # A packaging-only Linux repair reuses the first build's exact binaries.
         include: >-
-          ${{ fromJSON(contains(github.event.head_commit.message, '[linux-package]') &&
+          ${{ fromJSON((inputs.platform == 'linux-x86_64' || contains(github.event.head_commit.message, '[linux-package]')) &&
           '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"}]' ||
-          (contains(github.event.head_commit.message, '[windows-build]') ||
-          contains(github.event.head_commit.message, '[windows-package]') ||
-          contains(github.event.head_commit.message, '[windows-graphics]')) &&
+          (inputs.platform == 'windows-x64' || contains(github.event.head_commit.message, '[windows-build]')) &&
           '[{"runner":"windows-2022","platform":"windows-x64"}]' ||
+          (inputs.platform == 'macos-arm64' || contains(github.event.head_commit.message, '[macos-arm64]')) &&
+          '[{"runner":"macos-15","platform":"macos-arm64"}]' ||
+          (inputs.platform == 'macos-x64' || contains(github.event.head_commit.message, '[macos-x64]')) &&
+          '[{"runner":"macos-15-intel","platform":"macos-x64"}]' ||
           '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"},
           {"runner":"windows-2022","platform":"windows-x64"},
           {"runner":"macos-15","platform":"macos-arm64"},
           {"runner":"macos-15-intel","platform":"macos-x64"}]') }}
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 210
+    timeout-minutes: 240
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 8
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -59,88 +65,58 @@ jobs:
             build/preview-package/deps/osg
             C:\vcpkg\installed
           key: gmat-qt-preview-windows-2022-osg365-sdk-v1
-      - name: Restore matching compiled application
+      - name: Restore matching API-enabled compilation
         id: native
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
-          path: build/preview-package/native-inputs-${{ matrix.platform }}.tar.gz
-          key: gmat-alpha-native-v1-${{ matrix.platform }}-${{ steps.source.outputs.tree }}
-      - name: Prepare compiled inputs for packaging retry
+          path: build/preview-package/native-inputs-api-py312-v2-${{ matrix.platform }}.tar.gz
+          key: gmat-alpha-native-api-py312-v2-${{ matrix.platform }}-${{ steps.source.outputs.tree }}
+      - name: Prepare cached native inputs
         if: steps.native.outputs.cache-hit == 'true'
         shell: bash
         run: |
           mkdir -p build/preview-package/reuse-native
-          cp build/preview-package/native-inputs-${{ matrix.platform }}.tar.gz build/preview-package/reuse-native/
-      - name: Restore tested application for the refreshed alpha
-        if: inputs.reuse_run != '' || contains(github.event.head_commit.message, '[alpha-refresh]')
+          cp build/preview-package/native-inputs-api-py312-v2-${{ matrix.platform }}.tar.gz build/preview-package/reuse-native/
+      - name: Restore explicitly selected API-enabled native inputs
+        if: inputs.reuse_run != ''
         uses: actions/download-artifact@v4
         with:
-          name: shared-native-${{ matrix.platform }}
-          run-id: ${{ inputs.reuse_run || '43573128861' }}
-          github-token: ${{ github.token }}
-          path: build/preview-package/reuse-native
-      - name: Restore existing native orbit interaction test
-        uses: actions/download-artifact@v4
-        with:
-          name: shared-native-${{ matrix.platform }}
-          run-id: 43569982756
-          github-token: ${{ github.token }}
-          path: build/preview-package/reuse-drag
-      - name: Restore verified compilation for Linux packaging repair
-        if: matrix.platform == 'linux-x86_64' && contains(github.event.head_commit.message, '[linux-package]')
-        uses: actions/download-artifact@v4
-        with:
-          name: native-inputs-linux-x86_64
-          run-id: 43560991483
+          name: native-api-py312-${{ matrix.platform }}
+          run-id: ${{ inputs.reuse_run }}
           github-token: ${{ github.token }}
           path: build/preview-package/reuse-native
       - name: Install Linux native dependencies
         if: matrix.platform == 'linux-x86_64'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libopenscenegraph-dev libxerces-c-dev libgl1-mesa-dev libglu1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-render-util0 libxcb-image0 libfontconfig1 xvfb xauth
-      - name: Restore Windows compilation for packaging repair
-        if: matrix.platform == 'windows-x64' && contains(github.event.head_commit.message, '[windows-package]')
-        uses: actions/download-artifact@v4
-        with:
-          name: native-inputs-windows-x64
-          run-id: 43564140744
-          github-token: ${{ github.token }}
-          path: build/preview-package/reuse-native
-      - name: Build and verify alpha package
-        if: "!(matrix.platform == 'windows-x64' && contains(github.event.head_commit.message, '[graphics-fix]'))"
+          sudo apt-get install -y swig patchelf libopenscenegraph-dev libxerces-c-dev libgl1-mesa-dev libglu1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-render-util0 libxcb-image0 libfontconfig1 xvfb xauth
+      - name: Install Windows SWIG
+        if: matrix.platform == 'windows-x64'
+        run: choco install swig --yes --no-progress
+      - name: Build GUI and Python API and qualify the extracted archive
         env:
-          PACKAGE_VERSION: ${{ inputs.version || '0.1.0-alpha.2' }}
-        run: python tools/preview/BuildPreviewPackage.py --platform ${{ matrix.platform }} --version "$PACKAGE_VERSION"
+          PACKAGE_VERSION: ${{ inputs.version || '0.1.0-alpha.3' }}
         shell: bash
-      - name: Reuse verified Windows package
-        if: matrix.platform == 'windows-x64' && contains(github.event.head_commit.message, '[graphics-fix]')
-        uses: actions/download-artifact@v4
-        with:
-          name: alpha-windows-x64
-          run-id: 43575557766
-          github-token: ${{ github.token }}
-          path: build/preview-package/dist
-      - name: Restore Windows runtime for the missing graphics check
-        if: matrix.platform == 'windows-x64' && contains(github.event.head_commit.message, '[graphics-fix]')
+        run: python tools/preview/BuildPreviewPackage.py --platform ${{ matrix.platform }} --version "$PACKAGE_VERSION" --python-api
+      - name: Start the extracted GUI with CPython unavailable
+        run: cmake -P build/preview-package/logs/archive-qualification/without-python.cmake
+      - name: Finalize archive qualification
         shell: bash
-        run: python -c "import sys; sys.path.insert(0, 'tools/preview'); import BuildPreviewPackage as b; b.LOGS.mkdir(parents=True, exist_ok=True); assert b.restore_native('windows-x64')"
-      - name: Check native OpenGL orbit interaction
-        shell: bash
-        run: |
-          if [ '${{ matrix.platform }}' = 'linux-x86_64' ]; then
-            xvfb-run -a -s '-screen 0 1600x1000x24' python tools/preview/ProbeNativeDesktop.py --platform '${{ matrix.platform }}'
-          else
-            python tools/preview/ProbeNativeDesktop.py --platform '${{ matrix.platform }}'
-          fi
+        run: python -c "import sys; sys.path.insert(0, 'tools/preview'); from QualifyPythonPackage import finish; finish('${{ matrix.platform }}')"
       - name: Preserve diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: diagnostics-${{ matrix.platform }}
+          name: diagnostics-alpha3-${{ matrix.platform }}
           path: build/preview-package/logs/
           if-no-files-found: warn
           retention-days: 30
+      - name: Preserve completed API-enabled compilation
+        if: always() && steps.native.outputs.cache-hit != 'true' && hashFiles(format('build/preview-package/native-inputs-api-py312-v2-{0}.tar.gz', matrix.platform)) != ''
+        uses: actions/cache/save@v4
+        with:
+          path: build/preview-package/native-inputs-api-py312-v2-${{ matrix.platform }}.tar.gz
+          key: gmat-alpha-native-api-py312-v2-${{ matrix.platform }}-${{ steps.source.outputs.tree }}
       - name: Preserve completed Windows dependency SDK
         if: always() && matrix.platform == 'windows-x64' && steps.windows-sdk.outputs.cache-hit != 'true' && hashFiles('build/preview-package/deps/osg/preview-sdk-sha256.json') != ''
         uses: actions/cache/save@v4
@@ -149,19 +125,19 @@ jobs:
             build/preview-package/deps/osg
             C:\vcpkg\installed
           key: gmat-qt-preview-windows-2022-osg365-sdk-v1
-      - name: Preserve compiled inputs
+      - name: Preserve native API inputs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: native-inputs-${{ matrix.platform }}
-          path: build/preview-package/native-inputs-*.tar.gz
+          name: native-api-py312-${{ matrix.platform }}
+          path: build/preview-package/native-inputs-api-py312-v2-*.tar.gz
           if-no-files-found: ignore
           retention-days: 7
-      - name: Upload verified alpha package
+      - name: Upload alpha.3 archives and receipts
         if: always() && hashFiles('build/preview-package/dist/*') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: alpha-${{ matrix.platform }}
+          name: alpha3-${{ matrix.platform }}
           path: build/preview-package/dist/*
           if-no-files-found: error
           retention-days: 30

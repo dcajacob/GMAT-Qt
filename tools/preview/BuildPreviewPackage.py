@@ -23,6 +23,16 @@ LOGS = ROOT / 'logs'
 DEPS = ROOT / 'deps'
 BUILD_JOBS = str(max(1, min(4, os.cpu_count() or 2)))
 PACKAGE_VERSION = None
+PYTHON_API = False
+
+
+def build_flavor(python_api=False):
+    return 'api-py312-v2' if python_api else 'desktop-v1'
+
+
+def native_filename(target, python_api=False):
+    suffix = build_flavor(True) + '-' if python_api else ''
+    return 'native-inputs-' + suffix + target + '.tar.gz'
 
 
 def run(command, name, *, env=None, cwd=None):
@@ -121,7 +131,7 @@ def dependencies(target):
             'https://naif.jpl.nasa.gov/pub/naif/toolkit/C/PC_Linux_GCC_64bit/packages/cspice.tar.Z', archive)
         run(['tar', '-xf', archive, '-C', DEPS], 'cspice-extract')
     else:
-        run(['brew', 'install', 'qt', 'open-scene-graph', 'xerces-c'], 'brew-install')
+        run(['brew', 'install', 'qt', 'open-scene-graph', 'xerces-c', 'swig'], 'brew-install')
         brew = lambda formula: Path(subprocess.check_output(['brew', '--prefix', formula], text=True).strip())
         qt, osg, prefix = brew('qt'), brew('open-scene-graph'), brew('xerces-c')
         toolkit = 'MacM1_OSX_clang_64bit' if target.endswith('arm64') else 'MacIntel_OSX_AppleC_64bit'
@@ -132,7 +142,7 @@ def dependencies(target):
     return qt, osg, prefix
 
 
-def build(target, qt, osg, prefix, *, extra_options=(), targets=('GmatQt',)):
+def build(target, qt, osg, prefix, *, extra_options=(), targets=('GmatQt',), python_api=False):
     build_env = None
     options = ['-DCMAKE_BUILD_TYPE=Release', '-DGMAT_INCLUDE_QT_GUI=ON',
                '-DGMAT_INCLUDE_GUI=OFF', '-DGMAT_QT_BUILD_TESTS=OFF',
@@ -142,6 +152,15 @@ def build(target, qt, osg, prefix, *, extra_options=(), targets=('GmatQt',)):
                '-DPLUGIN_CINTERFACE=OFF', '-DGMAT_QT_EXTERNAL_PLUGINS=',
                f'-DCSPICE_DIR={DEPS / "cspice"}',
                f'-DCMAKE_PREFIX_PATH={qt};{osg};{prefix}']
+    if python_api:
+        if sys.version_info[:2] != (3, 12):
+            raise RuntimeError('The release Python API must be built with CPython 3.12')
+        options += ['-DGMAT_INCLUDE_API=ON', '-DAPI_GENERATE_PYTHON=ON',
+                    '-DAPI_GENERATE_JAVA=OFF', '-DGMAT_PYTHON3_VERSIONS=3.12',
+                    f'-DGMAT_PYTHON312_ROOT_DIR={sys.base_prefix}',
+                    f'-DPython3_EXECUTABLE={sys.executable}',
+                    '-DPLUGIN_STATION=ON', '-DPLUGIN_ESTIMATION=ON']
+        targets = list(dict.fromkeys([*targets, 'gmat_py312', 'station_py312', 'navigation_py312']))
     if target.startswith('windows'):
         options += ['-G', 'Visual Studio 17 2022', '-A', 'x64']
         # gmatdefs.hpp includes Windows headers for every native plugin. Keep
@@ -165,19 +184,22 @@ def build(target, qt, osg, prefix, *, extra_options=(), targets=('GmatQt',)):
 
 def production_tree():
     data = subprocess.check_output(['git', 'ls-tree', '-r', 'HEAD', '--',
-        'CMakeLists.txt', 'src', 'plugins', 'application', 'depends',
+        'CMakeLists.txt', 'src', 'swig', 'plugins', 'application', 'depends',
         'build/cmake_modules', 'build/install'], cwd=REPO)
     return hashlib.sha256(data).hexdigest()
 
 
-def preserve_native(target, qt, osg, prefix, *, extra_files=()):
+def preserve_native(target, qt, osg, prefix, *, extra_files=(), python_api=False):
     """Retain exact compiled inputs before any subsequent packaging failure."""
     paths = {}
     for root in [REPO / 'application/bin', REPO / 'application/plugins']:
         for path in root.rglob('*'):
-            if path.is_file() and (path.suffix in {'.dll', '.dylib', '.so', '.exe'} or '.so.' in path.name or
+            if path.is_file() and (path.suffix in {'.dll', '.dylib', '.so', '.exe', '.pyd'} or '.so.' in path.name or
                                    path.name in {'GmatQt', 'gmat_startup_qt.txt'}):
                 paths[path.relative_to(REPO).as_posix()] = path
+    if python_api:
+        for path in python_api_files():
+            paths[path.relative_to(REPO).as_posix()] = path
     for path in extra_files:
         paths[path.relative_to(REPO).as_posix()] = path
     if target.startswith('windows'):
@@ -196,12 +218,13 @@ def preserve_native(target, qt, osg, prefix, *, extra_files=()):
                 paths[(arcroot / relative).as_posix()] = path
         prefix = DEPS / 'package-vcpkg'
     metadata = {'platform': target, 'production_tree_sha256': production_tree(),
+        'build_flavor': build_flavor(python_api),
         'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
         'qt': str(qt), 'osg': str(osg), 'prefix': str(prefix),
         'file_sha256': {n: hashlib.sha256(p.read_bytes()).hexdigest() for n,p in paths.items()}}
     context = ROOT / 'native-build-context.json'
     context.write_text(json.dumps(metadata, indent=2) + '\n')
-    archive = ROOT / ('native-inputs-' + target + '.tar.gz')
+    archive = ROOT / native_filename(target, python_api)
     with tarfile.open(archive, 'w:gz', compresslevel=1, dereference=True) as out:
         for name, path in paths.items():
             out.add(path, arcname=name, recursive=False)
@@ -209,13 +232,14 @@ def preserve_native(target, qt, osg, prefix, *, extra_files=()):
     print('Preserved native inputs: ' + str(archive), flush=True)
 
 
-def restore_native(target):
-    archive = ROOT / 'reuse-native' / ('native-inputs-' + target + '.tar.gz')
+def restore_native(target, python_api=False):
+    archive = ROOT / 'reuse-native' / native_filename(target, python_api)
     if not archive.exists():
         return None
     with tarfile.open(archive) as source:
         metadata = json.load(source.extractfile('build/preview-package/native-build-context.json'))
         assert metadata['platform'] == target and metadata['production_tree_sha256'] == production_tree()
+        assert metadata.get('build_flavor', 'desktop-v1') == build_flavor(python_api)
         assert all(m.isfile() and not Path(m.name).is_absolute() and '..' not in Path(m.name).parts
                    for m in source.getmembers())
         source.extractall(REPO, filter='data')
@@ -225,6 +249,22 @@ def restore_native(target):
     return metadata
 
 
+def python_api_files():
+    root = REPO / 'application/bin/gmatpy'
+    version = root / '_py312'
+    files = [root / '__init__.py', version / '__init__.py']
+    for module in ['gmat', 'station', 'navigation']:
+        files.append(version / (module + '_py.py'))
+        extensions = [p for p in version.glob('_' + module + '_py*')
+                      if p.suffix in {'.so', '.pyd', '.dylib'}]
+        if len(extensions) != 1:
+            raise RuntimeError(f'Expected one Python 3.12 {module} extension, found {extensions}')
+        files.extend(extensions)
+    if not all(p.is_file() for p in files):
+        raise RuntimeError('The Python API package is incomplete')
+    return files
+
+
 def copy_payload(destination):
     # Copy only Git-owned runtime data and examples, never local outputs or SDKs.
     paths = subprocess.check_output(['git', 'ls-files', '-z', '--', 'application'], cwd=REPO).decode().split('\0')
@@ -232,7 +272,7 @@ def copy_payload(destination):
         if not name:
             continue
         relative = Path(name).relative_to('application')
-        if relative.parts[0] in {'data', 'samples', 'userfunctions', 'userincludes', 'extras'}:
+        if relative.parts[0] in {'data', 'samples', 'userfunctions', 'userincludes', 'extras', 'api'}:
             copy_file(REPO / name, destination / relative)
     for folder in ['output', 'plugins', 'bin', 'utilities', 'matlab', 'docs/help']:
         (destination / folder).mkdir(parents=True, exist_ok=True)
@@ -313,9 +353,11 @@ def relocate_macos(bundle):
             old = line.strip().split(' (compatibility version', 1)[0]
             if old in identities:
                 continue
-            if old.startswith(('/System/', '/usr/lib/', '@executable_path/../Frameworks/')):
+            if old.startswith(('/System/', '/usr/lib/')):
                 continue
-            if old.startswith('@loader_path/'):
+            if old.startswith('@executable_path/'):
+                source = binary.parent / old[len('@executable_path/'):]
+            elif old.startswith('@loader_path/'):
                 source = path.parent / old[len('@loader_path/'):]
             elif old.startswith('@rpath/'):
                 # Qt's deploy tool resolves its framework references first.
@@ -331,8 +373,8 @@ def relocate_macos(bundle):
             if source.resolve() == path.resolve():
                 continue
             try:
-                relative = source.resolve().relative_to(frameworks.resolve())
-                replacement = '@executable_path/../Frameworks/' + str(relative)
+                source.resolve().relative_to(frameworks.resolve())
+                target = source.resolve()
             except ValueError:
                 target = frameworks / source.name
                 identity = hashlib.sha256(source.read_bytes()).hexdigest()
@@ -352,10 +394,11 @@ def relocate_macos(bundle):
                     copied_sources[target] = identity
                     target.chmod(0o755)
                     queue.append(target)
-                replacement = '@executable_path/../Frameworks/' + source.name
-            run(['install_name_tool', '-change', old, replacement, path], 'relocate-' + str(len(done)) + '-' + str(len(libraries)) + '-' + hashlib.sha256(old.encode()).hexdigest()[:10])
-        if path.suffix in {'.dylib', '.so'}:
-            subprocess.run(['install_name_tool', '-id', '@executable_path/../Frameworks/' + path.name, path], check=True)
+            replacement = '@loader_path/' + os.path.relpath(target, path.parent)
+            if old != replacement:
+                run(['install_name_tool', '-change', old, replacement, path], 'relocate-' + str(len(done)) + '-' + str(len(libraries)) + '-' + hashlib.sha256(old.encode()).hexdigest()[:10])
+        if identities and path.suffix in {'.dylib', '.so'}:
+            subprocess.run(['install_name_tool', '-id', '@rpath/' + path.name, path], check=True)
     for path in sorted(done, key=lambda p: len(p.parts), reverse=True):
         if path != binary:
             subprocess.run(['codesign', '--force', '--sign', '-', path], check=True)
@@ -416,6 +459,10 @@ def stage_linux(payload, qt, osg):
                 if str(source).startswith('/usr/lib/') or str(source).startswith('/lib/'):
                     system_sources.add(source.resolve())
     for binary in visited:
+        relative_bin = os.path.relpath(payload / 'bin', binary.parent)
+        relative_lib = os.path.relpath(payload / 'lib', binary.parent)
+        subprocess.run(['patchelf', '--set-rpath',
+                        f'$ORIGIN:$ORIGIN/{relative_bin}:$ORIGIN/{relative_lib}', str(binary)], check=True)
         linked = subprocess.check_output(['ldd', binary], text=True,
                                          env=dict(os.environ, LD_LIBRARY_PATH=package_libraries))
         assert 'not found' not in linked, (str(binary), linked)
@@ -449,6 +496,14 @@ def stage_package(target, qt, osg, prefix):
     label = ('GMAT-Qt-' + PACKAGE_VERSION + '-' + target) if PACKAGE_VERSION else ('GMAT-Qt-' + target)
     payload = ROOT / 'staging' / label
     copy_payload(payload)
+    if PYTHON_API:
+        for path in python_api_files():
+            copy_file(path, payload / 'bin' / path.relative_to(REPO / 'application/bin'))
+        metadata = {'implementation': 'CPython', 'python_version': '3.12',
+                    'architecture': target, 'modules': ['gmat', 'station', 'navigation'],
+                    'build_flavor': build_flavor(True),
+                    'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()}
+        (payload / 'PYTHON-API.json').write_text(json.dumps(metadata, indent=2) + '\n')
     collect_notices(payload, qt, osg, prefix)
     suffix = '.dll' if target.startswith('windows') else '.so*' if target.startswith('linux') else '.dylib'
     for path in (REPO / 'application/bin').glob('*' + suffix):
@@ -526,7 +581,7 @@ def stage_package(target, qt, osg, prefix):
     return payload, binary
 
 
-def probe(target, payload, executable):
+def probe(target, payload, executable, *, model_reader=True):
     root = payload / 'GMAT-Qt.app/Contents/Resources' if target.startswith('macos') else payload
     report = ROOT / 'probe-values.csv'
     saved = ROOT / 'saved-spacecraft.script'
@@ -590,7 +645,7 @@ Save Sat {{Filename = '{saved.as_posix()}'}};
     command = prefix + [executable, script, '--run', '--screenshot', LOGS / 'package-probe.png',
                         '--settings-dir', ROOT / 'probe-settings']
     run(command, 'package-probe', env=env, cwd=ROOT)
-    if target.startswith('macos'):
+    if target.startswith('macos') and model_reader:
         reader = executable.parent / 'PackageReaderProbe'
         run([reader, root.parent, root / 'data/vehicle/models/aura.3ds'], 'model-reader-probe', env=env, cwd=ROOT)
         reader.unlink()
@@ -636,8 +691,10 @@ Report Reopened Sat.X Sat.Y Sat.Z Sat.VX Sat.VY Sat.VZ;
     if target.startswith('linux'):
         result['runtime'] = json.loads((LOGS / 'linux-runtime.json').read_text())
     if target.startswith('macos'):
-        result['bundled_3ds_reader'] = {'status': 'passed', 'model': 'data/vehicle/models/aura.3ds',
-                                        'lookup': 'Native bundle plugin path only; SDK paths excluded.'}
+        result['bundled_3ds_reader'] = {'status': 'passed' if model_reader else 'reused',
+            'model': 'data/vehicle/models/aura.3ds',
+            'lookup': 'Native bundle plugin path only; SDK paths excluded.',
+            'reuse': None if model_reader else 'Same archived libraries and plugins as the package-stage reader pass.'}
     (LOGS / 'package-verification.json').write_text(json.dumps(result, indent=2) + '\n')
     copy_file(LOGS / 'package-verification.json', root / 'PACKAGE-VERIFICATION.json')
     # Remove probe outputs from the reusable application bundle before archiving.
@@ -648,26 +705,29 @@ Report Reopened Sat.X Sat.Y Sat.Z Sat.VX Sat.VY Sat.VZ;
 
 
 def main():
-    global PACKAGE_VERSION
+    global PACKAGE_VERSION, PYTHON_API
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--platform', required=True, choices=['linux-x86_64', 'windows-x64', 'macos-arm64', 'macos-x64'])
     parser.add_argument('--version', help='Release version recorded in the package and artifact name')
+    parser.add_argument('--python-api', action=argparse.BooleanOptionalAction, default=False,
+                        help='Include the CPython 3.12 core, station and navigation bindings')
     args = parser.parse_args()
     target, PACKAGE_VERSION = args.platform, args.version
+    PYTHON_API = args.python_api
     if PACKAGE_VERSION and not re.fullmatch(r'[0-9][0-9A-Za-z.\-]*', PACKAGE_VERSION):
         parser.error('Version must contain only numbers, letters, periods and hyphens')
     assert (os.name == 'nt') == target.startswith('windows')
     assert target.startswith('windows') or target.startswith('linux') == sys.platform.startswith('linux')
     LOGS.mkdir(parents=True, exist_ok=True)
     DEPS.mkdir(parents=True, exist_ok=True)
-    restored = restore_native(target)
+    restored = restore_native(target, PYTHON_API)
     if restored and target.startswith('windows'):
         qt, osg, prefix = (Path(restored[n]) for n in ['qt', 'osg', 'prefix'])
     else:
         qt, osg, prefix = dependencies(target)
     if not restored:
-        build(target, qt, osg, prefix)
-        preserve_native(target, qt, osg, prefix)
+        build(target, qt, osg, prefix, python_api=PYTHON_API)
+        preserve_native(target, qt, osg, prefix, python_api=PYTHON_API)
     payload, executable = stage_package(target, qt, osg, prefix)
     probe(target, payload, executable)
     if sys.platform == 'darwin':
@@ -694,6 +754,9 @@ def main():
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
     (dist / (archive.name + '.sha256')).write_text(digest + '  ' + archive.name + '\n')
     copy_file(LOGS / 'package-verification.json', dist / (target + '-verification.json'))
+    if PYTHON_API:
+        from QualifyPythonPackage import qualify
+        qualify(target, archive)
     print('Verified package: ' + str(archive), flush=True)
 
 
