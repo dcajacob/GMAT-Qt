@@ -132,7 +132,7 @@ def dependencies(target):
     return qt, osg, prefix
 
 
-def build(target, qt, osg, prefix):
+def build(target, qt, osg, prefix, *, extra_options=(), targets=('GmatQt',)):
     build_env = None
     options = ['-DCMAKE_BUILD_TYPE=Release', '-DGMAT_INCLUDE_QT_GUI=ON',
                '-DGMAT_INCLUDE_GUI=OFF', '-DGMAT_QT_BUILD_TESTS=OFF',
@@ -156,9 +156,10 @@ def build(target, qt, osg, prefix):
         architecture = 'arm64' if target.endswith('arm64') else 'x86_64'
         options += ['-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
                     f'-DCMAKE_OSX_ARCHITECTURES={architecture}']
+    options.extend(extra_options)
     run(['cmake', '-S', REPO, '-B', ROOT / 'gmat-build', *options], 'gmat-configure', env=build_env)
     run(['cmake', '--build', ROOT / 'gmat-build', '--config', 'Release',
-         '--target', 'GmatQt', '--parallel', '1' if target.startswith('windows') else BUILD_JOBS],
+         '--target', *targets, '--parallel', '1' if target.startswith('windows') else BUILD_JOBS],
         'gmat-build', env=build_env)
 
 
@@ -169,7 +170,7 @@ def production_tree():
     return hashlib.sha256(data).hexdigest()
 
 
-def preserve_native(target, qt, osg, prefix):
+def preserve_native(target, qt, osg, prefix, *, extra_files=()):
     """Retain exact compiled inputs before any subsequent packaging failure."""
     paths = {}
     for root in [REPO / 'application/bin', REPO / 'application/plugins']:
@@ -177,6 +178,8 @@ def preserve_native(target, qt, osg, prefix):
             if path.is_file() and (path.suffix in {'.dll', '.dylib', '.so', '.exe'} or '.so.' in path.name or
                                    path.name in {'GmatQt', 'gmat_startup_qt.txt'}):
                 paths[path.relative_to(REPO).as_posix()] = path
+    for path in extra_files:
+        paths[path.relative_to(REPO).as_posix()] = path
     if target.startswith('windows'):
         for root, arcroot in [(qt, qt.relative_to(REPO)), (osg, osg.relative_to(REPO)),
                               (prefix / 'bin', DEPS.relative_to(REPO) / 'package-vcpkg/bin'),

@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "name": "GMAT Qt shared targeted suite",
+  "graphics_profile": "offscreen",
+  "cases": [
+    {
+      "name": "QtGui.Files",
+      "target": "GmatQtFileTests",
+      "source": "src/qtgui/tests/FileTests.cpp"
+    },
+    {
+      "name": "QtGui.NavigationTree",
+      "target": "GmatQtNavigationTreeTests",
+      "source": "src/qtgui/tests/NavigationTreeTests.cpp"
+    },
+    {
+      "name": "QtGui.TreeActivation",
+      "target": "GmatQtTreeActivationTests",
+      "source": "src/qtgui/tests/TreeActivationTests.cpp"
+    },
+    {
+      "name": "QtGui.WorkspaceNavigation",
+      "target": "GmatQtWorkspaceNavigationTests",
+      "source": "src/qtgui/tests/WorkspaceNavigationTests.cpp"
+    },
+    {
+      "name": "QtGui.OrbitViewCreationDefaults",
+      "target": "GmatQtOrbitViewCreationDefaultsTests",
+      "source": "src/qtgui/tests/OrbitViewCreationDefaultsTests.cpp"
+    },
+    {
+      "name": "QtGui.SharedPlaybackButtons",
+      "target": "GmatQtSharedPlaybackTests",
+      "source": "src/qtgui/tests/SharedPlaybackTests.cpp"
+    },
+    {
+      "name": "QtGui.InterpolatedPlayback",
+      "target": "GmatQtInterpolatedPlaybackTests",
+      "source": "src/qtgui/tests/InterpolatedPlaybackTests.cpp"
+    },
+    {
+      "name": "QtGui.ClipboardPaste",
+      "target": "GmatQtClipboardPasteTests",
+      "source": "src/qtgui/tests/ClipboardPasteTests.cpp"
+    },
+    {
+      "name": "QtGui.ContextCopy",
+      "target": "GmatQtContextCopyTests",
+      "source": "src/qtgui/tests/ContextCopyTests.cpp"
+    },
+    {
+      "name": "QtGui.PlotToolbar",
+      "target": "GmatQtPlotToolbarTests",
+      "source": "src/qtgui/tests/PlotToolbarTests.cpp"
+    },
+    {
+      "name": "QtGui.GroundTrackLayout",
+      "target": "GmatQtGroundTrackLayoutTests",
+      "source": "src/qtgui/tests/GroundTrackLayoutTests.cpp"
+    },
+    {
+      "name": "QtGui.GroundTrackRegionZoom",
+      "target": "GmatQtGroundTrackRegionZoomTests",
+      "source": "src/qtgui/tests/GroundTrackRegionZoomTests.cpp"
+    },
+    {
+      "name": "QtGui.GroundMapOverlays",
+      "target": "GmatQtGroundMapOverlayTests",
+      "source": "src/qtgui/tests/GroundMapOverlayTests.cpp"
+    },
+    {
+      "name": "QtGui.SatelliteImport",
+      "target": "GmatQtSatelliteImportTests",
+      "source": "src/qtgui/tests/SatelliteImportTests.cpp"
+    },
+    {
+      "name": "QtGui.SatelliteCatalog",
+      "target": "GmatQtSatelliteCatalogTests",
+      "source": "src/qtgui/tests/SatelliteCatalogTests.cpp"
+    },
+    {
+      "name": "QtGui.SatelliteWorkflow.assignments",
+      "target": "GmatQtSatelliteWorkflowTests",
+      "source": "src/qtgui/tests/SatelliteWorkflowTests.cpp"
+    },
+    {
+      "name": "QtGui.SatelliteWorkflow.epoch-guard",
+      "target": "GmatQtSatelliteWorkflowTests",
+      "source": "src/qtgui/tests/SatelliteWorkflowTests.cpp"
+    },
+    {
+      "name": "QtGui.SatelliteWorkflow.elements",
+      "target": "GmatQtSatelliteWorkflowTests",
+      "source": "src/qtgui/tests/SatelliteWorkflowTests.cpp"
+    },
+    {
+      "name": "QtGui.SummaryScroll",
+      "target": "GmatQtSummaryDragTests",
+      "source": "src/qtgui/tests/SummaryDragTests.cpp"
+    },
+    {
+      "name": "QtGui.OrbitDragDirection",
+      "target": "GmatQtSummaryDragTests",
+      "source": "src/qtgui/tests/SummaryDragTests.cpp"
+    },
+    {
+      "name": "QtGui.WindowControlContrast",
+      "target": "GmatQtWindowControlContrastTests",
+      "source": "src/qtgui/tests/WindowControlContrastTests.cpp"
+    }
+  ],
+  "package_smoke": "Reuse the verified 0.1.0-alpha.1 native numerical and persistence package evidence"
+}

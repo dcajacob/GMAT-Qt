@@ -1,0 +1,97 @@
+name: Shared targeted suite
+
+on:
+  push:
+    branches: ['codex/alpha-0.1.0']
+    paths:
+      - 'tools/preview/SharedSuite.json'
+      - 'tools/preview/RunSharedSuite.py'
+      - '.github/workflows/shared-suite.yml'
+  workflow_dispatch:
+    inputs:
+      reuse_run:
+        description: Prior shared-suite run with matching native inputs
+        required: false
+        default: ''
+      cases:
+        description: Optional comma-separated case names for a targeted retry
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  checks:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux-x86_64
+          - runner: windows-2022
+            platform: windows-x64
+          - runner: macos-15
+            platform: macos-arm64
+          - runner: macos-15-intel
+            platform: macos-x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Restore Windows dependency SDK
+        if: matrix.platform == 'windows-x64'
+        id: sdk
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/preview-package/deps/osg
+            C:\vcpkg\installed
+          key: gmat-qt-preview-windows-2022-osg365-sdk-v1
+      - name: Restore matching test executables
+        if: inputs.reuse_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: shared-native-${{ matrix.platform }}
+          run-id: ${{ inputs.reuse_run }}
+          github-token: ${{ github.token }}
+          path: build/preview-package/reuse-native
+      - name: Install Linux native dependencies
+        if: matrix.platform == 'linux-x86_64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenscenegraph-dev libxerces-c-dev libgl1-mesa-dev libglu1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-render-util0 libxcb-image0 libfontconfig1 xvfb xauth
+      - name: Build and run shared cases
+        env:
+          SHARED_CASES: ${{ inputs.cases }}
+        run: python tools/preview/RunSharedSuite.py --platform ${{ matrix.platform }}
+      - name: Preserve results and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-results-${{ matrix.platform }}
+          path: |
+            build/shared-suite/
+            build/preview-package/logs/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Preserve native test inputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-native-${{ matrix.platform }}
+          path: build/preview-package/native-inputs-*.tar.gz
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Preserve completed Windows SDK
+        if: always() && matrix.platform == 'windows-x64' && steps.sdk.outputs.cache-hit != 'true' && hashFiles('build/preview-package/deps/osg/preview-sdk-sha256.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build/preview-package/deps/osg
+            C:\vcpkg\installed
+          key: gmat-qt-preview-windows-2022-osg365-sdk-v1
