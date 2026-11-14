@@ -3031,7 +3031,10 @@ void FileManager::AddGmatFunctionPath(const std::string &path, bool addFront)
          pathname += GmatFileUtil::GetPathSeparator();
    }
    else if (path.find(".") != path.npos)
-      pathname = filesystemPath.parent_path().u8string() + GmatFileUtil::GetPathSeparator();
+   {
+      pathname = filesystemPath.parent_path().u8string();
+      if (!pathname.empty()) pathname += GmatFileUtil::GetPathSeparator();
+   }
 
    std::list<std::string>::iterator pos =
       find(mGmatFunctionPaths.begin(), mGmatFunctionPaths.end(), pathname);
