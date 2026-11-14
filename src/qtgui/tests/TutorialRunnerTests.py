@@ -12,12 +12,19 @@ from unittest import mock
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).parent))
-from RunTutorials import RECIPES, REPO, TutorialSession, compare_outputs, compare_states, normalized_source, relocate, control_target, semantic_action, reference_milestone, configure_display, scale_value, installation_base, publish_request
+from RunTutorials import RECIPES, REPO, TutorialSession, compare_outputs, compare_states, normalized_source, relocate, control_target, semantic_action, reference_milestone, configure_display, scale_value, installation_base, publish_request, read_snapshot
 from IsolatedX11Session import IsolatedX11Session
 from AnalyzeTutorialGoals import analyze
 
 
 class TutorialContracts(unittest.TestCase):
+    def test_windows_snapshot_reader_retries_a_shared_file(self):
+        path = mock.Mock()
+        path.read_bytes.side_effect = [PermissionError('atomic replacement'), b'{"running": false}']
+        with mock.patch('RunTutorials.os.name', 'nt'), mock.patch('RunTutorials.time.sleep'):
+            self.assertEqual(json.loads(read_snapshot(path)), {'running': False})
+        self.assertEqual(path.read_bytes.call_count, 2)
+
     def test_windows_request_handoff_retries_a_shared_file(self):
         pending = mock.Mock()
         pending.replace.side_effect = [PermissionError('shared reader'), None]
