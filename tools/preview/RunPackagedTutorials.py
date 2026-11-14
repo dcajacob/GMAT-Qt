@@ -106,17 +106,32 @@ def main():
     if args.smoother_fix:
         suffix = '.dll' if os.name == 'nt' else '.dylib' if args.platform.startswith('macos') else '.so'
         plugins = root/'Contents/PlugIns' if args.platform.startswith('macos') else root/'plugins'
-        for name, directory in [('EKF', plugins), ('GmatBase', binary)]:
+        for name, directory in [('GmatBase', binary), ('EKF', plugins)]:
             repaired = next(build.rglob('lib'+name+suffix))
-            destination = directory/('lib'+name+suffix)
-            original_hash = hashlib.sha256(destination.read_bytes()).hexdigest()
-            shutil.copyfile(repaired, destination.resolve())
+            destinations = [directory/('lib'+name+suffix)]
             if args.platform.startswith('macos'):
-                subprocess.run(['codesign', '--force', '--sign', '-', str(destination)], check=True)
-            patches.append({'file': str(destination.relative_to(root)),
-                            'original_sha256': original_hash,
-                            'patched_sha256': hashlib.sha256(destination.read_bytes()).hexdigest(),
-                            'reason': 'Tutorial regression repairs'})
+                destinations = sorted({path.resolve() for path in root.rglob('lib'+name+'*.dylib')})
+            for destination in destinations:
+                original_hash = hashlib.sha256(destination.read_bytes()).hexdigest()
+                shutil.copyfile(repaired, destination.resolve())
+                if args.platform.startswith('macos'):
+                    libraries = subprocess.check_output(['otool', '-L', destination], text=True).splitlines()[1:]
+                    for line in libraries:
+                        old = line.strip().split(' (compatibility version', 1)[0]
+                        if old.startswith(('/System/', '/usr/lib/')):
+                            continue
+                        library = Path(old).name
+                        candidates = [binary/library, root/'Contents/Frameworks'/library, plugins/library]
+                        target = next((path for path in candidates if path.is_file()), None)
+                        if target and target.resolve() != destination.resolve():
+                            relative = os.path.relpath(target, destination.parent)
+                            subprocess.run(['install_name_tool', '-change', old, '@loader_path/'+relative, str(destination)], check=True)
+                    subprocess.run(['install_name_tool', '-id', '@rpath/'+destination.name, str(destination)], check=True)
+                    subprocess.run(['codesign', '--force', '--sign', '-', str(destination)], check=True)
+                patches.append({'file': str(destination.relative_to(root.resolve())),
+                                'original_sha256': original_hash,
+                                'patched_sha256': hashlib.sha256(destination.read_bytes()).hexdigest(),
+                                'reason': 'Tutorial regression repairs'})
     suffix = '.exe' if os.name == 'nt' else ''
     probe = next(build.rglob('GmatQtTutorialProbe'+suffix))
     driver = next(build.rglob('GmatQtTutorialDriverTests'+suffix))

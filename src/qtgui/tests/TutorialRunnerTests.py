@@ -23,9 +23,9 @@ class TutorialContracts(unittest.TestCase):
             root = Path(directory)
             runtime = root / 'GMAT-Qt.app/Contents/MacOS/GmatQt'
             with mock.patch.dict('os.environ', {'GMAT_QT_TUTORIAL_RUNTIME': str(runtime)}):
-                self.assertEqual(installation_base(root/'gmat_startup_qt.txt'), runtime.parent)
+                self.assertEqual(installation_base(root/'gmat_startup_qt.txt'), runtime.resolve().parent)
             with mock.patch.dict('os.environ', {}, clear=True):
-                self.assertEqual(installation_base(root/'bin/startup.txt'), root/'bin')
+                self.assertEqual(installation_base(root/'bin/startup.txt'), (root/'bin').resolve())
 
     def test_visible_scaling_uses_host_and_keeps_explicit_pixel_sizes(self):
         host={'scale':3.0,'logical_size':[1536,960],'available_logical_size':[1469,928]}
