@@ -578,6 +578,9 @@ Save Sat {{Filename = '{saved.as_posix()}'}};
         env.pop(key, None)
     if target.startswith('windows'):
         env['PATH'] = str(executable.parent) + os.pathsep + os.environ.get('SystemRoot', 'C:/Windows') + '/System32'
+        # The offscreen font database needs an explicit directory on Windows.
+        # The normal windows platform obtains installed fonts through the OS.
+        env['QT_QPA_FONTDIR'] = str(Path(os.environ.get('SystemRoot', 'C:/Windows')) / 'Fonts')
     if target.startswith('linux'):
         env.update(QT_QPA_PLATFORM='xcb', LIBGL_ALWAYS_SOFTWARE='1')
     prefix = ['xvfb-run', '-a', '-s', '-screen 0 1600x1000x24'] if target.startswith('linux') else []
