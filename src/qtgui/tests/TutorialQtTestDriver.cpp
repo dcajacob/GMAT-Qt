@@ -319,6 +319,7 @@ void TutorialQtTestDriver::poll()
    }
    QFile file(directory+"/input-request.json"); if (!file.open(QIODevice::ReadOnly)) return;
    QJsonParseError error; const auto request=QJsonDocument::fromJson(file.readAll(),&error).object();
+   file.close();
    if (error.error!=QJsonParseError::NoError) return;
    const auto id=request["id"].toString(); if (id.isEmpty() || id==last || !QRegularExpression("^[0-9]+$").match(id).hasMatch()) return;
    const auto action=request["action"].toObject();

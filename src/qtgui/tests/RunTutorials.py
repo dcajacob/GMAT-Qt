@@ -44,6 +44,18 @@ def save_json(path, value):
     path.write_text(json.dumps(value, indent=2) + '\n')
 
 
+def publish_request(pending, destination):
+    deadline = time.monotonic() + 1
+    while True:
+        try:
+            pending.replace(destination)
+            return
+        except PermissionError:
+            if os.name != 'nt' or time.monotonic() >= deadline:
+                raise
+            time.sleep(.01)
+
+
 def scale_value(value):
     if value.lower() == 'auto':
         return None
@@ -123,7 +135,7 @@ class QtTestInputs:
         state.mkdir(exist_ok=True)
         request = state / 'input-request.pending'
         save_json(request, {'id': identifier, 'action': action})
-        request.replace(state / 'input-request.json')
+        publish_request(request, state / 'input-request.json')
         # Long literal function-editor lines can spend time in nested GUI
         # validation/highlighting. Keep selector lookup bounded, but allow an
         # accepted text event enough time to finish before sending another.
@@ -336,7 +348,7 @@ class NativeTutorialSession(TutorialSession):
         filename = f'{self.count:03d}-{label}.png'
         state = self.directory/'state'
         save_json(state/'screenshot-request.pending', {'filename': filename})
-        (state/'screenshot-request.pending').replace(state/'screenshot-request.json')
+        publish_request(state/'screenshot-request.pending', state/'screenshot-request.json')
         until = min(self.deadline, time.monotonic()+15)
         response = state/'screenshot-response.json'
         while time.monotonic() < until:

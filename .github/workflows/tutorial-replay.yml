@@ -85,6 +85,8 @@ jobs:
           selection = os.environ.get('TUTORIAL_SELECTION', '')
           if '[mac-retry]' in os.environ.get('COMMIT_MESSAGE', '') and not selection:
               selection = '6,11'
+          if '[windows-only]' in os.environ.get('COMMIT_MESSAGE', '') and not selection:
+              selection = '4,6,8,9,10,11,13,14,15,16,17,18'
           for number in filter(None, selection.split(',')):
               command += ['--tutorial', number]
           raise SystemExit(subprocess.call(command))
@@ -98,6 +100,7 @@ jobs:
             build/tutorial-release/replay/
             build/tutorial-release/replay.log
             build/tutorial-release/verification.json
+            build/tutorial-release/ekf-*.txt
             build/preview-package/logs/
           if-no-files-found: warn
           retention-days: 30

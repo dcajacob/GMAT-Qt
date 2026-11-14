@@ -12,12 +12,27 @@ from unittest import mock
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).parent))
-from RunTutorials import RECIPES, REPO, TutorialSession, compare_outputs, compare_states, normalized_source, relocate, control_target, semantic_action, reference_milestone, configure_display, scale_value, installation_base
+from RunTutorials import RECIPES, REPO, TutorialSession, compare_outputs, compare_states, normalized_source, relocate, control_target, semantic_action, reference_milestone, configure_display, scale_value, installation_base, publish_request
 from IsolatedX11Session import IsolatedX11Session
 from AnalyzeTutorialGoals import analyze
 
 
 class TutorialContracts(unittest.TestCase):
+    def test_windows_request_handoff_retries_a_shared_file(self):
+        pending = mock.Mock()
+        pending.replace.side_effect = [PermissionError('shared reader'), None]
+        with mock.patch('RunTutorials.os.name', 'nt'), mock.patch('RunTutorials.time.sleep') as sleep:
+            publish_request(pending, 'request.json')
+        self.assertEqual(pending.replace.call_count, 2)
+        sleep.assert_called_once_with(.01)
+
+    def test_request_handoff_preserves_persistent_errors(self):
+        pending = mock.Mock()
+        pending.replace.side_effect = PermissionError('still shared')
+        with mock.patch('RunTutorials.os.name', 'nt'), mock.patch('RunTutorials.time.monotonic', side_effect=[0, 2]):
+            with self.assertRaises(PermissionError):
+                publish_request(pending, 'request.json')
+
     def test_packaged_startup_resolves_from_the_runtime_binary_directory(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

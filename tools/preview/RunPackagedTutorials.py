@@ -87,7 +87,7 @@ def main():
         imports = output/'import-libraries'
         import_libraries(binary, root/'plugins', imports, environment)
         options += ['-G', 'Visual Studio 17 2022', '-A', 'x64', '-DGMAT_IMPORT_LIBRARIES='+str(imports)]
-        environment['PATH'] = os.pathsep.join([str(binary), str(qt/'bin'), str(osg/'bin'),
+        environment['PATH'] = os.pathsep.join([str(binary), str(root/'plugins'), str(qt/'bin'), str(osg/'bin'),
                                               str(prefix/'bin'), environment['PATH']])
         environment['QT_PLUGIN_PATH'] = str(qt/'plugins')
     elif args.platform.startswith('macos'):
@@ -152,6 +152,18 @@ def main():
                     subprocess.run(['install_name_tool', '-change', old, str(target), str(probe)], check=True)
         subprocess.run(['codesign', '--force', '--sign', '-', str(probe)], check=True)
     if os.name == 'nt':
+        # Use the same legacy loader policy as GMAT and retain the native
+        # import table if a repaired plugin cannot load on the target runner.
+        plugin = root/'plugins/libEKF.dll'
+        imports = subprocess.check_output([shutil.which('dumpbin.exe', path=environment['PATH']),
+                                           '/nologo', '/imports', str(plugin)], env=environment, text=True)
+        (output/'ekf-imports.txt').write_text(imports)
+        check = subprocess.run([sys.executable, '-c',
+            'import ctypes,sys; library=ctypes.WinDLL(sys.argv[1],winmode=0); print("EKF factories",library.GetFactoryCount())',
+            str(plugin)], env=environment, capture_output=True, text=True)
+        (output/'ekf-load.txt').write_text(check.stdout+check.stderr)
+        print(check.stdout+check.stderr, flush=True)
+        check.check_returncode()
         software = qt/'bin/opengl32sw.dll'
         if software.is_file():
             shutil.copy2(software, probe.parent/'opengl32.dll')
