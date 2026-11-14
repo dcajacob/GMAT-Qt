@@ -382,7 +382,8 @@ def stage_linux(payload, qt, osg):
     host_libraries = {}
     system_sources = set()
     requirements = set()
-    env = dict(os.environ, LD_LIBRARY_PATH=str(payload / 'bin') + ':' + str(payload / 'lib'))
+    package_libraries = str(payload / 'bin') + ':' + str(payload / 'lib')
+    env = dict(os.environ, LD_LIBRARY_PATH=package_libraries + ':' + str(qt / 'lib'))
     while queue:
         binary = queue.popleft()
         if binary in visited:
@@ -410,6 +411,10 @@ def stage_linux(payload, qt, osg):
                 queue.append(destination)
                 if str(source).startswith('/usr/lib/') or str(source).startswith('/lib/'):
                     system_sources.add(source.resolve())
+    for binary in visited:
+        linked = subprocess.check_output(['ldd', binary], text=True,
+                                         env=dict(os.environ, LD_LIBRARY_PATH=package_libraries))
+        assert 'not found' not in linked, (str(binary), linked)
     for source in sorted(system_sources):
         owner = subprocess.run(['dpkg-query', '-S', str(source)], capture_output=True, text=True)
         if owner.returncode:

@@ -7,21 +7,21 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   package:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - runner: ubuntu-24.04
-            platform: linux-x86_64
-          - runner: windows-2022
-            platform: windows-x64
-          - runner: macos-15
-            platform: macos-arm64
-          - runner: macos-15-intel
-            platform: macos-x64
+        # A packaging-only Linux repair reuses the first build's exact binaries.
+        include: >-
+          ${{ fromJSON(contains(github.event.head_commit.message, '[linux-package]') &&
+          '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"}]' ||
+          '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"},
+          {"runner":"windows-2022","platform":"windows-x64"},
+          {"runner":"macos-15","platform":"macos-arm64"},
+          {"runner":"macos-15-intel","platform":"macos-x64"}]') }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 210
     steps:
@@ -54,6 +54,14 @@ jobs:
         run: |
           mkdir -p build/preview-package/reuse-native
           cp build/preview-package/native-inputs-${{ matrix.platform }}.tar.gz build/preview-package/reuse-native/
+      - name: Restore verified compilation for Linux packaging repair
+        if: matrix.platform == 'linux-x86_64' && contains(github.event.head_commit.message, '[linux-package]')
+        uses: actions/download-artifact@v4
+        with:
+          name: native-inputs-linux-x86_64
+          run-id: 43560991483
+          github-token: ${{ github.token }}
+          path: build/preview-package/reuse-native
       - name: Install Linux native dependencies
         if: matrix.platform == 'linux-x86_64'
         run: |
