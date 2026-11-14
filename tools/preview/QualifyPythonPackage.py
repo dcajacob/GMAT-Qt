@@ -122,6 +122,8 @@ def qualify(target, archive):
         assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, name
     root = payload/'GMAT-Qt.app' if target.startswith('macos') else payload
     binary = root/'Contents/MacOS' if target.startswith('macos') else root/'bin'
+    resource_root = root/'Contents/Resources' if target.startswith('macos') else root
+    builder.PACKAGE_VERSION = json.loads((resource_root/'PACKAGE-VERIFICATION.json').read_text())['version']
     api = binary/'gmatpy/_py312'
     for module in ['gmat', 'station', 'navigation']:
         assert (api/(module+'_py.py')).is_file()
@@ -166,7 +168,8 @@ def qualify(target, archive):
             'GmatQt.exe' if target.startswith('windows') else 'GmatQt')
         # This invokes the existing package mission and save/reopen assertions
         # against the extracted archive while the build outputs are unavailable.
-        package_result = builder.probe(target, payload, executable, model_reader=False)
+        package_result = builder.probe(target, payload, executable, model_reader=False,
+                                       record_in_payload=False)
         with (logs/'mcp-protocol.log').open('w') as log:
             subprocess.run([str(interpreter), '-I', str(driver), '--root', str(root),
                 '--worker', sys.executable, '--output', str(logs/'mcp'),
@@ -196,7 +199,16 @@ def finish(target):
     receipt = json.loads((logs/'verification.json').read_text())
     no_python = json.loads((logs/'without-python.json').read_text())
     assert no_python['status'] == 'passed'
+    root = Path(receipt['extracted_root'])
+    payload = root.parent if target.startswith('macos') else root
+    manifest = json.loads((payload/'PACKAGE-MANIFEST.json').read_text())
+    for name, digest in manifest.items():
+        assert hashlib.sha256((payload/name).read_bytes()).hexdigest() == digest, name
+    if target.startswith('macos'):
+        builder.run(['codesign', '--verify', '--deep', '--strict', root],
+                    'extracted-signature')
     receipt['gui_without_python'] = no_python
+    receipt['archive_files_unchanged_after_checks'] = True
     receipt['status'] = 'passed'
     (logs/'verification.json').write_text(json.dumps(receipt, indent=2)+'\n')
     builder.copy_file(logs/'verification.json', builder.ROOT/'dist'/(target+'-api-verification.json'))

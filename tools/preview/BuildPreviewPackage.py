@@ -169,8 +169,10 @@ def build(target, qt, osg, prefix, *, extra_options=(), targets=('GmatQt',), pyt
         # CL supplements MSVC's normal flags instead of replacing CMake's
         # exception-handling, runtime-library or release configuration.
         build_env = dict(os.environ)
-        build_env['CL'] = (build_env.get('CL', '') + ' /DNOMINMAX /MP' + BUILD_JOBS).strip()
-        print('MSVC native build: add /DNOMINMAX and file-level parallel compilation', flush=True)
+        # SWIG enables move-only return values using __cplusplus. MSVC needs
+        # this switch to report the selected C++17 standard to those wrappers.
+        build_env['CL'] = (build_env.get('CL', '') + ' /DNOMINMAX /Zc:__cplusplus /MP' + BUILD_JOBS).strip()
+        print('MSVC native build: enable the C++ standard macro and parallel compilation', flush=True)
     elif target.startswith('macos'):
         architecture = 'arm64' if target.endswith('arm64') else 'x86_64'
         options += ['-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
@@ -591,7 +593,7 @@ def stage_package(target, qt, osg, prefix):
     return payload, binary
 
 
-def probe(target, payload, executable, *, model_reader=True):
+def probe(target, payload, executable, *, model_reader=True, record_in_payload=True):
     root = payload / 'GMAT-Qt.app/Contents/Resources' if target.startswith('macos') else payload
     report = ROOT / 'probe-values.csv'
     saved = ROOT / 'saved-spacecraft.script'
@@ -706,7 +708,8 @@ Report Reopened Sat.X Sat.Y Sat.Z Sat.VX Sat.VY Sat.VZ;
             'lookup': 'Native bundle plugin path only; SDK paths excluded.',
             'reuse': None if model_reader else 'Same archived libraries and plugins as the package-stage reader pass.'}
     (LOGS / 'package-verification.json').write_text(json.dumps(result, indent=2) + '\n')
-    copy_file(LOGS / 'package-verification.json', root / 'PACKAGE-VERIFICATION.json')
+    if record_in_payload:
+        copy_file(LOGS / 'package-verification.json', root / 'PACKAGE-VERIFICATION.json')
     # Remove probe outputs from the reusable application bundle before archiving.
     for path in (payload / 'output').glob('*'):
         if path.is_file():
