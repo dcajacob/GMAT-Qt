@@ -153,7 +153,8 @@ def main():
         if software.is_file():
             shutil.copy2(software, probe.parent/'opengl32.dll')
             environment['QT_OPENGL_DLL'] = str(probe.parent/'opengl32.dll')
-    builder.run([driver], 'tutorial-semantic-driver', env=dict(environment, QT_QPA_PLATFORM='offscreen'))
+    driver_backend = 'windows' if os.name == 'nt' else 'offscreen'
+    builder.run([driver], 'tutorial-semantic-driver', env=dict(environment, QT_QPA_PLATFORM=driver_backend))
     startup = payload/'gmat_startup_qt.txt' if args.platform.startswith('macos') else binary/'gmat_startup_qt.txt'
     desktop = 'isolated-x11' if args.platform.startswith('linux') else 'native'
     command = [sys.executable, builder.REPO/'src/qtgui/tests/RunTutorials.py', '--desktop', desktop,
