@@ -38,7 +38,9 @@ jobs:
         env:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          if [[ "$COMMIT_MESSAGE" == *'[windows-only]'* && '${{ matrix.platform }}' != 'windows-x64' ]]; then
+          if [[ "$COMMIT_MESSAGE" == *'[mac-retry]'* && '${{ matrix.platform }}' == 'windows-x64' ]]; then
+            echo 'run=false' >> "$GITHUB_OUTPUT"
+          elif [[ "$COMMIT_MESSAGE" == *'[windows-only]'* && '${{ matrix.platform }}' != 'windows-x64' ]]; then
             echo 'run=false' >> "$GITHUB_OUTPUT"
           else
             echo 'run=true' >> "$GITHUB_OUTPUT"
@@ -67,6 +69,7 @@ jobs:
       - name: Build observer and reconstruct tutorials through GUI input
         if: steps.selected.outputs.run == 'true'
         env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           TUTORIAL_SELECTION: ${{ inputs.tutorials }}
         shell: bash
         run: |
@@ -79,7 +82,10 @@ jobs:
           assert len(archives) == 1
           command = [sys.executable, 'tools/preview/RunPackagedTutorials.py',
                      '--platform', '${{ matrix.platform }}', '--archive', str(archives[0]), '--smoother-fix']
-          for number in filter(None, os.environ.get('TUTORIAL_SELECTION', '').split(',')):
+          selection = os.environ.get('TUTORIAL_SELECTION', '')
+          if '[mac-retry]' in os.environ.get('COMMIT_MESSAGE', '') and not selection:
+              selection = '6,11'
+          for number in filter(None, selection.split(',')):
               command += ['--tutorial', number]
           raise SystemExit(subprocess.call(command))
           PY

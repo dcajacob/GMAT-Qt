@@ -108,7 +108,10 @@ def main():
     if args.smoother_fix:
         suffix = '.dll' if os.name == 'nt' else '.dylib' if args.platform.startswith('macos') else '.so'
         plugins = root/'Contents/PlugIns' if args.platform.startswith('macos') else root/'plugins'
-        for name, directory in [('GmatBase', binary), ('EKF', plugins)]:
+        replacements = [('GmatBase', binary), ('EKF', plugins)]
+        if args.platform.startswith('macos'):
+            replacements.insert(0, ('GmatUtil', binary))
+        for name, directory in replacements:
             repaired = next(build.rglob('lib'+name+suffix))
             destinations = [directory/('lib'+name+suffix)]
             if args.platform.startswith('macos'):
@@ -156,6 +159,15 @@ def main():
     driver_backend = 'windows' if os.name == 'nt' else 'offscreen'
     builder.run([driver], 'tutorial-semantic-driver', env=dict(environment, QT_QPA_PLATFORM=driver_backend))
     startup = payload/'gmat_startup_qt.txt' if args.platform.startswith('macos') else binary/'gmat_startup_qt.txt'
+    if args.platform.startswith('macos'):
+        text = startup.read_text()
+        def plugin_path(match):
+            name = Path(match[1].strip()).name
+            library = root/'Contents/Frameworks'/(name+'.R2026a.dylib')
+            return 'PLUGIN = '+str(library.with_suffix('')) if library.is_file() else match[0]
+        text = re.sub(r'^PLUGIN\s*=\s*(.+)$', plugin_path, text, flags=re.M)
+        startup = output/'canonical-macos-startup.txt'
+        startup.write_text(text)
     desktop = 'isolated-x11' if args.platform.startswith('linux') else 'native'
     command = [sys.executable, builder.REPO/'src/qtgui/tests/RunTutorials.py', '--desktop', desktop,
         '--probe', probe, '--startup', startup, '--pause-ms', '0', '--input-delay-ms', '20',

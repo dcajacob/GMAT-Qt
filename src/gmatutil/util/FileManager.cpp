@@ -41,6 +41,7 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <filesystem>
 
 #include <algorithm>                    // Required for GCC 4.3
 
@@ -256,7 +257,8 @@ bool FileManager::SetBinDirectory(const std::string &appName, const std::string 
       // Set absolute bin directory if it is not relative path and appName found
       if (appFullPath[0] != '.')
       {
-         std::string appPath = GmatFileUtil::ParsePathName(appFullPath);
+         std::string appPath = binDir.empty() ? GmatFileUtil::ParsePathName(appFullPath) :
+            std::filesystem::u8path(appFullPath).parent_path().u8string() + GmatFileUtil::GetPathSeparator();
          std::string newPath = appPath + appName; // HAS Windows name!!!
 
          if (GmatFileUtil::DoesFileExist(newPath))
