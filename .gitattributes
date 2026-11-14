@@ -1,0 +1,2 @@
+# These license bytes are checked against the upstream SHA-256 receipts.
+/tools/preview/licenses/*.txt -text

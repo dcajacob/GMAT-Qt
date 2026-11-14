@@ -18,7 +18,8 @@ jobs:
         include: >-
           ${{ fromJSON(contains(github.event.head_commit.message, '[linux-package]') &&
           '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"}]' ||
-          contains(github.event.head_commit.message, '[windows-build]') &&
+          (contains(github.event.head_commit.message, '[windows-build]') ||
+          contains(github.event.head_commit.message, '[windows-package]')) &&
           '[{"runner":"windows-2022","platform":"windows-x64"}]' ||
           '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"},
           {"runner":"windows-2022","platform":"windows-x64"},
@@ -70,6 +71,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libopenscenegraph-dev libxerces-c-dev libgl1-mesa-dev libglu1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-render-util0 libxcb-image0 libfontconfig1 xvfb xauth
+      - name: Restore Windows compilation for packaging repair
+        if: matrix.platform == 'windows-x64' && contains(github.event.head_commit.message, '[windows-package]')
+        uses: actions/download-artifact@v4
+        with:
+          name: native-inputs-windows-x64
+          run-id: 43564140744
+          github-token: ${{ github.token }}
+          path: build/preview-package/reuse-native
       - name: Build and verify alpha package
         run: python tools/preview/BuildPreviewPackage.py --platform ${{ matrix.platform }} --version 0.1.0-alpha.1
       - name: Preserve diagnostics
