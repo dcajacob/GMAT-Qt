@@ -22,11 +22,13 @@ def windows_build_environment():
         '-property', 'installationPath'], text=True).strip()
     setup = Path(installation)/'VC/Auxiliary/Build/vcvars64.bat'
     result = subprocess.check_output(f'"{setup}" >nul && set', shell=True, text=True)
-    environment = dict(os.environ)
+    environment = {name.upper(): value for name, value in os.environ.items()}
     for line in result.splitlines():
         if '=' in line and not line.startswith('='):
             name, value = line.split('=', 1)
-            environment[name] = value
+            environment[name.upper()] = value
+    if not shutil.which('dumpbin.exe', path=environment['PATH']):
+        raise RuntimeError('The Visual C++ environment did not provide dumpbin.exe')
     return environment
 
 
@@ -34,13 +36,13 @@ def import_libraries(binary, plugins, output, environment):
     output.mkdir()
     for name in ['GmatBase', 'GmatUtil', 'GmatEstimation']:
         dll = (plugins if name == 'GmatEstimation' else binary)/('lib'+name+'.dll')
-        exports = subprocess.check_output(['dumpbin', '/nologo', '/exports', str(dll)],
+        exports = subprocess.check_output([shutil.which('dumpbin.exe', path=environment['PATH']), '/nologo', '/exports', str(dll)],
                                           env=environment, text=True)
         symbols = re.findall(r'^\s+\d+\s+[0-9A-F]+\s+[0-9A-F]+\s+(\S+)', exports, re.M)
         assert symbols, dll
         definition = output/(name+'.def')
         definition.write_text('LIBRARY '+dll.name+'\nEXPORTS\n'+'\n'.join(symbols)+'\n')
-        subprocess.run(['lib', '/nologo', '/machine:x64', '/def:'+str(definition),
+        subprocess.run([shutil.which('lib.exe', path=environment['PATH']), '/nologo', '/machine:x64', '/def:'+str(definition),
                         '/out:'+str(output/(name+'.lib'))], env=environment, check=True)
 
 
