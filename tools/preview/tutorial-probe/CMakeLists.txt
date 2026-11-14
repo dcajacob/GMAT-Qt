@@ -84,6 +84,17 @@ endif()
 set(GMAT_QT_TUTORIAL_ONLY ON)
 add_subdirectory("${GMAT_SOURCE_DIR}/src/qtgui" frontend)
 
+option(GMAT_EVENT_RESULT_TESTS "Build the independent eclipse and contact checks" OFF)
+if(GMAT_EVENT_RESULT_TESTS)
+   find_package(Qt6 REQUIRED COMPONENTS Test)
+   find_library(event_cspice NAMES cspice cspice.a PATHS "${CSPICE_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
+   foreach(family Eclipse Contact)
+      add_executable(GmatQtNasa${family}ResultTests
+         "${GMAT_SOURCE_DIR}/src/qtgui/tests/Nasa${family}ResultTests.cpp")
+      target_link_libraries(GmatQtNasa${family}ResultTests PRIVATE GmatQtFrontend Qt6::Test "${event_cspice}")
+   endforeach()
+endif()
+
 option(GMAT_TUTORIAL_PATCH_SMOOTHER "Build the targeted smoother repair against archive libraries" OFF)
 if(GMAT_TUTORIAL_PATCH_SMOOTHER)
    if(APPLE)

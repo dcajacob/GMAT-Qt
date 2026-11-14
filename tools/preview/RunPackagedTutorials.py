@@ -52,6 +52,8 @@ def main():
     parser.add_argument('--archive', type=Path, required=True)
     parser.add_argument('--tutorial', action='append')
     parser.add_argument('--smoother-fix', action='store_true')
+    parser.add_argument('--event-results', action='store_true',
+                        help='Run the independent eclipse and contact result cases')
     parser.add_argument('--output', type=Path, default=builder.REPO/'build/tutorial-release')
     args = parser.parse_args()
     output = args.output.resolve()
@@ -99,16 +101,24 @@ def main():
         environment['QT_PLUGIN_PATH'] = str(qt/'plugins')
         environment['GMAT_QT_TUTORIAL_PLUGIN_PATH'] = str(qt/'plugins')
     if args.smoother_fix:
-        options += ['-DGMAT_TUTORIAL_PATCH_SMOOTHER=ON', '-DGMAT_TUTORIAL_BUILD_BASE=ON']
+        options += ['-DGMAT_TUTORIAL_BUILD_BASE=ON']
+        if not args.event_results:
+            options += ['-DGMAT_TUTORIAL_PATCH_SMOOTHER=ON']
+    targets = []
+    if args.event_results:
+        options += ['-DGMAT_EVENT_RESULT_TESTS=ON']
+        targets = ['--target', 'GmatQtNasaEclipseResultTests', 'GmatQtNasaContactResultTests']
     builder.run(['cmake', '-S', builder.REPO/'tools/preview/tutorial-probe', '-B', build, *options],
                 'tutorial-probe-configure', env=environment)
-    builder.run(['cmake', '--build', build, '--config', 'Release', '--parallel', builder.BUILD_JOBS],
+    builder.run(['cmake', '--build', build, '--config', 'Release', *targets, '--parallel', builder.BUILD_JOBS],
                 'tutorial-probe-build', env=environment)
     patches = []
     if args.smoother_fix:
         suffix = '.dll' if os.name == 'nt' else '.dylib' if args.platform.startswith('macos') else '.so'
         plugins = root/'Contents/PlugIns' if args.platform.startswith('macos') else root/'plugins'
-        replacements = [('GmatBase', binary), ('EKF', plugins)]
+        replacements = [('GmatBase', binary)]
+        if not args.event_results:
+            replacements.append(('EKF', plugins))
         if args.platform.startswith('macos'):
             replacements.insert(0, ('GmatUtil', binary))
         for name, directory in replacements:
@@ -140,6 +150,24 @@ def main():
                                 'patched_sha256': hashlib.sha256(destination.read_bytes()).hexdigest(),
                                 'reason': 'Tutorial regression repairs'})
     suffix = '.exe' if os.name == 'nt' else ''
+    if args.event_results:
+        executables = [next(build.rglob('GmatQtNasa'+family+'ResultTests'+suffix))
+                       for family in ['Eclipse', 'Contact']]
+    else:
+        executables = [next(build.rglob('GmatQtTutorialProbe'+suffix))]
+    for executable in executables:
+        if args.platform.startswith('macos'):
+            libraries = subprocess.check_output(['otool', '-L', executable], text=True).splitlines()[1:]
+            for line in libraries:
+                old = line.strip().split(' (compatibility version', 1)[0]
+                if Path(old).name.startswith(('libGmatBase', 'libGmatUtil', 'libGmatEstimation')):
+                    target = root/'Contents/Frameworks'/Path(old).name
+                    if target.is_file():
+                        subprocess.run(['install_name_tool', '-change', old, str(target), str(executable)], check=True)
+            subprocess.run(['codesign', '--force', '--sign', '-', str(executable)], check=True)
+    if args.event_results:
+        from RunIndependentEvents import run_event_results
+        return run_event_results(args, payload, root, binary, executables, environment, patches)
     probe = next(build.rglob('GmatQtTutorialProbe'+suffix))
     driver = next(build.rglob('GmatQtTutorialDriverTests'+suffix))
     if args.platform.startswith('macos'):
