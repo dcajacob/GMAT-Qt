@@ -26,6 +26,7 @@ private:
       bool allowPopup=false,popupSeen=false;
    };
    QWidget &root;
+   QPointer<QWidget> lastInputTarget;
    QString directory,last;
    QTimer timer;
    std::vector<std::shared_ptr<Frame>> frames;

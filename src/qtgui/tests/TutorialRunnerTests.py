@@ -186,7 +186,7 @@ class TutorialContracts(unittest.TestCase):
 
     def test_paths_are_relocated_without_reading_an_old_authored_mission(self):
         with tempfile.TemporaryDirectory() as directory:
-            self.assertEqual(relocate('${WORK}/mine.script', Path(directory)), directory + '/mine.script')
+            self.assertEqual(relocate('${WORK}/mine.script', Path(directory)), Path(directory).as_posix() + '/mine.script')
 
     def test_active_panel_wins_after_window_positions_change(self):
         controls = [{'role': 'button', 'name': '', 'text': 'Apply', 'rect': [1400, 850, 80, 25], 'active_panel': False},

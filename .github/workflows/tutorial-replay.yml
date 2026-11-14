@@ -1,0 +1,84 @@
+name: Tutorial GUI replay
+
+on:
+  push:
+    branches: ['codex/tutorial-replay-alpha3']
+  workflow_dispatch:
+    inputs:
+      tutorials:
+        description: Optional comma-separated tutorial numbers
+        default: ''
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  replay:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2022
+            platform: windows-x64
+          - runner: macos-15
+            platform: macos-arm64
+          - runner: macos-15-intel
+            platform: macos-x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Restore Windows graphics SDK
+        if: matrix.platform == 'windows-x64'
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/preview-package/deps/osg
+            C:\vcpkg\installed
+          key: gmat-qt-preview-windows-2022-osg365-sdk-v1
+      - name: Download the frozen alpha.3 archive
+        uses: actions/download-artifact@v4
+        with:
+          name: alpha3-${{ matrix.platform }}
+          run-id: 43582612711
+          github-token: ${{ github.token }}
+          path: build/tutorial-archive
+      - name: Check tutorial runner contracts
+        run: python src/qtgui/tests/TutorialRunnerTests.py
+      - name: Build observer and reconstruct tutorials through GUI input
+        env:
+          TUTORIAL_SELECTION: ${{ inputs.tutorials }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          archives = [p for p in Path('build/tutorial-archive').iterdir() if p.suffix == '.zip']
+          assert len(archives) == 1
+          command = [sys.executable, 'tools/preview/RunPackagedTutorials.py',
+                     '--platform', '${{ matrix.platform }}', '--archive', str(archives[0])]
+          for number in filter(None, os.environ.get('TUTORIAL_SELECTION', '').split(',')):
+              command += ['--tutorial', number]
+          raise SystemExit(subprocess.call(command))
+          PY
+      - name: Preserve tutorial results and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tutorials-${{ matrix.platform }}
+          path: |
+            build/tutorial-release/replay/
+            build/tutorial-release/replay.log
+            build/tutorial-release/verification.json
+            build/preview-package/logs/
+          if-no-files-found: warn
+          retention-days: 30

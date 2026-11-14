@@ -26,6 +26,7 @@
 #include <QComboBox>
 #include <QLabel>
 #include <QMenu>
+#include <QMenuBar>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 #include <QTabBar>
@@ -53,6 +54,7 @@ static void write(const QString &path,const QByteArray &bytes)
 
 int main(int argc,char **argv)
 {
+   QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
    QApplication app(argc,argv);
    app.setOrganizationName("GMAT"); app.setApplicationName("GMAT Qt 6");
    QCommandLineParser parser;
@@ -84,8 +86,16 @@ int main(int argc,char **argv)
       QSettings::setPath(QSettings::IniFormat,QSettings::SystemScope,settings+"/system");
    }
    const auto startup=QFileInfo(parser.value("startup")).absoluteFilePath();
+   const auto runtime=qEnvironmentVariable("GMAT_QT_TUTORIAL_RUNTIME");
+   if (!runtime.isEmpty()) FileManager::Instance()->SetBinDirectory(
+      QFileInfo(runtime).fileName().toStdString(),runtime.toStdString());
    QDir::setCurrent(qEnvironmentVariable("GMAT_QT_TUTORIAL_WORKDIR",QCoreApplication::applicationDirPath()));
-   MainWindow window; window.show();
+   MainWindow window;
+#ifdef Q_OS_MACOS
+   window.menuBar()->setNativeMenuBar(false);
+#endif
+   window.show();
+   window.activateWindow();
    TutorialQtTestDriver input(window,directory);
    const auto controls=[&] {
       QJsonArray entries;
@@ -329,7 +339,22 @@ int main(int argc,char **argv)
    // This observes the event loop; it never performs a construction operation.
    QTimer barrierTimer;
    QByteArray acknowledged;
+   QByteArray capturedScreenshot;
    QObject::connect(&barrierTimer,&QTimer::timeout,&window,[&] {
+      QFile screenshotRequest(directory+"/screenshot-request.json");
+      if (screenshotRequest.open(QIODevice::ReadOnly)) {
+         const auto bytes=screenshotRequest.readAll();
+         if (!bytes.isEmpty() && bytes!=capturedScreenshot) {
+            capturedScreenshot=bytes;
+            const auto request=QJsonDocument::fromJson(bytes).object();
+            const auto name=request["filename"].toString();
+            const bool valid=QRegularExpression("^[0-9]+-[A-Za-z0-9_.-]+\\.png$").match(name).hasMatch();
+            const auto output=QDir(directory).absoluteFilePath("../screenshots/"+name);
+            const bool saved=valid && window.grab().save(output);
+            write(directory+"/screenshot-response.json",QJsonDocument(QJsonObject{
+               {"filename",name},{"ok",saved},{"capture","Qt widget rendering"}}).toJson());
+         }
+      }
       QFile request(directory+"/barrier.request");
       if (!request.open(QIODevice::ReadOnly)) return;
       const auto value=request.readAll();

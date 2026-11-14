@@ -54,11 +54,12 @@ QPoint buttonPoint(QAbstractButton *button)
    if (qobject_cast<QRadioButton *>(button)) return button->style()->subElementRect(QStyle::SE_RadioButtonIndicator,&option,button).center();
    return button->rect().center();
 }
-QWidget *focus(QWidget &root)
+QWidget *focus(QWidget &root,QWidget *previous=nullptr)
 {
    if (auto *popup=QApplication::activePopupWidget()) return popup->focusWidget() ? popup->focusWidget() : popup;
    if (auto *modal=QApplication::activeModalWidget()) return modal->focusWidget() ? modal->focusWidget() : modal;
-   return QApplication::focusWidget() ? QApplication::focusWidget() : &root;
+   if (auto *focused=QApplication::focusWidget()) return focused;
+   return previous && previous->isVisible() && previous->isEnabled() ? previous : &root;
 }
 }
 
@@ -89,7 +90,7 @@ TutorialQtTestDriver::Target TutorialQtTestDriver::locate(const QJsonObject &act
    const auto label=normalized(action["field_hint"].toString().section('|',0,0));
    if (name.isEmpty() && text.isEmpty() && label.isEmpty()) {
       if (kind!="key" && kind!="text") throw std::runtime_error("QtTest requires a semantic selector; coordinate fallback is disabled");
-      auto *widget=focus(root);
+      auto *widget=focus(root,lastInputTarget);
       if (!widget || !widget->isVisible() || !widget->isEnabled()) throw std::runtime_error("No enabled focused GUI control");
       return {widget,widget->rect().center(),"focus",-1,{{"name",widget->objectName()},{"class",widget->metaObject()->className()}}};
    }
@@ -180,6 +181,7 @@ void TutorialQtTestDriver::execute(const QJsonObject &action,Target target,const
 {
    auto *widget=target.widget.data();
    if (!widget) throw std::runtime_error("GUI control was destroyed before input");
+   QApplication::setActiveWindow(widget->window());
    for (auto *parent=widget->parentWidget();parent;parent=parent->parentWidget())
       if (auto *scroll=qobject_cast<QScrollArea *>(parent)) scroll->ensureWidgetVisible(widget);
    if (target.role=="tree") {
@@ -200,7 +202,15 @@ void TutorialQtTestDriver::execute(const QJsonObject &action,Target target,const
       if (auto *combo=qobject_cast<QComboBox *>(widget);combo && combo->isEditable()) {
          widget=combo->lineEdit(); target.point=widget->rect().center();
       }
-   if (kind=="window") { root.showMaximized(); return; }
+   if (kind=="window") {
+      const auto size=qEnvironmentVariable("GMAT_QT_TUTORIAL_WINDOW_SIZE").split('x');
+      if (size.size()==2) {
+         root.showNormal();
+         root.resize(size[0].toInt(),size[1].toInt());
+      } else root.showMaximized();
+      return;
+   }
+   lastInputTarget=(target.role=="tree" || target.role=="list") ? target.widget.data() : widget;
    if (target.role=="tab") {
       auto *tabs=qobject_cast<QTabBar *>(widget);
       // Keyboard navigation also handles tabs clipped by scroll arrows.
@@ -242,6 +252,7 @@ void TutorialQtTestDriver::execute(const QJsonObject &action,Target target,const
    if (kind=="click") {
       const auto button=action["button"].toInt(1)==3 ? Qt::RightButton : Qt::LeftButton;
       if (auto *control=qobject_cast<QAbstractButton *>(widget)) target.point=buttonPoint(control);
+      if (widget->focusPolicy()!=Qt::NoFocus) widget->setFocus(Qt::MouseFocusReason);
       QTest::mouseClick(widget,button,Qt::NoModifier,target.point);
       if (action["count"].toInt(1)==2) QTest::mouseDClick(widget,button,Qt::NoModifier,target.point);
       if (button==Qt::RightButton && !frame->popupSeen && !QApplication::activePopupWidget()) {
@@ -251,6 +262,7 @@ void TutorialQtTestDriver::execute(const QJsonObject &action,Target target,const
       return;
    }
    if (kind=="key" || kind=="text") {
+      if (widget->focusPolicy()!=Qt::NoFocus) widget->setFocus(Qt::OtherFocusReason);
       if (action.contains("target_name") || action.contains("field_hint"))
          if (QApplication::focusWidget()!=widget && QApplication::focusWidget()!=target.widget.data())
             QTest::mouseClick(widget,Qt::LeftButton,Qt::NoModifier,target.point);
@@ -274,7 +286,19 @@ void TutorialQtTestDriver::execute(const QJsonObject &action,Target target,const
          keys.replace(QRegularExpression("\\bCTRL\\b",QRegularExpression::CaseInsensitiveOption),"Ctrl");
          keys.replace(QRegularExpression("\\bESC\\b",QRegularExpression::CaseInsensitiveOption),"Esc");
          keys.replace(QRegularExpression("\\bENTER\\b",QRegularExpression::CaseInsensitiveOption),"Return");
-         const auto sequence=QKeySequence::fromString(keys,QKeySequence::PortableText);
+         auto sequence=QKeySequence::fromString(keys,QKeySequence::PortableText);
+#ifdef Q_OS_MACOS
+         // Recipes name standard shortcuts in portable Ctrl notation. Use
+         // the native binding for operations implemented with StandardKey.
+         const QMap<QString,QKeySequence::StandardKey> standardKeys{
+            {"Ctrl+N",QKeySequence::New},{"Ctrl+O",QKeySequence::Open},
+            {"Ctrl+S",QKeySequence::Save},{"Ctrl+Shift+S",QKeySequence::SaveAs},
+            {"Ctrl+A",QKeySequence::SelectAll},{"Ctrl+C",QKeySequence::Copy},
+            {"Ctrl+X",QKeySequence::Cut},{"Ctrl+V",QKeySequence::Paste},
+            {"Ctrl+Z",QKeySequence::Undo},{"Ctrl+Shift+Z",QKeySequence::Redo}};
+         const auto standard=standardKeys.constFind(sequence.toString(QKeySequence::PortableText));
+         if (standard!=standardKeys.cend()) sequence=QKeySequence(standard.value());
+#endif
          if (sequence.count()!=1 || sequence[0].key()==Qt::Key_unknown || sequence[0].key()==0) throw std::runtime_error("Unsupported GUI key sequence");
          QTest::keyClick(widget,sequence[0].key(),sequence[0].keyboardModifiers(),0);
       }
