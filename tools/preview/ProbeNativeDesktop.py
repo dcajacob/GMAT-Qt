@@ -47,6 +47,13 @@ def main():
              'status':'graphics-unavailable','full_regression_run':False}
     # Qt's OpenGL widget needs an OpenGL 2.0-capable context.
     supported=graphics['available'] and not graphics.get('version','1').startswith('1.')
+    if args.platform.startswith('windows') and not supported:
+        context=json.loads((builder.ROOT / 'native-build-context.json').read_text())
+        software=Path(context['qt']) / 'bin/opengl32sw.dll'
+        graphics['qt_software_fallback_available']=software.is_file()
+        supported=software.is_file()
+        if supported:
+            graphics['qt_software_fallback_sha256']=hashlib.sha256(software.read_bytes()).hexdigest()
     if supported:
         executable=args.test_executable
         if executable is None:
@@ -64,6 +71,7 @@ def main():
                 executable.chmod(0o755)
             receipt['test_source_commit']=metadata['source_commit']
         environment=dict(os.environ,QT_QPA_PLATFORM=graphics['qpa'],GMAT_QT_ACCEPTANCE_DIR=str(output))
+        environment['QT_LOGGING_RULES']='qt.qpa.gl=true'
         environment['PATH']=str(builder.REPO / 'application/bin')+os.pathsep+environment.get('PATH','')
         if args.platform.startswith('windows'):
             context=json.loads((builder.ROOT / 'native-build-context.json').read_text())

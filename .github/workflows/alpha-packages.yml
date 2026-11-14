@@ -40,7 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 5
+          fetch-depth: 8
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -82,7 +82,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: shared-native-${{ matrix.platform }}
-          run-id: 43571970404
+          run-id: 43569982756
           github-token: ${{ github.token }}
           path: build/preview-package/reuse-drag
       - name: Restore verified compilation for Linux packaging repair
@@ -107,10 +107,23 @@ jobs:
           github-token: ${{ github.token }}
           path: build/preview-package/reuse-native
       - name: Build and verify alpha package
+        if: "!(matrix.platform == 'windows-x64' && contains(github.event.head_commit.message, '[graphics-fix]'))"
         env:
           PACKAGE_VERSION: ${{ inputs.version || '0.1.0-alpha.2' }}
         run: python tools/preview/BuildPreviewPackage.py --platform ${{ matrix.platform }} --version "$PACKAGE_VERSION"
         shell: bash
+      - name: Reuse verified Windows package
+        if: matrix.platform == 'windows-x64' && contains(github.event.head_commit.message, '[graphics-fix]')
+        uses: actions/download-artifact@v4
+        with:
+          name: alpha-windows-x64
+          run-id: 43575557766
+          github-token: ${{ github.token }}
+          path: build/preview-package/dist
+      - name: Restore Windows runtime for the missing graphics check
+        if: matrix.platform == 'windows-x64' && contains(github.event.head_commit.message, '[graphics-fix]')
+        shell: bash
+        run: python -c "import sys; sys.path.insert(0, 'tools/preview'); import BuildPreviewPackage as b; b.LOGS.mkdir(parents=True, exist_ok=True); assert b.restore_native('windows-x64')"
       - name: Check native OpenGL orbit interaction
         shell: bash
         run: |
@@ -144,6 +157,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: Upload verified alpha package
+        if: always() && hashFiles('build/preview-package/dist/*') != ''
         uses: actions/upload-artifact@v4
         with:
           name: alpha-${{ matrix.platform }}
