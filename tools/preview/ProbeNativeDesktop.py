@@ -39,7 +39,7 @@ def main():
     graphics=json.loads(result.stdout.strip().splitlines()[-1]) if result.stdout.strip() else {'available':False}
     renderer=graphics.get('renderer','').lower()
     graphics['software_renderer']=any(name in renderer for name in (
-        'llvmpipe','softpipe','software rasterizer','gdi generic','basic render','swiftshader'))
+        'llvmpipe','softpipe','software','gdi generic','basic render','swiftshader'))
     graphics['qpa']='windows' if args.platform.startswith('windows') else (
         'cocoa' if args.platform.startswith('macos') else 'xcb')
     receipt={'platform':args.platform,'graphics':graphics,'test':'QtGui.OrbitDragDirection',
