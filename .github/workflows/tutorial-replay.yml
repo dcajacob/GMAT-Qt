@@ -35,14 +35,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Restore Windows graphics SDK
+      - name: Restore Windows tutorial SDK
         if: matrix.platform == 'windows-x64'
         uses: actions/cache/restore@v4
         with:
           path: |
+            build/preview-package/deps/qt
             build/preview-package/deps/osg
             C:\vcpkg\installed
-          key: gmat-qt-preview-windows-2022-osg365-sdk-v1
+          key: gmat-tutorial-windows-sdk-v1
       - name: Download the frozen alpha.3 archive
         uses: actions/download-artifact@v4
         with:
@@ -82,3 +83,12 @@ jobs:
             build/preview-package/logs/
           if-no-files-found: warn
           retention-days: 30
+      - name: Cache Windows tutorial SDK
+        if: always() && matrix.platform == 'windows-x64'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build/preview-package/deps/qt
+            build/preview-package/deps/osg
+            C:\vcpkg\installed
+          key: gmat-tutorial-windows-sdk-v1
