@@ -5,6 +5,7 @@ import json
 import math
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tomllib
@@ -12,10 +13,10 @@ import tomllib
 from mcp import Client, StdioServerParameters
 
 
-async def call(client, name, **arguments):
-    result = await client.call_tool(name, arguments)
+async def call(client, tool_name, **arguments):
+    result = await client.call_tool(tool_name, arguments)
     if result.is_error or result.structured_content is None:
-        raise RuntimeError(f'{name} failed: {result}')
+        raise RuntimeError(f'{tool_name} failed: {result}')
     return result.structured_content
 
 
@@ -52,8 +53,6 @@ P.FM = FM;
 P.Accuracy = 1e-12;
 P.MinStep = 0;
 P.MaxStep = 5;
-Create OrbitView Orbit;
-Orbit.Add = {{Sat, Earth}};
 BeginMissionSequence;
 Propagate P(Sat) {{Sat.ElapsedSecs = 600}};
 '''
@@ -93,6 +92,8 @@ async def execute(client, session):
 async def qualify(args):
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
+    workspace = args.workspace.resolve()
+    workspace.mkdir(parents=True, exist_ok=True)
     root = args.root.resolve()
     discovery = command(['discover', '--root', str(root), '--python', args.worker], output/'discovery.json')
     assert len(discovery['profiles']) == 1 and discovery['profiles'][0]['ready'], discovery
@@ -101,8 +102,8 @@ async def qualify(args):
                           output/'profile-generation.json')
     assert len(initialized['profiles']) == 1
     contents = config.read_text().replace('[server]\n', '[server]\n' +
-        'data_dir = ' + json.dumps(str(output/'data')) + '\n' +
-        'desktop_discovery_dir = ' + json.dumps(str(output/'desktops')) + '\n')
+        'data_dir = ' + json.dumps(str(workspace/'data')) + '\n' +
+        'desktop_discovery_dir = ' + json.dumps(str(workspace/'desktops')) + '\n')
     config.write_text(contents)
     parsed = tomllib.loads(contents)
     assert len(parsed['profiles']) == 1
@@ -129,16 +130,17 @@ async def qualify(args):
             session = await call(client, 'get_session', session_id=session['session_id'])
             result['worker'] = await execute(client, session)
             await call(client, 'close_session', session_id=session['session_id'])
-            script = output/'desktop.script'
+            script = workspace/'desktop.script'
             script.write_text(mission())
             launcher = root/'run-gmat'
             if not launcher.is_file():
-                launcher = root/('Contents/MacOS/GmatQt' if root.suffix == '.app' else 'bin/GmatQt.exe')
+                launcher = root/'Contents/MacOS/GmatQt' if root.suffix == '.app' else root/'bin'/(
+                    'GmatQt.exe' if os.name == 'nt' else 'GmatQt')
             environment = dict(os.environ, QT_QPA_PLATFORM='offscreen',
                                QT_MAC_DISABLE_FOREGROUND_APPLICATION_TRANSFORM='1')
             with (output/'desktop.log').open('w') as log:
                 gui = subprocess.Popen([str(launcher), '--mcp-bridge', '--mcp-discovery-dir',
-                    str(output/'desktops'), '--settings-dir', str(output/'settings'), str(script)],
+                    str(workspace/'desktops'), '--settings-dir', str(workspace/'settings'), str(script)],
                     env=environment, cwd=output, stdout=log, stderr=subprocess.STDOUT)
             async with asyncio.timeout(60):
                 while True:
@@ -164,6 +166,10 @@ async def qualify(args):
             assert gui.poll() is None
             result['desktop']['detach_preserved_gui'] = True
         result['status'] = 'passed'
+    except Exception as error:
+        result['status'] = 'failed'
+        result['error'] = str(error)
+        raise
     finally:
         if gui is not None and gui.poll() is None:
             gui.terminate()
@@ -172,6 +178,7 @@ async def qualify(args):
             except subprocess.TimeoutExpired:
                 gui.kill()
                 gui.wait()
+        shutil.rmtree(workspace/'desktops', ignore_errors=True)
         (output/'mcp-verification.json').write_text(json.dumps(result, indent=2)+'\n')
     print(json.dumps({'status': result['status'], 'profile_id': profile_id}))
 
@@ -181,4 +188,5 @@ if __name__ == '__main__':
     parser.add_argument('--root', required=True, type=Path)
     parser.add_argument('--worker', required=True)
     parser.add_argument('--output', required=True, type=Path)
+    parser.add_argument('--workspace', required=True, type=Path)
     asyncio.run(qualify(parser.parse_args()))

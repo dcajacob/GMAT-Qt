@@ -33,7 +33,8 @@ dependency hashes.
     /path/to/mcp-env/bin/gmat-mcp --config profiles.toml serve
 
 On Windows, use ``py -3.12`` for the installer, ``mcp-env\Scripts\gmat-mcp.exe``
-for the MCP commands and ``GMAT-Qt\bin\GmatQt.exe --mcp-bridge`` for the GUI.
+for the MCP commands, the full path to the matching Python 3.12 executable
+for ``--python``, and ``GMAT-Qt\bin\GmatQt.exe --mcp-bridge`` for the GUI.
 On macOS, pass ``GMAT-Qt.app`` as the installation root and launch
 ``GMAT-Qt.app/Contents/MacOS/GmatQt --mcp-bridge``. Keep the adjacent startup
 file with the app.

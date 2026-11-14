@@ -219,6 +219,7 @@ def preserve_native(target, qt, osg, prefix, *, extra_files=(), python_api=False
         prefix = DEPS / 'package-vcpkg'
     metadata = {'platform': target, 'production_tree_sha256': production_tree(),
         'build_flavor': build_flavor(python_api),
+        'python_build': platform.python_version() if python_api else None,
         'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
         'qt': str(qt), 'osg': str(osg), 'prefix': str(prefix),
         'file_sha256': {n: hashlib.sha256(p.read_bytes()).hexdigest() for n,p in paths.items()}}
@@ -362,7 +363,8 @@ def relocate_macos(bundle):
             elif old.startswith('@rpath/'):
                 # Qt's deploy tool resolves its framework references first.
                 candidates = [frameworks / old[len('@rpath/'):], path.parent / old[len('@rpath/'):],
-                              binary.parent / old[len('@rpath/'):]]
+                              binary.parent / old[len('@rpath/'):],
+                              bundle / 'Contents/PlugIns' / old[len('@rpath/'):]]
                 source = next((p for p in candidates if p.exists()), None)
                 if source is None:
                     raise RuntimeError(f'Unresolved runtime dependency {old} in {path}')
@@ -373,7 +375,7 @@ def relocate_macos(bundle):
             if source.resolve() == path.resolve():
                 continue
             try:
-                source.resolve().relative_to(frameworks.resolve())
+                source.resolve().relative_to(bundle.resolve())
                 target = source.resolve()
             except ValueError:
                 target = frameworks / source.name
@@ -499,10 +501,13 @@ def stage_package(target, qt, osg, prefix):
     if PYTHON_API:
         for path in python_api_files():
             copy_file(path, payload / 'bin' / path.relative_to(REPO / 'application/bin'))
+        compiled = json.loads((ROOT / 'native-build-context.json').read_text())
         metadata = {'implementation': 'CPython', 'python_version': '3.12',
+                    'python_build': compiled.get('python_build'),
                     'architecture': target, 'modules': ['gmat', 'station', 'navigation'],
                     'build_flavor': build_flavor(True),
-                    'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()}
+                    'source_commit': compiled['source_commit'],
+                    'package_source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()}
         (payload / 'PYTHON-API.json').write_text(json.dumps(metadata, indent=2) + '\n')
     collect_notices(payload, qt, osg, prefix)
     suffix = '.dll' if target.startswith('windows') else '.so*' if target.startswith('linux') else '.dylib'
@@ -513,6 +518,9 @@ def stage_package(target, qt, osg, prefix):
     startup = REPO / 'application/bin/gmat_startup_qt.txt'
     assert not re.search(r'(?im)^PLUGIN\s*=.*(Matlab|Fmincon|VF13ad)', startup.read_text())
     copy_file(startup, payload / 'bin/gmat_startup_qt.txt')
+    if PYTHON_API:
+        # gmatpy uses the standard startup filename to establish its bin path.
+        copy_file(startup, payload / 'bin/gmat_startup_file.txt')
     if target.startswith('linux'):
         return payload, stage_linux(payload, qt, osg)
     if target.startswith('windows'):
@@ -549,6 +557,8 @@ def stage_package(target, qt, osg, prefix):
     startup_path.write_text(re.sub(r'(?m)^OUTPUT_PATH\s*=.*$',
                                  'OUTPUT_PATH = ../../../output/', startup_text)
                             .replace('../plugins/', '../PlugIns/'))
+    if PYTHON_API:
+        copy_file(startup_path, contents / 'MacOS/gmat_startup_file.txt')
     binary = contents / 'MacOS/GmatQt'
     copy_file(REPO / 'application/bin/GmatQt', binary)
     binary.chmod(0o755)

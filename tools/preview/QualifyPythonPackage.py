@@ -30,6 +30,10 @@ def clean_environment():
         environment['PATH'] = os.pathsep.join(map(str, [system/'System32', system]))
     else:
         environment['PATH'] = '/usr/bin:/bin'
+        if sys.platform.startswith('linux'):
+            # Hosted CPython may need its own shared runtime directory.
+            # GMAT paths are supplied only from the extracted installation.
+            environment['LD_LIBRARY_PATH'] = str(Path(sys.base_prefix)/'lib')
     return environment
 
 
@@ -131,6 +135,10 @@ def qualify(target, archive):
     if runtime.exists():
         shutil.copy2(runtime, logs/'linux-runtime.json')
     environment = clean_environment()
+    for key in ['LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'PYTHONPATH']:
+        for entry in environment.get(key, '').split(os.pathsep):
+            if entry:
+                assert not Path(entry).resolve().is_relative_to(builder.REPO.resolve()), (key, entry)
     bundle = workspace/'gmat-mcp.zip'
     digest = builder.download(
         f'https://github.com/dcajacob/GMAT-mcp/releases/download/v{MCP_VERSION}/gmat-mcp-{MCP_VERSION}-bundle.zip', bundle)
@@ -161,7 +169,8 @@ def qualify(target, archive):
         package_result = builder.probe(target, payload, executable, model_reader=False)
         with (logs/'mcp-protocol.log').open('w') as log:
             subprocess.run([str(interpreter), '-I', str(driver), '--root', str(root),
-                '--worker', sys.executable, '--output', str(logs/'mcp')], env=environment,
+                '--worker', sys.executable, '--output', str(logs/'mcp'),
+                '--workspace', str(workspace/'mcp-work')], env=environment,
                 cwd=workspace, stdout=log, stderr=subprocess.STDOUT, check=True)
     finally:
         builder.ROOT, builder.LOGS = original_root, original_logs
@@ -175,6 +184,8 @@ def qualify(target, archive):
                'python': metadata, 'mcp_release': MCP_VERSION, 'mcp_bundle_sha256': MCP_SHA256,
                'package_checks': package_result,
                'mcp': json.loads((logs/'mcp/mcp-verification.json').read_text()),
+               'qualification_library_environment': {key: environment.get(key, '')
+                   for key in ['LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'PYTHONPATH']},
                'original_build_outputs_hidden_during_checks': True,
                'full_regression_run': False}
     (logs/'verification.json').write_text(json.dumps(receipt, indent=2)+'\n')
