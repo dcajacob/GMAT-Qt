@@ -57,6 +57,47 @@ static Moderator   *mod          = NULL;
 static GmatGlobal  *gmatGlobal   = NULL;
 static std::string lastRunScript = "";
 
+namespace
+{
+std::string ConsoleFilename(const std::string &value)
+{
+   if (value.size() >= 2 && (value.front() == '\'' || value.front() == '"') &&
+       value.back() == value.front())
+      return value.substr(1, value.size() - 2);
+   return value;
+}
+
+std::string OptionValue(int argc, char *argv[], int &index)
+{
+   const std::string option = argv[index];
+   if (index + 1 >= argc || argv[index + 1][0] == '\0' || argv[index + 1][0] == '-')
+      throw ConsoleAppException("Missing value for " + option);
+   const std::string value = ConsoleFilename(argv[++index]);
+   if (value.empty())
+      throw ConsoleAppException("Missing value for " + option);
+   return value;
+}
+
+bool ReadBatchEntry(std::ifstream &input, std::string &entry)
+{
+   input >> std::ws;
+   const int next = input.peek();
+   if (next == std::char_traits<char>::eof())
+      return false;
+   if (next == '%')
+      return static_cast<bool>(std::getline(input, entry));
+   if (next == '\'' || next == '"')
+   {
+      input.get();
+      std::getline(input, entry, static_cast<char>(next));
+      if (!input || input.eof() || entry.empty())
+         throw ConsoleAppException("Invalid quoted script filename in batch file");
+      return true;
+   }
+   return static_cast<bool>(input >> entry);
+}
+}
+
 //------------------------------------------------------------------------------
 //  void ShowHelp()
 //------------------------------------------------------------------------------
@@ -214,12 +255,10 @@ Integer RunBatch(std::string& batchfilename)
       errstr += batchfilename;
       errstr += " does not exist";
       std::cout << errstr << std::endl;
-      return 0;
+      throw ConsoleAppException(errstr);
    }
-   
-   batchfile >> script;
 
-   while (!batchfile.eof())
+   while (ReadBatchEntry(batchfile, script))
    {
       if (script == "--summary")
       {
@@ -272,8 +311,9 @@ Integer RunBatch(std::string& batchfilename)
             ++skipped;
          }
       }
-      batchfile >> script;
    }
+   if (batchfile.bad())
+      throw ConsoleAppException("Error reading batch file \"" + batchfilename + "\"");
    
    std::cout << "\n\n**************************************\n*** "
              << "Batch Run Statistics:"
@@ -298,6 +338,9 @@ Integer RunBatch(std::string& batchfilename)
       std::cout << "**************************************\n\n";
    }
 
+   if (failed > 0)
+      throw ConsoleAppException("Batch file \"" + batchfilename + "\" completed with " +
+                                GmatStringUtil::ToString(failed) + " failed script(s)");
    return count;
 }
 
@@ -469,71 +512,20 @@ StringArray CheckForStartupAndLogFile(int argc, char *argv[])
    std::string theStartup = "gmat_startup_file.txt";
    std::string theLog     = ""; 
    
-   // if we're in interactive mode, these options are ignored
-   // if there are only two arguments, the second should be a script
-   if (argc > 2)
+   // Startup/log options are resolved before initializing the Moderator.
+   for (int i = 1; i < argc; ++i)
    {
-      std::string arg("");
-      for (int i = 1; i < argc; ++i)
+      const std::string arg = argv[i];
+      if (arg == "--logfile" || arg == "-l")
+         theLog = OptionValue(argc, argv, i);
+      else if (arg == "--startup_file" || arg == "-s")
       {
-         arg = argv[i];
-         if ((arg == "--logfile") || (arg == "-l"))
-         {
-            if (argc < i + 2)
-            {
-               MessageInterface::ShowMessage("*** Missing log file name\n");
-            }
-            else
-            {
-               std::string lFile = argv[i+1];
-               if (lFile[0] != '-')
-               {
-                  // Replace single quotes
-                  GmatStringUtil::Replace(lFile, "'", "");
-                  theLog = lFile;
-                  ++i;
-               }
-               else
-               {
-                  MessageInterface::ShowMessage("*** Missing log file name\n");
-               }
-            }
-         }
-         else if ((arg == "--startup_file") || (arg == "-s"))
-         {
-            if (argc < i + 2)
-            {
-               MessageInterface::ShowMessage("*** Missing startup file name\n");
-            }
-            else
-            {
-               std::string sFile = argv[i+1];
-               if (sFile[0] != '-')
-               {
-                  // Replace single quotes
-                  GmatStringUtil::Replace(sFile, "'", "");
-                  theStartup = sFile;
-                  ++i;
-                  if (!GmatFileUtil::DoesFileExist(theStartup))
-                  {
-                     std::string popMess = "ERROR: Startup file specified not found: \"" + theStartup + "\" does not exist.\n ";
-                     MessageInterface::ShowMessage(popMess);
-                     throw ConsoleAppException(popMess);
-                  }
-               }
-               else
-               {
-                  MessageInterface::ShowMessage("*** Missing startup file name\n");
-               }
-            }
-         }
-         else
-         {
-            ; // ignore anything else for now
-         }
+         theStartup = OptionValue(argc, argv, i);
+         if (!GmatFileUtil::DoesFileExist(theStartup))
+            throw ConsoleAppException("Startup file specified not found: \"" + theStartup + "\"");
       }
    }
-   
+
    result.push_back(theStartup);
    result.push_back(theLog);
    
@@ -577,7 +569,7 @@ int main(int argc, char *argv[])
                 << msg << "\n\n"
                 << std::endl;
       
-      char scriptfile[1024];
+      std::string scriptfile;
       bool runcomplete = false;
       int verbosity = 1;
       std::string optionParm = "";
@@ -635,73 +627,74 @@ int main(int argc, char *argv[])
             std::cout << "Enter a script file, "
                       << "q to quit, or an option:  ";
 
-            std::cin >> scriptfile;
+            if (!(std::cin >> scriptfile))
+               break;
             // Drop the return character -- may be platform dependent
             std::cin.ignore(1);
 
             parms.clear();
             std::string chunk;
 
-            if ((!strcmp(scriptfile, "q"))      || (!strcmp(scriptfile, "Q")) ||
-                (!strcmp(scriptfile, "--exit")) || (!strcmp(scriptfile, "-x")))
+            if ((!strcmp(scriptfile.c_str(), "q"))      || (!strcmp(scriptfile.c_str(), "Q")) ||
+                (!strcmp(scriptfile.c_str(), "--exit")) || (!strcmp(scriptfile.c_str(), "-x")))
             {
                runcomplete = true;
             }
             else if (scriptfile[0] == '-')
             {
-               if ((!strcmp(scriptfile, "--help")) || (!strcmp(scriptfile, "-h")))
+               if ((!strcmp(scriptfile.c_str(), "--help")) || (!strcmp(scriptfile.c_str(), "-h")))
                {
                   ShowHelp();
                }
-               else if (!strcmp(scriptfile, "--args"))
+               else if (!strcmp(scriptfile.c_str(), "--args"))
                {
                   ; // ignore this - it's used by the open statement when opening the GUI version
                }
-               else if ((!strcmp(scriptfile, "--run")) || (!strcmp(scriptfile, "-r")))
+               else if ((!strcmp(scriptfile.c_str(), "--run")) || (!strcmp(scriptfile.c_str(), "-r")))
                {
                   batchRun = false;  // will grab script file name as next arg
                }
-               else if ((!strcmp(scriptfile, "--batch")) || (!strcmp(scriptfile, "-b")))
+               else if ((!strcmp(scriptfile.c_str(), "--batch")) || (!strcmp(scriptfile.c_str(), "-b")))
                {
                   batchRun = true; // will grab batch file name as next arg
                }
-               else if ((!strcmp(scriptfile, "--logfile")) || (!strcmp(scriptfile, "-l")))
+               else if ((!strcmp(scriptfile.c_str(), "--logfile")) || (!strcmp(scriptfile.c_str(), "-l")))
                {
                   std::cout << "\n--logfile option ignored in interactive mode\n ";
                   ignoreNext = true; // skip log file name
                }
-               else if ((!strcmp(scriptfile, "--startup_file")) || (!strcmp(scriptfile, "-s")))
+               else if ((!strcmp(scriptfile.c_str(), "--startup_file")) || (!strcmp(scriptfile.c_str(), "-s")))
                {
                   std::cout << "\n--startup_file option ignored in interactive mode\n ";
                   ignoreNext = true; // skip startup file name
                }
-               else if ((!strcmp(scriptfile, "--minimize")) || (!strcmp(scriptfile, "-m")))
+               else if ((!strcmp(scriptfile.c_str(), "--minimize")) || (!strcmp(scriptfile.c_str(), "-m")))
                {
                   std::cout << "\n--minimize option ignored\n ";
                }
-               else if (!strcmp(scriptfile, "--save"))
+               else if (!strcmp(scriptfile.c_str(), "--save"))
                {
                   SaveScript(lastRunScript); // need a filename here!
                }
-               else if ((!strcmp(scriptfile, "--version")) || (!strcmp(scriptfile, "-v")))
+               else if ((!strcmp(scriptfile.c_str(), "--version")) || (!strcmp(scriptfile.c_str(), "-v")))
                {
                   ShowVersionInfo();
                }
-               else if (!strcmp(scriptfile, "--summary"))
+               else if (!strcmp(scriptfile.c_str(), "--summary"))
                {
                   ShowCommandSummary();
                }
-               else if (!strcmp(scriptfile, "--verbose"))
+               else if (!strcmp(scriptfile.c_str(), "--verbose"))
                {
                   settingVerbose = true;
                }
-               else if (!strcmp(scriptfile, "--start-server"))
+               else if (!strcmp(scriptfile.c_str(), "--start-server"))
                {
                   std::cout << "\nGMAT server currently unavailable to GmatConsole\n ";
                }
                // Options used for some detailed tests but hidden from casual users
                // (i.e. missing from the help messages)
-               else if (!strcmp(scriptfile, "--DumpDEData"))
+               else if (!strcmp(scriptfile.c_str(), "--DumpDEData"))
                {
                   DumpDEData(0.001, 0.2);
                }
@@ -720,12 +713,12 @@ int main(int argc, char *argv[])
                }
                if (settingVerbose)
                {
-                  if (!strcmp(scriptfile, "off"))
+                  if (!strcmp(scriptfile.c_str(), "off"))
                      verbosity = 0;
-                  else if (!strcmp(scriptfile, "on"))
+                  else if (!strcmp(scriptfile.c_str(), "on"))
                      verbosity = 1;
                   else
-                     MessageInterface::ShowMessage("Invalid option for --verbose: %s\n", scriptfile);
+                     MessageInterface::ShowMessage("Invalid option for --verbose: %s\n", scriptfile.c_str());
                   std::cout << "Verbose mode is "
                             << (verbosity == 0 ? "off" : "on")
                             << "\n";
@@ -759,7 +752,7 @@ int main(int argc, char *argv[])
             if (!GmatStringUtil::StartsWith(arg, "-"))
             {
                // Replace single quotes
-               GmatStringUtil::Replace(arg, "'", "");
+               arg = ConsoleFilename(arg);
                #ifdef DEBUG_CONSOLE
                   MessageInterface::ShowMessage(" --------> GmatConsole attempting to run script: %s\n", arg.c_str());
                #endif
@@ -826,57 +819,24 @@ int main(int argc, char *argv[])
                }
                else if (arg == "--verbose")
                {
-                  if (argc < i + 2)
-                  {
-                     MessageInterface::ShowMessage("*** Missing verbose value\n");
-                  }
+                  const std::string verboseValue = OptionValue(argc, argv, i);
+                  if (verboseValue == "off")
+                     verbosity = 0;
+                  else if (verboseValue == "on")
+                     verbosity = 1;
                   else
-                  {
-                     std::string verboseValue = argv[i+1];
-                     ++i;
-                     if (verboseValue == "off")
-                        verbosity = 0;
-                     else if (verboseValue == "on")
-                        verbosity = 1;
-                     else
-                        MessageInterface::ShowMessage("Invalid option for --verbose: %s\n", scriptfile);
-                     std::cout << "Verbose mode is "
-                               << (verbosity == 0 ? "off" : "on")
-                               << "\n";
-                  }
+                     throw ConsoleAppException("Invalid value for --verbose: " + verboseValue);
+                  std::cout << "Verbose mode is " << (verbosity == 0 ? "off" : "on") << "\n";
                }
                else if ((arg == "--run") || (arg == "-r"))
                {
-                  if (argc < i + 2)
-                  {
-                     MessageInterface::ShowMessage("*** Missing script file name\n");
-                  }
-                  else
-                  {
-                     std::string scriptToRun = argv[i+1];
-                     // Replace single quotes
-                     GmatStringUtil::Replace(scriptToRun, "'", "");
-                     ++i;
-                     #ifdef DEBUG_CONSOLE
-                        MessageInterface::ShowMessage(" --------> GmatConsole attempting to run script: %s\n", scriptToRun.c_str());
-                     #endif
-                     RunScriptInterpreter(scriptToRun.c_str(), verbosity);
-                  }
+                  const std::string scriptToRun = OptionValue(argc, argv, i);
+                  RunScriptInterpreter(scriptToRun, verbosity);
                }
                else if ((arg == "--batch") || (arg == "-b"))
                {
-                  if (argc < i + 2)
-                  {
-                     MessageInterface::ShowMessage("*** Missing batch file name\n");
-                  }
-                  else
-                  {
-                     std::string batchToRun = argv[i+1];
-                     // Replace single quotes
-                     GmatStringUtil::Replace(batchToRun, "'", "");
-                     ++i;
-                     RunBatch(batchToRun);
-                  }
+                  std::string batchToRun = OptionValue(argc, argv, i);
+                  RunBatch(batchToRun);
                }
                else if ((arg == "--exit") || (arg == "-x"))
                {
@@ -886,7 +846,7 @@ int main(int argc, char *argv[])
                {
                   MessageInterface::ShowMessage("The option \"%s\" is not valid.\n", arg.c_str());
                   ShowHelp();
-                  break;
+                  throw ConsoleAppException("Invalid console option: " + arg);
                }
             }
          } // !runcomplete

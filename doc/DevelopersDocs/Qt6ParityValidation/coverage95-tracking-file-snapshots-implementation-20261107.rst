@@ -1,0 +1,30 @@
+Tracking-file resource snapshots
+================================
+
+Explicit Save now resets TrackingFileSet AddTrackingConfig/FileName/RampTable/DataFilters/SimTDRSServiceAccessList before their captured entries. Tracking configurations are emitted individually in native syntax instead of being passed through the quoted string-array snapshot path. A common native clear partitions owned adapters/relevant filters before publication, marks preparation pending, clears generated measurements/ionosphere/frequency caches and then retires displaced owned values. Configuration clearing also clears participant references and parser bracket/start scratch; filter clearing removes owned filters from both role and ownership containers. Other declarations and borrowed service/propagator settings remain. The reader distinguishes raw {} from literal data: quoted/encoded brace filenames and service strings use indexed data setters, while brace literals cannot select configurations or filter objects. Ordinary serializer dispatch and positive setter branches remain. Compilation only; native defaults/domain/preparation and complete any-Resource/navigation/function scope remain open. No row or verification credit.
+
+Collection ownership and script output
+--------------------------------------
+
+TrackingFileSet previously mixed name-only clears with no-op tracking-config clears and indexed empty-filename rejection. Common Save output did not reset these selected collections before later entries. ClearCollection now supports the five native declaration roles through both scalar empty-brace and indexed -1 requests. It validates the role, stages retained/retired createdObjects arrays, selects generated TrackingDataAdapters and, when appropriate, actual owned data-filter identities for retirement, then publishes the selected declaration/cache clear before deletion. Participant reference and bracket/start state clear with tracking configurations; file/ramp/service clears retain other declarations; filter clears remove their ownership slots and names together. No explicit file or stream opening is added by serialization or collection clearing. Native later preparation retains its service-default and required-file policies.
+
+The explicit-script serializer override emits AddTrackingConfig = {} once, followed by one native GetDefinitionString statement per selected definition. Other four lists use the common reset-before-entries path. Inactive explicit-script exports and MATLAB output delegate to the inherited writer. The reader handles a raw empty list before generic Parameter lookup. A filename or service literal that decodes to empty braces is passed as data to an indexed setter rather than a scalar clear; filename data retains native filename validation. Brace literals cannot name configurations or filter objects and are rejected before native mutation.
+
+The reviewed estimator invocation path already creates a fresh command-owned clone from the selected definition. No speculative change to that initialization or automatic solve-for discovery was made.
+
+Limits
+------
+
+These are native declaration/owned-cache resets and serialization paths, not a transfer or resumption of an active measurement/estimation session. Required filenames, native default SA1 service selection and supported measurement/participant/domain checks retain their existing preparation policies. General nonempty tracking-config parse atomicity, external manager/adapter borrowers and arbitrary-provider failures remain open. Source comparison preserves four scalar and five indexed positive branches after excluding the replaced clear guards; ordinary/MATLAB serialization delegates to the inherited writer. Existing virtual serializer dispatch is overridden without adding a virtual slot or instance fields; matching rebuilt core/TrackingFileSet plugin is required. No equations, parameter IDs or tolerances change.
+
+Compilation and retained evidence
+---------------------------------
+
+Build v1 returned 0 in 40.85s, progress 89/89, 0 existing compiler deprecation warnings; no compiler errors. Compiler session 64188 is terminal. Final hashes match build v1. Five source/help preimages, twelve unchanged reference files and four planning snapshots preceded edits. Indexed/combined patches, hashes, source findings and compiler receipts are retained. Delta whitespace is clean and the Save help XML parses. Source-only inspection confirms the four existing scalar and five indexed nonempty branches are identical after excluding changed empty guards and comments/spacing. The statement writer uses the actual native configuration formatter; reload/numerical equivalence is unverified.
+
+No new tests, tracking input/cleanup/lifetime/reload/GUI/model/helper/MATLAB/mission/numerical/runtime runs, acceptance auditors/readers/seals or evidence admission occurred. Original requirements/text/fingerprints/fixtures/assertions/tolerances/denominator/gates/dispositions remain unchanged. Tracking-v130 retains 1093/1158 (94.39%), 65 unresolved engineering rows; recorded source-versioned verified baseline remains 1053/1158 (90.9%). All 105 original acceptance rows remain open. Full implementation audit and goal remain incomplete.
+
+Next implementation
+-------------------
+
+Continue remaining resource list/default/reference/equation and specialized serialization/portability gaps, plus transactional tracking-configuration input parsing. Finish coherent changed owned component/storage graphs, navigation provider/session readiness, original function I/O/scoping/shared-global/dependency lifetimes, all-command solver/estimation/MATLAB behavior and every remaining worklist dependency before runtime verification. Preserve RunEstimator's existing fresh command-clone initialization rather than adding speculative automatic-role resets. Deferred checks include appended changed/shorter/empty tracking collections, multiple configurations, exact participant/sensor/type and filename literals, owned filter/adapter cleanup, native SA1/file defaults, allocation failure, caller lifetimes and subsequent tracking estimation/simulation calculations.

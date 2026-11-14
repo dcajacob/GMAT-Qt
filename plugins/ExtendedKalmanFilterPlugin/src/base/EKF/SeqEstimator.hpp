@@ -48,6 +48,8 @@
 class KALMAN_API SeqEstimator: public Estimator
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = Estimator::NativeValueProviderDepth + 1;
+
    SeqEstimator(const std::string &type, const std::string &name);
    virtual ~SeqEstimator();
    SeqEstimator(const SeqEstimator &se);
@@ -163,6 +165,11 @@ public:
    virtual void         SetAnchorEpoch(const GmatTime& epoch, bool noiseBetween);
    virtual void         SetCovariance(const Rmatrix& cov);
    virtual bool         UpdateInitialConditions();
+
+   void PrepareClonedSolverValueImpl(const Solver &source);
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
 
 protected:
    /// Smoother instances access SeqEstimator data directly

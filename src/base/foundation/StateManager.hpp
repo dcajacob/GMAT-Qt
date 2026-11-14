@@ -37,6 +37,7 @@
 #include "gmatdefs.hpp"
 #include "Rvector3.hpp"
 #include <map>
+#include <functional>
 #include <vector>
 
 // Example: information of CAN.ErrorModel1.Bias is stored in ListItem such as below
@@ -148,6 +149,15 @@ public:
    virtual const StringArray& GetObjectList(std::string ofType = "");
    virtual const std::vector<ListItem*>* GetStateMap();
 
+   // Declaration roles and actual objects in the native publication order.
+   // Instance names are not identities inside copied/function resource graphs.
+   struct PublishedSpacecraft
+   {
+      GmatBase *object;
+      std::string role;
+   };
+   std::vector<PublishedSpacecraft> GetPublishedSpacecraft() const;
+
    virtual Integer  PrepareStateInfoToPublish(StringArray &ownerNames, 
                                               StringArray &elementNames);
    virtual Integer  PrepareCovAndAccelerationInfoToPublish(StringArray &ownerNames, 
@@ -171,6 +181,13 @@ public:
                                                  bool hasPrecisionTime);
 
 protected:
+   void ClearStateMap();
+   void ClearOwnedLists();
+   // Retained PropSetup values reconnect declarations, then rebuild prepared
+   // maps through native preparation. No SetPropItem/BuildState side effects.
+   void RebindClonedObjectReferences(const StateManager &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+
    /// Size of the managed state vector
    Integer                    stateSize;
    /// The state in J2000BodyMJ2000Eq coordinates (currently it is in EarthMJ2000Eq - GMAT internal coordinates).

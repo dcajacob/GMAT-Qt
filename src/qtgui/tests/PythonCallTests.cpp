@@ -1,3 +1,4 @@
+#include "AcceptanceView.hpp"
 #include "MainWindow.hpp"
 #include "CommandEditor.hpp"
 #include "CommandForm.hpp"
@@ -37,6 +38,7 @@ int main(int argc,char **argv)
    try {
       TestSettings settings; QTemporaryDir files; const bool preview=argc==4 && QString::fromLocal8Bit(argv[2])=="--preview",zero=argc==3 && QString::fromLocal8Bit(argv[2])=="--zero-inputs",scalar=argc==3 && QString::fromLocal8Bit(argv[2])=="--scalar-output",bare=argc==3 && QString::fromLocal8Bit(argv[2])=="--bare-inputs"; require((argc==2 || preview || zero || scalar || bare) && files.isValid(),"Python-call setup failed"); const auto startup=QFileInfo(argv[1]).absoluteFilePath(); QDir::setCurrent(QFileInfo(startup).absolutePath());
       MainWindow window; window.show(); require(window.initialize(startup),"Python-call runtime unavailable"); auto *editor=window.findChild<QPlainTextEdit *>("scriptEditor");
+      acceptanceView(window);
       const auto report=files.filePath("python scalar.txt"),saved=files.filePath("python call Δ.script");
       const QString command="'Compute norm' [Magnitude] = Python.ArrayFunctions.mag(A, Count); % retain Python call";
       const QString prefix="% retain Python source α\nCreate Array A[1,3];\nA(1,1) = 3;\nA(1,2) = 4;\nA(1,3) = 0;\nCreate Variable Count Scale Magnitude;\nCount = 3;\nScale = 3;\nCreate String Message;\nMessage = 'Python GUI string input';\nCreate ReportFile Values;\nValues.Filename = '"+report+"';\nValues.Precision = 16;\nValues.WriteHeaders = false;\nBeginMissionSequence;\n";

@@ -1234,6 +1234,20 @@ GmatFileUtil::GetFunctionOutputTypes(std::istream *inStream, const StringArray &
                                      const StringArray &outputs, std::string &errMsg,
                                      IntegerArray &outputRows, IntegerArray &outputCols)
 {
+   return GetFunctionOutputTypes(inStream, inputs, outputs, errMsg,
+                                 outputRows, outputCols, StringArray());
+}
+
+
+// The interpreter supplies names of existing non-Parameter automatic globals
+// from the object map used to parse this function. They need no Global statement.
+// Local declarations and formal inputs retain their existing precedence.
+WrapperTypeArray
+GmatFileUtil::GetFunctionOutputTypes(std::istream *inStream, const StringArray &inputs,
+                                     const StringArray &outputs, std::string &errMsg,
+                                     IntegerArray &outputRows, IntegerArray &outputCols,
+                                     const StringArray &automaticGlobalObjects)
+{
    UnsignedInt outputSize = outputs.size();
    
    #if DBGLVL_FUNCTION_OUTPUT
@@ -1302,6 +1316,14 @@ GmatFileUtil::GetFunctionOutputTypes(std::istream *inStream, const StringArray &
          // Skip empty line or comment line
          if (line[0] == '\0' || line[0] == '%')
             continue;
+
+         // The caller has consumed the current function's definition. Later
+         // definitions are ignored by ScriptInterpreter::Parse, so their
+         // declarations must not alter this function's output metadata.
+         if (line.compare(0, 8, "function") == 0 &&
+             (line.size() == 8 || line[8] == ' ' || line[8] == '\t' ||
+              line[8] == '['))
+            break;
          
          StringArray parts = GmatStringUtil::SeparateBy(line, " ,", true);
          
@@ -1355,6 +1377,18 @@ GmatFileUtil::GetFunctionOutputTypes(std::istream *inStream, const StringArray &
       }
    }
    
+   for (UnsignedInt i=0; i<outputSize; ++i)
+   {
+      if (outputNames[i].empty() &&
+          find(inputs.begin(), inputs.end(), outputs[i]) == inputs.end() &&
+          find(automaticGlobalObjects.begin(), automaticGlobalObjects.end(),
+               outputs[i]) != automaticGlobalObjects.end())
+      {
+         outputNames[i] = outputs[i];
+         outputTypes[i] = "Object";
+      }
+   }
+
    // find missing output definition
    StringArray missing;
    std::sort(outputNames.begin(), outputNames.end());

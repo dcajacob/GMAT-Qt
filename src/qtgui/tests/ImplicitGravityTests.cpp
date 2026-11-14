@@ -1,3 +1,5 @@
+#include "AcceptanceView.hpp"
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "ResourceEditor.hpp"
 #include "ResourceProperties.hpp"
@@ -49,7 +51,7 @@ static QMdiSubWindow *open(MainWindow &window)
 int main(int argc,char **argv)
 {
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv); app.setOrganizationName("GMATTests"); app.setApplicationName("ImplicitGravity");
-   if (argc!=2 || QGuiApplication::platformName()!="offscreen") return 2;
+   if (argc!=2 || !acceptanceWidgetPlatform()) return 2;
    try {
       TestSettings settings; QTemporaryDir files; require(files.isValid(),"Temporary files unavailable");
       const auto startup=QFileInfo(QString::fromLocal8Bit(argv[1])).absoluteFilePath(); QDir::setCurrent(QFileInfo(startup).absolutePath());
@@ -64,6 +66,7 @@ int main(int argc,char **argv)
       applyGravityBodyProperties(*pending,{{"PointMasses","Luna, Sun"}});
       require(earth(*pending)==retained && retained->GetIntegerParameter("Degree")==12 && retained->GetIntegerParameter("Order")==12 && retained->GetStringParameter("PotentialFileFullPath")==potential,"Point-mass edit deleted or reset retained implicit gravity");
       auto *child=open(window); auto *panel=dynamic_cast<ResourceEditor *>(child->widget()); require(panel,"Force editor panel missing");
+      acceptanceView(*panel);
       field(*panel,"PointMasses")->setText("Luna, Sun"); field(*panel,"GravityField.Earth.Degree")->setText("0"); field(*panel,"GravityField.Earth.Order")->setText("0");
       require(panel->hasChanges() && editor->toPlainText()==source && earth(*configured())==originalEarth,"Pending paired edit changed source/model");
       panel->requestApply(); QApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete); const auto applied=editor->toPlainText();

@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "doc/SystemDocs/Requirements/GMAT Requirements.xlsx": "736847e909ca550731386261073e46a9fa3ac8d78f53f0c37dd5d93b11a85c23",
+    "doc/SystemDocs/Test/Requirements-To-Test Matrix, 2012-05-11 (GMAT Build 2012-05-04).csv": "4693e097b183af76bc7c8dfcc0f62d7696b2e1417c90cb10d0ed4f9577160a97"
+  },
+  "reviews": [
+    {
+      "key": "FRR!E333",
+      "fingerprint": "a41e76ae81fffeb57b8e9dab4a7db6579217f42d6b91b9927a4998b3bdf03614",
+      "source_text": "The system shall allow the user to specify how data is drawn to 3-D graphics during iterative processes such as differential correction, optimization, and estimation. The following options shall be available:",
+      "rationale": "Preserve every original mapped legacy assertion and both execution cohorts. Four new visible native missions share raw streams across all/current/none in OrbitView, GroundTrack and XYPlot. Exact ordered membership is checked live at every publication (streaming viewers) and native flush (all nine viewers); trial/accepted classification comes from all active numerical solver clones, including inner-FINISHED/outer-trial contexts. Independent scalar goals and Newton propagation, pending/Cancel/Apply/Undo/Redo/Unicode isolation and the newly executed unchanged-source unattended mixed stop/recovery clause complete the held conjunction. Post-execution review reuses distinct source versions; it does not replace receipts or imply new scientific frames, exhaustive objectives/estimators, host input/GPU, full-current-build or NASA qualification."
+    },
+    {
+      "key": "FRR!E334",
+      "fingerprint": "9eee5663e3fee52ef3dae52e3ac08c4eb3d96498ad3ba03cc88e92fc21258fe4",
+      "source_text": "1)\u00a0\u00a0\u00a0\u00a0\u00a0 Show all iterations/perturbations",
+      "rationale": "Preserve every original mapped legacy assertion and both execution cohorts. Four new visible native missions share raw streams across all/current/none in OrbitView, GroundTrack and XYPlot. Exact ordered membership is checked live at every publication (streaming viewers) and native flush (all nine viewers); trial/accepted classification comes from all active numerical solver clones, including inner-FINISHED/outer-trial contexts. Independent scalar goals and Newton propagation, pending/Cancel/Apply/Undo/Redo/Unicode isolation and the newly executed unchanged-source unattended mixed stop/recovery clause complete the held conjunction. Post-execution review reuses distinct source versions; it does not replace receipts or imply new scientific frames, exhaustive objectives/estimators, host input/GPU, full-current-build or NASA qualification."
+    },
+    {
+      "key": "FRR!E335",
+      "fingerprint": "b2e2a8b3d0f420b5bfbb44c33042d82ac1b9d3e799117ae1787bd17b6e2ee0d8",
+      "source_text": "2)\u00a0\u00a0\u00a0\u00a0\u00a0 Show current iteration/perturbation only",
+      "rationale": "Preserve every original mapped legacy assertion and both execution cohorts. Four new visible native missions share raw streams across all/current/none in OrbitView, GroundTrack and XYPlot. Exact ordered membership is checked live at every publication (streaming viewers) and native flush (all nine viewers); trial/accepted classification comes from all active numerical solver clones, including inner-FINISHED/outer-trial contexts. Independent scalar goals and Newton propagation, pending/Cancel/Apply/Undo/Redo/Unicode isolation and the newly executed unchanged-source unattended mixed stop/recovery clause complete the held conjunction. Post-execution review reuses distinct source versions; it does not replace receipts or imply new scientific frames, exhaustive objectives/estimators, host input/GPU, full-current-build or NASA qualification."
+    },
+    {
+      "key": "FRR!E336",
+      "fingerprint": "868a7e83444461d8fd6d479fb1e6f177ceb21fd1fac9c7bf00b80321a843f61d",
+      "source_text": "3)\u00a0\u00a0\u00a0\u00a0\u00a0 Show solution only",
+      "rationale": "Preserve every original mapped legacy assertion and both execution cohorts. Four new visible native missions share raw streams across all/current/none in OrbitView, GroundTrack and XYPlot. Exact ordered membership is checked live at every publication (streaming viewers) and native flush (all nine viewers); trial/accepted classification comes from all active numerical solver clones, including inner-FINISHED/outer-trial contexts. Independent scalar goals and Newton propagation, pending/Cancel/Apply/Undo/Redo/Unicode isolation and the newly executed unchanged-source unattended mixed stop/recovery clause complete the held conjunction. Post-execution review reuses distinct source versions; it does not replace receipts or imply new scientific frames, exhaustive objectives/estimators, host input/GPU, full-current-build or NASA qualification."
+    },
+    {
+      "key": "FRR!E348",
+      "fingerprint": "a8655502ad562c76ad672dcc1393b3ba61422f781e7aa366ad5db47628749e5c",
+      "source_text": "The system shall allow the user to specify how data is drawn to XY Plots during iterative processes such as differential correction, optimization, and estimation. The following options shall be available:",
+      "rationale": "Preserve every original mapped legacy assertion and both execution cohorts. Four new visible native missions share raw streams across all/current/none in OrbitView, GroundTrack and XYPlot. Exact ordered membership is checked live at every publication (streaming viewers) and native flush (all nine viewers); trial/accepted classification comes from all active numerical solver clones, including inner-FINISHED/outer-trial contexts. Independent scalar goals and Newton propagation, pending/Cancel/Apply/Undo/Redo/Unicode isolation and the newly executed unchanged-source unattended mixed stop/recovery clause complete the held conjunction. Post-execution review reuses distinct source versions; it does not replace receipts or imply new scientific frames, exhaustive objectives/estimators, host input/GPU, full-current-build or NASA qualification."
+    },
+    {
+      "key": "FRR!E349",
+      "fingerprint": "58761c5bb547b0b74b30221edf87f99019070e23f734bdafff3f859ea464d212",
+      "source_text": "1)\u00a0\u00a0\u00a0\u00a0\u00a0 Show all iterations/perturbations",
+      "rationale": "Preserve every original mapped legacy assertion and both execution cohorts. Four new visible native missions share raw streams across all/current/none in OrbitView, GroundTrack and XYPlot. Exact ordered membership is checked live at every publication (streaming viewers) and native flush (all nine viewers); trial/accepted classification comes from all active numerical solver clones, including inner-FINISHED/outer-trial contexts. Independent scalar goals and Newton propagation, pending/Cancel/Apply/Undo/Redo/Unicode isolation and the newly executed unchanged-source unattended mixed stop/recovery clause complete the held conjunction. Post-execution review reuses distinct source versions; it does not replace receipts or imply new scientific frames, exhaustive objectives/estimators, host input/GPU, full-current-build or NASA qualification."
+    },
+    {
+      "key": "FRR!E350",
+      "fingerprint": "0c89f950199d04c80488a6b9027673910e8902ce3a4c4d404f908f6bd0aec6bd",
+      "source_text": "2)\u00a0\u00a0\u00a0\u00a0\u00a0 Show current iteration/perturbation only",
+      "rationale": "Preserve every original mapped legacy assertion and both execution cohorts. Four new visible native missions share raw streams across all/current/none in OrbitView, GroundTrack and XYPlot. Exact ordered membership is checked live at every publication (streaming viewers) and native flush (all nine viewers); trial/accepted classification comes from all active numerical solver clones, including inner-FINISHED/outer-trial contexts. Independent scalar goals and Newton propagation, pending/Cancel/Apply/Undo/Redo/Unicode isolation and the newly executed unchanged-source unattended mixed stop/recovery clause complete the held conjunction. Post-execution review reuses distinct source versions; it does not replace receipts or imply new scientific frames, exhaustive objectives/estimators, host input/GPU, full-current-build or NASA qualification."
+    },
+    {
+      "key": "FRR!E351",
+      "fingerprint": "57f4079e47794f1109b2ad742d55f7352c3b13226e891b075ce2b96a8204027e",
+      "source_text": "3)\u00a0\u00a0\u00a0\u00a0\u00a0 Show solution only",
+      "rationale": "Preserve every original mapped legacy assertion and both execution cohorts. Four new visible native missions share raw streams across all/current/none in OrbitView, GroundTrack and XYPlot. Exact ordered membership is checked live at every publication (streaming viewers) and native flush (all nine viewers); trial/accepted classification comes from all active numerical solver clones, including inner-FINISHED/outer-trial contexts. Independent scalar goals and Newton propagation, pending/Cancel/Apply/Undo/Redo/Unicode isolation and the newly executed unchanged-source unattended mixed stop/recovery clause complete the held conjunction. Post-execution review reuses distinct source versions; it does not replace receipts or imply new scientific frames, exhaustive objectives/estimators, host input/GPU, full-current-build or NASA qualification."
+    },
+    {
+      "key": "FRR!E637",
+      "fingerprint": "61ab2f9c9864a27c32f09e91765d80c8edefd976dcb8ee131d72cf3b76c35990",
+      "source_text": "The system shall allow the user to specify how data is drawn to Ground Track Plots during iterative processes such as differential correction, optimization, and estimation. The following options shall be available:",
+      "rationale": "Preserve every original mapped legacy assertion and both execution cohorts. Four new visible native missions share raw streams across all/current/none in OrbitView, GroundTrack and XYPlot. Exact ordered membership is checked live at every publication (streaming viewers) and native flush (all nine viewers); trial/accepted classification comes from all active numerical solver clones, including inner-FINISHED/outer-trial contexts. Independent scalar goals and Newton propagation, pending/Cancel/Apply/Undo/Redo/Unicode isolation and the newly executed unchanged-source unattended mixed stop/recovery clause complete the held conjunction. Post-execution review reuses distinct source versions; it does not replace receipts or imply new scientific frames, exhaustive objectives/estimators, host input/GPU, full-current-build or NASA qualification."
+    },
+    {
+      "key": "FRR!E638",
+      "fingerprint": "cc4429be3d23ed8cff9c538d0e98fd4fe6bc6a7ac9a68f28da6952e9df00b384",
+      "source_text": "1) Show all iterations/perturbations",
+      "rationale": "Preserve every original mapped legacy assertion and both execution cohorts. Four new visible native missions share raw streams across all/current/none in OrbitView, GroundTrack and XYPlot. Exact ordered membership is checked live at every publication (streaming viewers) and native flush (all nine viewers); trial/accepted classification comes from all active numerical solver clones, including inner-FINISHED/outer-trial contexts. Independent scalar goals and Newton propagation, pending/Cancel/Apply/Undo/Redo/Unicode isolation and the newly executed unchanged-source unattended mixed stop/recovery clause complete the held conjunction. Post-execution review reuses distinct source versions; it does not replace receipts or imply new scientific frames, exhaustive objectives/estimators, host input/GPU, full-current-build or NASA qualification."
+    },
+    {
+      "key": "FRR!E639",
+      "fingerprint": "6d758ede63ff7e83b9585c8ae75e7e12d2b21189b98fdd9c0845649c68ead7b5",
+      "source_text": "2) Show current iteration/perturbation only",
+      "rationale": "Preserve every original mapped legacy assertion and both execution cohorts. Four new visible native missions share raw streams across all/current/none in OrbitView, GroundTrack and XYPlot. Exact ordered membership is checked live at every publication (streaming viewers) and native flush (all nine viewers); trial/accepted classification comes from all active numerical solver clones, including inner-FINISHED/outer-trial contexts. Independent scalar goals and Newton propagation, pending/Cancel/Apply/Undo/Redo/Unicode isolation and the newly executed unchanged-source unattended mixed stop/recovery clause complete the held conjunction. Post-execution review reuses distinct source versions; it does not replace receipts or imply new scientific frames, exhaustive objectives/estimators, host input/GPU, full-current-build or NASA qualification."
+    },
+    {
+      "key": "FRR!E640",
+      "fingerprint": "74b6ab792c83d7b95c7386bb796807dfcadd82321374839f8ef54c6ee4eb8f9d",
+      "source_text": "3) Show solution only",
+      "rationale": "Preserve every original mapped legacy assertion and both execution cohorts. Four new visible native missions share raw streams across all/current/none in OrbitView, GroundTrack and XYPlot. Exact ordered membership is checked live at every publication (streaming viewers) and native flush (all nine viewers); trial/accepted classification comes from all active numerical solver clones, including inner-FINISHED/outer-trial contexts. Independent scalar goals and Newton propagation, pending/Cancel/Apply/Undo/Redo/Unicode isolation and the newly executed unchanged-source unattended mixed stop/recovery clause complete the held conjunction. Post-execution review reuses distinct source versions; it does not replace receipts or imply new scientific frames, exhaustive objectives/estimators, host input/GPU, full-current-build or NASA qualification."
+    }
+  ],
+  "source_conflicts": [],
+  "scope": "Post-execution, explicitly source-versioned composition; no partial live case independently awards a NASA row."
+}

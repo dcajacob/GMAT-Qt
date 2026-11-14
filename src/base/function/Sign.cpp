@@ -28,7 +28,24 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ExpressionBinding.hpp"
+#include <memory>
+#include <typeinfo>
 #include "Sign.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration signValueProvider({
+   Sign::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Sign*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<Sign*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "FunctionException.hpp"
 #include "RealUtilities.hpp"       // for Sign()
 #include "MessageInterface.hpp"
@@ -62,7 +79,8 @@
  */
 //------------------------------------------------------------------------------
 Sign::Sign(const std::string &typeStr, const std::string &name) :
-   BuiltinGmatFunction(typeStr, name)
+   BuiltinGmatFunction(typeStr, name),
+   signVar (0.0)
 {
    objectTypeNames.push_back(typeStr);
    objectTypeNames.push_back("Sign");
@@ -104,7 +122,8 @@ Sign::~Sign()
  */
 //------------------------------------------------------------------------------
 Sign::Sign(const Sign &f) :
-   BuiltinGmatFunction(f)
+   BuiltinGmatFunction(f),
+   signVar (f.signVar)
 {
 }
 
@@ -122,11 +141,9 @@ Sign::Sign(const Sign &f) :
 //------------------------------------------------------------------------------
 Sign& Sign::operator=(const Sign &f)
 {
-   if (this == &f)
-      return *this;
-
+   if (this == &f) return *this;
    BuiltinGmatFunction::operator=(f);
-
+   signVar = f.signVar;
    return *this;
 }
 
@@ -161,9 +178,7 @@ void Sign::SetOutputTypes(WrapperTypeArray &outputTypes,
    #endif
 
    // Set output wrapper type for Sign
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;
+   Function::SetOutputTypes(outputTypes, rowCounts, colCounts);
 }
 
 //------------------------------------------------------------------------------
@@ -422,7 +437,15 @@ void Sign::Finalize(bool cleanUp)
 //------------------------------------------------------------------------------
 GmatBase* Sign::Clone() const
 {
-   return (new Sign(*this));
+   std::unique_ptr<Sign> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new Sign(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived Sign must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -437,5 +460,38 @@ GmatBase* Sign::Clone() const
 //---------------------------------------------------------------------------
 void Sign::Copy(const GmatBase* orig)
 {
-   operator=(*((Sign *)(orig)));
+   const auto *source = dynamic_cast<const Sign*>(orig);
+   if (!source || typeid(*this) != typeid(Sign) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible Sign value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   const auto previousObjectBindings = objectBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
+}
+
+
+bool Sign::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const Sign*>(&original);
+   if (!source || typeid(*this) != typeid(Sign) || typeid(original) != typeid(Sign))
+      throw FunctionException("Derived Sign references need their own passive provider.\n");
+   RebindObjectManagedFunctionValue(*source, resolve);
+   return true;
+}
+
+bool Sign::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(Sign);
+}
+
+std::unique_ptr<FunctionInvocationState> Sign::SuspendInvocationState()
+{
+   return CaptureInvocationFields(BuiltinGmatFunction::SuspendInvocationState(),
+         signVar);
 }

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "DE405",
+      "source": "DE405",
+      "epochs_a1_mjd": [
+        21545,
+        25300.25,
+        30000.75
+      ],
+      "position_tolerance_km": 0.002,
+      "velocity_tolerance_km_s": 2e-08
+    },
+    {
+      "key": "SPK421",
+      "source": "SPICE",
+      "epochs_a1_mjd": [
+        21545,
+        25300.25,
+        30000.75
+      ],
+      "position_tolerance_km": 0.002,
+      "velocity_tolerance_km_s": 2e-08
+    }
+  ]
+}

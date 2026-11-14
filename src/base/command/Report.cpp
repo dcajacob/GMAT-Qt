@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 
 
+#include <set>
 #include "Report.hpp"
 #include "MessageInterface.hpp"
 #include "StringUtil.hpp"       // for GetArrayIndex()
@@ -123,14 +124,15 @@ Report::Report(const Report &rep) :
    rfName         (rep.rfName),
    reporter       (NULL),
    reportID       (-1),
-   numParams      (0),
-   needsHeaders   (rep.needsHeaders),
-   hasExecuted    (rep.hasExecuted)
+   numParams      (rep.numParams),
+   needsHeaders   (true),
+   hasExecuted    (false)
 {
    parmNames = rep.parmNames;
    actualParmNames = rep.actualParmNames;
-   parms.clear();
-   parmWrappers.clear();
+   numParams = actualParmNames.size();
+   parms.assign(parmNames.size(), nullptr);
+   parmWrappers.assign(actualParmNames.size(), nullptr);
 }
 
 
@@ -148,19 +150,19 @@ Report::Report(const Report &rep) :
 //------------------------------------------------------------------------------
 Report& Report::operator=(const Report &rep)
 {
-   if (this != &rep)
-   {
-      rfName = rep.rfName;
-      reporter = NULL;
-      reportID = -1;
-      needsHeaders = rep.needsHeaders;
-      hasExecuted  = rep.hasExecuted;
-
-      parmNames = rep.parmNames;
-      actualParmNames = rep.actualParmNames;
-      parms.clear();
-   }
-   
+   if (this == &rep) return *this;
+   ClearWrappers();
+   GmatCommand::operator=(rep);
+   rfName = rep.rfName;
+   reporter = nullptr;
+   reportID = -1;
+   parmNames = rep.parmNames;
+   actualParmNames = rep.actualParmNames;
+   numParams = actualParmNames.size();
+   parms.assign(parmNames.size(), nullptr);
+   parmWrappers.assign(actualParmNames.size(), nullptr);
+   needsHeaders = true;
+   hasExecuted = false;
    return *this;
 }
 
@@ -310,86 +312,25 @@ const StringArray& Report::GetWrapperObjectNameArray(bool completeSet)
 // bool SetElementWrapper(ElementWrapper *toWrapper, const std::string &withName)
 //------------------------------------------------------------------------------
 bool Report::SetElementWrapper(ElementWrapper *toWrapper,
-                               const std::string &withName)
+      const std::string &withName)
 {
-   #ifdef DEBUG_WRAPPER_CODE   
-   MessageInterface::ShowMessage
-      ("Report::SetElementWrapper() this=<%p> '%s' entered, toWrapper=<%p>, "
-       "withName='%s'\n", this, GetGeneratingString(Gmat::NO_COMMENTS).c_str(),
-       toWrapper, withName.c_str());
-   #endif
-   
-   if (toWrapper == NULL)
-      return false;
-   
-   // Do we need any type checking?
-   // CheckDataType(toWrapper, Gmat::REAL_TYPE, "Report", true);
-   
-   bool retval = false;
-   ElementWrapper *ew;
-   std::vector<ElementWrapper*> wrappersToDelete;
-   
-   //-------------------------------------------------------
-   // check parameter names
-   //-------------------------------------------------------
-   #ifdef DEBUG_WRAPPER_CODE   
-   MessageInterface::ShowMessage
-      ("   Checking %d Parameters\n", actualParmNames.size());
-   for (UnsignedInt i=0; i<actualParmNames.size(); i++)
-      MessageInterface::ShowMessage("      %s\n", actualParmNames[i].c_str());
-   #endif
-   
-   Integer sz = actualParmNames.size();
-   for (Integer i = 0; i < sz; i++)
-   {
-      if (actualParmNames.at(i) == withName)
+   if (!toWrapper) return false;
+   if (parmWrappers.size() != actualParmNames.size())
+      throw CommandException("Inconsistent Report wrapper declaration slots.\n");
+   std::set<ElementWrapper*> previous;
+   bool found = false;
+   for (size_t i = 0; i < actualParmNames.size(); ++i)
+      if (actualParmNames[i] == withName)
       {
-         #ifdef DEBUG_WRAPPER_CODE   
-         MessageInterface::ShowMessage
-            ("   Found wrapper name \"%s\" in actualParmNames\n", withName.c_str());
-         #endif
-         if (parmWrappers.at(i) != NULL)
-         {
-            ew = parmWrappers.at(i);
-            parmWrappers.at(i) = toWrapper;
-            // if wrapper not found, add to the list to delete
-            if (find(wrappersToDelete.begin(), wrappersToDelete.end(), ew) ==
-                wrappersToDelete.end())
-               wrappersToDelete.push_back(ew);
-         }
-         else
-         {
-            parmWrappers.at(i) = toWrapper;
-         }
-         
-         retval = true;
+         if (parmWrappers[i] && parmWrappers[i] != toWrapper)
+            previous.insert(parmWrappers[i]);
+         parmWrappers[i] = toWrapper;
+         found = true;
       }
-   }
-   
-   #ifdef DEBUG_WRAPPER_CODE   
-   MessageInterface::ShowMessage
-      ("   There are %d wrappers to delete\n", wrappersToDelete.size());
-   #endif
-   
-   // Delete old ElementWrappers (loj: 2008.11.20)
-   for (std::vector<ElementWrapper*>::iterator ewi = wrappersToDelete.begin();
-        ewi < wrappersToDelete.end(); ewi++)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         ((*ewi), (*ewi)->GetDescription(), "Report::SetElementWrapper()",
-          GetGeneratingString(Gmat::NO_COMMENTS) + " deleting wrapper");
-      #endif
-      delete (*ewi);
-      (*ewi) = NULL;
-   }
-   
-   #ifdef DEBUG_WRAPPER_CODE   
-   MessageInterface::ShowMessage
-      ("Report::SetElementWrapper() exiting with %d\n", retval);
-   #endif
-   
-   return retval;
+   for (ElementWrapper *wrapper : previous)
+      if (std::find(parmWrappers.begin(), parmWrappers.end(), wrapper) == parmWrappers.end())
+         delete wrapper;
+   return found;
 }
 
 
@@ -398,32 +339,12 @@ bool Report::SetElementWrapper(ElementWrapper *toWrapper,
 //------------------------------------------------------------------------------
 void Report::ClearWrappers()
 {
-   #ifdef DEBUG_WRAPPER_CODE   
-   MessageInterface::ShowMessage
-      ("Report::ClearWrappers() this=<%p> '%s' entered\n   There are %d wrappers "
-       "allocated, these will be deleted if not NULL\n", this,
-       GetGeneratingString(Gmat::NO_COMMENTS).c_str(), parmWrappers.size());
-   #endif
-   
-   std::vector<ElementWrapper*> wrappersToDelete;
-   
-   // delete wrappers (loj: 2008.11.20)
-   for (std::vector<ElementWrapper*>::iterator ewi = parmWrappers.begin();
-        ewi < parmWrappers.end(); ewi++)
-   {
-      if ((*ewi) == NULL)
-         continue;
-      
-      // if wrapper not found, add to the list to delete
-      if (find(wrappersToDelete.begin(), wrappersToDelete.end(), (*ewi)) ==
-          wrappersToDelete.end())
-         wrappersToDelete.push_back((*ewi));
-   }
-   
-   #ifdef DEBUG_WRAPPER_CODE   
-   MessageInterface::ShowMessage
-      ("   There are %d wrappers to delete\n", wrappersToDelete.size());
-   #endif
+   std::set<ElementWrapper*> owned;
+   for (ElementWrapper *wrapper : parmWrappers) if (wrapper) owned.insert(wrapper);
+   // Preserve declaration slots for Validator and detach aliases before any
+   // wrapper destructor can revisit the command through a nested function.
+   for (auto &wrapper : parmWrappers) wrapper = nullptr;
+   for (ElementWrapper *wrapper : owned) delete wrapper;
 }
 
 
@@ -688,6 +609,7 @@ bool Report::RenameRefObject(const UnsignedInt type,
       // Go through wrappers
       for (WrapperArray::iterator i = parmWrappers.begin(); i < parmWrappers.end(); i++)
       {
+         if (!*i) continue;
          std::string desc = (*i)->GetDescription();
          if (desc.find(oldName) != oldName.npos)
          {
@@ -1032,14 +954,22 @@ void Report::WriteHeaders(std::stringstream &datastream, Integer colWidth)
    #endif
    
    reporter->TakeAction("ActivateForReport", "On");
-   for (StringArray::iterator i = actualParmNames.begin();
+   const bool fixedWidth = reporter->GetBooleanParameter("FixedWidth");
+   const std::string delimiter = reporter->GetStringParameter("Delimiter");
+   for (StringArray::const_iterator i = actualParmNames.begin();
         i != actualParmNames.end(); ++i)
    {
-      datastream.width(colWidth);
+      if (fixedWidth)
+      {
+         const Integer width = (Integer)i->length() > colWidth ?
+            (Integer)i->length() : colWidth;
+         datastream.width(width + 3);
+      }
+      else if (i != actualParmNames.begin())
+         datastream << delimiter;
       datastream << (*i);
-      datastream << "   ";
    }
-   
+
    std::string header = datastream.str();
    reporter->ReceiveData(header.c_str(), header.length());
    datastream.str("");
@@ -1189,3 +1119,15 @@ void Report::DeleteParameters()
 }
 
 
+
+void Report::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   ClearWrappers();
+   for (auto &parameter : parms) parameter = nullptr;
+   reporter = nullptr;
+   reportID = -1;
+   needsHeaders = true;
+   hasExecuted = false;
+   GmatCommand::RetireFunctionBindings(store);
+}

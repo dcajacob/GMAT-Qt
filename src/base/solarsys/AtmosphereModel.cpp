@@ -42,6 +42,8 @@
 #include "FileUtil.hpp"
 
 
+#include <algorithm>
+#include <memory>
 #include <cmath>                    // for exp
 
 
@@ -139,6 +141,7 @@ AtmosphereModel::AtmosphereModel(const std::string &typeStr, const std::string &
    parameterCount = AtmosphereModelParamCount;
    nominalAp = ConvertKpToAp(nominalKp);
    constantAp = nominalAp;
+   std::fill_n(ap, 7, constantAp);
 
    // Default to nominal Earth angular velocity
    angVel[0]      = 0.0;
@@ -196,7 +199,7 @@ AtmosphereModel::AtmosphereModel(const AtmosphereModel& am) :
    centralBodyLocation  (NULL),
    cbRadius             (am.cbRadius),
    cbFlattening         (am.cbFlattening),
-   fluxReaderLoaded     (false),
+   fluxReaderLoaded     (am.fluxReaderLoaded),
    constantF107         (am.constantF107),
    constantF107a        (am.constantF107a),
    constantKp           (am.constantKp),
@@ -212,12 +215,12 @@ AtmosphereModel::AtmosphereModel(const AtmosphereModel& am) :
    cbFixed              (am.cbFixed),
    wUpdateInterval      (am.wUpdateInterval),
    wUpdateEpoch         (am.wUpdateEpoch),
-   geoHeight            (0.0),
-   geoLat               (0.0),
-   geoLong              (0.0),
+   geoHeight            (am.geoHeight),
+   geoLat               (am.geoLat),
+   geoLong              (am.geoLong),
    useGeodetic          (am.useGeodetic),
-   gha                  (0.0),
-   ghaEpoch             (0.0),
+   gha                  (am.gha),
+   ghaEpoch             (am.ghaEpoch),
    historicStart        (am.historicStart),
    historicEnd          (am.historicEnd),
    predictStart         (am.predictStart),
@@ -230,8 +233,13 @@ AtmosphereModel::AtmosphereModel(const AtmosphereModel& am) :
    f107a                (am.f107a)
 {
    parameterCount = AtmosphereModelParamCount;
-   nominalAp = ConvertKpToAp(nominalKp);
-   constantAp = nominalAp;
+   nominalAp = am.nominalAp;
+   constantAp = am.constantAp;
+   fDbuffer = am.fDbuffer;
+   std::copy_n(am.angVel, 3, angVel);
+   std::copy_n(am.ap, 7, ap);
+   std::unique_ptr<SolarFluxReader> nextReader(am.fluxReader ? new SolarFluxReader(*am.fluxReader) : nullptr);
+   fluxReader = nextReader.release();
    theTimeConverter = TimeSystemConverter::Instance();
 
    isInitialized = false;
@@ -253,44 +261,70 @@ AtmosphereModel& AtmosphereModel::operator=(const AtmosphereModel& am)
    if (this == &am)
       return *this;
         
+   const bool restoring = GmatBase::IsNativeRestorationCopy();
+   const bool ready = isInitialized;
+   bool complete = false;
+   const auto onFailure = [&](void*) { if (restoring && !complete) isInitialized = false; };
+   const std::unique_ptr<void, decltype(onFailure)> restorationStatus(this, onFailure);
+   if (restoring && (centralBody != am.centralBody || CSSIFileName != am.CSSIFileName ||
+       schattenFileName != am.schattenFileName || historicalDataSource != am.historicalDataSource ||
+       predictedDataSource != am.predictedDataSource || useGeodetic != am.useGeodetic ||
+       (fluxReader == nullptr) != (am.fluxReader == nullptr) ||
+       (solarSystem && am.solarSystem && solarSystem != am.solarSystem) ||
+       (mCentralBody && am.mCentralBody && mCentralBody != am.mCentralBody) ||
+       (mInternalCoordSystem && am.mInternalCoordSystem && mInternalCoordSystem != am.mInternalCoordSystem) ||
+       (cbFixed && am.cbFixed && cbFixed != am.cbFixed)))
+      throw AtmosphereException("Prepare atmosphere files and body bindings before restoring changed configuration.");
+   std::unique_ptr<SolarFluxReader> nextReader(!restoring && am.fluxReader ? new SolarFluxReader(*am.fluxReader) : nullptr);
+   if (restoring) isInitialized = false;
    GmatBase::operator=(am);
    
-   solarSystem          = am.solarSystem;
-   mCentralBody         = am.mCentralBody;
+   if (!restoring) solarSystem = am.solarSystem;
+   if (!restoring) mCentralBody = am.mCentralBody;
    CSSIFileName          = am.CSSIFileName;
    schattenFileName      = am.schattenFileName;
-   sunVector            = NULL;
+   if (!restoring) sunVector = NULL;
    centralBody          = am.centralBody;
-   centralBodyLocation  = NULL;
-   fluxReader           = NULL;
+   if (!restoring) centralBodyLocation = NULL;
+   if (restoring)
+   {
+      if (fluxReader) *fluxReader = *am.fluxReader;
+   }
+   else
+   {
+      delete fluxReader;
+      fluxReader = nextReader.release();
+   }
    cbRadius             = am.cbRadius;
    cbFlattening         = am.cbFlattening;
-   fluxReaderLoaded     = false;
+   fluxReaderLoaded = am.fluxReaderLoaded;
    constantF107         = am.constantF107;
    constantF107a        = am.constantF107a;
    constantKp           = am.constantKp;
    nominalF107          = am.nominalF107;
    nominalF107a         = am.nominalF107a;
    nominalKp            = am.nominalKp;
-   nominalAp            = ConvertKpToAp(nominalKp);
-   constantAp           = nominalAp;
+   nominalAp = am.nominalAp;
+   constantAp = am.constantAp;
    kpApConversion       = am.kpApConversion;
    historicalDataSource = am.historicalDataSource;
    predictedDataSource  = am.predictedDataSource;
-   mInternalCoordSystem = am.mInternalCoordSystem;
-   if (cbJ2000 && canDeleteCBJ2000CS)
-      delete cbJ2000;
-   cbJ2000              = NULL;
-   canDeleteCBJ2000CS   = false;
-   cbFixed              = am.cbFixed;
+   if (!restoring) mInternalCoordSystem = am.mInternalCoordSystem;
+   if (!restoring)
+   {
+      if (cbJ2000 && canDeleteCBJ2000CS) delete cbJ2000;
+      cbJ2000 = NULL;
+      canDeleteCBJ2000CS = false;
+   }
+   if (!restoring) cbFixed = am.cbFixed;
    wUpdateInterval      = am.wUpdateInterval;
    wUpdateEpoch         = am.wUpdateEpoch;
-   geoHeight            = 0.0;
-   geoLat               = 0.0;
-   geoLong              = 0.0;
+   geoHeight = am.geoHeight;
+   geoLat = am.geoLat;
+   geoLong = am.geoLong;
    useGeodetic          = am.useGeodetic;
-   gha                  = 0.0;
-   ghaEpoch             = 0.0;
+   gha = am.gha;
+   ghaEpoch = am.ghaEpoch;
    historicStart        = am.historicStart;
    historicEnd          = am.historicEnd;
    predictStart         = am.predictStart;
@@ -306,8 +340,11 @@ AtmosphereModel& AtmosphereModel::operator=(const AtmosphereModel& am)
    for (Integer i = 0; i < 7; i++)
       ap[i] = am.ap[i];
 
-   isInitialized = false;
+   fDbuffer = am.fDbuffer;
+   std::copy_n(am.angVel, 3, angVel);
+   isInitialized = restoring ? ready : false;
 
+   complete = true;
    return *this;
 }
 

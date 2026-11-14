@@ -108,11 +108,16 @@ public:
                                   Integer order = 1, 
                                   const Integer id = -1);
    virtual Rvector6 GetDerivativesForSpacecraft(Spacecraft *sc);
+   // Evaluate a sampled MJ2000 Cartesian value without using or changing a
+   // spacecraft. The sample epoch is absolute, independent of the force clock.
+   Rvector6 GetDerivativesAtState(const Rvector6 &cartesian,
+                                 const GmatTime &atEpoch);
 
    virtual bool    GetBodyAndMu(std::string &itsName, Real &itsMu);
 
    // inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *original) override;
 
    // override access methods derived from GmatBase
    virtual std::string GetParameterText(const Integer id) const;
@@ -182,6 +187,9 @@ public:
    virtual Rvector3 GetTorquesForSpacecraft(Spacecraft *sc);
 
 protected:
+
+   Rvector6 EvaluateCartesianAcceleration(const Real *j2kState,
+                                         bool sampledEpoch);
 
    enum
    {

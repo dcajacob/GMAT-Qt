@@ -46,7 +46,12 @@
 //------------------------------------------------------------------------------
 
 
+#include "ScriptStringLiteral.hpp"
 #include "GmatBase.hpp"
+#include <typeinfo>
+#include "ObjectScriptExportScope.hpp"
+#include "ObjectMatlabExportScope.hpp"
+#include "ParameterWriteOrder.hpp"
 #include "GmatGlobal.hpp"  // for GetDataPrecision(), IsWritingGmatKeyword()
 #include "Moderator.hpp"
 #include <sstream>         // for StringStream
@@ -55,6 +60,229 @@
 #include "FileUtil.hpp"    // for ParseFileName()
 #include "MessageInterface.hpp"
 #include "RHSEquation.hpp"
+#include "FunctionValueContext.hpp"
+#include <mutex>
+#include <algorithm>
+#include <set>
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+struct NativeValueRegistry
+{
+   std::mutex mutex;
+   std::vector<const NativeValueProvider*> providers;
+};
+
+NativeValueRegistry &ValueRegistry()
+{
+   // Plugin registration destructors may run after ordinary core statics.
+   // Keep this small process-wide registry alive through library retirement.
+   static auto *registry = new NativeValueRegistry;
+   return *registry;
+}
+}
+
+NativeValueProviderRegistration::NativeValueProviderRegistration(NativeValueProvider value)
+   : provider(value)
+{
+   auto &registry = ValueRegistry();
+   std::lock_guard<std::mutex> lock(registry.mutex);
+   registry.providers.push_back(&provider);
+}
+
+NativeValueProviderRegistration::~NativeValueProviderRegistration()
+{
+   auto &registry = ValueRegistry();
+   std::lock_guard<std::mutex> lock(registry.mutex);
+   registry.providers.erase(std::remove(registry.providers.begin(),
+         registry.providers.end(), &provider), registry.providers.end());
+}
+
+NativeValueProvider FindNativeValueProvider(const GmatBase &object,
+      NativeValueOperation operation)
+{
+   auto &registry = ValueRegistry();
+   std::lock_guard<std::mutex> lock(registry.mutex);
+   NativeValueProvider result;
+   for (const auto *provider : registry.providers)
+   {
+      bool applicable = false;
+      switch (operation)
+      {
+         case NativeValueOperation::OwnedObjects: applicable = provider->ownedObjects != nullptr; break;
+         case NativeValueOperation::RebindReferences: applicable = provider->rebindReferences != nullptr; break;
+         case NativeValueOperation::Restoration: applicable = provider->restoration != nullptr; break;
+         case NativeValueOperation::SolverProvider: applicable = provider->solverProvider != nullptr; break;
+         case NativeValueOperation::SolverClone: applicable = provider->solverClone != nullptr; break;
+      }
+      if (applicable && provider->depth > result.depth && provider->matches &&
+            provider->matches(&object))
+         result = *provider;
+   }
+   // Resource callbacks can recursively inspect other native objects. Invoke
+   // them after releasing the registry lock.
+   return result;
+}
+
+namespace
+{
+thread_local unsigned int nativeFunctionValueCopyDepth = 0;
+thread_local unsigned int nativeRestorationCopyDepth = 0;
+thread_local bool explicitObjectScriptExport = false;
+// A native assignment can retain old bindings and copy a new body reference.
+// Flatten leases so repeated buffer assignments do not chain obsolete graphs.
+class RetainedFunctionValueReferences : public FunctionValueContext
+{
+public:
+   std::shared_ptr<const FunctionValueContext> primary;
+   std::vector<std::shared_ptr<const FunctionValueContext>> contexts;
+   ObjectArray objects;
+
+   const ObjectArray& GetPrivateObjects() const override { return objects; }
+   bool RetainsReference(const GmatBase *object) const override
+   {
+      for (const auto &context : contexts)
+         if (context->RetainsReference(object)) return true;
+      return false;
+   }
+   void RebindCopy(const GmatBase &source, GmatBase &target) const override
+   { primary->RebindCopy(source, target); }
+   void RebindCaller(GmatBase &target, const std::shared_ptr<const void> &epoch,
+         const std::map<const GmatBase*, GmatBase*> &bindings) const override
+   { primary->RebindCaller(target, epoch, bindings); }
+
+   static void Append(const std::shared_ptr<const FunctionValueContext> &context,
+         std::vector<std::shared_ptr<const FunctionValueContext>> &parts)
+   {
+      if (!context) return;
+      if (const auto *retained = dynamic_cast<const RetainedFunctionValueReferences*>(context.get()))
+      {
+         for (const auto &part : retained->contexts) Append(part, parts);
+      }
+      else if (std::find(parts.begin(), parts.end(), context) == parts.end()) parts.push_back(context);
+   }
+};
+
+struct OwnedCloneBinding
+{
+   const GmatBase *source = nullptr;
+   std::weak_ptr<const void> sourceIdentity;
+   GmatBase *owner = nullptr;
+   std::weak_ptr<const void> ownerIdentity;
+};
+
+struct FunctionValueContexts
+{
+   std::mutex mutex;
+   std::map<const GmatBase*, std::shared_ptr<const FunctionValueContext>> values;
+   std::map<const GmatBase*, std::weak_ptr<const FunctionValueContext>> borrowedValues;
+   std::map<const GmatBase*, std::shared_ptr<const void>> lifetimes;
+   std::map<const GmatBase*, OwnedCloneBinding> clones;
+   std::map<const GmatBase*, std::pair<GmatBase*, std::weak_ptr<const void>>> restorations;
+   std::map<const GmatBase*, std::weak_ptr<const void>> activeCloneOwners;
+};
+
+FunctionValueContexts& ValueContexts()
+{
+   // Entries are released by GmatBase destruction. Keep the registry itself
+   // available during process-static resource teardown, without changing the
+   // layout or virtual table of existing native resource/provider classes.
+   static auto *contexts = new FunctionValueContexts;
+   return *contexts;
+}
+
+// These helpers run with the registry mutex held. Never dereference an edge
+// until its weak identity has been compared with the current registry entry.
+bool LiveCloneEdge(const FunctionValueContexts &contexts, const GmatBase *object,
+      const std::weak_ptr<const void> &token)
+{
+   const auto identity = token.lock();
+   const auto live = contexts.lifetimes.find(object);
+   return object && identity && live != contexts.lifetimes.end() && live->second == identity;
+}
+
+GmatBase *ActiveCloneOwner(const FunctionValueContexts &contexts, const GmatBase *object)
+{
+   GmatBase *result = nullptr;
+   std::set<const GmatBase*> visited;
+   while (object && visited.insert(object).second)
+   {
+      const auto binding = contexts.clones.find(object);
+      if (binding == contexts.clones.end() ||
+          !LiveCloneEdge(contexts, binding->second.owner, binding->second.ownerIdentity)) break;
+      auto *owner = binding->second.owner;
+      const auto active = contexts.activeCloneOwners.find(owner);
+      if (active != contexts.activeCloneOwners.end() &&
+          LiveCloneEdge(contexts, owner, active->second)) result = owner;
+      object = owner;
+   }
+   // The outer command must invalidate/rebuild its engine when a nested setup
+   // changes. Deliver once to it, rather than separately to each nested owner.
+   return result;
+}
+
+bool CloneSourceMatches(const FunctionValueContexts &contexts, const GmatBase *clone,
+      const GmatBase *source)
+{
+   std::set<const GmatBase*> visited{clone};
+   while (clone)
+   {
+      const auto binding = contexts.clones.find(clone);
+      if (binding == contexts.clones.end() ||
+          !LiveCloneEdge(contexts, binding->second.source, binding->second.sourceIdentity)) return false;
+      clone = binding->second.source;
+      if (!visited.insert(clone).second) return false;
+      if (clone == source) return true;
+      const auto active = contexts.activeCloneOwners.find(clone);
+      const bool liveDefinition = active != contexts.activeCloneOwners.end() &&
+         LiveCloneEdge(contexts, clone, active->second);
+      // A direct source is always meaningful. An indirect source behind an
+      // inactive value/snapshot must not thaw that value's preserved ancestry.
+      if (!liveDefinition && !ActiveCloneOwner(contexts, clone)) return false;
+   }
+   return false;
+}
+}
+
+namespace { thread_local const ObjectMatlabExportScope *activeMatlabExport = nullptr; }
+
+ObjectMatlabExportScope::ObjectMatlabExportScope(ValueWriter valueWriter, RealWriter scalarWriter)
+   : previous(activeMatlabExport), writer(std::move(valueWriter)), realWriter(std::move(scalarWriter))
+{ activeMatlabExport = this; }
+
+ObjectMatlabExportScope::~ObjectMatlabExportScope() noexcept
+{ activeMatlabExport = previous; }
+
+bool ObjectMatlabExportScope::IsActive() noexcept
+{ return activeMatlabExport != nullptr; }
+
+bool ObjectMatlabExportScope::WriteValue(GmatBase &object, Integer id, std::stringstream &value)
+{ return activeMatlabExport && activeMatlabExport->writer(object, id, value); }
+
+bool ObjectMatlabExportScope::WriteReal(Real number, std::stringstream &value)
+{
+   if (!activeMatlabExport || !activeMatlabExport->realWriter) return false;
+   activeMatlabExport->realWriter(number, value);
+   return true;
+}
+
+
+ObjectScriptExportScope::ObjectScriptExportScope() noexcept
+   : previous(explicitObjectScriptExport)
+{
+   explicitObjectScriptExport = true;
+}
+
+ObjectScriptExportScope::~ObjectScriptExportScope() noexcept
+{
+   explicitObjectScriptExport = previous;
+}
+
+bool ObjectScriptExportScope::IsActive() noexcept
+{
+   return explicitObjectScriptExport;
+}
 
 //#define DEBUG_OBJECT_TYPE_CHECKING
 //#define DEBUG_COMMENT_LINE
@@ -286,6 +514,15 @@ GmatBase::~GmatBase()
       if (createdObjects[i])
          delete createdObjects[i];
    }
+   {
+      auto &contexts = ValueContexts();
+      std::lock_guard<std::mutex> lock(contexts.mutex);
+      contexts.lifetimes.erase(this);
+      contexts.clones.erase(this);
+      contexts.restorations.erase(this);
+      contexts.activeCloneOwners.erase(this);
+   }
+   SetFunctionValueContext({});
 }
 
 
@@ -343,6 +580,23 @@ GmatBase::GmatBase(const GmatBase &a) :
     hasEquation               (a.hasEquation), 
     scriptLineNumber          (a.scriptLineNumber)
 {
+   covariance.RebindOwner(&a, this);
+   SetFunctionValueContext(a.GetFunctionValueContext());
+   {
+      auto &contexts = ValueContexts();
+      std::lock_guard<std::mutex> lock(contexts.mutex);
+      const auto found = contexts.clones.find(&a);
+      if (found != contexts.clones.end() && found->second.source)
+      {
+         OwnedCloneBinding binding;
+         binding.source = found->second.source;
+         binding.sourceIdentity = found->second.sourceIdentity;
+         contexts.clones.emplace(this, std::move(binding));
+      }
+      const auto restoration = contexts.restorations.find(&a);
+      if (restoration != contexts.restorations.end())
+         contexts.restorations.emplace(this, restoration->second);
+   }
    // one more instance - add to the instanceCount
    ++instanceCount;
 }
@@ -369,9 +623,12 @@ GmatBase& GmatBase::operator=(const GmatBase &a)
    typeName                  = a.typeName;
    // We don't want to copy instanceName (loj: 2008.02.15)
    //instanceName              = a.instanceName;
-   scriptCreatedFrom         = a.scriptCreatedFrom;
-   isCreatedFromMainScript   = a.isCreatedFromMainScript;
-   forceGenerateObjectString = a.forceGenerateObjectString;
+   if (!IsNativeRestorationCopy())
+   {
+      scriptCreatedFrom         = a.scriptCreatedFrom;
+      isCreatedFromMainScript   = a.isCreatedFromMainScript;
+      forceGenerateObjectString = a.forceGenerateObjectString;
+   }
    type                      = a.type;
    ownedObjectCount          = a.ownedObjectCount;
    generatingString          = a.generatingString;
@@ -381,8 +638,9 @@ GmatBase& GmatBase::operator=(const GmatBase &a)
    isInitialized             = a.isInitialized;
 
    // don't want to modify isGlobal here
-	isAutomaticGlobal         = a.isAutomaticGlobal;
-   isLocal                   = a.isLocal;
+   if (!IsNativeRestorationCopy()) isAutomaticGlobal = a.isAutomaticGlobal;
+   // Existing-object assignment preserves its owning scope, as for isGlobal.
+   // A function-local value must not relabel a caller/global destination.
    callbackExecuting         = false;
    errorMessageFormat        = a. errorMessageFormat;
    errorMessageFormatUnnamed = a. errorMessageFormatUnnamed;
@@ -399,6 +657,7 @@ GmatBase& GmatBase::operator=(const GmatBase &a)
    covarianceIds             = a.covarianceIds;
    covarianceSizes           = a.covarianceSizes;
    covariance                = a.covariance;
+   covariance.RebindOwner(&a, this);
    writeEmptyStringArray     = a.writeEmptyStringArray;
    hasPrecisionTime          = a.hasPrecisionTime;
    isAPIObject               = a.isAPIObject;
@@ -411,8 +670,314 @@ GmatBase& GmatBase::operator=(const GmatBase &a)
    methodInputs              = a.methodInputs;
    hasEquation               = a.hasEquation;
    scriptLineNumber          = a.scriptLineNumber;
+   {
+      auto &contexts = ValueContexts();
+      std::lock_guard<std::mutex> lock(contexts.mutex);
+      const auto source = contexts.restorations.find(&a);
+      const auto target = contexts.restorations.find(this);
+      if (source != contexts.restorations.end() && target != contexts.restorations.end())
+         target->second = source->second;
+   }
+   SetFunctionValueContext(a.GetFunctionValueContext());
 
    return *this;
+}
+
+std::weak_ptr<const void> GmatBase::GetLifetimeToken() const
+{
+   auto &contexts = ValueContexts();
+   std::lock_guard<std::mutex> lock(contexts.mutex);
+   auto &token = contexts.lifetimes[this];
+   if (!token) token = std::make_shared<const int>(0);
+   return token;
+}
+
+bool GmatBase::IsLiveReference(const GmatBase *object, const std::weak_ptr<const void> &token)
+{
+   const auto identity = token.lock();
+   if (!object || !identity) return false;
+   auto &contexts = ValueContexts();
+   std::lock_guard<std::mutex> lock(contexts.mutex);
+   const auto current = contexts.lifetimes.find(object);
+   return current != contexts.lifetimes.end() && current->second == identity;
+}
+
+bool GmatBase::HasRestorationTarget() const
+{
+   auto &contexts = ValueContexts();
+   std::lock_guard<std::mutex> lock(contexts.mutex);
+   return contexts.restorations.count(this) != 0;
+}
+
+GmatBase *GmatBase::GetRestorationTarget() const
+{
+   auto &contexts = ValueContexts();
+   std::lock_guard<std::mutex> lock(contexts.mutex);
+   const auto found = contexts.restorations.find(this);
+   if (found == contexts.restorations.end() ||
+       !LiveCloneEdge(contexts, found->second.first, found->second.second)) return nullptr;
+   return found->second.first;
+}
+
+void GmatBase::SetRestorationTarget(GmatBase *target)
+{
+   if (target == this) throw GmatBaseException("A restoration value cannot target itself.");
+   const auto identity = target ? target->GetLifetimeToken() : std::weak_ptr<const void>();
+   auto &contexts = ValueContexts();
+   std::lock_guard<std::mutex> lock(contexts.mutex);
+   if (target) contexts.restorations[this] = {target, identity};
+   else contexts.restorations.erase(this);
+}
+
+const GmatBase *GmatBase::GetCloneSource() const
+{
+   auto &contexts = ValueContexts();
+   std::lock_guard<std::mutex> lock(contexts.mutex);
+   const auto found = contexts.clones.find(this);
+   if (found == contexts.clones.end() || !found->second.source) return nullptr;
+   const auto identity = found->second.sourceIdentity.lock();
+   const auto live = contexts.lifetimes.find(found->second.source);
+   return identity && live != contexts.lifetimes.end() && live->second == identity ?
+      found->second.source : nullptr;
+}
+
+GmatBase *GmatBase::GetCloneOwner() const
+{
+   auto &contexts = ValueContexts();
+   std::lock_guard<std::mutex> lock(contexts.mutex);
+   const auto found = contexts.clones.find(this);
+   if (found == contexts.clones.end() || !found->second.owner) return nullptr;
+   const auto identity = found->second.ownerIdentity.lock();
+   const auto live = contexts.lifetimes.find(found->second.owner);
+   return identity && live != contexts.lifetimes.end() && live->second == identity ?
+      found->second.owner : nullptr;
+}
+
+void GmatBase::SetCloneSource(const GmatBase *source)
+{
+   if (source == this) source = nullptr; // Direct owned changes use their actual identity.
+   const std::weak_ptr<const void> identity = source ? source->GetLifetimeToken() : std::weak_ptr<const void>();
+   auto &contexts = ValueContexts();
+   std::lock_guard<std::mutex> lock(contexts.mutex);
+   const auto found = contexts.clones.find(this);
+   if (!source && found == contexts.clones.end()) return;
+   auto &binding = contexts.clones[this];
+   binding.source = source;
+   binding.sourceIdentity = identity;
+   if (!binding.source && !binding.owner) contexts.clones.erase(this);
+}
+
+void GmatBase::SetCloneOwner(GmatBase *owner)
+{
+   if (owner == this) owner = nullptr;
+   const std::weak_ptr<const void> identity = owner ? owner->GetLifetimeToken() : std::weak_ptr<const void>();
+   auto &contexts = ValueContexts();
+   std::lock_guard<std::mutex> lock(contexts.mutex);
+   const auto found = contexts.clones.find(this);
+   if (!owner && found == contexts.clones.end()) return;
+   auto &binding = contexts.clones[this];
+   binding.owner = owner;
+   binding.ownerIdentity = identity;
+   if (!binding.source && !binding.owner) contexts.clones.erase(this);
+}
+
+void GmatBase::SetCloneNotificationsEnabled(bool enabled)
+{
+   const std::weak_ptr<const void> identity = enabled ? GetLifetimeToken() : std::weak_ptr<const void>();
+   auto &contexts = ValueContexts();
+   std::lock_guard<std::mutex> lock(contexts.mutex);
+   if (enabled) contexts.activeCloneOwners[this] = identity;
+   else contexts.activeCloneOwners.erase(this);
+}
+
+bool GmatBase::IsCloneOf(const GmatBase &source) const
+{
+   auto &contexts = ValueContexts();
+   std::lock_guard<std::mutex> lock(contexts.mutex);
+   return CloneSourceMatches(contexts, this, &source);
+}
+
+void GmatBase::RetargetCloneSources(const GmatBase &retired, const GmatBase &replacement)
+{
+   // A same-type replacement of an owned definition keeps its subscribers.
+   // Type-changing/public declaration edits still require their native parent
+   // configuration update; do not disguise them as a compatible leaf update.
+   if (&retired == &replacement || typeid(retired) != typeid(replacement) ||
+       retired.GetTypeName() != replacement.GetTypeName()) return;
+   const auto oldIdentity = retired.GetLifetimeToken();
+   const auto newIdentity = replacement.GetLifetimeToken();
+   auto &contexts = ValueContexts();
+   std::lock_guard<std::mutex> lock(contexts.mutex);
+   if (!LiveCloneEdge(contexts, &retired, oldIdentity) ||
+       !LiveCloneEdge(contexts, &replacement, newIdentity)) return;
+   for (auto &entry : contexts.clones)
+   {
+      if (entry.first == &replacement || entry.second.source != &retired ||
+          entry.second.sourceIdentity.lock() != oldIdentity.lock()) continue;
+      entry.second.source = &replacement;
+      entry.second.sourceIdentity = newIdentity;
+   }
+}
+
+GmatBase::CloneUpdateOwners GmatBase::GetCloneUpdateOwners(const GmatBase &source)
+{
+   const auto identity = source.GetLifetimeToken().lock();
+   CloneUpdateOwners result;
+   auto &contexts = ValueContexts();
+   std::lock_guard<std::mutex> lock(contexts.mutex);
+   const auto current = contexts.lifetimes.find(&source);
+   if (!identity || current == contexts.lifetimes.end() || current->second != identity) return result;
+   for (const auto &entry : contexts.clones)
+   {
+      if (entry.first != &source && !CloneSourceMatches(contexts, entry.first, &source)) continue;
+      auto *owner = ActiveCloneOwner(contexts, entry.first);
+      if (!owner) continue;
+      bool seen = false;
+      for (const auto &previous : result) if (previous.first == owner) seen = true;
+      if (!seen) result.emplace_back(owner, contexts.lifetimes.at(owner));
+   }
+   return result;
+}
+
+std::shared_ptr<const FunctionValueContext> GmatBase::GetFunctionValueContext() const
+{
+   auto &contexts = ValueContexts();
+   std::lock_guard<std::mutex> lock(contexts.mutex);
+   const auto found = contexts.values.find(this);
+   if (found != contexts.values.end()) return found->second;
+   const auto borrowed = contexts.borrowedValues.find(this);
+   return borrowed == contexts.borrowedValues.end() ? nullptr : borrowed->second.lock();
+}
+
+void GmatBase::SetFunctionValueContext(
+      const std::shared_ptr<const FunctionValueContext> &context)
+{
+   std::shared_ptr<const FunctionValueContext> retired;
+   {
+      auto &contexts = ValueContexts();
+      std::lock_guard<std::mutex> lock(contexts.mutex);
+      // Assigning another value from the same graph does not change the
+      // destination's ownership role within that graph. Fresh copies have no
+      // weak registration and acquire the ordinary owning lease below.
+      const auto borrowed = contexts.borrowedValues.find(this);
+      if (context && borrowed != contexts.borrowedValues.end() &&
+            borrowed->second.lock() == context) return;
+      const auto found = contexts.values.find(this);
+      if (found != contexts.values.end())
+      {
+         retired = std::move(found->second);
+         if (context) found->second = context;
+         else contexts.values.erase(found);
+      }
+      else if (context) contexts.values.emplace(this, context);
+      contexts.borrowedValues.erase(this);
+   }
+   // Releasing a graph destroys other GmatBase objects and may reenter this
+   // registry. Always retire it after releasing the mutex.
+}
+
+void GmatBase::SetBorrowedFunctionValueContext(
+      const std::shared_ptr<const FunctionValueContext> &context)
+{
+   std::shared_ptr<const FunctionValueContext> retired;
+   {
+      auto &contexts = ValueContexts();
+      std::lock_guard<std::mutex> lock(contexts.mutex);
+      // Allocate the weak entry before dropping an existing owning lease.
+      if (context) contexts.borrowedValues[this] = context;
+      else contexts.borrowedValues.erase(this);
+      const auto found = contexts.values.find(this);
+      if (found != contexts.values.end())
+      {
+         retired = std::move(found->second);
+         contexts.values.erase(found);
+      }
+   }
+   // Retiring another graph can reenter this registry through its objects.
+}
+
+GmatBase::FunctionValueCopyGuard::FunctionValueCopyGuard()
+{ ++nativeFunctionValueCopyDepth; }
+
+GmatBase::FunctionValueCopyGuard::~FunctionValueCopyGuard()
+{ --nativeFunctionValueCopyDepth; }
+
+void GmatBase::RebindFunctionValueContext(const GmatBase &source)
+{
+   if (&source == this || nativeFunctionValueCopyDepth) return;
+   const auto context = source.GetFunctionValueContext();
+   if (context) context->RebindCopy(source, *this);
+   else SetFunctionValueContext({});
+}
+
+GmatBase::NativeRestorationGuard::NativeRestorationGuard()
+{ ++nativeRestorationCopyDepth; ++nativeFunctionValueCopyDepth; }
+
+GmatBase::NativeRestorationGuard::~NativeRestorationGuard()
+{ --nativeFunctionValueCopyDepth; --nativeRestorationCopyDepth; }
+
+bool GmatBase::IsNativeRestorationCopy()
+{
+   return nativeRestorationCopyDepth != 0;
+}
+
+bool GmatBase::IsNativeFunctionValueCopy()
+{
+   return nativeFunctionValueCopyDepth != 0;
+}
+
+ObjectArray GmatBase::GetFunctionValueOwnedObjects() const
+{
+   const auto provider = FindNativeValueProvider(*this, NativeValueOperation::OwnedObjects);
+   return provider.ownedObjects ? provider.ownedObjects(this) : GetFunctionValueOwnedObjectsDefault();
+}
+
+ObjectArray GmatBase::GetFunctionValueOwnedObjectsDefault() const
+{
+   return {};
+}
+
+bool GmatBase::RebindFunctionValueReferences(const GmatBase &source,
+      SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto provider = FindNativeValueProvider(*this, NativeValueOperation::RebindReferences);
+   return provider.rebindReferences ? provider.rebindReferences(this, source, system, resolve) :
+         RebindFunctionValueReferencesDefault(source, system, resolve);
+}
+
+bool GmatBase::RebindFunctionValueReferencesDefault(const GmatBase &,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &)
+{
+   return false;
+}
+
+void GmatBase::RetainFunctionValueReferences(
+      const std::shared_ptr<const FunctionValueContext> &previous,
+      const ObjectArray &references)
+{
+   const auto current = GetFunctionValueContext();
+   if (!previous || previous == current) return;
+   auto retained = std::make_shared<RetainedFunctionValueReferences>();
+   retained->primary = current ? current : previous;
+   if (const auto *existing = dynamic_cast<const RetainedFunctionValueReferences*>(retained->primary.get()))
+      retained->primary = existing->primary;
+   std::vector<std::shared_ptr<const FunctionValueContext>> parts;
+   RetainedFunctionValueReferences::Append(current, parts);
+   RetainedFunctionValueReferences::Append(previous, parts);
+   for (const auto &context : parts)
+   {
+      const ObjectArray &objects = context->GetPrivateObjects();
+      bool needed = context == retained->primary;
+      for (GmatBase *reference : references)
+         if (std::find(objects.begin(), objects.end(), reference) != objects.end()) needed = true;
+      if (!needed) continue;
+      retained->contexts.push_back(context);
+      for (GmatBase *object : objects)
+         if (std::find(retained->objects.begin(), retained->objects.end(), object) == retained->objects.end())
+            retained->objects.push_back(object);
+   }
+   if (retained->contexts.size() == 1) SetFunctionValueContext(retained->contexts.front());
+   else SetFunctionValueContext(retained);
 }
 
 
@@ -1328,6 +1893,17 @@ std::string GmatBase::GetCallbackResults()
 void GmatBase::Copy(const GmatBase*)
 {
    throw GmatBaseException("Cannot copy objects of type " + typeName);
+}
+
+std::unique_ptr<NativeRestorationPlan> GmatBase::PrepareRestoration(const GmatBase &source)
+{
+   const auto provider = FindNativeValueProvider(*this, NativeValueOperation::Restoration);
+   return provider.restoration ? provider.restoration(this, source) : PrepareRestorationDefault(source);
+}
+
+std::unique_ptr<NativeRestorationPlan> GmatBase::PrepareRestorationDefault(const GmatBase &)
+{
+   return {};
 }
 
 
@@ -2875,6 +3451,9 @@ const Rvector& GmatBase::SetRvectorParameter(const Integer id,
 //------------------------------------------------------------------------------
 const Rmatrix& GmatBase::GetRmatrixParameter(const Integer id) const
 {
+   if (id == COVARIANCE)
+      return *covariance.GetCovariance();
+
    std::stringstream idString;
    idString << id << ": \"" << GetParameterText(id) << "\"";
    throw GmatBaseException("Cannot get Rmatrix parameter with ID " +
@@ -3627,7 +4206,32 @@ void GmatBase::SetField(const Integer id, const RealArray &value)
 
 void GmatBase::SetField(const Integer id, const StringArray &value)
 {
-   MessageInterface::ShowMessage("Called SetField for StringArray %s\n");
+   const auto type = GetParameterType(id);
+   if (type == Gmat::GENERIC_TYPE)
+   {
+      SetGenericParameter(id, Generic(value));
+      return;
+   }
+   if (type != Gmat::STRINGARRAY_TYPE && type != Gmat::OBJECTARRAY_TYPE)
+      throw GmatBaseException("The field " + GetParameterText(id) + " on " + GetName() +
+                             " does not accept a string array.");
+   const StringArray previous = GetStringArrayParameter(id);
+   if (value == previous) return;
+   // Replacing reference names through indexed setters can retain obsolete
+   // owned objects. A provider must implement its complete reference update.
+   if (type == Gmat::OBJECTARRAY_TYPE)
+      throw GmatBaseException("Complete reference-list replacement requires a native provider for " +
+                             GetName() + "." + GetParameterText(id));
+   if (value.size() != previous.size())
+      throw GmatBaseException("Complete list replacement is not implemented for " +
+                             GetName() + "." + GetParameterText(id));
+   if (value.size() > static_cast<size_t>(std::numeric_limits<Integer>::max()))
+      throw GmatBaseException("String-array property exceeds native index capacity.");
+   for (size_t i = 0; i < value.size(); ++i)
+      if (!SetStringParameter(id, value[i], static_cast<Integer>(i)))
+         throw GmatBaseException("The indexed setter rejected " + GetName() + "." + GetParameterText(id));
+   if (GetStringArrayParameter(id) != value)
+      throw GmatBaseException("The indexed setter did not replace " + GetName() + "." + GetParameterText(id));
 }
 
 void GmatBase::SetField(const std::string &label, const RealArray &value)
@@ -5661,6 +6265,7 @@ const std::string& GmatBase::GetGeneratingString(Gmat::WriteMode mode,
                                                  const std::string &prefix,
                                                  const std::string &useName)
 {
+   ObjectMatlabModeScope matlabMode(inMatlabMode, mode);
    #ifdef DEBUG_GENERATING_STRING
    MessageInterface::ShowMessage
       ("GmatBase::GetGeneratingString() <%p><%s>'%s' entered, mode=%d, prefix='%s', "
@@ -5673,16 +6278,33 @@ const std::string& GmatBase::GetGeneratingString(Gmat::WriteMode mode,
    MessageInterface::ShowMessage("   isCreatedFromMainScript=%d\n", isCreatedFromMainScript);
    #endif
 
-   // don't write anything for cloaked objects, unless we're in SHOW_SCRIPT mode
-   if ((mode != Gmat::SHOW_SCRIPT) && IsObjectCloaked())
+   const bool explicitScriptExport = ObjectScriptExportScope::IsActive() &&
+      (mode == Gmat::SCRIPTING || mode == Gmat::OWNED_OBJECT ||
+       mode == Gmat::NO_COMMENTS || mode == Gmat::OBJECT_EXPORT);
+   // Explicit snapshots must restore default-valued writable properties too.
+   // Keep genuinely hidden/read-only objects under their native policy.
+   if ((mode != Gmat::SHOW_SCRIPT) && !ObjectMatlabExportScope::Applies(mode) && IsObjectCloaked())
    {
-      generatingString = "";
-      return generatingString;
+      bool hasWritableDefault = false;
+      if (explicitScriptExport)
+         for (Integer id = 0; id < parameterCount; ++id)
+            if (!IsParameterReadOnly(id) && IsParameterEqualToDefault(id))
+            {
+               hasWritableDefault = true;
+               break;
+            }
+      if (!hasWritableDefault)
+      {
+         generatingString = "";
+         return generatingString;
+      }
    }
    
    // Don't write unless object is created from the main script
    // Skip this if a breakpoint is using DEBUG_INSPECT (CRC 2022.03.21)
-   if (mode != Gmat::SHOW_SCRIPT && mode != Gmat::DEBUG_INSPECT && !isCreatedFromMainScript)
+   if (mode != Gmat::SHOW_SCRIPT && mode != Gmat::DEBUG_INSPECT &&
+       !isCreatedFromMainScript && !explicitScriptExport &&
+       !ObjectMatlabExportScope::Applies(mode))
    {
       if (!forceGenerateObjectString)
       {
@@ -5708,6 +6330,9 @@ const std::string& GmatBase::GetGeneratingString(Gmat::WriteMode mode,
       inMatlabMode = false;
    if (mode == Gmat::MATLAB_STRUCT || mode == Gmat::EPHEM_HEADER)
       inMatlabMode = true;
+
+   matlabMode.Apply();
+   ObjectMatlabExportScope::Prepare(data);
 
    if (useName != "")
       nomme = useName;
@@ -6012,7 +6637,7 @@ std::string GmatBase::GetObjectTypeString(UnsignedInt type)
 //------------------------------------------------------------------------------
 Integer GmatBase::GetDataPrecision()
 {
-   return GmatGlobal::Instance()->GetDataPrecision();
+   return ObjectScriptExportScope::Precision(GmatGlobal::Instance()->GetDataPrecision());
 }
 
 //------------------------------------------------------------------------------
@@ -6418,42 +7043,88 @@ void GmatBase::CopyParameters(const GmatBase &a)
  * @param forParameter The ID of the parameter
  */
 //------------------------------------------------------------------------------
-void GmatBase::CopyParameter(const GmatBase& fromObject,
-      const Integer forParameter)
+void GmatBase::CopyParameter(const GmatBase& fromObject, const Integer forParameter)
 {
-
-   if (fromObject.GetType() != type)
-      throw GmatBaseException("In GmatBase::CopyParameter, the input object "
-            "type must exactly match the object receiving the call, but the "
-            "call was sent to a " + typeName + "(" + instanceName +
-            ") with an input object of type " +
-            fromObject.GetTypeName() + " named " +
-            fromObject.GetName());
-
-   Gmat::ParameterType parmType = fromObject.GetParameterType(forParameter);
-
-   if (parmType == Gmat::REAL_TYPE)
+   if (typeid(*this) != typeid(fromObject) || GetTypeName() != fromObject.GetTypeName())
+      throw GmatBaseException("CopyParameter requires matching concrete object types: " +
+         fromObject.GetTypeName() + " -> " + GetTypeName());
+   const std::string label = fromObject.GetParameterText(forParameter);
+   const Integer destination = GetParameterID(label);
+   const auto parameterType = fromObject.GetParameterType(forParameter);
+   if (GetParameterType(destination) != parameterType)
+      throw GmatBaseException("CopyParameter property type mismatch: " + label);
+   const auto require = [&](bool accepted)
    {
-      Real rVal = fromObject.GetRealParameter(forParameter);
-      SetRealParameter(forParameter, rVal);
-   }
-
-   if (parmType == Gmat::INTEGER_TYPE)
+      if (!accepted) throw GmatBaseException("CopyParameter setter rejected " + GetName() + "." + label);
+   };
+   switch (parameterType)
    {
-      Integer iVal = fromObject.GetIntegerParameter(forParameter);
-      SetIntegerParameter(forParameter, iVal);
-   }
-
-   if ((parmType == Gmat::STRING_TYPE) || (parmType == Gmat::FILENAME_TYPE))
-   {
-      std::string sVal = fromObject.GetStringParameter(forParameter);
-      SetStringParameter(forParameter, sVal);
-   }
-
-   if (parmType == Gmat::BOOLEAN_TYPE)
-   {
-      bool bVal = fromObject.GetBooleanParameter(forParameter);
-      SetBooleanParameter(forParameter, bVal);
+      case Gmat::REAL_TYPE:
+      case Gmat::TIME_TYPE:
+         SetRealParameter(destination, fromObject.GetRealParameter(forParameter)); return;
+      case Gmat::GMATTIME_TYPE:
+         SetGmatTimeParameter(destination, fromObject.GetGmatTimeParameter(forParameter)); return;
+      case Gmat::INTEGER_TYPE:
+         SetIntegerParameter(destination, fromObject.GetIntegerParameter(forParameter)); return;
+      case Gmat::UNSIGNED_INT_TYPE:
+         SetUnsignedIntParameter(destination, fromObject.GetUnsignedIntParameter(forParameter)); return;
+      case Gmat::BOOLEAN_TYPE:
+         SetBooleanParameter(destination, fromObject.GetBooleanParameter(forParameter)); return;
+      case Gmat::STRING_TYPE:
+      case Gmat::FILENAME_TYPE:
+      case Gmat::ENUMERATION_TYPE:
+      case Gmat::OBJECT_TYPE:
+      case Gmat::COLOR_TYPE:
+      case Gmat::EQUATION_TYPE:
+         require(SetStringParameter(destination, fromObject.GetStringParameter(forParameter))); return;
+      case Gmat::ON_OFF_TYPE:
+         require(SetOnOffParameter(destination, fromObject.GetOnOffParameter(forParameter))); return;
+      case Gmat::STRINGARRAY_TYPE:
+      case Gmat::OBJECTARRAY_TYPE:
+      {
+         const StringArray values = fromObject.GetStringArrayParameter(forParameter);
+         SetField(destination, values); return;
+      }
+      case Gmat::BOOLEANARRAY_TYPE:
+      {
+         const BooleanArray values = fromObject.GetBooleanArrayParameter(forParameter);
+         require(SetBooleanArrayParameter(destination, values)); return;
+      }
+      case Gmat::INTARRAY_TYPE:
+      {
+         const IntegerArray values = fromObject.GetIntegerArrayParameter(forParameter);
+         if (values.size() != GetIntegerArrayParameter(destination).size() ||
+             values.size() > static_cast<size_t>(std::numeric_limits<Integer>::max()))
+            throw GmatBaseException("CopyParameter requires a native integer-array resize provider: " + label);
+         for (size_t i = 0; i < values.size(); ++i)
+            SetIntegerParameter(destination, values[i], static_cast<Integer>(i));
+         return;
+      }
+      case Gmat::UNSIGNED_INTARRAY_TYPE:
+      {
+         const UnsignedIntArray values = fromObject.GetUnsignedIntArrayParameter(forParameter);
+         if (values.size() != GetUnsignedIntArrayParameter(destination).size() ||
+             values.size() > static_cast<size_t>(std::numeric_limits<Integer>::max()))
+            throw GmatBaseException("CopyParameter requires a native unsigned-array resize provider: " + label);
+         for (size_t i = 0; i < values.size(); ++i)
+            SetUnsignedIntParameter(destination, values[i], static_cast<Integer>(i));
+         return;
+      }
+      case Gmat::RVECTOR_TYPE:
+      {
+         const Rvector value(fromObject.GetRvectorParameter(forParameter));
+         SetRvectorParameter(destination, value); return;
+      }
+      case Gmat::RMATRIX_TYPE:
+      {
+         const Rmatrix value(fromObject.GetRmatrixParameter(forParameter));
+         SetRmatrixParameter(destination, value); return;
+      }
+      case Gmat::GENERIC_TYPE:
+         SetGenericParameter(destination, fromObject.GetGenericParameter(forParameter)); return;
+      default:
+         throw GmatBaseException("CopyParameter needs a native value provider for " + label +
+            " (" + fromObject.GetParameterTypeString(forParameter) + ")");
    }
 }
 
@@ -6473,6 +7144,10 @@ void GmatBase::CopyParameter(const GmatBase& fromObject,
 void GmatBase::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
                                std::stringstream &stream)
 {
+   const bool explicitScriptExport = ObjectScriptExportScope::IsActive() &&
+      (mode == Gmat::SCRIPTING || mode == Gmat::OWNED_OBJECT ||
+       mode == Gmat::NO_COMMENTS || mode == Gmat::OBJECT_EXPORT);
+   const bool explicitMatlabExport = ObjectMatlabExportScope::Applies(mode);
    #ifdef DEBUG_WRITE_PARAM
    MessageInterface::ShowMessage
       ("GmatBase::WriteParameters() <%p><%s>'%s' entered, mode=%d, prefix='%s'\n",
@@ -6483,42 +7158,25 @@ void GmatBase::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
    Gmat::ParameterType parmType;
    std::stringstream value;
    value.precision(GetDataPrecision());
+   ObjectMatlabExportScope::Prepare(value);
    
    // Allow objects to muck with parameter counts, and use the mucked up value
-   Integer paramCount = GetParameterCount();
+   const Integer paramCount = GetParameterCount();
    
    #ifdef DEBUG_WRITE_PARAM
    MessageInterface::ShowMessage("   =====> There are %d parameters\n", paramCount);
    #endif
    
-   // Create parameter write order if it is empty (LOJ: 2009.02.13)
-   if (parameterWriteOrder.empty())
-   {
-      for (i = 0; i < paramCount; ++i)
-         parameterWriteOrder.push_back(i);
-   }
-   else
-   {
-      if ((Integer)parameterWriteOrder.size() < paramCount)
-      {
-         // Add GmatBase parameters since its count is no longer 0 (LOJ: 2009.11.20)
-         for (i = 0; i < GmatBaseParamCount; ++i)
-            parameterWriteOrder.push_back(i);
-         
-         if ((Integer)parameterWriteOrder.size() != paramCount)
-         {
-            GmatBaseException gbe;
-            gbe.SetDetails("GmatBase::WriteParameters(), there are more actual "
-                           "parameters [%d] than ordered parameters [%d]\n",
-                           parameterCount, parameterWriteOrder.size());
-         }
-      }
-   }
+   // Retain class-specific ordering and append every currently missing ID.
+   // Serialization must not change the object's native ordering metadata or
+   // index an incomplete order after a resource adds properties.
+   const IntegerArray writeOrder = GmatSerialization::CompleteParameterOrder(
+      paramCount, parameterWriteOrder, GetName());
    
    Integer id;
    for (i = 0; i < paramCount; ++i)
    {
-      id = parameterWriteOrder[i];
+      id = writeOrder[i];
       
       #ifdef DEBUG_WRITE_PARAM
       MessageInterface::ShowMessage
@@ -6530,11 +7188,14 @@ void GmatBase::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
           (IsParameterCloaked(id) ? "Cloaked" : "Uncloaked"));
       #endif
       
-      // in SHOW_SCRIPT, we write cloaked parameters; otherwise, we don't
+      // A native default comparison identifies default suppression separately
+      // from unrelated hidden fields. Explicit Save snapshots restore those
+      // values while keeping the native read-only gate.
       bool parameterIsToBeWritten = !IsParameterReadOnly(id);
       if (mode != Gmat::SHOW_SCRIPT) 
          parameterIsToBeWritten = parameterIsToBeWritten &&
-                                  (!IsParameterCloaked(id));
+            (!IsParameterCloaked(id) ||
+             ((explicitScriptExport || explicitMatlabExport) && IsParameterEqualToDefault(id)));
       
       if (parameterIsToBeWritten)
       {
@@ -6564,7 +7225,7 @@ void GmatBase::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
                if (value.str() != "")
                {
                   std::string attCmtLn = "";
-                  if (mode != Gmat::OBJECT_EXPORT)
+                  if (mode != Gmat::OBJECT_EXPORT && !explicitMatlabExport)
                      attCmtLn = GetAttributeCommentLine(id);
 
                   if ((attCmtLn != "") && ((mode == Gmat::SCRIPTING) ||
@@ -6579,7 +7240,7 @@ void GmatBase::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
                             << " = " << value.str() << ";";
 
                   // overwrite tmp variable for attribute cmt line
-                  if (mode != Gmat::OBJECT_EXPORT)
+                  if (mode != Gmat::OBJECT_EXPORT && !explicitMatlabExport)
                      attCmtLn = GetInlineAttributeComment(id);
                   if ((attCmtLn != "") && ((mode == Gmat::SCRIPTING) ||
                       (mode == Gmat::OWNED_OBJECT) || (mode == Gmat::SHOW_SCRIPT)))
@@ -6593,6 +7254,7 @@ void GmatBase::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
    }
    
    // Write the object methods
+   if (!explicitMatlabExport)
    for (UnsignedInt i = 0; i < scriptedMethods.size(); ++i)
    {
       stream << objectMethodPrefaces[i] << prefix << scriptedMethods[i] << "\n";
@@ -6676,9 +7338,55 @@ void GmatBase::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
 void GmatBase::WriteStringArrayValue(Gmat::WriteMode mode, std::string &prefix,
                                      Integer id, bool writeQuotes,
                                      std::stringstream &stream)
-{   
+{
+   if (ObjectMatlabExportScope::Applies(mode))
+   {
+      std::stringstream value;
+      if (ObjectMatlabExportScope::WriteValue(*this, id, value))
+      {
+         stream << prefix << GetParameterText(id) << " = " << value.str() << ";\n";
+         return;
+      }
+   }
+
    StringArray sar = GetStringArrayParameter(id);
-   if ((sar.size() > 0) || WriteEmptyStringArray(id))
+   const bool explicitScriptExport = ObjectScriptExportScope::IsActive() &&
+      (mode == Gmat::SCRIPTING || mode == Gmat::OWNED_OBJECT ||
+       mode == Gmat::NO_COMMENTS || mode == Gmat::OBJECT_EXPORT);
+   // These native lists support complete clearing. Reset before a
+   // nonempty snapshot too: indexed script setters can otherwise retain the
+   // tail of a longer list from an earlier appended snapshot.
+   const std::string property = explicitScriptExport ? GetParameterText(id) : "";
+   const bool resetNativeList = explicitScriptExport &&
+      ((IsOfType(Gmat::SPACE_POINT) &&
+        (property == "OrbitSpiceKernelName" || property == "AttitudeSpiceKernelName" ||
+         property == "PlanetarySpiceKernelName" || property == "SCClockSpiceKernelName" ||
+         property == "FrameSpiceKernelName")) ||
+       (IsOfType(Gmat::SPACECRAFT) && property == "SolveFors") ||
+       (IsOfType("ReportFile") && property == "Add") ||
+       (IsOfType("XYPlot") && (property == "YVariables" || property == "Add")) ||
+       (IsOfType("OrbitPlot") && property == "Add") ||
+       (IsOfType("DataFilter") &&
+        (property == "FileNames" || property == "ObservedObjects" ||
+         property == "Trackers" || property == "DataTypes")) ||
+       (IsOfType("SolarPowerSystem") && property == "ShadowBodies") ||
+       (IsOfType(Gmat::CELESTIAL_BODY) && property == "DSNMediaFileDirectories") ||
+       (IsOfType("ContactLocator") && property == "EventTypes") ||
+       (IsOfType("Estimator") &&
+        (property == "Measurements" || property == "AddSolveFor" ||
+         property == "AddResidualsPlot" || property == "DataFilters")) ||
+       (IsOfType("Simulator") && property == "AddData") ||
+       (IsOfType("TrackingFileSet") &&
+        (property == "FileName" || property == "RampTable" ||
+         property == "DataFilters" || property == "SimTDRSServiceAccessList")));
+   if (resetNativeList)
+   {
+      stream << prefix << property << " = {};\n";
+      if (sar.empty()) return;
+   }
+   const bool explicitDefault = sar.empty() && explicitScriptExport &&
+      IsParameterEqualToDefault(id);
+   if ((sar.size() > 0) || WriteEmptyStringArray(id) || explicitDefault)
    {
       std::string attCmtLn = "";
       if (mode != Gmat::OBJECT_EXPORT)
@@ -6699,11 +7407,14 @@ void GmatBase::WriteStringArrayValue(Gmat::WriteMode mode, std::string &prefix,
       {
          if (n != sar.begin())
             arrayStream << ", ";
-         if (writeQuotes) //(inMatlabMode)
-            arrayStream << "'";
-         arrayStream << (*n);
-         if (writeQuotes)
-            arrayStream << "'";
+         if (writeQuotes && explicitScriptExport)
+            arrayStream << GmatScriptString::Quote(*n);
+         else
+         {
+            if (writeQuotes) arrayStream << "'";
+            arrayStream << (*n);
+            if (writeQuotes) arrayStream << "'";
+         }
       }
       
       if (mode != Gmat::OBJECT_EXPORT)
@@ -6740,8 +7451,10 @@ void GmatBase::WriteStringArrayValue(Gmat::WriteMode mode, std::string &prefix,
 //------------------------------------------------------------------------------
 void GmatBase::WriteParameterValue(Integer id, std::stringstream &stream)
 {
+   ObjectScriptExportScope::Prepare(stream);
+   if (inMatlabMode && ObjectMatlabExportScope::WriteValue(*this, id, stream)) return;
    Gmat::ParameterType tid = GetParameterType(id);
-   Integer precision = GmatGlobal::Instance()->GetDataPrecision();
+   Integer precision = GetDataPrecision();
    bool writeGmatKeyword = GmatGlobal::Instance()->IsWritingGmatKeyword();
    
    #ifdef DEBUG_WRITE_PARAM
@@ -6805,13 +7518,20 @@ void GmatBase::WriteParameterValue(Integer id, std::stringstream &stream)
             writeString = true;
          else if (WriteEmptyStringParameter(id))
             writeString = true;
+         else if (ObjectScriptExportScope::IsActive() &&
+                  IsParameterEqualToDefault(id))
+            writeString = true;
          
          #ifdef DEBUG_WRITE_PARAM
          MessageInterface::ShowMessage("   writeString = %d\n", writeString);
          #endif
          //if (inMatlabMode || (!inMatlabMode && strVal != ""))
          if (writeString)
-            stream << "'" << strVal << "'";
+         {
+            if (ObjectScriptExportScope::IsActive() && !inMatlabMode && tid != Gmat::EQUATION_TYPE)
+               stream << GmatScriptString::Quote(strVal);
+            else stream << "'" << strVal << "'";
+         }
          
          break;
       }
@@ -6884,7 +7604,9 @@ void GmatBase::WriteParameterValue(Integer id, std::stringstream &stream)
    case Gmat::RVECTOR_TYPE:
       {
          Rvector rv = GetRvectorParameter(id);
-         stream << "[ " << rv.ToString(precision) << " ]";
+         if (ObjectScriptExportScope::IsActive() && !inMatlabMode)
+            stream << ObjectScriptExportScope::VectorLiteral(rv);
+         else stream << "[ " << rv.ToString(precision) << " ]";
       }
       break;
 

@@ -1,0 +1,181 @@
+{
+  "scope": "New numeric field domains found by the current inventory; actual GUI labels only, no missions or whole-row credit.",
+  "cases": [
+    {
+      "key": "ContactLocator",
+      "group": "NewScalarUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create ContactLocator Probe;\nProbe.RootFindingMethod = Brent;\n",
+      "units": {
+        "RootTolerance": "s"
+      }
+    },
+    {
+      "key": "EclipseLocator",
+      "group": "NewScalarUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create EclipseLocator Probe;\nProbe.RootFindingMethod = Brent;\n",
+      "units": {
+        "RootTolerance": "s"
+      }
+    },
+    {
+      "key": "IntrusionLocator",
+      "group": "NewScalarUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create IntrusionLocator Probe;\nProbe.RootFindingMethod = Brent;\n",
+      "units": {
+        "RootTolerance": "s"
+      }
+    },
+    {
+      "key": "OrbitView",
+      "group": "NewScalarUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create OrbitView Probe;\n",
+      "units": {
+        "IntegrationStepsToSkip": "steps"
+      },
+      "visible_units": {
+        "IntegrationStepsToSkip": "steps"
+      }
+    },
+    {
+      "key": "GroundTrack",
+      "group": "NewScalarUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create GroundTrack Probe;\n",
+      "units": {
+        "IntegrationStepsToSkip": "steps"
+      },
+      "visible_units": {
+        "IntegrationStepsToSkip": "steps"
+      }
+    },
+    {
+      "key": "GroundTrackPlot",
+      "group": "NewScalarUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create GroundTrackPlot Probe;\n",
+      "units": {
+        "IntegrationStepsToSkip": "steps"
+      },
+      "visible_units": {
+        "IntegrationStepsToSkip": "steps"
+      }
+    },
+    {
+      "key": "TextEphemFile",
+      "group": "NewScalarUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create TextEphemFile Probe;\n",
+      "units": {
+        "Interval": "s"
+      }
+    },
+    {
+      "key": "Asteroid",
+      "group": "UserBodyOrbitUnits",
+      "object": "Probe",
+      "route": "body",
+      "fixture": "Create Asteroid Probe;\nProbe.CentralBody = Sun;\nProbe.PosVelSource = TwoBodyPropagation;\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.SpinAxisDECConstant = 90;\n",
+      "units": {
+        "InitialEpoch": "A1ModJulian",
+        "SMA": "km",
+        "ECC": "dimensionless",
+        "INC": "deg",
+        "RAAN": "deg",
+        "AOP": "deg",
+        "TA": "deg"
+      }
+    },
+    {
+      "key": "Comet",
+      "group": "UserBodyOrbitUnits",
+      "object": "Probe",
+      "route": "body",
+      "fixture": "Create Comet Probe;\nProbe.CentralBody = Sun;\nProbe.PosVelSource = TwoBodyPropagation;\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.SpinAxisDECConstant = 90;\n",
+      "units": {
+        "InitialEpoch": "A1ModJulian",
+        "SMA": "km",
+        "ECC": "dimensionless",
+        "INC": "deg",
+        "RAAN": "deg",
+        "AOP": "deg",
+        "TA": "deg"
+      }
+    },
+    {
+      "key": "Moon",
+      "group": "UserBodyOrbitUnits",
+      "object": "Probe",
+      "route": "body",
+      "fixture": "Create Moon Probe;\nProbe.CentralBody = Earth;\nProbe.PosVelSource = TwoBodyPropagation;\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.SpinAxisDECConstant = 90;\n",
+      "units": {
+        "InitialEpoch": "A1ModJulian",
+        "SMA": "km",
+        "ECC": "dimensionless",
+        "INC": "deg",
+        "RAAN": "deg",
+        "AOP": "deg",
+        "TA": "deg"
+      }
+    },
+    {
+      "key": "Planet",
+      "group": "UserBodyOrbitUnits",
+      "object": "Probe",
+      "route": "body",
+      "fixture": "Create Planet Probe;\nProbe.CentralBody = Sun;\nProbe.PosVelSource = TwoBodyPropagation;\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.SpinAxisDECConstant = 90;\n",
+      "units": {
+        "InitialEpoch": "A1ModJulian",
+        "SMA": "km",
+        "ECC": "dimensionless",
+        "INC": "deg",
+        "RAAN": "deg",
+        "AOP": "deg",
+        "TA": "deg"
+      }
+    },
+    {
+      "key": "BulirschStoer",
+      "group": "MinimumToleranceUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Propagator Probe;\nProbe.Type = BulirschStoer;\n",
+      "units": {
+        "MinimumTolerance": "error-metric units"
+      }
+    },
+    {
+      "key": "OffsetQuaternion",
+      "group": "NewDimensionlessUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Spacecraft Probe;\nProbe.Attitude = CoordinateSystemFixed;\n",
+      "units": {
+        "OffsetQuaternion": "dimensionless"
+      }
+    },
+    {
+      "key": "FminconOptimizer",
+      "group": "OptionalSolverUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create FminconOptimizer Probe;\n",
+      "units": {
+        "MaximumIterations": "iterations"
+      },
+      "visible_units": {
+        "MaximumIterations": "iterations"
+      }
+    }
+  ]
+}

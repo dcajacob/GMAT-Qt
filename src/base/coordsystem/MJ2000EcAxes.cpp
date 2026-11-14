@@ -34,6 +34,8 @@
 #include "GmatBase.hpp"
 #include "MJ2000EcAxes.hpp"
 #include "InertialAxes.hpp"
+#include "GmatConstants.hpp"
+#include "RealUtilities.hpp"
 
 //---------------------------------
 // static data
@@ -119,16 +121,20 @@ MJ2000EcAxes::~MJ2000EcAxes()
 bool MJ2000EcAxes::Initialize()
 {
    InertialAxes::Initialize();
+   // IAU 1976/1980 mean obliquity at J2000, without truncating degrees.
+   const Real obliquity = 84381.448 * GmatMathConstants::RAD_PER_ARCSEC;
+   const Real cosine = GmatMathUtil::Cos(obliquity);
+   const Real sine = GmatMathUtil::Sin(obliquity);
    // initialize the rotation matrix 
    rotMatrix(0,0) = 1.0;
    rotMatrix(0,1) = 0.0;
    rotMatrix(0,2) = 0.0;
    rotMatrix(1,0) = 0.0;
-   rotMatrix(1,1) = 0.917482062076895741;
-   rotMatrix(1,2) = -0.397777155914121383;
+   rotMatrix(1,1) = cosine;
+   rotMatrix(1,2) = -sine;
    rotMatrix(2,0) = 0.0;
-   rotMatrix(2,1) = 0.397777155914121383;
-   rotMatrix(2,2) = 0.917482062076895741;
+   rotMatrix(2,1) = sine;
+   rotMatrix(2,2) = cosine;
 
    // rotDotMatrix is still the default zero matrix
    

@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "doc/SystemDocs/Requirements/GMAT Requirements.xlsx": "736847e909ca550731386261073e46a9fa3ac8d78f53f0c37dd5d93b11a85c23",
+    "doc/SystemDocs/Test/Requirements-To-Test Matrix, 2012-05-11 (GMAT Build 2012-05-04).csv": "4693e097b183af76bc7c8dfcc0f62d7696b2e1417c90cb10d0ed4f9577160a97"
+  },
+  "reviews": [
+    {
+      "key": "All Others!E303",
+      "fingerprint": "3cd045dbd40df353b7caa144f58227d34a2e79df997c9d36526c5bbf270ff072",
+      "applicability": "harness",
+      "rationale": "Original test-harness capability, not a GMAT widget or scientific oracle. Actual CLI and independent literal pass/fail/error tests qualify the reusable comparator and standalone HTML export. OEM scope is the GMAT KVN 1.0/2.0 writer subset, including acceleration and full lower-triangle covariance; XML, resampling, coordinate/time/unit transformations and general CCSDS certification are not claimed. Existing fixture assertions and tolerances remain unchanged.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.ComparatorContracts",
+          "source": "src/qtgui/tests/AcceptanceCompareTests.py",
+          "source_sha256": "9a70daeaab9746fd0fb97665c0580a08a54f1916df4a33673e175ed2493bef5f",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "comparator-303",
+          "expected": {
+            "field": "position-velocity",
+            "source_key": "All Others!E303",
+            "contracts": 24
+          },
+          "facets": [
+            "independent-literal-numeric-and-structure-oracles",
+            "actual-cli-and-input-protection",
+            "complete-state-acceleration-covariance-comparison",
+            "custom-plugin-validation",
+            "escaped-standalone-html-and-mixed-catalogue",
+            "no-gui-core-or-fixture-assertion-change"
+          ],
+          "scope": " Position/Velocity file",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCompare.py": "bbfc3792caec8914bf248f9b1833d28f543f38abf674082dfccd8d700833fb79"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E304",
+      "fingerprint": "1a58904154a4c082eb1014feab1443ed9dc54d6743c27208e794ae499ed8592e",
+      "applicability": "harness",
+      "rationale": "Original test-harness capability, not a GMAT widget or scientific oracle. Actual CLI and independent literal pass/fail/error tests qualify the reusable comparator and standalone HTML export. OEM scope is the GMAT KVN 1.0/2.0 writer subset, including acceleration and full lower-triangle covariance; XML, resampling, coordinate/time/unit transformations and general CCSDS certification are not claimed. Existing fixture assertions and tolerances remain unchanged.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.ComparatorContracts",
+          "source": "src/qtgui/tests/AcceptanceCompareTests.py",
+          "source_sha256": "9a70daeaab9746fd0fb97665c0580a08a54f1916df4a33673e175ed2493bef5f",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "comparator-304",
+          "expected": {
+            "field": "file-diff",
+            "source_key": "All Others!E304",
+            "contracts": 24
+          },
+          "facets": [
+            "independent-literal-numeric-and-structure-oracles",
+            "actual-cli-and-input-protection",
+            "complete-state-acceleration-covariance-comparison",
+            "custom-plugin-validation",
+            "escaped-standalone-html-and-mixed-catalogue",
+            "no-gui-core-or-fixture-assertion-change"
+          ],
+          "scope": "File diff",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCompare.py": "bbfc3792caec8914bf248f9b1833d28f543f38abf674082dfccd8d700833fb79"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E305",
+      "fingerprint": "e3ea637a7ac5f4155b719830e1d4967a945ee6c724b53188a135d9e776c49004",
+      "applicability": "harness",
+      "rationale": "Original test-harness capability, not a GMAT widget or scientific oracle. Actual CLI and independent literal pass/fail/error tests qualify the reusable comparator and standalone HTML export. OEM scope is the GMAT KVN 1.0/2.0 writer subset, including acceleration and full lower-triangle covariance; XML, resampling, coordinate/time/unit transformations and general CCSDS certification are not claimed. Existing fixture assertions and tolerances remain unchanged.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.ComparatorContracts",
+          "source": "src/qtgui/tests/AcceptanceCompareTests.py",
+          "source_sha256": "9a70daeaab9746fd0fb97665c0580a08a54f1916df4a33673e175ed2493bef5f",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "comparator-305",
+          "expected": {
+            "field": "all-numeric-fields-and-differences",
+            "source_key": "All Others!E305",
+            "contracts": 24
+          },
+          "facets": [
+            "independent-literal-numeric-and-structure-oracles",
+            "actual-cli-and-input-protection",
+            "complete-state-acceleration-covariance-comparison",
+            "custom-plugin-validation",
+            "escaped-standalone-html-and-mixed-catalogue",
+            "no-gui-core-or-fixture-assertion-change"
+          ],
+          "scope": "Numeric field comparison (compare all numeric fields and report the numeric difference)",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCompare.py": "bbfc3792caec8914bf248f9b1833d28f543f38abf674082dfccd8d700833fb79"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E307",
+      "fingerprint": "56099857f8e81fb955733febdb81ee99f28354a2a0746440a6afa33a76d34b8a",
+      "applicability": "harness",
+      "rationale": "Original test-harness capability, not a GMAT widget or scientific oracle. Actual CLI and independent literal pass/fail/error tests qualify the reusable comparator and standalone HTML export. OEM scope is the GMAT KVN 1.0/2.0 writer subset, including acceleration and full lower-triangle covariance; XML, resampling, coordinate/time/unit transformations and general CCSDS certification are not claimed. Existing fixture assertions and tolerances remain unchanged.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.ComparatorContracts",
+          "source": "src/qtgui/tests/AcceptanceCompareTests.py",
+          "source_sha256": "9a70daeaab9746fd0fb97665c0580a08a54f1916df4a33673e175ed2493bef5f",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "comparator-307",
+          "expected": {
+            "field": "CCSDS-OEM",
+            "source_key": "All Others!E307",
+            "contracts": 24
+          },
+          "facets": [
+            "independent-literal-numeric-and-structure-oracles",
+            "actual-cli-and-input-protection",
+            "complete-state-acceleration-covariance-comparison",
+            "custom-plugin-validation",
+            "escaped-standalone-html-and-mixed-catalogue",
+            "no-gui-core-or-fixture-assertion-change"
+          ],
+          "scope": "CCSDS-OEM compare",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCompare.py": "bbfc3792caec8914bf248f9b1833d28f543f38abf674082dfccd8d700833fb79"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E309",
+      "fingerprint": "84f32c195da47d093e9b869a0c82fa701f42b442d8961476e18a49ad500a9e0c",
+      "applicability": "harness",
+      "rationale": "Original test-harness capability, not a GMAT widget or scientific oracle. Actual CLI and independent literal pass/fail/error tests qualify the reusable comparator and standalone HTML export. OEM scope is the GMAT KVN 1.0/2.0 writer subset, including acceleration and full lower-triangle covariance; XML, resampling, coordinate/time/unit transformations and general CCSDS certification are not claimed. Existing fixture assertions and tolerances remain unchanged.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.ComparatorContracts",
+          "source": "src/qtgui/tests/AcceptanceCompareTests.py",
+          "source_sha256": "9a70daeaab9746fd0fb97665c0580a08a54f1916df4a33673e175ed2493bef5f",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "comparator-309",
+          "expected": {
+            "field": "user-defined-comparator",
+            "source_key": "All Others!E309",
+            "contracts": 24
+          },
+          "facets": [
+            "independent-literal-numeric-and-structure-oracles",
+            "actual-cli-and-input-protection",
+            "complete-state-acceleration-covariance-comparison",
+            "custom-plugin-validation",
+            "escaped-standalone-html-and-mixed-catalogue",
+            "no-gui-core-or-fixture-assertion-change"
+          ],
+          "scope": "User-define",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCompare.py": "bbfc3792caec8914bf248f9b1833d28f543f38abf674082dfccd8d700833fb79"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E330",
+      "fingerprint": "cf24d5f328ca3a3da0c8f2a939c241ab7b0da3c109cf8d9ca25b3146a8eb9ac7",
+      "applicability": "harness",
+      "rationale": "Original test-harness capability, not a GMAT widget or scientific oracle. Actual CLI and independent literal pass/fail/error tests qualify the reusable comparator and standalone HTML export. OEM scope is the GMAT KVN 1.0/2.0 writer subset, including acceleration and full lower-triangle covariance; XML, resampling, coordinate/time/unit transformations and general CCSDS certification are not claimed. Existing fixture assertions and tolerances remain unchanged.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.ComparatorContracts",
+          "source": "src/qtgui/tests/AcceptanceCompareTests.py",
+          "source_sha256": "9a70daeaab9746fd0fb97665c0580a08a54f1916df4a33673e175ed2493bef5f",
+          "anchor": "PROOF_FIELDS = {",
+          "checkpoint": "comparator-330",
+          "expected": {
+            "field": "standalone-html",
+            "source_key": "All Others!E330",
+            "contracts": 24
+          },
+          "facets": [
+            "independent-literal-numeric-and-structure-oracles",
+            "actual-cli-and-input-protection",
+            "complete-state-acceleration-covariance-comparison",
+            "custom-plugin-validation",
+            "escaped-standalone-html-and-mixed-catalogue",
+            "no-gui-core-or-fixture-assertion-change"
+          ],
+          "scope": "3)\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0 Html file",
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceCompare.py": "bbfc3792caec8914bf248f9b1833d28f543f38abf674082dfccd8d700833fb79"
+          }
+        }
+      ]
+    }
+  ],
+  "scope": "Original NASA test-harness requirements; no GUI/engine exposure or unchanged current GMAT binary qualification."
+}

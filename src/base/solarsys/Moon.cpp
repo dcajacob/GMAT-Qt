@@ -207,6 +207,11 @@ Moon::~Moon()
 //------------------------------------------------------------------------------
 Rvector Moon::GetBodyCartographicCoordinates(const A1Mjd &forTime) const
 {
+   // A user moon's central body determines its orbit, not its spin model.
+   // Default-model copies retain the built-in cartographic series.
+   if (!UsesDefaultBodyModel())
+      return CelestialBody::GetBodyCartographicCoordinates(forTime);
+
    Real alpha = 0;
    Real delta = 0;
    Real W     = 0;
@@ -283,7 +288,7 @@ Rvector Moon::GetBodyCartographicCoordinates(const A1Mjd &forTime) const
          p1  = Rad(169.51  -    0.4357640 * d);
          p2  = Rad(192.93  + 1128.4096700 * d +  8.864 * T * T);
          p3  = Rad( 53.47  -    0.0181510 * d);
-         if (instanceName == GmatSolarSystemDefaults::PHOBOS_NAME)
+         if (GetPhysicalBodyName() == GmatSolarSystemDefaults::PHOBOS_NAME)
          {
             alpha = 317.68           -    0.108 * T     +  1.79 * Sin(p1);
             delta =  52.90           -    0.061 * T     -  1.08 * Cos(p1);
@@ -361,7 +366,7 @@ void Moon::Copy(const GmatBase* orig)
 //---------------------------------------------------------------------------
 bool Moon::NeedsOnlyMainSPK()
 {
-   if (instanceName == GmatSolarSystemDefaults::MOON_NAME)  return true;
+   if (GetPhysicalBodyName() == GmatSolarSystemDefaults::MOON_NAME)  return true;
    return false;
 }
 
@@ -382,7 +387,7 @@ bool Moon::NeedsOnlyMainSPK()
 Integer Moon::SetIntegerParameter(const Integer id,
                                   const Integer value)
 {
-   if (instanceName == GmatSolarSystemDefaults::MOON_NAME)
+   if (GetPhysicalBodyName() == GmatSolarSystemDefaults::MOON_NAME)
    {
       if ((id == NAIF_ID) &&
           (value != GmatSolarSystemDefaults::MOON_NAIF_IDS[0]))

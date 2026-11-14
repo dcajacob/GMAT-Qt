@@ -31,8 +31,69 @@
 
 #include "GmatConnection.hpp"
 #include "GmatInterface.hpp"
+#include "BaseException.hpp"
+#include <cstdio>
+#include <cstring>
+#include <limits>
+#include <stdexcept>
+#include "InterfaceException.hpp"
+#include "wx/strconv.h"
 #include "gmatwxdefs.hpp"
 #include "MessageInterface.hpp"
+
+#if wxCHECK_VERSION(3, 0, 0)
+namespace
+{
+const wxMBConv &MatlabTextConverter(wxIPCFormat format)
+{
+   static const wxMBConvUTF16 utf16;
+   static const wxMBConvUTF32 utf32;
+   switch (format)
+   {
+      case wxIPC_TEXT: return wxConvLibc;
+      case wxIPC_UTF8TEXT: return wxConvUTF8;
+      case wxIPC_UTF16TEXT: return utf16;
+      case wxIPC_UTF32TEXT: return utf32;
+      default: throw InterfaceException("Unsupported MATLAB IPC text format");
+   }
+}
+std::wstring DecodeMatlabText(const wxMBConv &converter, const char *data, size_t size)
+{
+   const size_t count = converter.ToWChar(nullptr, 0, data, size);
+   if (count == wxCONV_FAILED) throw InterfaceException("Invalid MATLAB IPC text encoding");
+   std::wstring result(count, L'\0');
+   if (count && converter.ToWChar(result.data(), count, data, size) != count)
+      throw InterfaceException("Cannot decode MATLAB IPC text");
+   return result;
+}
+std::vector<char> EncodeMatlabText(const wxMBConv &converter, const std::wstring &value)
+{
+   const size_t count = converter.FromWChar(nullptr, 0, value.data(), value.size());
+   const size_t nul = converter.GetMBNulLen();
+   if (count == wxCONV_FAILED || nul == 0 || nul > 4 || count > std::numeric_limits<size_t>::max() - nul)
+      throw InterfaceException("Cannot encode MATLAB IPC text");
+   std::vector<char> result(count + nul, 0);
+   if (count && converter.FromWChar(result.data(), count, value.data(), value.size()) != count)
+      throw InterfaceException("Cannot finish encoding MATLAB IPC text");
+   return result;
+}
+std::string DecodeMatlabCommand(const void *data, size_t size, wxIPCFormat format)
+{
+   const auto &converter = MatlabTextConverter(format);
+   const size_t nul = converter.GetMBNulLen();
+   if (!data || size == wxNO_LEN || !nul || nul > 4 || size < nul || size % nul)
+      throw InterfaceException("Invalid MATLAB IPC command size");
+   const auto bytes = static_cast<const char*>(data);
+   for (size_t i = size - nul; i < size; ++i)
+      if (bytes[i] != 0) throw InterfaceException("MATLAB IPC command is missing its text terminator");
+   auto wide = DecodeMatlabText(converter, bytes, size - nul);
+   if (wide.empty() || wide.find(L'\0') != std::wstring::npos)
+      throw InterfaceException("MATLAB IPC command is empty or contains NUL data");
+   const auto utf8 = EncodeMatlabText(wxConvUTF8, wide);
+   return std::string(utf8.data(), utf8.size() - 1);
+}
+}
+#endif
 
 //#define DEBUG_CONNECTION
 //#define DEBUG_CONNECTION_EXECUTE
@@ -90,25 +151,24 @@ bool GmatConnection::OnExec(const wxString &WXUNUSED(topic),const wxString &data
 bool GmatConnection::OnPoke(const wxString& WXUNUSED(topic),
                             const wxString& item,
                             const void *data,
-                            size_t WXUNUSED(size),
-                            wxIPCFormat WXUNUSED(format))
+                            size_t size,
+                            wxIPCFormat format)
 {
-   #ifdef DEBUG_CONNECTION_POKE
-   MessageInterface::ShowMessage
-      ("\nGmatConnection::OnPoke() wx%d.%d entered\n   item = '%s'\n   data = '%s'\n",
-       wxMAJOR_VERSION, wxMINOR_VERSION, item.WX_TO_C_STRING, data);
-   #endif
-   
-   const char *itemData = (char*)data;
-   
-   bool retval = RunPoke(itemData);
-   
-   #ifdef DEBUG_CONNECTION_POKE
-   MessageInterface::ShowMessage
-      ("GmatConnection::OnPoke() returning %d\n", retval);
-   #endif
-   
-   return retval;
+   if (item != "script") return false;
+   try
+   {
+      const auto command = DecodeMatlabCommand(data, size, format);
+      return RunPoke(command.c_str());
+   }
+   catch (BaseException &error)
+   {
+      MessageInterface::ShowMessage("GMAT MATLAB command rejected: %s\n", error.GetFullMessage().c_str());
+   }
+   catch (const std::exception &error)
+   {
+      MessageInterface::ShowMessage("GMAT MATLAB command rejected: %s\n", error.what());
+   }
+   return false;
 }
 
 
@@ -129,23 +189,30 @@ bool GmatConnection::OnPoke(const wxString& WXUNUSED(topic),
 //------------------------------------------------------------------------------
 const void* GmatConnection::OnRequest(const wxString& WXUNUSED(topic),
                                       const wxString& item,
-                                      size_t * WXUNUSED(size),
-                                      wxIPCFormat WXUNUSED(format))
+                                      size_t *size,
+                                      wxIPCFormat format)
 {
-   #ifdef DEBUG_CONNECTION_REQUEST
-   MessageInterface::ShowMessage
-      ("\nGmatConnection::OnRequest() wx%d.%d entered\n   item = '%s'\n",
-       wxMAJOR_VERSION, wxMINOR_VERSION, item.WX_TO_C_STRING);
-   #endif
-   
-   char *data = RunRequest(item);
-   
-   #ifdef DEBUG_CONNECTION_REQUEST
-   MessageInterface::ShowMessage
-      ("GmatConnection::OnRequest() returning '%s'\n", data);
-   #endif
-   
-   return data;
+   if (size) *size = 0;
+   replyBytes.clear();
+   try
+   {
+      const auto &converter = MatlabTextConverter(format);
+      const auto value = ReadReply(item);
+      const auto wide = DecodeMatlabText(wxConvUTF8, value.data(), value.size());
+      auto encoded = EncodeMatlabText(converter, wide);
+      replyBytes.swap(encoded);
+      if (size) *size = replyBytes.size();
+      return replyBytes.data();
+   }
+   catch (BaseException &error)
+   {
+      MessageInterface::ShowMessage("GMAT MATLAB request failed: %s\n", error.GetFullMessage().c_str());
+   }
+   catch (const std::exception &error)
+   {
+      MessageInterface::ShowMessage("GMAT MATLAB request failed: %s\n", error.what());
+   }
+   return nullptr;
 }
 
 //===========================================
@@ -277,47 +344,34 @@ bool GmatConnection::OnDisconnect()
 //------------------------------------------------------------------------------
 char* GmatConnection::RunRequest(const wxString &item)
 {
-   #ifdef DEBUG_CONNECTION_REQUEST
-   MessageInterface::ShowMessage
-      ("GmatConnection::RunRequest() entered\n   item = '%s'\n", item.WX_TO_C_STRING);
-   #endif
-   
-   // Check for user interrupt first (loj: 2007.05.11 Added)
-   GmatInterface::Instance()->CheckUserInterrupt();
-   
-   // How can I tell whether item is an object or a parameter?
-   // For now GetGMATObject.m appends '.' for object name.
-   
-   char *data;
-   if (item.Last() == '.')
+   static thread_local std::string reply;
+   reply.clear();
+   auto value = ReadReply(item);
+   if (value.find('\0') != std::string::npos)
+      throw InterfaceException("Legacy MATLAB character requests cannot represent embedded NUL data");
+   reply.swap(value);
+   return reply.data();
+}
+
+std::string GmatConnection::ReadReply(const wxString &item)
+{
+   if (item.empty()) throw InterfaceException("A MATLAB request item must not be empty");
+   const auto bytes = item.ToUTF8();
+   if (!bytes.data()) throw InterfaceException("Cannot encode the MATLAB request item as UTF-8");
+   std::string name(bytes.data(), bytes.length());
+   if (name.empty() || name.find('\0') != std::string::npos)
+      throw InterfaceException("A MATLAB request item is empty or contains NUL data");
+   auto *interface = GmatInterface::Instance();
+   interface->CheckUserInterrupt();
+   if (name.back() == '.')
    {
-      wxString tempItem = item;
-      tempItem.RemoveLast();
-      data = GmatInterface::Instance()->GetGmatObject(tempItem.c_str());
+      name.pop_back();
+      return interface->GetGmatObjectString(name);
    }
-   else if (item == "RunState")
-   {
-      data = GmatInterface::Instance()->GetRunState();
-   }
-   else if (item == "CallbackStatus")
-   {
-      data = GmatInterface::Instance()->GetCallbackStatus();
-   }
-   else if (item == "CallbackResults")
-   {
-      data = GmatInterface::Instance()->GetCallbackResults();
-   }
-   else
-   {
-      data = GmatInterface::Instance()->GetParameter(std::string(item.c_str()));
-   }
-   
-   #ifdef DEBUG_CONNECTION_REQUEST
-   MessageInterface::ShowMessage
-      ("GmatConnection::RunRequest() returning '%s'\n", data);
-   #endif
-   
-   return data;
+   if (name == "RunState") return interface->GetRunState();
+   if (name == "CallbackStatus") return interface->GetCallbackStatus();
+   if (name == "CallbackResults") return interface->GetCallbackResults();
+   return interface->GetParameterString(name);
 }
 
 
@@ -326,6 +380,11 @@ char* GmatConnection::RunRequest(const wxString &item)
 //------------------------------------------------------------------------------
 bool GmatConnection::RunPoke(const char *itemData)
 {
+   if (!itemData) return false;
+   if (std::strcmp(itemData, "Close;") == 0) return true;
+   try
+   {
+
    const char *data = itemData;
    
    #ifdef DEBUG_CONNECTION_POKE
@@ -387,4 +446,11 @@ bool GmatConnection::RunPoke(const char *itemData)
    #endif
    
    return true;
+
+   }
+   catch (BaseException &error)
+   {
+      MessageInterface::ShowMessage("GMAT MATLAB command rejected: %s\n", error.GetFullMessage().c_str());
+      return false;
+   }
 }

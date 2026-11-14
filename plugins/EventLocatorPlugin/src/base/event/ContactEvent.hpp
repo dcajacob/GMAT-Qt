@@ -51,17 +51,17 @@ public:
    Integer eventNumber = -1;
    std::string eventSignalPath;
    std::string eventStation;
-   Integer eventPass;
+   Integer eventPass = 0;
    std::vector<Real> eventTimes;
    std::vector<Real> eventRanges;
    std::vector<Real> eventRangeRates;
    std::vector<Real> eventAzimuths;
    std::vector<Real> eventElevations;
-   Real eventMaxElevation;
-   Real eventMaxElevationEpoch;
+   Real eventMaxElevation = 0;
+   Real eventMaxElevationEpoch = 0;
 
-   bool customReport;
-   bool leftJustified;
+   bool customReport = false;
+   bool leftJustified = false;
    std::string columnSpacing = "     ";
 
    struct column

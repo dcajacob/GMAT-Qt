@@ -27,7 +27,24 @@
  */
  //------------------------------------------------------------------------------
 
+#include "ExpressionBinding.hpp"
+#include <memory>
+#include <typeinfo>
 #include "QuaternionRotation.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration quaternionRotationValueProvider({
+   QuaternionRotation::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const QuaternionRotation*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<QuaternionRotation*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "FunctionException.hpp"
 #include "RealUtilities.hpp"
 #include "MessageInterface.hpp"
@@ -164,9 +181,7 @@ void QuaternionRotation::SetOutputTypes(WrapperTypeArray& outputTypes,
    #endif
 
    // Set output wrapper type for QuaternionRotation
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;
+   Function::SetOutputTypes(outputTypes, rowCounts, colCounts);
 }
 
 //------------------------------------------------------------------------------
@@ -488,7 +503,15 @@ void QuaternionRotation::Finalize(bool cleanUp)
  //------------------------------------------------------------------------------
 GmatBase* QuaternionRotation::Clone() const
 {
-   return (new QuaternionRotation(*this));
+   std::unique_ptr<QuaternionRotation> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new QuaternionRotation(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived QuaternionRotation must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -503,5 +526,32 @@ GmatBase* QuaternionRotation::Clone() const
  //---------------------------------------------------------------------------
 void QuaternionRotation::Copy(const GmatBase* orig)
 {
-   operator=(*((QuaternionRotation*)(orig)));
+   const auto *source = dynamic_cast<const QuaternionRotation*>(orig);
+   if (!source || typeid(*this) != typeid(QuaternionRotation) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible QuaternionRotation value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   const auto previousObjectBindings = objectBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
+}
+
+
+bool QuaternionRotation::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const QuaternionRotation*>(&original);
+   if (!source || typeid(*this) != typeid(QuaternionRotation) || typeid(original) != typeid(QuaternionRotation))
+      throw FunctionException("Derived QuaternionRotation references need their own passive provider.\n");
+   RebindObjectManagedFunctionValue(*source, resolve);
+   return true;
+}
+
+bool QuaternionRotation::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(QuaternionRotation);
 }

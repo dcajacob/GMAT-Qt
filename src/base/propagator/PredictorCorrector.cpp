@@ -54,6 +54,7 @@
 // **************************************************************************
 
 
+#include "AcceptedStepHistory.hpp"
 #include "PredictorCorrector.hpp"
 #include "MessageInterface.hpp"
 #include <fstream>
@@ -255,6 +256,7 @@ PredictorCorrector& PredictorCorrector::operator=(const PredictorCorrector& pc)
 //------------------------------------------------------------------------------
 bool PredictorCorrector::Initialize()
 {
+   stepSign = stepSizeBuffer < 0.0 ? -1.0 : 1.0;
 //    Propagator::Initialize();
 
    #ifdef DEBUG_PROPAGATION
@@ -459,6 +461,23 @@ bool PredictorCorrector::Initialize()
 //------------------------------------------------------------------------------
 bool PredictorCorrector::Step(Real dt)
 {
+   struct FinalBoundsScope
+   {
+      Real &minimum;
+      Real original;
+      bool &fixed;
+      bool originalFixed;
+      Propagator *starter;
+      Real starterMinimum;
+      ~FinalBoundsScope()
+      {
+         minimum = original;
+         fixed = originalFixed;
+         if (starter)
+            starter->SetRealParameter("MinStep", starterMinimum);
+      }
+   } bounds{minimumStep, minimumStep, fixedStep, fixedStep, starter,
+            starter ? starter->GetRealParameter("MinStep") : 0.0};
    #ifdef DEBUG_PROPAGATION
       MessageInterface::ShowMessage("Called PredictorCorrector::Step(%lf)\n",
             dt);
@@ -515,6 +534,18 @@ bool PredictorCorrector::Step(Real dt)
    Real stepsign = ((stepSize > 0.0) ? 1.0 : -1.0);
    do
    {
+      if (finalStep)
+      {
+         if (fabs(stepSize) > fabs(timeleft))
+         {
+            stepSize = timeleft;
+            Reset();
+         }
+         minimumStep = fabs(stepSize) < bounds.original ?
+               fabs(stepSize) : bounds.original;
+         if (starter)
+            starter->SetRealParameter("MinStep", minimumStep);
+      }
       if (!Step())
          return false;
    }
@@ -537,18 +568,12 @@ bool PredictorCorrector::Step(Real dt)
 //------------------------------------------------------------------------------
 bool PredictorCorrector::BufferHistory()
 {
-   bool retval = false;
-   if (historyBuffer.size() > 0)
-   {
-      for (Integer i = stepCount -1; i > 0 ; i--)
-      {
-         memcpy(history[i], history[i - 1], dimension * sizeof(double));
-
-      }
-      memcpy(history[0] + 0 * dimension, &historyBuffer, dimension * sizeof(double));
-      retval = true;
-   }
-   return retval;
+   // The caller has reverted the physical state/time. A trial may have run
+   // multiple primitives or crossed the RK startup/corrector boundary, so
+   // reversing one derivative row cannot restore its complete history.
+   // Rebuild from the restored state using the configured native starter.
+   // This also avoids copying the RealArray object as if it were its data.
+   return Reset();
 }
 
 
@@ -569,6 +594,10 @@ bool PredictorCorrector::Step()
 
    if (!isInitialized)
       return false;
+
+   // Propagate can reverse the step after initialization. Keep the direction
+   // used for adaptive bounds in sync instead of restoring a forward step.
+   stepSign = stepSize < 0.0 ? -1.0 : 1.0;
 
 //    if (physicalModel->StateChanged(true))
 //    {
@@ -625,10 +654,17 @@ bool PredictorCorrector::Step()
             return false;
          if (EstimateError() < 0.0)
             return false;
-         if (maxError <= tolerance)
+         const bool acceptMinimumStep = maxError > tolerance &&
+               !stopIfAccuracyViolated &&
+               GmatMathUtil::Abs(stepSize) == minimumStep;
+         if (maxError <= tolerance || acceptMinimumStep)
          {
             memcpy(outState, correctorState, dimension * sizeof(Real));
             physicalModel->IncrementTime(stepSize);
+            if (AcceptedStepHistory::IsCapturing())
+               AcceptedStepHistory::Record(this, physicalModel,
+                  physicalModel->GetTime() - stepSize, physicalModel->GetTime(),
+                  outState, dimension);
             stepTaken = stepSize;
             timeleft -= stepTaken;
          }
@@ -642,6 +678,14 @@ bool PredictorCorrector::Step()
             if (maxError != 0.0)
                if (!AdaptStep(maxError))
                   return false;
+         // AdaptStep reports the permitted accuracy violation. The corrected
+         // state has already been accepted, so do not retry it until the
+         // attempt limit turns a warning-only policy into a mission failure.
+         if (acceptMinimumStep)
+         {
+            stepAttempts = 0;
+            break;
+         }
       }
 
       if (stepAttempts >= maxStepAttempts)
@@ -694,7 +738,8 @@ bool PredictorCorrector::AdaptStep(Real maxError)
    // The following code is in place to omit error control for steps
    // at the minimum stepsize.  See the note above for more
    // information.  Remove this block if the issue gets resolved.
-   if (GmatMathUtil::Abs(stepSize) == minimumStep)
+   if (maxError > tolerance &&
+       GmatMathUtil::Abs(stepSize) == minimumStep)
    {
       if (stopIfAccuracyViolated)
       {
@@ -753,7 +798,7 @@ bool PredictorCorrector::AdaptStep(Real maxError)
       else
       {
          // Step can be "safely" increased -- but only up to twice old value
-         if (newStep >= 2.0 * stepSize)
+         if (fabs(newStep) >= 2.0 * fabs(stepSize))
             stepSize *= 2.0;
          else
             stepSize = newStep;

@@ -51,6 +51,7 @@ class THRUSTFILE_API ThrustSegmentScaleFactor : public ThrustSegmentReal
 
       // methods inherited from GmatBase
       virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
 
    protected:
 };
@@ -70,6 +71,7 @@ public:
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
 
 protected:
 };
@@ -90,6 +92,7 @@ public:
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
 
 protected:
 };
@@ -110,6 +113,7 @@ public:
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
 
 protected:
 };
@@ -130,6 +134,7 @@ public:
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
 
 protected:
 };
@@ -150,6 +155,7 @@ public:
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
 
 protected:
 };
@@ -170,6 +176,7 @@ public:
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
 
 protected:
 };
@@ -186,9 +193,11 @@ public:
    // methods inherited from Parameter
    virtual bool Evaluate();
    virtual void SetRvector(Rvector& val);
+   void SetRvector(const Rvector& val) override;
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
 
 protected:
 };
@@ -206,9 +215,11 @@ public:
    // methods inherited from Parameter
    virtual bool Evaluate();
    virtual void SetRvector(Rvector& val);
+   void SetRvector(const Rvector& val) override;
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
 
 protected:
 };
@@ -228,6 +239,7 @@ public:
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
 
 protected:
 };
@@ -248,6 +260,7 @@ public:
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
 
 protected:
 };

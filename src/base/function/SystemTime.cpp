@@ -28,7 +28,24 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ExpressionBinding.hpp"
+#include <memory>
+#include <typeinfo>
 #include "SystemTime.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration systemTimeValueProvider({
+   SystemTime::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const SystemTime*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<SystemTime*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "FunctionException.hpp"
 #include "RealUtilities.hpp"       // for SystemTime()
 #include "MessageInterface.hpp"
@@ -65,7 +82,9 @@
  */
 //------------------------------------------------------------------------------
 SystemTime::SystemTime(const std::string &typeStr, const std::string &name) :
-   BuiltinGmatFunction  (typeStr, name)
+   BuiltinGmatFunction  (typeStr, name),
+   SystemTimeValue (0),
+   SystemTimeReal (0.0)
 {
    objectTypeNames.push_back(typeStr);
    objectTypeNames.push_back("SystemTime");
@@ -118,8 +137,11 @@ SystemTime::~SystemTime()
  */
 //------------------------------------------------------------------------------
 SystemTime::SystemTime(const SystemTime &f) :
-   BuiltinGmatFunction  (f),
-   validFormats         (f.validFormats)
+   BuiltinGmatFunction(f),
+   SystemTimeValue (f.SystemTimeValue),
+   SystemTimeReal (f.SystemTimeReal),
+   validFormats (f.validFormats),
+   formatString (f.formatString)
 {
 }
 
@@ -137,11 +159,12 @@ SystemTime::SystemTime(const SystemTime &f) :
 //------------------------------------------------------------------------------
 SystemTime& SystemTime::operator=(const SystemTime &f)
 {
-   if (this == &f)
-      return *this;
-
+   if (this == &f) return *this;
    BuiltinGmatFunction::operator=(f);
-
+   SystemTimeValue = f.SystemTimeValue;
+   SystemTimeReal = f.SystemTimeReal;
+   validFormats = f.validFormats;
+   formatString = f.formatString;
    return *this;
 }
 
@@ -176,9 +199,7 @@ void SystemTime::SetOutputTypes(WrapperTypeArray &outputTypes,
    #endif
 
    // Set output wrapper type for SystemTime
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;
+   Function::SetOutputTypes(outputTypes, rowCounts, colCounts);
 }
 
 
@@ -503,7 +524,15 @@ void SystemTime::Finalize(bool cleanUp)
 //------------------------------------------------------------------------------
 GmatBase* SystemTime::Clone() const
 {
-   return (new SystemTime(*this));
+   std::unique_ptr<SystemTime> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new SystemTime(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived SystemTime must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -518,8 +547,41 @@ GmatBase* SystemTime::Clone() const
 //---------------------------------------------------------------------------
 void SystemTime::Copy(const GmatBase* orig)
 {
-   operator=(*((SystemTime *)(orig)));
+   const auto *source = dynamic_cast<const SystemTime*>(orig);
+   if (!source || typeid(*this) != typeid(SystemTime) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible SystemTime value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   const auto previousObjectBindings = objectBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
 }
 
 
 
+
+
+bool SystemTime::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const SystemTime*>(&original);
+   if (!source || typeid(*this) != typeid(SystemTime) || typeid(original) != typeid(SystemTime))
+      throw FunctionException("Derived SystemTime references need their own passive provider.\n");
+   RebindObjectManagedFunctionValue(*source, resolve);
+   return true;
+}
+
+bool SystemTime::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(SystemTime);
+}
+
+std::unique_ptr<FunctionInvocationState> SystemTime::SuspendInvocationState()
+{
+   return CaptureInvocationFields(BuiltinGmatFunction::SuspendInvocationState(),
+         SystemTimeValue, SystemTimeReal, validFormats, formatString);
+}

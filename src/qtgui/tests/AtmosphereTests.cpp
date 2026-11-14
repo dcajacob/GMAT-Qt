@@ -4,6 +4,7 @@
 #include "AtmosphereDialog.hpp"
 #include "Moderator.hpp"
 #include "ODEModel.hpp"
+#include "PropSetup.hpp"
 #include "DragForce.hpp"
 #include "Spacecraft.hpp"
 #include "TestSettings.hpp"
@@ -14,6 +15,9 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPlainTextEdit>
@@ -175,6 +179,15 @@ int main(int argc,char **argv)
          require(Moderator::Instance()->GetConfiguredObject("DragSat.DragFM.AtmosDensity")->GetStringParameter("Unit")=="kg/km^3","AtmosDensity units do not match the returned value");
          require(window.runMission()==MainWindow::RunResult::Completed,"GUI atmosphere mission failed"); const auto actual=results();
          for (int row=0;row<2;++row) for (int i=0;i<7;++i) require(std::abs(actual[row][i]-expected[row][i])<(i==0 ? std::max(expected[row][0]*1e-8,1e-30) : i<4 ? 1e-6 : 1e-9),"GUI atmosphere changed density/trajectory calculations");
+         auto *runtimeProp=dynamic_cast<PropSetup *>(Moderator::Instance()->GetInternalObject("DragProp"));
+         auto *appliedModel=runtimeProp ? runtimeProp->GetODEModel() : nullptr;
+         auto *appliedDrag=appliedModel ? drag(*appliedModel) : nullptr;
+         require(appliedDrag && appliedDrag->GetStringParameter("AtmosphereModel")==model.toStdString(),"GUI atmosphere model differs from selected model");
+         for (const auto &field:QStringList{"F107","F107A","MagneticIndex"})
+            require(appliedDrag->GetRealParameter(field.toStdString())==parameters.value(field).toDouble(),"GUI atmosphere parameter readback differs");
+         const QJsonObject nasaProof{{"checkpoint","atmosphere."+model},{"model",model},{"F107",160.0},{"F107A",155.0},{"MagneticIndex",3.0},{"outcome","passed"},
+            {"facets",QJsonArray{"gui-settings","runtime-model","runtime-parameters","pending-isolation","undo-redo","save-reopen","script-reference-report"}}};
+         std::cout<<"NASA_CHECK "<<QJsonDocument(nasaProof).toJson(QJsonDocument::Compact).constData()<<std::endl;
          if (model=="NRLMSISE00") lowDensity=actual[1][0];
          std::cout<<"PASS: "<<model.toStdString()<<" GUI configuration, Undo/Redo, save/reopen, density and 600-second trajectory; density="<<actual[0][0]<<'\n';
       }

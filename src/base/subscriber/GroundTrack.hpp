@@ -34,6 +34,7 @@
 
 #include "gmatdefs.hpp"
 #include "Subscriber.hpp"
+#include "IntegrationStepSampler.hpp"
 #include "GroundstationInterface.hpp"
 
 #include "CelestialBody.hpp"
@@ -43,6 +44,8 @@
 class GMAT_API GroundTrack : public Subscriber
 {
 public:
+   bool HasSubscriberValueReferenceProvider() const override;
+   std::unique_ptr<FunctionInvocationState> SuspendFunctionBindings() override;
    virtual void SetRunState(Gmat::RunState state);
    GroundTrack(const std::string &name);
    virtual ~GroundTrack();
@@ -159,7 +162,15 @@ public:
    virtual void SetSolarSystem(SolarSystem *ss);
 
 protected:
+   bool HasNativeSubscriberBindings() const override;
+   void RebindSubscriberValueReferences(const Subscriber &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
+   Integer integrationStepsToSkip = -1;
+   IntegrationStepSampler integrationSampler;
    void ClearRuntimeResources();
+   bool PlotSample(const Real *dat, Integer len, bool solving);
+   void PublishSatelliteColors();
+   void PublishStationData();
 
    /// Central body for the track
    std::string theBodyName;
@@ -181,6 +192,16 @@ protected:
    int collectFrequency;
    /// Remaining published points to skip before the next sample
    int samplesUntilCollect;
+   struct BoundarySample
+   {
+      ObjectArray objects;
+      std::vector<GmatTime> epochs;
+      StringArray labels;
+      RealArray packet;
+      Real direction = 0.0;
+   };
+   BoundarySample previousSample;
+   bool RepeatsPropagationStart(const Real *data, Integer count);
    /// Frequency for updates to teh display
    int updateFrequency;
    /// Length of the redraw on a track
@@ -220,6 +241,9 @@ protected:
 
    /// Spacecraft that are tracked
    std::vector<Spacecraft*> theSats;
+   /// Stable declaration/curve roles, parallel to the actual reference arrays.
+   StringArray satelliteNames;
+   StringArray stationNames;
 
    /// Map of state X indices by spacecraft
    std::map<Spacecraft*, int> stateMap;
@@ -251,6 +275,7 @@ protected:
       USE_GRID,
       LATLINE_COUNT,
       LONGLINE_COUNT,
+      INTEGRATION_STEPS_TO_SKIP,
       GroundTrackParamCount
    };
 

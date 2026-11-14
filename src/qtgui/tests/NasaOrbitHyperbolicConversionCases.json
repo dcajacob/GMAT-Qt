@@ -1,0 +1,1708 @@
+{
+  "schema_version": 1,
+  "domain": "hyperbolic",
+  "frame": "EarthMJ2000Eq",
+  "asymptote_convention": "Limiting position rays;incoming differs from incoming velocity/B-plane S by180degrees. NASA/interoperability convention reconciliation remains open.",
+  "scope": "56directed pairs among eight representations,eight inclined hyperbolic source orbits,EarthMJ2000Eq and TA conics only. No elliptic-negative-C3,singular,near-parabolic,other-frame,all-representation or convention-parity completion credit.",
+  "position_tolerance_km": 1e-06,
+  "velocity_tolerance_km_s": 1e-09,
+  "displayed_field_tolerance": 1e-06,
+  "cases": [
+    {
+      "key": "Cartesian",
+      "mu": 398600.4418,
+      "keplerian": [
+        -12000,
+        1.6,
+        30,
+        40,
+        25,
+        70
+      ],
+      "cartesian": [
+        -7517.3326438961485,
+        7318.298296085919,
+        6026.491820319892,
+        -9.412593152390457,
+        -0.7881243759842584,
+        3.144572855984773
+      ],
+      "expected_pairs": 7,
+      "targets": [
+        {
+          "key": "Keplerian",
+          "values": [
+            -12000,
+            1.6,
+            30,
+            40,
+            25,
+            70
+          ],
+          "names": [
+            "SMA",
+            "ECC",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedKeplerian",
+          "values": [
+            7200.000000000001,
+            -31200.0,
+            30,
+            40,
+            25,
+            70
+          ],
+          "names": [
+            "RadPer",
+            "RadApo",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalAZFPA",
+          "values": [
+            12099.024080059651,
+            135.76863222352105,
+            29.87420125825276,
+            9.955219150327355,
+            92.88065908640527,
+            45.82112237336749
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "AZI",
+            "FPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalRADEC",
+          "values": [
+            12099.024080059651,
+            135.76863222352105,
+            29.87420125825276,
+            9.955219150327355,
+            184.78625959826758,
+            18.413450752173592
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "RAV",
+            "DECV"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedEquinoctial",
+          "values": [
+            18720.000000000007,
+            0.6761892187851192,
+            1.45009245925864,
+            0.20526098990007927,
+            0.17223442092023988,
+            135
+          ],
+          "names": [
+            "SemilatusRectum",
+            "ModEquinoctialF",
+            "ModEquinoctialG",
+            "ModEquinoctialH",
+            "ModEquinoctialK",
+            "TLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "IncomingAsymptote",
+          "values": [
+            7200.000000000001,
+            33.21670348333333,
+            294.2990420690042,
+            -29.06564363721643,
+            82.22355394369505,
+            70
+          ],
+          "names": [
+            "IncomingRadPer",
+            "IncomingC3Energy",
+            "IncomingRHA",
+            "IncomingDHA",
+            "IncomingBVAZI",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km^2/sec^2",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "OutgoingAsymptote",
+          "values": [
+            7200.000000000001,
+            33.21670348333333,
+            196.81205760387928,
+            12.807429225338632,
+            62.63811297413767,
+            70
+          ],
+          "names": [
+            "OutgoingRadPer",
+            "OutgoingC3Energy",
+            "OutgoingRHA",
+            "OutgoingDHA",
+            "OutgoingBVAZI",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km^2/sec^2",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Keplerian",
+      "mu": 398600.4418,
+      "keplerian": [
+        -18000,
+        1.4,
+        45,
+        60,
+        40,
+        -80
+      ],
+      "cartesian": [
+        10795.905984819632,
+        6062.826463593421,
+        -6318.115607925545,
+        -6.024707220086578,
+        2.052450555356732,
+        6.2437747806368655
+      ],
+      "expected_pairs": 7,
+      "targets": [
+        {
+          "key": "Cartesian",
+          "values": [
+            10795.905984819632,
+            6062.826463593421,
+            -6318.115607925545,
+            -6.024707220086578,
+            2.052450555356732,
+            6.2437747806368655
+          ],
+          "names": [
+            "X",
+            "Y",
+            "Z",
+            "VX",
+            "VY",
+            "VZ"
+          ],
+          "units": [
+            "km",
+            "km",
+            "km",
+            "km/s",
+            "km/s",
+            "km/s"
+          ]
+        },
+        {
+          "key": "ModifiedKeplerian",
+          "values": [
+            7199.999999999998,
+            -43200.0,
+            45,
+            60,
+            40,
+            280
+          ],
+          "names": [
+            "RadPer",
+            "RadApo",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalAZFPA",
+          "values": [
+            13900.648747300445,
+            29.317943823566573,
+            -27.034020839824855,
+            8.915961747409218,
+            52.54628044289487,
+            137.96117761085387
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "AZI",
+            "FPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalRADEC",
+          "values": [
+            13900.648747300445,
+            29.317943823566573,
+            -27.034020839824855,
+            8.915961747409218,
+            161.1874480354381,
+            44.45041876414209
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "RAV",
+            "DECV"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedEquinoctial",
+          "values": [
+            17279.999999999996,
+            -0.2431074487337021,
+            1.3787308542170913,
+            0.20710678118654757,
+            0.35871946760715034,
+            20
+          ],
+          "names": [
+            "SemilatusRectum",
+            "ModEquinoctialF",
+            "ModEquinoctialG",
+            "ModEquinoctialH",
+            "ModEquinoctialK",
+            "TLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "IncomingAsymptote",
+          "values": [
+            7199.999999999998,
+            22.14446898888889,
+            322.1268770751027,
+            -44.72868336055631,
+            84.441650290782,
+            280
+          ],
+          "names": [
+            "IncomingRadPer",
+            "IncomingC3Energy",
+            "IncomingRHA",
+            "IncomingDHA",
+            "IncomingBVAZI",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km^2/sec^2",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "OutgoingAsymptote",
+          "values": [
+            7199.999999999998,
+            22.14446898888889,
+            236.87481342277016,
+            3.120547996695162,
+            45.085146965383935,
+            280
+          ],
+          "names": [
+            "OutgoingRadPer",
+            "OutgoingC3Energy",
+            "OutgoingRHA",
+            "OutgoingDHA",
+            "OutgoingBVAZI",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km^2/sec^2",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "ModifiedKeplerian",
+      "mu": 398600.4418,
+      "keplerian": [
+        -22000,
+        1.8,
+        60,
+        90,
+        45,
+        100
+      ],
+      "cartesian": [
+        -20558.97466527624,
+        -58722.51737775175,
+        35609.18867177979,
+        -0.6450821716748408,
+        -5.251120133450547,
+        1.1173150963976923
+      ],
+      "expected_pairs": 7,
+      "targets": [
+        {
+          "key": "Cartesian",
+          "values": [
+            -20558.97466527624,
+            -58722.51737775175,
+            35609.18867177979,
+            -0.6450821716748408,
+            -5.251120133450547,
+            1.1173150963976923
+          ],
+          "names": [
+            "X",
+            "Y",
+            "Z",
+            "VX",
+            "VY",
+            "VZ"
+          ],
+          "units": [
+            "km",
+            "km",
+            "km",
+            "km/s",
+            "km/s",
+            "km/s"
+          ]
+        },
+        {
+          "key": "Keplerian",
+          "values": [
+            -22000,
+            1.8,
+            60,
+            90,
+            45,
+            100
+          ],
+          "names": [
+            "SMA",
+            "ECC",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalAZFPA",
+          "values": [
+            71686.95700286236,
+            250.70465726466875,
+            29.784009840891972,
+            5.407290142833155,
+            144.82326222479833,
+            21.196238634285276
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "AZI",
+            "FPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalRADEC",
+          "values": [
+            71686.95700286236,
+            250.70465726466875,
+            29.784009840891972,
+            5.407290142833155,
+            262.9964991321459,
+            11.92500729342664
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "RAV",
+            "DECV"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedEquinoctial",
+          "values": [
+            49280.00000000001,
+            -1.2727922061357855,
+            1.2727922061357857,
+            3.5352507957496895e-17,
+            0.5773502691896257,
+            235
+          ],
+          "names": [
+            "SemilatusRectum",
+            "ModEquinoctialF",
+            "ModEquinoctialG",
+            "ModEquinoctialH",
+            "ModEquinoctialK",
+            "TLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "IncomingAsymptote",
+          "values": [
+            17600.0,
+            18.1182019,
+            21.695701767938758,
+            -58.144514265242954,
+            108.67197956740932,
+            100
+          ],
+          "names": [
+            "IncomingRadPer",
+            "IncomingC3Energy",
+            "IncomingRHA",
+            "IncomingDHA",
+            "IncomingBVAZI",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km^2/sec^2",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "OutgoingAsymptote",
+          "values": [
+            17600.0,
+            18.1182019,
+            264.3197378383269,
+            9.727831620740355,
+            30.483760206709956,
+            100
+          ],
+          "names": [
+            "OutgoingRadPer",
+            "OutgoingC3Energy",
+            "OutgoingRHA",
+            "OutgoingDHA",
+            "OutgoingBVAZI",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km^2/sec^2",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "SphericalAZFPA",
+      "mu": 398600.4418,
+      "keplerian": [
+        -14000,
+        1.5,
+        35,
+        120,
+        65,
+        -65
+      ],
+      "cartesian": [
+        -5355.195120400863,
+        9275.47003297923,
+        0.0,
+        -2.287899150017169,
+        -8.812719662302792,
+        4.472742731290695
+      ],
+      "expected_pairs": 7,
+      "targets": [
+        {
+          "key": "Cartesian",
+          "values": [
+            -5355.195120400863,
+            9275.47003297923,
+            0.0,
+            -2.287899150017169,
+            -8.812719662302792,
+            4.472742731290695
+          ],
+          "names": [
+            "X",
+            "Y",
+            "Z",
+            "VX",
+            "VY",
+            "VZ"
+          ],
+          "units": [
+            "km",
+            "km",
+            "km",
+            "km/s",
+            "km/s",
+            "km/s"
+          ]
+        },
+        {
+          "key": "Keplerian",
+          "values": [
+            -14000,
+            1.5,
+            35,
+            120,
+            65,
+            295
+          ],
+          "names": [
+            "SMA",
+            "ECC",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedKeplerian",
+          "values": [
+            7000.0,
+            -35000.0,
+            35,
+            120,
+            65,
+            295
+          ],
+          "names": [
+            "RadPer",
+            "RadApo",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalRADEC",
+          "values": [
+            10710.39024080173,
+            119.99999999999999,
+            0.0,
+            10.144157821490223,
+            255.44653961560653,
+            26.16247382092957
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "RAV",
+            "DECV"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedEquinoctial",
+          "values": [
+            17500.0,
+            -1.4942920471376184,
+            -0.13073361412148693,
+            -0.15764939443949166,
+            0.2730567609516662,
+            120
+          ],
+          "names": [
+            "SemilatusRectum",
+            "ModEquinoctialF",
+            "ModEquinoctialG",
+            "ModEquinoctialH",
+            "ModEquinoctialK",
+            "TLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "IncomingAsymptote",
+          "values": [
+            7000.0,
+            28.471460128571426,
+            57.6079713777659,
+            -31.818827437790468,
+            105.41487502059408,
+            295
+          ],
+          "names": [
+            "IncomingRadPer",
+            "IncomingC3Energy",
+            "IncomingRHA",
+            "IncomingDHA",
+            "IncomingBVAZI",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km^2/sec^2",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "OutgoingAsymptote",
+          "values": [
+            7000.0,
+            28.471460128571426,
+            313.90013633143116,
+            -9.548398686055728,
+            56.16661122003935,
+            295
+          ],
+          "names": [
+            "OutgoingRadPer",
+            "OutgoingC3Energy",
+            "OutgoingRHA",
+            "OutgoingDHA",
+            "OutgoingBVAZI",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km^2/sec^2",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "SphericalRADEC",
+      "mu": 398600.4418,
+      "keplerian": [
+        -16000,
+        1.3,
+        55,
+        150,
+        85,
+        80
+      ],
+      "cartesian": [
+        6865.7823836900125,
+        -5507.888024672998,
+        1909.5477922739105,
+        9.555209691882927,
+        -2.1235592196231847,
+        -4.196682347665673
+      ],
+      "expected_pairs": 7,
+      "targets": [
+        {
+          "key": "Cartesian",
+          "values": [
+            6865.7823836900125,
+            -5507.888024672998,
+            1909.5477922739105,
+            9.555209691882927,
+            -2.1235592196231847,
+            -4.196682347665673
+          ],
+          "names": [
+            "X",
+            "Y",
+            "Z",
+            "VX",
+            "VY",
+            "VZ"
+          ],
+          "units": [
+            "km",
+            "km",
+            "km",
+            "km/s",
+            "km/s",
+            "km/s"
+          ]
+        },
+        {
+          "key": "Keplerian",
+          "values": [
+            -16000,
+            1.3,
+            55,
+            150,
+            85,
+            80
+          ],
+          "names": [
+            "SMA",
+            "ECC",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedKeplerian",
+          "values": [
+            4800.000000000001,
+            -36800.0,
+            55,
+            150,
+            85,
+            80
+          ],
+          "names": [
+            "RadPer",
+            "RadApo",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalAZFPA",
+          "values": [
+            9006.784720614925,
+            321.26261481208485,
+            12.240295486395196,
+            10.650055339870715,
+            144.06133642303104,
+            43.75396510794177
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "AZI",
+            "FPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedEquinoctial",
+          "values": [
+            11040.000000000002,
+            -0.7456493672563594,
+            -1.0648976575756899,
+            -0.4508242901509503,
+            0.26028352527587306,
+            315
+          ],
+          "names": [
+            "SemilatusRectum",
+            "ModEquinoctialF",
+            "ModEquinoctialG",
+            "ModEquinoctialH",
+            "ModEquinoctialK",
+            "TLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "IncomingAsymptote",
+          "values": [
+            4800.000000000001,
+            24.9125276125,
+            110.37924916468425,
+            -42.32519940710182,
+            129.12234038920334,
+            80
+          ],
+          "names": [
+            "IncomingRadPer",
+            "IncomingC3Energy",
+            "IncomingRHA",
+            "IncomingDHA",
+            "IncomingBVAZI",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km^2/sec^2",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "OutgoingAsymptote",
+          "values": [
+            4800.000000000001,
+            24.9125276125,
+            0.08407263600376232,
+            -35.59842342227544,
+            44.86225230506077,
+            80
+          ],
+          "names": [
+            "OutgoingRadPer",
+            "OutgoingC3Energy",
+            "OutgoingRHA",
+            "OutgoingDHA",
+            "OutgoingBVAZI",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km^2/sec^2",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "ModifiedEquinoctial",
+      "mu": 398600.4418,
+      "keplerian": [
+        -24000,
+        2.0,
+        110,
+        210,
+        35,
+        -90
+      ],
+      "cartesian": [
+        -25678.693086878604,
+        -38118.20573610918,
+        -55422.08145504411,
+        -0.22163522053527948,
+        1.927386810907084,
+        4.890464614560749
+      ],
+      "expected_pairs": 7,
+      "targets": [
+        {
+          "key": "Cartesian",
+          "values": [
+            -25678.693086878604,
+            -38118.20573610918,
+            -55422.08145504411,
+            -0.22163522053527948,
+            1.927386810907084,
+            4.890464614560749
+          ],
+          "names": [
+            "X",
+            "Y",
+            "Z",
+            "VX",
+            "VY",
+            "VZ"
+          ],
+          "units": [
+            "km",
+            "km",
+            "km",
+            "km/s",
+            "km/s",
+            "km/s"
+          ]
+        },
+        {
+          "key": "Keplerian",
+          "values": [
+            -24000,
+            2.0,
+            110,
+            210,
+            35,
+            270
+          ],
+          "names": [
+            "SMA",
+            "ECC",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedKeplerian",
+          "values": [
+            24000.0,
+            -72000.0,
+            110,
+            210,
+            35,
+            270
+          ],
+          "names": [
+            "RadPer",
+            "RadApo",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalAZFPA",
+          "values": [
+            71999.99999999999,
+            236.0334453595734,
+            -50.33154592134332,
+            5.261234288274104,
+            327.6023102399676,
+            153.434948822922
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "AZI",
+            "FPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalRADEC",
+          "values": [
+            71999.99999999999,
+            236.0334453595734,
+            -50.33154592134332,
+            5.261234288274104,
+            96.55977794385332,
+            68.3613588330397
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "RAV",
+            "DECV"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "IncomingAsymptote",
+          "values": [
+            24000.0,
+            16.608351741666667,
+            285.6514323459611,
+            -69.40932832447321,
+            256.5336097505678,
+            270
+          ],
+          "names": [
+            "IncomingRadPer",
+            "IncomingC3Energy",
+            "IncomingRHA",
+            "IncomingDHA",
+            "IncomingBVAZI",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km^2/sec^2",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "OutgoingAsymptote",
+          "values": [
+            24000.0,
+            16.608351741666667,
+            39.06159389145164,
+            23.398961869855892,
+            338.1197673275948,
+            270
+          ],
+          "names": [
+            "OutgoingRadPer",
+            "OutgoingC3Energy",
+            "OutgoingRHA",
+            "OutgoingDHA",
+            "OutgoingBVAZI",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km^2/sec^2",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "IncomingAsymptote",
+      "mu": 398600.4418,
+      "keplerian": [
+        -20000,
+        1.7,
+        75,
+        240,
+        55,
+        -60
+      ],
+      "cartesian": [
+        -10576.496686665956,
+        -17397.21773649518,
+        -1720.1244059190021,
+        3.55433851229026,
+        2.8427233692389984,
+        6.183208636089229
+      ],
+      "expected_pairs": 7,
+      "targets": [
+        {
+          "key": "Cartesian",
+          "values": [
+            -10576.496686665956,
+            -17397.21773649518,
+            -1720.1244059190021,
+            3.55433851229026,
+            2.8427233692389984,
+            6.183208636089229
+          ],
+          "names": [
+            "X",
+            "Y",
+            "Z",
+            "VX",
+            "VY",
+            "VZ"
+          ],
+          "units": [
+            "km",
+            "km",
+            "km",
+            "km/s",
+            "km/s",
+            "km/s"
+          ]
+        },
+        {
+          "key": "Keplerian",
+          "values": [
+            -20000,
+            1.7,
+            75,
+            240,
+            55,
+            300
+          ],
+          "names": [
+            "SMA",
+            "ECC",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedKeplerian",
+          "values": [
+            14000.0,
+            -54000.0,
+            75,
+            240,
+            55,
+            300
+          ],
+          "names": [
+            "RadPer",
+            "RadApo",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalAZFPA",
+          "values": [
+            20432.43243243243,
+            238.70283137636858,
+            -4.829217342540026,
+            7.67766028496805,
+            15.05470112883346,
+            128.51302428301108
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "AZI",
+            "FPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalRADEC",
+          "values": [
+            20432.43243243243,
+            238.70283137636858,
+            -4.829217342540026,
+            7.67766028496805,
+            38.65246072646566,
+            53.64413227771512
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "RAV",
+            "DECV"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedEquinoctial",
+          "values": [
+            37799.99999999999,
+            0.718451044959188,
+            -1.5407232379623055,
+            -0.3836634939894805,
+            -0.664524664599176,
+            235
+          ],
+          "names": [
+            "SemilatusRectum",
+            "ModEquinoctialF",
+            "ModEquinoctialG",
+            "ModEquinoctialH",
+            "ModEquinoctialK",
+            "TLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "OutgoingAsymptote",
+          "values": [
+            14000.0,
+            19.930022089999998,
+            60.26709689972023,
+            -0.9967150359472471,
+            15.002323266165169,
+            300
+          ],
+          "names": [
+            "OutgoingRadPer",
+            "OutgoingC3Energy",
+            "OutgoingRHA",
+            "OutgoingDHA",
+            "OutgoingBVAZI",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km^2/sec^2",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "OutgoingAsymptote",
+      "mu": 398600.4418,
+      "keplerian": [
+        -26000,
+        2.2,
+        125,
+        290,
+        110,
+        75
+      ],
+      "cartesian": [
+        -18686.92648705299,
+        60640.26143259748,
+        -4541.83054007357,
+        0.5299629016847036,
+        4.403382544003947,
+        -2.8620768093204627
+      ],
+      "expected_pairs": 7,
+      "targets": [
+        {
+          "key": "Cartesian",
+          "values": [
+            -18686.92648705299,
+            60640.26143259748,
+            -4541.83054007357,
+            0.5299629016847036,
+            4.403382544003947,
+            -2.8620768093204627
+          ],
+          "names": [
+            "X",
+            "Y",
+            "Z",
+            "VX",
+            "VY",
+            "VZ"
+          ],
+          "units": [
+            "km",
+            "km",
+            "km",
+            "km/s",
+            "km/s",
+            "km/s"
+          ]
+        },
+        {
+          "key": "Keplerian",
+          "values": [
+            -26000,
+            2.2,
+            125,
+            290,
+            110,
+            75
+          ],
+          "names": [
+            "SMA",
+            "ECC",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedKeplerian",
+          "values": [
+            31200.000000000004,
+            -83200.0,
+            125,
+            290,
+            110,
+            75
+          ],
+          "names": [
+            "RadPer",
+            "RadApo",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalAZFPA",
+          "values": [
+            63616.591804348,
+            107.12722528355123,
+            -4.094046680932533,
+            5.27845831360358,
+            215.1027016570652,
+            36.446953110965666
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "AZI",
+            "FPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalRADEC",
+          "values": [
+            63616.591804348,
+            107.12722528355123,
+            -4.094046680932533,
+            5.27845831360358,
+            83.13725574416695,
+            -32.83477769075945
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "RAV",
+            "DECV"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedEquinoctial",
+          "values": [
+            99840.00000000001,
+            1.6852977748617508,
+            1.414132741310388,
+            0.6570145823927267,
+            -1.8051327293764237,
+            115
+          ],
+          "names": [
+            "SemilatusRectum",
+            "ModEquinoctialF",
+            "ModEquinoctialG",
+            "ModEquinoctialH",
+            "ModEquinoctialK",
+            "TLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "IncomingAsymptote",
+          "values": [
+            31200.000000000004,
+            15.330786223076922,
+            294.0491591723761,
+            -5.758518065573943,
+            215.203736619842,
+            75
+          ],
+          "names": [
+            "IncomingRadPer",
+            "IncomingC3Energy",
+            "IncomingRHA",
+            "IncomingDHA",
+            "IncomingBVAZI",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km^2/sec^2",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    }
+  ]
+}

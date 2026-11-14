@@ -1,0 +1,97 @@
+{
+  "scope": "Remaining identifier/type-code meanings, corrected message precision and coordinate reference epochs. No physical unit is assigned to an identifier; no missions.",
+  "cases": [
+    {
+      "key": "Asteroid",
+      "group": "IdentifierUnits",
+      "object": "Probe",
+      "route": "body",
+      "fixture": "Create Asteroid Probe;\nProbe.CentralBody = Sun;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.SpinAxisDECConstant = 90;\n",
+      "units": {
+        "NAIFId": "identifier"
+      }
+    },
+    {
+      "key": "Comet",
+      "group": "IdentifierUnits",
+      "object": "Probe",
+      "route": "body",
+      "fixture": "Create Comet Probe;\nProbe.CentralBody = Sun;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.SpinAxisDECConstant = 90;\n",
+      "units": {
+        "NAIFId": "identifier"
+      }
+    },
+    {
+      "key": "Moon",
+      "group": "IdentifierUnits",
+      "object": "Probe",
+      "route": "body",
+      "fixture": "Create Moon Probe;\nProbe.CentralBody = Earth;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.SpinAxisDECConstant = 90;\n",
+      "units": {
+        "NAIFId": "identifier"
+      }
+    },
+    {
+      "key": "Planet",
+      "group": "IdentifierUnits",
+      "object": "Probe",
+      "route": "body",
+      "fixture": "Create Planet Probe;\nProbe.CentralBody = Sun;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 470;\nProbe.SpinAxisDECConstant = 90;\n",
+      "units": {
+        "NAIFId": "identifier"
+      }
+    },
+    {
+      "key": "SpacecraftIDs",
+      "group": "IdentifierUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Spacecraft Probe;\nProbe.NAIFId = -100077;\nProbe.NAIFIdReferenceFrame = -900077;\n",
+      "units": {
+        "NAIFId": "identifier",
+        "NAIFIdReferenceFrame": "identifier"
+      }
+    },
+    {
+      "key": "TrackingCodes",
+      "group": "IdentifierUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create TrackingFileSet Probe;\n",
+      "units": {
+        "SimTDRSSmarId": "identifier",
+        "SimTDRSTrackerType": "type code"
+      }
+    },
+    {
+      "key": "MessagePrecision",
+      "group": "MessagePrecisionUnit",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create MessageWindow Probe;\n",
+      "units": {
+        "Precision": "digits"
+      }
+    },
+    {
+      "key": "MOEEq",
+      "group": "CoordinateEpochUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create CoordinateSystem Probe;\nProbe.Origin = Earth;\nProbe.Axes = MOEEq;\nProbe.Epoch = 21545;\n",
+      "units": {
+        "Epoch": "A1ModJulian"
+      }
+    },
+    {
+      "key": "MOEEc",
+      "group": "CoordinateEpochUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create CoordinateSystem Probe;\nProbe.Origin = Earth;\nProbe.Axes = MOEEc;\nProbe.Epoch = 21545;\n",
+      "units": {
+        "Epoch": "A1ModJulian"
+      }
+    }
+  ]
+}

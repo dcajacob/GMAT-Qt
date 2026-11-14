@@ -86,7 +86,8 @@ ObjectPropertyWrapper::ObjectPropertyWrapper(const ObjectPropertyWrapper &opw) :
    ElementWrapper(opw),
    object        (opw.object),
    propIDNames   (opw.propIDNames),
-   propID        (opw.propID)
+   propID        (opw.propID),
+   ownedObjName  (opw.ownedObjName)
 {
 }
 
@@ -111,6 +112,7 @@ const ObjectPropertyWrapper& ObjectPropertyWrapper::operator=(
    object      = opw.object;
    propIDNames = opw.propIDNames;
    propID      = opw.propID;
+   ownedObjName = opw.ownedObjName;
 
    return *this;
 }
@@ -140,6 +142,18 @@ ElementWrapper* ObjectPropertyWrapper::Clone() const
 {
    return new ObjectPropertyWrapper(*this);
 }
+
+void ObjectPropertyWrapper::RebindClonedReferences(const ElementWrapper &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   CheckCloneType(source);
+   const auto &original = static_cast<const ObjectPropertyWrapper&>(source);
+   auto *value = BindClonedReference(original.object, resolve);
+   const Integer id = value && !propIDNames.empty() ? value->GetParameterID(propIDNames[0]) : original.propID;
+   object = value;
+   propID = id;
+}
+
 
 //------------------------------------------------------------------------------
 // std::string ToString()
@@ -249,14 +263,27 @@ std::string ObjectPropertyWrapper::ToString()
    case Gmat::OBJECTARRAY_TYPE:
    {
       StringArray hardwareInfo = object->GetStringArrayParameter(propID);
+      bool attachedObject = false;
       for (Integer i = 0; i < hardwareInfo.size(); i++)
       {
          if (propIDNames[0] == hardwareInfo[i])
          {
+            attachedObject = true;
             Integer hardwareNum = i;
             retval = object->GetRefObject(Gmat::HARDWARE, hardwareInfo.at(hardwareNum))->GetGeneratingString(Gmat::MATLAB_STRUCT);
             break;
          }
+      }
+      if (!attachedObject)
+      {
+         retval = "{";
+         for (UnsignedInt i = 0; i < hardwareInfo.size(); ++i)
+         {
+            if (i > 0)
+               retval += ", ";
+            retval += hardwareInfo[i];
+         }
+         retval += "}";
       }
       break;
    }

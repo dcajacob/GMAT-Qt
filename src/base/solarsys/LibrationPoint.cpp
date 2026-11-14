@@ -30,6 +30,8 @@
 #include "gmatdefs.hpp"
 #include "CalculatedPoint.hpp"
 #include "LibrationPoint.hpp"
+#include <memory>
+#include "EphemerisDerivative.hpp"
 #include "Barycenter.hpp"
 #include "SolarSystemException.hpp"
 #include "CelestialBody.hpp"
@@ -160,6 +162,23 @@ LibrationPoint::~LibrationPoint()
 }
 
 
+// Native MJ2000 acceleration, in km/s^2.
+const Rvector3 LibrationPoint::GetMJ2000Acceleration(const A1Mjd &atTime)
+{
+   return GetMJ2000Acceleration(GmatTime(atTime.Get()));
+}
+
+const Rvector3 LibrationPoint::GetMJ2000Acceleration(const GmatTime &atTime)
+{
+   return GmatEphemerisDetail::AccelerationFromVelocity(
+      [&](Real seconds)
+      {
+         GmatTime epoch = atTime;
+         epoch.AddSeconds(seconds);
+         return GetMJ2000Velocity(epoch);
+      }, instanceName);
+}
+
 //---------------------------------------------------------------------------
 //  const Rvector6 GetMJ2000State(const A1Mjd &atTime)
 //---------------------------------------------------------------------------
@@ -196,8 +215,6 @@ const Rvector6 LibrationPoint::GetMJ2000State(const A1Mjd &atTime)
    Rvector6 pToS = secondaryState - primaryState;
    Rvector3 r    = pToS.GetR();
    Rvector3 v    = pToS.GetV();
-   Rvector3 a    = (secondaryBody->GetMJ2000Acceleration(atTime)) -
-                   (primaryBody->GetMJ2000Acceleration(atTime));
    
    Real     massPrimary, massSecondary;
    if (primaryBody->IsOfType("CelestialBody"))
@@ -335,10 +352,9 @@ const Rvector6 LibrationPoint::GetMJ2000State(const A1Mjd &atTime)
    Rvector3 zHat    = (Cross(r,v)).GetUnitVector();
    Rvector3 yHat    = Cross(zHat, xHat);
    Rvector3 xDotHat = (v / rMag) - (xHat / rMag) * (xHat * v);
-   Rvector3 ra      = Cross(r,a);
-   Rvector3 rv      = Cross(r,v);
-   Real     rvMag   = rv.GetMagnitude();
-   Rvector3 zDotHat = ra / rvMag - (zHat / rvMag) * ((ra * zHat));
+   // The libration model assumes r x a = 0 (Calculation Objects MathSpec).
+   // General ephemeris accelerations must not change this approximation.
+   Rvector3 zDotHat(0.0, 0.0, 0.0);
    Rvector3 yDotHat = Cross(zDotHat, xHat) + Cross(zHat, xDotHat);
    Rmatrix33 R;
    R(0,0) = xHat(0);
@@ -405,8 +421,6 @@ const Rvector6 LibrationPoint::GetMJ2000State(const GmatTime &atTime)
    Rvector6 pToS = secondaryState - primaryState;
    Rvector3 r = pToS.GetR();
    Rvector3 v = pToS.GetV();
-   Rvector3 a = (secondaryBody->GetMJ2000Acceleration(atTime)) -
-      (primaryBody->GetMJ2000Acceleration(atTime));
 
    Real     massPrimary, massSecondary;
    if (primaryBody->IsOfType("CelestialBody"))
@@ -544,10 +558,9 @@ const Rvector6 LibrationPoint::GetMJ2000State(const GmatTime &atTime)
    Rvector3 zHat = (Cross(r, v)).GetUnitVector();
    Rvector3 yHat = Cross(zHat, xHat);
    Rvector3 xDotHat = (v / rMag) - (xHat / rMag) * (xHat * v);
-   Rvector3 ra = Cross(r, a);
-   Rvector3 rv = Cross(r, v);
-   Real     rvMag = rv.GetMagnitude();
-   Rvector3 zDotHat = ra / rvMag - (zHat / rvMag) * ((ra * zHat));
+   // The libration model assumes r x a = 0 (Calculation Objects MathSpec).
+   // General ephemeris accelerations must not change this approximation.
+   Rvector3 zDotHat(0.0, 0.0, 0.0);
    Rvector3 yDotHat = Cross(zDotHat, xHat) + Cross(zHat, xDotHat);
    Rmatrix33 R;
    R(0, 0) = xHat(0);
@@ -1034,7 +1047,9 @@ bool LibrationPoint::SetRefObject(GmatBase *obj,
    #endif
 
    // Check that ref objects are of valid type
-   if ((obj->GetName() == GmatSolarSystemDefaults::SOLAR_SYSTEM_BARYCENTER_NAME) ||
+   const auto *barycenter = dynamic_cast<Barycenter *>(obj);
+   if ((barycenter && barycenter->UsesSolarSystemEphemeris()) ||
+       (obj->GetName() == GmatSolarSystemDefaults::SOLAR_SYSTEM_BARYCENTER_NAME) ||
 	   ((!obj->IsOfType("CelestialBody") ) && (!obj->IsOfType("Barycenter") )))
 		 throw SolarSystemException(
 		    "The value of \"" + obj->GetName() + "\" for field \"Primary\""
@@ -1094,7 +1109,9 @@ bool LibrationPoint::RenameRefObject(const UnsignedInt type,
 //------------------------------------------------------------------------------
 GmatBase* LibrationPoint::Clone() const
 {
-   return (new LibrationPoint(*this));
+   std::unique_ptr<LibrationPoint> value(new LibrationPoint(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -1109,10 +1126,15 @@ GmatBase* LibrationPoint::Clone() const
 //---------------------------------------------------------------------------
 void LibrationPoint::Copy(const GmatBase* orig)
 {
+   const auto *source = dynamic_cast<const LibrationPoint*>(orig);
+   if (!source) throw GmatBaseException("Incompatible LibrationPoint value copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
    // We don't want to copy instanceName
    std::string name = instanceName;
-   operator=(*((LibrationPoint *)(orig)));
+   operator=(*source);
    instanceName = name;
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -1147,7 +1169,9 @@ void LibrationPoint::CheckBodies()
          ("   bodyList[%d] = %s\n", i,
           (bodyList[i] == NULL ? "NULL" : bodyList[i]->GetName().c_str()));
       #endif
-      if (bodyList.at(i)->GetName() == GmatSolarSystemDefaults::SOLAR_SYSTEM_BARYCENTER_NAME)
+      const auto *barycenter = dynamic_cast<Barycenter *>(bodyList.at(i));
+      if ((barycenter && barycenter->UsesSolarSystemEphemeris()) ||
+            bodyList.at(i)->GetName() == GmatSolarSystemDefaults::SOLAR_SYSTEM_BARYCENTER_NAME)
 		 throw SolarSystemException(
              "Cannot Use SolarSystemBarycenter in a LibrationPoint");
       if (((bodyList.at(i))->GetType() != Gmat::CELESTIAL_BODY) &&

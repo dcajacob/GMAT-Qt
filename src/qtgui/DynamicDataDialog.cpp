@@ -1,6 +1,7 @@
 #include "DynamicDataDialog.hpp"
 #include "DynamicDataDisplay.hpp"
 #include "ReportParameterDialog.hpp"
+#include "ParameterReferences.hpp"
 #include "TableColumns.hpp"
 #include "Moderator.hpp"
 #include "Parameter.hpp"
@@ -132,7 +133,21 @@ void DynamicDataDialog::editCell(int row,int column)
    auto *parameter=new QLineEdit(QString::fromStdString(proposed.paramName),&dialog); parameter->setObjectName("dynamicParameter"); auto *selection=new QWidget(&dialog); auto *selectLayout=new QHBoxLayout(selection); selectLayout->setContentsMargins(0,0,0,0); selectLayout->addWidget(parameter); auto *select=new QPushButton("Select…",selection); select->setObjectName("dynamicSelectParameter"); selectLayout->addWidget(select); form->addRow("Parameter",selection);
    connect(select,&QPushButton::clicked,&dialog,[&] { ReportParameterDialog picker({parameter->text()},&dialog,ReportParameterDialog::Mode::Single); if (picker.exec()==QDialog::Accepted) parameter->setText(picker.selection().value(0)); });
    auto *text=colorButton(&dialog,"dynamicTextColor",proposed.paramTextColor),*background=colorButton(&dialog,"dynamicBackgroundColor",proposed.paramBackgroundColor); form->addRow("Text color",text); form->addRow("Background color",background); auto *hint=new QLabel("Black text uses the warning and critical colors for numeric values. A custom text color overrides the bounds colors.",&dialog); hint->setWordWrap(true); layout->addWidget(hint);
-   QMap<QString,QLineEdit *> bounds; for (const auto &entry:QList<QPair<QString,double>>{{"warnLower",proposed.warnLowerBound},{"warnUpper",proposed.warnUpperBound},{"critLower",proposed.critLowerBound},{"critUpper",proposed.critUpperBound}}) { auto *field=new QLineEdit(QString::number(entry.second,'g',17),&dialog); field->setObjectName("dynamic_"+entry.first); bounds.insert(entry.first,field); form->addRow(entry.first=="warnLower" ? "Warning lower" : entry.first=="warnUpper" ? "Warning upper" : entry.first=="critLower" ? "Critical lower" : "Critical upper",field); }
+   QMap<QString,QLineEdit *> bounds;
+   QMap<QString,QLabel *> boundLabels;
+   const QMap<QString,QString> boundNames={{"warnLower","Warning lower"},{"warnUpper","Warning upper"},
+      {"critLower","Critical lower"},{"critUpper","Critical upper"}};
+   for (const auto &entry:QList<QPair<QString,double>>{{"warnLower",proposed.warnLowerBound},{"warnUpper",proposed.warnUpperBound},{"critLower",proposed.critLowerBound},{"critUpper",proposed.critUpperBound}}) {
+      auto *field=new QLineEdit(QString::number(entry.second,'g',17),&dialog); field->setObjectName("dynamic_"+entry.first); bounds.insert(entry.first,field);
+      auto *label=new QLabel(&dialog); label->setObjectName("dynamic_"+entry.first+"Unit"); label->setBuddy(field);
+      boundLabels.insert(entry.first,label); form->addRow(label,field);
+   }
+   auto updateBoundUnits=[parameter,boundLabels,boundNames] {
+      const auto unit=parameterUnitDescription(parameter->text());
+      for (auto it=boundLabels.cbegin();it!=boundLabels.cend();++it)
+         it.value()->setText(boundNames.value(it.key())+" ("+unit+")");
+   };
+   connect(parameter,&QLineEdit::textChanged,&dialog,[updateBoundUnits] { updateBoundUnits(); }); updateBoundUnits();
    auto *message=new QLabel(&dialog); message->setObjectName("dynamicCellError"); message->setWordWrap(true); layout->addWidget(message); auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,&dialog); layout->addWidget(buttons); connect(buttons,&QDialogButtonBox::rejected,&dialog,&QDialog::reject);
    connect(buttons,&QDialogButtonBox::accepted,&dialog,[&] {
       try {

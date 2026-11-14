@@ -23,17 +23,136 @@
   <refnamediv>
     <refname>Save</refname>
 
-    <refpurpose>Under construction.</refpurpose>
+    <refpurpose>Save resource snapshots as GMAT script</refpurpose>
   </refnamediv>
 
   <refsynopsisdiv>
-    <synopsis>Under construction.</synopsis>
+    <synopsis>Save Object1 [Object2 ...] [{FilenameStyle = Worksheet|LegacyData, Filename = 'path'}];</synopsis>
   </refsynopsisdiv>
 
   <refsection>
-    <title>Under construction.</title>
-
-    <para>Under construction.</para>
+    <title>Output files</title>
+    <para>By default, <literal>FilenameStyle = Worksheet</literal> writes each
+    selected resource to <literal>ObjectName.ObjectType</literal> in the output
+    directory. Each snapshot includes its supported attachment dependencies.</para>
+    <para><literal>FilenameStyle = LegacyData</literal> preserves the previous
+    naming and grouping: one object uses <literal>ObjectName.ObjectType.data</literal>;
+    multiple objects share <literal>Object1_Object2.data</literal>.</para>
+    <para><literal>Filename</literal> selects an exact output filename and combines
+    the selected objects in that file, overriding the default naming style.
+    Relative filenames use the configured output directory. An empty filename
+    restores default naming. Double an apostrophe inside a quoted filename.</para>
+    <para>The Mission Tree command editor provides a default-filename selector
+    and an optional output-file chooser. Save records runtime resource values;
+    repeated execution in the same mission appends another snapshot.</para>
+    <para>Explicitly selected resources and their serialized owned components
+    are included even when declared in an included file or a function source.
+    The original source-file association remains intact for ordinary script
+    saving.</para>
+    <para>Snapshots also write writable properties whose current values match
+    their native defaults, including supported empty values. This lets a later
+    snapshot restore those defaults when it follows an earlier nondefault
+    snapshot in the same file.</para>
+    <para>Resource serialization preserves each class's property ordering and
+    includes additional native properties without changing the live object's
+    ordering metadata. Invalid duplicate or out-of-range property identifiers
+    are reported while preparing the snapshot, before Save opens output files.</para>
+    <para>Snapshots explicitly clear writable SPICE kernel lists and spacecraft
+    <literal>SolveFors</literal> before recording their current entries. Empty
+    or shorter later lists therefore replace the corresponding earlier saved
+    lists when the appended snapshots are read as a script. Other list
+    properties retain their own native serialization and setter policies.</para>
+    <para>ReportFile reported parameters, XYPlot Y variables, and OrbitPlot
+    member lists also receive an explicit empty-list reset before their current
+    entries. Shorter or empty snapshots therefore replace the earlier member
+    lists. XYPlot keeps its X variable while clearing Y members. The reader uses
+    each subscriber's existing native Clear action, including its wrapper and
+    plot-list cleanup; it does not open a report stream to serialize the list.</para>
+    <para>The same reset-before-entries policy applies to DataFilter
+    <literal>FileNames</literal>, <literal>ObservedObjects</literal>,
+    <literal>Trackers</literal> and <literal>DataTypes</literal>, SolarPowerSystem
+    <literal>ShadowBodies</literal>, CelestialBody
+    <literal>DSNMediaFileDirectories</literal> and ContactLocator
+    <literal>EventTypes</literal>. Their native setters or clear actions handle
+    explicit empty lists; ordinary list assignments retain their existing
+    behavior. Read-only DataFilter <literal>Strands</literal> is not reset.</para>
+    <para>Estimator and Simulator snapshots clear their previous
+    <literal>Propagator</literal> selection before recording the default and
+    spacecraft-specific mappings. This replaces longer or differently mapped
+    earlier selections in appended snapshots, including an empty selection.
+    The native reset retires the owned propagator definitions and invalidates
+    their prepared satellite map. A later estimator/simulator run must prepare
+    its newly selected definitions; serialization does not reset the live
+    source resource.</para>
+    <para>Estimator <literal>Measurements</literal>, <literal>AddSolveFor</literal>,
+    <literal>AddResidualsPlot</literal> and <literal>DataFilters</literal>, and
+    Simulator <literal>AddData</literal>, also reset before their saved entries.
+    Their native clear operations retire owned measurement/filter/plot definitions
+    and invalidate prepared state roles as needed. Clearing solve-for selections
+    preserves the measurement selection. Declared consider/participant roles and
+    manager service configuration remain available for native preparation; saved
+    declarations do not resume a previous estimation or simulation session.
+    Use an unquoted <literal>{}</literal> to clear these navigation lists;
+    quoted or encoded strings containing empty braces are rejected before
+    they can clear a selection.</para>
+    <para>Explicit estimator <literal>AddSolveFor</literal> declarations stage
+    their selection and associated state-manager role lists before publication.
+    Syntax/index errors caught by these setters do not replace the existing
+    declaration. Native estimation preparation still checks the selected
+    object's property compatibility and scientific domain.</para>
+    <para>TrackingFileSet snapshots reset <literal>AddTrackingConfig</literal>,
+    <literal>FileName</literal>, <literal>RampTable</literal>,
+    <literal>DataFilters</literal> and <literal>SimTDRSServiceAccessList</literal>
+    before their saved entries. Each tracking configuration is written as a
+    separate native configuration statement. Native clears retire generated
+    adapters and relevant owned filters, clear prepared caches and require
+    preparation before further use. Existing native service defaults and
+    file/configuration requirements still apply during preparation.</para>
+    <para>A raw <literal>{}</literal> clears a tracking collection. A quoted or
+    encoded filename containing empty braces remains filename data; it does not
+    clear the list. Empty-brace string literals cannot select a tracking
+    configuration or data-filter object.</para>
+    <para>Navigation and tracking collection resets are handled before a
+    declaration is split into object or string-array tokens. A complete
+    <literal>AddTrackingConfig</literal> assignment parses its participant and
+    measurement-type tokens into temporary definitions before publication.
+    A rejected token or allocation failure during parsing retains the previous
+    declaration. Direct indexed parser calls retain their accepted incremental
+    prefix; native preparation still checks resource bindings and domains.</para>
+    <para>A PlanetographicRegion snapshot first clears
+    <literal>AreaFileName</literal>, <literal>Latitude</literal> and
+    <literal>Longitude</literal>, then records its active file or inline input
+    definition. Later snapshots can replace longer coordinate lists or switch
+    between these input modes. Coordinate resets use the native whole-vector
+    setter; serialization does not clear the live source region.</para>
+    <para>A DynamicDataDisplay snapshot clears its previous layout with
+    <literal>AddParameters = {};</literal> before adding rows. Row properties
+    then preserve backgrounds, color modes and warning/critical bounds by cell
+    position, including blank cells and fixed black text. Later snapshots can
+    replace a longer table or restore its default cell settings. These row
+    properties require an updated reader.</para>
+    <para>Save records finite native Real values with sufficient significant
+    digits to preserve their binary value on reload, independently of a lower
+    display precision. Numeric literals use a decimal point and no locale digit
+    grouping. This includes Variable values, Array cells, common numeric
+    resource properties and saved plot viewpoint vectors. Ordinary script
+    generation retains its configured formatting. Coordinate conversions and
+    other calculated representations retain their native computation rules.</para>
+    <para>Saved native string and filename properties, quoted string-list entries
+    and String-resource values use an explicit byte literal when ordinary
+    quoting cannot safely represent the value. Its syntax is
+    <literal>@'HEX'</literal>, with two hexadecimal digits per byte. This
+    preserves apostrophes, line breaks, control bytes, Unicode bytes and
+    punctuation that can otherwise be parsed as script structure. Simple values
+    retain their ordinary single-quoted form; backslashes in existing quoted
+    strings retain their literal meaning. An explicitly saved empty String
+    includes its empty assignment, so a later snapshot clears an earlier value.</para>
+    <para>Encoded literals require a reader supporting this syntax. Native
+    string-property, String-resource and string-argument readers decode them
+    at their input boundary; they always denote string data, including when
+    the decoded value is also a resource name. Existing single-quoted literal
+    interpretation is unchanged. Specialized class serializers, equation text
+    and external-file portability retain their own contracts.</para>
   </refsection>
 
   <refsection>
@@ -42,13 +161,17 @@
     <refsection>
       <title>Script Syntax</title>
 
-      <programlisting><code>Under construction.</code></programlisting>
+      <programlisting><code>Save Sat;
+Save Sat {FilenameStyle = LegacyData};
+Save Sat Fuel {Filename = 'Mission snapshot.script'};</code></programlisting>
     </refsection>
 
     <refsection>
       <title>Script Examples</title>
 
-      <programlisting><code>Under construction.</code></programlisting>
+      <programlisting><code>Create Spacecraft Sat;
+BeginMissionSequence;
+Save Sat;</code></programlisting>
     </refsection>
   </refsection>
 </refentry>

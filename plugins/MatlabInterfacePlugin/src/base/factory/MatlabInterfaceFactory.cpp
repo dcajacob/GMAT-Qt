@@ -33,6 +33,23 @@
 #include "MatlabInterfaceFactory.hpp"
 #include "MatlabInterface.hpp"
 #include "MessageInterface.hpp"
+#include "InterfaceException.hpp"
+#include <algorithm>
+
+namespace
+{
+void HideProcessService(const StringArray &creatables, StringArray &viewables,
+                        StringArray &unviewables)
+{
+   const std::string service = "MatlabInterface";
+   if (std::find(creatables.begin(), creatables.end(), service) == creatables.end())
+      return;
+   viewables.erase(std::remove(viewables.begin(), viewables.end(), service), viewables.end());
+   if (std::find(unviewables.begin(), unviewables.end(), service) == unviewables.end())
+      unviewables.push_back(service);
+}
+}
+
 
 //---------------------------------
 //  public methods
@@ -48,7 +65,12 @@
 GmatBase* MatlabInterfaceFactory::CreateObject(const std::string &ofType,
                                                const std::string &withName)
 {
-   return CreateInterface(ofType, withName);
+   // CreateInterface supplies the borrowed, Moderator-owned process service.
+   // Generic object creation must not hand it to resource owners or previews.
+   if (ofType == "MatlabInterface")
+      throw InterfaceException("The MATLAB interface cannot be created as a named Resource. "
+            "Use its Interfaces Resource Tree controls or call a MATLAB function.\n");
+   return NULL;
 }
 
 
@@ -89,6 +111,7 @@ MatlabInterfaceFactory::MatlabInterfaceFactory() :
    {
       creatables.push_back("MatlabInterface");
    }
+   HideProcessService(creatables, viewables, unviewables);
 }
 
 
@@ -105,6 +128,7 @@ MatlabInterfaceFactory::MatlabInterfaceFactory() :
 MatlabInterfaceFactory::MatlabInterfaceFactory(StringArray createList) :
    Factory(createList, Gmat::INTERFACE)
 {
+   HideProcessService(creatables, viewables, unviewables);
 }
 
 
@@ -125,6 +149,7 @@ MatlabInterfaceFactory::MatlabInterfaceFactory(const MatlabInterfaceFactory& fac
    {
       creatables.push_back("MatlabInterface");
    }
+   HideProcessService(creatables, viewables, unviewables);
 }
 
 
@@ -142,6 +167,7 @@ MatlabInterfaceFactory::MatlabInterfaceFactory(const MatlabInterfaceFactory& fac
 MatlabInterfaceFactory& MatlabInterfaceFactory::operator=(const MatlabInterfaceFactory& fact)
 {
    Factory::operator=(fact);
+   HideProcessService(creatables, viewables, unviewables);
    return *this;
 }
     

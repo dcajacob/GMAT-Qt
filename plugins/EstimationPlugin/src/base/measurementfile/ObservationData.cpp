@@ -34,6 +34,8 @@
 
 #include "ObservationData.hpp"
 #include "EstimationDefs.hpp"
+#include "MeasurementException.hpp"
+#include <cmath>
 #include <sstream>
 
 //-----------------------------------------------------------------------------
@@ -53,6 +55,10 @@ ObservationData::ObservationData() :
    epochSystem       (TimeSystemConverter::A1MJD),
    epoch             (-1.0),
    epochGT           (-1.0),
+   epochAtEnd        (true),
+   epochAtIntegrationEnd (true),
+   epochReference    (EpochReference::Configured),
+   integrationReference (IntegrationReference::Configured),
    noiseCovariance   (NULL),
 ///// TBD: Determine if there is a more generic way to add these, and if they go here
    unit              ("km"),
@@ -116,6 +122,8 @@ ObservationData::ObservationData(const ObservationData& od):
    epochGT                 (od.epochGT),
    epochAtEnd              (od.epochAtEnd),
    epochAtIntegrationEnd   (od.epochAtIntegrationEnd),
+   epochReference          (od.epochReference),
+   integrationReference    (od.integrationReference),
    participantIDs          (od.participantIDs),
    sensorIDs               (od.sensorIDs),
    strands                 (od.strands),
@@ -180,6 +188,8 @@ ObservationData& ObservationData::operator=(const ObservationData& od)
       epochGT                 = od.epochGT;
       epochAtEnd              = od.epochAtEnd;
       epochAtIntegrationEnd   = od.epochAtIntegrationEnd;
+      epochReference          = od.epochReference;
+      integrationReference    = od.integrationReference;
       participantIDs          = od.participantIDs;
       sensorIDs               = od.sensorIDs;
       strands                 = od.strands;
@@ -218,6 +228,45 @@ ObservationData& ObservationData::operator=(const ObservationData& od)
    return *this;
 }
 
+
+GmatTime ObservationData::GetEpochInA1() const
+{
+   return epochSystem == TimeSystemConverter::A1MJD ? epochGT :
+      TimeSystemConverter::Instance()->Convert(epochGT, epochSystem,
+            TimeSystemConverter::A1MJD);
+}
+
+bool ObservationData::IsEpochAtReceive(bool configuredReference) const
+{
+   if (epochReference != EpochReference::Configured)
+      return epochReference == EpochReference::Receive;
+   // Older callers can request transmit tagging using the original boolean.
+   // Its default true must not override a transmitter-tagged adapter.
+   return epochAtEnd ? configuredReference : false;
+}
+
+Real ObservationData::GetIntegrationEndOffset(Real interval) const
+{
+   if (!std::isfinite(interval) || interval < 0.0)
+      throw MeasurementException("Observation integration interval must be finite and nonnegative");
+   switch (integrationReference)
+   {
+      case IntegrationReference::Start:  return interval;
+      case IntegrationReference::Middle: return interval / 2.0;
+      case IntegrationReference::End:    return 0.0;
+      default: return epochAtIntegrationEnd ? 0.0 : interval;
+   }
+}
+
+void ObservationData::SetReceiverEpochInA1(const GmatTime &atEpoch)
+{
+   epochGT = atEpoch;
+   epoch = atEpoch.GetMjd();
+   epochSystem = TimeSystemConverter::A1MJD;
+   epochReference = EpochReference::Receive;
+   integrationReference = IntegrationReference::End;
+   epochAtEnd = epochAtIntegrationEnd = true;
+}
 
 //-----------------------------------------------------------------------------
 // void Clear()

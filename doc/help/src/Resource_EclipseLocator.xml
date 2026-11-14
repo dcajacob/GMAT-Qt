@@ -71,6 +71,17 @@
     and stellar aberration, though stellar aberration currently has no
     effect.</para>
 
+    <para><literal>RootFindingMethod = SPICE</literal> retains the default
+    shadow-boundary refinement. Select <literal>RootFindingMethod = Brent</literal>
+    to refine entry and exit times with Brent's method using the triaxial
+    ellipsoid shapes. <literal>RootTolerance</literal> sets a finite, positive
+    time tolerance in TDB seconds and defaults to <literal>1e-6</literal>.
+    A tolerance finer than the available epoch resolution produces an error.
+    The same choice applies to umbra, penumbra and antumbra. Search-interval
+    endpoints that clip an ongoing event remain the requested interval limits.
+    <guilabel>StepSize</guilabel> continues to control which events the search
+    can discover.</para>
+
     <para>The event search is performed at a fixed step through the interval.
     You can control the step size (in seconds) by setting the
     <guilabel>StepSize</guilabel> field. An appropriate choice for step size
@@ -1094,6 +1105,13 @@
             <para>Eclipse number of total duration</para>
           </listitem>
         </itemizedlist></para>
+
+      <para>The Qt distribution also writes a separate eclipse-type summary listing the number of individual
+      intervals, maximum individual duration, and spacecraft/occulting-body
+      participants for each selected type. Types with no intervals show zero
+      count and duration. Participants tied within one microsecond of the
+      maximum are listed together. These statistics supplement the total-event
+      union statistics described above.</para>
 
       <para>The report makes the distinction between an
       <emphasis>individual</emphasis> event and a <emphasis>total</emphasis>

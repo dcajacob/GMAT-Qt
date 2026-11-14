@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "scope": "New near-equatorial or retrograde-apsis positive Keplerian definition through unchanged original GUI driver",
+  "cases": [
+    {
+      "key": "Keplerian",
+      "mu": 398600.4418,
+      "canonical_keplerian": [
+        23000.0,
+        0.7,
+        179.9999999,
+        1e-08,
+        179.999999,
+        179.999999
+      ],
+      "names": [
+        "SMA",
+        "ECC",
+        "INC",
+        "RAAN",
+        "AOP",
+        "TA"
+      ],
+      "values": [
+        23000.0,
+        0.7,
+        179.9999999,
+        1e-08,
+        179.999999,
+        179.999999
+      ],
+      "units": [
+        "km",
+        "",
+        "deg",
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "invalid_field": "SMA",
+      "invalid": [
+        "nan",
+        "0",
+        "-1"
+      ],
+      "expected_cartesian": [
+        39099.999999999956,
+        0.0013716717274082119,
+        -2.3821083648185542e-12,
+        1.3256890523678615e-07,
+        -1.7488039942286755,
+        3.052238915704616e-09
+      ],
+      "position_tolerance_km": 1e-06,
+      "velocity_tolerance_km_s": 1e-09
+    }
+  ]
+}

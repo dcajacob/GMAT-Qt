@@ -53,6 +53,7 @@ public:
    For&                 operator=(const For& f);
    // destructor
    virtual ~For();
+   void RetireFunctionBindings(ObjectMap *store) override;
 
    // Inherited methods that need some enhancement from the base class
    virtual bool         Append(GmatCommand *cmd);

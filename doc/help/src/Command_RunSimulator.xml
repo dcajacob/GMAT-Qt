@@ -34,6 +34,12 @@
   <refsection>
     <title>Description</title>
 
+    <para>Changes to the selected resource or its actual propagation definitions
+    are staged for this command. The next execution rebuilds the command's native
+    engines from the updated definition, including a restart when an earlier
+    execution is still in progress. Separate resources with equal names in
+    another scope do not select this command for updating.</para>
+
     <para>The <guilabel>RunSimulator</guilabel> command generates the
     simulated measurements specified in the user-provided
     <guilabel>Simulator</guilabel> resource. An output file, with name

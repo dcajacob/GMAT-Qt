@@ -1,0 +1,25 @@
+{
+  "case": "PrivateAndShared",
+  "caller": "Create Variable PrivateValue PrivateCost PrivateCalls SharedValue SharedCost SharedCalls ObservedLimit Keep;\nKeep = 41;\nCreate FminconOptimizer SharedOptimizer;\nSharedOptimizer.MaximumIterations = 61;\nSharedOptimizer.MaxFunEvals = '500';\nSharedOptimizer.TolX = '1e-9';\nSharedOptimizer.TolFun = '1e-10';\nSharedOptimizer.TolCon = '1e-10';\nSharedOptimizer.ShowProgress = false;\nCreate GmatFunction PrivateSolve SharedSolve;\nPrivateSolve.FunctionPath = '@FILES@/PrivateSolve.gmf';\nSharedSolve.FunctionPath = '@FILES@/SharedSolve.gmf';\nBeginMissionSequence;\nGlobal SharedOptimizer;\n[PrivateValue, PrivateCost, PrivateCalls] = PrivateSolve();\n[SharedValue, SharedCost, SharedCalls, ObservedLimit] = SharedSolve();\nKeep = Keep + 1;\n",
+  "functions": {
+    "PrivateSolve.gmf": "function [Out, Cost, Calls] = PrivateSolve()\nCreate Variable Out Cost Calls Alpha;\nCreate FminconOptimizer LocalOptimizer;\nLocalOptimizer.MaximumIterations = 60;\nLocalOptimizer.MaxFunEvals = '500';\nLocalOptimizer.TolX = '1e-9';\nLocalOptimizer.TolFun = '1e-10';\nLocalOptimizer.TolCon = '1e-10';\nLocalOptimizer.ShowProgress = false;\nBeginMissionSequence;\nCalls = 0;\nOptimize LocalOptimizer {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary LocalOptimizer(Alpha = 0, {Lower = -5, Upper = 3, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nCost = (Alpha - 4)^2;\nCalls = Calls + 1;\nMinimize LocalOptimizer(Cost);\nEndOptimize;\nOut = Alpha;\n",
+    "SharedSolve.gmf": "function [Out, Cost, Calls, Limit] = SharedSolve()\nCreate Variable Out Cost Calls Alpha Limit;\nBeginMissionSequence;\nGlobal SharedOptimizer;\nCalls = 0;\nOptimize SharedOptimizer {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary SharedOptimizer(Alpha = 0, {Lower = -5, Upper = 4, AdditiveScaleFactor = 0, MultiplicativeScaleFactor = 1});\nCost = (Alpha - 5)^2;\nCalls = Calls + 1;\nMinimize SharedOptimizer(Cost);\nEndOptimize;\nOut = Alpha;\nLimit = SharedOptimizer.MaximumIterations;\n"
+  },
+  "expected": {
+    "PrivateValue": 3,
+    "PrivateCost": 1,
+    "SharedValue": 4,
+    "SharedCost": 1,
+    "ObservedLimit": 61,
+    "Keep": 42
+  },
+  "absolute_bounds": {
+    "PrivateValue": 1e-06,
+    "PrivateCost": 1e-08,
+    "SharedValue": 1e-06,
+    "SharedCost": 1e-08,
+    "ObservedLimit": 0,
+    "Keep": 0
+  },
+  "scope": "Only missing private/explicit Global real optimizer resource use in a GMAT function. Reuse existing main-mission solver checks."
+}

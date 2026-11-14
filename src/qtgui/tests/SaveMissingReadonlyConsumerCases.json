@@ -1,0 +1,669 @@
+{
+  "cases": [
+    {
+      "before_save": "Sample = Subject.DCM11;\n",
+      "definitions": [
+        "Create Spacecraft Subject;",
+        "Create CoordinateSystem SavedFrame;",
+        "Create Asteroid AxisBody;",
+        "Create Variable Sample"
+      ],
+      "expected_attitude_model": "CoordinateSystemFixed",
+      "expected_matrix": [
+        [
+          0.46316331081646345,
+          0.843094888731829,
+          -0.2732595032341911
+        ],
+        [
+          -0.816301315173827,
+          0.5258886261691285,
+          0.23894207605908804
+        ],
+        [
+          0.3451549077718764,
+          0.1123928888329304,
+          0.9317917837053383
+        ]
+      ],
+      "expected_offset_quaternion": [
+        -0.08258826568869311,
+        -0.16517653137738622,
+        -0.24776479706607937,
+        -0.9510565162951536
+      ],
+      "expected_rate_degrees_s": [
+        -0.00037952708782526545,
+        0.00033186399452651117,
+        0.0012941552551463033
+      ],
+      "filename": "Subject_SavedFrame_AxisBody_Sample.data",
+      "key": "MissingCoordinateSystemFixed",
+      "objects": [
+        "Subject",
+        "SavedFrame",
+        "AxisBody",
+        "Sample"
+      ],
+      "offset_serialized": true,
+      "probe_witnesses": [
+        {
+          "expected": "SavedFrame",
+          "field": "AttitudeCoordinateSystem",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Object"
+        },
+        {
+          "expected": [
+            -0.08258826568869311,
+            -0.16517653137738622,
+            -0.24776479706607937,
+            -0.9510565162951536
+          ],
+          "field": "OffsetQuaternion",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Rvector"
+        },
+        {
+          "expected": 0.46316331081646345,
+          "field": "Value",
+          "object": "Sample",
+          "type": "Real"
+        },
+        {
+          "expected": "AxisBody",
+          "field": "Origin",
+          "object": "SavedFrame",
+          "type": "Object"
+        },
+        {
+          "expected": "BodyFixed",
+          "field": "Axes",
+          "object": "SavedFrame",
+          "type": "Object"
+        },
+        {
+          "expected": 0.46316331081646345,
+          "field": "DCM11",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Real"
+        },
+        {
+          "expected": 0.843094888731829,
+          "field": "DCM12",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Real"
+        },
+        {
+          "expected": -0.2732595032341911,
+          "field": "DCM13",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Real"
+        },
+        {
+          "expected": -0.00037952708782526545,
+          "field": "AngularVelocityX",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Real"
+        },
+        {
+          "expected": -0.816301315173827,
+          "field": "DCM21",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Real"
+        },
+        {
+          "expected": 0.5258886261691285,
+          "field": "DCM22",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Real"
+        },
+        {
+          "expected": 0.23894207605908804,
+          "field": "DCM23",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Real"
+        },
+        {
+          "expected": 0.00033186399452651117,
+          "field": "AngularVelocityY",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Real"
+        },
+        {
+          "expected": 0.3451549077718764,
+          "field": "DCM31",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Real"
+        },
+        {
+          "expected": 0.1123928888329304,
+          "field": "DCM32",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Real"
+        },
+        {
+          "expected": 0.9317917837053383,
+          "field": "DCM33",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Real"
+        },
+        {
+          "expected": 0.0012941552551463033,
+          "field": "AngularVelocityZ",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Real"
+        }
+      ],
+      "reload_probe": "Sample = Subject.DCM11;\n",
+      "runtime_solar_system_probe": "Subject",
+      "selected": [
+        "Subject",
+        "SavedFrame",
+        "AxisBody",
+        "Sample"
+      ],
+      "setup": "Create Asteroid AxisBody;\nAxisBody.NAIFId = 2000001;\nAxisBody.OrbitSpiceKernelName = {'/home/dan/GIT/GMAT-Qt/src/qtgui/tests/frame-consumer-station-origin.bsp'};\nAxisBody.Mu = 63;\nAxisBody.EquatorialRadius = 6400;\nAxisBody.Flattening = 0.01;\nAxisBody.OrientationEpoch = 21545;\nAxisBody.SpinAxisRAConstant = 270;\nAxisBody.SpinAxisRARate = 0;\nAxisBody.SpinAxisDECConstant = 90;\nAxisBody.SpinAxisDECRate = 0;\nAxisBody.RotationConstant = 30;\nAxisBody.RotationRate = 120;\nCreate CoordinateSystem SavedFrame;\nSavedFrame.Origin = AxisBody;\nSavedFrame.Axes = BodyFixed;\nCreate Spacecraft Subject;\nSubject.NAIFId = -101101;\nSubject.NAIFIdReferenceFrame = -910101;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = CoordinateSystemFixed;\nSubject.AttitudeCoordinateSystem = SavedFrame;\nSubject.OffsetQuaternion = [-0.57811785982085173 -1.1562357196417035 -1.7343535794625553 -6.6573956140660746];\nCreate Variable Sample;\nSample = 0;\n",
+      "witnesses": [
+        {
+          "expected": "SavedFrame",
+          "field": "AttitudeCoordinateSystem",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Object"
+        },
+        {
+          "expected": [
+            -0.08258826568869311,
+            -0.16517653137738622,
+            -0.24776479706607937,
+            -0.9510565162951536
+          ],
+          "field": "OffsetQuaternion",
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "type": "Rvector"
+        },
+        {
+          "expected": 0.46316331081646345,
+          "field": "Value",
+          "object": "Sample",
+          "type": "Real"
+        },
+        {
+          "expected": "AxisBody",
+          "field": "Origin",
+          "object": "SavedFrame",
+          "type": "Object"
+        },
+        {
+          "expected": "BodyFixed",
+          "field": "Axes",
+          "object": "SavedFrame",
+          "type": "Object"
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "Q1",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "Q2",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "Q3",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "Q4",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "EulerAngle1",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "EulerAngle2",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "EulerAngle3",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "DCM11",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "DCM12",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "DCM13",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "DCM21",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "DCM22",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "DCM23",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "DCM31",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "DCM32",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "DCM33",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "MRP1",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "MRP2",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "MRP3",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "EulerAngleRate1",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "AngularVelocityX",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "AngularVelocityY",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "AngularVelocityZ",
+          "type": "Real"
+        }
+      ],
+      "original_test": "QtGui.SaveLegacyFixedOffsetBody",
+      "scope": "Only missing real post-reload consumers at unchanged existing bounds. No complete Save row credit."
+    },
+    {
+      "before_save": "Result = Subject(6);\n",
+      "definitions": [
+        "Create GmatFunction Subject;",
+        "Create Variable Result\n"
+      ],
+      "filename": "Subject_Result.data",
+      "fixture_files": {
+        "Subject.gmf": "function [out] = Subject(input)\nCreate Variable out;\nBeginMissionSequence;\nout = 2 * input + 1;\n"
+      },
+      "key": "MissingGmatFunction",
+      "objects": [
+        "Subject",
+        "Result"
+      ],
+      "probe_witnesses": [
+        {
+          "expected": 15,
+          "field": "Value",
+          "object": "Result",
+          "type": "Real"
+        }
+      ],
+      "reload_probe": "Result = Subject(7);\n",
+      "selected": [
+        "Subject",
+        "Result"
+      ],
+      "setup": "Create Variable Result;\nResult = 0;\nCreate GmatFunction Subject;\nSubject.FunctionPath = '@FILES@/Subject.gmf';\n",
+      "witnesses": [
+        {
+          "expected": "@FILES@/Subject.gmf",
+          "field": "FunctionPath",
+          "object": "Subject",
+          "type": "Filename"
+        },
+        {
+          "expected": 13,
+          "field": "Value",
+          "object": "Result",
+          "type": "Real"
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "GmatFunction",
+          "field": "Input",
+          "type": "StringArray"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "GmatFunction",
+          "field": "Output",
+          "type": "StringArray"
+        }
+      ],
+      "original_test": "QtGui.SaveLegacyAncillaryGmatFunction",
+      "scope": "Only missing real post-reload consumers at unchanged existing bounds. No complete Save row credit."
+    },
+    {
+      "definitions": [
+        "Create ThrustHistoryFile Subject;",
+        "Create ThrustSegment Segment;",
+        "Create ChemicalTank Fuel;",
+        "Create Variable ReloadAlive;"
+      ],
+      "filename": "Subject_Segment_Fuel_ReloadAlive.data",
+      "fixture_files": {
+        "history.thf": "BeginThrust {Segment}\nStart_Epoch = 01 Jan 2000 12:00:00.000\nThrust_Vector_Coordinate_System = EarthMJ2000Eq\nThrust_Vector_Interpolation_Method = None\nMass_Flow_Rate_Interpolation_Method = None\nModelAccelAndMassRate\n0.0 0.1 0 0 0.5\n120.0 0.1 0 0 0.5\nEndThrust {Segment}\n"
+      },
+      "key": "MissingThrustSegment",
+      "objects": [
+        "Subject",
+        "Segment",
+        "Fuel",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "Segment",
+        "Fuel",
+        "ReloadAlive"
+      ],
+      "setup": "Create ChemicalTank Fuel;\nFuel.FuelMass = 100;\nCreate ThrustSegment Segment;\nSegment.MassSource = {Fuel};\nSegment.ThrustScaleFactor = 1.25;\nCreate ThrustHistoryFile Subject;\nSubject.FileName = '@FILES@/history.thf';\nSubject.AddThrustSegment = {Segment};\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": "@FILES@/history.thf",
+          "field": "FileName",
+          "object": "Subject",
+          "type": "Filename"
+        },
+        {
+          "expected": [
+            "Segment"
+          ],
+          "field": "AddThrustSegment",
+          "object": "Subject",
+          "type": "StringArray"
+        },
+        {
+          "expected": 1.25,
+          "field": "ThrustScaleFactor",
+          "object": "Segment",
+          "type": "Real"
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Segment",
+          "owned_indices": [],
+          "native_type": "ThrustSegment",
+          "field": "Covariance",
+          "type": "Rmatrix"
+        },
+        {
+          "object": "Segment",
+          "owned_indices": [],
+          "native_type": "ThrustSegment",
+          "field": "StartEpoch",
+          "type": "Real"
+        },
+        {
+          "object": "Segment",
+          "owned_indices": [],
+          "native_type": "ThrustSegment",
+          "field": "EndEpoch",
+          "type": "Real"
+        }
+      ],
+      "original_test": "QtGui.SaveLegacyAncillaryThrustHistoryFile",
+      "scope": "Only missing real post-reload consumers at unchanged existing bounds. No complete Save row credit."
+    },
+    {
+      "definitions": [
+        "Create PlanetographicRegion Subject;",
+        "Create Variable ReloadAlive;"
+      ],
+      "filename": "Subject_ReloadAlive.data",
+      "key": "MissingPlanetographicRegion",
+      "objects": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "setup": "Create PlanetographicRegion Subject;\nSubject.CentralBody = Earth;\nSubject.Latitude = [10 10 20 20];\nSubject.Longitude = [30 40 40 30];\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": "Earth",
+          "field": "CentralBody",
+          "object": "Subject",
+          "type": "Object"
+        },
+        {
+          "expected": [
+            10,
+            10,
+            20,
+            20
+          ],
+          "field": "Latitude",
+          "object": "Subject",
+          "type": "Rvector"
+        },
+        {
+          "expected": [
+            30,
+            40,
+            40,
+            30
+          ],
+          "field": "Longitude",
+          "object": "Subject",
+          "type": "Rvector"
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [],
+      "original_test": "QtGui.SaveLegacyBodyRegion",
+      "scope": "Only missing real post-reload consumers at unchanged existing bounds. No complete Save row credit."
+    }
+  ],
+  "scope": "Missing post-reload consumers; existing generic driver and all writable/property checks unchanged."
+}

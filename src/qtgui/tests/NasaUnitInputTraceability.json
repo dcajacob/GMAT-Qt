@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "doc/SystemDocs/Requirements/GMAT Requirements.xlsx": "736847e909ca550731386261073e46a9fa3ac8d78f53f0c37dd5d93b11a85c23",
+    "doc/SystemDocs/Test/Requirements-To-Test Matrix, 2012-05-11 (GMAT Build 2012-05-04).csv": "4693e097b183af76bc7c8dfcc0f62d7696b2e1417c90cb10d0ed4f9577160a97"
+  },
+  "reviews": [
+    {
+      "key": "All Others!E14",
+      "fingerprint": "8f45eaa3f8d2282a98d9662a8934a60b73d366a945aae6f55524b7dcc4b78aab",
+      "applicability": "gui",
+      "rationale": "Actual native keyboard entry with visible km, km/s and degree units. Literal Cartesian state and inertial maneuver plus an independently calculated Keplerian rotation establish physical input interpretation. Full field documentation and arbitrary scientific domains remain unqualified. Suggestion to Remove is preserved, not treated as retirement.",
+      "evidence": [
+        {
+          "test": "QtGui.NativeNasaUnitInputs",
+          "source": "src/qtgui/tests/NasaUnitInputTests.cpp",
+          "source_sha256": "fdccea020308ae3f5188c1337725fa727574b648c46c211e00ae6857dc482090",
+          "anchor": "\"unit-sensitive-inputs\"",
+          "checkpoint": "unit-sensitive-inputs",
+          "expected": {
+            "input_count": 15,
+            "unit_families": [
+              "km",
+              "km/s",
+              "deg"
+            ],
+            "phase_count": 4
+          },
+          "facets": [
+            "actual-tree-keyboard-entry-and-visible-units",
+            "pending-apply-undo-redo-unicode-roundtrip",
+            "literal-cartesian-km-and-km-per-second-state",
+            "independent-degree-keplerian-inertial-rotation",
+            "literal-inertial-km-per-second-maneuver",
+            "source-configured-graph-and-sentinel-preservation",
+            "selector-only-change-preserves-all-six-input-components"
+          ],
+          "scope": "Suggestion to Remove: The system shall allow users to input quantities with units of lengths in kilometers.",
+          "reference_sources": {
+            "src/qtgui/tests/FormationAcceptance.hpp": "ce777b39de79f60f8931c7ea6bfa980e305f622a91564937c5b743664df50517",
+            "src/qtgui/ResourceEditor.cpp": "1eef02ef052dda9c6f7d45b23ccb62b867dca29a7150527692c56abb679f219f",
+            "src/qtgui/BurnDialog.cpp": "12a94abf61dcfee656aa5ed81a62c71bf2e0954d475b72b85726e5570797d48a",
+            "src/qtgui/ResourceProperties.cpp": "f3c038fff857c23d75a812ae9592aa1258d309ffe7e9827970e99ba78b9aa0be",
+            "src/base/spacecraft/Spacecraft.cpp": "fd3ec3441e36e4544bc719e2cfe6e51f0e5a4fc9812aeae9330da262a087cda2",
+            "src/base/parameter/CartesianParameters.cpp": "e4efbf54b9efe04557d95e3589f7cf40f4bed628f2476de561091b730954ce55",
+            "src/base/burn/ImpulsiveBurn.cpp": "b56a48d8f6620d99e882c58c7d041f2377be5f3e08bb8832a6cbf016627f730f",
+            "src/base/command/Maneuver.cpp": "b058e3a86a1fe817a2ab8de3373405f50ce1fb9708cd05409a568403f5861cff",
+            "doc/help/src/Resource_SpacecraftOrbitState.xml": "2446259ea11baa976a23b659961761eb8412566820598938c3c8f98995fe2eb4",
+            "doc/help/src/Resource_ImpulsiveBurn.xml": "f5565ebe6a695faed43ff182a9894dc47918a7f03b685506ec2410072f9accf0",
+            "src/qtgui/MainWindow.cpp": "bab88232a5a4e6cb2b588d06619d0a8df8c0e9bc688a20c61391e0d4e6bb7296",
+            "src/qtgui/SpacecraftOrbit.cpp": "71fd75817be204f6e390430e1f37e64e4cb443235c4edd51ada0b5afaf6b721a",
+            "src/qtgui/UserParameter.cpp": "22ef243d8d46bab1308f4364a4b833dafef8c4181266eae0f920c462a7e67a0f",
+            "doc/DevelopersDocs/Qt6InputUnits.md": "d1434a1e68f2fed66147888e852e1fc418e42788641ffd77b88478c06fa80fe5"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E15",
+      "fingerprint": "d31126c908cb1d96e89a23aefb81932885837b570faef8351c7b92ab383562f6",
+      "applicability": "gui",
+      "rationale": "Actual native keyboard entry with visible km, km/s and degree units. Literal Cartesian state and inertial maneuver plus an independently calculated Keplerian rotation establish physical input interpretation. Full field documentation and arbitrary scientific domains remain unqualified. Suggestion to Remove is preserved, not treated as retirement.",
+      "evidence": [
+        {
+          "test": "QtGui.NativeNasaUnitInputs",
+          "source": "src/qtgui/tests/NasaUnitInputTests.cpp",
+          "source_sha256": "fdccea020308ae3f5188c1337725fa727574b648c46c211e00ae6857dc482090",
+          "anchor": "\"unit-sensitive-inputs\"",
+          "checkpoint": "unit-sensitive-inputs",
+          "expected": {
+            "input_count": 15,
+            "unit_families": [
+              "km",
+              "km/s",
+              "deg"
+            ],
+            "phase_count": 4
+          },
+          "facets": [
+            "actual-tree-keyboard-entry-and-visible-units",
+            "pending-apply-undo-redo-unicode-roundtrip",
+            "literal-cartesian-km-and-km-per-second-state",
+            "independent-degree-keplerian-inertial-rotation",
+            "literal-inertial-km-per-second-maneuver",
+            "source-configured-graph-and-sentinel-preservation",
+            "selector-only-change-preserves-all-six-input-components"
+          ],
+          "scope": "Suggestion to Remove: The system shall allow the user to input quantities with units of speed/velocity in units of km/s.",
+          "reference_sources": {
+            "src/qtgui/tests/FormationAcceptance.hpp": "ce777b39de79f60f8931c7ea6bfa980e305f622a91564937c5b743664df50517",
+            "src/qtgui/ResourceEditor.cpp": "1eef02ef052dda9c6f7d45b23ccb62b867dca29a7150527692c56abb679f219f",
+            "src/qtgui/BurnDialog.cpp": "12a94abf61dcfee656aa5ed81a62c71bf2e0954d475b72b85726e5570797d48a",
+            "src/qtgui/ResourceProperties.cpp": "f3c038fff857c23d75a812ae9592aa1258d309ffe7e9827970e99ba78b9aa0be",
+            "src/base/spacecraft/Spacecraft.cpp": "fd3ec3441e36e4544bc719e2cfe6e51f0e5a4fc9812aeae9330da262a087cda2",
+            "src/base/parameter/CartesianParameters.cpp": "e4efbf54b9efe04557d95e3589f7cf40f4bed628f2476de561091b730954ce55",
+            "src/base/burn/ImpulsiveBurn.cpp": "b56a48d8f6620d99e882c58c7d041f2377be5f3e08bb8832a6cbf016627f730f",
+            "src/base/command/Maneuver.cpp": "b058e3a86a1fe817a2ab8de3373405f50ce1fb9708cd05409a568403f5861cff",
+            "doc/help/src/Resource_SpacecraftOrbitState.xml": "2446259ea11baa976a23b659961761eb8412566820598938c3c8f98995fe2eb4",
+            "doc/help/src/Resource_ImpulsiveBurn.xml": "f5565ebe6a695faed43ff182a9894dc47918a7f03b685506ec2410072f9accf0",
+            "src/qtgui/MainWindow.cpp": "bab88232a5a4e6cb2b588d06619d0a8df8c0e9bc688a20c61391e0d4e6bb7296",
+            "src/qtgui/SpacecraftOrbit.cpp": "71fd75817be204f6e390430e1f37e64e4cb443235c4edd51ada0b5afaf6b721a",
+            "src/qtgui/UserParameter.cpp": "22ef243d8d46bab1308f4364a4b833dafef8c4181266eae0f920c462a7e67a0f",
+            "doc/DevelopersDocs/Qt6InputUnits.md": "d1434a1e68f2fed66147888e852e1fc418e42788641ffd77b88478c06fa80fe5"
+          }
+        }
+      ]
+    },
+    {
+      "key": "All Others!E16",
+      "fingerprint": "598d5b91f2977c1af6dc45669608dd7841742678251b180a4c304a3517e43b80",
+      "applicability": "gui",
+      "rationale": "Actual native keyboard entry with visible km, km/s and degree units. Literal Cartesian state and inertial maneuver plus an independently calculated Keplerian rotation establish physical input interpretation. Full field documentation and arbitrary scientific domains remain unqualified. Suggestion to Remove is preserved, not treated as retirement.",
+      "evidence": [
+        {
+          "test": "QtGui.NativeNasaUnitInputs",
+          "source": "src/qtgui/tests/NasaUnitInputTests.cpp",
+          "source_sha256": "fdccea020308ae3f5188c1337725fa727574b648c46c211e00ae6857dc482090",
+          "anchor": "\"unit-sensitive-inputs\"",
+          "checkpoint": "unit-sensitive-inputs",
+          "expected": {
+            "input_count": 15,
+            "unit_families": [
+              "km",
+              "km/s",
+              "deg"
+            ],
+            "phase_count": 4
+          },
+          "facets": [
+            "actual-tree-keyboard-entry-and-visible-units",
+            "pending-apply-undo-redo-unicode-roundtrip",
+            "literal-cartesian-km-and-km-per-second-state",
+            "independent-degree-keplerian-inertial-rotation",
+            "literal-inertial-km-per-second-maneuver",
+            "source-configured-graph-and-sentinel-preservation",
+            "selector-only-change-preserves-all-six-input-components"
+          ],
+          "scope": "Suggestion to Remove: The system shall allow the user to specify angles in the units of degrees.",
+          "reference_sources": {
+            "src/qtgui/tests/FormationAcceptance.hpp": "ce777b39de79f60f8931c7ea6bfa980e305f622a91564937c5b743664df50517",
+            "src/qtgui/ResourceEditor.cpp": "1eef02ef052dda9c6f7d45b23ccb62b867dca29a7150527692c56abb679f219f",
+            "src/qtgui/BurnDialog.cpp": "12a94abf61dcfee656aa5ed81a62c71bf2e0954d475b72b85726e5570797d48a",
+            "src/qtgui/ResourceProperties.cpp": "f3c038fff857c23d75a812ae9592aa1258d309ffe7e9827970e99ba78b9aa0be",
+            "src/base/spacecraft/Spacecraft.cpp": "fd3ec3441e36e4544bc719e2cfe6e51f0e5a4fc9812aeae9330da262a087cda2",
+            "src/base/parameter/CartesianParameters.cpp": "e4efbf54b9efe04557d95e3589f7cf40f4bed628f2476de561091b730954ce55",
+            "src/base/burn/ImpulsiveBurn.cpp": "b56a48d8f6620d99e882c58c7d041f2377be5f3e08bb8832a6cbf016627f730f",
+            "src/base/command/Maneuver.cpp": "b058e3a86a1fe817a2ab8de3373405f50ce1fb9708cd05409a568403f5861cff",
+            "doc/help/src/Resource_SpacecraftOrbitState.xml": "2446259ea11baa976a23b659961761eb8412566820598938c3c8f98995fe2eb4",
+            "doc/help/src/Resource_ImpulsiveBurn.xml": "f5565ebe6a695faed43ff182a9894dc47918a7f03b685506ec2410072f9accf0",
+            "src/qtgui/MainWindow.cpp": "bab88232a5a4e6cb2b588d06619d0a8df8c0e9bc688a20c61391e0d4e6bb7296",
+            "src/qtgui/SpacecraftOrbit.cpp": "71fd75817be204f6e390430e1f37e64e4cb443235c4edd51ada0b5afaf6b721a",
+            "src/qtgui/UserParameter.cpp": "22ef243d8d46bab1308f4364a4b833dafef8c4181266eae0f920c462a7e67a0f",
+            "doc/DevelopersDocs/Qt6InputUnits.md": "d1434a1e68f2fed66147888e852e1fc418e42788641ffd77b88478c06fa80fe5"
+          }
+        }
+      ]
+    }
+  ]
+}

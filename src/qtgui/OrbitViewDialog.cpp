@@ -1,5 +1,6 @@
 #include "ResourcePreview.hpp"
 #include "OrbitViewDialog.hpp"
+#include "VectorLineEdit.hpp"
 #include "ResourceProperties.hpp"
 #include "GmatBase.hpp"
 #include "OrbitPlot.hpp"
@@ -176,10 +177,17 @@ OrbitViewDialog::OrbitViewDialog(GmatBase &plot,const QMap<QString,QString> &pen
       const auto name=cameraFields[i]; auto *row=new QWidget(camera); auto *rowLayout=new QHBoxLayout(row); rowLayout->setContentsMargins(0,0,0,0);
       CameraInput input; input.choice=new QComboBox(row); input.choice->setObjectName("orbit_"+name); input.choice->addItem("Vector"); input.choice->addItems(fields.value(name).references); rowLayout->addWidget(input.choice,1);
       QStringList parts; const auto value=initial.value(name); try { parts=vectorParts(value); input.choice->setCurrentText("Vector"); } catch (const std::exception &) { parts=vectorParts(defaults[i]); if (input.choice->findText(value)<0) input.choice->addItem(value); input.choice->setCurrentText(value); }
-      for (int j=0;j<3;++j) { input.vector[j]=new QLineEdit(parts[j],row); input.vector[j]->setObjectName("orbit_"+name+QString::number(j+1)); input.vector[j]->setMinimumWidth(65); input.vector[j]->setEnabled(input.choice->currentText()=="Vector"); rowLayout->addWidget(input.vector[j],1); }
-      connect(input.choice,&QComboBox::currentTextChanged,this,[input](const QString &text) { for (auto *edit:input.vector) edit->setEnabled(text=="Vector"); }); cameras.insert(name,input); cameraForm->addRow(labels[i],row);
+      for (int j=0;j<3;++j) { input.vector[j]=new VectorLineEdit(parts[j],row); input.vector[j]->setObjectName("orbit_"+name+QString::number(j+1)); input.vector[j]->setMinimumWidth(65); input.vector[j]->setEnabled(input.choice->currentText()=="Vector"); rowLayout->addWidget(input.vector[j],1); }
+      VectorLineEdit::link({input.vector[0],input.vector[1],input.vector[2]});
+      auto *caption=new QLabel(camera); cameraForm->addRow(caption,row);
+      auto updateMode=[input,caption,label=labels[i]](const QString &text) {
+         const bool vector=text=="Vector";
+         for (auto *edit:input.vector) edit->setEnabled(vector);
+         caption->setText(label+(vector ? " (km)" : ""));
+      };
+      connect(input.choice,&QComboBox::currentTextChanged,this,updateMode); updateMode(input.choice->currentText()); cameras.insert(name,input);
    }
-   scale=new QLineEdit(initial.value("ViewScaleFactor"),camera); scale->setObjectName("orbit_ViewScaleFactor"); cameraForm->addRow("View scale factor",scale);
+   scale=new QLineEdit(initial.value("ViewScaleFactor"),camera); scale->setObjectName("orbit_ViewScaleFactor"); cameraForm->addRow("View scale factor (dimensionless)",scale);
    choice("ViewUpCoordinateSystem","Up coordinate system"); choice("ViewUpAxis","Up axis");
    auto *drawing=new QGroupBox("Drawing and data",content); auto *form=new QFormLayout(drawing); groups->addWidget(drawing);
    const QMap<QString,QString> flagLabels={{"ShowPlot","Show plot"},{"ShowLabels","Show labels"},{"WireFrame","Wireframe"},{"EclipticPlane","Ecliptic plane"},{"XYPlane","XY plane"},{"Axes","Axes"},{"Grid","Grid"},{"SunLine","Sun line"},{"UseInitialView","Reset to script camera on each run"},{"EnableStars","Stars"},{"EnableConstellations","Constellations"}};
@@ -188,9 +196,12 @@ OrbitViewDialog::OrbitViewDialog(GmatBase &plot,const QMap<QString,QString> &pen
    solverLastN=new QSpinBox(drawing); solverLastN->setObjectName("orbit_SolverIterLastN"); solverLastN->setRange(0,std::numeric_limits<int>::max()); solverLastN->setValue(orbitSolverLastN(initial.value("@QtSolverLastN")).value_or(1));
    solverLastN->setToolTip("LastN retains up to twice N finalized solver trajectories per plotted object. 0 retains all solver trajectories."); form->addRow("LastN count (0 = all)",solverLastN);
    connect(solver,&QComboBox::currentTextChanged,this,[this](const QString &mode) { solverLastN->setEnabled(mode=="LastN"); }); solverLastN->setEnabled(solver->currentText()=="LastN");
-   const QMap<QString,QString> countLabels={{"DataCollectFrequency","Collect every N samples"},{"UpdatePlotFrequency","Update every N samples"},{"MaxPlotPoints","Maximum retained points"},{"NumPointsToRedraw","Recent segments to redraw (0 = all)"},{"StarCount","Star count"}};
-   for (auto it=countLabels.cbegin();it!=countLabels.cend();++it) { auto *spin=new QSpinBox(drawing); spin->setObjectName("orbit_"+it.key()); spin->setRange(it.key()=="NumPointsToRedraw" ? 0 : 1,std::numeric_limits<int>::max()); spin->setValue(initial.value(it.key()).toInt()); counts.insert(it.key(),spin); form->addRow(it.value(),spin); }
+   const QMap<QString,QString> countLabels={{"IntegrationStepsToSkip","Integration steps to skip"},{"DataCollectFrequency","Collect every N samples"},{"UpdatePlotFrequency","Update every N samples"},{"MaxPlotPoints","Maximum retained points"},{"NumPointsToRedraw","Recent segments to redraw (0 = all)"},{"StarCount","Star count"}};
+   for (auto it=countLabels.cbegin();it!=countLabels.cend();++it) { auto *spin=new QSpinBox(drawing); spin->setObjectName("orbit_"+it.key()); spin->setRange(it.key()=="IntegrationStepsToSkip" ? -1 : it.key()=="NumPointsToRedraw" ? 0 : 1,std::numeric_limits<int>::max()); if (it.key()=="IntegrationStepsToSkip") { spin->setSpecialValueText("Use publication samples"); spin->setToolTip("0 collects every accepted integration step. Positive values skip that many steps between points. Overrides publication collection frequency."); } spin->setValue(initial.value(it.key(), it.key()=="IntegrationStepsToSkip" ? "-1" : "0").toInt()); counts.insert(it.key(),spin); form->addRow(it.value(),spin); }
    connect(flags.value("EnableStars"),&QCheckBox::toggled,counts.value("StarCount"),&QSpinBox::setEnabled); counts.value("StarCount")->setEnabled(flags.value("EnableStars")->isChecked());
+   // Match the NASA GUI: disable editing while retaining its checked value.
+   connect(flags.value("EnableStars"),&QCheckBox::toggled,flags.value("EnableConstellations"),&QCheckBox::setEnabled);
+   flags.value("EnableConstellations")->setEnabled(flags.value("EnableStars")->isChecked());
    groups->addStretch(); error=new QLabel(this); error->setObjectName("orbitViewError"); error->setWordWrap(true); layout->addWidget(error);
    for (auto *edit:findChildren<QLineEdit *>()) connect(edit,&QLineEdit::textChanged,error,&QLabel::clear);
    for (auto *combo:findChildren<QComboBox *>()) connect(combo,&QComboBox::currentTextChanged,error,&QLabel::clear);

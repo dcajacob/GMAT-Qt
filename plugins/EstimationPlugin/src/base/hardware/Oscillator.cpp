@@ -27,6 +27,7 @@
 //------------------------------------------------------------------------------
 
 #include "Oscillator.hpp"
+#include <memory>
 #include "HardwareException.hpp"
 #include "MessageInterface.hpp"
 #include "TimeSystemConverter.hpp"
@@ -149,14 +150,13 @@ Oscillator::Oscillator(const Oscillator & osc) :
    freqPolynomialCoeffSigmas  (osc.freqPolynomialCoeffSigmas),
    initialEpochStr            (osc.initialEpochStr),
    initialEpochTypeStr        (osc.initialEpochTypeStr),
+   initialEpoch               (osc.initialEpoch),
    solveforNames              (osc.solveforNames)
 {
 #ifdef DEBUG_CONSTRUCTOR
    MessageInterface::ShowMessage("Oscillator::Oscillator(<%p,%s>) <%p,%s>:copy constructor start\n", &osc, osc.GetName().c_str(), this, GetName().c_str());
 #endif
 
-   std::string toStr;
-   TimeSystemConverter::Instance()->Convert(initialEpochTypeStr, NULL, initialEpochStr, "A1ModJulian", initialEpoch, toStr);
 
 #ifdef DEBUG_CONSTRUCTOR
    MessageInterface::ShowMessage("freqDrift = %.15lf\n", freqDrift);
@@ -170,11 +170,7 @@ Oscillator::Oscillator(const Oscillator & osc) :
    for (Integer i = TransmitterParamCount; i < OscillatorParamCount; ++i)
       parameterWriteOrder.push_back(i);
 
-   Integer start = covariance.GetSubMatrixLocationStart("FrequencyDrift");
-   covariance(start, start) = freqDriftSigma * freqDriftSigma;
-   start = covariance.GetSubMatrixLocationStart("FrequencyPolynomialCoefficients");
-   for (Integer i = 0; i < freqPolynomialCoeffs.GetSize(); ++i)
-      covariance(start + i, start + i) = freqPolynomialCoeffSigmas[i] * freqPolynomialCoeffSigmas[i];
+   // Preserve captured drift/polynomial covariance and cross correlations.
 
 #ifdef DEBUG_CONSTRUCTOR
    MessageInterface::ShowMessage("Oscillator::Oscillator(<%p,%s>) <%p,%s>:copy constructor end\n", &osc, osc.GetName().c_str(), this, GetName().c_str());
@@ -212,14 +208,8 @@ Oscillator& Oscillator::operator =(const Oscillator &osc)
       initialEpochTypeStr       = osc.initialEpochTypeStr;
       solveforNames             = osc.solveforNames;
 
-      std::string toStr;
-      TimeSystemConverter::Instance()->Convert(initialEpochTypeStr, NULL, initialEpochStr, "A1ModJulian", initialEpoch, toStr);
-
-      Integer start = covariance.GetSubMatrixLocationStart("FrequencyDrift");
-      covariance(start, start) = freqDriftSigma * freqDriftSigma;
-      start = covariance.GetSubMatrixLocationStart("FrequencyPolynomialCoefficients");
-      for (Integer i = 0; i < freqPolynomialCoeffs.GetSize(); ++i)
-         covariance(start + i, start + i) = freqPolynomialCoeffSigmas[i] * freqPolynomialCoeffSigmas[i];
+      initialEpoch = osc.initialEpoch;
+      // The base Copy carries full captured covariance; prior edits remain explicit.
 
    }
 
@@ -241,7 +231,9 @@ Oscillator& Oscillator::operator =(const Oscillator &osc)
 //------------------------------------------------------------------------------
 GmatBase *Oscillator::Clone() const
 {
-   return new Oscillator(*this);
+   std::unique_ptr<Oscillator> value(new Oscillator(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //---------------------------------------------------------------------------
@@ -255,7 +247,13 @@ GmatBase *Oscillator::Clone() const
 //---------------------------------------------------------------------------
 void Oscillator::Copy(const GmatBase* orig)
 {
-   operator=(*((Oscillator *)(orig)));
+   const auto *source = dynamic_cast<const Oscillator*>(orig);
+   if (!source || source->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Incompatible Oscillator value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 

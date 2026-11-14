@@ -4,6 +4,7 @@
 #include "PathSettingsDialog.hpp"
 #include "ResourceEditor.hpp"
 #include "TestSettings.hpp"
+#include "AcceptancePlatform.hpp"
 #include "FileManager.hpp"
 #include "GmatGlobal.hpp"
 #include "Moderator.hpp"
@@ -133,6 +134,7 @@ int main(int argc,char **argv)
       TestSettings settings; QTemporaryDir files; require(argc>1 && files.isValid(),"Fixture setup failed");
       const auto startup=QFileInfo(QString::fromLocal8Bit(argv[1])).absoluteFilePath(); QDir::setCurrent(QFileInfo(startup).absolutePath());
       if (argc==3 && QString::fromLocal8Bit(argv[2])=="--script-assets") { scriptAssetTests(startup); return 0; }
+      require(acceptanceWidgetPlatform(),"Paths regression requires the acceptance widget platform");
       const auto screenshots=argc>2 ? QString::fromLocal8Bit(argv[2]) : QString();
       MainWindow window; window.show(); require(window.initialize(startup),"Initialize failed"); auto *fm=FileManager::Instance();
       const auto original=fm->CaptureState(); struct Restore { std::shared_ptr<const FileManager::State> state; ~Restore() { FileManager::Instance()->RestoreState(*state); } } restore{original};
@@ -145,8 +147,13 @@ int main(int argc,char **argv)
       auto *editor=window.findChild<QPlainTextEdit *>("scriptEditor"); editor->setPlainText("Create Variable x;\nx = 1;\nBeginMissionSequence;\nx = 5;\n"); require(window.saveScriptTo(missionFile) && window.buildScript(),"Initial mission failed");
       auto *action=window.findChild<QAction *>("setPaths"); require(action && action->isEnabled(),"Set paths action missing");
       const auto baselineFunctions=functions(); const auto baselineOutput=output(),baselineSource=editor->toPlainText();
-      auto *tree=window.findChild<QTreeWidget *>("Resources"); QTreeWidgetItemIterator item(tree);
-      while (*item && (*item)->text(0)!="x") ++item; require(*item,"Variable resource missing"); tree->itemDoubleClicked(*item,0); QApplication::processEvents();
+      auto *tree=window.findChild<QTreeWidget *>("Resources");
+      // A tree rebuild deletes its items. Finish traversal before path Apply
+      // clears/repopulates the tree and reparents celestial-body children.
+      {
+         QTreeWidgetItemIterator item(tree);
+         while (*item && (*item)->text(0)!="x") ++item; require(*item,"Variable resource missing"); tree->itemDoubleClicked(*item,0); QApplication::processEvents();
+      }
       auto *workspace=window.findChild<QMdiArea *>("workspace"); auto *panel=dynamic_cast<ResourceEditor *>(workspace->activeSubWindow()->widget()); require(panel,"Resource panel missing"); panel->findChild<QLineEdit *>("parameterValue")->setText("2"); action->trigger(); require(window.statusBar()->currentMessage().contains("Apply or discard"),"Pending panel did not block path changes"); panel->discardChanges(); workspace->activeSubWindow()->close(); QApplication::processEvents();
       modal(window,[&] { action->trigger(); },[&](QDialog *dialog) {
          require(dialog->objectName()=="pathSettingsDialog" && dialog->findChild<QLineEdit *>("pathStartupFile")->text()==startup,"Startup identity wrong");
@@ -171,8 +178,11 @@ int main(int argc,char **argv)
          choose(dialog,"pathOutputBrowse",out2); dialog->findChild<QTabWidget *>("pathTabs")->setCurrentIndex(2); capture(dialog,screenshots.isEmpty() ? QString() : screenshots+".output.png"); apply(dialog); require(output()==out2,"Output Browse/Apply failed");
       }); require(editor->toPlainText()==source && window.runMission()==MainWindow::RunResult::Completed && Moderator::Instance()->GetInternalObject("y")->GetRealParameter("Value")==15,"Reordered function result wrong");
       const auto report=read(out2+"/path-report.txt"); require(report==read(explicitReport),"Explicit report destination or calculations changed");
-      auto *outputs=window.findChild<QTreeWidget *>("Output"); QTreeWidgetItemIterator reportItem(outputs);
-      while (*reportItem && (*reportItem)->text(0)!="Relative") ++reportItem; require(*reportItem && (*reportItem)->data(0,Qt::UserRole).toString()==out2+"/path-report.txt","Output tree retained old report path"); outputs->itemDoubleClicked(*reportItem,0); QApplication::processEvents(); require(window.findChild<QPlainTextEdit *>("report:Relative")->toPlainText().toUtf8()==report,"Report viewer differs from relocated output");
+      auto *outputs=window.findChild<QTreeWidget *>("Output");
+      {
+         QTreeWidgetItemIterator reportItem(outputs);
+         while (*reportItem && (*reportItem)->text(0)!="Relative") ++reportItem; require(*reportItem && (*reportItem)->data(0,Qt::UserRole).toString()==out2+"/path-report.txt","Output tree retained old report path"); outputs->itemDoubleClicked(*reportItem,0); QApplication::processEvents(); require(window.findChild<QPlainTextEdit *>("report:Relative")->toPlainText().toUtf8()==report,"Report viewer differs from relocated output");
+      }
       require(QString::fromStdString(MessageInterface::GetLogFileName()).startsWith(out2+"/"),"Log destination did not move with Output");
       require(window.saveScriptTo(missionFile) && window.loadScript(missionFile) && window.runMission()==MainWindow::RunResult::Completed && read(out2+"/path-report.txt")==report,"Mission reopen lost path behavior");
       QString scripted=source; scripted.replace("Create GmatFunction Priority;","Create GmatFunction Priority;\nPriority.FunctionPath = '"+second+"/Priority.gmf';"); editor->setPlainText(scripted); require(window.runMission()==MainWindow::RunResult::Completed && read(out2+"/path-report.txt")==report,"GUI and explicit function-path reports differ"); editor->setPlainText(source); require(window.saveScriptTo(missionFile) && window.buildScript(),"Reference restore failed");

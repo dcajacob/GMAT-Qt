@@ -29,6 +29,7 @@
 
 
 #include "NuclearPowerSystem.hpp"
+#include <memory>
 #include "StringUtil.hpp"
 #include "HardwareException.hpp"
 #include "MessageInterface.hpp"
@@ -147,7 +148,9 @@ bool NuclearPowerSystem::Initialize()
 //---------------------------------------------------------------------------
 GmatBase* NuclearPowerSystem::Clone() const
 {
-   return new NuclearPowerSystem(*this);
+   std::unique_ptr<NuclearPowerSystem> value(new NuclearPowerSystem(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 

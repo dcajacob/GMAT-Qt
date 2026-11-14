@@ -56,6 +56,8 @@ class YUKON_API Yukonad : public InternalOptimizer
    friend class YUKON_API GmatProblemInterface;
 
 public:
+   static constexpr unsigned int NativeValueProviderDepth = InternalOptimizer::NativeValueProviderDepth + 1;
+
    Yukonad(const std::string &name);
    virtual ~Yukonad();
    Yukonad(const Yukonad& sd);
@@ -123,6 +125,8 @@ public:
    virtual void         SetResultValue(Integer id, Real value,
       const std::string &resultType = "");
    virtual GmatBase*    Clone() const;
+   bool HasSolverValueReferenceProviderImpl() const;
+   void PrepareClonedSolverValueImpl(const Solver &source);
    virtual bool         TakeAction(const std::string &action,
       const std::string &actionData = "");
    virtual bool         Initialize();

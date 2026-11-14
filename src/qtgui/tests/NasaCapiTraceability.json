@@ -1,0 +1,127 @@
+{
+  "scope": "native-C-API",
+  "authority_sha256": {
+    "doc/SystemDocs/Requirements/GMAT Requirements.xlsx": "736847e909ca550731386261073e46a9fa3ac8d78f53f0c37dd5d93b11a85c23",
+    "doc/SystemDocs/Test/Requirements-To-Test Matrix, 2012-05-11 (GMAT Build 2012-05-04).csv": "4693e097b183af76bc7c8dfcc0f62d7696b2e1417c90cb10d0ed4f9577160a97"
+  },
+  "reviews": [
+    {
+      "key": "All Others!E246",
+      "fingerprint": "fc7485d00f4c04d5b24ee0e505c000f70e5fbdcaf3530d18aa1e2e6a4cf3bef6",
+      "source_text": "The system shall support a C-language application programming interface (API).",
+      "case": "basic",
+      "rationale": "Actual pure-C compilation, direct external C ABI linkage and calls into a real configured GMAT engine; no GUI or Python binding substitution."
+    },
+    {
+      "key": "All Others!E253",
+      "fingerprint": "34f09fc9c7d6a9c2f2f7422672b338aa0257c39ec04a17ae8f5d04bdf01d2888",
+      "source_text": "The C-API shall provide access to the following data for a configured session:",
+      "case": "basic",
+      "rationale": "Both required configured-session data children (object count and all names) pass exact inventory assertions."
+    },
+    {
+      "key": "All Others!E254",
+      "fingerprint": "9161eb7fb050904dd3f32675492ddb32ea4eb6bbfab783819a6692ed8ec21baf",
+      "source_text": "1) Get number of objects in configuration",
+      "case": "basic",
+      "rationale": "Complete thirteen-object configuration count, including built-in objects and both independently configured spacecraft, force and propagation models."
+    },
+    {
+      "key": "All Others!E255",
+      "fingerprint": "b26565da3be5eac394f28713ba3720f9e4b5965932d64b61ff803a1cdaa189d1",
+      "source_text": "2) Get names of all configured objects",
+      "case": "basic",
+      "rationale": "Every configuration index is enumerated; exact expected names and uniqueness are asserted."
+    },
+    {
+      "key": "All Others!E260",
+      "fingerprint": "898c9f0dffa6262031d77e3b25b0c745534dd4f9996a57de3cf4e6b3ac06e761",
+      "source_text": "1) Set dynamics model Cartesian state vector by model",
+      "case": "basic",
+      "rationale": "Caller-owned Cartesian vectors assigned to both independent model IDs without reloading; both selector APIs preserve isolated states."
+    },
+    {
+      "key": "All Others!E263",
+      "fingerprint": "0e061ad2c948e8f0f3f143a78dffa14912744b8d34f6a4a549da129ee3516a70",
+      "source_text": "3) Get dynamics state acceleration by model",
+      "case": "basic",
+      "rationale": "Two independent model accelerations at propagated and caller-assigned 3-D states match velocity plus Newton acceleration to 1e-12."
+    },
+    {
+      "key": "All Others!E266",
+      "fingerprint": "073159b0857f101c270a94423b6d1b9c7ff11f9f0f102d32524eed841500c6f9",
+      "source_text": "6) Get dynamics model state vector by model",
+      "case": "basic",
+      "rationale": "Full model state vectors after propagation, after assignment and after model switching are asserted element by element."
+    },
+    {
+      "key": "All Others!E267",
+      "fingerprint": "4f0005c8aca135a4ee287a3dddb571b818c554006c74865214fc1fb249ea98dc",
+      "source_text": "7) Get text description of the state vector by model",
+      "case": "basic",
+      "rationale": "Exact native description for every Cartesian element of both models; STM case additionally checks every STM element."
+    },
+    {
+      "key": "All Others!E268",
+      "fingerprint": "d215633a6e1c5367188344a03f030c40ee111d773c3651fde6cdeae4dabcfa96",
+      "source_text": "8) Get size of the state vector by model",
+      "case": "basic",
+      "rationale": "Both configured model dimensions match the requested propagated representation (6 basic, 42 STM)."
+    },
+    {
+      "key": "All Others!E270",
+      "fingerprint": "c95ac2045a1865016194ec2d8602881cf945c53ea99f7d60879304f41fb8a781",
+      "source_text": "1) Get Cartesian state",
+      "case": "basic",
+      "rationale": "All six post-run Cartesian components of both spacecraft match separate analytic circular trajectories with different radii, planes and durations."
+    },
+    {
+      "key": "All Others!E264",
+      "fingerprint": "c320d1c05b0f09a5697a74df6017816d8903f6b5ba3703517e95c426f874f16c",
+      "source_text": "4) Get dynamics state Jacobian (A-Matrix) by model",
+      "case": "stm",
+      "rationale": "STM derivatives at identity match independently derived Newton Jacobian; nonidentity Phi verifies A times Phi at two distinct states."
+    },
+    {
+      "key": "All Others!E265",
+      "fingerprint": "54ef455e56baea4467d7f7b129cb8d8f23f1f87338757a6ebac130ee1ae2435c",
+      "source_text": "5) Get dynamics state variational equations (STM time rate of change) by model",
+      "case": "stm",
+      "rationale": "All 36 STM time-rate elements for two nonidentity matrices match independent A times Phi; no diagonal-only or dimension-only credit."
+    },
+    {
+      "key": "All Others!E271",
+      "fingerprint": "2de5a9328584afbdd952ce84ac0774ba98897b716abe077fe7813284a5f34f2b",
+      "source_text": "2) Get state transition matrix",
+      "case": "stm",
+      "rationale": "All 36 post-run STM entries for each spacecraft match central finite differences of independent C math-only RK4 point-mass propagation."
+    },
+    {
+      "key": "All Others!E259",
+      "fingerprint": "de185e3976aaf789116b06c0b83112ff3e5b797d6d9f0ee76fad7adaa8ecbbb3",
+      "source_text": "The C-API shall contain a dynamics model interface that supports the following actions without reloading the configuration:",
+      "case": "epoch",
+      "rationale": "All eight dynamics-interface actions are asserted in the single two-model STM session, without reloading after configuration: Cartesian and A1 epoch setters, scalar/precise native model/force epoch inspection, acceleration, Jacobian, nonidentity STM rate, full state, description and size. Rejected epochs preserve the prior state and both model selections retain isolated epochs."
+    },
+    {
+      "key": "All Others!E261",
+      "fingerprint": "e4e3f1eed9d98186409bf81c31ae1cf28df0fe1c36ee40eec455a23c5fd9be37",
+      "source_text": "2) Set dynamics model epoch by model in the following formats:",
+      "case": "epoch",
+      "rationale": "A1ModJulian is the sole listed format child. External C caller-assigned epochs reach native propagation scalar/precise state and force/model storage; setting either model leaves the other unchanged."
+    },
+    {
+      "key": "All Others!E262",
+      "fingerprint": "d45eabe84ebd0f4890842d04c461417aaeca4c812e6e51e0d0531da6ec7f890f",
+      "source_text": "a) A1ModJulian",
+      "case": "epoch",
+      "rationale": "Distinct literal A1ModJulian epochs are set through SetState and GetDerivativesForState; a separate read-only test module observes five actual native scalar/precise state/model/force epoch values, with equality and rejection/isolation assertions."
+    }
+  ],
+  "held_scope": [
+    "C-API high-level MATLAB interface and linked FRR/FRC configuration families are not inferred from these examples.",
+    "All-command summaries including nested mission commands remain unverified.",
+    "Deferred spacecraft epoch getter is not exported by the present C ABI.",
+    "Derivative-array lifetime and dimension-change safety remain separate unverified cases."
+  ]
+}

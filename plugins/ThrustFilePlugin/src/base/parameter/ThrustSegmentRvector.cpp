@@ -186,11 +186,25 @@ bool ThrustSegmentRvector::AddRefObject(GmatBase *obj, bool replaceName)
    }
 #endif
 
-   if (obj != NULL)
-      return ThrustSegmentData::AddRefObject(obj->GetType(), obj->GetName(), obj,
-         replaceName);
-   else
+   if (obj == NULL)
       return false;
+
+   const UnsignedInt type = obj->IsOfType(Gmat::THRUST_SEGMENT) ?
+      Gmat::THRUST_SEGMENT : obj->GetType();
+   const bool added = ThrustSegmentData::AddRefObject(type, obj->GetName(), obj,
+      replaceName);
+   if (added && type == Gmat::THRUST_SEGMENT)
+   {
+      // The coefficient count belongs to the actual owner, including the
+      // documented one-element default. Do not evaluate a derived class from
+      // its base constructor merely to discover this shape.
+      const Rvector value = obj->GetRvectorParameter(typeName);
+      mVectorSize = value.GetSize();
+      mRvectorValue.SetSize(mVectorSize);
+      mRvectorValue = value;
+      mThrustSegment = NULL;
+   }
+   return added;
 }
 
 
@@ -364,7 +378,17 @@ bool ThrustSegmentRvector::SetRefObject(GmatBase *obj, const UnsignedInt type,
    if (obj->GetName() == mParamOwnerName)
       SetOwner(obj);
 
-   bool setOk = ThrustSegmentData::SetRefObject(obj, type, name);
+   const UnsignedInt actualType = obj->IsOfType(Gmat::THRUST_SEGMENT) ?
+      Gmat::THRUST_SEGMENT : type;
+   bool setOk = ThrustSegmentData::SetRefObject(obj, actualType, name);
+   if (setOk && actualType == Gmat::THRUST_SEGMENT)
+   {
+      mThrustSegment = NULL;
+      const Rvector value = obj->GetRvectorParameter(typeName);
+      mVectorSize = value.GetSize();
+      mRvectorValue.SetSize(mVectorSize);
+      mRvectorValue = value;
+   }
 
 #if DEBUG_REF_OBJECT
    MessageInterface::ShowMessage

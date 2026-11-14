@@ -128,7 +128,12 @@ bool BurnTorque::Evaluate()
  //------------------------------------------------------------------------------
 GmatBase* BurnTorque::Clone() const
 {
-   return new BurnTorque(*this);
+   return CompleteParameterClone(new BurnTorque(*this));
+}
+
+void BurnTorque::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BurnTorque>(source);
 }
 
 
@@ -343,7 +348,12 @@ bool GravityTorque::Evaluate()
  //------------------------------------------------------------------------------
 GmatBase* GravityTorque::Clone() const
 {
-   return new GravityTorque(*this);
+   return CompleteParameterClone(new GravityTorque(*this));
+}
+
+void GravityTorque::Copy(const GmatBase *source)
+{
+   CopyParameterValue<GravityTorque>(source);
 }
 
 
@@ -559,7 +569,12 @@ bool SRPTorque::Evaluate()
  //------------------------------------------------------------------------------
 GmatBase* SRPTorque::Clone() const
 {
-   return new SRPTorque(*this);
+   return CompleteParameterClone(new SRPTorque(*this));
+}
+
+void SRPTorque::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SRPTorque>(source);
 }
 
 
@@ -773,7 +788,12 @@ bool TotalTorque::Evaluate()
  //------------------------------------------------------------------------------
 GmatBase* TotalTorque::Clone() const
 {
-   return new TotalTorque(*this);
+   return CompleteParameterClone(new TotalTorque(*this));
+}
+
+void TotalTorque::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TotalTorque>(source);
 }
 
 

@@ -20,6 +20,29 @@ QString read(const QString &path)
    if (!file.open(QIODevice::ReadOnly)) throw std::runtime_error(file.errorString().toStdString());
    return QString::fromUtf8(file.readAll());
 }
+const QStringList scientificKeys{"LEAP_SECS_FILE","EOP_FILE","NUTATION_COEFF_FILE","LSK_FILE"};
+QMap<QString,QString> scientificFiles()
+{
+   QMap<QString,QString> result;
+   for (const auto &key:scientificKeys)
+      result.insert(key,QDir::cleanPath(QString::fromStdString(FileManager::Instance()->GetFullPathname(key.toStdString()))));
+   return result;
+}
+QString withScientificFiles(const QString &text,const QMap<QString,QString> &files)
+{
+   if (files.isEmpty()) return text;
+   const QRegularExpression assignment("^\\s*(LEAP_SECS_FILE|EOP_FILE|NUTATION_COEFF_FILE|LSK_FILE)\\s*=.*$");
+   QStringList result,seen;
+   for (const auto &line:text.split('\n')) {
+      const auto match=assignment.match(line); const auto key=match.captured(1);
+      if (!match.hasMatch() || !files.contains(key)) { result.append(line); continue; }
+      if (!seen.contains(key)) result.append(key+" = "+files.value(key));
+      seen.append(key);
+   }
+   for (auto it=files.cbegin();it!=files.cend();++it)
+      if (!seen.contains(it.key())) result.append(it.key()+" = "+it.value());
+   return result.join('\n');
+}
 QStringList functionPaths()
 {
    QStringList paths,seen;
@@ -37,6 +60,17 @@ QStringList pythonPaths()
 {
    QStringList paths,seen;
    for (const auto &path:FileManager::Instance()->GetAllPythonModulePaths()) {
+      const auto absolute=QDir::cleanPath(QFileInfo(QString::fromStdString(path)).absoluteFilePath());
+      const auto canonical=QFileInfo(absolute).canonicalFilePath();
+      const auto key=canonical.isEmpty() ? absolute : canonical;
+      if (!seen.contains(key)) { seen.append(key); paths.append(absolute); }
+   }
+   return paths;
+}
+QStringList matlabPaths()
+{
+   QStringList paths,seen;
+   for (const auto &path:FileManager::Instance()->GetAllMatlabFunctionPaths()) {
       const auto absolute=QDir::cleanPath(QFileInfo(QString::fromStdString(path)).absoluteFilePath());
       const auto canonical=QFileInfo(absolute).canonicalFilePath();
       const auto key=canonical.isEmpty() ? absolute : canonical;
@@ -116,12 +150,16 @@ PathSettings capturePathSettings(const QString &startupFile)
    if (!directory.isValid()) throw std::runtime_error("Cannot prepare startup settings.");
    const auto path=directory.filePath("startup.txt");
    FileManager::Instance()->WriteStartupFile(path.toStdString());
-   return {startupFile,read(path),QFileInfo(QString::fromStdString(FileManager::Instance()->GetAbsPathname("OUTPUT_PATH"))).absoluteFilePath(),functionPaths(),pythonPaths()};
+   PathSettings result{startupFile,read(path),QFileInfo(QString::fromStdString(FileManager::Instance()->GetAbsPathname("OUTPUT_PATH"))).absoluteFilePath(),functionPaths(),pythonPaths()};
+   result.matlabFunctions=matlabPaths(); result.initialMatlabFunctions=result.matlabFunctions;
+   result.scientificFiles=scientificFiles(); result.initialScientificFiles=result.scientificFiles;
+   return result;
 }
 PathSettings readPathSettings(const QString &path,QtMessageReceiver &receiver)
 {
    const auto error=qtStartupCompatibilityError(path);
    if (!error.isEmpty()) throw std::runtime_error(error.toStdString());
+   const auto liveMatlab=matlabPaths();
    StartupTransaction transaction(receiver);
    const auto text=read(path);
    FileManager::Instance()->ReadStartupFile(QFileInfo(path).absoluteFilePath().toStdString());
@@ -129,13 +167,13 @@ PathSettings readPathSettings(const QString &path,QtMessageReceiver &receiver)
    // Preserve the imported source and parse its Python list separately. The
    // engine keeps earlier Python paths across startup reads, so its combined
    // vector is not the pending configuration of this imported file.
-   result.startupText=text; result.pythonModules=startupPythonPaths(text);
+   result.startupText=text; result.pythonModules=startupPythonPaths(text); result.initialMatlabFunctions=liveMatlab;
    return result;
 }
 QString pathSettingsScript(const PathSettings &settings)
 {
-   QStringList result; bool output=false,functions=false,python=false;
-   const QRegularExpression assignment("^\\s*(OUTPUT_PATH|GMAT_FUNCTION_PATH|PYTHON_MODULE_PATH)\\s*=.*$");
+   QStringList result; bool output=false,functions=false,python=false,matlab=false;
+   const QRegularExpression assignment("^\\s*(OUTPUT_PATH|GMAT_FUNCTION_PATH|PYTHON_MODULE_PATH|MATLAB_FUNCTION_PATH)\\s*=.*$");
    auto paths=[](const QString &key,const QStringList &values) {
       QStringList lines; for (const auto &path:values) lines.append(key+" = "+QDir::cleanPath(path)+"/"); return lines;
    };
@@ -144,12 +182,17 @@ QString pathSettingsScript(const PathSettings &settings)
       if (!match.hasMatch()) { result.append(line); continue; }
       if (match.captured(1)=="OUTPUT_PATH") { if (!output) result.append("OUTPUT_PATH = "+QDir::cleanPath(settings.output)+"/"); output=true; }
       else if (match.captured(1)=="GMAT_FUNCTION_PATH") { if (!functions) result.append(paths("GMAT_FUNCTION_PATH",settings.functions)); functions=true; }
+      else if (match.captured(1)=="MATLAB_FUNCTION_PATH") { if (!matlab) result.append(paths("MATLAB_FUNCTION_PATH",settings.matlabFunctions)); matlab=true; }
       else { if (!python) result.append(paths("PYTHON_MODULE_PATH",settings.pythonModules)); python=true; }
    }
    if (!output) result.append("OUTPUT_PATH = "+QDir::cleanPath(settings.output)+"/");
    if (!functions) result.append(paths("GMAT_FUNCTION_PATH",settings.functions));
    if (!python) result.append(paths("PYTHON_MODULE_PATH",settings.pythonModules));
-   return result.join('\n');
+   if (!matlab) result.append(paths("MATLAB_FUNCTION_PATH",settings.matlabFunctions));
+   QMap<QString,QString> changed;
+   for (auto it=settings.scientificFiles.cbegin();it!=settings.scientificFiles.cend();++it)
+      if (it.value()!=settings.initialScientificFiles.value(it.key())) changed.insert(it.key(),it.value());
+   return withScientificFiles(result.join('\n'),changed);
 }
 
 QString validatePathSettings(const PathSettings &settings)
@@ -174,6 +217,20 @@ QString validatePathSettings(const PathSettings &settings)
    };
    for (const auto &error:{validate({settings.output},false),validate(settings.functions,false),validate(settings.pythonModules,true)})
       if (!error.isEmpty()) return error;
+   // Startup files can retain unused MATLAB defaults whose directories are
+   // absent when MATLAB is not installed. Do not block unrelated path edits;
+   // every changed/imported MATLAB list is still validated in full.
+   if (settings.matlabFunctions!=settings.initialMatlabFunctions) {
+      const auto error=validate(settings.matlabFunctions,false); if (!error.isEmpty()) return error;
+   }
+   for (auto it=settings.scientificFiles.cbegin();it!=settings.scientificFiles.cend();++it) {
+      const auto &path=it.value();
+      if (!scientificKeys.contains(it.key()) || path.isEmpty() || !QDir::isAbsolutePath(path) || path!=path.trimmed() || path.contains('=') || path.contains('#') || path.contains(QRegularExpression("[\\x00-\\x1f]")))
+         return "Choose an absolute scientific data filename without surrounding whitespace, controls, '#' or '='.";
+      const QFileInfo file(path);
+      if (!file.isFile() || !file.isReadable() || file.size()==0)
+         return "Choose an existing, nonempty readable scientific data file: "+it.key();
+   }
    QTemporaryFile probe(QDir(settings.output).filePath(".gmat-write-XXXXXX"));
    if (!probe.open() || probe.write("probe")!=5 || !probe.flush()) return "Cannot write to the output directory: "+probe.errorString();
    return {};
@@ -191,7 +248,14 @@ QString applyPathSettings(const PathSettings &settings,QtMessageReceiver &receiv
       QStringList liveLines;
       for (const auto &line:pathSettingsScript(settings).split('\n'))
          if (!pythonAssignment.match(line).hasMatch()) liveLines.append(line);
-      const auto text=liveLines.join('\n').toUtf8();
+      // These readers/kernel pools are initialized for the current process.
+      // Export may select new files; a session Apply must preserve every live
+      // scientific location until a fresh launch initializes the readers.
+      const auto liveScientific=scientificFiles();
+      QMap<QString,QString> restoreScientific;
+      for (auto it=liveScientific.cbegin();it!=liveScientific.cend();++it)
+         if (settings.scientificFiles.value(it.key(),it.value())!=it.value()) restoreScientific.insert(it.key(),it.value());
+      const auto text=withScientificFiles(liveLines.join('\n'),restoreScientific).toUtf8();
       if (!file.open(QIODevice::WriteOnly) || file.write(text)!=text.size() || !file.flush()) return "Cannot prepare startup settings: "+file.errorString();
       file.close();
       const auto compatibility=qtStartupCompatibilityError(path); if (!compatibility.isEmpty()) return compatibility;
@@ -199,6 +263,9 @@ QString applyPathSettings(const PathSettings &settings,QtMessageReceiver &receiv
       FileManager::Instance()->ReadStartupFile(path.toStdString());
       QStringList actual; for (const auto &entry:functionPaths()) actual.append(QDir::cleanPath(entry));
       QStringList expected; for (const auto &entry:settings.functions) expected.append(QDir::cleanPath(entry));
+      QStringList expectedMatlab; for (const auto &entry:settings.matlabFunctions) expectedMatlab.append(QDir::cleanPath(entry));
+      if (matlabPaths()!=expectedMatlab) return "GMAT could not preserve the requested MATLAB function paths and order.";
+      if (scientificFiles()!=liveScientific) return "Scientific data files require exporting startup settings and restarting GMAT. The previous session settings were restored.";
       if (FileManager::Instance()->GetAllPythonModulePaths()!=livePython)
          return "Python paths require exporting startup settings and restarting GMAT with that file. The previous session settings were restored.";
       if (actual!=expected || QDir::cleanPath(QString::fromStdString(FileManager::Instance()->GetAbsPathname("OUTPUT_PATH")))!=QDir::cleanPath(settings.output))

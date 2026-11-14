@@ -63,6 +63,7 @@ public:
    
    virtual Real         Evaluate();
    virtual Rmatrix      MatrixEvaluate();
+   Rvector              VectorEvaluate() override;
    
    // Inherited (GmatBase) methods
    virtual bool         RenameRefObject(const UnsignedInt type,
@@ -79,6 +80,10 @@ public:
    virtual const StringArray&
                         GetRefObjectNameArray(const UnsignedInt type);
    
+   void RebindExpressionReferences(const MathNode &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve, WrapperMap *wrappers) override;
+   void RetireExpressionReferences() override;
+
 protected:
    
    /// A pointer to the referenced object (i.e. the leaf node or element).  

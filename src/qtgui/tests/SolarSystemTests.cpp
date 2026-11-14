@@ -8,6 +8,11 @@
 #include "Spacecraft.hpp"
 #include "FileManager.hpp"
 #include "BaseException.hpp"
+#include "AcceptanceView.hpp"
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QTextDocument>
 #include <QApplication>
 #include <QPlainTextEdit>
 #include <QTreeWidget>
@@ -71,6 +76,57 @@ static QString settingsScript(const QString &source,const QString &de,const QStr
    if (source=="SPICE") result+="SolarSystem.EphemerisSource = SPICE;\n";
    return result+"SolarSystem.SPKFilename = '"+spk+"';\nSolarSystem.PCKFilename = '"+pck+"';\nSolarSystem.UseTTForEphemeris = "+(tt ? "true" : "false")+";\nSolarSystem.EphemerisUpdateInterval = "+QString::number(interval,'g',17)+";\n";
 }
+static QMap<QString,QList<double>> allBodyStates(const A1Mjd &epoch)
+{
+   QMap<QString,QList<double>> result;
+   for (const auto &name:QStringList{"Sun","Mercury","Venus","Earth","Luna","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"}) {
+      auto *body=system()->GetBody(name.toStdString()); require(body,"Default body missing for ephemeris comparison");
+      const auto state=body->GetMJ2000State(epoch); QList<double> values;
+      for (int i=0;i<6;++i) { require(std::isfinite(state[i]),"Body ephemeris contains a nonfinite value"); values.append(state[i]); }
+      result.insert(name,values);
+   }
+   return result;
+}
+static void solarProof(const QString &operation)
+{
+   const QJsonObject record{{"checkpoint","solar."+operation},{"operation",operation},{"outcome","passed"},
+      {"facets",QJsonArray{"gui-controls","model-readback","independent-script-route","mission-result","source-preservation"}}};
+   std::cout<<"NASA_CHECK "<<QJsonDocument(record).toJson(QJsonDocument::Compact).constData()<<std::endl;
+}
+static void solarControlCases(MainWindow &window,QPlainTextEdit &editor,const QString &original,
+                              const SolarSystemSettings &baseline,const QString &report,const QString &saved)
+{
+   close(window); editor.setPlainText(settingsScript("DE405",baseline.deFiles.value("DE405"),
+      baseline.values.value("SPKFilename"),baseline.values.value("PCKFilename"),true,2.5)+original);
+   require(window.buildScript(),"Solar control baseline failed");
+   const auto valid=editor.toPlainText(); const auto before=solarSystemSettings(*system()).values;
+   const auto steps=editor.document()->availableUndoSteps(); auto *panel=open(window); acceptanceView(*panel);
+   auto *interval=panel->findChild<QLineEdit *>("ephemerisUpdateInterval");
+   for (const auto &value:QStringList{"","not-a-number","nan","inf","-inf","1e999","-1e-12"}) {
+      interval->setText(value); panel->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
+      require(panel->hasChanges() && interval->text()==value && !panel->findChild<QLabel *>("solarSystemStatus")->text().isEmpty(),"Invalid interval lost correction input or diagnostic");
+      require(editor.toPlainText()==valid && editor.document()->availableUndoSteps()==steps && solarSystemSettings(*system()).values==before,"Invalid interval changed source, history or model");
+   }
+   close(window);
+   for (bool tt:{false,true}) for (double value:{0.0,1e-12,2.5}) {
+      editor.setPlainText(original); require(window.buildScript(),"Solar boundary fixture failed");
+      panel=open(window); acceptanceView(*panel); panel->findChild<QComboBox *>("ephemerisSource")->setCurrentText("DE405");
+      panel->findChild<QLineEdit *>("ephemerisUpdateInterval")->setText(QString::number(value,'g',17));
+      auto *flag=panel->findChild<QCheckBox *>("useTTForEphemeris");
+      if (flag->isChecked()!=tt) flag->click();
+      apply(*panel); const auto configured=editor.toPlainText();
+      require(system()->GetEphemUpdateInterval()==value && system()->GetBooleanParameter("UseTTForEphemeris")==tt,"Solar control did not retain independently specified interval and TT flag");
+      require(configured.endsWith(original.mid(original.indexOf("BeginMissionSequence"))),"Solar controls changed mission source");
+      QFile::remove(report); require(!QFileInfo::exists(report) && window.runMission()==MainWindow::RunResult::Completed,"Solar boundary mission failed");
+      const auto guiReport=bytes(report); const auto fields=guiReport.split(QRegularExpression("\\s+"),Qt::SkipEmptyParts); require(fields.size()==13,"Solar boundary report columns wrong");
+      const A1Mjd epoch(fields[12].toDouble()); const auto guiStates=allBodyStates(epoch);
+      require(window.saveScriptTo(saved) && window.loadScript(saved) && editor.toPlainText()==configured && system()->GetEphemUpdateInterval()==value && system()->GetBooleanParameter("UseTTForEphemeris")==tt,"Solar controls did not persist through save/reopen");
+      editor.setPlainText(settingsScript("DE405",baseline.deFiles.value("DE405"),baseline.values.value("SPKFilename"),baseline.values.value("PCKFilename"),tt,value)+original);
+      QFile::remove(report); require(window.runMission()==MainWindow::RunResult::Completed && bytes(report)==guiReport,"GUI interval/TT mission differs from independent script route");
+      require(allBodyStates(epoch)==guiStates,"Default-body states differ between GUI and independent script route");
+      close(window);
+   }
+}
 int main(int argc,char **argv)
 {
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv); app.setOrganizationName("GMATTests"); app.setApplicationName("QtSolarSystem");
@@ -104,17 +160,29 @@ int main(int argc,char **argv)
          require(window.runMission()==MainWindow::RunResult::Completed,"GUI DE mission failed"); const auto guiReport=bytes(report); reports.append(guiReport);
          const auto fields=guiReport.split(QRegularExpression("\\s+"),Qt::SkipEmptyParts); require(fields.size()==13,"Solar report columns wrong");
          const A1Mjd epoch(fields[12].toDouble()); const auto earthSun=system()->GetBody("Earth")->GetMJ2000State(epoch)-system()->GetBody("Sun")->GetMJ2000State(epoch),earthMoon=system()->GetBody("Earth")->GetMJ2000State(epoch)-system()->GetBody("Luna")->GetMJ2000State(epoch);
+         const auto guiStates=allBodyStates(epoch);
          for (int i=0;i<3;++i) { require(std::abs(fields[i+3].toDouble()-fields[i].toDouble()-earthSun[i])<2e-5,"Sun-frame output disagrees with body ephemeris"); require(std::abs(fields[i+6].toDouble()-fields[i].toDouble()-earthMoon[i])<2e-5,"Moon-frame output disagrees with body ephemeris"); }
          require(window.saveScriptTo(saved) && window.loadScript(saved) && window.runMission()==MainWindow::RunResult::Completed && bytes(report)==guiReport,"Solar-system Unicode save/reopen changed report");
          editor->setPlainText(settingsScript(source,filename,baseline.values.value("SPKFilename"),baseline.values.value("PCKFilename"),true,1.25)+original); require(window.runMission()==MainWindow::RunResult::Completed && bytes(report)==guiReport,"GUI/raw-script DE calculations differ");
+         require(allBodyStates(epoch)==guiStates,"DE default-body states differ between GUI and independent script route");
       }
       require(reports[0]!=reports[1] && reports[1]!=reports[2],"DE source selection did not affect ephemeris outputs");
       // Paired SPICE source/SPK/PCK selection and retained DE fallback.
       close(window); editor->setPlainText(original); require(window.buildScript(),"SPICE baseline restore failed"); panel=open(window); const auto spice=files.filePath("planetary ü.bsp"),pck=files.filePath("constants ü.tpc");
       require(QFile::copy(baseline.values.value("SPKFilename"),spice) && QFile::copy(baseline.values.value("PCKFilename"),pck),"Cannot copy SPICE kernel fixtures"); panel->findChild<QComboBox *>("ephemerisSource")->setCurrentText("DE421"); panel->findChild<QLineEdit *>("deFilename")->setText(customDE); panel->findChild<QComboBox *>("ephemerisSource")->setCurrentText("SPICE"); require(!panel->findChild<QLineEdit *>("deFilename")->isEnabled() && panel->findChild<QLineEdit *>("spkFilename")->isEnabled(),"SPICE dependent fields wrong"); panel->findChild<QLineEdit *>("spkFilename")->setText(spice); panel->findChild<QLineEdit *>("pckFilename")->setText(pck); panel->findChild<QLineEdit *>("ephemerisUpdateInterval")->setText("0");
+      for (const auto &pair:QList<QPair<QString,QString>>{{"spkFilename",spice},{"pckFilename",pck}}) {
+         auto *input=panel->findChild<QLineEdit *>(pair.first); const auto pending=input->text();
+         modal(*panel,[&] { panel->findChild<QPushButton *>(pair.first+"Browse")->click(); },[](QDialog *dialog) { require(qobject_cast<QFileDialog *>(dialog),"SPICE kernel file picker missing"); });
+         require(input->text()==pending,"Kernel picker Cancel changed pending filename");
+         modal(*panel,[&] { panel->findChild<QPushButton *>(pair.first+"Browse")->click(); },[&](QDialog *dialog) { auto *picker=qobject_cast<QFileDialog *>(dialog); require(picker,"SPICE kernel file picker missing"); picker->selectFile(pair.second); static_cast<QDialog *>(picker)->accept(); });
+         require(input->text()==pair.second,"Kernel file picker did not retain the selected Unicode filename");
+      }
       capture(*panel->parentWidget(),screenshots.isEmpty() ? QString() : screenshots+".spice.png"); apply(*panel); const auto configured=editor->toPlainText(); require(window.runMission()==MainWindow::RunResult::Completed,"SPICE mission failed"); const auto expected=bytes(report);
+      const auto spiceColumns=expected.split(QRegularExpression("\\s+"),Qt::SkipEmptyParts); require(spiceColumns.size()==13,"SPICE report columns wrong");
+      const A1Mjd spiceEpoch(spiceColumns[12].toDouble()); const auto spiceStates=allBodyStates(spiceEpoch);
       require(window.saveScriptTo(saved) && window.loadScript(saved) && window.runMission()==MainWindow::RunResult::Completed && bytes(report)==expected,"SPICE save/reopen changed report"); panel=open(window); require(panel->findChild<QLineEdit *>("deFilename")->text()==customDE,"SPICE lost explicit DE fallback"); close(window);
       editor->setPlainText(settingsScript("SPICE",customDE,spice,pck,false,0,"DE421")+original); require(window.runMission()==MainWindow::RunResult::Completed && bytes(report)==expected,"GUI/raw-script SPICE calculations differ");
+      require(allBodyStates(spiceEpoch)==spiceStates,"SPICE default-body states differ between GUI and independent script route");
       // Unrelated edits use engine serialization. Its SPICE/DE field order
       // cannot rebuild a custom fallback unless the Qt route preserves it.
       auto beforeOtherEdit=editor->toPlainText(); require(window.applyResourceChanges("Sat",{{"Cd","2.7"}},beforeOtherEdit).isEmpty(),"Unrelated spacecraft edit broke custom SPICE/DE fallback"); require(window.runMission()==MainWindow::RunResult::Completed && bytes(report)==expected,"Unrelated drag-coefficient edit changed this no-drag mission");
@@ -142,6 +210,10 @@ int main(int argc,char **argv)
       const QString loop="Create Variable n;\nBeginMissionSequence;\nWhile n < 1e12;\nn = n + 1;\nEndWhile;\n"; editor->setPlainText(loop); require(window.buildScript(),"Stop fixture failed"); panel=open(window); bool guarded=false;
       QTimer::singleShot(20,&window,[&] { guarded=!panel->isEnabled() && !window.applyResourceChanges("SolarSystem",{{"EphemerisUpdateInterval","3"}},loop).isEmpty(); window.stopMission(); }); require(window.runMission()==MainWindow::RunResult::Stopped && guarded && panel->isEnabled(),"Solar panel not guarded during run/re-enabled after Stop"); close(window);
       editor->setPlainText(original); require(window.runMission()==MainWindow::RunResult::Completed,"Solar mission did not recover after Stop");
+      solarControlCases(window,*editor,original,baseline,report,saved);
+      for (const auto &mode:QStringList{"DE405","DE421","DE424","SPICE"}) solarProof(mode);
+      solarProof("EphemerisUpdateInterval"); solarProof("UseTTForEphemeris");
+      solarProof("DEFilename"); solarProof("SPKFilename");
       std::cout<<"Qt solar system: DE405/421/424 and SPICE, paired Unicode files, source-dependent/pending controls, picker Cancel/accept, close Discard/Cancel, Apply/correction/rollback, exact Undo/Redo, save/reopen, independent reports/body-frame checks and comment/implicit mission preservation passed\n";
    } catch (BaseException &error) { std::cerr<<error.GetFullMessage()<<'\n'; return 1; }
    catch (const std::exception &error) { std::cerr<<error.what()<<'\n'; return 1; }

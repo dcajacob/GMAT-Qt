@@ -1,0 +1,19 @@
+{
+  "family": "CallBuiltinGmatFunction",
+  "command": "CallBuiltinGmatFunction",
+  "script": "% Preserve mission-name source \u0394\nCreate Variable Keep I Count U Quantity Cost;\nKeep = 41;\nI = 0;\nCount = 0;\nU = 1;\nQuantity = 0;\nCost = 0;\nCreate Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = @SPEED@;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nFM.Drag = None;\nCreate Propagator P;\nP.FM = FM;\nP.Type = RungeKutta89;\nP.InitialStepSize = 10;\nP.MinStep = 10;\nP.MaxStep = 10;\nP.Accuracy = 1e-12;\nCreate XYPlot Trace Control;\nTrace.XVariable = Sat.ElapsedSecs;\nTrace.YVariables = {Sat.ElapsedSecs};\nControl.XVariable = Sat.ElapsedSecs;\nControl.YVariables = {Sat.ElapsedSecs};\nCreate ReportFile Values Extra;\nValues.Filename = '@VALUES@';\nExtra.Filename = '@EXTRA@';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nExtra.WriteHeaders = false;\nExtra.FixedWidth = false;\nExtra.Precision = 17;\nCreate QuaternionProduct QuatHelper;\nCreate Array Qx[1,4];\nQx(1,1) = 1;\nQx(1,2) = 0;\nQx(1,3) = 0;\nQx(1,4) = 1;\nCreate Array Qy[1,4];\nQy(1,1) = 0;\nQy(1,2) = 1;\nQy(1,3) = 0;\nQy(1,4) = 1;\nCreate Array Qn[1,4];\nQn(1,1) = 0;\nQn(1,2) = 0;\nQn(1,3) = 1.7320508075688772;\nQn(1,4) = -1;\nCreate Array Qi[1,4];\nQi(1,1) = 0;\nQi(1,2) = 0;\nQi(1,3) = 0;\nQi(1,4) = 2;\nCreate Array Product[1,4];\nBeginMissionSequence;\nPropagate 'Probe' P(Sat) {Sat.ElapsedSecs = 10};\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nProduct = QuatHelper(Qx, Qy);\nCount = Product(1,1);\nU = Product(1,2);\nCost = Product(1,3);\nQuantity = Product(1,4);\nReport 'Witness' Values Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ Keep Count U Cost Quantity;\n",
+  "expected_tail": [
+    0.5,
+    0.5,
+    0.5,
+    0.5
+  ],
+  "velocity_increment": [
+    0,
+    0,
+    0
+  ],
+  "fixture_origin": "mission-command-names/Propagate.json",
+  "fixture_origin_sha256": "44aea4317b1a4213424f0f2331db326da86c18250b540af1c83b73225fdadad3",
+  "oracle": "Existing literal unit-quaternion product [0.5,0.5,0.5,0.5]; no unique inverse/physics claim."
+}

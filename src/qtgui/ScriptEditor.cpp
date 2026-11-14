@@ -57,9 +57,76 @@ void ScriptEditor::setKeywords(const QStringList &words)
    for (const auto &word:words) highlighter->keywords.insert(word);
    highlighter->rehighlight();
 }
+void ScriptEditor::commentSelection() { editLines(LineEdit::Comment); }
+void ScriptEditor::uncommentSelection() { editLines(LineEdit::Uncomment); }
+void ScriptEditor::indentSelection() { editLines(LineEdit::Indent); }
+void ScriptEditor::unindentSelection() { editLines(LineEdit::Unindent); }
+void ScriptEditor::setLineNumbersVisible(bool visible)
+{
+   showNumbers=visible;
+   numbers->setVisible(visible);
+   updateMargin();
+}
+void ScriptEditor::editLines(LineEdit operation)
+{
+   if (isReadOnly()) return;
+   auto original=textCursor();
+   const bool selected=original.hasSelection(),backward=original.position()<original.anchor();
+   auto first=document()->findBlock(original.selectionStart());
+   auto last=document()->findBlock(original.selectionEnd());
+   // A selection ending at column zero does not contain the next line.
+   const bool endsAtBoundary=selected && last.position()==original.selectionEnd();
+   if (endsAtBoundary) last=last.previous();
+   const int firstNumber=first.blockNumber(),lastNumber=last.blockNumber();
+   struct Change { int position; QString before,after; int column,removed,inserted; };
+   QList<Change> changes;
+   for (auto block=first;block.isValid() && block.blockNumber()<=lastNumber;block=block.next()) {
+      const auto before=block.text(); auto after=before;
+      int column=0,removed=0,inserted=0;
+      if (operation==LineEdit::Comment) { after.prepend("% "); inserted=2; }
+      else if (operation==LineEdit::Indent) { after.prepend("   "); inserted=3; }
+      else if (operation==LineEdit::Unindent) {
+         int count=0;
+         if (after.startsWith('\t')) count=1;
+         else while (count<3 && count<after.size() && after[count]==' ') ++count;
+         after.remove(0,count);
+         removed=count;
+      } else {
+         while (column<after.size() && (after[column]==' ' || after[column]=='\t')) ++column;
+         if (column<after.size() && after[column]=='%') {
+            int count=1;
+            if (column+1<after.size() && after[column+1]==' ') ++count;
+            after.remove(column,count);
+            removed=count;
+         }
+      }
+      if (before!=after) changes.append({block.position(),before,after,column,removed,inserted});
+   }
+   if (changes.isEmpty()) return;
+   int caret=original.position();
+   original.beginEditBlock();
+   for (auto change=changes.crbegin();change!=changes.crend();++change) {
+      const int start=change->position+change->column;
+      if (caret>=start+change->removed) caret+=change->inserted-change->removed;
+      else if (caret>=start) caret=start+change->inserted;
+      QTextCursor edit(document()); edit.setPosition(change->position);
+      edit.setPosition(change->position+change->before.size(),QTextCursor::KeepAnchor);
+      edit.insertText(change->after);
+   }
+   original.endEditBlock();
+   if (selected) {
+      const int start=document()->findBlockByNumber(firstNumber).position();
+      const auto endBlock=document()->findBlockByNumber(lastNumber);
+      const int end=endsAtBoundary && endBlock.next().isValid() ? endBlock.next().position() : endBlock.position()+endBlock.text().size();
+      original.setPosition(backward ? end : start);
+      original.setPosition(backward ? start : end,QTextCursor::KeepAnchor);
+   } else original.setPosition(caret);
+   setTextCursor(original);
+   ensureCursorVisible();
+}
 void ScriptEditor::updateMargin()
 {
-   const int width=12+fontMetrics().horizontalAdvance('9')*QString::number(blockCount()).size();
+   const int width=showNumbers ? 12+fontMetrics().horizontalAdvance('9')*QString::number(blockCount()).size() : 0;
    setViewportMargins(width,0,0,0);
    const auto area=contentsRect();
    numbers->setGeometry(area.x(),area.y(),width,area.height());

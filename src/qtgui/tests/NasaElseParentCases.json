@@ -1,0 +1,246 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "ForElseParent",
+      "family": "For",
+      "group": "ElseParent",
+      "parent": "Inner",
+      "parent_type": "IfElse",
+      "legacy_object": "For",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1432",
+          "fingerprint": "529030fb6d17d673810a24600669d9b41cf885c362ed2d89529f78ad0d57bee3",
+          "operation": "If-Else Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF_ELSE"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1440",
+          "fingerprint": "560abe2f5b3be200da646602ded54ed2579d23c65226763f005b5eac269f9ecc",
+          "operation": "Insert Before EndIf-Else",
+          "test_case": "TreeControls_Structure_InsertBeforeEndIF_ELSE"
+        },
+        {
+          "position": "ElseBefore",
+          "historical_key": "H2012:R1437",
+          "fingerprint": "c3f6bcc10ed64b988234955e9bb98f60923912ad669549124ee5d504de89e9cc",
+          "operation": "Insert Before Else",
+          "test_case": "TreeControls_Structure_InsertBeforeELSE"
+        },
+        {
+          "position": "ElseAfter",
+          "historical_key": "H2012:R1436",
+          "fingerprint": "5a7bead51acc6e5e39a8f4268646a188d312d813fe77733a3b20caf819d912fa",
+          "operation": "Insert After Else",
+          "test_case": "TreeControls_Structure_InsertAfterELSE"
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "For"
+    },
+    {
+      "key": "IfElseParent",
+      "family": "If",
+      "group": "ElseParent",
+      "parent": "Inner",
+      "parent_type": "IfElse",
+      "legacy_object": "If",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1498",
+          "fingerprint": "372590ebe7e5ee8fea5f7d649b42d9579cffc617efc34381327849dc047bdbc5",
+          "operation": "If-Else Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF_ELSE"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1506",
+          "fingerprint": "9f9de07aa556529c2bdb1f1af7226366b999b849ad2f97ad0d07428743cfb762",
+          "operation": "Insert Before EndIf-Else",
+          "test_case": "TreeControls_Structure_InsertBeforeEndIF_ELSE"
+        },
+        {
+          "position": "ElseBefore",
+          "historical_key": "H2012:R1503",
+          "fingerprint": "9c4044f0c5992385cbbdf454a01442e2e86fac7ce5e676f2068ff6cc138d2a26",
+          "operation": "Insert Before Else",
+          "test_case": "TreeControls_Structure_InsertBeforeELSE"
+        },
+        {
+          "position": "ElseAfter",
+          "historical_key": "H2012:R1502",
+          "fingerprint": "bf062f38326a6ccecfa6403fbb8b4a73224206267a08afb764fb29ef344eb2dd",
+          "operation": "Insert After Else",
+          "test_case": "TreeControls_Structure_InsertAfterELSE"
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "IfNoElse"
+    },
+    {
+      "key": "IfElseElseParent",
+      "family": "IfElse",
+      "group": "ElseParent",
+      "parent": "Inner",
+      "parent_type": "IfElse",
+      "legacy_object": "If-Else",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1567",
+          "fingerprint": "c2215d065b43cbfbfc288cfe872894454209817c9045b160769b46a7aae1b524",
+          "operation": "If-Else-Else Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF_ELSE"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1575",
+          "fingerprint": "e33de104d884b8c95fa4e523ef7a4e40f13d56f387d86ace1791ac7c62bc8204",
+          "operation": "Insert Before EndIf-Else-Else",
+          "test_case": "TreeControls_Structure_InsertBeforeEndIF_ELSE"
+        },
+        {
+          "position": "ElseBefore",
+          "historical_key": "H2012:R1572",
+          "fingerprint": "cd92c37102929821afc935a1649aa9fef3e4f6f7975209743350c33e53a8836b",
+          "operation": "Insert Before Else",
+          "test_case": "TreeControls_Structure_InsertBeforeELSE"
+        },
+        {
+          "position": "ElseAfter",
+          "historical_key": "H2012:R1571",
+          "fingerprint": "f132782e88567b5413109cf3be6efa3d507bfe74031aed37537f3e09fdf4217f",
+          "operation": "Insert After Else",
+          "test_case": "TreeControls_Structure_InsertAfterELSE"
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "If"
+    },
+    {
+      "key": "WhileElseParent",
+      "family": "While",
+      "group": "ElseParent",
+      "parent": "Inner",
+      "parent_type": "IfElse",
+      "legacy_object": "While",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1638",
+          "fingerprint": "713c6270fd91c545311968204ab834e2b9b451f563c84f43dc54595e7f3d32d0",
+          "operation": "While-Else Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF_ELSE"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1646",
+          "fingerprint": "36accabbba444f496e22430b29344ca7f1f24c94ecdbecba3fc547c5c952aaf5",
+          "operation": "Insert Before EndWhile-Else",
+          "test_case": "TreeControls_Structure_InsertBeforeEndIF_ELSE"
+        },
+        {
+          "position": "ElseBefore",
+          "historical_key": "H2012:R1643",
+          "fingerprint": "1382661e35a9fdf9f55b986445b2d0fc76fe97ae23cd87d93424b857a9a90257",
+          "operation": "Insert Before Else",
+          "test_case": "TreeControls_Structure_InsertBeforeELSE"
+        },
+        {
+          "position": "ElseAfter",
+          "historical_key": "H2012:R1642",
+          "fingerprint": "92f6e31eb591ea185d5dcf1deeeaefff5bbb8c7aa1627092d58f91fc98a5f903",
+          "operation": "Insert After Else",
+          "test_case": "TreeControls_Structure_InsertAfterELSE"
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "While"
+    },
+    {
+      "key": "TargetElseParent",
+      "family": "Target",
+      "group": "ElseParent",
+      "parent": "Inner",
+      "parent_type": "IfElse",
+      "legacy_object": "Target",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1373",
+          "fingerprint": "cfbba4f1a765c7e6110ebf0d485af03a77cef96b4421657a5d16e9dbe3a8e9de",
+          "operation": "If-Else Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF_ELSE"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1381",
+          "fingerprint": "368935d9b6a39253cca9da4b7d2c0c1c381e0bedc3a3e2071b857eb6db2acc94",
+          "operation": "Insert Before EndIf-Else",
+          "test_case": "TreeControls_Structure_InsertBeforeEndIF_ELSE"
+        },
+        {
+          "position": "ElseBefore",
+          "historical_key": "H2012:R1378",
+          "fingerprint": "f43cd293db07f41d331deb0f7d50319ff4fa330eeeb02980ec869bbf8dd45217",
+          "operation": "Insert Before Else",
+          "test_case": "TreeControls_Structure_InsertBeforeELSE"
+        },
+        {
+          "position": "ElseAfter",
+          "historical_key": "H2012:R1377",
+          "fingerprint": "dbecb8fe3c5a53b89c8ef9b207a532fef2dccb702bbce3c48393884f92bfab8c",
+          "operation": "Insert After Else",
+          "test_case": "TreeControls_Structure_InsertAfterELSE"
+        }
+      ],
+      "kind": "solver",
+      "reused_reference_case": "Target"
+    },
+    {
+      "key": "OptimizeElseParent",
+      "family": "Optimize",
+      "group": "ElseParent",
+      "parent": "Inner",
+      "parent_type": "IfElse",
+      "legacy_object": "Optimize",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1241",
+          "fingerprint": "027f92e74ef179670de658aa99e4300a220697e7548cddaff3727b84af368d71",
+          "operation": "If-Else Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF_ELSE"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1249",
+          "fingerprint": "6c14969653c2bc7e4bd2ca67f30d156c69fa71fba16076fd6547eecc4aa91480",
+          "operation": "Insert Before EndIf-Else",
+          "test_case": "TreeControls_Structure_InsertBeforeEndIF_ELSE"
+        },
+        {
+          "position": "ElseBefore",
+          "historical_key": "H2012:R1246",
+          "fingerprint": "2d145ea50d403db4d3eaa598db842291b143018c18c838b6a477608bf92849da",
+          "operation": "Insert Before Else",
+          "test_case": "TreeControls_Structure_InsertBeforeELSE"
+        },
+        {
+          "position": "ElseAfter",
+          "historical_key": "H2012:R1245",
+          "fingerprint": "0e1797d1766c936f8f70c32b6404c2204f5772ae46fe657d19fe87d40c81a06f",
+          "operation": "Insert After Else",
+          "test_case": "TreeControls_Structure_InsertAfterELSE"
+        }
+      ],
+      "kind": "solver",
+      "reused_reference_case": "Optimize"
+    }
+  ],
+  "scope": "Four literal IfElse/Else boundary actions for six complete child families. Parent I==1 true/I==2 false with separate native counters. Original If/Outer/While fixtures and result assertions retained. Four copied naming rows and two unique Else keywords remain held."
+}

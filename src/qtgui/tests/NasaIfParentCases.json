@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "ForIfParent",
+      "family": "For",
+      "group": "IfParent",
+      "parent": "Inner",
+      "legacy_object": "For",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1431",
+          "fingerprint": "d49fe7aebed510d764e6d5bc36a882f158f5ed1a0b619e2997f75eaad6193326",
+          "operation": "If Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF",
+          "credit_candidate": true
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1439",
+          "fingerprint": "44d93c83a37ec868416f6f39819a9896e1e2fe76c9c10fd8413c9d9ce9b8bff3",
+          "operation": "Insert Before EndIf",
+          "test_case": "TreeControls_Structure_InsertBeforeEndIF",
+          "credit_candidate": true
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "For"
+    },
+    {
+      "key": "IfIfParent",
+      "family": "If",
+      "group": "IfParent",
+      "parent": "Inner",
+      "legacy_object": "If",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1497",
+          "fingerprint": "d415af2a956d14bb9efc586955fef6d510073618cb2995290cf97167d07aa8e9",
+          "operation": "If Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF",
+          "credit_candidate": true
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1505",
+          "fingerprint": "80cf0c05079dc3805c4f10f9c80dfdf99da7d863041e88e0ab469d452e8eb4fa",
+          "operation": "Insert Before EndIf",
+          "test_case": "TreeControls_Structure_InsertBeforeEndIF",
+          "credit_candidate": true
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "IfNoElse"
+    },
+    {
+      "key": "IfElseIfParent",
+      "family": "IfElse",
+      "group": "IfParent",
+      "parent": "Inner",
+      "legacy_object": "If-Else",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1566",
+          "fingerprint": "4ae070dbd90a5ead5f8dc6186893261289a3ba5ec3c18bda3485ac4c57858fa2",
+          "operation": "If-Else Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF",
+          "credit_candidate": false
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1574",
+          "fingerprint": "6c5ea7fd9e993008c0bdcbf0b3aa829a1daa3022c1b7253ca4cecf0e6b69d6f3",
+          "operation": "Insert Before EndIf-Else",
+          "test_case": "TreeControls_Structure_InsertBeforeEndIF",
+          "credit_candidate": false
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "If"
+    },
+    {
+      "key": "WhileIfParent",
+      "family": "While",
+      "group": "IfParent",
+      "parent": "Inner",
+      "legacy_object": "While",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1637",
+          "fingerprint": "6e85fcd240e8102ce7b612d664b7ec7c21f43eebc3996125674753a81f10fbca",
+          "operation": "While Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF",
+          "credit_candidate": false
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1645",
+          "fingerprint": "6271ba6b1fd9c38b60a4b8c80a3b22849247c31aed59699318e12c228e0ccfbe",
+          "operation": "Insert Before EndWhile",
+          "test_case": "TreeControls_Structure_InsertBeforeEndIF",
+          "credit_candidate": false
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "While"
+    },
+    {
+      "key": "TargetIfParent",
+      "family": "Target",
+      "group": "IfParent",
+      "parent": "Inner",
+      "legacy_object": "Target",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1372",
+          "fingerprint": "456cee3c13a25fdad29a23ec189dc6d08d27a37c8315dcd84d36a6d6a90665e3",
+          "operation": "If Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF",
+          "credit_candidate": true
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1380",
+          "fingerprint": "5826b945c5097fb7649d7251e76c43ae11d6cd99b18d60b76ffc7991ec278538",
+          "operation": "Insert Before EndIf",
+          "test_case": "TreeControls_Structure_InsertBeforeEndIF",
+          "credit_candidate": true
+        }
+      ],
+      "kind": "solver",
+      "reused_reference_case": "Target"
+    },
+    {
+      "key": "OptimizeIfParent",
+      "family": "Optimize",
+      "group": "IfParent",
+      "parent": "Inner",
+      "legacy_object": "Optimize",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1240",
+          "fingerprint": "d04ffc4e6cd45fc82ac9d8d704401de3d97de1abf45b3cf2332d6fe268e1fdf6",
+          "operation": "If Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF",
+          "credit_candidate": true
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1248",
+          "fingerprint": "449f6376cdf5009a2cd51a978774a75f056d90d1781073579d59de5e2c9a74a9",
+          "operation": "Insert Before EndIf",
+          "test_case": "TreeControls_Structure_InsertBeforeEndIF",
+          "credit_candidate": true
+        }
+      ],
+      "kind": "solver",
+      "reused_reference_case": "Optimize"
+    }
+  ],
+  "scope": "Current actual plain-If Append/BeforeEndIf for six families;four copied-column historical labels remain uncredited even when current capability passes. New parent is explicit opt-in;existing For-parent data/positions unchanged."
+}

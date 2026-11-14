@@ -31,6 +31,8 @@
 //------------------------------------------------------------------------------
 
 #include "YukonUserProblem.hpp"
+#include "OptimizerValueCopy.hpp"
+#include <utility>
 
 //------------------------------------------------------------------------------
 // YukonUserProblem()
@@ -55,6 +57,94 @@ YukonUserProblem::YukonUserProblem()
 * @param upperBoundVector The variable upper bounds
 */
 //------------------------------------------------------------------------------
+YukonUserProblem::YukonUserProblem(const YukonUserProblem &source) :
+   AVarBound(OptimizerValueCopy::Matrix(source.AVarBound)),
+   bVarBound(OptimizerValueCopy::Vector(source.bVarBound)),
+   numBoundCon(source.numBoundCon),
+   conType(OptimizerValueCopy::Vector(source.conType)),
+   conMode(source.conMode),
+   bVarBoundUpper(OptimizerValueCopy::Vector(source.bVarBoundUpper)),
+   bVarBoundLower(OptimizerValueCopy::Vector(source.bVarBoundLower)),
+   problemName(source.problemName),
+   costFuncName(source.costFuncName),
+   conFuncName(source.conFuncName),
+   varLowerBounds(OptimizerValueCopy::Vector(source.varLowerBounds)),
+   varUpperBounds(OptimizerValueCopy::Vector(source.varUpperBounds)),
+   conLowerBounds(OptimizerValueCopy::Vector(source.conLowerBounds)),
+   conUpperBounds(OptimizerValueCopy::Vector(source.conUpperBounds)),
+   numNonLinIneqCon(source.numNonLinIneqCon),
+   nonLinIneqConStartIdx(source.nonLinIneqConStartIdx),
+   numNonLinEqCon(source.numNonLinEqCon),
+   nonLinEqConStartIdx(source.nonLinEqConStartIdx),
+   numLinIneqCon(source.numLinIneqCon),
+   linIneqConStartIdx(source.linIneqConStartIdx),
+   numLinEqCon(source.numLinEqCon),
+   linEqConStartIdx(source.linEqConStartIdx),
+   boundConStartIdx(source.boundConStartIdx),
+   conJacobian(OptimizerValueCopy::Matrix(source.conJacobian)),
+   costJacobian(OptimizerValueCopy::Vector(source.costJacobian)),
+   numNonLinCon(source.numNonLinCon),
+   numLinCon(source.numLinCon),
+   numVars(source.numVars),
+   numCons(source.numCons),
+   conFunctions(OptimizerValueCopy::Vector(source.conFunctions)),
+   inf(source.inf)
+{
+}
+
+YukonUserProblem& YukonUserProblem::operator=(const YukonUserProblem &source)
+{
+   if (&source == this) return *this;
+   // Complete every allocation before replacing any current problem data.
+   Rmatrix next_AVarBound(OptimizerValueCopy::Matrix(source.AVarBound));
+   Rvector next_bVarBound(OptimizerValueCopy::Vector(source.bVarBound));
+   Rvector next_conType(OptimizerValueCopy::Vector(source.conType));
+   Rvector next_bVarBoundUpper(OptimizerValueCopy::Vector(source.bVarBoundUpper));
+   Rvector next_bVarBoundLower(OptimizerValueCopy::Vector(source.bVarBoundLower));
+   std::string next_problemName(source.problemName);
+   std::string next_costFuncName(source.costFuncName);
+   std::string next_conFuncName(source.conFuncName);
+   Rvector next_varLowerBounds(OptimizerValueCopy::Vector(source.varLowerBounds));
+   Rvector next_varUpperBounds(OptimizerValueCopy::Vector(source.varUpperBounds));
+   Rvector next_conLowerBounds(OptimizerValueCopy::Vector(source.conLowerBounds));
+   Rvector next_conUpperBounds(OptimizerValueCopy::Vector(source.conUpperBounds));
+   Rmatrix next_conJacobian(OptimizerValueCopy::Matrix(source.conJacobian));
+   Rvector next_costJacobian(OptimizerValueCopy::Vector(source.costJacobian));
+   Rvector next_conFunctions(OptimizerValueCopy::Vector(source.conFunctions));
+   AVarBound.Swap(next_AVarBound);
+   bVarBound.Swap(next_bVarBound);
+   numBoundCon = source.numBoundCon;
+   conType.Swap(next_conType);
+   conMode = source.conMode;
+   bVarBoundUpper.Swap(next_bVarBoundUpper);
+   bVarBoundLower.Swap(next_bVarBoundLower);
+   problemName.swap(next_problemName);
+   costFuncName.swap(next_costFuncName);
+   conFuncName.swap(next_conFuncName);
+   varLowerBounds.Swap(next_varLowerBounds);
+   varUpperBounds.Swap(next_varUpperBounds);
+   conLowerBounds.Swap(next_conLowerBounds);
+   conUpperBounds.Swap(next_conUpperBounds);
+   numNonLinIneqCon = source.numNonLinIneqCon;
+   nonLinIneqConStartIdx = source.nonLinIneqConStartIdx;
+   numNonLinEqCon = source.numNonLinEqCon;
+   nonLinEqConStartIdx = source.nonLinEqConStartIdx;
+   numLinIneqCon = source.numLinIneqCon;
+   linIneqConStartIdx = source.linIneqConStartIdx;
+   numLinEqCon = source.numLinEqCon;
+   linEqConStartIdx = source.linEqConStartIdx;
+   boundConStartIdx = source.boundConStartIdx;
+   conJacobian.Swap(next_conJacobian);
+   costJacobian.Swap(next_costJacobian);
+   numNonLinCon = source.numNonLinCon;
+   numLinCon = source.numLinCon;
+   numVars = source.numVars;
+   numCons = source.numCons;
+   conFunctions.Swap(next_conFunctions);
+   inf = source.inf;
+   return *this;
+}
+
 void YukonUserProblem::HandleOneSidedVarBounds(Rvector lowerBoundVector,
                                                Rvector upperBoundVector)
 {

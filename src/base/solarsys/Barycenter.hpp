@@ -66,6 +66,9 @@ public:
    virtual const Rvector6  GetMJ2000State(const A1Mjd &atTime);
    virtual const Rvector3  GetMJ2000Position(const A1Mjd &atTime);
    virtual const Rvector3  GetMJ2000Velocity(const A1Mjd &atTime);
+   const Rvector3 GetMJ2000Acceleration(const A1Mjd &atTime) override;
+   const Rvector3 GetMJ2000Acceleration(const Real atTime) override { return GetMJ2000Acceleration(GmatTime(atTime)); }
+   const Rvector3 GetMJ2000Acceleration(const GmatTime &atTime) override;
 
    virtual const Rvector6 GetMJ2000State(const Real atTime) { return GetMJ2000State(A1Mjd(atTime)); };
    virtual const Rvector3 GetMJ2000Position(const Real atTime) { return GetMJ2000Position(A1Mjd(atTime)); };
@@ -84,19 +87,44 @@ public:
 
    virtual StringArray     GetBuiltInNames();
 
-   // Parameter access methods - overridden from GmatBase - not needed (no additional parameters)
+   // The calculation source is independent of the built-in resource's
+   // protection flag, so an editable copy can retain the native SSB provider.
+   bool                    UsesSolarSystemEphemeris() const;
+   void                    MakeUserDefinedCopy();
+
+   using CalculatedPoint::IsParameterReadOnly;
+   using CalculatedPoint::GetStringParameter;
+   using CalculatedPoint::SetStringParameter;
+   using CalculatedPoint::GetStringArrayParameter;
+   using CalculatedPoint::GetPropertyEnumStrings;
+   std::string             GetParameterText(const Integer id) const override;
+   Integer                 GetParameterID(const std::string &str) const override;
+   Gmat::ParameterType     GetParameterType(const Integer id) const override;
+   bool                    IsParameterReadOnly(const Integer id) const override;
+   bool                    IsParameterCommandModeSettable(const Integer id) const override;
+   std::string             GetStringParameter(const Integer id) const override;
+   std::string             GetStringParameter(const std::string &label) const override;
+   bool                    SetStringParameter(const Integer id, const std::string &value) override;
+   bool                    SetStringParameter(const Integer id, const std::string &value,
+                                               const Integer index) override;
+   const StringArray&      GetStringArrayParameter(const Integer id) const override;
+   const StringArray&      GetPropertyEnumStrings(const Integer id) const override;
+   const StringArray&      GetRefObjectNameArray(const UnsignedInt type) override;
+   bool                    TakeRequiredAction(const Integer id) override;
 
 protected:
 
    enum
    {
-      BarycenterParamCount = CalculatedPointParamCount
+      EPHEMERIS_SOURCE = CalculatedPointParamCount,
+      BarycenterParamCount
    };
 
    /// If this is a built-in point, this is the SpacePoint for it
    SpacePoint                  *builtInSP;
     
 private:
+   SpacePoint* GetNativePoint();
    // check that all bodies in the list are CelestialBody objects
    virtual void CheckBodies();
 

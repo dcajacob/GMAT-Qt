@@ -1,3 +1,5 @@
+#include "AcceptanceView.hpp"
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "ResourceEditor.hpp"
 #include "ResourceProperties.hpp"
@@ -63,7 +65,7 @@ int main(int argc,char **argv)
 {
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv);
    app.setOrganizationName("GMATTests"); app.setApplicationName("MarsGravity");
-   if (argc!=2 || QGuiApplication::platformName()!="offscreen") return 2;
+   if (argc!=2 || !acceptanceWidgetPlatform()) return 2;
    try {
       TestSettings settings; QTemporaryDir files; require(files.isValid(),"Temporary files unavailable");
       const auto startup=QFileInfo(QString::fromLocal8Bit(argv[1])).absoluteFilePath(); QDir::setCurrent(QFileInfo(startup).absolutePath());
@@ -83,6 +85,7 @@ int main(int argc,char **argv)
       editor->setPlainText(baseline); require(window.buildScript(),"Point-mass Mars baseline failed");
       auto *tree=window.findChild<QTreeWidget *>("Resources"); const auto items=tree->findItems("MarsForces",Qt::MatchExactly|Qt::MatchRecursive); require(items.size()==1,"Mars force resource missing"); tree->itemDoubleClicked(items.front(),0);
       auto *panel=forcePanel(window); auto *previous=configured(); const auto undoSteps=editor->document()->availableUndoSteps();
+      acceptanceView(*panel);
       field(*panel,"PrimaryBodies")->setText("MissingBody"); field(*panel,"PointMasses")->setText(""); panel->requestApply();
       require(editor->toPlainText()==baseline && configured()==previous && panel==forcePanel(window) && panel->hasChanges() && editor->document()->availableUndoSteps()==undoSteps,"Invalid gravity selection changed source/model/Undo or lost pending fields");
       field(*panel,"PrimaryBodies")->setText("Mars");

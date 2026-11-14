@@ -1,0 +1,949 @@
+{
+  "cases": [
+    {
+      "key": "Sin",
+      "destination": "R",
+      "before": "0",
+      "expression": "sin(0.7)",
+      "expected": [
+        0.644217687237691
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E188"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Cos",
+      "destination": "R",
+      "before": "0",
+      "expression": "cos(-0.4)",
+      "expected": [
+        0.9210609940028851
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E189"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Tan",
+      "destination": "R",
+      "before": "0",
+      "expression": "tan(0.6)",
+      "expected": [
+        0.6841368083416923
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E190"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "ASin",
+      "destination": "R",
+      "before": "0",
+      "expression": "asin(-0.6)",
+      "expected": [
+        -0.6435011087932844
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E191"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "ACos",
+      "destination": "R",
+      "before": "0",
+      "expression": "acos(-0.4)",
+      "expected": [
+        1.9823131728623846
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E192"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "ATan",
+      "destination": "R",
+      "before": "0",
+      "expression": "atan(-2)",
+      "expected": [
+        -1.1071487177940904
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E193"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Log",
+      "destination": "R",
+      "before": "0",
+      "expression": "log(2.5)",
+      "expected": [
+        0.9162907318741551
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E194"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Log10",
+      "destination": "R",
+      "before": "0",
+      "expression": "log10(125)",
+      "expected": [
+        2.0969100130080562
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E195"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Exp",
+      "destination": "R",
+      "before": "0",
+      "expression": "exp(-0.5)",
+      "expected": [
+        0.6065306597126334
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E196"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "DegToRad",
+      "destination": "R",
+      "before": "0",
+      "expression": "DegToRad(-125)",
+      "expected": [
+        -2.181661564992912
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E197"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "RadToDeg",
+      "destination": "R",
+      "before": "0",
+      "expression": "RadToDeg(0.7)",
+      "expected": [
+        40.10704565915762
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E198"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Norm",
+      "destination": "R",
+      "before": "0",
+      "expression": "norm(Vec)",
+      "expected": [
+        13
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E199"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Determinant",
+      "destination": "R",
+      "before": "0",
+      "expression": "det(A)",
+      "expected": [
+        22
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E200"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Sqrt",
+      "destination": "R",
+      "before": "0",
+      "expression": "sqrt(2)",
+      "expected": [
+        1.4142135623730951
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E201"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Abs",
+      "destination": "R",
+      "before": "0",
+      "expression": "abs(-7.25)",
+      "expected": [
+        7.25
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E202"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Subtract",
+      "destination": "R",
+      "before": "0",
+      "expression": "12.5 - 3.25",
+      "expected": [
+        9.25
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E181"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Divide",
+      "destination": "R",
+      "before": "0",
+      "expression": "7 / 4",
+      "expected": [
+        1.75
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E183"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Power",
+      "destination": "R",
+      "before": "0",
+      "expression": "2^(-3)",
+      "expected": [
+        0.125
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E184"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Parentheses",
+      "destination": "R",
+      "before": "0",
+      "expression": "(2 + 3) * (7 - (4 / 2))",
+      "expected": [
+        25
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E186"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "RealLiteral",
+      "destination": "R",
+      "before": "0",
+      "expression": "-12.75",
+      "expected": [
+        -12.75
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E174"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Variable",
+      "destination": "R",
+      "before": "0",
+      "expression": "Seed",
+      "expected": [
+        3.25
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E170"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "ReadableParameter",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.DryMass",
+      "expected": [
+        850
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E169"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "ResourceExpression",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.DryMass / 4 + Seed",
+      "expected": [
+        215.75
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E212"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "ArrayElement",
+      "destination": "R",
+      "before": "0",
+      "expression": "A(2,1) + A(1,2)",
+      "expected": [
+        3
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E213"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "IntegerReal",
+      "destination": "R",
+      "before": "0",
+      "expression": "7 / 2 + 0.125",
+      "expected": [
+        3.625
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E205"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "ATan2Q1",
+      "destination": "R",
+      "before": "0",
+      "expression": "atan2(2,3)",
+      "expected": [
+        0.5880026035475675
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E203"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "ATan2Q2",
+      "destination": "R",
+      "before": "0",
+      "expression": "atan2(2,-3)",
+      "expected": [
+        2.5535900500422257
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E203"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "ATan2Q3",
+      "destination": "R",
+      "before": "0",
+      "expression": "atan2(-2,-3)",
+      "expected": [
+        -2.5535900500422257
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E203"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "ATan2Q4",
+      "destination": "R",
+      "before": "0",
+      "expression": "atan2(-2,3)",
+      "expected": [
+        -0.5880026035475675
+      ],
+      "report": "R",
+      "requirements": [
+        "FRC!E203"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "MatrixAdd",
+      "destination": "C",
+      "before": "A",
+      "expression": "A + B",
+      "expected": [
+        5,
+        4,
+        2,
+        8
+      ],
+      "report": "C(1,1) C(1,2) C(2,1) C(2,2)",
+      "requirements": [
+        "FRC!E207"
+      ],
+      "invalid": [
+        "AbsentNASA",
+        "A + Vec"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "MatrixSubtract",
+      "destination": "C",
+      "before": "A",
+      "expression": "A - B",
+      "expected": [
+        3,
+        -2,
+        2,
+        4
+      ],
+      "report": "C(1,1) C(1,2) C(2,1) C(2,2)",
+      "requirements": [
+        "FRC!E208"
+      ],
+      "invalid": [
+        "AbsentNASA",
+        "A + Vec"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "MatrixMultiply",
+      "destination": "C",
+      "before": "A",
+      "expression": "A * B",
+      "expected": [
+        4,
+        14,
+        2,
+        18
+      ],
+      "report": "C(1,1) C(1,2) C(2,1) C(2,2)",
+      "requirements": [
+        "FRC!E209"
+      ],
+      "invalid": [
+        "AbsentNASA",
+        "A + Vec"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Transpose",
+      "destination": "C",
+      "before": "A",
+      "expression": "A'",
+      "expected": [
+        4,
+        2,
+        1,
+        6
+      ],
+      "report": "C(1,1) C(1,2) C(2,1) C(2,2)",
+      "requirements": [
+        "FRC!E185"
+      ],
+      "invalid": [
+        "AbsentNASA",
+        "A + Vec"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "Inverse",
+      "destination": "C",
+      "before": "A",
+      "expression": "inv(A)",
+      "expected": [
+        0.2727272727272727,
+        -0.045454545454545456,
+        -0.09090909090909091,
+        0.18181818181818182
+      ],
+      "report": "C(1,1) C(1,2) C(2,1) C(2,2)",
+      "requirements": [
+        "FRC!E204"
+      ],
+      "invalid": [
+        "AbsentNASA",
+        "A + Vec"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "InversePower",
+      "destination": "C",
+      "before": "A",
+      "expression": "A^(-1)",
+      "expected": [
+        0.2727272727272727,
+        -0.045454545454545456,
+        -0.09090909090909091,
+        0.18181818181818182
+      ],
+      "report": "C(1,1) C(1,2) C(2,1) C(2,2)",
+      "requirements": [
+        "FRC!E204"
+      ],
+      "invalid": [
+        "AbsentNASA",
+        "A + Vec"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "ArrayCopy",
+      "destination": "C",
+      "before": "B",
+      "expression": "A",
+      "expected": [
+        4,
+        1,
+        2,
+        6
+      ],
+      "report": "C(1,1) C(1,2) C(2,1) C(2,2)",
+      "requirements": [
+        "FRC!E165",
+        "FRC!E171"
+      ],
+      "invalid": [
+        "AbsentNASA",
+        "A + Vec"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "IndexLiteral",
+      "destination": "A(1,1)",
+      "before": "4",
+      "expression": "11.25",
+      "expected": [
+        11.25,
+        1,
+        2,
+        6
+      ],
+      "report": "A(1,1) A(1,2) A(2,1) A(2,2)",
+      "requirements": [
+        "FRC!E215"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "IndexVariable",
+      "destination": "A(idx,1)",
+      "before": "2",
+      "expression": "-9.5",
+      "expected": [
+        4,
+        1,
+        -9.5,
+        6
+      ],
+      "report": "A(1,1) A(1,2) A(2,1) A(2,2)",
+      "requirements": [
+        "FRC!E216"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "SettableParameter",
+      "destination": "Sat.Cd",
+      "before": "2.2",
+      "expression": "Seed + 1.25",
+      "expected": [
+        4.5
+      ],
+      "report": "Sat.Cd",
+      "requirements": [
+        "FRC!E167"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "StringLiteral",
+      "destination": "Out",
+      "before": "'initial'",
+      "expression": "'Alpha beta'",
+      "expected": [
+        "Alpha beta"
+      ],
+      "report": "Out",
+      "requirements": [
+        "FRC!E172"
+      ],
+      "invalid": [
+        "A",
+        "'unterminated"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "StringCopy",
+      "destination": "Out",
+      "before": "'initial'",
+      "expression": "Text",
+      "expected": [
+        "NASA input"
+      ],
+      "report": "Out",
+      "requirements": [
+        "FRC!E172"
+      ],
+      "invalid": [
+        "A",
+        "'unterminated"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "DoubleTranspose",
+      "destination": "C",
+      "before": "A",
+      "expression": "A''",
+      "expected": [
+        4,
+        1,
+        2,
+        6
+      ],
+      "report": "C(1,1) C(1,2) C(2,1) C(2,2)",
+      "requirements": [
+        "FRC!E185"
+      ],
+      "invalid": [
+        "AbsentNASA",
+        "A + Vec"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "ScalarCell",
+      "destination": "R",
+      "before": "0",
+      "expression": "A(2,1)",
+      "expected": [
+        2
+      ],
+      "report": "R",
+      "requirements": [
+        "FRR!E414"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "CellVariable",
+      "destination": "C(1,2)",
+      "before": "0",
+      "expression": "Seed",
+      "expected": [
+        0,
+        3.25,
+        0,
+        0
+      ],
+      "report": "C(1,1) C(1,2) C(2,1) C(2,2)",
+      "requirements": [
+        "FRR!E420"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +",
+        "A + B"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "CellArray",
+      "destination": "C(1,2)",
+      "before": "0",
+      "expression": "A(2,1)",
+      "expected": [
+        0,
+        2,
+        0,
+        0
+      ],
+      "report": "C(1,1) C(1,2) C(2,1) C(2,2)",
+      "requirements": [
+        "FRR!E421"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +",
+        "A + B"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "CellExpression",
+      "destination": "C(2,1)",
+      "before": "0",
+      "expression": "Sat.DryMass / 100 + Seed^2",
+      "expected": [
+        0,
+        0,
+        19.0625,
+        0
+      ],
+      "report": "C(1,1) C(1,2) C(2,1) C(2,2)",
+      "requirements": [
+        "FRR!E422"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    },
+    {
+      "key": "CellProperty",
+      "destination": "C(1,2)",
+      "before": "0",
+      "expression": "Sat.DryMass",
+      "expected": [
+        0,
+        850,
+        0,
+        0
+      ],
+      "report": "C(1,1) C(1,2) C(2,1) C(2,2)",
+      "requirements": [
+        "FRR!E423"
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-12,
+      "relative_tolerance": 2e-13
+    }
+  ],
+  "scope": "Selected scalar functions, matrix operations, assignment types and indices through actual typed Mission command controls. Independent results at finite selected inputs, not every domain/singularity/resource or MATLAB qualification.",
+  "reference_sources": {
+    "doc/help/src/Command_Assignment.xml": "a69d76f67c213b622134b6426b3c77646c95244e373789b54dc172738f8d8f21",
+    "src/base/command/Assignment.cpp": "99c9b0cf2f3679de52360d98770cf8b69cc4dd47b444d4d3bd897579439361ae",
+    "src/qtgui/CommandForm.cpp": "9a0f2987547b942f990c6122666c8da3592a34355e41a151b731bd78ea402e17",
+    "src/qtgui/CommandEditor.cpp": "fbd70593d6350042995eca88d0602d838ba6de42aa458889578499ca3b8ec9ca"
+  }
+}

@@ -51,6 +51,7 @@ public:
                                    Integer count = 1);
 
    virtual GmatBase*       Clone() const; // inherited from GmatBase
+   void Copy(const GmatBase *original) override;
 
 protected:
    Integer                 mass;

@@ -29,6 +29,7 @@
 
 
 #include "ElectricThruster.hpp"
+#include <memory>
 //#include "ObjectReferencedAxes.hpp"
 #include "Spacecraft.hpp"
 #include "StringUtil.hpp"
@@ -304,7 +305,9 @@ ElectricThruster& ElectricThruster::operator=(const ElectricThruster& th)
 //---------------------------------------------------------------------------
 GmatBase* ElectricThruster::Clone() const
 {
-   return new ElectricThruster(*this);
+   std::unique_ptr<ElectricThruster> value(new ElectricThruster(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -321,7 +324,13 @@ GmatBase* ElectricThruster::Clone() const
 //---------------------------------------------------------------------------
 void ElectricThruster::Copy(const GmatBase* orig)
 {
-   operator=(*((ElectricThruster *)(orig)));
+   const auto *source = dynamic_cast<const ElectricThruster*>(orig);
+   if (!source || source->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Incompatible ElectricThruster value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 

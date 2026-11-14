@@ -88,11 +88,20 @@ int main(int argc,char **argv)
          if (!capture.isEmpty()) require(interpolatedImage.save(capture+"/interpolated.png") &&
             propagationImage.save(capture+"/propagation.png"),"Native playback captures failed");
       }
-      faster->trigger(); require(speed->currentIndex()==3,"Local Faster did not increase speed");
-      slower->trigger(); require(speed->currentIndex()==2,"Local Slower did not decrease speed");
+      faster->trigger(); require(speed->currentData().toDouble()==2.,"Local Faster did not increase speed");
+      slower->trigger(); require(speed->currentData().toDouble()==1.,"Local Slower did not decrease speed");
       speed->setCurrentIndex(0); require(!slower->isEnabled(),"Local minimum speed remained enabled");
-      speed->setCurrentIndex(4); require(!faster->isEnabled(),"Local maximum speed remained enabled");
-      widget.setSharedReplayMode(PlotReplayMode::InterpolatedSteps); widget.setSharedReplayPosition(1000);
+      speed->setCurrentIndex(speed->findData(4.)); require(!faster->isEnabled(),"Local maximum speed remained enabled");
+      widget.setSharedReplayMode(PlotReplayMode::InterpolatedSteps); widget.setSharedReplayPosition(0);
+      speed->setCurrentIndex(speed->findData(.001)); require(speed->currentIndex()>=0,"Slow local rate missing");
+      auto *play=widget.findChild<QAction *>("plotReplayPlay"); auto *timer=widget.findChild<QTimer *>("plotReplayTimer");
+      play->trigger();
+      for (int i=0;i<25;++i) QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection);
+      require(widget.findChild<QSlider *>("plotTimeline")->value()==0 && model->replayCursor,"Slow local playback waited for slider movement");
+      near(orbitObjectPose(model->curves[0],widget.canvas()->frame())->x,.025,"Slow local progress lost fractional time");
+      play->trigger(); play->trigger(); QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection);
+      near(orbitObjectPose(model->curves[0],widget.canvas()->frame())->x,.026,"Slow local resume snapped to slider position");
+      play->trigger(); widget.setSharedReplayPosition(1000);
       require(!model->replayCursor && !model->curves[0].replayPose,"Latest retained interpolated state");
       exportPlot.setSharedReplayPosition(500);
       require(!xy->replayCursor && exportPlot.exportData(path).isEmpty() && read(path)==original,"Presentation interpolation changed XY raw export");

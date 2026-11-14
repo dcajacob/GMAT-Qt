@@ -48,6 +48,7 @@ public:
    ThrustHistoryFile& operator=(const ThrustHistoryFile& thf);
 
    virtual GmatBase*    Clone() const;
+   void Copy(const GmatBase *original) override;
 
    virtual std::string  GetParameterText(const Integer id) const;
 //   virtual std::string  GetParameterUnit(const Integer id) const;

@@ -35,13 +35,47 @@
 #include <sstream>       // for stringstream, istringstream
 #include "gmatdefs.hpp"
 #include "GmatCommand.hpp"
+#include <cstddef>
+#include <memory>
+#include <vector>
 
 class GMAT_API GmatInterface
 {
 public:
    static GmatInterface* Instance();
    ~GmatInterface();
+
+   // Scoped routing takes precedence over legacy passive registration. A
+   // default scope pins the current live callback for one request transaction.
+   class GMAT_API CallbackScope
+   {
+   public:
+      CallbackScope();
+      explicit CallbackScope(GmatBase *callbackObject);
+      ~CallbackScope() noexcept;
+      void ValidateSelection() const;
+      void ValidateRetention() const;
+      CallbackScope(const CallbackScope&) = delete;
+      CallbackScope& operator=(const CallbackScope&) = delete;
+   private:
+      GmatInterface *owner = nullptr;
+      std::size_t registration = 0;
+      GmatBase *GetRetainedCallback() const;
+   };
    
+   // Marks only evaluation in MATLAB, not native argument evaluation or the
+   // optimizer driver. Observed across the application and socket threads.
+   class GMAT_API MatlabFunctionScope
+   {
+   public:
+      MatlabFunctionScope();
+      ~MatlabFunctionScope() noexcept;
+      MatlabFunctionScope(const MatlabFunctionScope&) = delete;
+      MatlabFunctionScope& operator=(const MatlabFunctionScope&) = delete;
+   };
+   // Receipt-time check for legacy commands that may later be queued to the UI.
+   static bool CanAcceptMatlabCommand(const char *command) noexcept;
+
    void OpenScript();
    void ClearScript();
    void PutScript(char *str);
@@ -52,22 +86,27 @@ public:
    // methods to manage execution of GMAT callback
    bool  ExecuteCallback();
    bool  RegisterCallbackServer(GmatBase *callbackObject);
+   void  UnregisterCallbackServer(GmatBase *callbackObject);
    char* GetCallbackStatus();
    void  PutCallbackData(std::string &data);
    void  PutCallbackRealData(RealArray &data);
    char* GetCallbackResults();
+   std::string GetCallbackResultString();
+   bool PublishCallbackIteration(const std::string &data, bool validateOnly = false);
    
    char* GetRunState();
+   // Character adapters borrow per-thread storage until the next call to the
+   // same adapter. Owned replies have no legacy fixed-size buffer limit.
    char* GetGmatObject(const char *name);
    char* GetGmatObject(const std::string &name);
    char* GetParameter(const std::string &name);
+   std::string GetGmatObjectString(const std::string &name);
+   std::string GetParameterString(const std::string &name);
    
    void CheckUserInterrupt();
    
 private:
    static const int MAX_PARAM_VAL_STRING = 512;
-   static const int MAX_OBJECT_VAL_STRING = 4096;
-   static const int MAX_CALLBACK_DATA_VAL_STRING = 1024;
    
    void RedirectBuffer(std::ios *stream, std::streambuf* newBuff) 
       { stream->rdbuf(newBuff); }
@@ -81,5 +120,17 @@ private:
    
    /// class containing callback function
    GmatBase *callbackObj;  
+   std::weak_ptr<const void> callbackIdentity;
+   struct ScopedCallback
+   {
+      GmatBase *object;
+      std::weak_ptr<const void> identity;
+      std::size_t registration;
+   };
+   std::vector<ScopedCallback> callbackScopes;
+   std::size_t nextCallbackRegistration = 0;
+   GmatBase *GetLiveCallback();
+   static void ValidateCallbackObject(GmatBase *callbackObject);
+   void ReleaseCallbackScope(std::size_t registration) noexcept;
 };
 #endif

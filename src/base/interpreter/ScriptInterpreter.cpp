@@ -27,7 +27,9 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ScriptStringLiteral.hpp"
 #include "ScriptInterpreter.hpp"
+#include "ScriptSourceCapture.hpp"
 #include "MessageInterface.hpp"
 #include "Moderator.hpp"
 #include "MathParser.hpp"
@@ -73,6 +75,32 @@
 #endif
 
 ScriptInterpreter *ScriptInterpreter::instance = NULL;
+
+namespace
+{
+   thread_local ScriptSourceCapture *activeSourceCapture = nullptr;
+}
+
+ScriptSourceCapture::ScriptSourceCapture() noexcept :
+   previous(activeSourceCapture)
+{
+   activeSourceCapture = this;
+}
+
+ScriptSourceCapture::~ScriptSourceCapture() noexcept
+{
+   activeSourceCapture = previous;
+}
+
+void ScriptSourceCapture::Record(const std::string &text, bool root)
+{
+   if (!activeSourceCapture || text.empty())
+      return;
+   if (root)
+      activeSourceCapture->rootBlock = text;
+   activeSourceCapture->blocks.push_back(
+         {text, activeSourceCapture->rootBlock, !root});
+}
 
 
 //------------------------------------------------------------------------------
@@ -168,6 +196,10 @@ bool ScriptInterpreter::Interpret()
    #endif
    includeFoundInResource = false;
    beginMissionSeqFound = false;
+   // A preceding function parse may have ignored subsequent definitions.
+   // That file-local state must not truncate this new main script.
+   functionDefined = false;
+   ignoreRest = false;
    userParameterLines.clear();
    
    // Grab the built-in coordinate system list; mark them as Do Not Modify while
@@ -360,6 +392,51 @@ bool ScriptInterpreter::Interpret(GmatCommand *inCmd, bool skipHeader,
 //------------------------------------------------------------------------------
 bool ScriptInterpreter::Interpret(const std::string &scriptfile)
 {
+   return Interpret(scriptfile, false);
+}
+
+namespace
+{
+// Validate scalar UTF-8 encodings before handing the unchanged bytes to the
+// existing parser. Reject overlong sequences, surrogates, out-of-range values,
+// isolated continuation bytes and incomplete sequences. ASCII syntax and
+// identifiers are still checked by the normal language parser.
+bool ValidUtf8Script(std::istream &input)
+{
+   unsigned int value = 0, minimum = 0;
+   int remaining = 0;
+   char raw;
+   while (input.get(raw))
+   {
+      const auto byte = static_cast<unsigned char>(raw);
+      if (remaining == 0)
+      {
+         if (byte < 0x80) continue;
+         if (byte >= 0xc2 && byte <= 0xdf)
+         { value = byte & 0x1f; minimum = 0x80; remaining = 1; }
+         else if (byte >= 0xe0 && byte <= 0xef)
+         { value = byte & 0x0f; minimum = 0x800; remaining = 2; }
+         else if (byte >= 0xf0 && byte <= 0xf4)
+         { value = byte & 0x07; minimum = 0x10000; remaining = 3; }
+         else return false;
+      }
+      else
+      {
+         if ((byte & 0xc0) != 0x80) return false;
+         value = (value << 6) | (byte & 0x3f);
+         if (--remaining == 0 && (value < minimum || value > 0x10ffff ||
+               (value >= 0xd800 && value <= 0xdfff))) return false;
+      }
+   }
+   if (input.bad() || remaining != 0) return false;
+   input.clear();
+   input.seekg(0, std::ios::beg);
+   return static_cast<bool>(input);
+}
+}
+
+bool ScriptInterpreter::Interpret(const std::string &scriptfile, bool allowUtf8)
+{
    #if DBGLVL_SCRIPT_READING
    MessageInterface::ShowMessage
       ("ScriptInterpreter::Interpret(scriptfile) entered, scriptfile='%s'\n   "
@@ -372,11 +449,23 @@ bool ScriptInterpreter::Interpret(const std::string &scriptfile)
    currentScriptBeingRead = mainScriptFilename;
    std::ifstream inFile(mainScriptFilename.c_str());
    inStream = &inFile; // This is needed for CheckEncoding()
+   if (allowUtf8)
+   {
+      errorList.clear();
+      if (!inFile.is_open())
+      {
+         inStream = NULL;
+         const std::string error = "The script \"" + mainScriptFilename +
+               "\" could not be opened.";
+         errorList.push_back(error);
+         throw InterpreterException(error);
+      }
+   }
    
    #if DBGLVL_SCRIPT_READING
    MessageInterface::ShowMessage("   Calling CheckEncoding()\n");
    #endif
-   if (CheckEncoding())
+   if (allowUtf8 ? ValidUtf8Script(inFile) : CheckEncoding())
    {
       #if DBGLVL_SCRIPT_READING
       MessageInterface::ShowMessage("   Calling SetInStream()\n");
@@ -391,6 +480,14 @@ bool ScriptInterpreter::Interpret(const std::string &scriptfile)
    else
    {
       inFile.close();
+      inStream = NULL;
+      if (allowUtf8)
+      {
+         const std::string error = "The script \"" + mainScriptFilename +
+               "\" is not valid UTF-8; please fix the file before proceeding.";
+         errorList.push_back(error);
+         throw InterpreterException(error);
+      }
       throw InterpreterException("The script \"" + mainScriptFilename +
             "\" contains characters outside of the ASCII character set; "
             "please fix the file before proceeding.");
@@ -672,8 +769,26 @@ GmatCommand* ScriptInterpreter::InterpretGmatFunction(Function *funct)
        currentFunction);
    #endif
    
-   GmatCommand *fcs = InterpretGmatFunction(fileName);
-   //return InterpretGmatFunction(fileName);
+   // A declaration/parse exception must not leave FindObject and the
+   // Validator searching the failed function on the next GUI rebuild.
+   // CheckFunctionDefinition can throw before the filename overload reaches
+   // its normal function-mode cleanup.
+   const bool previousContinueOnError = continueOnError;
+   GmatCommand *fcs = NULL;
+   try
+   {
+      fcs = InterpretGmatFunction(fileName);
+   }
+   catch (...)
+   {
+      inFunctionMode = false;
+      hasFunctionDefinition = false;
+      continueOnError = previousContinueOnError;
+      SetFunction(NULL);
+      throw;
+   }
+   continueOnError = previousContinueOnError;
+   SetFunction(NULL);
    
    #if DBGLVL_GMAT_FUNCTION
    MessageInterface::ShowMessage
@@ -779,6 +894,11 @@ bool ScriptInterpreter::SetOutStream(std::ostream *ostrm)
    outStream = ostrm;
    theReadWriter->SetOutStream(outStream);
    return true;
+}
+
+std::ostream* ScriptInterpreter::GetOutStream() const
+{
+   return outStream;
 }
 
 
@@ -956,6 +1076,11 @@ void ScriptInterpreter::InitializeScriptData()
 //------------------------------------------------------------------------------
 bool ScriptInterpreter::InterpretIncludeFile(GmatCommand *inCmd)
 {
+   // Check before changing parser/stream stacks so a policy error leaves them
+   // pointing at the caller. Nested includes inherit the current function.
+   if (currentFunction)
+      currentFunction->ValidateSourceFilePolicy(lastIncludeFile, true);
+
    #ifdef DEBUG_INCLUDE
    MessageInterface::ShowMessage
       ("ScriptInterpreter::InterpretIncludeFile() entered, inCmd=<%p>\n"
@@ -1207,6 +1332,8 @@ bool ScriptInterpreter::ReadScript(GmatCommand *inCmd, bool skipHeader,bool rein
    MessageInterface::ShowMessage("   Calling theReadWriter->ReadFirstBlock()\n");
    #endif
    theReadWriter->ReadFirstBlock(tempHeader, currentBlock, skipHeader);
+   if (currentFunction == nullptr)
+      ScriptSourceCapture::Record(tempHeader, scriptStack.empty());
    if (inCmd == NULL)
       headerComment = tempHeader;
    
@@ -1225,6 +1352,10 @@ bool ScriptInterpreter::ReadScript(GmatCommand *inCmd, bool skipHeader,bool rein
    {
       try
       {
+         // Observe original logical input once, before parser/include changes.
+         // Function bodies and delayed-block replay are not mission source.
+         if (currentFunction == nullptr)
+            ScriptSourceCapture::Record(currentBlock, scriptStack.empty());
          #if DBGLVL_SCRIPT_READING
          MessageInterface::ShowMessage("==========> Calling EvaluateBlock()\n");
          #endif
@@ -2761,7 +2892,7 @@ bool ScriptInterpreter::ParseAssignmentBlock(const StringArray &chunks,
    }
    
    // if RHS is not enclosed with single quotes, check for unexpected symbols or space
-   if (!GmatStringUtil::IsEnclosedWith(rhs, "'"))
+   if (!GmatScriptString::IsLiteral(rhs))
    {
       #ifdef DEBUG_PARSE_ASSIGNMENT
       MessageInterface::ShowMessage
@@ -2783,7 +2914,14 @@ bool ScriptInterpreter::ParseAssignmentBlock(const StringArray &chunks,
             MessageInterface::ShowMessage
                ("   [] removed from lhs, now lhs = '%s'\n", output.c_str());
             #endif
-            lhs = output;
+            // A whole native function call must retain authored brackets for
+            // RequireOutputBrackets. Arithmetic expressions still use the
+            // legacy scalar-assignment route with the brackets removed.
+            std::string arguments;
+            const std::string name = GmatStringUtil::ParseFunctionName(rhs, arguments);
+            GmatBase *function = GmatStringUtil::IsThereMathSymbol(rhs) ? NULL : FindObject(name);
+            if (!function || !function->IsOfType("GmatFunction"))
+               lhs = output;
          }
       }
       else if (lhs.find_first_of("=~<>[]{}\"") != lhs.npos ||
@@ -3859,7 +3997,7 @@ void ScriptInterpreter::WriteVariablesAndArrays(StringArray &objs,
                std::string rhs = genStr.substr(equalPos + 1);
                rhs = GmatStringUtil::Trim(rhs, GmatStringUtil::BOTH, true, true);
                // check if initial value is string literal or other String object
-               if (GmatStringUtil::IsEnclosedWith(rhs, "'"))
+               if (GmatScriptString::IsLiteral(rhs))
                   strWithValList.push_back(object);
             }
          }
@@ -4209,7 +4347,7 @@ void ScriptInterpreter::WriteCommandSequence(Gmat::WriteMode mode)
    
    // Write out the section delimiter comment if preface comment is blank
    // The first command is always NoOp, so get next command
-   cmd = cmd->GetNext();
+   cmd = cmd->GetNextWhileExecuting();
    
    // If there is no command after NoOp, return
    if (cmd == NULL)
@@ -4221,7 +4359,7 @@ void ScriptInterpreter::WriteCommandSequence(Gmat::WriteMode mode)
        cmd->GetTypeName().c_str(), cmd->GetCommentLine().c_str());
    #endif
    
-   GmatCommand *nextCmd = cmd->GetNext();
+   GmatCommand *nextCmd = cmd->GetNextWhileExecuting();
    bool writeMissionSeqDelim = false;
    
    // Since second command should be BeginMissionSequence, check for the next one for comment
@@ -4299,11 +4437,11 @@ void ScriptInterpreter::WriteCommandSequence(Gmat::WriteMode mode)
       
       inTextMode = (scriptEventCount == 0) ? false : true;
       
-      if (cmd == cmd->GetNext())
+      if (cmd == cmd->GetNextWhileExecuting())
          throw InterpreterException
             ("Self-reference found in command stream during write.\n");
       
-      cmd = cmd->GetNext();
+      cmd = cmd->GetNextWhileExecuting();
    }
 }
 

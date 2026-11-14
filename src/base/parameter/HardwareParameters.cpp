@@ -130,7 +130,12 @@ void FuelMass::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelMass::Clone(void) const
 {
-   return new FuelMass(*this);
+   return CompleteParameterClone(new FuelMass(*this));
+}
+
+void FuelMass::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelMass>(source);
 }
 
 
@@ -217,7 +222,12 @@ void FuelCenterOfMassX::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelCenterOfMassX::Clone(void) const
 {
-   return new FuelCenterOfMassX(*this);
+   return CompleteParameterClone(new FuelCenterOfMassX(*this));
+}
+
+void FuelCenterOfMassX::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelCenterOfMassX>(source);
 }
 
 
@@ -305,7 +315,12 @@ void FuelCenterOfMassY::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelCenterOfMassY::Clone(void) const
 {
-   return new FuelCenterOfMassY(*this);
+   return CompleteParameterClone(new FuelCenterOfMassY(*this));
+}
+
+void FuelCenterOfMassY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelCenterOfMassY>(source);
 }
 
 
@@ -392,7 +407,12 @@ void FuelCenterOfMassZ::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelCenterOfMassZ::Clone(void) const
 {
-   return new FuelCenterOfMassZ(*this);
+   return CompleteParameterClone(new FuelCenterOfMassZ(*this));
+}
+
+void FuelCenterOfMassZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelCenterOfMassZ>(source);
 }
 
 
@@ -480,7 +500,12 @@ void FuelMomentOfInertiaXX::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelMomentOfInertiaXX::Clone(void) const
 {
-   return new FuelMomentOfInertiaXX(*this);
+   return CompleteParameterClone(new FuelMomentOfInertiaXX(*this));
+}
+
+void FuelMomentOfInertiaXX::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelMomentOfInertiaXX>(source);
 }
 
 
@@ -568,7 +593,12 @@ void FuelMomentOfInertiaXY::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelMomentOfInertiaXY::Clone(void) const
 {
-   return new FuelMomentOfInertiaXY(*this);
+   return CompleteParameterClone(new FuelMomentOfInertiaXY(*this));
+}
+
+void FuelMomentOfInertiaXY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelMomentOfInertiaXY>(source);
 }
 
 
@@ -656,7 +686,12 @@ void FuelMomentOfInertiaXZ::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelMomentOfInertiaXZ::Clone(void) const
 {
-   return new FuelMomentOfInertiaXZ(*this);
+   return CompleteParameterClone(new FuelMomentOfInertiaXZ(*this));
+}
+
+void FuelMomentOfInertiaXZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelMomentOfInertiaXZ>(source);
 }
 
 
@@ -744,7 +779,12 @@ void FuelMomentOfInertiaYY::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelMomentOfInertiaYY::Clone(void) const
 {
-   return new FuelMomentOfInertiaYY(*this);
+   return CompleteParameterClone(new FuelMomentOfInertiaYY(*this));
+}
+
+void FuelMomentOfInertiaYY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelMomentOfInertiaYY>(source);
 }
 
 
@@ -832,7 +872,12 @@ void FuelMomentOfInertiaYZ::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelMomentOfInertiaYZ::Clone(void) const
 {
-   return new FuelMomentOfInertiaYZ(*this);
+   return CompleteParameterClone(new FuelMomentOfInertiaYZ(*this));
+}
+
+void FuelMomentOfInertiaYZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelMomentOfInertiaYZ>(source);
 }
 
 
@@ -920,7 +965,12 @@ void FuelMomentOfInertiaZZ::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelMomentOfInertiaZZ::Clone(void) const
 {
-   return new FuelMomentOfInertiaZZ(*this);
+   return CompleteParameterClone(new FuelMomentOfInertiaZZ(*this));
+}
+
+void FuelMomentOfInertiaZZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelMomentOfInertiaZZ>(source);
 }
 
 
@@ -1008,7 +1058,12 @@ void FuelCenterOfMassX_BCS::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelCenterOfMassX_BCS::Clone(void) const
 {
-   return new FuelCenterOfMassX_BCS(*this);
+   return CompleteParameterClone(new FuelCenterOfMassX_BCS(*this));
+}
+
+void FuelCenterOfMassX_BCS::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelCenterOfMassX_BCS>(source);
 }
 
 
@@ -1096,7 +1151,12 @@ void FuelCenterOfMassY_BCS::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelCenterOfMassY_BCS::Clone(void) const
 {
-   return new FuelCenterOfMassY_BCS(*this);
+   return CompleteParameterClone(new FuelCenterOfMassY_BCS(*this));
+}
+
+void FuelCenterOfMassY_BCS::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelCenterOfMassY_BCS>(source);
 }
 
 
@@ -1184,7 +1244,12 @@ void FuelCenterOfMassZ_BCS::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelCenterOfMassZ_BCS::Clone(void) const
 {
-   return new FuelCenterOfMassZ_BCS(*this);
+   return CompleteParameterClone(new FuelCenterOfMassZ_BCS(*this));
+}
+
+void FuelCenterOfMassZ_BCS::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelCenterOfMassZ_BCS>(source);
 }
 
 
@@ -1272,7 +1337,12 @@ void FuelMomentOfInertiaXX_BCS::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelMomentOfInertiaXX_BCS::Clone(void) const
 {
-   return new FuelMomentOfInertiaXX_BCS(*this);
+   return CompleteParameterClone(new FuelMomentOfInertiaXX_BCS(*this));
+}
+
+void FuelMomentOfInertiaXX_BCS::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelMomentOfInertiaXX_BCS>(source);
 }
 
 
@@ -1360,7 +1430,12 @@ void FuelMomentOfInertiaXY_BCS::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelMomentOfInertiaXY_BCS::Clone(void) const
 {
-   return new FuelMomentOfInertiaXY_BCS(*this);
+   return CompleteParameterClone(new FuelMomentOfInertiaXY_BCS(*this));
+}
+
+void FuelMomentOfInertiaXY_BCS::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelMomentOfInertiaXY_BCS>(source);
 }
 
 
@@ -1448,7 +1523,12 @@ void FuelMomentOfInertiaXZ_BCS::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelMomentOfInertiaXZ_BCS::Clone(void) const
 {
-   return new FuelMomentOfInertiaXZ_BCS(*this);
+   return CompleteParameterClone(new FuelMomentOfInertiaXZ_BCS(*this));
+}
+
+void FuelMomentOfInertiaXZ_BCS::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelMomentOfInertiaXZ_BCS>(source);
 }
 
 
@@ -1536,7 +1616,12 @@ void FuelMomentOfInertiaYY_BCS::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelMomentOfInertiaYY_BCS::Clone(void) const
 {
-   return new FuelMomentOfInertiaYY_BCS(*this);
+   return CompleteParameterClone(new FuelMomentOfInertiaYY_BCS(*this));
+}
+
+void FuelMomentOfInertiaYY_BCS::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelMomentOfInertiaYY_BCS>(source);
 }
 
 
@@ -1624,7 +1709,12 @@ void FuelMomentOfInertiaYZ_BCS::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelMomentOfInertiaYZ_BCS::Clone(void) const
 {
-   return new FuelMomentOfInertiaYZ_BCS(*this);
+   return CompleteParameterClone(new FuelMomentOfInertiaYZ_BCS(*this));
+}
+
+void FuelMomentOfInertiaYZ_BCS::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelMomentOfInertiaYZ_BCS>(source);
 }
 
 
@@ -1712,7 +1802,12 @@ void FuelMomentOfInertiaZZ_BCS::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelMomentOfInertiaZZ_BCS::Clone(void) const
 {
-   return new FuelMomentOfInertiaZZ_BCS(*this);
+   return CompleteParameterClone(new FuelMomentOfInertiaZZ_BCS(*this));
+}
+
+void FuelMomentOfInertiaZZ_BCS::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelMomentOfInertiaZZ_BCS>(source);
 }
 
 
@@ -1799,7 +1894,12 @@ void Pressure::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* Pressure::Clone(void) const
 {
-   return new Pressure(*this);
+   return CompleteParameterClone(new Pressure(*this));
+}
+
+void Pressure::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Pressure>(source);
 }
 
 
@@ -1886,7 +1986,12 @@ void Temperature::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* Temperature::Clone(void) const
 {
-   return new Temperature(*this);
+   return CompleteParameterClone(new Temperature(*this));
+}
+
+void Temperature::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Temperature>(source);
 }
 
 
@@ -1973,7 +2078,12 @@ void RefTemperature::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* RefTemperature::Clone(void) const
 {
-   return new RefTemperature(*this);
+   return CompleteParameterClone(new RefTemperature(*this));
+}
+
+void RefTemperature::Copy(const GmatBase *source)
+{
+   CopyParameterValue<RefTemperature>(source);
 }
 
 
@@ -2060,7 +2170,12 @@ void Volume::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* Volume::Clone(void) const
 {
-   return new Volume(*this);
+   return CompleteParameterClone(new Volume(*this));
+}
+
+void Volume::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Volume>(source);
 }
 
 
@@ -2147,7 +2262,12 @@ void FuelDensity::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* FuelDensity::Clone(void) const
 {
-   return new FuelDensity(*this);
+   return CompleteParameterClone(new FuelDensity(*this));
+}
+
+void FuelDensity::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FuelDensity>(source);
 }
 
 //==============================================================================
@@ -2233,7 +2353,12 @@ void R_SB11::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* R_SB11::Clone(void) const
 {
-   return new R_SB11(*this);
+   return CompleteParameterClone(new R_SB11(*this));
+}
+
+void R_SB11::Copy(const GmatBase *source)
+{
+   CopyParameterValue<R_SB11>(source);
 }
 
 //==============================================================================
@@ -2319,7 +2444,12 @@ void R_SB12::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* R_SB12::Clone(void) const
 {
-   return new R_SB12(*this);
+   return CompleteParameterClone(new R_SB12(*this));
+}
+
+void R_SB12::Copy(const GmatBase *source)
+{
+   CopyParameterValue<R_SB12>(source);
 }
 
 
@@ -2406,7 +2536,12 @@ void R_SB13::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* R_SB13::Clone(void) const
 {
-   return new R_SB13(*this);
+   return CompleteParameterClone(new R_SB13(*this));
+}
+
+void R_SB13::Copy(const GmatBase *source)
+{
+   CopyParameterValue<R_SB13>(source);
 }
 
 
@@ -2493,7 +2628,12 @@ void R_SB21::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* R_SB21::Clone(void) const
 {
-   return new R_SB21(*this);
+   return CompleteParameterClone(new R_SB21(*this));
+}
+
+void R_SB21::Copy(const GmatBase *source)
+{
+   CopyParameterValue<R_SB21>(source);
 }
 
 //==============================================================================
@@ -2579,7 +2719,12 @@ void R_SB22::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* R_SB22::Clone(void) const
 {
-   return new R_SB22(*this);
+   return CompleteParameterClone(new R_SB22(*this));
+}
+
+void R_SB22::Copy(const GmatBase *source)
+{
+   CopyParameterValue<R_SB22>(source);
 }
 
 
@@ -2666,7 +2811,12 @@ void R_SB23::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* R_SB23::Clone(void) const
 {
-   return new R_SB23(*this);
+   return CompleteParameterClone(new R_SB23(*this));
+}
+
+void R_SB23::Copy(const GmatBase *source)
+{
+   CopyParameterValue<R_SB23>(source);
 }
 
 
@@ -2753,7 +2903,12 @@ void R_SB31::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* R_SB31::Clone(void) const
 {
-   return new R_SB31(*this);
+   return CompleteParameterClone(new R_SB31(*this));
+}
+
+void R_SB31::Copy(const GmatBase *source)
+{
+   CopyParameterValue<R_SB31>(source);
 }
 
 //==============================================================================
@@ -2839,7 +2994,12 @@ void R_SB32::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* R_SB32::Clone(void) const
 {
-   return new R_SB32(*this);
+   return CompleteParameterClone(new R_SB32(*this));
+}
+
+void R_SB32::Copy(const GmatBase *source)
+{
+   CopyParameterValue<R_SB32>(source);
 }
 
 
@@ -2926,7 +3086,12 @@ void R_SB33::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* R_SB33::Clone(void) const
 {
-   return new R_SB33(*this);
+   return CompleteParameterClone(new R_SB33(*this));
+}
+
+void R_SB33::Copy(const GmatBase *source)
+{
+   CopyParameterValue<R_SB33>(source);
 }
 
 
@@ -3013,7 +3178,12 @@ void DutyCycle::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* DutyCycle::Clone(void) const
 {
-   return new DutyCycle(*this);
+   return CompleteParameterClone(new DutyCycle(*this));
+}
+
+void DutyCycle::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DutyCycle>(source);
 }
 
 
@@ -3100,7 +3270,12 @@ void ThrustScaleFactor::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* ThrustScaleFactor::Clone(void) const
 {
-   return new ThrustScaleFactor(*this);
+   return CompleteParameterClone(new ThrustScaleFactor(*this));
+}
+
+void ThrustScaleFactor::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ThrustScaleFactor>(source);
 }
 
 
@@ -3187,7 +3362,12 @@ void GravitationalAccel::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* GravitationalAccel::Clone(void) const
 {
-   return new GravitationalAccel(*this);
+   return CompleteParameterClone(new GravitationalAccel(*this));
+}
+
+void GravitationalAccel::Copy(const GmatBase *source)
+{
+   CopyParameterValue<GravitationalAccel>(source);
 }
 
 
@@ -3305,7 +3485,12 @@ void ThrustCoefficients::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* ThrustCoefficients::Clone(void) const
 {
-   return new ThrustCoefficients(*this);
+   return CompleteParameterClone(new ThrustCoefficients(*this));
+}
+
+void ThrustCoefficients::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ThrustCoefficients>(source);
 }
 
 
@@ -3422,7 +3607,12 @@ void ImpulseCoefficients::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* ImpulseCoefficients::Clone(void) const
 {
-   return new ImpulseCoefficients(*this);
+   return CompleteParameterClone(new ImpulseCoefficients(*this));
+}
+
+void ImpulseCoefficients::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ImpulseCoefficients>(source);
 }
 
 
@@ -3528,7 +3718,12 @@ void ThrustDirections::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* ThrustDirections::Clone(void) const
 {
-   return new ThrustDirections(*this);
+   return CompleteParameterClone(new ThrustDirections(*this));
+}
+
+void ThrustDirections::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ThrustDirections>(source);
 }
 
 
@@ -3545,7 +3740,7 @@ GmatBase* ThrustDirections::Clone(void) const
 //------------------------------------------------------------------------------
 ThrustMagnitude::ThrustMagnitude(const std::string &name, GmatBase *obj)
    : HardwareReal(name, "ThrustMagnitude", Gmat::SPACECRAFT, Gmat::THRUSTER, obj,
-                  "ThrustMagnitude", "")
+                  "ThrustMagnitude", "N")
 {
    #ifdef USE_PREDEFINED_COLORS
       mColor = GmatColor::CHESTNUT;
@@ -3609,7 +3804,12 @@ void ThrustMagnitude::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* ThrustMagnitude::Clone(void) const
 {
-   return new ThrustMagnitude(*this);
+   return CompleteParameterClone(new ThrustMagnitude(*this));
+}
+
+void ThrustMagnitude::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ThrustMagnitude>(source);
 }
 
 
@@ -3626,7 +3826,7 @@ GmatBase* ThrustMagnitude::Clone(void) const
 //------------------------------------------------------------------------------
 Isp::Isp(const std::string &name, GmatBase *obj)
    : HardwareReal(name, "Isp", Gmat::SPACECRAFT, Gmat::THRUSTER, obj,
-                  "Isp", "")
+                  "Isp", "s")
 {
    #ifdef USE_PREDEFINED_COLORS
       mColor = GmatColor::CHESTNUT;
@@ -3690,7 +3890,12 @@ void Isp::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* Isp::Clone(void) const
 {
-   return new Isp(*this);
+   return CompleteParameterClone(new Isp(*this));
+}
+
+void Isp::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Isp>(source);
 }
 
 
@@ -3707,7 +3912,7 @@ GmatBase* Isp::Clone(void) const
 //------------------------------------------------------------------------------
 MassFlowRate::MassFlowRate(const std::string &name, GmatBase *obj)
    : HardwareReal(name, "MassFlowRate", Gmat::SPACECRAFT, Gmat::THRUSTER, obj,
-                  "MassFlowRate", "")
+                  "MassFlowRate", "kg/s")
 {
    #ifdef USE_PREDEFINED_COLORS
       mColor = GmatColor::CHESTNUT;
@@ -3771,7 +3976,12 @@ void MassFlowRate::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* MassFlowRate::Clone(void) const
 {
-   return new MassFlowRate(*this);
+   return CompleteParameterClone(new MassFlowRate(*this));
+}
+
+void MassFlowRate::Copy(const GmatBase *source)
+{
+   CopyParameterValue<MassFlowRate>(source);
 }
 
 
@@ -3858,7 +4068,12 @@ void TotalPowerAvailable::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* TotalPowerAvailable::Clone() const
 {
-   return new TotalPowerAvailable(*this);
+   return CompleteParameterClone(new TotalPowerAvailable(*this));
+}
+
+void TotalPowerAvailable::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TotalPowerAvailable>(source);
 }
 
 //==============================================================================
@@ -3944,7 +4159,12 @@ void RequiredBusPower::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* RequiredBusPower::Clone() const
 {
-   return new RequiredBusPower(*this);
+   return CompleteParameterClone(new RequiredBusPower(*this));
+}
+
+void RequiredBusPower::Copy(const GmatBase *source)
+{
+   CopyParameterValue<RequiredBusPower>(source);
 }
 
 
@@ -4031,7 +4251,12 @@ void ThrustPowerAvailable::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* ThrustPowerAvailable::Clone() const
 {
-   return new ThrustPowerAvailable(*this);
+   return CompleteParameterClone(new ThrustPowerAvailable(*this));
+}
+
+void ThrustPowerAvailable::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ThrustPowerAvailable>(source);
 }
 
 
@@ -4119,7 +4344,12 @@ void AreaCoefficient::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* AreaCoefficient::Clone(void) const
 {
-   return new AreaCoefficient(*this);
+   return CompleteParameterClone(new AreaCoefficient(*this));
+}
+
+void AreaCoefficient::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AreaCoefficient>(source);
 }
 
 
@@ -4206,7 +4436,12 @@ void SpecularFraction::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* SpecularFraction::Clone(void) const
 {
-   return new SpecularFraction(*this);
+   return CompleteParameterClone(new SpecularFraction(*this));
+}
+
+void SpecularFraction::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SpecularFraction>(source);
 }
 
 
@@ -4293,7 +4528,12 @@ void DiffuseFraction::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* DiffuseFraction::Clone(void) const
 {
-   return new DiffuseFraction(*this);
+   return CompleteParameterClone(new DiffuseFraction(*this));
+}
+
+void DiffuseFraction::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DiffuseFraction>(source);
 }
 
 
@@ -4380,7 +4620,12 @@ void Area::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* Area::Clone(void) const
 {
-   return new Area(*this);
+   return CompleteParameterClone(new Area(*this));
+}
+
+void Area::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Area>(source);
 }
 
 
@@ -4473,7 +4718,12 @@ void PlateNormal::SetRvector(Rvector& val)
 //------------------------------------------------------------------------------
 GmatBase* PlateNormal::Clone(void) const
 {
-   return new PlateNormal(*this);
+   return CompleteParameterClone(new PlateNormal(*this));
+}
+
+void PlateNormal::Copy(const GmatBase *source)
+{
+   CopyParameterValue<PlateNormal>(source);
 }
 
 
@@ -4560,7 +4810,12 @@ void LitFraction::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* LitFraction::Clone(void) const
 {
-   return new LitFraction(*this);
+   return CompleteParameterClone(new LitFraction(*this));
+}
+
+void LitFraction::Copy(const GmatBase *source)
+{
+   CopyParameterValue<LitFraction>(source);
 }
 
 //==============================================================================
@@ -4647,7 +4902,12 @@ void Type::SetString(std::string &val)
 //------------------------------------------------------------------------------
 GmatBase* Type::Clone(void) const
 {
-   return new Type(*this);
+   return CompleteParameterClone(new Type(*this));
+}
+
+void Type::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Type>(source);
 }
 
 
@@ -4742,7 +5002,12 @@ void AreaCoefficientSigma::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* AreaCoefficientSigma::Clone(void) const
 {
-   return new AreaCoefficientSigma(*this);
+   return CompleteParameterClone(new AreaCoefficientSigma(*this));
+}
+
+void AreaCoefficientSigma::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AreaCoefficientSigma>(source);
 }
 
 
@@ -4829,7 +5094,12 @@ void SpecularFractionSigma::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* SpecularFractionSigma::Clone(void) const
 {
-   return new SpecularFractionSigma(*this);
+   return CompleteParameterClone(new SpecularFractionSigma(*this));
+}
+
+void SpecularFractionSigma::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SpecularFractionSigma>(source);
 }
 
 
@@ -4916,7 +5186,12 @@ void DiffuseFractionSigma::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* DiffuseFractionSigma::Clone(void) const
 {
-   return new DiffuseFractionSigma(*this);
+   return CompleteParameterClone(new DiffuseFractionSigma(*this));
+}
+
+void DiffuseFractionSigma::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DiffuseFractionSigma>(source);
 }
 
 //==============================================================================
@@ -5003,7 +5278,12 @@ void PlateNormalHistoryFile::SetString(std::string &val)
 //------------------------------------------------------------------------------
 GmatBase* PlateNormalHistoryFile::Clone(void) const
 {
-   return new PlateNormalHistoryFile(*this);
+   return CompleteParameterClone(new PlateNormalHistoryFile(*this));
+}
+
+void PlateNormalHistoryFile::Copy(const GmatBase *source)
+{
+   CopyParameterValue<PlateNormalHistoryFile>(source);
 }
 
 
@@ -5090,7 +5370,12 @@ void PlateX::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* PlateX::Clone(void) const
 {
-   return new PlateX(*this);
+   return CompleteParameterClone(new PlateX(*this));
+}
+
+void PlateX::Copy(const GmatBase *source)
+{
+   CopyParameterValue<PlateX>(source);
 }
 
 
@@ -5177,7 +5462,12 @@ void PlateY::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* PlateY::Clone(void) const
 {
-   return new PlateY(*this);
+   return CompleteParameterClone(new PlateY(*this));
+}
+
+void PlateY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<PlateY>(source);
 }
 
 
@@ -5264,5 +5554,10 @@ void PlateZ::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* PlateZ::Clone(void) const
 {
-   return new PlateZ(*this);
+   return CompleteParameterClone(new PlateZ(*this));
+}
+
+void PlateZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<PlateZ>(source);
 }

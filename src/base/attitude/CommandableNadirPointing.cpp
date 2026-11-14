@@ -36,12 +36,15 @@
 //#define DEBUG_CNP_COMPUTE // for computing DCM
 
 #include "MessageInterface.hpp"
+#include <memory>
 #include "StringUtil.hpp"
 #include "AttitudeConversionUtility.hpp"
 #include "AttitudeException.hpp"
 #include "SpaceObject.hpp"
 
 #include "CommandableNadirPointing.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 
 //------------------------------------------------------------------------------
 // static data
@@ -60,7 +63,7 @@ const Real CommandableNadirPointing::DENOMINATOR_TOLERANCE = 1.0e-15;
  */
 //------------------------------------------------------------------------------
 CommandableNadirPointing::CommandableNadirPointing(const std::string &itsName) :
-   Kinematic(itsName),
+   Kinematic("CommandableNadirPointing", itsName),
    firstInit(true)
 {
    parameterCount = CommandableNadirPointingParamCount;
@@ -174,7 +177,9 @@ bool CommandableNadirPointing::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* CommandableNadirPointing::Clone() const
 {
-	return (new CommandableNadirPointing(*this));
+	std::unique_ptr<CommandableNadirPointing> value(new CommandableNadirPointing(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 /* -------------------------
@@ -1654,4 +1659,17 @@ bool CommandableNadirPointing::NeedToEvaluateAttitude(Real atTime)
       return false;
    else
       return true;
+}
+// Reset/copy through the inherited polymorphic contract without slicing.
+void CommandableNadirPointing::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const CommandableNadirPointing*>(original);
+   if (!source || typeid(*source) != typeid(CommandableNadirPointing) ||
+       typeid(*this) != typeid(CommandableNadirPointing))
+      throw GmatBaseException("Cannot copy incompatible object into CommandableNadirPointing");
+   if (source == this)
+      return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }

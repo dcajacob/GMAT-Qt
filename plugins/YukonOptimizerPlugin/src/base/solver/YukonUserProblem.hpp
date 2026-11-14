@@ -42,6 +42,8 @@ class YUKON_API YukonUserProblem
 {
 public:
    YukonUserProblem();
+   YukonUserProblem(const YukonUserProblem &source);
+   YukonUserProblem& operator=(const YukonUserProblem &source);
 
    virtual void GetNLPInfo(Integer &totalNumVars, Integer &totalNumCons) = 0;
    virtual Rvector GetStartingPoint() = 0;
@@ -61,11 +63,11 @@ protected:
    /// Vector containing the constraint bounds
    Rvector bVarBound;
    /// The number of bound constraints
-   Integer numBoundCon;
+   Integer numBoundCon = 0;
    /// The constraint type of each constraint
    Rvector conType;
    /// The constraint mode being used
-   Integer conMode;
+   Integer conMode = 0;
    /// Vector containing the constraint upper bounds
    Rvector bVarBoundUpper;
    /// Vector containing the constraint lower bounds
@@ -86,45 +88,45 @@ protected:
    /// Vector of constraint upper bounds
    Rvector conUpperBounds;
    /// The number of nonlinear inequality constraints
-   Integer numNonLinIneqCon;
+   Integer numNonLinIneqCon = 0;
    /// Index indicating where the starting point is for nonlinear inequality
    /// constraints in the constraint list
-   Integer nonLinIneqConStartIdx;
+   Integer nonLinIneqConStartIdx = 0;
    /// The number of nonlinear equality constraints
-   Integer numNonLinEqCon;
+   Integer numNonLinEqCon = 0;
    /// Index indicating where the starting point is for nonlinear equality
    /// constraints in the constraint list
-   Integer nonLinEqConStartIdx;
+   Integer nonLinEqConStartIdx = 0;
    /// The number of linear inequality constraints
-   Integer numLinIneqCon;
+   Integer numLinIneqCon = 0;
    /// Index indicating where the starting point is for linear inequality
    /// constraints in the constraint list
-   Integer linIneqConStartIdx;
+   Integer linIneqConStartIdx = 0;
    /// The number of linear equality constraints
-   Integer numLinEqCon;
+   Integer numLinEqCon = 0;
    /// Index indicating where the starting point is for linear equality
    /// constraints in the constraint list
-   Integer linEqConStartIdx;
+   Integer linEqConStartIdx = 0;
    /// Index indicating where the starting point is for a bound constraint
    /// in the constraint list
-   Integer boundConStartIdx;
+   Integer boundConStartIdx = 0;
    /// The constraint Jacobian matrix
    Rmatrix conJacobian;
    /// The cost Jacobian vector
    Rvector costJacobian;
    /// The total number of nonlinear constraints
-   Integer numNonLinCon;
+   Integer numNonLinCon = 0;
    /// The total number of linear constraints
-   Integer numLinCon;
+   Integer numLinCon = 0;
    /// The total number of variables
-   Integer numVars;
+   Integer numVars = 0;
    /// The total number of constraints
-   Integer numCons;
+   Integer numCons = 0;
    /// Vector containing the constraint function values
    Rvector conFunctions;
 
    /// Value to hold infinity
-   Real inf;
+   Real inf = 0.0;
 };
 
 #endif

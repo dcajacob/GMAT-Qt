@@ -124,6 +124,7 @@ int main(int argc,char **argv)
       require(read(saved)==good && editor->document()->isModified() && window.statusBar()->currentMessage().contains("Enter a mission"),"Empty script overwrote the saved mission");
       editor->setPlainText(restored); editor->document()->setModified(false);
       if (argc>2) window.grab().save(QString::fromLocal8Bit(argv[2]));
+      std::cout<<R"(NASA_CHECK {"checkpoint":"script.go-to-line","family":"script-editor","outcome":"passed","facets":["dialog","cancel","line-bound","exact-line","source-unchanged","dirty-state"]})"<<std::endl;
       std::cout<<"PASS: Save/build and Save/build/run with Cancel, Unicode paths, independent 2/5 outputs and failure recovery; bounded Go to line and Cancel; typed CommandEcho On/Off, pending Apply, labels/comments, exact Undo/Redo/save/reopen, trace boundaries, invalid-edit rollback, clone configuration and one-time cleanup, completed/failed/stopped nested RunComplete state restoration.\n";
       return 0;
    } catch (BaseException &error) { std::cerr<<"FAIL: "<<error.GetFullMessage()<<'\n'; return 1; }

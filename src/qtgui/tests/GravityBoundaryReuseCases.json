@@ -1,0 +1,724 @@
+{
+  "schema": 1,
+  "source": "src/qtgui/tests/NasaGravityValidationTests.cpp",
+  "source_sha256": "4234a42b1df2073720170c253cef9f26114b0d4b59e5e5a47343fb2d19d55965",
+  "test": "QtGui.NasaGravityValidation",
+  "receipts": [
+    {
+      "mode": "unattended",
+      "receipt": "build/gui-acceptance/20261027-tide-validation-v2-headless/results.json",
+      "receipt_sha256": "fccf8433f637c8d327ffc3795c15a0a055cf4dddfdca7a7032b30c2a59dca738",
+      "snapshot_manifest": "build/gui-acceptance/20261027-tide-validation-v2-headless/snapshot/manifest.json",
+      "snapshot_manifest_sha256": "e48a882285326c8378c78a0b37f3b9bd892fab0fb34c8d5b7959cf1592206da5",
+      "test": "QtGui.NasaGravityValidation",
+      "log_sha256": "12773642da52bdc9f74b9d0f4767f66fff0ff05e641e03f5ddc39f1e31a49a3e",
+      "junit_sha256": "1dc41cf2084891d4f8facc8086f80a09df7c13f1b0b7c157a25d53933918d51f",
+      "execution_profile": {
+        "config": "Release",
+        "visible": false,
+        "display_route": "nested",
+        "display_scale": "auto",
+        "scale": 1.0,
+        "width": 1600,
+        "height": 1200,
+        "fixed_size": false,
+        "start_minimized": false
+      }
+    },
+    {
+      "mode": "visible",
+      "receipt": "build/gui-acceptance/20261027-tide-validation-v2-visible/results.json",
+      "receipt_sha256": "69546c3c2a93171495d9daa329b0f0358a86786363837c887e632e7a79642739",
+      "snapshot_manifest": "build/gui-acceptance/20261027-tide-validation-v2-visible/snapshot/manifest.json",
+      "snapshot_manifest_sha256": "3589d42e56231e920782dd0cb5b83884ddf37377d7e7875a36682e097ba17314",
+      "test": "QtGui.NasaGravityValidation",
+      "log_sha256": "bdb4389fec791692df5da7c893a6f6490099183d595423745a0a35519adc2ef1",
+      "junit_sha256": "b9a13cd1c6181f912cb269515dd8218a364f9efa0fc3a50e742e65c5e2a90edc",
+      "execution_profile": {
+        "config": "Release",
+        "visible": true,
+        "display_route": "nested",
+        "display_scale": "auto",
+        "scale": 3,
+        "width": 3966,
+        "height": 2506,
+        "fixed_size": false,
+        "start_minimized": true
+      }
+    }
+  ],
+  "checks": [
+    {
+      "checkpoint": "gravity-bounds.valid-0-0",
+      "kind": "coupled-pair",
+      "fields": {
+        "Degree": "0",
+        "Order": "0"
+      },
+      "valid": true,
+      "cpp_literal": "{\"0\",\"0\",\"valid\"}"
+    },
+    {
+      "checkpoint": "gravity-bounds.valid-2-1",
+      "kind": "coupled-pair",
+      "fields": {
+        "Degree": "2",
+        "Order": "1"
+      },
+      "valid": true,
+      "cpp_literal": "{\"2\",\"1\",\"valid\"}"
+    },
+    {
+      "checkpoint": "gravity-bounds.valid-4-4",
+      "kind": "coupled-pair",
+      "fields": {
+        "Degree": "4",
+        "Order": "4"
+      },
+      "valid": true,
+      "cpp_literal": "{\"4\",\"4\",\"valid\"}"
+    },
+    {
+      "checkpoint": "gravity-bounds.valid-8-6",
+      "kind": "coupled-pair",
+      "fields": {
+        "Degree": "8",
+        "Order": "6"
+      },
+      "valid": true,
+      "cpp_literal": "{\"8\",\"6\",\"valid\"}"
+    },
+    {
+      "checkpoint": "gravity-bounds.invalid-3-4",
+      "kind": "coupled-pair",
+      "fields": {
+        "Degree": "3",
+        "Order": "4"
+      },
+      "valid": false,
+      "cpp_literal": "{\"3\",\"4\",\"invalid\"}"
+    },
+    {
+      "checkpoint": "gravity-bounds.invalid-0-1",
+      "kind": "coupled-pair",
+      "fields": {
+        "Degree": "0",
+        "Order": "1"
+      },
+      "valid": false,
+      "cpp_literal": "{\"0\",\"1\",\"invalid\"}"
+    },
+    {
+      "checkpoint": "gravity-bounds.invalid--1-0",
+      "kind": "coupled-pair",
+      "fields": {
+        "Degree": "-1",
+        "Order": "0"
+      },
+      "valid": false,
+      "cpp_literal": "{\"-1\",\"0\",\"invalid\"}"
+    },
+    {
+      "checkpoint": "gravity-bounds.invalid-0--1",
+      "kind": "coupled-pair",
+      "fields": {
+        "Degree": "0",
+        "Order": "-1"
+      },
+      "valid": false,
+      "cpp_literal": "{\"0\",\"-1\",\"invalid\"}"
+    },
+    {
+      "checkpoint": "gravity-bounds.invalid-1.5-0",
+      "kind": "coupled-pair",
+      "fields": {
+        "Degree": "1.5",
+        "Order": "0"
+      },
+      "valid": false,
+      "cpp_literal": "{\"1.5\",\"0\",\"invalid\"}"
+    },
+    {
+      "checkpoint": "gravity-bounds.invalid-nan-0",
+      "kind": "coupled-pair",
+      "fields": {
+        "Degree": "nan",
+        "Order": "0"
+      },
+      "valid": false,
+      "cpp_literal": "{\"nan\",\"0\",\"invalid\"}"
+    },
+    {
+      "checkpoint": "gravity-bounds.invalid-0-inf",
+      "kind": "coupled-pair",
+      "fields": {
+        "Degree": "0",
+        "Order": "inf"
+      },
+      "valid": false,
+      "cpp_literal": "{\"0\",\"inf\",\"invalid\"}"
+    },
+    {
+      "checkpoint": "gravity-bounds.invalid-2-3",
+      "kind": "coupled-pair",
+      "fields": {
+        "Degree": "2",
+        "Order": "3"
+      },
+      "valid": false,
+      "cpp_literal": "{\"2\",\"3\",\"invalid\"}"
+    },
+    {
+      "checkpoint": "gravity-domain.degree-over-file",
+      "case": "degree-over-file",
+      "kind": "gravity-domain",
+      "fields": {
+        "Degree": "71",
+        "Order": "0"
+      },
+      "valid": false
+    },
+    {
+      "checkpoint": "gravity-domain.degree-order-at-file",
+      "case": "degree-order-at-file",
+      "kind": "gravity-domain",
+      "fields": {
+        "Degree": "70",
+        "Order": "70"
+      },
+      "valid": true
+    },
+    {
+      "checkpoint": "gravity-domain.degree-order-over-file",
+      "case": "degree-order-over-file",
+      "kind": "gravity-domain",
+      "fields": {
+        "Degree": "71",
+        "Order": "71"
+      },
+      "valid": false
+    },
+    {
+      "checkpoint": "gravity-domain.order-at-file",
+      "case": "order-at-file",
+      "kind": "gravity-domain",
+      "fields": {
+        "PotentialFile": "lowOrder",
+        "Degree": "4",
+        "Order": "2"
+      },
+      "valid": true
+    },
+    {
+      "checkpoint": "gravity-domain.order-over-file",
+      "case": "order-over-file",
+      "kind": "gravity-domain",
+      "fields": {
+        "PotentialFile": "lowOrder",
+        "Degree": "4",
+        "Order": "3"
+      },
+      "valid": false
+    },
+    {
+      "checkpoint": "gravity-domain.stm-zero",
+      "case": "stm-zero",
+      "kind": "gravity-domain",
+      "fields": {
+        "StmLimit": "0"
+      },
+      "valid": true
+    },
+    {
+      "checkpoint": "gravity-domain.stm-one",
+      "case": "stm-one",
+      "kind": "gravity-domain",
+      "fields": {
+        "StmLimit": "1"
+      },
+      "valid": true
+    },
+    {
+      "checkpoint": "gravity-domain.stm-default",
+      "case": "stm-default",
+      "kind": "gravity-domain",
+      "fields": {
+        "StmLimit": "100"
+      },
+      "valid": true
+    },
+    {
+      "checkpoint": "gravity-domain.stm-int-max",
+      "case": "stm-int-max",
+      "kind": "gravity-domain",
+      "fields": {
+        "StmLimit": "2147483647"
+      },
+      "valid": true
+    },
+    {
+      "checkpoint": "gravity-domain.stm-negative",
+      "case": "stm-negative",
+      "kind": "gravity-domain",
+      "fields": {
+        "StmLimit": "-1"
+      },
+      "valid": false
+    },
+    {
+      "checkpoint": "gravity-domain.stm-fraction",
+      "case": "stm-fraction",
+      "kind": "gravity-domain",
+      "fields": {
+        "StmLimit": "1.5"
+      },
+      "valid": false
+    },
+    {
+      "checkpoint": "gravity-domain.stm-nan",
+      "case": "stm-nan",
+      "kind": "gravity-domain",
+      "fields": {
+        "StmLimit": "nan"
+      },
+      "valid": false
+    },
+    {
+      "checkpoint": "gravity-domain.stm-infinity",
+      "case": "stm-infinity",
+      "kind": "gravity-domain",
+      "fields": {
+        "StmLimit": "inf"
+      },
+      "valid": false
+    },
+    {
+      "checkpoint": "gravity-domain.stm-empty",
+      "case": "stm-empty",
+      "kind": "gravity-domain",
+      "fields": {
+        "StmLimit": ""
+      },
+      "valid": false
+    },
+    {
+      "checkpoint": "gravity-domain.stm-text",
+      "case": "stm-text",
+      "kind": "gravity-domain",
+      "fields": {
+        "StmLimit": "bad"
+      },
+      "valid": false
+    },
+    {
+      "checkpoint": "gravity-domain.stm-int-overflow",
+      "case": "stm-int-overflow",
+      "kind": "gravity-domain",
+      "fields": {
+        "StmLimit": "2147483648"
+      },
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.builtin-none",
+      "case": "builtin-none",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "None",
+      "valid": true
+    },
+    {
+      "checkpoint": "tide-domain.builtin-solid",
+      "case": "builtin-solid",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": true
+    },
+    {
+      "checkpoint": "tide-domain.builtin-pole",
+      "case": "builtin-pole",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "SolidAndPole",
+      "valid": true
+    },
+    {
+      "checkpoint": "tide-domain.file-solid",
+      "case": "file-solid",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": true
+    },
+    {
+      "checkpoint": "tide-domain.file-pole",
+      "case": "file-pole",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "SolidAndPole",
+      "valid": true
+    },
+    {
+      "checkpoint": "tide-domain.uppercase-extension",
+      "case": "uppercase-extension",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": true
+    },
+    {
+      "checkpoint": "tide-domain.lunar-solid",
+      "case": "lunar-solid",
+      "kind": "tide-domain",
+      "body": "Luna",
+      "model": "Solid",
+      "valid": true
+    },
+    {
+      "checkpoint": "tide-domain.lunar-no-data",
+      "case": "lunar-no-data",
+      "kind": "tide-domain",
+      "body": "Luna",
+      "model": "Solid",
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.lunar-pole",
+      "case": "lunar-pole",
+      "kind": "tide-domain",
+      "body": "Luna",
+      "model": "SolidAndPole",
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.wrong-extension",
+      "case": "wrong-extension",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.missing-file",
+      "case": "missing-file",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.directory",
+      "case": "directory",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.empty",
+      "case": "empty",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.comments-only",
+      "case": "comments-only",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.malformed",
+      "case": "malformed",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.incomplete-k",
+      "case": "incomplete-k",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.incomplete-kplus",
+      "case": "incomplete-kplus",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.nan-coefficient",
+      "case": "nan-coefficient",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.infinite-coefficient",
+      "case": "infinite-coefficient",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.degree-range",
+      "case": "degree-range",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.order-range",
+      "case": "order-range",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.negative-index",
+      "case": "negative-index",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "Solid",
+      "valid": false
+    },
+    {
+      "checkpoint": "tide-domain.unknown-model",
+      "case": "unknown-model",
+      "kind": "tide-domain",
+      "body": "Earth",
+      "model": "NotATide",
+      "valid": false
+    },
+    {
+      "checkpoint": "gravity-bounds.mixed-polyhedron",
+      "kind": "transaction",
+      "valid": false
+    }
+  ],
+  "fields": [
+    {
+      "field": "GravityField.Earth.Degree",
+      "scoped_bodies": [
+        "Earth"
+      ],
+      "checkpoints": [
+        "gravity-bounds.valid-0-0",
+        "gravity-bounds.valid-2-1",
+        "gravity-bounds.valid-4-4",
+        "gravity-bounds.valid-8-6",
+        "gravity-bounds.invalid-3-4",
+        "gravity-bounds.invalid-0-1",
+        "gravity-bounds.invalid--1-0",
+        "gravity-bounds.invalid-0--1",
+        "gravity-bounds.invalid-1.5-0",
+        "gravity-bounds.invalid-nan-0",
+        "gravity-bounds.invalid-0-inf",
+        "gravity-bounds.invalid-2-3",
+        "gravity-domain.degree-over-file",
+        "gravity-domain.degree-order-at-file",
+        "gravity-domain.degree-order-over-file",
+        "gravity-domain.order-at-file",
+        "gravity-domain.order-over-file",
+        "gravity-bounds.mixed-polyhedron"
+      ],
+      "assertion_anchors": [
+        "require(rejected, \"Invalid gravity pair was not rejected atomically\");",
+        "require(values.value(\"GravityField.Earth.Degree\").toInt()==(test[2]==\"invalid\" ? 6 : test[0].toInt())"
+      ],
+      "input_delivery": "Programmatic QTableWidgetItem text and QComboBox current-text changes in actual ResourceEditor;requestApply callback. TideFile file-solid includes a Qt QFileDialog Cancel/Open flow with programmatic path/button APIs.",
+      "whole_field_qualified": false,
+      "science_qualified": false,
+      "native_OS_input_qualified": false
+    },
+    {
+      "field": "GravityField.Earth.Order",
+      "scoped_bodies": [
+        "Earth"
+      ],
+      "checkpoints": [
+        "gravity-bounds.valid-0-0",
+        "gravity-bounds.valid-2-1",
+        "gravity-bounds.valid-4-4",
+        "gravity-bounds.valid-8-6",
+        "gravity-bounds.invalid-3-4",
+        "gravity-bounds.invalid-0-1",
+        "gravity-bounds.invalid--1-0",
+        "gravity-bounds.invalid-0--1",
+        "gravity-bounds.invalid-1.5-0",
+        "gravity-bounds.invalid-nan-0",
+        "gravity-bounds.invalid-0-inf",
+        "gravity-bounds.invalid-2-3",
+        "gravity-domain.degree-over-file",
+        "gravity-domain.degree-order-at-file",
+        "gravity-domain.degree-order-over-file",
+        "gravity-domain.order-at-file",
+        "gravity-domain.order-over-file",
+        "gravity-bounds.mixed-polyhedron"
+      ],
+      "assertion_anchors": [
+        "require(child->widget()==panel && panel->hasChanges() && properties()==before && editor.toPlainText()==source && editor.document()->availableUndoSteps()==undo,\"Invalid gravity domain did not reject atomically\");"
+      ],
+      "input_delivery": "Programmatic QTableWidgetItem text and QComboBox current-text changes in actual ResourceEditor;requestApply callback. TideFile file-solid includes a Qt QFileDialog Cancel/Open flow with programmatic path/button APIs.",
+      "whole_field_qualified": false,
+      "science_qualified": false,
+      "native_OS_input_qualified": false
+    },
+    {
+      "field": "GravityField.Earth.StmLimit",
+      "scoped_bodies": [
+        "Earth"
+      ],
+      "checkpoints": [
+        "gravity-domain.stm-zero",
+        "gravity-domain.stm-one",
+        "gravity-domain.stm-default",
+        "gravity-domain.stm-int-max",
+        "gravity-domain.stm-negative",
+        "gravity-domain.stm-fraction",
+        "gravity-domain.stm-nan",
+        "gravity-domain.stm-infinity",
+        "gravity-domain.stm-empty",
+        "gravity-domain.stm-text",
+        "gravity-domain.stm-int-overflow"
+      ],
+      "assertion_anchors": [
+        "require(actual.toLongLong()==it.value().toLongLong(),\"Applied gravity domain value differs\");",
+        "require(values.value(\"ErrorControl\")==\"RSSState\",\"Mixed domain Apply lost ErrorControl\");"
+      ],
+      "input_delivery": "Programmatic QTableWidgetItem text and QComboBox current-text changes in actual ResourceEditor;requestApply callback. TideFile file-solid includes a Qt QFileDialog Cancel/Open flow with programmatic path/button APIs.",
+      "whole_field_qualified": false,
+      "science_qualified": false,
+      "native_OS_input_qualified": false
+    },
+    {
+      "field": "GravityField.Earth.PotentialFile",
+      "scoped_bodies": [
+        "Earth"
+      ],
+      "checkpoints": [
+        "gravity-domain.order-at-file",
+        "gravity-domain.order-over-file"
+      ],
+      "assertion_anchors": [
+        "require(QFileInfo(actual).canonicalFilePath()==QFileInfo(it.value()).canonicalFilePath(),\"Applied gravity potential file differs\");",
+        "require(editor.toPlainText()==source && window.buildScript() && properties()==before,\"Gravity domain Undo differs\");"
+      ],
+      "input_delivery": "Programmatic QTableWidgetItem text and QComboBox current-text changes in actual ResourceEditor;requestApply callback. TideFile file-solid includes a Qt QFileDialog Cancel/Open flow with programmatic path/button APIs.",
+      "whole_field_qualified": false,
+      "science_qualified": false,
+      "native_OS_input_qualified": false
+    },
+    {
+      "field": "GravityField.Earth.TideFile",
+      "scoped_bodies": [
+        "Earth",
+        "Luna"
+      ],
+      "checkpoints": [
+        "tide-domain.builtin-none",
+        "tide-domain.builtin-solid",
+        "tide-domain.builtin-pole",
+        "tide-domain.file-solid",
+        "tide-domain.file-pole",
+        "tide-domain.uppercase-extension",
+        "tide-domain.lunar-solid",
+        "tide-domain.lunar-no-data",
+        "tide-domain.lunar-pole",
+        "tide-domain.wrong-extension",
+        "tide-domain.missing-file",
+        "tide-domain.directory",
+        "tide-domain.empty",
+        "tide-domain.comments-only",
+        "tide-domain.malformed",
+        "tide-domain.incomplete-k",
+        "tide-domain.incomplete-kplus",
+        "tide-domain.nan-coefficient",
+        "tide-domain.infinite-coefficient",
+        "tide-domain.degree-range",
+        "tide-domain.order-range",
+        "tide-domain.negative-index",
+        "tide-domain.unknown-model"
+      ],
+      "assertion_anchors": [
+        "require(field(\"TideFile\")->text()==(accept ? valid : initial) && editor.toPlainText()==source,\"Tide picker Cancel/selection changed the wrong state\");",
+        "require(expectedFile.isEmpty() ? actualFile.isEmpty() : QFileInfo(actualFile).canonicalFilePath()==QFileInfo(expectedFile).canonicalFilePath(),\"Applied tide file differs\");"
+      ],
+      "input_delivery": "Programmatic QTableWidgetItem text and QComboBox current-text changes in actual ResourceEditor;requestApply callback. TideFile file-solid includes a Qt QFileDialog Cancel/Open flow with programmatic path/button APIs.",
+      "whole_field_qualified": false,
+      "science_qualified": false,
+      "native_OS_input_qualified": false
+    },
+    {
+      "field": "GravityField.Earth.TideModel",
+      "scoped_bodies": [
+        "Earth",
+        "Luna"
+      ],
+      "checkpoints": [
+        "tide-domain.builtin-none",
+        "tide-domain.builtin-solid",
+        "tide-domain.builtin-pole",
+        "tide-domain.file-solid",
+        "tide-domain.file-pole",
+        "tide-domain.uppercase-extension",
+        "tide-domain.lunar-solid",
+        "tide-domain.lunar-no-data",
+        "tide-domain.lunar-pole",
+        "tide-domain.wrong-extension",
+        "tide-domain.missing-file",
+        "tide-domain.directory",
+        "tide-domain.empty",
+        "tide-domain.comments-only",
+        "tide-domain.malformed",
+        "tide-domain.incomplete-k",
+        "tide-domain.incomplete-kplus",
+        "tide-domain.nan-coefficient",
+        "tide-domain.infinite-coefficient",
+        "tide-domain.degree-range",
+        "tide-domain.order-range",
+        "tide-domain.negative-index",
+        "tide-domain.unknown-model"
+      ],
+      "assertion_anchors": [
+        "require(values.value(prefix+\"TideModel\")==(test.valid ? test.model : \"None\")",
+        "require(editor.toPlainText()==after && window.buildScript() && properties()==values,\"Tide Redo was not exact\");"
+      ],
+      "input_delivery": "Programmatic QTableWidgetItem text and QComboBox current-text changes in actual ResourceEditor;requestApply callback. TideFile file-solid includes a Qt QFileDialog Cancel/Open flow with programmatic path/button APIs.",
+      "whole_field_qualified": false,
+      "science_qualified": false,
+      "native_OS_input_qualified": false
+    }
+  ],
+  "current_reference_sha256": {
+    "doc/help/src/Resource_ForceModel.xml": "62914d881e76de1645e54a05ef1d1e4c981f3f482a0481a68b3a8fa60a79260d",
+    "src/gui/propagator/PropagationConfigPanel.cpp": "2fb56c47a8190f5d1ac6803d9a9c8f4fe5cf192794f48fd518d103883b35f589",
+    "src/base/forcemodel/HarmonicField.cpp": "b512e879c84df373f3d410c7813fcd958d2f68edc6ef47048a0a30375ea82d61",
+    "src/base/forcemodel/GravityField.cpp": "45e4f4d22676345f67b5a3bac43da6e712cbfaf885bb6a02aee4a6c19cccf05e",
+    "src/qtgui/ResourceProperties.cpp": "2e9867a206d2d069e867c69aaa47365a4d486f87dd8c814ce268384c59a176cb",
+    "application/data/gravity/earth/JGM2.cof": "abac32a233e8662885778018d02e41553a5b6e5e1ee7332d2f69c362423025d3",
+    "application/data/gravity/luna/grgm900c.tide": "66256949ef32c6a8de5e32f148f6ff8e8f0e6a06fd63d3ebd39c411562313550"
+  },
+  "known_source_conflict_id": "GRAVITY-ORDER-INEQUALITY",
+  "limits": [
+    "52existing checkpoint types reused in two old preserved-build contexts;no GUI test execution,build,screen capture or new numerical result in this audit.",
+    "The reused visible receipt already uses resizable scale3/3966x2506/start-minimized replay. Its exposure traces support the recorded rendered context,not full per-control input pacing or native OS-input qualification. Existing PNG references are preserved;no images are recreated.",
+    "Unattended and visible receipts freeze the identical current assertion source. They do not preserve all core implementation sources,prove binary/source provenance,or qualify the latest shared frontend/core build.",
+    "Degree/order bounds follow NASA wx validation and harmonic-degree semantics;the local help Order inequality is reversed and remains formal conflict GRAVITY-ORDER-INEQUALITY.",
+    "STM integer input acceptance does not qualify STM derivative correctness. Tide/file validation and same-engine/model checks do not establish independent gravity/tide accuracy,all formats,all file coefficients/bodies,conditional controls or full field domains.",
+    "Original52checks include one direct transaction rejection;it is supporting frontend evidence rather than a GUI input interaction. All29force fields and broad Dynamics Models scope remain incomplete."
+  ]
+}

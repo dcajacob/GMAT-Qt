@@ -232,8 +232,14 @@ HarmonicField& HarmonicField::operator=(const HarmonicField& hf)
    if (&hf == this)
       return *this;
 
+   const bool restoring = GmatBase::IsNativeRestorationCopy();
+   if (restoring && (degree != hf.degree || order != hf.order || stmLimit != hf.stmLimit ||
+       filenameFullPath != hf.filenameFullPath || inputCSName != hf.inputCSName ||
+       fixedCSName != hf.fixedCSName || targetCSName != hf.targetCSName ||
+       (eop && hf.eop && eop != hf.eop)))
+      throw ODEModelException("Prepare harmonic-field files and frames before restoring changed configuration.");
    GravityBase::operator=(hf);
-   hMinitialized  = false;  // or hf.hMinitialized?
+   if (!restoring) hMinitialized = false;
    maxDegree      = hf.maxDegree;
    maxOrder       = hf.maxOrder;
    degree         = hf.degree;
@@ -241,17 +247,20 @@ HarmonicField& HarmonicField::operator=(const HarmonicField& hf)
    stmLimit       = hf.stmLimit;
    filename       = hf.filename;
    filenameFullPath = hf.filenameFullPath;
-   fileRead       = false;
+   if (!restoring) fileRead = false;
    usingDefaultFile   = hf.usingDefaultFile;
    isFirstTimeDefault = hf.isFirstTimeDefault;
    inputCSName    = hf.inputCSName;
    fixedCSName    = hf.fixedCSName;
    targetCSName   = hf.targetCSName;
    potPath        = hf.potPath;
-   inputCS        = hf.inputCS;
-   fixedCS        = hf.fixedCS;
-   targetCS       = hf.targetCS;
-   eop            = hf.eop;
+   if (!restoring)
+   {
+      inputCS = hf.inputCS;
+      fixedCS = hf.fixedCS;
+      targetCS = hf.targetCS;
+      eop = hf.eop;
+   }
    #ifdef DEBUG_EOP_FILE
    MessageInterface::ShowMessage
       ("HarmonicField() operator=, this=<%p>, eop=<%p>\n", eop, this);

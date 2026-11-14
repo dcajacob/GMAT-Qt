@@ -37,6 +37,7 @@
 #include "RealUtilities.hpp"
 #include "TimeSystemConverter.hpp"
 #include "SolarSystem.hpp"
+#include <cmath>
 //------------------------------------------------------------------------------
 using namespace GmatMathUtil;
 //------------------------------------------------------------------------------
@@ -718,8 +719,10 @@ void HarmonicGravity::LM_SetDefaultEarthTide ()
 void HarmonicGravity::LM_Load (const bool& loadcoefficients)
    {
    LM_Load (Filename,loadcoefficients);
-   if (TideFilename.find(".tide") != std::string::npos)
+   if (!TideFilename.empty())
    {
+       if (GmatStringUtil::ToLower(GmatFileUtil::ParseFileExtension(TideFilename)) != "tide")
+          LM_TideError("must use the .tide file extension.");
        LM_LoadTide(TideFilename, loadcoefficients);
    }
    LM_SetDefaultEarthTide ();
@@ -728,7 +731,9 @@ void HarmonicGravity::LM_Load (const bool& loadcoefficients)
 void HarmonicGravity::LM_Load (std::string& filename, const bool& loadcoefficients)
    {
    std::ifstream instream (filename.c_str());
-   if (!instream.good())
+   // DoesDirectoryExist inspects the directory portion of a path. Append a
+   // separator to test this input itself, rather than its valid parent folder.
+   if (GmatFileUtil::DoesDirectoryExist(filename + GmatFileUtil::GetPathSeparator(), false) || !instream.good())
       {
       MessageInterface::ShowMessage("Cannot open gravity file \"" + filename + "\"");
       throw GravityFileException("Cannot open gravity file \"" + filename + "\"");
@@ -1026,15 +1031,18 @@ void HarmonicGravity::LM_LoadTab (std::ifstream& instream, const bool& loadcoeff
 void HarmonicGravity::LM_LoadTide(std::string& filename, const bool& loadcoefficients)
    {
    std::ifstream instream (filename.c_str());
-   if (!instream.good())
+   if (GmatFileUtil::DoesDirectoryExist(filename + GmatFileUtil::GetPathSeparator(), false) || !instream.good())
    {
       MessageInterface::ShowMessage("Cannot open tide file \"" + filename + "\"");
       throw GravityFileException("Cannot open tide file \"" + filename + "\"");
    }
 
    std::string line;
+   bool haveFileCoefficients = false;
 
-   while (!instream.eof())
+   // peek also detects a failed read. Testing eof() alone can spin forever on
+   // an unreadable stream (notably a directory opened by std::ifstream).
+   while (instream.peek() != std::char_traits<char>::eof())
       {
       GmatFileUtil::GetLine(&instream, line);
       line = GmatStringUtil::ToLower(line);
@@ -1059,16 +1067,19 @@ void HarmonicGravity::LM_LoadTide(std::string& filename, const bool& loadcoeffic
                   good = good && GmatStringUtil::ToInteger (sa[2],m);
                   Real v;
                   good = good && GmatStringUtil::ToReal (sa[3],v);
-                  if (!good)
+                  if (!good || !std::isfinite(v))
                      LM_Error ("Bad number in " + line);
                   if (n > 3 || m > 3 || n < 0 || m < 0)
                      LM_Error ("n or m is out of range in " + line);
                   else 
                      {
                      HaveLoveNumbers = true;
+                     haveFileCoefficients = true;
                      K[n][m] = v;
                      }
                   }
+               else
+                  LM_TideError ("Incomplete coefficient in line \"" + line + "\".");
                }
             else if (keyword == "kplus")
                {
@@ -1078,16 +1089,19 @@ void HarmonicGravity::LM_LoadTide(std::string& filename, const bool& loadcoeffic
                   good = good && GmatStringUtil::ToInteger (sa[1],m);
                   Real v;
                   good = good && GmatStringUtil::ToReal (sa[2],v);
-                  if (!good)
+                  if (!good || !std::isfinite(v))
                      LM_Error ("Bad number in " + line);
                   if (m > 2 || m < 0)
                      LM_Error ("m is out of range in " + line);
                   else 
                      {
                      HaveLoveNumbers = true;
+                     haveFileCoefficients = true;
                      KPlus[m] = v;
                      }
                   }
+               else
+                  LM_TideError ("Incomplete coefficient in line \"" + line + "\".");
                }
             else
                LM_TideError ("Unknown keyword \"" + keyword + "\" in line \"" + line + "\".");
@@ -1096,6 +1110,10 @@ void HarmonicGravity::LM_LoadTide(std::string& filename, const bool& loadcoeffic
             LM_TideError ("Unknown line \"" + line + "\".");
          }
       }
+   if (instream.bad() || (instream.fail() && !instream.eof()))
+      LM_TideError ("could not be read completely.");
+   if (!haveFileCoefficients)
+      LM_TideError ("contains no Love-number coefficients.");
    }
 //------------------------------------------------------------------------------
 // CheckEarthCoefficient()

@@ -27,6 +27,22 @@
 //------------------------------------------------------------------------------
 
 #include "Smoother.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration smootherValueProvider({
+   Smoother::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Smoother*>(object) != nullptr; },
+   nullptr,
+   nullptr,
+   nullptr,
+   [](const GmatBase *object) { return dynamic_cast<const Smoother*>(object)->HasSolverValueReferenceProviderImpl(); },
+   [](GmatBase *object, const Solver &source) { dynamic_cast<Smoother*>(object)->PrepareClonedSolverValueImpl(source); }
+});
+}
+#include "NavigationMeasurementCopies.hpp"
+#include "SolverException.hpp"
 
 #include "GmatConstants.hpp"
 #include <sstream>
@@ -126,7 +142,9 @@ Smoother& Smoother::operator=(
  //------------------------------------------------------------------------------
 GmatBase* Smoother::Clone() const
 {
-   return new Smoother(*this);
+   std::unique_ptr<Smoother> value(new Smoother(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -141,7 +159,13 @@ GmatBase* Smoother::Clone() const
  //---------------------------------------------------------------------------
 void  Smoother::Copy(const GmatBase* orig)
 {
-   operator=(*((Smoother*)(orig)));
+   const auto *source = dynamic_cast<const Smoother*>(orig);
+   if (!source || typeid(*source) != typeid(Smoother) || typeid(*this) != typeid(Smoother))
+      throw SolverException("Incompatible native Smoother copy.\n");
+   if (source == this) return;
+   const auto previous = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -448,4 +472,14 @@ bool Smoother::WriteAdditionalMatData()
    matWriter->WriteData("BackwardFilter");
 
    return retval;
+}
+
+bool Smoother::HasSolverValueReferenceProviderImpl() const
+{
+   return typeid(*this) == typeid(Smoother);
+}
+
+void Smoother::PrepareClonedSolverValueImpl(const Solver &source)
+{
+   SmootherBase::PrepareClonedSolverValueImpl(source);
 }

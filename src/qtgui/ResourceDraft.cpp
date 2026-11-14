@@ -12,6 +12,7 @@
 #include "PropSetup.hpp"
 #include "Propagator.hpp"
 #include "ODEModel.hpp"
+#include "CalculatedPoint.hpp"
 #include <algorithm>
 #include <stdexcept>
 
@@ -36,6 +37,13 @@ bool propagatorUsesForceModel(const QString &type)
    return propagator->UsesODEModel();
 }
 
+QMap<QString,QString> defaultOrbitViewCameraSettings()
+{
+   return {{"ViewPointVector","[12000 -16000 10000]"},
+           {"ViewUpCoordinateSystem","EarthFixed"},
+           {"ViewUpAxis","Z"}};
+}
+
 QtResourcePreview resourceDraft(const QString &type,const QString &name)
 {
    auto *factory=FactoryManager::Instance();
@@ -52,6 +60,11 @@ QtResourcePreview resourceDraft(const QString &type,const QString &name)
    // their absence; registration/defaults belong to the accepted source build.
    if (paths) files->RestoreState(*paths);
    if (!draft) throw std::runtime_error("The runtime cannot prepare this resource type.");
+   if (type=="OrbitView") {
+      const auto camera=defaultOrbitViewCameraSettings();
+      for (auto it=camera.cbegin();it!=camera.cend();++it)
+         draft->SetStringParameter(it.key().toStdString(),it.value().toStdString());
+   }
    auto *moderator=Moderator::Instance();
    if (auto *setup=dynamic_cast<PropSetup *>(draft.get())) {
       // Like wx CreateDefaultPropSetup, preview the ordinary Earth/JGM2
@@ -80,6 +93,16 @@ QtResourcePreview resourceDraft(const QString &type,const QString &name)
       if (frame) { spacecraft->SetInternalCoordSystem(frame); spacecraft->SetRefObject(frame,Gmat::COORDINATE_SYSTEM,"EarthMJ2000Eq"); }
    }
    if (auto *array=dynamic_cast<Array *>(draft.get())) array->SetSize(1,1);
+   // Match Moderator::CreateCalculatedPoint without registering a pending
+   // resource. Factory constructors alone leave these defaults empty.
+   if (type=="LibrationPoint") {
+      draft->SetStringParameter("Primary","Sun");
+      draft->SetStringParameter("Secondary","Earth");
+      draft->SetStringParameter("Point","L1");
+   } else if (type=="Barycenter") {
+      auto *point=dynamic_cast<CalculatedPoint *>(draft.get());
+      point->SetDefaultBody("Earth"); point->SetDefaultBody("Luna");
+   }
    const auto spacecraft=moderator->GetListOfObjects(Gmat::SPACECRAFT);
    if (type=="EphemerisFile" && !spacecraft.empty()) draft->SetStringParameter("Spacecraft",spacecraft.front());
    if (draft->IsOfType("EventLocator") && !spacecraft.empty()) {

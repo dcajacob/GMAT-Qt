@@ -37,6 +37,8 @@
 #include "StringUtil.hpp"     // for Replace()
 #include <stdarg.h>
 #include <sstream>
+#include <typeinfo>
+#include <utility>
 #include <stdio.h>            // Fix for header rearrangement in gcc 4.4
 #include "MessageInterface.hpp"
 #include "LUFactorization.hpp"
@@ -47,6 +49,19 @@
 //#define DEBUG_PSUEDO_INVERSE_OF_SYMMETRIC_MATRIX
 
 template class TableTemplate<Real>;
+
+void Rmatrix::Swap(Rmatrix &other)
+{
+   // Fixed-size subclasses have their own shape contracts.
+   if (typeid(*this) != typeid(Rmatrix) || typeid(other) != typeid(Rmatrix))
+      throw UtilityException("Storage exchange requires native Rmatrix values.\n");
+   using std::swap;
+   swap(elementD, other.elementD);
+   swap(rowsD, other.rowsD);
+   swap(colsD, other.colsD);
+   swap(isSizedD, other.isSizedD);
+   stringVals.swap(other.stringVals);
+}
 
 //---------------------------------
 //  public

@@ -50,9 +50,11 @@ public:
    
    // methods inherited from Parameter
    virtual bool Evaluate();
+   void SetRmatrix(const Rmatrix &value) override;
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 
@@ -73,9 +75,11 @@ public:
    
    // methods inherited from Parameter
    virtual bool Evaluate();
+   void SetRmatrix(const Rmatrix &value) override;
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 
@@ -96,9 +100,11 @@ public:
    
    // methods inherited from Parameter
    virtual bool Evaluate();
+   void SetRmatrix(const Rmatrix &value) override;
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 
@@ -119,9 +125,11 @@ public:
    
    // methods inherited from Parameter
    virtual bool Evaluate();
+   void SetRmatrix(const Rmatrix &value) override;
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 
@@ -142,9 +150,11 @@ public:
    
    // methods inherited from Parameter
    virtual bool Evaluate();
+   void SetRmatrix(const Rmatrix &value) override;
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 

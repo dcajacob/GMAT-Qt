@@ -54,6 +54,11 @@ public:
    virtual bool         AddMetaComment(const std::string& comment);
    virtual bool         AddDataComment(const std::string& comment);
    virtual bool         AddDataForWriting(Real epoch, Rvector &data);
+   /// Number of records after duplicate formatted epochs are suppressed.
+   Integer              GetNumberOfSerializedDataPoints();
+   /// Select before opening a file;metadata and all serialized epochs use it.
+   void                 SetTimeSystem(const std::string &system);
+   std::string          FormatEpoch(Real epochInDays);
    
    virtual void         ClearMetaComments();
    virtual void         ClearDataComments();
@@ -65,6 +70,7 @@ protected:
    
    /// The current OEM segment that we are writing
    CCSDSOEMSegment currentOemSegment;
+   std::string timeSystem;
    
 };
 

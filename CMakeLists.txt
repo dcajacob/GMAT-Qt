@@ -126,6 +126,11 @@ OPTION(GMAT_INCLUDE_CSALT "Build CSALT with GMAT" OFF)
 CMAKE_DEPENDENT_OPTION(GMAT_INCLUDE_CSALT_TESTPROGRAM "Build CSALT test program" OFF "GMAT_INCLUDE_CSALT" OFF)
 CMAKE_DEPENDENT_OPTION(GMAT_INCLUDE_CSALT_INSTALL_SNOPT "Install SNOPT libraries with CSALT" ON "GMAT_INCLUDE_CSALT" OFF)
 OPTION(GMAT_INCLUDE_API "Build the GMAT API" OFF)
+# Dependency setup below prepends tool directories to this saved path. Capture
+# it for Qt/API-only builds as well as builds of the legacy wx frontend.
+if(NOT DEFINED SYS_PATH)
+  SET(SYS_PATH "$ENV{PATH}" CACHE INTERNAL "System PATH environment variable")
+endif()
 CMAKE_DEPENDENT_OPTION(API_GENERATE_PYTHON "GMAT API for Python" ON "GMAT_INCLUDE_API" OFF)
 CMAKE_DEPENDENT_OPTION(API_GENERATE_JAVA "GMAT API for Java" ON "GMAT_INCLUDE_API" OFF)
 
@@ -455,13 +460,9 @@ if(CMAKE_COMPILER_IS_GNUCC)
   endif()
 endif()
 
-# flags to append to CMAKE_CXX_FLAGS according to CMAKE_BUILD_TYPE 
-if(UNIX)
-  SET(CMAKE_CXX_FLAGS_RELEASE "-O3")
-  SET(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
-  SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
-  SET(CMAKE_CXX_FLAGS_MINSIZEREL "-O3")
-endif()
+# Keep the configuration flags initialized by CMake, the toolchain, or the
+# user. Replacing them here discards requested instrumentation and also erases
+# the Debug AddressSanitizer flags added above.
 
 # Common definitions
 ADD_DEFINITIONS(-DNO_GCC_PRAGMA)

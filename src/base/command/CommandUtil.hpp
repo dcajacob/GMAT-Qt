@@ -36,6 +36,12 @@
 
 namespace GmatCommandUtil
 {
+   // Clone a complete native-owned definition, preserving aliases/backlinks.
+   // The returned root owns the graph through the usual command destructors.
+   // Invocation cursors and environment stores must be initialized afresh.
+   GmatCommand GMAT_API *CloneCommandSequence(const GmatCommand *sequence,
+         std::map<const GmatCommand*, GmatCommand*> *copies = nullptr);
+   std::vector<GmatCommand*> GMAT_API GetCommandSequenceNodes(GmatCommand *sequence);
    GmatCommand GMAT_API *GetFirstCommand(GmatCommand *cmd);
    GmatCommand GMAT_API *GetLastCommand(GmatCommand *cmd);
    GmatCommand GMAT_API *GetNextCommand(GmatCommand *cmd);

@@ -33,6 +33,7 @@
 #include <sstream>
 
 #include "SpiceSCClockKernelWriter.hpp"
+#include <utility>
 #include "MessageInterface.hpp"
 #include "FileUtil.hpp"
 #include "UtilityException.hpp"
@@ -63,6 +64,7 @@ SpiceSCClockKernelWriter::SpiceSCClockKernelWriter(const std::string& objName,
    Integer objNAIFId, Real tickLength, RealArray moduliFields, RealArray offsetFields,
    std::string stringDel, A1Mjd clockStart, const std::string& fileName) :
    SpiceKernelWriter(),
+   parallelTimeSystem(1),
    tick(tickLength),
    moduli(moduliFields),
    offSets(offsetFields),
@@ -121,16 +123,18 @@ SpiceSCClockKernelWriter::SpiceSCClockKernelWriter(const std::string& objName,
 //------------------------------------------------------------------------------
 SpiceSCClockKernelWriter::SpiceSCClockKernelWriter(const SpiceSCClockKernelWriter& copy) :
    SpiceKernelWriter(copy),
-   objectNAIFId(copy.objectNAIFId),
+   kernelFileName(copy.kernelFileName),
+   parallelTimeSystem(copy.parallelTimeSystem),
    tick(copy.tick),
+   stringDelimiter(copy.stringDelimiter),
    moduli(copy.moduli),
    offSets(copy.offSets),
-   stringDelimiter(copy.stringDelimiter),
-   clockStartTime(copy.clockStartTime),
-   kernelFileName(copy.kernelFileName),
    partitionStarts(copy.partitionStarts),
    partitionEnds(copy.partitionEnds),
+   clockStartTime(copy.clockStartTime),
+   clockStartStringUTC(copy.clockStartStringUTC),
    clockCoefficients(copy.clockCoefficients),
+   objectNAIFId(copy.objectNAIFId),
    dataWritten(copy.dataWritten)
 {
    kernelNameSPICE = kernelFileName.c_str();
@@ -150,22 +154,29 @@ SpiceSCClockKernelWriter& SpiceSCClockKernelWriter::operator=(const SpiceSCClock
 {
    if (&copy != this)
    {
-      objectNAIFId = copy.objectNAIFId;
-      tick = copy.tick;
-      moduli = copy.moduli;
-      offSets = copy.offSets;
-      stringDelimiter = copy.stringDelimiter;
-      clockStartTime = copy.clockStartTime;
-      kernelFileName = copy.kernelFileName;
-      partitionStarts = copy.partitionStarts;
-      partitionEnds = copy.partitionEnds;
-      clockCoefficients = copy.clockCoefficients;
-      dataWritten = copy.dataWritten;
-
-      kernelNameSPICE = kernelFileName.c_str();
+      SpiceSCClockKernelWriter prepared(copy);
+      SpiceKernelWriter::operator=(copy);
+      SwapValue(prepared);
    }
 
    return *this;
+}
+
+void SpiceSCClockKernelWriter::SwapValue(SpiceSCClockKernelWriter &other) noexcept
+{
+   using std::swap;
+   kernelFileName.swap(other.kernelFileName);
+   swap(parallelTimeSystem, other.parallelTimeSystem);
+   swap(tick, other.tick);
+   stringDelimiter.swap(other.stringDelimiter);
+   moduli.swap(other.moduli); offSets.swap(other.offSets);
+   partitionStarts.swap(other.partitionStarts); partitionEnds.swap(other.partitionEnds);
+   swap(clockStartTime, other.clockStartTime);
+   clockStartStringUTC.swap(other.clockStartStringUTC);
+   clockCoefficients.swap(other.clockCoefficients);
+   swap(objectNAIFId, other.objectNAIFId); swap(dataWritten, other.dataWritten);
+   kernelNameSPICE = kernelFileName.c_str();
+   other.kernelNameSPICE = other.kernelFileName.c_str();
 }
 
 //------------------------------------------------------------------------------

@@ -37,6 +37,8 @@
 #define Validator_hpp
 
 #include "gmatdefs.hpp"
+#include <functional>
+#include <memory>
 
 // Forward references
 class Interpreter;
@@ -49,15 +51,29 @@ class AxisSystem;
 class ElementWrapper;
 class RHSEquation;
 
+class GMAT_API ValidatorContext final
+{
+public:
+   explicit ValidatorContext(std::function<void()> restore);
+   ~ValidatorContext() noexcept;
+   void Restore() noexcept;
+   ValidatorContext(const ValidatorContext&) = delete;
+   ValidatorContext& operator=(const ValidatorContext&) = delete;
+private:
+   std::function<void()> restore;
+};
+
 class GMAT_API Validator
 {
 public:
    
    static Validator* Instance();
+   std::unique_ptr<ValidatorContext> CaptureContext(bool restoreDiagnostics = true);
    
    void SetInterpreter(Interpreter *interp);
    void SetSolarSystem(SolarSystem *ss);
    void SetObjectMap(ObjectMap *objMap);
+   ObjectMap* GetObjectMap() const { return theObjectMap; }
    void SetFunction(Function *func);
    
    bool StartMatlabServer(GmatCommand *cmd);

@@ -47,6 +47,8 @@
 class ESTIMATION_API Simulator : public Solver
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = Solver::NativeValueProviderDepth + 1;
+
    Simulator(const std::string &name);
    Simulator(const Simulator& sim);
    Simulator& operator=(const Simulator& sim);
@@ -54,6 +56,12 @@ public:
 
    virtual GmatBase*    Clone() const;
    virtual void         Copy(const GmatBase* orig);
+   bool HasSolverValueReferenceProviderImpl() const;
+   void PrepareClonedSolverValueImpl(const Solver &source);
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source,
+         SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
    virtual Integer      SetSolverResults(Real*, const std::string&,
                                          const std::string&); // noop
    virtual void         SetResultValue(Integer eventState, Real val = 0.0,
@@ -140,6 +148,10 @@ public:
    virtual void         UpdateClonedObject(GmatBase *obj);
    virtual void         UpdateClonedObjectParameter(GmatBase *obj,
                               Integer updatedParameterId);
+   bool ApplyPropagationCloneUpdate(GmatBase *obj, Integer parameterId = -1);
+   const std::vector<PropSetup*> &GetOwnedPropagationDefinitions() const;
+   bool HasOwnedDefinitionSource(const GmatBase *source) const;
+   bool ApplyOwnedCloneUpdate(GmatBase *source, Integer parameterId = -1);
 
    virtual GmatTime GetSimulationStartEpochGT();
 

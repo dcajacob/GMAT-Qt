@@ -45,6 +45,7 @@
 #include "SPADFileReader.hpp"
 #include "Array.hpp"
 #include "LagrangeInterpolator.hpp"
+#include <functional>
 
 // Declare forward reference
 class EphemManager;
@@ -52,6 +53,14 @@ class EphemManager;
 class GMAT_API Spacecraft : public SpaceObject
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = SpaceObject::NativeValueProviderDepth + 1;
+
+   using SpaceObject::SetField;
+   void SetField(const Integer id, const StringArray &value) override;
+   // A complete propulsion update supplies actual sources for both lists.
+   void ReplacePropulsionHardware(const StringArray &tankNames, const ObjectArray &tankSources,
+                                  const StringArray &thrusterNames, const ObjectArray &thrusterSources);
+   void ReplacePowerSystem(const std::string &name, GmatBase *source);
    Spacecraft(const std::string &name,
       const std::string &typeStr = "Spacecraft");
    Spacecraft(const Spacecraft &a);
@@ -64,6 +73,14 @@ public:
    virtual SolarSystem* GetSolarSystem();
    void                 SetInternalCoordSystem(CoordinateSystem *cs);
    CoordinateSystem*    GetInternalCoordSystem();
+
+   // For a detached native Clone: rebind borrowed references without changing
+   // its current state, cloning hardware again or appending solve-for entries.
+   void RebindClonedReferences(const Spacecraft &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve,
+         const std::function<void(const ObjectArray&, const ObjectArray&)> &owned);
+   bool InitializeClonedResource();
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
 
    EphemManager*        GetEphemManager();
 
@@ -81,6 +98,12 @@ public:
    virtual Rvector6     GetState(std::string rep);
    virtual Rvector6     GetState(Integer rep);
    StringArray          GetStateElementLabels(const std::string &stateType);
+   // Retain a small Cartesian state in internal MJ2000Eq axes without a lossy
+   // round trip through the internal origin. The ordinary state remains intact.
+   bool SetOriginRelativeState(SpacePoint *origin, const GmatTime &atEpoch,
+                               const Rvector6 &localState);
+   bool GetOriginRelativeState(SpacePoint *origin, const GmatTime &atEpoch,
+                               Rvector6 &localState) const;
    Rvector6             GetCartesianState();
    Rvector6             GetKeplerianState();
    Rvector6             GetModifiedKeplerianState();
@@ -140,6 +163,8 @@ public:
    // inherited from GmatBase
    virtual GmatBase*    Clone(void) const;
    virtual void         Copy(const GmatBase* orig);
+   std::unique_ptr<NativeRestorationPlan> PrepareRestorationImpl(
+         const GmatBase &source);
    virtual bool         RenameRefObject(const UnsignedInt type,
                                         const std::string &oldName,
                                         const std::string &newName);
@@ -490,7 +515,8 @@ protected:
       MODEL_SCALE,
       MODEL_MAX,
 
-      SpacecraftParamCount = MODEL_MAX  // Assumes model params at the end
+      ORBIT_PARAMETER_ACCESS = MODEL_MAX,
+      SpacecraftParamCount
    };
 
    enum MultipleReps  // these are IDs for the different representations
@@ -645,6 +671,9 @@ protected:
 
    /// Model file path
    std::string          modelFileFullPath;
+   /// Access policy for the two derived orbit parameters marked read-only in
+   /// the NASA worksheet (RMAG and SemilatusRectum).
+   std::string          orbitParameterAccess;
 
    /// Epoch string, specifying the text form of the epoch
    std::string       scEpochStr;
@@ -794,6 +823,21 @@ protected:
    /// New constructs needed to preserve interfaces
    Rvector6          rvState;
 
+   struct OriginRelativeState
+   {
+      bool valid = false;
+      SpacePoint *origin = NULL;
+      SpacePoint *internalOrigin = NULL;
+      CoordinateSystem *internalFrame = NULL;
+      std::string originName, internalOriginName;
+      Rvector6 originEphemeris, internalOriginEphemeris;
+      bool celestialOrigin = false, celestialInternalOrigin = false;
+      GmatTime epoch;
+      Rvector6 local;
+      Rvector6 backing;
+   };
+   mutable OriginRelativeState originRelativeState;
+
    bool              initialDisplay;
    bool              csSet;
    bool              isThrusterSettingMode;
@@ -933,10 +977,16 @@ protected:
    // Functions to compute mass properties from
    // each tank's fuel mass & the dry spacecraft mass
    void              InitializeMassProperties();
+   bool              InitializeResource(bool rebuildHardwareReferences);
    void              UpdateMassProperties();
+   void CalculateMassProperties(const ObjectArray &selectedTanks, Real &mass,
+                                Rvector3 &center, Rmatrix33 &inertia);
    Real              CalculateTotalMass() const;
+   Real CalculateTotalMass(const ObjectArray &selectedTanks) const;
    Rvector3          CalculateSystemCenterOfMass() const;
+   Rvector3 CalculateSystemCenterOfMass(const ObjectArray &selectedTanks) const;
    Rmatrix33         CalculateSystemMOI() const;
+   Rmatrix33 CalculateSystemMOI(const ObjectArray &selectedTanks) const;
 
    // Mass properties to generate the data for a specific current mass
    Rvector3          LookupSystemCM(Real currentMass);
@@ -953,6 +1003,15 @@ protected:
    void              CloneOwnedObjects(Attitude *att, const ObjectArray &tnks,
                                        const ObjectArray &thrs, PowerSystem *pwr,
                                        const ObjectArray &otherHw);
+   ObjectArray ResolvePropulsionSources(const StringArray &names, const ObjectArray &current,
+                                        GmatBase *replacement, bool allowUnbound) const;
+   void ReplacePropulsionHardware(const StringArray &tankNames, const ObjectArray &tankSources,
+                                  const StringArray &thrusterNames, const ObjectArray &thrusterSources,
+                                  bool allowUnbound);
+   void ValidateHardwareRetirement(const GmatBase *previous, const GmatBase *replacement) const;
+   void RebindHardwareOwner(GmatBase *previous, GmatBase *replacement) noexcept;
+   GmatBase *FindOwnedClone(const GmatBase &source) const;
+   void UpdateOwnedClone(GmatBase *target, const GmatBase &source, Integer parameterId);
    void              AttachTanksToThrusters();
    bool              SetHardware(GmatBase *obj, StringArray &hwNames,
                                  ObjectArray &hwArray);
@@ -961,6 +1020,8 @@ protected:
                         std::stringstream &stream);
 
    Rvector6          GetStateInRepresentation(const std::string &rep = "", bool useDefaultCartesian = false);
+   Rvector6          GetStateInRepresentation(const std::string &rep,
+                        bool useDefaultCartesian, bool forceComputation);
    Rvector6          GetStateInRepresentation(Integer rep, bool useDefaultCartesian = false);
    void              SetStateFromRepresentation(const std::string &rep, Rvector6 &st, const std::string &label = "");
 
@@ -975,6 +1036,7 @@ protected:
 
 
 private:
+   void ValidateRestorationInputs(const Spacecraft &source, bool withCaches) const;
    bool              VerifyAddHardware();
    Integer           NumStateElementsSet();
    void              SetPossibleInputTypes(const std::string& label, const std::string &rep);

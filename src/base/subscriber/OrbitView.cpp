@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 
 #include "OrbitView.hpp"
+#include "SubscriberBindingState.hpp"
 #include "PlotInterface.hpp"       // for UpdateGlPlot()
 #include "ColorTypes.hpp"          // for namespace GmatColor::
 #include "SubscriberException.hpp" // for SubscriberException()
@@ -211,6 +212,9 @@ OrbitView::OrbitView(const OrbitView &ov)
    mEnableStars = ov.mEnableStars;
    mEnableConstellations = ov.mEnableConstellations;
    mStarCount = ov.mStarCount;
+   mMinFOV = ov.mMinFOV;
+   mMaxFOV = ov.mMaxFOV;
+   mInitialFOV = ov.mInitialFOV;
    
    // viewpoint
    mViewPointRefName = ov.mViewPointRefName;
@@ -232,6 +236,8 @@ OrbitView::OrbitView(const OrbitView &ov)
    mViewPointRefObj = ov.mViewPointRefObj;
    mViewPointObj = ov.mViewPointObj;
    mViewDirectionObj = ov.mViewDirectionObj;
+   if (typeid(ov) == typeid(OrbitView)) ReconnectSubscriberCopy(ov);
+
 }
 
 
@@ -244,48 +250,54 @@ OrbitView::OrbitView(const OrbitView &ov)
 //------------------------------------------------------------------------------
 OrbitView& OrbitView::operator=(const OrbitView& ov)
 {
-   if (this == &ov)
-      return *this;
-   
-   OrbitPlot::operator=(ov);
+   if (this == &ov) return *this;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = typeid(*this) == typeid(OrbitView) ? BeginSubscriberValueCopy(ov) : SubscriberValueCopyToken{};
+   {
+      FunctionValueCopyGuard nativeCopy;
+      OrbitPlot::operator=(ov);
 
-   mShowLabels = ov.mShowLabels;
-   mEclipticPlane = ov.mEclipticPlane;
-   mXYPlane = ov.mXYPlane;
-   mWireFrame = ov.mWireFrame;
-   mAxes = ov.mAxes;
-   mGrid = ov.mGrid;
-   mSunLine = ov.mSunLine;
-   mOverlapPlot = ov.mOverlapPlot;
-   mUseInitialView = ov.mUseInitialView;
-   
-   // stars
-   mEnableStars = ov.mEnableStars;
-   mEnableConstellations = ov.mEnableConstellations;
-   mStarCount = ov.mStarCount;
-      
-   // viewpoint
-   mViewPointRefName = ov.mViewPointRefName;
-   mViewPointRefType = ov.mViewPointRefType;
-   mViewPointVecName = ov.mViewPointVecName;
-   mViewPointVecType = ov.mViewPointVecType;
-   mViewDirectionName = ov.mViewDirectionName;
-   mViewDirectionType = ov.mViewDirectionType;
-   mViewScaleFactor = ov.mViewScaleFactor;
-   mViewPointRefVector = ov.mViewPointRefVector;
-   mViewPointVecVector = ov.mViewPointVecVector;
-   mViewDirectionVector = ov.mViewDirectionVector;
-   mViewUpCoordSysName = ov.mViewUpCoordSysName;
-   mViewUpAxisName = ov.mViewUpAxisName;
-   
-   // object pointers
-   mViewUpCoordSystem = ov.mViewUpCoordSystem;
-   mViewCoordSysOrigin = ov.mViewCoordSysOrigin;
-   mViewUpCoordSysOrigin = ov.mViewUpCoordSysOrigin;
-   mViewPointRefObj = ov.mViewPointRefObj;
-   mViewPointObj = ov.mViewPointObj;
-   mViewDirectionObj = ov.mViewDirectionObj;
-   
+      mShowLabels = ov.mShowLabels;
+      mEclipticPlane = ov.mEclipticPlane;
+      mXYPlane = ov.mXYPlane;
+      mWireFrame = ov.mWireFrame;
+      mAxes = ov.mAxes;
+      mGrid = ov.mGrid;
+      mSunLine = ov.mSunLine;
+      mOverlapPlot = ov.mOverlapPlot;
+      mUseInitialView = ov.mUseInitialView;
+
+      // stars
+      mEnableStars = ov.mEnableStars;
+      mEnableConstellations = ov.mEnableConstellations;
+      mStarCount = ov.mStarCount;
+      mMinFOV = ov.mMinFOV;
+      mMaxFOV = ov.mMaxFOV;
+      mInitialFOV = ov.mInitialFOV;
+
+      // viewpoint
+      mViewPointRefName = ov.mViewPointRefName;
+      mViewPointRefType = ov.mViewPointRefType;
+      mViewPointVecName = ov.mViewPointVecName;
+      mViewPointVecType = ov.mViewPointVecType;
+      mViewDirectionName = ov.mViewDirectionName;
+      mViewDirectionType = ov.mViewDirectionType;
+      mViewScaleFactor = ov.mViewScaleFactor;
+      mViewPointRefVector = ov.mViewPointRefVector;
+      mViewPointVecVector = ov.mViewPointVecVector;
+      mViewDirectionVector = ov.mViewDirectionVector;
+      mViewUpCoordSysName = ov.mViewUpCoordSysName;
+      mViewUpAxisName = ov.mViewUpAxisName;
+
+      // object pointers
+      mViewUpCoordSystem = ov.mViewUpCoordSystem;
+      mViewCoordSysOrigin = ov.mViewCoordSysOrigin;
+      mViewUpCoordSysOrigin = ov.mViewUpCoordSysOrigin;
+      mViewPointRefObj = ov.mViewPointRefObj;
+      mViewPointObj = ov.mViewPointObj;
+      mViewDirectionObj = ov.mViewDirectionObj;
+   }
+   if (typeid(*this) == typeid(OrbitView)) CompleteSubscriberValueCopy(ov, transaction);
    return *this;
 }
 
@@ -303,7 +315,7 @@ OrbitView& OrbitView::operator=(const OrbitView& ov)
 //------------------------------------------------------------------------------
 OrbitView::~OrbitView()
 {
-   PlotInterface::TakeGlAction(instanceName, "ClearObjects");
+   PlotInterface::TakeGlAction(GetRuntimePlotName(), "ClearObjects");
 }
 
 
@@ -416,7 +428,7 @@ bool OrbitView::Initialize()
       PlotInterface::SetViewType(GmatPlot::ENHANCED_3D_VIEW);
       
       if (PlotInterface::CreateGlPlotWindow
-          (instanceName, mOldName, mPlotUpperLeft[0], mPlotUpperLeft[1],
+          (GetRuntimePlotName(), GetRuntimePlotName(mOldName), mPlotUpperLeft[0], mPlotUpperLeft[1],
            mPlotSize[0], mPlotSize[1], isMaximized, mNumPointsToRedraw))
       {
          #if DBGLVL_INIT
@@ -497,7 +509,7 @@ bool OrbitView::Initialize()
          #endif
          
          // set SolarSystem
-         PlotInterface::SetGlSolarSystem(instanceName, theSolarSystem);
+         PlotInterface::SetGlSolarSystem(GetRuntimePlotName(), theSolarSystem);
          
          #if DBGLVL_INIT
          MessageInterface::ShowMessage
@@ -511,10 +523,10 @@ bool OrbitView::Initialize()
          //--------------------------------------------------------
          // set max data points to plot
          //--------------------------------------------------------
-         PlotInterface::SetMaxGlDataPoints(instanceName, mMaxData);
+         PlotInterface::SetMaxGlDataPoints(GetRuntimePlotName(), mMaxData);
 
          // Set all object array and pointers
-         PlotInterface::SetGlObject(instanceName, mObjectNameArray, mObjectArray);
+         PlotInterface::SetGlObject(GetRuntimePlotName(), mObjectNameArray, mObjectArray);
          
          //--------------------------------------------------------
          // Set CoordinateSystem
@@ -547,7 +559,7 @@ bool OrbitView::Initialize()
             ("   Calling PlotInterface::SetGlCoordSystem()\n");
          #endif
          
-         PlotInterface::SetGlCoordSystem(instanceName, theInternalCoordSystem,
+         PlotInterface::SetGlCoordSystem(GetRuntimePlotName(), theInternalCoordSystem,
                                          mViewCoordSystem, mViewUpCoordSystem);
          
          //--------------------------------------------------------
@@ -559,7 +571,7 @@ bool OrbitView::Initialize()
          #endif
          
          PlotInterface::SetGl3dDrawingOption
-            (instanceName, mShowLabels, (mEclipticPlane == "On"), (mXYPlane == "On"),
+            (GetRuntimePlotName(), mShowLabels, (mEclipticPlane == "On"), (mXYPlane == "On"),
              (mWireFrame == "On"), (mAxes == "On"), (mGrid == "On"),
              (mSunLine == "On"), (mOverlapPlot == "On"), (mUseInitialView == "On"),
              (mEnableStars == "On"), (mEnableConstellations == "On"), mStarCount);
@@ -573,7 +585,7 @@ bool OrbitView::Initialize()
          #endif
          
          PlotInterface::SetGl3dViewOption
-            (instanceName, mViewPointRefObj, mViewPointObj,
+            (GetRuntimePlotName(), mViewPointRefObj, mViewPointObj,
              mViewDirectionObj, mViewScaleFactor, mViewPointRefVector,
              mViewPointVecVector, mViewDirectionVector, mViewUpAxisName,
              (mViewPointRefType == "Vector"), (mViewPointVecType == "Vector"),
@@ -583,7 +595,7 @@ bool OrbitView::Initialize()
          MessageInterface::ShowMessage
             ("   Calling PlotInterface::SetGlUpdateFrequency()\n");
          #endif
-         PlotInterface::SetGlUpdateFrequency(instanceName, mUpdatePlotFrequency);
+         PlotInterface::SetGlUpdateFrequency(GetRuntimePlotName(), mUpdatePlotFrequency);
          
          //--------------------------------------------------------
          // set drawing object flag
@@ -592,13 +604,13 @@ bool OrbitView::Initialize()
          MessageInterface::ShowMessage
             ("   Calling PlotInterface::SetGlDrawOrbitFlag()\n");
          #endif
-         PlotInterface::SetGlDrawOrbitFlag(instanceName, mDrawOrbitArray);
+         PlotInterface::SetGlDrawOrbitFlag(GetRuntimePlotName(), mDrawOrbitArray);
 			
          #if DBGLVL_INIT
          MessageInterface::ShowMessage
             ("   Calling PlotInterface::SetGlShowObjectFlag()\n");
          #endif
-         PlotInterface::SetGlShowObjectFlag(instanceName, mDrawObjectArray);
+         PlotInterface::SetGlShowObjectFlag(GetRuntimePlotName(), mDrawObjectArray);
 
          //--------------------------------------------------------
          // initialize GL
@@ -607,7 +619,7 @@ bool OrbitView::Initialize()
          MessageInterface::ShowMessage
             ("   Calling PlotInterface::InitializeGlPlot() and setting isInitialized to true\n");
          #endif
-         PlotInterface::InitializeGlPlot(instanceName);
+         PlotInterface::InitializeGlPlot(GetRuntimePlotName());
          
          isInitialized = true;
          retval = true;
@@ -630,7 +642,7 @@ bool OrbitView::Initialize()
       // We still need to delete non-active plots so that plot persistency works,
       // so uncommented (loj: 2011.09.23)
       if (!active)
-         retval =  PlotInterface::DeleteGlPlot(instanceName);
+         retval =  PlotInterface::DeleteGlPlot(GetRuntimePlotName());
    }
    
    #if DBGLVL_INIT
@@ -653,7 +665,15 @@ bool OrbitView::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* OrbitView::Clone() const
 {
-   return (new OrbitView(*this));
+   if (typeid(*this) != typeid(OrbitView))
+      throw GmatBaseException("A derived OrbitView must provide its complete Clone.\n");
+   std::unique_ptr<OrbitView> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new OrbitView(*this));
+   }
+   value->ReconnectSubscriberCopy(*this);
+   return value.release();
 }
 
 
@@ -666,9 +686,19 @@ GmatBase* OrbitView::Clone() const
  * @param orig The original that is being copied.
  */
 //---------------------------------------------------------------------------
-void OrbitView::Copy(const GmatBase* orig)
+void OrbitView::Copy(const GmatBase *original)
 {
-   operator=(*((OrbitView *)(orig)));
+   const auto *source = dynamic_cast<const OrbitView*>(original);
+   if (!source || typeid(*source) != typeid(*this) || !HasSubscriberValueReferenceProvider())
+      throw GmatBaseException("Cannot copy an incompatible OrbitView value.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = BeginSubscriberValueCopy(*source);
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   CompleteSubscriberValueCopy(*source, transaction);
 }
 
 
@@ -2020,14 +2050,14 @@ bool OrbitView::UpdateSolverData()
       
       // Just buffer data up to last point - 1
       if (!mCurrArcContextArray[i].empty()) {
-         PlotInterface::TakeGlAction(instanceName,mCurrArcContextArray[i]);
-         PlotInterface::TakeGlAction(instanceName,"ReplayOrbitArcCamera:"+std::to_string(i));
+         PlotInterface::TakeGlAction(GetRuntimePlotName(),mCurrArcContextArray[i]);
+         PlotInterface::TakeGlAction(GetRuntimePlotName(),"ReplayOrbitArcCamera:"+std::to_string(i));
       }
-      PlotInterface::TakeGlAction(instanceName, "SetDataProvider:" + mCurrProviderArray[i]);
+      PlotInterface::TakeGlAction(GetRuntimePlotName(), "SetDataProvider:" + mCurrProviderArray[i]);
       if (i<static_cast<int>(mCurrDataAvailabilityArray.size()) && !mCurrDataAvailabilityArray[i].empty())
-         PlotInterface::TakeGlAction(instanceName,mCurrDataAvailabilityArray[i]);
+         PlotInterface::TakeGlAction(GetRuntimePlotName(),mCurrDataAvailabilityArray[i]);
       PlotInterface::
-         UpdateGlPlot(instanceName, mOldName, mCurrScArray[i],
+         UpdateGlPlot(GetRuntimePlotName(), GetRuntimePlotName(mOldName), mCurrScArray[i],
                       mCurrEpochArray[i], mCurrXArray[i], mCurrYArray[i],
                       mCurrZArray[i], mCurrVxArray[i], mCurrVyArray[i],
                       mCurrVzArray[i], mCurrentOrbitColorMap, mCurrentTargetColorMap,
@@ -2036,14 +2066,14 @@ bool OrbitView::UpdateSolverData()
    
    // Buffer last point and Update the plot
    if (!mCurrArcContextArray[last].empty()) {
-      PlotInterface::TakeGlAction(instanceName,mCurrArcContextArray[last]);
-      PlotInterface::TakeGlAction(instanceName,"ReplayOrbitArcCamera:"+std::to_string(last));
+      PlotInterface::TakeGlAction(GetRuntimePlotName(),mCurrArcContextArray[last]);
+      PlotInterface::TakeGlAction(GetRuntimePlotName(),"ReplayOrbitArcCamera:"+std::to_string(last));
    }
-   PlotInterface::TakeGlAction(instanceName, "SetDataProvider:" + mCurrProviderArray[last]);
+   PlotInterface::TakeGlAction(GetRuntimePlotName(), "SetDataProvider:" + mCurrProviderArray[last]);
    if (last<static_cast<int>(mCurrDataAvailabilityArray.size()) && !mCurrDataAvailabilityArray[last].empty())
-      PlotInterface::TakeGlAction(instanceName,mCurrDataAvailabilityArray[last]);
+      PlotInterface::TakeGlAction(GetRuntimePlotName(),mCurrDataAvailabilityArray[last]);
    PlotInterface::
-      UpdateGlPlot(instanceName, mOldName, mCurrScArray[last],
+      UpdateGlPlot(GetRuntimePlotName(), GetRuntimePlotName(mOldName), mCurrScArray[last],
                    mCurrEpochArray[last], mCurrXArray[last], mCurrYArray[last],
                    mCurrZArray[last], mCurrVxArray[last], mCurrVyArray[last],
                    mCurrVzArray[last], mCurrentOrbitColorMap, mCurrentTargetColorMap,
@@ -2063,7 +2093,7 @@ bool OrbitView::UpdateSolverData()
    mCurrVzArray.clear();
    
    if (runstate == Gmat::SOLVING)
-      PlotInterface::TakeGlAction(instanceName, "ClearSolverData");
+      PlotInterface::TakeGlAction(GetRuntimePlotName(), "ClearSolverData");
    
    return true;
 }
@@ -2106,9 +2136,9 @@ bool OrbitView::Distribute(const Real *dat, Integer len)
    if (isDataStateChanged)
    {
       if (isDataOn)
-         PlotInterface::TakeGlAction(instanceName, "PenDown");
+         PlotInterface::TakeGlAction(GetRuntimePlotName(), "PenDown");
       else
-         PlotInterface::TakeGlAction(instanceName, "PenUp");
+         PlotInterface::TakeGlAction(GetRuntimePlotName(), "PenUp");
       
       isDataStateChanged = false;
    }
@@ -2130,7 +2160,7 @@ bool OrbitView::Distribute(const Real *dat, Integer len)
    
    // test isEndOfRun first
    if (isEndOfRun)
-      return PlotInterface::SetGlEndOfRun(instanceName);
+      return PlotInterface::SetGlEndOfRun(GetRuntimePlotName());
    
    if (isEndOfReceive)
    {
@@ -2143,18 +2173,18 @@ bool OrbitView::Distribute(const Real *dat, Integer len)
          UpdateSolverData();
       }
       if (!arcContext.empty()) {
-         PlotInterface::TakeGlAction(instanceName,arcContext);
+         PlotInterface::TakeGlAction(GetRuntimePlotName(),arcContext);
          // Optional display lifecycle distinguishes trial finalization from
          // accepted-pass cleanup; the numerical subscriber mode is unchanged.
-         if (PlotInterface::TakeGlAction(instanceName,"NeedsOrbitSolverLifecycle"))
+         if (PlotInterface::TakeGlAction(GetRuntimePlotName(),"NeedsOrbitSolverLifecycle"))
          {
             const std::string state = runstate == Gmat::SOLVING ? "SOLVING" :
                runstate == Gmat::SOLVEDPASS ? "SOLVEDPASS" : "REGULAR";
-            PlotInterface::TakeGlAction(instanceName,"FinalizeOrbitSolverState:" + state);
+            PlotInterface::TakeGlAction(GetRuntimePlotName(),"FinalizeOrbitSolverState:" + state);
          }
-         PlotInterface::TakeGlAction(instanceName,"FinalizeOrbitArc");
+         PlotInterface::TakeGlAction(GetRuntimePlotName(),"FinalizeOrbitArc");
       }
-      return PlotInterface::RefreshGlPlot(instanceName);
+      return PlotInterface::RefreshGlPlot(GetRuntimePlotName());
    }
    
    
@@ -2195,3 +2225,61 @@ bool OrbitView::Distribute(const Real *dat, Integer len)
    return true;
 }
 
+
+
+std::unique_ptr<FunctionInvocationState> OrbitView::SuspendFunctionBindings()
+{
+   auto native = std::make_shared<SubscriberBindingState>();
+   native->Capture(mViewUpCoordSystem);
+   native->Capture(mViewCoordSysOrigin);
+   native->Capture(mViewUpCoordSysOrigin);
+   native->Capture(mViewPointRefObj);
+   native->Capture(mViewPointObj);
+   native->Capture(mViewDirectionObj);
+   native->Require([this, role0 = mViewCoordSysName, role1 = mViewUpCoordSysName, role2 = mViewPointRefName, role3 = mViewPointRefType, role4 = mViewPointVecName, role5 = mViewPointVecType, role6 = mViewDirectionName, role7 = mViewDirectionType]
+   {
+      return role0 == mViewCoordSysName &&
+            role1 == mViewUpCoordSysName &&
+            role2 == mViewPointRefName &&
+            role3 == mViewPointRefType &&
+            role4 == mViewPointVecName &&
+            role5 == mViewPointVecType &&
+            role6 == mViewDirectionName &&
+            role7 == mViewDirectionType;
+   });
+   return WrapFunctionBindings(std::move(native), OrbitPlot::SuspendFunctionBindings());
+}
+
+
+bool OrbitView::HasSubscriberValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(OrbitView);
+}
+
+
+void OrbitView::RebindSubscriberValueReferences(const Subscriber &original,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &source = dynamic_cast<const OrbitView&>(original);
+   auto *up = MapSubscriberReference(source.mViewUpCoordSystem, resolve);
+   auto *origin = MapSubscriberReference(source.mViewCoordSysOrigin, resolve);
+   auto *upOrigin = MapSubscriberReference(source.mViewUpCoordSysOrigin, resolve);
+   auto *reference = MapSubscriberReference(source.mViewPointRefObj, resolve);
+   auto *position = MapSubscriberReference(source.mViewPointObj, resolve);
+   auto *direction = MapSubscriberReference(source.mViewDirectionObj, resolve);
+   OrbitPlot::RebindSubscriberValueReferences(source, resolve);
+   mViewUpCoordSystem = up;
+   mViewCoordSysOrigin = origin;
+   mViewUpCoordSysOrigin = upOrigin;
+   mViewPointRefObj = reference;
+   mViewPointObj = position;
+   mViewDirectionObj = direction;
+}
+
+bool OrbitView::HasNativeSubscriberBindings() const
+{
+   return OrbitPlot::HasNativeSubscriberBindings() && mViewUpCoordSystem &&
+         (mViewPointRefType == "Vector" || mViewPointRefObj) &&
+         (mViewPointVecType == "Vector" || mViewPointObj) &&
+         (mViewDirectionType == "Vector" || mViewDirectionObj);
+}

@@ -50,7 +50,10 @@ ContactResult::~ContactResult()
 }
 
 ContactResult::ContactResult(const ContactResult& copy) :
-   LocatedEvent  (copy)
+   LocatedEvent  (copy),
+   numEvents     (0),
+   observerName  (copy.observerName),
+   noEvents      (copy.noEvents)
 {
    TakeAction("Clear");
    ContactEvent *toCopy   = NULL;
@@ -59,7 +62,7 @@ ContactResult::ContactResult(const ContactResult& copy) :
    {
       toCopy   = copy.theEvents.at(ii);
       newEvent = new ContactEvent(*toCopy);
-      theEvents.push_back(newEvent);
+      AddEvent(newEvent);
    }
 }
 
@@ -68,6 +71,8 @@ ContactResult& ContactResult::operator=(const ContactResult& copy)
    if (&copy != this)
    {
       LocatedEvent::operator=(copy);
+      observerName = copy.observerName;
+      noEvents = copy.noEvents;
       TakeAction("Clear");
       ContactEvent *toCopy   = NULL;
       ContactEvent *newEvent = NULL;
@@ -75,7 +80,7 @@ ContactResult& ContactResult::operator=(const ContactResult& copy)
       {
          toCopy   = copy.theEvents.at(ii);
          newEvent = new ContactEvent(*toCopy);
-         theEvents.push_back(newEvent);
+         AddEvent(newEvent);
       }
    }
 
@@ -177,6 +182,7 @@ bool ContactResult::TakeAction(const std::string &action,
          delete theEvents.at(ii);
       }
       theEvents.clear();
+      numEvents = 0;
    }
    return true;
 }

@@ -142,7 +142,12 @@ bool SphRMag::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SphRMag::Clone(void) const
 {
-   return new SphRMag(*this);
+   return CompleteParameterClone(new SphRMag(*this));
+}
+
+void SphRMag::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SphRMag>(source);
 }
 
 
@@ -257,7 +262,12 @@ bool SphRA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SphRA::Clone(void) const
 {
-   return new SphRA(*this);
+   return CompleteParameterClone(new SphRA(*this));
+}
+
+void SphRA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SphRA>(source);
 }
 
 
@@ -372,7 +382,12 @@ bool SphDec::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SphDec::Clone(void) const
 {
-   return new SphDec(*this);
+   return CompleteParameterClone(new SphDec(*this));
+}
+
+void SphDec::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SphDec>(source);
 }
 
 
@@ -485,7 +500,12 @@ bool SphVMag::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SphVMag::Clone(void) const
 {
-   return new SphVMag(*this);
+   return CompleteParameterClone(new SphVMag(*this));
+}
+
+void SphVMag::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SphVMag>(source);
 }
 
 
@@ -600,7 +620,12 @@ bool SphRAV::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SphRAV::Clone(void) const
 {
-   return new SphRAV(*this);
+   return CompleteParameterClone(new SphRAV(*this));
+}
+
+void SphRAV::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SphRAV>(source);
 }
 
 
@@ -713,7 +738,12 @@ bool SphDecV::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SphDecV::Clone(void) const
 {
-   return new SphDecV(*this);
+   return CompleteParameterClone(new SphDecV(*this));
+}
+
+void SphDecV::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SphDecV>(source);
 }
 
 
@@ -828,7 +858,12 @@ bool SphAzi::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SphAzi::Clone(void) const
 {
-   return new SphAzi(*this);
+   return CompleteParameterClone(new SphAzi(*this));
+}
+
+void SphAzi::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SphAzi>(source);
 }
 
 
@@ -940,7 +975,12 @@ bool SphFPA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SphFPA::Clone(void) const
 {
-   return new SphFPA(*this);
+   return CompleteParameterClone(new SphFPA(*this));
+}
+
+void SphFPA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SphFPA>(source);
 }
 
 
@@ -1053,7 +1093,12 @@ bool SphRaDecElem::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SphRaDecElem::Clone(void) const
 {
-   return new SphRaDecElem(*this);
+   return CompleteParameterClone(new SphRaDecElem(*this));
+}
+
+void SphRaDecElem::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SphRaDecElem>(source);
 }
 
 
@@ -1166,5 +1211,10 @@ bool SphAzFpaElem::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SphAzFpaElem::Clone(void) const
 {
-   return new SphAzFpaElem(*this);
+   return CompleteParameterClone(new SphAzFpaElem(*this));
+}
+
+void SphAzFpaElem::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SphAzFpaElem>(source);
 }

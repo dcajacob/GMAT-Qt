@@ -1,0 +1,2633 @@
+{
+  "id": "06-functions",
+  "title": "Mars B-Plane Targeting Using GMAT Functions",
+  "guide": "doc/help/src/Tut_UsingGMATFunctions.xml",
+  "guide_sha256": "45c88f2c636755c1ee29fc0fb110d8eca7117d55535e0e8285f07c507d46b9c0",
+  "reference": "application/samples/Tut_UsingGMATFunctions.script",
+  "provenance": "Reviewed current Help instructions, using semantic QtTest widget selectors. Values come from the Help chapter; the generator never reads a completed example mission. Literal code is entered only where the chapter explicitly teaches it.",
+  "stages": [
+    {
+      "name": "Current Help GUI instructions with QtTest selectors",
+      "input": null,
+      "requires_run": true,
+      "actions": [
+        {
+          "action": "key",
+          "keys": "Esc"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+N"
+        },
+        {
+          "action": "window",
+          "state": "maximized"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Hardware",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ChemicalTank",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "MainTank",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "MainTank",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_FuelMass"
+        },
+        {
+          "action": "text",
+          "text": "1718",
+          "target_name": "resource_FuelMass"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_FuelDensity"
+        },
+        {
+          "action": "text",
+          "text": "1000",
+          "target_name": "resource_FuelDensity"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Pressure"
+        },
+        {
+          "action": "text",
+          "text": "5000",
+          "target_name": "resource_Pressure"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Volume"
+        },
+        {
+          "action": "text",
+          "text": "2",
+          "target_name": "resource_Volume"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultSC",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "MAVEN",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "MAVEN",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DateFormat",
+          "value": "UTCGregorian"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "text",
+          "text": "18 Nov 2013 20:26:24.315",
+          "target_name": "resource_Epoch"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_DisplayStateType",
+          "value": "Keplerian"
+        },
+        {
+          "action": "click",
+          "field_hint": "SMA",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "-32593.21599272774"
+        },
+        {
+          "action": "click",
+          "field_hint": "ECC",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "1.202872548116186"
+        },
+        {
+          "action": "click",
+          "field_hint": "INC",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "28.80241266404144"
+        },
+        {
+          "action": "click",
+          "field_hint": "RAAN",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "173.9693759331483"
+        },
+        {
+          "action": "click",
+          "field_hint": "AOP",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "240.9696529532762"
+        },
+        {
+          "action": "click",
+          "field_hint": "TA",
+          "count": 1
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "359.946553377841"
+        },
+        {
+          "action": "click",
+          "target_text": "Orbit and hardware",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "field_button": "resource_Tanks"
+        },
+        {
+          "action": "check",
+          "target_text": "MainTank",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Burns",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ImpulsiveBurn",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "TCM",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "TCM",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "burn_Origin",
+          "value": "Earth"
+        },
+        {
+          "action": "check",
+          "target_name": "burn_DecrementMass",
+          "checked": true
+        },
+        {
+          "action": "select",
+          "target_name": "burn_Tank",
+          "value": "MainTank"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Burns",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ImpulsiveBurn",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "MOI",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "MOI",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "burn_Origin",
+          "value": "Mars"
+        },
+        {
+          "action": "check",
+          "target_name": "burn_DecrementMass",
+          "checked": true
+        },
+        {
+          "action": "select",
+          "target_name": "burn_Tank",
+          "value": "MainTank"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultProp",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "NearEarth",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "NearEarth",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_Type",
+          "value": "RungeKutta89"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "text",
+          "text": "600",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "text",
+          "text": "1e-13",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "600",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "NearEarth_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_CentralBody"
+        },
+        {
+          "action": "text",
+          "text": "Earth",
+          "target_name": "resource_CentralBody"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "text",
+          "text": "Earth",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "text",
+          "text": "Luna, Sun",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_SRP",
+          "value": "On"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "NearEarth_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_text": "Gravity field",
+          "target_role": "tab"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Degree",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Degree",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "8"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Earth.Order",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Earth.Order",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "8"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagators",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add PropSetup",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "DeepSpace",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "DeepSpace",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_Type",
+          "value": "PrinceDormand78"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "text",
+          "text": "600",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "text",
+          "text": "1e-12",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "864000",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "DeepSpace_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_CentralBody"
+        },
+        {
+          "action": "text",
+          "text": "Sun",
+          "target_name": "resource_CentralBody"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "key",
+          "keys": "Backspace",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "text",
+          "text": "Earth, Jupiter, Luna, Mars, Neptune, Saturn, Sun, Uranus, Venus",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_SRP",
+          "value": "On"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagators",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add PropSetup",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "NearMars",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "NearMars",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_Type",
+          "value": "PrinceDormand78"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "text",
+          "text": "600",
+          "target_name": "resource_InitialStepSize"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "text",
+          "text": "1e-12",
+          "target_name": "resource_Accuracy"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "resource_MinStep"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "86400",
+          "target_name": "resource_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "NearMars_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_CentralBody"
+        },
+        {
+          "action": "text",
+          "text": "Mars",
+          "target_name": "resource_CentralBody"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "text",
+          "text": "Mars",
+          "target_name": "resource_PrimaryBodies"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "text",
+          "text": "Sun",
+          "target_name": "resource_PointMasses"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_SRP",
+          "value": "On"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "NearMars_ForceModel",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_text": "Gravity field",
+          "target_role": "tab"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Mars.PotentialFile",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Mars.PotentialFile",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "${REPO}/application/data/gravity/mars/Mars50c.cof"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Mars.Degree",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Mars.Degree",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "8"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "GravityField.Mars.Order",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "click",
+          "field_hint": "GravityField.Mars.Order",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "8"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Solvers",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add DifferentialCorrector",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "DefaultDC",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Coordinate Systems",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add CoordinateSystem",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "SunEcliptic",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "SunEcliptic",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "text",
+          "text": "Sun",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_Axes",
+          "value": "MJ2000Ec"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Coordinate Systems",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add CoordinateSystem",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "MarsInertial",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "MarsInertial",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "text",
+          "text": "Mars",
+          "target_name": "resource_Origin"
+        },
+        {
+          "action": "select",
+          "target_name": "resource_Axes",
+          "value": "BodyInertial"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "DefaultOrbitView",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "F2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "EarthView",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "EarthView",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_CoordinateSystem",
+          "value": "EarthMJ2000Eq"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewPointReference",
+          "value": "Earth"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewPointVector",
+          "value": "Vector"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "text",
+          "text": "30000",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewDirection",
+          "value": "Earth"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewUpCoordinateSystem",
+          "value": "EarthMJ2000Eq"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewScaleFactor"
+        },
+        {
+          "action": "text",
+          "text": "4",
+          "target_name": "orbit_ViewScaleFactor"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitClearObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "MAVEN"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Earth"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add OrbitView",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "SolarSystemView",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "SolarSystemView",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_CoordinateSystem",
+          "value": "SunEcliptic"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewPointReference",
+          "value": "Sun"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewPointVector",
+          "value": "Vector"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "text",
+          "text": "5e8",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewDirection",
+          "value": "Sun"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewUpCoordinateSystem",
+          "value": "SunEcliptic"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitClearObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "MAVEN"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Earth"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Mars"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Sun"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add OrbitView",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "MarsView",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "MarsView",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_CoordinateSystem",
+          "value": "MarsInertial"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewPointReference",
+          "value": "Mars"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewPointVector",
+          "value": "Vector"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "text",
+          "text": "22000",
+          "target_name": "orbit_ViewPointVector1"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "text",
+          "text": "22000",
+          "target_name": "orbit_ViewPointVector2"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "text",
+          "text": "0",
+          "target_name": "orbit_ViewPointVector3"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewDirection",
+          "value": "Mars"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_ViewUpCoordinateSystem",
+          "value": "MarsInertial"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitClearObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "MAVEN"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Earth"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "select",
+          "target_name": "orbitAvailableObjects",
+          "value": "Mars"
+        },
+        {
+          "action": "click",
+          "target_name": "orbitAddObject"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-mars-resources-created"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ReportFile",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "rf",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Functions",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add GmatFunction",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "TargeterInsideFunction",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_name": "resourceFunctionNew"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/TargeterInsideFunction.gmf",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "functionFileText"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "% Target Desired B-Plane Coordinates in this function:"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "function TargeterInsideFunction()"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "BeginMissionSequence"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "Global 'Make Objects Global' MAVEN DeepSpace_ForceModel DefaultDC ..."
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "EarthView MainTank MarsView MOI NearEarth_ForceModel ..."
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "NearMars_ForceModel rf SolarSystemView TCM"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "Target 'Target B-plane coordinates' DefaultDC {SolveMode = Solve, ..."
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "    ExitMode = SaveAndContinue}"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "   Propagate 'Prop 3 days' NearEarth(MAVEN) {MAVEN.ElapsedDays = 3}"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "   Propagate 'Prop 12 Days to TCM' DeepSpace(MAVEN) {MAVEN.ElapsedDays = 12}"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "   Vary 'Vary TCM.V' DefaultDC(TCM.Element1 = 0.001, ..."
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "    {Perturbation = 0.00001, MaxStep = 0.002})"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "   Vary 'Vary TCM.N' DefaultDC(TCM.Element2 = 0.001, ..."
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "    {Perturbation = 0.00001, MaxStep = 0.002})"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "   Vary 'Vary TCM.B' DefaultDC(TCM.Element3 = 0.001, ..."
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "    {Perturbation = 0.00001, MaxStep = 0.002})"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "   Maneuver 'Apply TCM' TCM(MAVEN)"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "   Propagate 'Prop 280 Days' DeepSpace(MAVEN) {MAVEN.ElapsedDays = 280}"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "   Propagate 'Prop to Mars Periapsis' NearMars(MAVEN) {MAVEN.Mars.Periapsis}"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "   Achieve 'Achieve BdotT' DefaultDC(MAVEN.MarsInertial.BdotT = 0, ..."
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "    {Tolerance = 0.00001})"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "   Achieve 'Achieve BdotR' DefaultDC(MAVEN.MarsInertial.BdotR = -7000, ..."
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "    {Tolerance = 0.00001})"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "EndTarget; "
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "% Report MAVEN parameters to global 'rf' :"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "Report 'Report Parameters' rf MAVEN.UTCGregorian TCM.Element1 ..."
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "TCM.Element2 TCM.Element3 MAVEN.MarsInertial.BdotT ..."
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "functionFileText",
+          "text": "MAVEN.MarsInertial.BdotR MAVEN.MarsInertial.INC"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "target_text": "Save",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagate",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Delete command",
+          "target_role": "menu"
+        },
+        {
+          "action": "click",
+          "target_text": "Yes",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Global"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Make Objects Global",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Objects"
+        },
+        {
+          "action": "text",
+          "text": "MAVEN DeepSpace DeepSpace_ForceModel DefaultDC EarthView MainTank MarsView MOI NearEarth NearEarth_ForceModel NearMars NearMars_ForceModel rf SolarSystemView TCM SunEcliptic MarsInertial DefaultGroundTrackPlot",
+          "target_name": "commandField_Objects"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Call function"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Target Desired B-Plane Coord. From Inside Function",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Outputs"
+        },
+        {
+          "action": "key",
+          "keys": "Backspace",
+          "target_name": "commandField_Outputs"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Inputs"
+        },
+        {
+          "action": "key",
+          "keys": "Backspace",
+          "target_name": "commandField_Inputs"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Function"
+        },
+        {
+          "action": "text",
+          "text": "TargeterInsideFunction",
+          "target_name": "commandField_Function"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Report Parameters",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "rf",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "MAVEN.UTCGregorian TCM.Element1 TCM.Element2 TCM.Element3 MAVEN.MarsInertial.BdotT MAVEN.MarsInertial.BdotR MAVEN.MarsInertial.INC",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+S"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial06-function.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-first-bplane-target"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Target"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Mars Capture",
+          "target_name": "commandName"
+        },
+        {
+          "action": "select",
+          "target_name": "commandChoice_ExitMode",
+          "value": "SaveAndContinue"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Mars Capture",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Vary MOI",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "MOI.Element1",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "-1",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "text",
+          "text": "0.00001",
+          "target_name": "commandField_Perturbation"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "text",
+          "text": "-10e300",
+          "target_name": "commandField_Lower"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "text",
+          "text": "10e300",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "0.1",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Mars Capture",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Maneuver"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Apply MOI",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "text",
+          "text": "MOI",
+          "target_name": "commandField_Burn"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "text",
+          "text": "MAVEN",
+          "target_name": "commandField_Spacecraft"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Mars Capture",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Prop to Mars Apoapsis",
+          "target_name": "commandName"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "NearMars"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "MAVEN"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "text",
+          "text": "MAVEN.Mars.Apoapsis",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Mars Capture",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Achieve Mars Apoapsis",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "text",
+          "text": "MAVEN.Mars.RMAG",
+          "target_name": "commandField_Goal"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "12000",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Prop One Day",
+          "target_name": "commandName"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationPropagator",
+          "value": "NearMars"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationSpacecraft",
+          "value": "MAVEN"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Days"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "1",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+S"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-mars-capture"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Target \u2014 Mars Capture",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_name": "applySolverCorrections"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+S"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-mars-capture-corrected"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Maneuver \u2014 Apply MOI",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Command summary",
+          "target_role": "menu"
+        },
+        {
+          "action": "screenshot",
+          "label": "Maneuver-Apply-MOI"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagate \u2014 Prop to Mars Apoapsis",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Command summary",
+          "target_role": "menu"
+        },
+        {
+          "action": "screenshot",
+          "label": "Propagate-Prop-to-Mars-Apoapsis"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+O"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial06-function.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "screenshot",
+          "label": "own-saved-mission-reopened"
+        }
+      ]
+    }
+  ]
+}

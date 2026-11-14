@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "ChemicalTank",
+      "actions": false,
+      "third": "",
+      "fourth": "",
+      "loaded": "",
+      "historical_keys": [
+        "H2012:R169"
+      ]
+    },
+    {
+      "key": "ChemicalThruster",
+      "actions": false,
+      "third": "",
+      "fourth": "",
+      "loaded": "",
+      "historical_keys": [
+        "H2012:R209"
+      ]
+    },
+    {
+      "key": "DifferentialCorrector",
+      "actions": false,
+      "third": "",
+      "fourth": "",
+      "loaded": "",
+      "historical_keys": [
+        "H2012:R1090"
+      ]
+    }
+  ],
+  "scope": "Three previously unqualified generic Dialog Exit rows; no replay or replacement of existing lifecycle cases."
+}

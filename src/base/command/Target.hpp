@@ -52,6 +52,7 @@ class GMAT_API Target : public SolverBranchCommand
 public:
    Target();
    virtual ~Target();
+   void RetireFunctionBindings(ObjectMap *store) override;
     
    Target(const Target& t);
    Target&             operator=(const Target& t);

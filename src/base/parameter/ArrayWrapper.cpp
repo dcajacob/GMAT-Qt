@@ -79,10 +79,11 @@ ArrayWrapper::ArrayWrapper() :
  */
 //---------------------------------------------------------------------------
 ArrayWrapper::ArrayWrapper(const ArrayWrapper &aw) :
-   ElementWrapper(aw),
-   array         (aw.array),
-   arrayName     (aw.arrayName)
+   ElementWrapper(aw), array(nullptr), arrayName(aw.arrayName)
 {
+   if (aw.ownedArray)
+      ownedArray = CloneOwnedReference(aw.array);
+   array = ownedArray ? ownedArray.get() : aw.array;
 }
 
 //---------------------------------------------------------------------------
@@ -98,12 +99,16 @@ ArrayWrapper::ArrayWrapper(const ArrayWrapper &aw) :
 //---------------------------------------------------------------------------
 const ArrayWrapper& ArrayWrapper::operator=(const ArrayWrapper &aw)
 {
-   if (&aw == this)
-      return *this;
-   
+   if (&aw == this) return *this;
+   auto value = aw.ownedArray ? CloneOwnedReference(aw.array, array) : std::unique_ptr<Array>();
+   std::string name = aw.arrayName;
    ElementWrapper::operator=(aw);
-   array      = aw.array;  
-   arrayName  = aw.arrayName;
+   arrayName.swap(name);
+   // The source can borrow this destination's owned result. Keep that owner
+   // when assignment reconnects the same identity.
+   if (!ownedArray || aw.array != ownedArray.get() || aw.ownedArray)
+      ownedArray = std::move(value);
+   array = ownedArray ? ownedArray.get() : aw.array;
    return *this;
 }
 
@@ -132,6 +137,20 @@ ElementWrapper* ArrayWrapper::Clone() const
 {
    return new ArrayWrapper(*this);
 }
+
+void ArrayWrapper::RebindClonedReferences(const ElementWrapper &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   CheckCloneType(source);
+   const auto &original = static_cast<const ArrayWrapper&>(source);
+   auto *value = BindClonedReference(original.array, resolve);
+   if (value != array)
+   {
+      ownedArray.reset();
+      array = value;
+   }
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -221,30 +240,13 @@ GmatBase* ArrayWrapper::GetRefObject(const std::string &name)
 //---------------------------------------------------------------------------
 bool ArrayWrapper::SetRefObject(GmatBase *obj)
 {
-   #ifdef DEBUG_ARRAY_WRAPPER
-   MessageInterface::ShowMessage
-      ("ArrayWrapper::SetRefObject() obj=<%p>, type='%s', name='%s', "
-       "arrayName='%s'\n", obj, obj->GetTypeName().c_str(), obj->GetName().c_str(),
-       arrayName.c_str());
-   #endif
-   
-   bool isOk   = false;
-   if ( (obj->IsOfType("Array")) && (obj->GetName() == arrayName) )
+   auto *value = dynamic_cast<Array*>(obj);
+   if (!value || value->GetName() != arrayName) return false;
+   if (value != array)
    {
-      array = (Array*) obj;
-      #ifdef DEBUG_ARRAY_WRAPPER
-         MessageInterface::ShowMessage("ArrayWrapper:: Setting array object %s\n",
-            arrayName.c_str());
-      #endif
-      isOk = true;
+      ownedArray.reset();
+      array = value;
    }
-   
-   if (!isOk) return false;
-   #ifdef DEBUG_ARRAY_WRAPPER
-      MessageInterface::ShowMessage(
-         "ArrayWrapper:: Returning true from SetRefObject\n");
-   #endif
-   
    return true;
 }
 
@@ -429,4 +431,21 @@ void ArrayWrapper::SetupWrapper()
    arrayName = description;
    // for now, put the array name in the list of reference objects
    refObjectNames.push_back(arrayName);
+}
+
+// Explicitly take ownership of a newly generated expression result. Ordinary
+// SetRefObject still borrows configured/runtime objects.
+bool ArrayWrapper::OwnsRefObject() const { return ownedArray && ownedArray.get() == array; }
+
+void ArrayWrapper::AdoptRefObject(std::unique_ptr<Array> value)
+{
+   if (value && value.get() == ownedArray.get())
+   {
+      value.release();
+      throw GmatBaseException("Expression result is already owned by this wrapper.\n");
+   }
+   if (!value || value->GetName() != arrayName)
+      throw GmatBaseException("Expression result does not match its wrapper.\n");
+   ownedArray = std::move(value);
+   array = ownedArray.get();
 }

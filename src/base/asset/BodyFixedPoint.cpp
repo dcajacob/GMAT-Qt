@@ -47,7 +47,9 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <cmath>
 #include "BodyFixedPoint.hpp"
+#include "EphemerisDerivative.hpp"
 #include "AssetException.hpp"
 #include "MessageInterface.hpp"
 #include "RealUtilities.hpp"
@@ -58,6 +60,9 @@
 #include "FileManager.hpp"
 #include "GmatConstants.hpp"
 #include "FileUtil.hpp"
+#ifdef __USE_SPICE__
+#include "SpiceKernelFileRetirement.hpp"
+#endif
 
 
 //#define DEBUG_OBJECT_MAPPING
@@ -190,41 +195,15 @@ BodyFixedPoint::BodyFixedPoint(const std::string &itsType, const std::string &it
 BodyFixedPoint::~BodyFixedPoint()
 {
    #ifdef __USE_SPICE__
-      if (kernelsWritten)
-      {
-         if (deleteSPK && (spkName != ""))
-         {
-            #ifdef DEBUG_BFP_SPICE
-               MessageInterface::ShowMessage("**** In BFP, About to unload %s\n",
-                     spkName.c_str());
-            #endif
-            spice->UnloadKernel(spkName);
-            remove(spkName.c_str());
-         }
-         if (deleteFK && (fkName != ""))
-         {
-            #ifdef DEBUG_BFP_SPICE
-               MessageInterface::ShowMessage("**** In BFP, About to unload %s\n",
-                     fkName.c_str());
-            #endif
-            spice->UnloadKernel(fkName);
-            remove(fkName.c_str());
-         }
-      }
-
+      GmatSpiceKernelFiles::TryRetire(spice, spkName, deleteSPK);
+      GmatSpiceKernelFiles::TryRetire(spice, fkName, deleteFK);
+   #endif
+   delete bfcs;
+   delete mj2kcs;
+   delete spiceCS;
+   #ifdef __USE_SPICE__
       if (spice) delete spice;
    #endif
-
-      if (mj2kcs != nullptr)
-      {
-         delete mj2kcs;
-         mj2kcs = nullptr;
-      }
-      if (bfcs != nullptr)
-      {
-         delete bfcs;
-         bfcs = nullptr;
-      }
 }
 
 //---------------------------------------------------------------------------
@@ -256,15 +235,17 @@ BodyFixedPoint::BodyFixedPoint(const BodyFixedPoint& bfp) :
    lastStateTimeGT      (bfp.lastStateTimeGT),
    lastState            (bfp.lastState),
    runEpoch             (bfp.runEpoch),
-   kernelBaseName       (bfp.kernelBaseName),
-   spkName              (bfp.spkName),
-   fkName               (bfp.fkName),
+   kernelBaseName       (""),
+   spkName              (""),
+   fkName               (""),
    deleteSPK            (bfp.deleteSPK),
    deleteFK             (bfp.deleteFK),
    naifIDDetermined     (bfp.naifIDDetermined), // ??
    kernelNamesDetermined (false),
    kernelsWritten       (false)
 {
+   if (bfp.kernelNamesDetermined)
+      spiceFrameID.clear();
    location[0]   = bfp.location[0];
    location[1]   = bfp.location[1];
    location[2]   = bfp.location[2];;
@@ -295,7 +276,41 @@ BodyFixedPoint& BodyFixedPoint::operator=(const BodyFixedPoint& bfp)
 {
    if (&bfp != this)
    {
+      if (GmatBase::IsNativeRestorationCopy())
+      {
+         if ((theSolarSystem && bfp.theSolarSystem && theSolarSystem != bfp.theSolarSystem) ||
+             (theBody && bfp.theBody && theBody != bfp.theBody) ||
+             (j2000Body && bfp.j2000Body && j2000Body != bfp.j2000Body))
+            throw AssetException("Restoration requires the same active station body bindings.");
+         if (cBodyName != bfp.cBodyName || stateType != bfp.stateType || horizon != bfp.horizon ||
+             meanEquatorialRadius != bfp.meanEquatorialRadius || flattening != bfp.flattening ||
+             locationLabels != bfp.locationLabels || locationUnits != bfp.locationUnits ||
+             j2000BodyName != bfp.j2000BodyName)
+            throw AssetException("Restoration requires unchanged active station body and location roles.");
+         for (Integer i = 0; i < 3; ++i)
+            if (location[i] != bfp.location[i] || bfLocation[i] != bfp.bfLocation[i])
+               throw AssetException("Prepare the station before restoring a changed active location.");
+         // Generated frames and kernels still describe these exact coordinates.
+         // Retain their owners and the live body/solar-system bindings.
+         SpacePoint::operator=(bfp);
+         lastStateTime = bfp.lastStateTime;
+         lastStateTimeGT = bfp.lastStateTimeGT;
+         lastState = bfp.lastState;
+         runEpoch = bfp.runEpoch;
+         return *this;
+      }
+      // Retire this instance's generated kernels and local frames before
+      // replacing their configuration. The source's files and loader are
+      // never owned by the assigned instance.
+      InvalidateBodyBindings();
+      #ifdef __USE_SPICE__
+         delete spice;
+         spice = NULL;
+      #endif
+
       SpacePoint::operator=(bfp);
+      if (bfp.kernelNamesDetermined)
+         spiceFrameID.clear();
 
       cBodyName            = bfp.cBodyName;
       theBody              = bfp.theBody;
@@ -316,14 +331,14 @@ BodyFixedPoint& BodyFixedPoint::operator=(const BodyFixedPoint& bfp)
       lastStateTimeGT      = bfp.lastStateTimeGT;
       lastState            = bfp.lastState;
       runEpoch             = bfp.runEpoch;
-      kernelBaseName       = bfp.kernelBaseName;
-      spkName              = bfp.spkName;
-      fkName               = bfp.fkName;
+      kernelBaseName.clear();
+      spkName.clear();
+      fkName.clear();
       deleteSPK            = bfp.deleteSPK;
       deleteFK             = bfp.deleteFK;
       naifIDDetermined     = bfp.naifIDDetermined;
-      kernelNamesDetermined = bfp.kernelNamesDetermined;
-      kernelsWritten       = bfp.kernelsWritten;
+      kernelNamesDetermined = false;
+      kernelsWritten       = false;
 
       location[0]          = bfp.location[0];
       location[1]          = bfp.location[1];
@@ -374,20 +389,30 @@ bool BodyFixedPoint::Initialize()
    #endif
 
    // Get required data from the body
-   flattening            = theBody->GetRealParameter("Flattening");
-   meanEquatorialRadius  = theBody->GetRealParameter("EquatorialRadius");
+   Real bodyFlattening = theBody->GetRealParameter("Flattening");
+   Real bodyRadius = theBody->GetRealParameter("EquatorialRadius");
+   if (bodyFlattening != flattening || bodyRadius != meanEquatorialRadius)
+      RetireGeneratedKernels();
+   flattening = bodyFlattening;
+   meanEquatorialRadius = bodyRadius;
 
-   // @todo: This should work, but doesn't.  It needs to be figured out
-   //        eventually, I think.
-   //
-   //        One clue: When walking through this code in nemiver (Linux
-   //        debugger), I saw a covariance matrix destructor being called,
-   //        and did not expect that.  Maybe there is something around that
-   //        piece...
-   
-   // set up local coordinate systems - delete the old ones if they have already been created
-   //if (mj2kcs)   delete mj2kcs;
-   //if (bfcs)     delete bfcs;
+   SpacePoint *referenceBody = theBody->GetJ2000Body();
+   if (!referenceBody || theBody->GetName() != cBodyName ||
+       theBody->GetJ2000BodyName() != GetJ2000BodyName())
+      throw AssetException("Unable to initialize body-fixed point \"" + instanceName +
+         "\" with an unresolved or inconsistent central-body reference.");
+
+   // The same body can acquire a different J2000 reference or be rebound to
+   // a new solar-system instance. Never reuse frames from that old context.
+   if ((bfcs && (bfcs->GetOrigin() != theBody ||
+                 bfcs->GetJ2000Body() != referenceBody ||
+                 bfcs->GetSolarSystem() != theSolarSystem)) ||
+       (mj2kcs && (mj2kcs->GetOrigin() != referenceBody ||
+                   mj2kcs->GetJ2000Body() != referenceBody ||
+                   mj2kcs->GetSolarSystem() != theSolarSystem)))
+      InvalidateBodyBindings();
+
+   // Reuse local coordinate systems only while their binding is unchanged.
    if (!mj2kcs)
    {
       mj2kcsName = "mj2kcs";
@@ -792,17 +817,12 @@ bool BodyFixedPoint::SetStringParameter(const Integer id,
 
    if (id == CENTRAL_BODY)
    {
-//      if (value != SolarSystem::EARTH_NAME)
-//      {
-//         std::string errmsg =
-//            "The value of \"" + value + "\" for field \"CentralBody\""
-//            " on object \"" + instanceName + "\" is not an allowed value.\n"
-//            "The allowed values are: [ " + SolarSystem::EARTH_NAME + " ]. ";
-//         throw AssetException(errmsg);
-//      }
-      if (theBody)
+      if (value != cBodyName)
+      {
+         InvalidateBodyBindings();
          theBody = NULL;
-      cBodyName = value;
+         cBodyName = value;
+      }
       retval = true;
    }
    else if (id == STATE_TYPE)
@@ -825,6 +845,17 @@ bool BodyFixedPoint::SetStringParameter(const Integer id,
 
       if ((v == "Cartesian") || (v == "Spherical"))
       {
+         Rvector3 convertedLocation(location[0], location[1], location[2]);
+         if (currentStateType != v)
+         {
+            convertedLocation = BodyFixedStateConverterUtil::Convert(convertedLocation,
+               currentStateType, horizon, v, horizon, flattening, meanEquatorialRadius);
+            for (Integer i = 0; i < 3; ++i)
+               if (!std::isfinite(convertedLocation[i]))
+                  throw AssetException("Nonfinite location converting StateType for body-fixed point \"" +
+                     instanceName + "\".");
+            RetireGeneratedKernels();
+         }
          stateType = v;
          if (v == "Cartesian")
          {
@@ -846,13 +877,9 @@ bool BodyFixedPoint::SetStringParameter(const Integer id,
          }
          if (currentStateType != stateType)
          {
-            Rvector3 locIn(location[0], location[1], location[2]);
-            Rvector3 locOut = BodyFixedStateConverterUtil::Convert(locIn,
-                              currentStateType, horizon, stateType, horizon,
-                              flattening, meanEquatorialRadius);
-            location[0] = locOut[0];
-            location[1] = locOut[1];
-            location[2] = locOut[2];
+            location[0] = convertedLocation[0];
+            location[1] = convertedLocation[1];
+            location[2] = convertedLocation[2];
          }
          retval = true;
       }
@@ -869,17 +896,22 @@ bool BodyFixedPoint::SetStringParameter(const Integer id,
    {
       if ((value == "Sphere") || (value == "Ellipsoid"))
       {
-         horizon = value;
-         if (currentHorizon != horizon)
+         if (currentHorizon != value)
          {
             Rvector3 locIn(location[0], location[1], location[2]);
             Rvector3 locOut = BodyFixedStateConverterUtil::Convert(locIn,
-                              stateType, currentHorizon, stateType, horizon,
+                              stateType, currentHorizon, stateType, value,
                               flattening, meanEquatorialRadius);
+            for (Integer i = 0; i < 3; ++i)
+               if (!std::isfinite(locOut[i]))
+                  throw AssetException("Nonfinite location converting HorizonReference for body-fixed point \"" +
+                     instanceName + "\".");
+            RetireGeneratedKernels();
             location[0] = locOut[0];
             location[1] = locOut[1];
             location[2] = locOut[2];
          }
+         horizon = value;
          retval = true;
       }
       else
@@ -993,6 +1025,10 @@ bool BodyFixedPoint::SetRefObject(GmatBase *obj, const UnsignedInt type,
       case Gmat::CELESTIAL_BODY:
          if (obj->GetName() == cBodyName)
          {
+            if (!obj->IsOfType(Gmat::SPACE_POINT))
+               return false;
+            if (theBody != obj)
+               InvalidateBodyBindings();
             theBody = (SpacePoint*)obj;
             // Let ancestors process this object as well
 
@@ -1051,14 +1087,15 @@ Real BodyFixedPoint::SetRealParameter(const Integer id,
 //      MessageInterface::ShowMessage("stateType = %s and horizon = %s\n",
 //            stateType.c_str(), horizon.c_str());
    #endif
-   if (((id == LOCATION_1) || (id == LOCATION_2)) && stateType == "Spherical")
+   if ((id >= LOCATION_1) && (id <= LOCATION_3))
    {
-      // if Spherical statetype, then check if Latitude/Longitude are in the correct range
-      if (id == LOCATION_1) // latitude
+      if (!std::isfinite(value))
+         throw AssetException("Location fields for body-fixed point \"" + instanceName +
+            "\" must be finite.");
+      Real newLocation = value;
+      if (stateType == "Spherical" && id == LOCATION_1)
       {
-         if ((value >= -90.0) && (value <= 90))
-            location[id-LOCATION_1] = value * GmatMathConstants::RAD_PER_DEG;
-         else
+         if (value < -90.0 || value > 90.0)
          {
             AssetException aException("");
             aException.SetDetails(errorMessageFormat.c_str(),
@@ -1066,19 +1103,22 @@ Real BodyFixedPoint::SetRealParameter(const Integer id,
                         GetStringParameter(id-LOCATION_1+LOCATION_LABEL_1).c_str(), "Real Number >= -90.0 and <= 90.0");
             throw aException;
          }
+         newLocation = value * GmatMathConstants::RAD_PER_DEG;
       }
-      else // longitude (0-360)
-         location[id-LOCATION_1] = (GmatMathUtil::Mod(value,360)) * GmatMathConstants::RAD_PER_DEG;
+      else if (stateType == "Spherical" && id == LOCATION_2)
+         newLocation = GmatMathUtil::Mod(value, 360) * GmatMathConstants::RAD_PER_DEG;
+      if (!std::isfinite(newLocation))
+         throw AssetException("Location normalization is nonfinite for body-fixed point \"" +
+            instanceName + "\".");
 
-      // BodyFixedPoint objects can have different internal data for the
-      // lat/long setting (radians rather than degrees), so return the input
-      // setting for this case.
+      // Validate and normalize before retiring geometry or committing the edit.
+      // A no-op, including a wrapped longitude, keeps the generated pair.
+      if (newLocation != location[id - LOCATION_1])
+         RetireGeneratedKernels();
+      location[id - LOCATION_1] = newLocation;
+
+      // Keep the public input-unit return convention for spherical angles.
       return value;
-   }
-   else if ((id >= LOCATION_1) && (id <= LOCATION_3)) // not Spherical
-   {
-      location[id-LOCATION_1] = value;
-      return location[id-LOCATION_1];
    }
 
    return SpacePoint::SetRealParameter(id, value);
@@ -1317,6 +1357,7 @@ const ObjectTypeArray& BodyFixedPoint::GetRefObjectTypeArray()
 //------------------------------------------------------------------------------
 const Rvector6 BodyFixedPoint::GetMJ2000State(const A1Mjd &atTime)
 {
+   ValidateBodyBindings();
    #ifdef DEBUG_BODYFIXED_STATE
       MessageInterface::ShowMessage("In GetMJ2000State for BodyFixedPoint %s\n",
             instanceName.c_str());
@@ -1344,7 +1385,9 @@ const Rvector6 BodyFixedPoint::GetMJ2000State(const A1Mjd &atTime)
       MessageInterface::ShowMessage("before, J2000PosVel = %s\n",
             (j2000PosVel.ToString()).c_str());
    #endif
-   ccvtr.Convert(epoch, bfState, bfcs, j2000PosVel, mj2kcs);
+   if (!ccvtr.Convert(epoch, bfState, bfcs, j2000PosVel, mj2kcs,
+      GmatEphemerisDetail::ScopedDerivativeQuery::IsActive()))
+      throw AssetException("Unable to convert body-fixed state for point \"" + instanceName + "\".");
    #ifdef DEBUG_BODYFIXED_STATE
       MessageInterface::ShowMessage("bf state (in mj2kcs, cartesian) = %s\n",
             (j2000PosVel.ToString()).c_str());
@@ -1359,6 +1402,7 @@ const Rvector6 BodyFixedPoint::GetMJ2000State(const A1Mjd &atTime)
 
 const Rvector6 BodyFixedPoint::GetMJ2000State(const GmatTime &atTime)
 {
+   ValidateBodyBindings();
 #ifdef DEBUG_BODYFIXED_STATE
    MessageInterface::ShowMessage("In GetMJ2000State for BodyFixedPoint %s\n",
       instanceName.c_str());
@@ -1386,7 +1430,9 @@ const Rvector6 BodyFixedPoint::GetMJ2000State(const GmatTime &atTime)
    MessageInterface::ShowMessage("before, J2000PosVel = %s\n",
       (j2000PosVel.ToString()).c_str());
 #endif
-   ccvtr.Convert(epoch, bfState, bfcs, j2000PosVel, mj2kcs);
+   if (!ccvtr.Convert(epoch, bfState, bfcs, j2000PosVel, mj2kcs,
+      GmatEphemerisDetail::ScopedDerivativeQuery::IsActive()))
+      throw AssetException("Unable to convert body-fixed state for point \"" + instanceName + "\".");
 #ifdef DEBUG_BODYFIXED_STATE
    MessageInterface::ShowMessage("bf state (in mj2kcs, cartesian) = %s\n",
       (j2000PosVel.ToString()).c_str());
@@ -1456,6 +1502,25 @@ const Rvector3 BodyFixedPoint::GetMJ2000Velocity(const GmatTime &atTime)
    Rvector6 rv = GetMJ2000State(atTime);
    j2000Vel = rv.GetV();
    return j2000Vel;
+}
+
+// Differentiate the native inertial velocity, including both the central
+// body's motion and the rotating body's contribution to the fixed location.
+const Rvector3 BodyFixedPoint::GetMJ2000Acceleration(const A1Mjd &atTime)
+{
+   return GetMJ2000Acceleration(GmatTime(atTime.Get()));
+}
+
+const Rvector3 BodyFixedPoint::GetMJ2000Acceleration(const GmatTime &atTime)
+{
+   ValidateBodyBindings();
+   return GmatEphemerisDetail::AccelerationFromVelocity(
+      [&](Real seconds)
+      {
+         GmatTime epoch = atTime;
+         epoch.AddSeconds(seconds);
+         return GetMJ2000Velocity(epoch);
+      }, instanceName);
 }
 
 
@@ -1558,6 +1623,11 @@ CoordinateSystem* BodyFixedPoint::GetBodyFixedCoordinateSystem() const
 //------------------------------------------------------------------------------
 void BodyFixedPoint::SetSolarSystem(SolarSystem *ss)
 {
+   if (ss != theSolarSystem)
+   {
+      InvalidateBodyBindings();
+      theBody = NULL;
+   }
    SpacePoint::SetSolarSystem(ss);
 }
 
@@ -1580,6 +1650,7 @@ bool BodyFixedPoint::IsValidID(const std::string &id)
 //------------------------------------------------------------------------------
 bool BodyFixedPoint::InitializeForContactLocation(bool deleteFiles)
 {
+   ValidateBodyBindings();
    #ifdef DEBUG_BFP_SPICE
       MessageInterface::ShowMessage("Entering InitializeForC for %s\n",
             instanceName.c_str());
@@ -1587,6 +1658,11 @@ bool BodyFixedPoint::InitializeForContactLocation(bool deleteFiles)
 
    if (kernelsWritten) // if we've already written them, don't do it again
       return true;
+
+   // A failed earlier attempt may have written only one kernel. Retire it
+   // before changing either filename or publishing a replacement pair.
+   if (!spkName.empty() || !fkName.empty())
+      RetireGeneratedKernels();
 
    if (!kernelNamesDetermined)
    {
@@ -1603,6 +1679,30 @@ bool BodyFixedPoint::InitializeForContactLocation(bool deleteFiles)
          thisName = GmatStringUtil::ToString(hash) + GmatStringUtil::ToString(naifId).substr(GmatStringUtil::ToString(naifId).length() - 3, 3) + thisName.substr(0, 15 -GmatStringUtil::ToString(hash).length());
       }
       spiceFrameID         = thisName + "_TOPO";
+
+      #ifdef __USE_SPICE__
+         // Distinct GMAT names can have the same upper-case SPICE name.
+         // Keep the legacy name when available, without replacing another
+         // station's loaded frame-name binding.
+         Integer suffix = 0;
+         for (;;)
+         {
+            SpiceInt existingFrame = 0;
+            namfrm_c(spiceFrameID.c_str(), &existingFrame);
+            if (failed_c())
+            {
+               SpiceChar message[MAX_LONG_MESSAGE_VALUE];
+               getmsg_c("LONG", MAX_LONG_MESSAGE_VALUE, message);
+               reset_c();
+               throw AssetException("Cannot resolve topocentric frame name for " +
+                     instanceName + ": " + std::string(message));
+            }
+            if (existingFrame == 0 || existingFrame == naifIdRefFrame)
+               break;
+            spiceFrameID = "GMAT_" + std::to_string(naifIdRefFrame) +
+                  "_T" + std::to_string(++suffix);
+         }
+      #endif
 
       // Set up the file names for the SPK and FK kernels
       std::stringstream ss("");
@@ -1625,8 +1725,21 @@ bool BodyFixedPoint::InitializeForContactLocation(bool deleteFiles)
    #ifdef DEBUG_BFP_SPICE
       MessageInterface::ShowMessage("   About to write the SPK and FK kernels\n");
    #endif
-   if (!WriteSPK(deleteFiles) || (!WriteFK(deleteFiles)))
-      return false;
+   try
+   {
+      if (!WriteSPK(deleteFiles) || !WriteFK(deleteFiles))
+      {
+         RetireGeneratedKernels();
+         return false;
+      }
+   }
+   catch (...)
+   {
+      // Preserve the writer's error if cleanup itself encounters a failure.
+      try { RetireGeneratedKernels(); }
+      catch (...) {}
+      throw;
+   }
    #ifdef DEBUG_BFP_SPICE
       MessageInterface::ShowMessage("   Kernels written successfully for %s\n",
             instanceName.c_str());
@@ -1709,6 +1822,53 @@ void BodyFixedPoint::UpdateBodyFixedLocation()
 // protected methods
 //------------------------------------------------------------------------------
 
+void BodyFixedPoint::RetireGeneratedKernels()
+{
+   // These filenames belong only to this instance. Copies start without a
+   // loader or filenames, so they cannot retire the source's generated data.
+   // Unload even when files are retained for diagnostics; deleteFiles controls
+   // filesystem retention, not the lifetime of a stale pool binding.
+   kernelsWritten = false;
+   #ifdef __USE_SPICE__
+      GmatSpiceKernelFiles::Retire(spice, spkName, deleteSPK);
+      GmatSpiceKernelFiles::Retire(spice, fkName, deleteFK);
+   #endif
+   if (kernelNamesDetermined)
+      spiceFrameID.clear();
+   kernelNamesDetermined = false;
+   kernelBaseName.clear();
+   spkName.clear();
+   fkName.clear();
+}
+
+void BodyFixedPoint::InvalidateBodyBindings()
+{
+   isInitialized = false;
+   RetireGeneratedKernels();
+   delete bfcs;
+   bfcs = NULL;
+   delete mj2kcs;
+   mj2kcs = NULL;
+   delete spiceCS;
+   spiceCS = NULL;
+}
+
+void BodyFixedPoint::ValidateBodyBindings() const
+{
+   if (!theBody || !bfcs || !mj2kcs)
+      throw AssetException("Initialize body-fixed point \"" + instanceName +
+         "\" before requesting its state or generated event geometry.");
+   SpacePoint *referenceBody = theBody->GetJ2000Body();
+   if (!referenceBody || theBody->GetName() != cBodyName ||
+       theBody->GetJ2000BodyName() != GetJ2000BodyName() ||
+       bfcs->GetOrigin() != theBody || bfcs->GetJ2000Body() != referenceBody ||
+       mj2kcs->GetOrigin() != referenceBody || mj2kcs->GetJ2000Body() != referenceBody ||
+       bfcs->GetSolarSystem() != theSolarSystem ||
+       mj2kcs->GetSolarSystem() != theSolarSystem)
+      throw AssetException("Body-fixed point \"" + instanceName +
+         "\" has stale or inconsistent reference frames; initialize it again.");
+}
+
 //------------------------------------------------------------------------------
 // bool WriteSPK(bool deleteFile)
 //------------------------------------------------------------------------------
@@ -1748,33 +1908,15 @@ bool BodyFixedPoint::WriteSPK(bool deleteFile)
       std::string     internalFileName  = "GMAT-generated SPK file for " + thisName;
       ConstSpiceChar  *internalSPKName  = internalFileName.c_str();
       ConstSpiceChar  *spkNameSPICE     = spkName.c_str();
-      SpiceInt        handle;
-
-      #ifdef DEBUG_BFP_SPICE
-         MessageInterface::ShowMessage("In WriteSPK, about to open SPK ...\n");
-      #endif
-      spkopn_c(spkNameSPICE, internalSPKName, maxChar, &handle); // CSPICE method to create and open an SPK kernel
-      if (failed_c()) // CSPICE method to detect failure of previous call to CSPICE
-      {
-         ConstSpiceChar option[]   = "LONG"; // retrieve long error message
-         SpiceInt       numErrChar = MAX_LONG_MESSAGE_VALUE;
-         //SpiceChar      err[MAX_LONG_MESSAGE_VALUE];
-         SpiceChar      *err = new SpiceChar[MAX_LONG_MESSAGE_VALUE];
-         getmsg_c(option, numErrChar, err);
-         std::string errStr(err);
-         std::string errmsg = "Error getting file handle for GroundStation SPK file \"";
-         errmsg += spkName + "\".  Message received from CSPICE is: ";
-         errmsg += errStr + "\n";
-         reset_c();
-         delete [] err;
-         throw AssetException(errmsg);
-      }
       // Write the data to the GroundStation SPK
       SpiceInt       spiceId      = naifId;
       Integer        bodyNaif     = theBody->GetIntegerParameter("NAIFId");
       SpiceInt       spiceCentral = bodyNaif;
       std::string    bodyFrame    = theBody->GetStringParameter("SpiceFrameId");
       ConstSpiceChar *bFrame      = bodyFrame.c_str();
+      if (bodyFrame.empty())
+         throw AssetException("The parameter " + theBody->GetName() +
+            ".SpiceFrameId must be defined in order to create station kernels for Contact Location.");
 
       SpiceDouble    theMax       = GmatRealConstants::REAL_MAX - 10.0;
       SpiceDouble    first        = -theMax/2.0;
@@ -1785,8 +1927,11 @@ bool BodyFixedPoint::WriteSPK(bool deleteFile)
       ConstSpiceChar *segId       = segmentId.c_str();
       // put state into a SpiceDouble array
       UpdateBodyFixedLocation();
-      SpiceDouble  *stateArray;
-      stateArray = new SpiceDouble[6*2];
+      SpiceDouble stateArray[12];
+      for (Integer i = 0; i < 3; ++i)
+         if (!std::isfinite(bfLocation[i]))
+            throw AssetException("Cannot write a station SPK with a nonfinite location for \"" +
+               instanceName + "\".");
       stateArray[0]  = bfLocation[0];
       stateArray[1]  = bfLocation[1];
       stateArray[2]  = bfLocation[2];
@@ -1800,23 +1945,53 @@ bool BodyFixedPoint::WriteSPK(bool deleteFile)
       stateArray[10] = 0.0;
       stateArray[11] = 0.0;
 
+      auto checkSpice = [&](const std::string &operation)
+      {
+         if (failed_c())
+         {
+            SpiceChar error[MAX_LONG_MESSAGE_VALUE];
+            getmsg_c("LONG", MAX_LONG_MESSAGE_VALUE, error);
+            reset_c();
+            throw AssetException("Unable to " + operation + " GroundStation SPK file \"" +
+               spkName + "\": " + std::string(error));
+         }
+      };
+
+      SpiceInt handle;
+      spkopn_c(spkNameSPICE, internalSPKName, maxChar, &handle);
+      checkSpice("open");
+      struct OpenSpk
+      {
+         SpiceInt handle;
+         bool open;
+         explicit OpenSpk(SpiceInt value) : handle(value), open(true) {}
+         ~OpenSpk()
+         {
+            if (open)
+            {
+               // SPKCLS rejects a file whose first segment failed. Close the
+               // underlying DAF as SpiceOrbitKernelWriter does on that path.
+               reset_c();
+               dafcls_c(handle);
+               if (failed_c()) reset_c();
+            }
+         }
+      } file(handle);
+
       #ifdef DEBUG_BFP_SPICE
          MessageInterface::ShowMessage("In WriteSPK, about to write SPK ...\n");
          MessageInterface::ShowMessage("spiceId = %d, spiceCentral = %d\n",
                                        naifId, bodyNaif);
       #endif
-         if (bodyFrame == "")
-         {
-            throw AssetException("The parameter " + theBody->GetName() + ".SpiceFrameId must be defined in order to create a SPICE FrameKernel for Contact Location.");
-         }
       spkw08_c(handle, spiceId, spiceCentral, bFrame, first, last, segId, 1, 2,
             stateArray, epoch1, step);
+      checkSpice("write");
 
       spkcls_c(handle);
+      checkSpice("close");
+      file.open = false;
 
       spice->LoadKernel(spkName);
-
-      delete[] stateArray;
    #endif  // USE_SPICE
 
    return true;
@@ -1857,6 +2032,8 @@ bool BodyFixedPoint::WriteFK(bool deleteFile)
       Rvector topo = GetTopocentricConversion(centralNaifStr);
       /// Write the text FK kernel
       std::ofstream fkStream(fkName.c_str(), std::ios::out);
+      if (!fkStream)
+         throw AssetException("Unable to open GroundStation FK file \"" + fkName + "\".");
       fkStream.precision(16);
       fkStream << "KPL/FK\n";
       fkStream << "\\begindata\n";
@@ -1881,7 +2058,12 @@ bool BodyFixedPoint::WriteFK(bool deleteFile)
       fkStream << "TKFRAME_" << naifIdRefFrame << "_ANGLES = ( " << topo[0]
                << ", " << topo[1] << ", " << topo[2] << " )\n";
 
+      fkStream.flush();
+      if (!fkStream)
+         throw AssetException("Unable to write GroundStation FK file \"" + fkName + "\".");
       fkStream.close();
+      if (fkStream.fail())
+         throw AssetException("Unable to close GroundStation FK file \"" + fkName + "\".");
 
       spice->LoadKernel(fkName);
    #endif  // USE_SPICE
@@ -1956,3 +2138,22 @@ Rvector3 BodyFixedPoint::GetTopocentricConversion(
    return result;
 }
 
+
+void BodyFixedPoint::RebindClonedBodyReferences(const BodyFixedPoint &source,
+      SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   if (&source == this) return;
+   auto *body = dynamic_cast<SpacePoint*>(resolve(source.theBody));
+   auto *reference = dynamic_cast<SpacePoint*>(resolve(source.GetJ2000Body()));
+   if ((source.theBody && !body) || (source.GetJ2000Body() && !reference))
+      throw AssetException("Incompatible retained body-fixed point body reference.");
+   std::string bodyName = body ? body->GetName() : source.cBodyName;
+   std::string referenceName = reference ? reference->GetName() : source.j2000BodyName;
+   InvalidateBodyBindings();
+   SpacePoint::SetSolarSystem(system);
+   theBody = body;
+   cBodyName.swap(bodyName);
+   j2000Body = reference;
+   j2000BodyName.swap(referenceName);
+   isInitialized = false;
+}

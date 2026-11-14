@@ -41,6 +41,9 @@ class MatlabInterface;
 class MATLAB_API MatlabWorkspace : public Subscriber
 {
 public:
+   void Copy(const GmatBase *source) override;
+   bool HasSubscriberValueReferenceProvider() const override;
+   std::unique_ptr<FunctionInvocationState> SuspendFunctionBindings() override;
    MatlabWorkspace(const std::string &name, Parameter *firstParam = NULL);
    virtual ~MatlabWorkspace(void);
    MatlabWorkspace(const MatlabWorkspace &copy);
@@ -95,6 +98,8 @@ public:
                         GetRefObjectNameArray(const UnsignedInt type);
    
 protected:
+   void RebindSubscriberValueReferences(const Subscriber &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
    Integer mUpdateFrequency;
    Integer mNumParams;
    Integer mDataCount;

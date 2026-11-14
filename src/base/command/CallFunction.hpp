@@ -53,15 +53,19 @@ public:
    std::string          FormEvalString();
    bool                 AddInputParameter(const std::string &paramName, Integer index);
    bool                 AddOutputParameter(const std::string &paramName, Integer index);
+   void                 SetOutputBracketSyntax(bool bracketed);
 
    /// Override this method so that references can be checked
    /// for Remove/Delete of objects
    virtual bool         HasOtherReferenceToObject(const std::string &withName);
 
    // override GmatCommand methods
+   void RebindClonedCommandLinks(const GmatCommand &source,
+         const std::function<GmatCommand*(const GmatCommand*)> &resolve) override;
    virtual bool         Initialize();
    virtual bool         Execute();
    virtual void         RunComplete();
+   void RetireFunctionBindings(ObjectMap *store) override;
    virtual void         SetInternalCoordSystem(CoordinateSystem *cs);
    
    // override these to set on FunctionManager (and find function object in GOS)
@@ -122,8 +126,8 @@ public:
 protected:
 
    ObjectArray objectArray;
-   std::vector<Parameter*> mInputList;
-   std::vector<Parameter*> mOutputList;
+   std::vector<GmatBase*> mInputList;
+   std::vector<GmatBase*> mOutputList;
    GmatCommand *callcmds;
    
    StringArray mInputNames;
@@ -131,6 +135,8 @@ protected:
    
    Integer mNumInputParams;
    Integer mNumOutputParams;
+   /// Original source syntax, retained separately from canonical serialization
+   bool mOutputBracketSyntax;
    
    Function *mFunction;
    std::string mFunctionName;

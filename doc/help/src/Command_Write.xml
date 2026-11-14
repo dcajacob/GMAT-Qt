@@ -109,6 +109,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Boolean output-destination selection; no physical units.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -155,6 +159,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Boolean output-destination selection; no physical units.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>
@@ -211,6 +219,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Output destination selection; no physical units.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -262,6 +274,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Resource name list; no physical units.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>
@@ -316,6 +332,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Output-style selection; no physical units.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>

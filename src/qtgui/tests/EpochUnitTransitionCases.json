@@ -1,0 +1,160 @@
+{
+  "scope": "Visible unit captions during date-format changes; reuse existing conversion qualification; no Apply or mission execution.",
+  "cases": [
+    {
+      "key": "AcceptFilter",
+      "fixture": "Create Spacecraft Sat;\nCreate AcceptFilter Probe;\nProbe.EpochFormat = TAIModJulian;\nProbe.InitialEpoch = '21545';\nProbe.FinalEpoch = '21546';\n",
+      "prefix": "resource_",
+      "format_field": "EpochFormat",
+      "fields": [
+        "InitialEpoch",
+        "FinalEpoch"
+      ],
+      "interval_dialog": true
+    },
+    {
+      "key": "RejectFilter",
+      "fixture": "Create Spacecraft Sat;\nCreate RejectFilter Probe;\nProbe.EpochFormat = TAIModJulian;\nProbe.InitialEpoch = '21545';\nProbe.FinalEpoch = '21546';\n",
+      "prefix": "resource_",
+      "format_field": "EpochFormat",
+      "fields": [
+        "InitialEpoch",
+        "FinalEpoch"
+      ],
+      "interval_dialog": true
+    },
+    {
+      "key": "Simulator",
+      "fixture": "Create Spacecraft Sat;\nCreate Simulator Probe;\nProbe.EpochFormat = TAIModJulian;\nProbe.InitialEpoch = '21545';\nProbe.FinalEpoch = '21546';\n",
+      "prefix": "resource_",
+      "format_field": "EpochFormat",
+      "fields": [
+        "InitialEpoch",
+        "FinalEpoch"
+      ],
+      "interval_dialog": true
+    },
+    {
+      "key": "ContactLocator",
+      "fixture": "Create Spacecraft Sat;\nCreate ContactLocator Probe;\nProbe.UseEntireInterval = false;\nProbe.InputEpochFormat = TAIModJulian;\nProbe.InitialEpoch = '21545';\nProbe.FinalEpoch = '21546';\n",
+      "prefix": "event_",
+      "format_field": "InputEpochFormat",
+      "fields": [
+        "InitialEpoch",
+        "FinalEpoch"
+      ],
+      "interval_dialog": false
+    },
+    {
+      "key": "EclipseLocator",
+      "fixture": "Create Spacecraft Sat;\nCreate EclipseLocator Probe;\nProbe.UseEntireInterval = false;\nProbe.InputEpochFormat = TAIModJulian;\nProbe.InitialEpoch = '21545';\nProbe.FinalEpoch = '21546';\n",
+      "prefix": "event_",
+      "format_field": "InputEpochFormat",
+      "fields": [
+        "InitialEpoch",
+        "FinalEpoch"
+      ],
+      "interval_dialog": false
+    },
+    {
+      "key": "IntrusionLocator",
+      "fixture": "Create Spacecraft Sat;\nCreate IntrusionLocator Probe;\nProbe.UseEntireInterval = false;\nProbe.InputEpochFormat = TAIModJulian;\nProbe.InitialEpoch = '21545';\nProbe.FinalEpoch = '21546';\n",
+      "prefix": "event_",
+      "format_field": "InputEpochFormat",
+      "fields": [
+        "InitialEpoch",
+        "FinalEpoch"
+      ],
+      "interval_dialog": false
+    },
+    {
+      "key": "NuclearPowerSystem",
+      "fixture": "Create Spacecraft Sat;\nCreate NuclearPowerSystem Probe;\nProbe.EpochFormat = TAIModJulian;\nProbe.InitialEpoch = '21545';\n",
+      "prefix": "resource_",
+      "format_field": "EpochFormat",
+      "fields": [
+        "InitialEpoch"
+      ],
+      "interval_dialog": false
+    },
+    {
+      "key": "SolarPowerSystem",
+      "fixture": "Create Spacecraft Sat;\nCreate SolarPowerSystem Probe;\nProbe.EpochFormat = TAIModJulian;\nProbe.InitialEpoch = '21545';\n",
+      "prefix": "resource_",
+      "format_field": "EpochFormat",
+      "fields": [
+        "InitialEpoch"
+      ],
+      "interval_dialog": false
+    },
+    {
+      "key": "Spacecraft",
+      "fixture": "Create Spacecraft Sat;\nCreate Spacecraft Probe;\nProbe.DateFormat = TAIModJulian;\nProbe.Epoch = '21545';\n",
+      "prefix": "resource_",
+      "format_field": "DateFormat",
+      "fields": [
+        "Epoch"
+      ],
+      "interval_dialog": false
+    },
+    {
+      "key": "Transmitter",
+      "fixture": "Create Spacecraft Sat;\nCreate Transmitter Probe;\nProbe.EpochFormat = TAIModJulian;\nProbe.ReferenceEpoch = '21545';\n",
+      "prefix": "resource_",
+      "format_field": "EpochFormat",
+      "fields": [
+        "ReferenceEpoch"
+      ],
+      "interval_dialog": false
+    },
+    {
+      "key": "PropSetup",
+      "fixture": "Create Spacecraft Sat;\nCreate Propagator Probe;\nProbe.Type = SPK;\nProbe.EpochFormat = TAIModJulian;\nProbe.StartEpoch = '21545';\n",
+      "prefix": "resource_",
+      "format_field": "EpochFormat",
+      "fields": [
+        "StartEpoch"
+      ],
+      "interval_dialog": false
+    },
+    {
+      "key": "EphemerisFile",
+      "fixture": "Create Spacecraft Sat;\nCreate EphemerisFile Probe;\nProbe.Spacecraft = Sat;\nProbe.EpochFormat = TAIModJulian;\nProbe.InitialEpoch = '21545';\nProbe.FinalEpoch = '21546';\nProbe.StepSize = 60;\n",
+      "prefix": "ephemeris_",
+      "format_field": "EpochFormat",
+      "fields": [
+        "InitialEpoch",
+        "FinalEpoch"
+      ],
+      "interval_dialog": false
+    },
+    {
+      "key": "ExtendedKalmanFilter",
+      "fixture": "Create ExtendedKalmanFilter Probe;\nProbe.WarmStartEpochFormat = TAIModJulian;\nProbe.WarmStartEpoch = '21545';\n",
+      "prefix": "resource_",
+      "format_field": "WarmStartEpochFormat",
+      "fields": [
+        "WarmStartEpoch"
+      ],
+      "interval_dialog": false
+    }
+  ],
+  "states": [
+    {
+      "phase": "initial",
+      "format": "TAIModJulian",
+      "unit": "days (TAIModJulian)"
+    },
+    {
+      "phase": "calendar",
+      "format": "UTCGregorian",
+      "unit": "calendar date (UTCGregorian)"
+    },
+    {
+      "phase": "return",
+      "format": "TAIModJulian",
+      "unit": "days (TAIModJulian)"
+    }
+  ],
+  "expected_observations": 78
+}

@@ -1,0 +1,669 @@
+{
+  "schema_version": 1,
+  "scope": "Additional supported-resource native Save acceptance contracts. Conjoin with the sealed45 cases; no complete any-Resource credit from these families alone.",
+  "cases": [
+    {
+      "key": "ErrorModel",
+      "setup": "Create ErrorModel Subject;\nSubject.Type = 'Range_Skin';\nSubject.NoiseSigma = 0.25;\nSubject.Bias = -0.75;\nSubject.BiasSigma = 2.5;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.ErrorModel.data",
+      "definitions": [
+        "Create ErrorModel Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "NoiseSigma",
+          "type": "Real",
+          "expected": 0.25
+        },
+        {
+          "object": "Subject",
+          "field": "Bias",
+          "type": "Real",
+          "expected": -0.75
+        },
+        {
+          "object": "Subject",
+          "field": "BiasSigma",
+          "type": "Real",
+          "expected": 2.5
+        }
+      ]
+    },
+    {
+      "key": "ProcessNoiseModel",
+      "setup": "Create ProcessNoiseModel Subject;\nSubject.UpdateTimeStep = 60;\nSubject.AccelNoiseSigma = [0.001 0.002 0.003];\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.ProcessNoiseModel.data",
+      "definitions": [
+        "Create ProcessNoiseModel Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "UpdateTimeStep",
+          "type": "Real",
+          "expected": 60
+        },
+        {
+          "object": "Subject",
+          "field": "AccelNoiseSigma",
+          "type": "Rvector",
+          "expected": [
+            0.001,
+            0.002,
+            0.003
+          ]
+        }
+      ]
+    },
+    {
+      "key": "EstimatedParameter",
+      "setup": "Create EstimatedParameter Subject;\nSubject.SolveFor = Cd;\nSubject.HalfLife = 600;\nSubject.SteadyStateValue = 2.1;\nSubject.SteadyStateSigma = 0.125;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.EstimatedParameter.data",
+      "definitions": [
+        "Create EstimatedParameter Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "HalfLife",
+          "type": "Real",
+          "expected": 600
+        },
+        {
+          "object": "Subject",
+          "field": "SteadyStateValue",
+          "type": "Real",
+          "expected": 2.1
+        },
+        {
+          "object": "Subject",
+          "field": "SteadyStateSigma",
+          "type": "Real",
+          "expected": 0.125
+        }
+      ]
+    },
+    {
+      "key": "VF13ad",
+      "setup": "Create VF13ad Subject;\nSubject.Tolerance = 2e-9;\nSubject.FeasibilityTolerance = 3e-9;\nSubject.MaximumIterations = 17;\nSubject.UseCentralDifferences = true;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.VF13ad.data",
+      "definitions": [
+        "Create VF13ad Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Tolerance",
+          "type": "Real",
+          "expected": 2e-09
+        },
+        {
+          "object": "Subject",
+          "field": "FeasibilityTolerance",
+          "type": "Real",
+          "expected": 3e-09
+        },
+        {
+          "object": "Subject",
+          "field": "MaximumIterations",
+          "type": "Integer",
+          "expected": 17
+        },
+        {
+          "object": "Subject",
+          "field": "UseCentralDifferences",
+          "type": "Boolean",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "key": "Smoother",
+      "setup": "Create Spacecraft Sat;\nSat.NAIFId = -101019;\nSat.NAIFIdReferenceFrame = -910019;\nCreate GroundStation Station;\nCreate TrackingFileSet Data;\nData.AddTrackingConfig = {{Station,Sat,Station},'Range_Skin'};\nData.UseLightTime = false;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nCreate ExtendedKalmanFilter Filter;\nFilter.Propagator = Prop;\nFilter.Measurements = {Data};\nData.FileName = {'unused-Save-acceptance.gmd'};\nSat.SolveFors = {CartesianState};\nCreate Smoother Subject;\nSubject.Filter = Filter;\nSubject.DelayRectifyTimeSpan = 180.25;\nSubject.MeasDeweightingCoefficient = 12.5;\n",
+      "selected": [
+        "Subject",
+        "Filter",
+        "Prop",
+        "FM",
+        "Sat",
+        "Station",
+        "Data"
+      ],
+      "objects": [
+        "Subject",
+        "Filter",
+        "Prop",
+        "FM",
+        "Sat",
+        "Station",
+        "Data"
+      ],
+      "filename": "Subject_Filter_Prop_FM_Sat_Station_Data.data",
+      "definitions": [
+        "Create Smoother Subject;",
+        "Create ExtendedKalmanFilter Filter;",
+        "Create Propagator Prop;",
+        "Create ForceModel FM;",
+        "Create Spacecraft Sat;",
+        "Create GroundStation Station;",
+        "Create TrackingFileSet Data;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Filter",
+          "type": "Object",
+          "expected": "Filter"
+        },
+        {
+          "object": "Subject",
+          "field": "DelayRectifyTimeSpan",
+          "type": "Real",
+          "expected": 180.25
+        },
+        {
+          "object": "Subject",
+          "field": "MeasDeweightingCoefficient",
+          "type": "Real",
+          "expected": 12.5
+        }
+      ]
+    },
+    {
+      "key": "AcceptFilter",
+      "setup": "Create AcceptFilter Subject;\nSubject.ThinMode = 'Frequency';\nSubject.ThinningFrequency = 3;\nSubject.DataTypes = {'Range_Skin'};\nSubject.RecordNumbers = {'1-3','7'};\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.AcceptFilter.data",
+      "definitions": [
+        "Create AcceptFilter Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "ThinningFrequency",
+          "type": "Integer",
+          "expected": 3
+        },
+        {
+          "object": "Subject",
+          "field": "RecordNumbers",
+          "type": "StringArray",
+          "expected": [
+            "1-3",
+            "7"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "RejectFilter",
+      "setup": "Create RejectFilter Subject;\nSubject.RecordNumbers = {'2-5','9'};\nSubject.DataTypes = {'Range_Skin'};\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.RejectFilter.data",
+      "definitions": [
+        "Create RejectFilter Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "RecordNumbers",
+          "type": "StringArray",
+          "expected": [
+            "2-5",
+            "9"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "CustomFOV",
+      "setup": "Create CustomFOV Subject;\nSubject.ConeAngles = [20 20 20 20];\nSubject.ClockAngles = [0 90 180 270];\nSubject.InterpolationStepSize = 0.5;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.CustomFOV.data",
+      "definitions": [
+        "Create CustomFOV Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "ConeAngles",
+          "type": "Rvector",
+          "expected": [
+            20,
+            20,
+            20,
+            20
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "ClockAngles",
+          "type": "Rvector",
+          "expected": [
+            0,
+            90,
+            180,
+            270
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "InterpolationStepSize",
+          "type": "Real",
+          "expected": 0.5
+        }
+      ]
+    },
+    {
+      "key": "Imager",
+      "setup": "Create ConicalFOV Cone;\nCone.FieldOfViewAngle = 25;\nCreate Imager Subject;\nSubject.FieldOfView = Cone;\nSubject.DirectionX = 0.6;\nSubject.DirectionY = 0.8;\nSubject.DirectionZ = 0;\nSubject.SecondDirectionX = -0.8;\nSubject.SecondDirectionY = 0.6;\nSubject.SecondDirectionZ = 0;\n",
+      "selected": [
+        "Subject",
+        "Cone"
+      ],
+      "objects": [
+        "Subject",
+        "Cone"
+      ],
+      "filename": "Subject_Cone.data",
+      "definitions": [
+        "Create Imager Subject;",
+        "Create ConicalFOV Cone;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FieldOfView",
+          "type": "Object",
+          "expected": "Cone"
+        },
+        {
+          "object": "Subject",
+          "field": "DirectionX",
+          "type": "Real",
+          "expected": 0.6
+        },
+        {
+          "object": "Subject",
+          "field": "DirectionY",
+          "type": "Real",
+          "expected": 0.8
+        }
+      ]
+    },
+    {
+      "key": "MessageWindow",
+      "setup": "Create MessageWindow Subject;\nSubject.Precision = 17;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.MessageWindow.data",
+      "definitions": [
+        "Create MessageWindow Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Precision",
+          "type": "Integer",
+          "expected": 17
+        }
+      ]
+    },
+    {
+      "key": "TextEphemFile",
+      "setup": "Create TextEphemFile Subject;\nSubject.EpochFormat = 'A1ModJulian';\nSubject.CoordinateSystem = 'EarthMJ2000Eq';\nSubject.Interval = 60;\nSubject.Precision = 17;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.TextEphemFile.data",
+      "definitions": [
+        "Create TextEphemFile Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Interval",
+          "type": "Real",
+          "expected": 60
+        },
+        {
+          "object": "Subject",
+          "field": "Precision",
+          "type": "Integer",
+          "expected": 17
+        },
+        {
+          "object": "Subject",
+          "field": "EpochFormat",
+          "type": "String",
+          "expected": "A1ModJulian"
+        },
+        {
+          "object": "Subject",
+          "field": "CoordinateSystem",
+          "type": "String",
+          "expected": "EarthMJ2000Eq"
+        }
+      ]
+    },
+    {
+      "key": "DynamicDataDisplay",
+      "setup": "Create Variable Value;\nValue = 12.5;\nCreate DynamicDataDisplay Subject;\nSubject.AddParameters = {1, Value};\nSubject.WarnColor = [200 120 0];\nSubject.CritColor = [220 0 0];\nSubject.RowTextColors = {1, [20 80 150]};\nSubject.WarnBounds = {Value, [-10 10]};\nSubject.CritBounds = {Value, [-20 20]};\n",
+      "selected": [
+        "Subject",
+        "Value"
+      ],
+      "objects": [
+        "Subject",
+        "Value"
+      ],
+      "filename": "Subject_Value.data",
+      "definitions": [
+        "Create DynamicDataDisplay Subject;",
+        "Create Variable Value\n"
+      ],
+      "witnesses": [
+        {
+          "object": "Value",
+          "field": "Value",
+          "type": "Real",
+          "expected": 12.5
+        },
+        {
+          "object": "Subject",
+          "field": "AddParameters",
+          "type": "ObjectArray",
+          "expected": [
+            [
+              "Value"
+            ]
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "WarnBounds",
+          "type": "StringArray",
+          "expected": [
+            [
+              [
+                -10,
+                10
+              ]
+            ]
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "CritBounds",
+          "type": "StringArray",
+          "expected": [
+            [
+              [
+                -20,
+                20
+              ]
+            ]
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "RowTextColors",
+          "type": "StringArray",
+          "expected": [
+            [
+              [
+                1331350,
+                true
+              ]
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "key": "ContactLocator",
+      "setup": "Create Spacecraft Sat;\nSat.NAIFId = -101021;\nSat.NAIFIdReferenceFrame = -910021;\nCreate GroundStation Station;\nCreate ContactLocator Subject;\nSubject.Target = Sat;\nSubject.Observers = {Station};\nSubject.RunMode = Disabled;\nSubject.StepSize = 45;\nSubject.ReportPrecision = 9;\n",
+      "selected": [
+        "Subject",
+        "Sat",
+        "Station"
+      ],
+      "objects": [
+        "Subject",
+        "Sat",
+        "Station"
+      ],
+      "filename": "Subject_Sat_Station.data",
+      "definitions": [
+        "Create ContactLocator Subject;",
+        "Create Spacecraft Sat;",
+        "Create GroundStation Station;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "RunMode",
+          "type": "Enumeration",
+          "expected": "Disabled"
+        },
+        {
+          "object": "Subject",
+          "field": "StepSize",
+          "type": "Real",
+          "expected": 45
+        },
+        {
+          "object": "Subject",
+          "field": "ReportPrecision",
+          "type": "Integer",
+          "expected": 9
+        }
+      ]
+    },
+    {
+      "key": "EclipseLocator",
+      "setup": "Create Spacecraft Sat;\nSat.NAIFId = -101021;\nSat.NAIFIdReferenceFrame = -910021;\nCreate EclipseLocator Subject;\nSubject.Spacecraft = Sat;\nSubject.RunMode = Disabled;\nSubject.StepSize = 45;\nSubject.EclipseTypes = {Umbra,Penumbra};\n",
+      "selected": [
+        "Subject",
+        "Sat"
+      ],
+      "objects": [
+        "Subject",
+        "Sat"
+      ],
+      "filename": "Subject_Sat.data",
+      "definitions": [
+        "Create EclipseLocator Subject;",
+        "Create Spacecraft Sat;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "RunMode",
+          "type": "Enumeration",
+          "expected": "Disabled"
+        },
+        {
+          "object": "Subject",
+          "field": "StepSize",
+          "type": "Real",
+          "expected": 45
+        },
+        {
+          "object": "Subject",
+          "field": "EclipseTypes",
+          "type": "StringArray",
+          "expected": [
+            "Umbra",
+            "Penumbra"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "IntrusionLocator",
+      "setup": "Create Spacecraft Sat;\nSat.NAIFId = -101021;\nSat.NAIFIdReferenceFrame = -910021;\nCreate ConicalFOV Cone;\nCone.FieldOfViewAngle = 25;\nCreate Imager Sensor;\nSensor.FieldOfView = Cone;\nSensor.NAIFId = -144502;\nSat.AddHardware = {Sensor};\nCreate IntrusionLocator Subject;\nSubject.Spacecraft = Sat;\nSubject.Sensors = {Sensor};\nSubject.CentralBody = Sun;\nSubject.IntrudingBodies = {Mercury};\nSubject.RunMode = Disabled;\nSubject.StepSize = 45;\nSubject.MinimumPhase = 0.25;\n",
+      "selected": [
+        "Subject",
+        "Sat",
+        "Sensor",
+        "Cone"
+      ],
+      "objects": [
+        "Subject",
+        "Sat",
+        "Sensor",
+        "Cone"
+      ],
+      "filename": "Subject_Sat_Sensor_Cone.data",
+      "definitions": [
+        "Create IntrusionLocator Subject;",
+        "Create Spacecraft Sat;",
+        "Create Imager Sensor;",
+        "Create ConicalFOV Cone;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "RunMode",
+          "type": "Enumeration",
+          "expected": "Disabled"
+        },
+        {
+          "object": "Subject",
+          "field": "StepSize",
+          "type": "Real",
+          "expected": 45
+        },
+        {
+          "object": "Subject",
+          "field": "MinimumPhase",
+          "type": "Real",
+          "expected": 0.25
+        }
+      ]
+    },
+    {
+      "key": "DynamicDataAutomatic",
+      "setup": "Create Variable Value;\nValue = 12.5;\nCreate DynamicDataDisplay Subject;\nSubject.AddParameters = {1, Value};\nSubject.WarnColor = [200 120 0];\nSubject.CritColor = [220 0 0];\nSubject.WarnBounds = {Value, [-10 10]};\nSubject.CritBounds = {Value, [-20 20]};\n",
+      "selected": [
+        "Subject",
+        "Value"
+      ],
+      "objects": [
+        "Subject",
+        "Value"
+      ],
+      "filename": "Subject_Value.data",
+      "definitions": [
+        "Create DynamicDataDisplay Subject;",
+        "Create Variable Value\n"
+      ],
+      "witnesses": [
+        {
+          "object": "Value",
+          "field": "Value",
+          "type": "Real",
+          "expected": 12.5
+        },
+        {
+          "object": "Subject",
+          "field": "AddParameters",
+          "type": "ObjectArray",
+          "expected": [
+            [
+              "Value"
+            ]
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "WarnBounds",
+          "type": "StringArray",
+          "expected": [
+            [
+              [
+                -10,
+                10
+              ]
+            ]
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "CritBounds",
+          "type": "StringArray",
+          "expected": [
+            [
+              [
+                -20,
+                20
+              ]
+            ]
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "RowTextColors",
+          "type": "StringArray",
+          "expected": [
+            [
+              [
+                0,
+                false
+              ]
+            ]
+          ]
+        }
+      ],
+      "before_save": "UpdateDynamicData Subject;\n"
+    }
+  ]
+}

@@ -33,6 +33,24 @@
 
 
 #include "DifferentialCorrector.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration differentialCorrectorValueProvider({
+   DifferentialCorrector::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const DifferentialCorrector*>(object) != nullptr; },
+   nullptr,
+   nullptr,
+   nullptr,
+   [](const GmatBase *object) { return dynamic_cast<const DifferentialCorrector*>(object)->HasSolverValueReferenceProviderImpl(); },
+   [](GmatBase *object, const Solver &source) { dynamic_cast<DifferentialCorrector*>(object)->PrepareClonedSolverValueImpl(source); }
+});
+}
+#include <cstring>
+#include <limits>
+#include <memory>
+#include <typeinfo>
 #include "Rmatrix.hpp"
 #include "RealUtilities.hpp"     // for GmatMathUtil::Abs()
 #include "MessageInterface.hpp"
@@ -82,6 +100,48 @@ DifferentialCorrector::PARAMETER_TYPE[DifferentialCorrectorParamCount -
 //------------------------------------------------------------------------------
 // DifferentialCorrector(std::string name)
 //------------------------------------------------------------------------------
+
+namespace
+{
+template <typename T>
+std::unique_ptr<T[]> CloneSolverArray(const T *source, Integer count)
+{
+   if (count < 0 || static_cast<size_t>(count) >
+         (std::numeric_limits<size_t>::max)() / sizeof(T))
+      throw SolverException("Invalid solver buffer allocation dimension.\n");
+   if (!source) return {};
+   std::unique_ptr<T[]> value(new T[count]);
+   // Copy object representations: native partially prepared buffers can have
+   // cells that have not yet received a numerical result.
+   std::memcpy(value.get(), source, static_cast<size_t>(count) * sizeof(T));
+   return value;
+}
+
+struct SolverMatrixValue
+{
+   std::unique_ptr<Real*[]> pointers;
+   std::vector<std::unique_ptr<Real[]>> rows;
+   SolverMatrixValue(Real *const *source, Integer rowCount, Integer columnCount)
+   {
+      if (rowCount < 0 || columnCount < 0)
+         throw SolverException("Invalid solver matrix allocation dimensions.\n");
+      if (!source) return;
+      pointers.reset(new Real*[rowCount]());
+      rows.reserve(rowCount);
+      for (Integer i = 0; i < rowCount; ++i)
+      {
+         rows.push_back(CloneSolverArray(source[i], columnCount));
+         pointers[i] = rows.back().get();
+      }
+   }
+   Real** Release()
+   {
+      for (auto &row : rows) row.release();
+      return pointers.release();
+   }
+};
+}
+
 DifferentialCorrector::DifferentialCorrector(std::string name) :
    Solver                  ("DifferentialCorrector", name),
    // KARI additions
@@ -162,6 +222,9 @@ DifferentialCorrector::DifferentialCorrector(const DifferentialCorrector &dc) :
    savedVariable.clear();
    
    parameterCount = dc.parameterCount;
+   // Native construction copies a cold definition. Completed Clone/Copy
+   // restores a retained value only after all derived data is available.
+   SetFunctionValueContext({});
 }
 
 
@@ -171,11 +234,13 @@ DifferentialCorrector::DifferentialCorrector(const DifferentialCorrector &dc) :
 DifferentialCorrector&
 DifferentialCorrector::operator=(const DifferentialCorrector& dc)
 {
+   if (&dc == this) return *this;
+   // The source can be borrowed from the destination's previous context.
+   const auto previousContext = GetFunctionValueContext();
    if (&dc != this)
    {
-      Solver::operator=(dc);
-
       FreeArrays();
+      Solver::operator=(dc);
       goalNames.clear();
 
       // KARI Enhancements
@@ -194,6 +259,7 @@ DifferentialCorrector::operator=(const DifferentialCorrector& dc)
       incrementPert    = dc.incrementPert;
    }
    
+   SetFunctionValueContext({});
    return *this;
 }
 
@@ -209,8 +275,15 @@ DifferentialCorrector::operator=(const DifferentialCorrector& dc)
 //------------------------------------------------------------------------------
 GmatBase* DifferentialCorrector::Clone() const
 {
-   GmatBase *clone = new DifferentialCorrector(*this);
-   return (clone);
+   std::unique_ptr<DifferentialCorrector> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new DifferentialCorrector(*this));
+   }
+   if (typeid(*this) != typeid(DifferentialCorrector))
+      throw SolverException("A derived DifferentialCorrector must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -223,9 +296,18 @@ GmatBase* DifferentialCorrector::Clone() const
  * @param orig The original that is being copied.
  */
 //---------------------------------------------------------------------------
-void DifferentialCorrector::Copy(const GmatBase* orig)
+void DifferentialCorrector::Copy(const GmatBase *original)
 {
-   operator=(*((DifferentialCorrector *)(orig)));
+   const auto *source = dynamic_cast<const DifferentialCorrector*>(original);
+   if (!source || typeid(*this) != typeid(DifferentialCorrector) || typeid(*source) != typeid(DifferentialCorrector))
+      throw SolverException("Incompatible DifferentialCorrector Copy or missing derived provider.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
 }
 
 // Access methods overriden from the base class
@@ -796,6 +878,8 @@ bool DifferentialCorrector::Initialize()
    }
 
    FreeArrays();
+   allocatedVariables = localVariableCount;
+   allocatedGoals = localGoalCount;
 
    // Setup the goal data structures
    goal         = new Real[localGoalCount];
@@ -805,10 +889,10 @@ bool DifferentialCorrector::Initialize()
 
    // And the sensitivity matrix
    Integer i;
-   achieved        = new Real*[localVariableCount];
-   backAchieved    = new Real*[localVariableCount];
-   jacobian        = new Real*[localVariableCount];
-   savedJacobian   = new Real*[localVariableCount];
+   achieved        = new Real*[localVariableCount]();
+   backAchieved    = new Real*[localVariableCount]();
+   jacobian        = new Real*[localVariableCount]();
+   savedJacobian   = new Real*[localVariableCount]();
    for (i = 0; i < localVariableCount; ++i)
    {
       jacobian[i]        = new Real[localGoalCount];
@@ -817,8 +901,8 @@ bool DifferentialCorrector::Initialize()
       backAchieved[i]    = new Real[localGoalCount];
    }
 
-   inverseJacobian = new Real*[localGoalCount];
-   savedInverseJacobian = new Real*[localGoalCount];
+   inverseJacobian = new Real*[localGoalCount]();
+   savedInverseJacobian = new Real*[localGoalCount]();
    for (i = 0; i < localGoalCount; ++i)
    {
       inverseJacobian[i] = new Real[localVariableCount];
@@ -829,8 +913,9 @@ bool DifferentialCorrector::Initialize()
    Solver::Initialize();
 
    // Allocate the LU arrays
-   indx = new Integer[variableCount];
-   b = new Real[variableCount];
+   allocatedIndexCount = variableCount;
+   indx = new Integer[allocatedIndexCount];
+   b = new Real[allocatedIndexCount];
 
    #if DEBUG_DC_INIT
       MessageInterface::ShowMessage
@@ -966,7 +1051,8 @@ Solver::SolverState DifferentialCorrector::AdvanceState()
                #endif
                CheckCompletion();
                ++iterationsTaken;
-               if (iterationsTaken >= maxIterations)
+               if ((iterationsTaken >= maxIterations) &&
+                   (status != Gmat::CONVERGED))
                {
                   MessageInterface::ShowMessage(
                         "Differential corrector %s %s\n", instanceName.c_str(),
@@ -1666,7 +1752,7 @@ void DifferentialCorrector::FreeArrays()
 
    if (achieved)
    {
-      for (Integer i = 0; i < variableCount; ++i)
+      for (Integer i = 0; i < allocatedVariables; ++i)
          delete [] achieved[i];
       delete [] achieved;
       achieved = NULL;
@@ -1674,7 +1760,7 @@ void DifferentialCorrector::FreeArrays()
 
    if (backAchieved)
    {
-      for (Integer i = 0; i < variableCount; ++i)
+      for (Integer i = 0; i < allocatedVariables; ++i)
          delete [] backAchieved[i];
       delete [] backAchieved;
       backAchieved = NULL;
@@ -1682,7 +1768,7 @@ void DifferentialCorrector::FreeArrays()
 
    if (jacobian)
    {
-      for (Integer i = 0; i < variableCount; ++i)
+      for (Integer i = 0; i < allocatedVariables; ++i)
          delete [] jacobian[i];
       delete [] jacobian;
       jacobian = NULL;
@@ -1690,7 +1776,7 @@ void DifferentialCorrector::FreeArrays()
 
    if (inverseJacobian)
    {
-      for (Integer i = 0; i < goalCount; ++i)
+      for (Integer i = 0; i < allocatedGoals; ++i)
          delete [] inverseJacobian[i];
       delete [] inverseJacobian;
       inverseJacobian = NULL;
@@ -1704,7 +1790,7 @@ void DifferentialCorrector::FreeArrays()
 
    if (savedJacobian)
    {
-      for (Integer i = 0; i < variableCount; ++i)
+      for (Integer i = 0; i < allocatedVariables; ++i)
          delete [] savedJacobian[i];
       delete [] savedJacobian;
       savedJacobian = NULL;
@@ -1712,7 +1798,7 @@ void DifferentialCorrector::FreeArrays()
 
    if (savedInverseJacobian)
    {
-      for (Integer i = 0; i < goalCount; ++i)
+      for (Integer i = 0; i < allocatedGoals; ++i)
          delete [] savedInverseJacobian[i];
       delete [] savedInverseJacobian;
       savedInverseJacobian = NULL;
@@ -1729,7 +1815,11 @@ void DifferentialCorrector::FreeArrays()
       delete [] b;
       b = NULL;
    }
+   allocatedVariables = 0;
+   allocatedGoals = 0;
+   allocatedIndexCount = 0;
 }
+
 
 
 //------------------------------------------------------------------------------
@@ -2126,4 +2216,56 @@ void DifferentialCorrector::WriteToTextFile(SolverState stateToUse)
                "Solver state not supported for the targeter");
       }
    }
+}
+
+bool DifferentialCorrector::HasSolverValueReferenceProviderImpl() const
+{
+   return typeid(*this) == typeid(DifferentialCorrector);
+}
+
+void DifferentialCorrector::PrepareClonedSolverValueImpl(const Solver &original)
+{
+   CheckSolverValueType(original);
+   const auto &source = dynamic_cast<const DifferentialCorrector&>(original);
+   auto nextGoal = CloneSolverArray(source.goal, source.allocatedGoals);
+   auto nextTolerance = CloneSolverArray(source.tolerance, source.allocatedGoals);
+   auto nextNominal = CloneSolverArray(source.nominal, source.allocatedGoals);
+   auto nextSavedNominal = CloneSolverArray(source.savedNominal, source.allocatedGoals);
+   auto nextIndex = CloneSolverArray(source.indx, source.allocatedIndexCount);
+   auto nextB = CloneSolverArray(source.b, source.allocatedIndexCount);
+   SolverMatrixValue nextAchieved(source.achieved, source.allocatedVariables, source.allocatedGoals);
+   SolverMatrixValue nextBackAchieved(source.backAchieved, source.allocatedVariables, source.allocatedGoals);
+   SolverMatrixValue nextJacobian(source.jacobian, source.allocatedVariables, source.allocatedGoals);
+   SolverMatrixValue nextSavedJacobian(source.savedJacobian, source.allocatedVariables, source.allocatedGoals);
+   SolverMatrixValue nextInverse(source.inverseJacobian, source.allocatedGoals, source.allocatedVariables);
+   SolverMatrixValue nextSavedInverse(source.savedInverseJacobian, source.allocatedGoals, source.allocatedVariables);
+   StringArray names(source.goalNames);
+   std::vector<Real> saved(source.savedVariable);
+   FreeArrays();
+   CopySolverValueData(source);
+   dcType = source.dcType;
+   dcTypeId = source.dcTypeId;
+   goalCount = source.goalCount;
+   derivativeMethod = source.derivativeMethod;
+   diffMode = source.diffMode;
+   firstPert = source.firstPert;
+   incrementPert = source.incrementPert;
+   skipPerts = source.skipPerts;
+   goalNames.swap(names);
+   savedVariable.swap(saved);
+   allocatedVariables = source.allocatedVariables;
+   allocatedGoals = source.allocatedGoals;
+   allocatedIndexCount = source.allocatedIndexCount;
+   goal = nextGoal.release();
+   tolerance = nextTolerance.release();
+   nominal = nextNominal.release();
+   savedNominal = nextSavedNominal.release();
+   indx = nextIndex.release();
+   b = nextB.release();
+   achieved = nextAchieved.Release();
+   backAchieved = nextBackAchieved.Release();
+   jacobian = nextJacobian.Release();
+   savedJacobian = nextSavedJacobian.Release();
+   inverseJacobian = nextInverse.Release();
+   savedInverseJacobian = nextSavedInverse.Release();
 }

@@ -182,6 +182,10 @@ public:
    
 protected:
 
+   // Resolve the model identity while retaining the resource's actual name in
+   // scripts, references and diagnostics.
+   const std::string& GetOriginPhysicalName() const;
+
    enum
    {
       ORIGIN_NAME = GmatBaseParamCount,

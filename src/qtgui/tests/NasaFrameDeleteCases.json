@@ -1,0 +1,101 @@
+{
+  "cases": [
+    {
+      "key": "EarthMJ2000Eq",
+      "mode": "protected",
+      "name": "EarthMJ2000Eq",
+      "built_in": true,
+      "axes": "MJ2000Eq",
+      "report": [
+        42,
+        7000,
+        0,
+        0,
+        0,
+        7.5,
+        1
+      ]
+    },
+    {
+      "key": "EarthMJ2000Ec",
+      "mode": "protected",
+      "name": "EarthMJ2000Ec",
+      "built_in": true,
+      "axes": "MJ2000Ec",
+      "report": [
+        42,
+        7000,
+        0,
+        0,
+        0,
+        7.5,
+        1
+      ]
+    },
+    {
+      "key": "EarthFixed",
+      "mode": "protected",
+      "name": "EarthFixed",
+      "built_in": true,
+      "axes": "BodyFixed",
+      "report": [
+        42,
+        7000,
+        0,
+        0,
+        0,
+        7.5,
+        1
+      ]
+    },
+    {
+      "key": "EarthICRF",
+      "mode": "protected",
+      "name": "EarthICRF",
+      "built_in": true,
+      "axes": "ICRF",
+      "report": [
+        42,
+        7000,
+        0,
+        0,
+        0,
+        7.5,
+        1
+      ]
+    },
+    {
+      "key": "ResourceReference",
+      "mode": "resource-ref",
+      "name": "ScratchFrame",
+      "built_in": false,
+      "axes": "MJ2000Eq",
+      "report": [
+        42,
+        7000,
+        0,
+        0,
+        0,
+        7.5,
+        1
+      ]
+    },
+    {
+      "key": "CommandReference",
+      "mode": "command-ref",
+      "name": "ScratchFrame",
+      "built_in": false,
+      "axes": "MJ2000Eq",
+      "report": [
+        42,
+        7000,
+        0,
+        0,
+        0,
+        7.5,
+        1,
+        7000
+      ]
+    }
+  ]
+}

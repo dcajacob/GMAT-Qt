@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "ForElseParent",
+      "family": "For",
+      "group": "ElseParent",
+      "parent": "Inner",
+      "parent_type": "IfElse",
+      "legacy_object": "For",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1432",
+          "fingerprint": "529030fb6d17d673810a24600669d9b41cf885c362ed2d89529f78ad0d57bee3",
+          "operation": "If-Else Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF_ELSE"
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "For"
+    },
+    {
+      "key": "IfElseParent",
+      "family": "If",
+      "group": "ElseParent",
+      "parent": "Inner",
+      "parent_type": "IfElse",
+      "legacy_object": "If",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1498",
+          "fingerprint": "372590ebe7e5ee8fea5f7d649b42d9579cffc617efc34381327849dc047bdbc5",
+          "operation": "If-Else Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF_ELSE"
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "IfNoElse"
+    },
+    {
+      "key": "IfElseElseParent",
+      "family": "IfElse",
+      "group": "ElseParent",
+      "parent": "Inner",
+      "parent_type": "IfElse",
+      "legacy_object": "If-Else",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1567",
+          "fingerprint": "c2215d065b43cbfbfc288cfe872894454209817c9045b160769b46a7aae1b524",
+          "operation": "If-Else-Else Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF_ELSE"
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "If"
+    },
+    {
+      "key": "WhileElseParent",
+      "family": "While",
+      "group": "ElseParent",
+      "parent": "Inner",
+      "parent_type": "IfElse",
+      "legacy_object": "While",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1638",
+          "fingerprint": "713c6270fd91c545311968204ab834e2b9b451f563c84f43dc54595e7f3d32d0",
+          "operation": "While-Else Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF_ELSE"
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "While"
+    },
+    {
+      "key": "TargetElseParent",
+      "family": "Target",
+      "group": "ElseParent",
+      "parent": "Inner",
+      "parent_type": "IfElse",
+      "legacy_object": "Target",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1373",
+          "fingerprint": "cfbba4f1a765c7e6110ebf0d485af03a77cef96b4421657a5d16e9dbe3a8e9de",
+          "operation": "If-Else Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF_ELSE"
+        }
+      ],
+      "kind": "solver",
+      "reused_reference_case": "Target"
+    },
+    {
+      "key": "OptimizeElseParent",
+      "family": "Optimize",
+      "group": "ElseParent",
+      "parent": "Inner",
+      "parent_type": "IfElse",
+      "legacy_object": "Optimize",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1241",
+          "fingerprint": "027f92e74ef179670de658aa99e4300a220697e7548cddaff3727b84af368d71",
+          "operation": "If-Else Structure Append",
+          "test_case": "TreeControls_Structure_AppendIF_ELSE"
+        }
+      ],
+      "kind": "solver",
+      "reused_reference_case": "Optimize"
+    }
+  ],
+  "scope": "NASA-faithful Append-only correction replay;all other already-passing Else/EndIf positions are retained from original immutable snapshots,not rerun."
+}

@@ -49,12 +49,15 @@ class PropSetup;
 class ESTIMATION_API TrackingFileSet: public MeasurementModelBase
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = MeasurementModelBase::NativeValueProviderDepth + 1;
+
    TrackingFileSet(const std::string &name);
    virtual ~TrackingFileSet();
    TrackingFileSet(const TrackingFileSet& tfs);
    TrackingFileSet& operator=(const TrackingFileSet& tfs);
 
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
 
    // methods overridden from GmatBase
    virtual std::string  GetParameterText(const Integer id) const;
@@ -86,6 +89,8 @@ public:
    virtual Real         SetRealParameter(const std::string &label,
                                          const Real value);
 
+   using MeasurementModelBase::SetField;
+   void SetField(const Integer id, const StringArray &value) override;
    virtual std::string  GetStringParameter(const Integer id) const;
    virtual bool         SetStringParameter(const Integer id,
                                            const std::string &value);
@@ -134,8 +139,6 @@ public:
    virtual UnsignedInt
                         GetPropertyObjectType(const Integer id) const;
 
-   DEFAULT_TO_NO_CLONES
-
    virtual std::string  GetRefObjectName(const UnsignedInt type) const;
    virtual const ObjectTypeArray&
                         GetRefObjectTypeArray();
@@ -172,6 +175,18 @@ public:
    const StringArray&   GetParticipants() const;
    TrackingDataAdapter  *GetAdapter(Integer index);
    std::vector<TrackingDataAdapter*> *GetAdapters();
+   const ObjectArray &GetOwnedDataFilters() const;
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source,
+         SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+   bool HasDefinitionSource(const GmatBase *source) const;
+   bool ApplyDefinitionUpdate(GmatBase *source, Integer parameterId,
+         GmatBase *mappedTarget = nullptr);
+   void ResetPreparedMeasurements();
+   bool HasLocalClones() override;
+   void UpdateClonedObject(GmatBase *source) override;
+   void UpdateClonedObjectParameter(GmatBase *source, Integer parameterId) override;
 
    bool                 GenerateTrackingConfigs(std::vector<StringArray> strandsList, std::vector<StringArray> sensorsList, StringArray typesList);
 
@@ -179,6 +194,10 @@ public:
 
    bool                 UsesHorp();
 protected:
+   void ClearGeneratedModels();
+   void ClearCollection(Integer id);
+   void WriteStringArrayValue(Gmat::WriteMode mode, std::string &prefix,
+         Integer id, bool writeQuotes, std::stringstream &stream) override;
    /**
     * Internal class used to match strand and model descriptions together, as
     * scripted.
@@ -331,8 +350,19 @@ private:
 
    Integer FrequencyBand(Real frequency);
 
-   Integer openBracketCount;
-   bool    start;
+   bool ParseConfigToken(const std::string &value, Integer index,
+         std::vector<MeasurementDefinition> &definitions, Integer &depth, bool &newDefinition);
+   void PublishTrackingConfigs(std::vector<MeasurementDefinition> &definitions,
+         Integer depth, bool newDefinition);
+   bool ParseTrackingConfig(std::string value, Integer &configIndex, bool &newDefinition,
+         std::vector<MeasurementDefinition> &definitions);
+   bool ParseStrand(std::string value, Integer configIndex, Integer strandIndex,
+         std::vector<MeasurementDefinition> &definitions);
+   bool AddToSignalPath(std::string participantName, Integer configIndex, Integer strandIndex,
+         std::vector<MeasurementDefinition> &definitions);
+
+   Integer openBracketCount = 0;
+   bool    start = true;
 
    /**
     * @note:  The propvec and spm members are only used by the API.  These

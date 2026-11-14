@@ -36,6 +36,35 @@
     to a <guilabel>Spacecraf</guilabel>t, you must first create the
     model.</para>
 
+    <para>Native attachment updates prepare replacement tank and thruster
+    components before retiring the previous attachments. Before initialization,
+    declarations may bind incrementally; unresolved tank links remain pending
+    until the complete hardware graph is required. Initialized spacecraft reject
+    incomplete replacement graphs instead of keeping dangling tank references.
+    Removing a tank still declared by a retained thruster reports an error.
+    End a finite burn before replacing or removing its firing thruster, or before
+    replacing its electric power system. Power-system replacements are cloned
+    and prepared before the previous component is retired. MATLAB spacecraft
+    object results use this same power-system operation, including clearing with
+    an empty name or <literal>None</literal>; the previous name and attachment
+    remain intact if preparation fails.</para>
+
+    <para>Updates to attached component definitions preserve their concrete
+    model type and existing owned identity. Whole-component and single-property
+    updates prepare native values and owner bindings before publication;
+    initialized components validate the prepared update. Thruster updates keep
+    the current firing state except when that state is the property being set.
+    Tank updates refresh the spacecraft mass properties. Tank and solar shadow
+    body list properties support complete typed replacement.</para>
+
+    <para>An attachment follows its actual source resource when definition
+    changes update owned clones. A separate private resource with the same name
+    does not retarget that relationship. Copies of spacecraft values map these
+    relationships with their private dependencies; explicit shared globals and
+    caller bindings retain their declared roles. Solver and propagation data
+    snapshots retain frozen values until restored; they do not subscribe as live
+    scene resources.</para>
+
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="FuelTank"/>, <xref linkend="Thruster"/>,<xref
     linkend="ElectricTank"/>, <xref linkend="ElectricThruster"/></para>

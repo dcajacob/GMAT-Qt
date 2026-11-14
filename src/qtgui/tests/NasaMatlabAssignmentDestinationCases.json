@@ -1,0 +1,399 @@
+{
+  "schema_version": 1,
+  "scope": "Actual MATLAB destination operations; original FRC!E176 remains unqualified until exact-row review.",
+  "cases": [
+    {
+      "key": "RealParameter",
+      "kind": "real",
+      "root_destination": "Carrier.X",
+      "private_destination": "PrivateCarrier.X",
+      "bound": 1e-12
+    },
+    {
+      "key": "StringParameter",
+      "kind": "string",
+      "root_destination": "Carrier.UTCGregorian",
+      "private_destination": "PrivateCarrier.UTCGregorian",
+      "bound": 0
+    },
+    {
+      "key": "ArrayElement",
+      "kind": "array-element",
+      "root_destination": "Receiver(2,3)",
+      "private_destination": "PrivateReceiver(1,2)",
+      "bound": 1e-12
+    },
+    {
+      "key": "CartesianParameter",
+      "kind": "cartesian-vector",
+      "root_destination": "Carrier.EarthMJ2000Eq.Cartesian",
+      "private_destination": "PrivateCarrier.EarthMJ2000Eq.Cartesian",
+      "bound": 1e-09,
+      "velocity_bound": 1e-12,
+      "probe": "Retained source1-4 positive premise was incorrect: Cartesian metadata is read-only. Exact qualified private-output rejection is now checked;writable vector types remain separate obligations.",
+      "expected_rejection": true
+    },
+    {
+      "key": "Quaternion",
+      "kind": "parameter-vector",
+      "root_destination": "Carrier.Quaternion",
+      "private_destination": "PrivateCarrier.Quaternion",
+      "bound": 1e-12,
+      "length": 4,
+      "parameter": "Quaternion",
+      "owner": "Spacecraft",
+      "orientation": "row"
+    },
+    {
+      "key": "ThrustAngle1N1",
+      "kind": "parameter-vector",
+      "root_destination": "Carrier.ThrustAngle1",
+      "private_destination": "PrivateCarrier.ThrustAngle1",
+      "bound": 1e-12,
+      "length": 1,
+      "parameter": "ThrustAngle1",
+      "owner": "ThrustSegment",
+      "orientation": "row"
+    },
+    {
+      "key": "ThrustAngle1N3",
+      "kind": "parameter-vector",
+      "root_destination": "Carrier.ThrustAngle1",
+      "private_destination": "PrivateCarrier.ThrustAngle1",
+      "bound": 1e-12,
+      "length": 3,
+      "parameter": "ThrustAngle1",
+      "owner": "ThrustSegment",
+      "orientation": "row"
+    },
+    {
+      "key": "ThrustAngle1N4",
+      "kind": "parameter-vector",
+      "root_destination": "Carrier.ThrustAngle1",
+      "private_destination": "PrivateCarrier.ThrustAngle1",
+      "bound": 1e-12,
+      "length": 4,
+      "parameter": "ThrustAngle1",
+      "owner": "ThrustSegment",
+      "orientation": "row"
+    },
+    {
+      "key": "ThrustAngle2N1",
+      "kind": "parameter-vector",
+      "root_destination": "Carrier.ThrustAngle2",
+      "private_destination": "PrivateCarrier.ThrustAngle2",
+      "bound": 1e-12,
+      "length": 1,
+      "parameter": "ThrustAngle2",
+      "owner": "ThrustSegment",
+      "orientation": "column"
+    },
+    {
+      "key": "ThrustAngle2N3",
+      "kind": "parameter-vector",
+      "root_destination": "Carrier.ThrustAngle2",
+      "private_destination": "PrivateCarrier.ThrustAngle2",
+      "bound": 1e-12,
+      "length": 3,
+      "parameter": "ThrustAngle2",
+      "owner": "ThrustSegment",
+      "orientation": "column"
+    },
+    {
+      "key": "ThrustAngle2N4",
+      "kind": "parameter-vector",
+      "root_destination": "Carrier.ThrustAngle2",
+      "private_destination": "PrivateCarrier.ThrustAngle2",
+      "bound": 1e-12,
+      "length": 4,
+      "parameter": "ThrustAngle2",
+      "owner": "ThrustSegment",
+      "orientation": "column"
+    },
+    {
+      "key": "QuaternionShort",
+      "kind": "parameter-vector",
+      "root_destination": "Carrier.Quaternion",
+      "private_destination": "PrivateCarrier.Quaternion",
+      "bound": 1e-12,
+      "length": 4,
+      "parameter": "Quaternion",
+      "owner": "Spacecraft",
+      "orientation": "row",
+      "variant": "short",
+      "return_descriptor": "double,1,0,[1 3]",
+      "expected_runtime_rejection": true
+    },
+    {
+      "key": "QuaternionMatrix",
+      "kind": "parameter-vector",
+      "root_destination": "Carrier.Quaternion",
+      "private_destination": "PrivateCarrier.Quaternion",
+      "bound": 1e-12,
+      "length": 4,
+      "parameter": "Quaternion",
+      "owner": "Spacecraft",
+      "orientation": "row",
+      "variant": "matrix",
+      "return_descriptor": "double,1,0,[2 2]",
+      "expected_runtime_rejection": true
+    },
+    {
+      "key": "QuaternionString",
+      "kind": "parameter-vector",
+      "root_destination": "Carrier.Quaternion",
+      "private_destination": "PrivateCarrier.Quaternion",
+      "bound": 1e-12,
+      "length": 4,
+      "parameter": "Quaternion",
+      "owner": "Spacecraft",
+      "orientation": "row",
+      "variant": "string",
+      "return_descriptor": "char,1,0,[1 14]",
+      "expected_runtime_rejection": true
+    },
+    {
+      "key": "QuaternionComplex",
+      "kind": "parameter-vector",
+      "root_destination": "Carrier.Quaternion",
+      "private_destination": "PrivateCarrier.Quaternion",
+      "bound": 1e-12,
+      "length": 4,
+      "parameter": "Quaternion",
+      "owner": "Spacecraft",
+      "orientation": "row",
+      "variant": "complex",
+      "return_descriptor": "double,0,0,[1 4]",
+      "expected_runtime_rejection": true
+    },
+    {
+      "key": "QuaternionSparse",
+      "kind": "parameter-vector",
+      "root_destination": "Carrier.Quaternion",
+      "private_destination": "PrivateCarrier.Quaternion",
+      "bound": 1e-12,
+      "length": 4,
+      "parameter": "Quaternion",
+      "owner": "Spacecraft",
+      "orientation": "row",
+      "variant": "sparse",
+      "return_descriptor": "double,1,1,[1 4]",
+      "expected_runtime_rejection": true
+    },
+    {
+      "key": "QuaternionND",
+      "kind": "parameter-vector",
+      "root_destination": "Carrier.Quaternion",
+      "private_destination": "PrivateCarrier.Quaternion",
+      "bound": 1e-12,
+      "length": 4,
+      "parameter": "Quaternion",
+      "owner": "Spacecraft",
+      "orientation": "row",
+      "variant": "nd",
+      "return_descriptor": "double,1,0,[1 2 2]",
+      "expected_runtime_rejection": true
+    },
+    {
+      "key": "ArrayWholeSmall",
+      "kind": "whole-array",
+      "root_destination": "Receiver",
+      "private_destination": "PrivateReceiver",
+      "bound": 1e-12,
+      "variant": "small-array",
+      "return_descriptor": "double,1,0,[1 2]",
+      "expected_runtime_rejection": true
+    },
+    {
+      "key": "ArrayWholeLarge",
+      "kind": "whole-array",
+      "root_destination": "Receiver",
+      "private_destination": "PrivateReceiver",
+      "bound": 1e-12,
+      "variant": "large-array",
+      "return_descriptor": "double,1,0,[3 3]",
+      "expected_runtime_rejection": true
+    },
+    {
+      "key": "AssignmentEntryRealParameter",
+      "kind": "real",
+      "root_destination": "Carrier.X",
+      "private_destination": "PrivateCarrier.X",
+      "bound": 1e-12,
+      "entry": "Assignment"
+    },
+    {
+      "key": "DynamicArrayOutput",
+      "kind": "array-element",
+      "root_destination": "Receiver(Row,Col)",
+      "private_destination": "PrivateReceiver(Row,Col)",
+      "bound": 1e-12,
+      "dynamic_indices": true,
+      "dynamic_input": false
+    },
+    {
+      "key": "DynamicArrayInput",
+      "kind": "array-element",
+      "root_destination": "Receiver(2,3)",
+      "private_destination": "PrivateReceiver(1,2)",
+      "bound": 1e-12,
+      "dynamic_indices": true,
+      "dynamic_input": true
+    },
+    {
+      "key": "DynamicArrayInOut",
+      "kind": "array-element",
+      "root_destination": "Receiver(Row,Col)",
+      "private_destination": "PrivateReceiver(Row,Col)",
+      "bound": 1e-12,
+      "dynamic_indices": true,
+      "dynamic_input": true
+    },
+    {
+      "key": "DynamicArrayAlias",
+      "kind": "array-element",
+      "root_destination": "Receiver(Row,Col)",
+      "private_destination": "PrivateReceiver(Row,Col)",
+      "bound": 1e-12,
+      "dynamic_indices": true,
+      "dynamic_input": true,
+      "element_alias": true
+    },
+    {
+      "key": "NestedArrayIndices",
+      "kind": "array-element",
+      "root_destination": "Receiver(Indices(1,1),Indices(1,2))",
+      "private_destination": "PrivateReceiver(Indices(1,1),Indices(1,2))",
+      "bound": 1e-12,
+      "dynamic_indices": true,
+      "dynamic_input": true,
+      "nested_indices": true
+    },
+    {
+      "key": "ParameterArrayIndices",
+      "kind": "array-element",
+      "root_destination": "Receiver(Carrier.X,Carrier.Y)",
+      "private_destination": "PrivateReceiver(PrivateCarrier.X,PrivateCarrier.Y)",
+      "bound": 1e-12,
+      "dynamic_indices": true,
+      "dynamic_input": true,
+      "parameter_indices": true
+    },
+    {
+      "key": "LiteralArrayInput",
+      "kind": "array-element",
+      "root_destination": "Receiver(2,3)",
+      "private_destination": "PrivateReceiver(1,2)",
+      "bound": 1e-12,
+      "dynamic_indices": true,
+      "dynamic_input": true,
+      "literal_index_input": true
+    },
+    {
+      "key": "OutputIndexZero",
+      "kind": "array-element",
+      "root_destination": "Receiver(Row,Col)",
+      "private_destination": "PrivateReceiver(Row,Col)",
+      "bound": 1e-12,
+      "dynamic_indices": true,
+      "dynamic_input": false,
+      "expected_index_rejection": true,
+      "root_runtime_row": 0
+    },
+    {
+      "key": "OutputIndexFraction",
+      "kind": "array-element",
+      "root_destination": "Receiver(Row,Col)",
+      "private_destination": "PrivateReceiver(Row,Col)",
+      "bound": 1e-12,
+      "dynamic_indices": true,
+      "dynamic_input": false,
+      "expected_index_rejection": true,
+      "root_runtime_row": 1.5
+    },
+    {
+      "key": "OutputIndexBounds",
+      "kind": "array-element",
+      "root_destination": "Receiver(Row,Col)",
+      "private_destination": "PrivateReceiver(Row,Col)",
+      "bound": 1e-12,
+      "dynamic_indices": true,
+      "dynamic_input": false,
+      "expected_index_rejection": true,
+      "root_runtime_column": 4
+    },
+    {
+      "key": "InputIndexBounds",
+      "kind": "array-element",
+      "root_destination": "Receiver(2,3)",
+      "private_destination": "PrivateReceiver(1,2)",
+      "bound": 1e-12,
+      "dynamic_indices": true,
+      "dynamic_input": true,
+      "expected_index_rejection": true,
+      "root_runtime_row": 3
+    },
+    {
+      "key": "InputIndexZero",
+      "kind": "array-element",
+      "root_destination": "Receiver(2,3)",
+      "private_destination": "PrivateReceiver(1,2)",
+      "bound": 1e-12,
+      "dynamic_indices": true,
+      "dynamic_input": true,
+      "expected_index_rejection": true,
+      "root_runtime_column": 0
+    },
+    {
+      "key": "InputIndexFraction",
+      "kind": "array-element",
+      "root_destination": "Receiver(2,3)",
+      "private_destination": "PrivateReceiver(1,2)",
+      "bound": 1e-12,
+      "dynamic_indices": true,
+      "dynamic_input": true,
+      "expected_index_rejection": true,
+      "root_runtime_column": 2.5
+    },
+    {
+      "key": "AssignmentEntryStringParameter",
+      "kind": "string",
+      "root_destination": "Carrier.UTCGregorian",
+      "private_destination": "PrivateCarrier.UTCGregorian",
+      "bound": 0,
+      "entry": "Assignment",
+      "initial_assignment_expression": "41"
+    },
+    {
+      "key": "AssignmentEntryQuaternion",
+      "kind": "parameter-vector",
+      "root_destination": "Carrier.Quaternion",
+      "private_destination": "PrivateCarrier.Quaternion",
+      "bound": 1e-12,
+      "length": 4,
+      "parameter": "Quaternion",
+      "owner": "Spacecraft",
+      "orientation": "row",
+      "entry": "Assignment"
+    },
+    {
+      "key": "AssignmentEntryNestedArrayIndices",
+      "kind": "array-element",
+      "root_destination": "Receiver(Indices(1,1),Indices(1,2))",
+      "private_destination": "PrivateReceiver(Indices(1,1),Indices(1,2))",
+      "bound": 1e-12,
+      "dynamic_indices": true,
+      "dynamic_input": true,
+      "nested_indices": true,
+      "entry": "Assignment"
+    }
+  ],
+  "fixture_naif_ids": {
+    "root": -42001,
+    "root_frame": -8042001,
+    "private": -43001,
+    "private_frame": -8043001
+  },
+  "fixture_naif_limit": "Explicit test identifiers keep the authored spacecraft prototype invariant across runMission fresh Builds;no automatic-ID stability or SPICE trajectory claim.",
+  "quaternion_readback_contract": "Keep raw MATLAB quaternion tuples. AttitudeData::GetRvector reconstructs from the cosine matrix through ToQuaternion,whose selected largest component is positive. Destination oracle predicts this exact algebraic sign;no either-sign comparison or tolerance change."
+}

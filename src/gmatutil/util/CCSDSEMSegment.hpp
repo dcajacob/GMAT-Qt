@@ -52,6 +52,7 @@
 #include "utildefs.hpp"
 #include "Rvector.hpp"
 #include "Rvector3.hpp"
+#include "GmatTime.hpp"
 
 /// struct hold a covariance record
 struct CovarianceRecord
@@ -85,6 +86,7 @@ public:
    /// Parse a time string read from the EM file and convert it to
    /// a Real (A1Mjd) epoch
    static Real ParseEpoch(const std::string &epochString);
+   static GmatTime ParseEpochGT(const std::string &epochString);
    
    /// class methods
    CCSDSEMSegment(const std::string version, Integer segNum);
@@ -134,6 +136,7 @@ public:
    virtual Integer      GetNumberOfDataPoints();
    virtual bool         GetEpochAndData(Integer index, Real &epoch,
                                         Rvector &data);
+   bool GetEpochAndData(Integer index, GmatTime &epoch, Rvector &data);
 
    virtual std::string  GetFormatVersion(){ return formatVersion;};
    virtual void         SetFormatVersion(const std::string ver) { formatVersion = ver; };
@@ -176,6 +179,8 @@ protected:
    struct EpochAndData
    {
       Real    epoch;
+      GmatTime preciseEpoch;
+      bool hasPrecisionEpoch = false;
       // data vector will be allocated/set in the child classes according to
       // the size needed, e.g. an attitude quaternion segment would need
       // a Rvector of size 4 and OEM cartesian state would need a Rvector of size 6

@@ -57,6 +57,7 @@ public:
    Rvector(int size, Real a1, ... );  //Note: . is required for Real value. eg) 123., 100.
    Rvector(const RealArray &ra);
    Rvector(const Rvector &v);
+   void Swap(Rvector &other);
    virtual ~Rvector();
    
    void Set(int numElem, Real a1, ...);

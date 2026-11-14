@@ -30,6 +30,51 @@
 //------------------------------------------------------------------------------
 
 #include "MathNode.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
+#include "Abs.hpp"
+#include "Acos.hpp"
+#include "Add.hpp"
+#include "Asin.hpp"
+#include "Atan.hpp"
+#include "Atan2.hpp"
+#include "Ceil.hpp"
+#include "Cos.hpp"
+#include "Cross3.hpp"
+#include "DegToRad.hpp"
+#include "Determinant.hpp"
+#include "Diag.hpp"
+#include "Divide.hpp"
+#include "Exp.hpp"
+#include "Fix.hpp"
+#include "Floor.hpp"
+#include "FunctionRunner.hpp"
+#include "Inverse.hpp"
+#include "Log.hpp"
+#include "Log10.hpp"
+#include "MathElement.hpp"
+#include "Min.hpp"
+#include "Mod.hpp"
+#include "Multiply.hpp"
+#include "Negate.hpp"
+#include "Norm.hpp"
+#include "Power.hpp"
+#include "RadToDeg.hpp"
+#include "Rand.hpp"
+#include "Randn.hpp"
+#include "Sin.hpp"
+#include "Sprintf.hpp"
+#include "Sqrt.hpp"
+#include "Strcat.hpp"
+#include "Strcmp.hpp"
+#include "Strfind.hpp"
+#include "Strlen.hpp"
+#include "Strrep.hpp"
+#include "Substr.hpp"
+#include "Subtract.hpp"
+#include "Tan.hpp"
+#include "Transpose.hpp"
+
 #include "MessageInterface.hpp"
 
 //------------------------------------------------------------------------------
@@ -70,6 +115,21 @@ MathNode::~MathNode()
    //    GetName().c_str());
 }
 
+std::vector<MathNode*> MathNode::GetStructuralChildren() const
+{
+   auto *node = const_cast<MathNode*>(this);
+   return {node->GetLeft(), node->GetRight()};
+}
+
+void MathNode::RebindClonedChildren(const MathNode &source,
+      const std::function<MathNode*(MathNode*)> &resolve)
+{
+   auto *node = const_cast<MathNode*>(&source);
+   MathNode *left = node->GetLeft(), *right = node->GetRight();
+   if ((left || right) && !SetChildren(resolve(left), resolve(right)))
+      throw MathException("Cannot reconnect copied expression children.\n");
+}
+
 
 //------------------------------------------------------------------------------
 //  MathNode(const MathNode &mn)
@@ -84,11 +144,14 @@ MathNode::MathNode(const MathNode &mn) :
    GmatBase        (mn),
    isNumber        (mn.isNumber),
    isFunction      (mn.isFunction),
-   isFunctionInput (mn.isFunction),
+   isFunctionInput (mn.isFunctionInput),
    elementType     (mn.elementType),
    realValue       (mn.realValue),
-   matrix          (mn.matrix)
+   stringValue     (mn.stringValue)
 {
+   // Scalar/default nodes do not have a sized matrix cache.
+   if (mn.matrix.IsSized())
+      matrix = mn.matrix;
 }
 
 
@@ -115,7 +178,14 @@ MathNode& MathNode::operator=(const MathNode &mn)
    isFunctionInput = mn.isFunctionInput;
    elementType = mn.elementType;
    realValue = mn.realValue;
-   matrix = mn.matrix;
+   stringValue = mn.stringValue;
+   if (mn.matrix.IsSized())
+   {
+      if (!matrix.IsSized() || matrix.GetNumRows() != mn.matrix.GetNumRows() ||
+          matrix.GetNumColumns() != mn.matrix.GetNumColumns())
+         matrix.SetSize(mn.matrix.GetNumRows(), mn.matrix.GetNumColumns());
+      matrix = mn.matrix;
+   }
    
    return *this;
 }
@@ -139,7 +209,8 @@ void MathNode::SetMatrixValue(const Rmatrix &mat)
    Integer theRowCount = mat.GetNumRows();
    Integer theColCount = mat.GetNumColumns();
    
-   if (!matrix.IsSized())
+   if (!matrix.IsSized() || matrix.GetNumRows() != theRowCount ||
+       matrix.GetNumColumns() != theColCount)
       matrix.SetSize(theRowCount, theColCount);
    
    matrix = mat;
@@ -179,6 +250,11 @@ std::string MathNode::EvaluateString()
    return STRING_PARAMETER_UNDEFINED;
 }
 
+Rvector MathNode::VectorEvaluate()
+{
+   throw MathException("This math node does not return a vector.\n");
+}
+
 //---------------------------------------------------------------------------
 //  bool RenameRefObject(const UnsignedInt type,
 //                       const std::string &oldName, const std::string &newName)
@@ -201,3 +277,81 @@ bool MathNode::RenameRefObject(const UnsignedInt type,
    return true;
 }
 
+
+namespace
+{
+   template <typename Node>
+   bool CopyExactMathNode(MathNode *destination, const GmatBase *original)
+   {
+      if (typeid(*destination) != typeid(Node))
+         return false;
+      const auto *source = dynamic_cast<const Node*>(original);
+      if (!source || typeid(*source) != typeid(Node))
+         throw GmatBaseException("Cannot copy incompatible math node into " +
+                                 destination->GetTypeName());
+      if (source != destination)
+         *static_cast<Node*>(destination) = *source;
+      return true;
+   }
+}
+
+void MathNode::Copy(const GmatBase *original)
+{
+   // Mirror the concrete MathFactory classes. Unknown derived types retain
+   // the requirement to implement their own Copy contract instead of slicing.
+   if (CopyExactMathNode<Abs>(this, original)) return;
+   if (CopyExactMathNode<Acos>(this, original)) return;
+   if (CopyExactMathNode<Add>(this, original)) return;
+   if (CopyExactMathNode<Asin>(this, original)) return;
+   if (CopyExactMathNode<Atan>(this, original)) return;
+   if (CopyExactMathNode<Atan2>(this, original)) return;
+   if (CopyExactMathNode<Ceil>(this, original)) return;
+   if (CopyExactMathNode<Cos>(this, original)) return;
+   if (CopyExactMathNode<Cross3>(this, original)) return;
+   if (CopyExactMathNode<DegToRad>(this, original)) return;
+   if (CopyExactMathNode<Determinant>(this, original)) return;
+   if (CopyExactMathNode<Diag>(this, original)) return;
+   if (CopyExactMathNode<Divide>(this, original)) return;
+   if (CopyExactMathNode<Exp>(this, original)) return;
+   if (CopyExactMathNode<Fix>(this, original)) return;
+   if (CopyExactMathNode<Floor>(this, original)) return;
+   if (CopyExactMathNode<FunctionRunner>(this, original)) return;
+   if (CopyExactMathNode<Inverse>(this, original)) return;
+   if (CopyExactMathNode<Log>(this, original)) return;
+   if (CopyExactMathNode<Log10>(this, original)) return;
+   if (CopyExactMathNode<MathElement>(this, original)) return;
+   if (CopyExactMathNode<Min>(this, original)) return;
+   if (CopyExactMathNode<Mod>(this, original)) return;
+   if (CopyExactMathNode<Multiply>(this, original)) return;
+   if (CopyExactMathNode<Negate>(this, original)) return;
+   if (CopyExactMathNode<Norm>(this, original)) return;
+   if (CopyExactMathNode<Power>(this, original)) return;
+   if (CopyExactMathNode<RadToDeg>(this, original)) return;
+   if (CopyExactMathNode<Rand>(this, original)) return;
+   if (CopyExactMathNode<Randn>(this, original)) return;
+   if (CopyExactMathNode<Sin>(this, original)) return;
+   if (CopyExactMathNode<Sprintf>(this, original)) return;
+   if (CopyExactMathNode<Sqrt>(this, original)) return;
+   if (CopyExactMathNode<Strcat>(this, original)) return;
+   if (CopyExactMathNode<Strcmp>(this, original)) return;
+   if (CopyExactMathNode<Strfind>(this, original)) return;
+   if (CopyExactMathNode<Strlen>(this, original)) return;
+   if (CopyExactMathNode<Strrep>(this, original)) return;
+   if (CopyExactMathNode<Substr>(this, original)) return;
+   if (CopyExactMathNode<Subtract>(this, original)) return;
+   if (CopyExactMathNode<Tan>(this, original)) return;
+   if (CopyExactMathNode<Transpose>(this, original)) return;
+   throw GmatBaseException("Cannot copy unsupported derived math node " +
+                           GetTypeName());
+}
+
+void MathNode::RebindExpressionReferences(const MathNode &,
+      const std::function<GmatBase*(GmatBase*)> &, WrapperMap *)
+{
+   throw MathException("MathNode provider must implement passive expression binding.\n");
+}
+
+void MathNode::RetireExpressionReferences()
+{
+   throw MathException("MathNode provider must implement expression retirement.\n");
+}

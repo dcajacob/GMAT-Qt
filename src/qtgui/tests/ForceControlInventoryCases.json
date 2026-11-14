@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "basic_fields": [
+    "CentralBody",
+    "PrimaryBodies",
+    "PointMasses",
+    "Drag",
+    "SRP",
+    "RelativisticCorrection",
+    "ErrorControl"
+  ],
+  "owned_fields": [
+    "CentralBody",
+    "PrimaryBodies",
+    "PointMasses",
+    "Drag",
+    "SRP",
+    "RelativisticCorrection",
+    "ErrorControl",
+    "GravityField.Earth.Degree",
+    "GravityField.Earth.Order",
+    "GravityField.Earth.StmLimit",
+    "GravityField.Earth.PotentialFile",
+    "GravityField.Earth.TideFile",
+    "GravityField.Earth.TideModel",
+    "SRP.Flux",
+    "SRP.SRPModel",
+    "SRP.Nominal_Sun",
+    "Drag.AtmosphereModel",
+    "Drag.HistoricWeatherSource",
+    "Drag.PredictedWeatherSource",
+    "Drag.CSSISpaceWeatherFile",
+    "Drag.SchattenFile",
+    "Drag.F107",
+    "Drag.F107A",
+    "Drag.MagneticIndex",
+    "Drag.SchattenErrorModel",
+    "Drag.SchattenTimingModel",
+    "Drag.DragModel",
+    "Drag.DensityModel",
+    "Drag.InputFile"
+  ],
+  "unit_requirements": {
+    "SRP.Flux": "W/m^2",
+    "SRP.Nominal_Sun": "km",
+    "Drag.F107": "10^-22 W/m^2/Hz",
+    "Drag.F107A": "10^-22 W/m^2/Hz"
+  },
+  "unit_source": "doc/help/src/Resource_ForceModel.xml",
+  "limits": "Pinned basic and Earth gravity/NRLMSISE00/SRP/relativity inventories only;other force-family configurations and full status/input/result qualification remain open."
+}

@@ -207,7 +207,9 @@ FuelTank& FuelTank::operator=(const FuelTank& ft)
       noThrusterNeeded      = ft.noThrusterNeeded;
       firstValidation       = true;
 
-      isInitialized  = Initialize();
+      // A concrete tank copies its remaining model fields after this base.
+      // Validate the base here; its complete leaf initializer runs afterward.
+      isInitialized  = FuelTank::Initialize();
    }
 
    return *this;

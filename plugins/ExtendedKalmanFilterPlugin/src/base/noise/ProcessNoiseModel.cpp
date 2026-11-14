@@ -32,6 +32,28 @@
 #include "NoiseException.hpp"
 #include "SNCProcessNoise.hpp"
 #include "StringUtil.hpp"
+#include <memory>
+
+namespace
+{
+std::unique_ptr<ProcessNoiseBase> CopyNoiseModel(const ProcessNoiseBase *source,
+      const ProcessNoiseBase *previous = NULL)
+{
+   if (!source) return std::unique_ptr<ProcessNoiseBase>();
+   GmatBase::FunctionValueCopyGuard copying;
+   std::unique_ptr<GmatBase> value(source->Clone());
+   if (value.get() == source || (previous && value.get() == previous))
+   {
+      value.release();
+      throw NoiseException("Process noise Clone returned an existing native component.\n");
+   }
+   auto *model = dynamic_cast<ProcessNoiseBase*>(value.get());
+   if (!model || model->GetTypeName() != source->GetTypeName())
+      throw NoiseException("Cannot clone process noise model with its native type.\n");
+   value.release();
+   return std::unique_ptr<ProcessNoiseBase>(model);
+}
+}
 
 //#define DEBUG_SET
 
@@ -116,14 +138,11 @@ ProcessNoiseModel::ProcessNoiseModel(
       const ProcessNoiseModel& pnm) :
    GmatBase (pnm),
    noiseModelName(pnm.noiseModelName),
+   noiseModel(NULL),
    solarSystem(pnm.solarSystem),
    updateTimeStep(pnm.updateTimeStep)
 {
-   if (pnm.noiseModel)
-   {
-      noiseModelName = pnm.noiseModel->GetTypeName();
-      noiseModel = (ProcessNoiseBase*) pnm.noiseModel->Clone();
-   }
+   noiseModel = CopyNoiseModel(pnm.noiseModel).release();
 }
 
 
@@ -140,6 +159,7 @@ ProcessNoiseModel& ProcessNoiseModel::operator=(
 {
    if (this != &pnm)
    {
+      auto copiedModel = CopyNoiseModel(pnm.noiseModel, noiseModel);
       GmatBase::operator=(pnm);
 
       noiseModelName = pnm.noiseModelName;
@@ -148,13 +168,7 @@ ProcessNoiseModel& ProcessNoiseModel::operator=(
       if (noiseModel)
          delete noiseModel;
    
-      if (pnm.noiseModel)
-      {
-         noiseModelName = pnm.noiseModel->GetTypeName();
-         noiseModel = (ProcessNoiseBase*) pnm.noiseModel->Clone();
-      }
-      else
-         noiseModel = NULL;
+      noiseModel = copiedModel.release();
 
       solarSystem = pnm.solarSystem;
    }
@@ -219,9 +233,10 @@ void ProcessNoiseModel::SetNoiseModel(ProcessNoiseBase *noise)
    if (noise == NULL)
       throw NoiseException("SetNoiseModel() failed: noise is NULL");
    
+   auto copiedModel = CopyNoiseModel(noise, noiseModel);
+   if (solarSystem) copiedModel->SetSolarSystem(solarSystem);
    delete noiseModel;
-
-   noiseModel = (ProcessNoiseBase *)noise->Clone();
+   noiseModel = copiedModel.release();
 
    #ifdef DEBUG_SET
    MessageInterface::ShowMessage
@@ -385,7 +400,8 @@ GmatBase* ProcessNoiseModel::GetRefObject(const UnsignedInt type,
          break;
    }
 
-   if (type == GmatType::GetTypeId("ProcessNoiseModel"))
+   if (type == GmatType::GetTypeId("ProcessNoiseModel") ||
+       type == GmatType::GetTypeId("ProcessNoise"))
       return noiseModel;
 
    return GmatBase::GetRefObject(type, name);
@@ -476,7 +492,9 @@ bool ProcessNoiseModel::IsOwnedObject(Integer id) const
 //------------------------------------------------------------------------------
 GmatBase* ProcessNoiseModel::Clone(void) const
 {
-   return (new ProcessNoiseModel(*this));
+   std::unique_ptr<ProcessNoiseModel> value(new ProcessNoiseModel(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -935,4 +953,17 @@ Integer ProcessNoiseModel::GetOwnedObjectId(Integer id, UnsignedInt objType) con
    }
    
    return actualId;
+}
+
+// Whole-object script assignment and GmatFunction outputs use this virtual API.
+// Retain the existing class assignment logic and the destination's identity.
+void ProcessNoiseModel::Copy(const GmatBase* source)
+{
+   const auto* typed = dynamic_cast<const ProcessNoiseModel*>(source);
+   if (!typed || typed->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Cannot copy into " + GetTypeName() +
+                             " from a null or incompatible object");
+   const auto previous = GetFunctionValueContext();
+   operator=(*typed);
+   RebindFunctionValueContext(*typed);
 }

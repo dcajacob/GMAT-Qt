@@ -62,6 +62,7 @@ static QUrl helpUrl(const QString &topic)
    try {
       const auto path=QString::fromStdString(FileManager::Instance()->GetFullPathname("HELP_PATH"));
       static const QMap<QString,QString> aliases={{"ChemicalTank","FuelTank"},{"ChemicalThruster","Thruster"},
+         {"PenUp","PenUpPenDown"},{"PenDown","PenUpPenDown"},
          {"PropSetup","Propagator"},{"ODEModel","ForceModel"},{"Equation","Assignment"},{"GMAT","Assignment"},
          {"Planet","CelestialBody"},{"Moon","CelestialBody"},{"Asteroid","CelestialBody"},{"Comet","CelestialBody"},{"Star","CelestialBody"},
          {"CustomFOV","FieldOfView"},{"ConicalFOV","FieldOfView"},{"RectangularFOV","FieldOfView"}};

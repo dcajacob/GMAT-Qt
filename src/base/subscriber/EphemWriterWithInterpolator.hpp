@@ -45,7 +45,10 @@ public:
    virtual void         Copy(const GmatBase* orig);
    
    
+   void SetOrderReductionAllowed(bool allowed) { allowOrderReduction=allowed; }
+
 protected:
+   void RequireInterpolationData(Integer count, const std::string &context);
 
    Interpolator *interpolator;     // owned object
    
@@ -60,6 +63,7 @@ protected:
    bool         processingLargeStep;
    bool         checkForLargeTimeGap;
    bool         allowLowerOrder;
+   bool         allowOrderReduction;
    /// Time tolerance used for checking time difference
    Real         timeTolerance;
    

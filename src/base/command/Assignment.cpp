@@ -39,7 +39,12 @@
 
 
 #include "Assignment.hpp"
+#include <cmath>
+#include <memory>
+#include <set>
+#include <exception>
 #include "MathTree.hpp"
+#include "MathNode.hpp"
 #include "StringUtil.hpp"
 #include "TextParser.hpp"
 #include "NumberWrapper.hpp"
@@ -142,10 +147,13 @@ Assignment::Assignment  (const Assignment& a) :
    rhs                           (a.rhs),
    lhsWrapper                    (NULL),
    rhsWrapper                    (NULL),
-   rhsEquation                   (a.rhsEquation),  // Should be NULL
+   rhsEquation                   (NULL),
    lhsOwner                      (NULL),
    lhsOwnerID                    (a.lhsOwnerID)
 {
+   std::unique_ptr<RHSEquation> equation(a.rhsEquation ? new RHSEquation(*a.rhsEquation) : nullptr);
+   if (equation) mathWrapperMap = equation->GetMathWrapperMap();
+   rhsEquation = equation.release();
 }
 
 
@@ -160,21 +168,23 @@ Assignment::Assignment  (const Assignment& a) :
  * @return This instance, set to match the input instance.
  */
 //------------------------------------------------------------------------------
-Assignment& Assignment::operator=(const Assignment& a)
+Assignment& Assignment::operator=(const Assignment &a)
 {
-   if (this == &a)
-      return *this;
-   
-   lhs                         = a.lhs;
-   settabilityError            = "";
+   if (this == &a) return *this;
+   const auto previousContext = GetFunctionValueContext();
+   std::unique_ptr<RHSEquation> equation(a.rhsEquation ? new RHSEquation(*a.rhsEquation) : nullptr);
+   WrapperMap wrappers = equation ? equation->GetMathWrapperMap() : WrapperMap();
+   std::string left = a.lhs, right = a.rhs;
+   ClearMathTree();
+   GmatCommand::operator=(a);
+   lhs.swap(left);
+   rhs.swap(right);
+   settabilityError.clear();
    omitLHSBecauseOfSettability = false;
-   rhs                         = a.rhs;
-   lhsWrapper                  = NULL;
-   rhsWrapper                  = NULL;
-   rhsEquation                 = a.rhsEquation;  // Should be deleted and set NULL
-   lhsOwner                    = NULL;
-   lhsOwnerID                  = a.lhsOwnerID;
-   
+   lhsOwner = NULL;
+   lhsOwnerID = a.lhsOwnerID;
+   mathWrapperMap.swap(wrappers);
+   rhsEquation = equation.release();
    return *this;
 }
 
@@ -858,6 +868,22 @@ bool Assignment::Initialize()
    
    if (GmatCommand::Initialize() == false)
       return false;
+
+   MathTree *callTree = GetMathTree();
+   MathNode *callRoot = callTree ? callTree->GetTopNode() : NULL;
+   if (callRoot && callRoot->IsOfType("FunctionRunner"))
+   {
+      std::string arguments;
+      const std::string name = GmatStringUtil::ParseFunctionName(callRoot->GetName(), arguments);
+      GmatBase *function = FindObject(name);
+      if (!function)
+         for (Function *bound : callTree->GetFunctions())
+            if (bound && bound->GetName() == name) { function = bound; break; }
+      if (function && function->IsOfType("GmatFunction") &&
+          function->GetBooleanParameter("RequireOutputBrackets"))
+         throw CommandException("GmatFunction '" + name +
+            "' requires square brackets around call outputs, including a single output.");
+   }
    
    // if rhs is not an equation, set ref obj on both lhs and rhs wrappers
    if (rhsEquation == NULL)
@@ -1017,6 +1043,7 @@ bool Assignment::Execute()
       throw ce;
    }
    
+   std::unique_ptr<ElementWrapper> ownedOutput;
    ElementWrapper *outWrapper = NULL;
    
    #ifdef DEBUG_CLONE_UPDATES
@@ -1085,7 +1112,9 @@ bool Assignment::Execute()
          MessageInterface::ShowMessage("   Calling RunMathTree()\n");
          #endif
          
-         outWrapper = rhsEquation->RunMathTree(lhsWrapper);
+         ownedOutput.reset(rhsEquation->RunMathTree(lhsWrapper));
+         outWrapper = ownedOutput.get();
+         if (!outWrapper) throw CommandException("Equation did not return a value.\n");
          if (outWrapper->IsOneDimArraySettingAllowed())
             lhsWrapper->AllowOneDimArraySetting(true);
          
@@ -1110,31 +1139,7 @@ bool Assignment::Execute()
       #endif
       
       if (!retval)
-      {
-         if (outWrapper)
-         {
-            GmatBase *refObj = outWrapper->GetRefObject();
-            if (refObj)
-            {
-               #ifdef DEBUG_MEMORY
-               MemoryTracker::Instance()->Remove
-                  (refObj, refObj->GetName(), "Assignment::Execute()",
-                   //GetGeneratingString(Gmat::NO_COMMENTS) + " deleting outWrapper's refObj");
-                   " deleting outWrapper's refObj");
-               #endif
-               delete refObj;
-            }
-            #ifdef DEBUG_MEMORY
-            MemoryTracker::Instance()->Remove
-               (outWrapper, outWrapper->GetDescription(), "Assignment::Execute()",
-                //GetGeneratingString(Gmat::NO_COMMENTS) + " deleting outWrapper");
-                " deleting outWrapper");
-            #endif
-            delete outWrapper;
-         }
-         
          throw CommandException("Assignment::Execute() failed");
-      }
    }
    catch (BaseException &e)
    {
@@ -1160,17 +1165,10 @@ bool Assignment::Execute()
       if (currentFunction != NULL)
       {
          MessageInterface::ShowMessage(msg + "\n");
+         throw;
       }
       else
       {
-         if (outWrapper)
-         {
-            GmatBase *refObj = outWrapper->GetRefObject();
-            if (refObj)
-               delete refObj;
-            delete outWrapper;
-         }
-         
          CommandException ce;
          ce.SetMessage("");
          ce.SetDetails("%s in\n   \"%s\"\n", msg.c_str(), generatingString.c_str());
@@ -1182,29 +1180,8 @@ bool Assignment::Execute()
    MessageInterface::ShowMessage("Assignment::Execute() returning true\n");
    #endif
    
-   if (outWrapper)
-   {
-      GmatBase *refObj = outWrapper->GetRefObject();
-      if (refObj)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (refObj, refObj->GetName(), "Assignment::Execute()",
-             //GetGeneratingString(Gmat::NO_COMMENTS) + " deleting outWrapper's refObj");
-             " deleting outWrapper's refObj");
-         #endif
-         delete refObj;
-         refObj = NULL;
-      }
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (outWrapper, outWrapper->GetDescription(), "Assignment::Execute()",
-          //GetGeneratingString(Gmat::NO_COMMENTS) + " deleting outWrapper");
-          " deleting outWrapper");
-      #endif
-      delete outWrapper;
-      outWrapper = NULL;
-   }
+   ownedOutput.reset();
+   outWrapper = NULL;
    
    // Update clones
    PassToClones();
@@ -1239,6 +1216,36 @@ void Assignment::RunComplete()
    }
    
    GmatCommand::RunComplete();
+}
+
+void Assignment::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store || isRetiringBindings) return;
+   isRetiringBindings = true;
+   struct RetirementGuard
+   {
+      bool &retiring;
+      ~RetirementGuard() { retiring = false; }
+   } guard{isRetiringBindings};
+   // LHS/RHS can alias the equation's owned wrappers (x = x + 1). Retire
+   // external aliases before callbacks, then delete each actual owner once.
+   std::set<ElementWrapper*> operands;
+   if (lhsWrapper) operands.insert(lhsWrapper);
+   if (rhsWrapper) operands.insert(rhsWrapper);
+   if (rhsEquation)
+      for (const auto &entry : rhsEquation->GetMathWrapperMap())
+         operands.erase(entry.second);
+   lhsWrapper = nullptr;
+   rhsWrapper = nullptr;
+   mathWrapperMap.clear();
+   lhsOwner = nullptr;
+   lhsOwnerID = -1;
+   std::exception_ptr firstError;
+   try { if (rhsEquation) rhsEquation->RetireBindings(); }
+   catch (...) { firstError = std::current_exception(); }
+   for (ElementWrapper *wrapper : operands) delete wrapper;
+   GmatCommand::RetireFunctionBindings(store);
+   if (firstError) std::rethrow_exception(firstError);
 }
 
 
@@ -1318,10 +1325,10 @@ const StringArray& Assignment::GetWrapperObjectNameArray(bool completeSet)
    {
       if (lhs != "" && rhs != "Not_Set")
       {
-         // If LHS has more than 1 dot add to the list and Interpreter::ValidateCommand()
-         // will figure out if it is settable Parameter or not.(LOJ: 2009.12.22)
-         // Changed to use > 0 (LOJ: 2015.02.10) Changed back to >1 for LHS when equation
-         if ((GmatStringUtil::NumberOfOccurrences(lhs, '.') > 1) || completeSet)
+         // Include dotted destinations as in the non-equation branch. Function
+         // parsing registers these Parameters before cloning the local scope;
+         // a left-only time Parameter must not depend on also being on the RHS.
+         if ((GmatStringUtil::NumberOfOccurrences(lhs, '.') > 0) || completeSet)
             wrapperObjectNames.push_back(lhs);
       }
       StringArray wons = rhsEquation->GetWrapperObjectNames();
@@ -1333,7 +1340,7 @@ const StringArray& Assignment::GetWrapperObjectNameArray(bool completeSet)
       wrapperObjectNames.insert(wrapperObjectNames.end(), wons.begin(), wons.end());
       for (UnsignedInt i = 0; i < wons.size(); ++i)
       {
-         mathWrapperMap[wons[i]] = NULL;
+         mathWrapperMap.emplace(wons[i], nullptr);
          
          #ifdef DEBUG_WRAPPER_CODE
          MessageInterface::ShowMessage
@@ -1580,6 +1587,21 @@ bool Assignment::SetElementWrapper(ElementWrapper *toWrapper,
    ShowWrapper("   ", "rhsNewWrapper:", rhsNewWrapper);
    #endif
    
+   // A replaced lexical role may still alias another live operand/map entry.
+   auto retained = [&](ElementWrapper *wrapper)
+   {
+      if (!wrapper) return false;
+      if (wrapper == lhsWrapper || wrapper == rhsWrapper) return true;
+      for (const auto &entry : mathWrapperMap)
+         if (entry.second == wrapper) return true;
+      if (rhsEquation)
+         for (const auto &entry : rhsEquation->GetMathWrapperMap())
+            if (entry.second == wrapper) return true;
+      return false;
+   };
+   if (retained(lhsOldWrapper)) lhsOldWrapper = NULL;
+   if (retained(rhsOldWrapper)) rhsOldWrapper = NULL;
+
    // now delete old wrappers
    if (lhsOldWrapper == rhsOldWrapper && lhsOldWrapper != NULL)
    {
@@ -1636,75 +1658,19 @@ bool Assignment::SetElementWrapper(ElementWrapper *toWrapper,
 //------------------------------------------------------------------------------
 void Assignment::ClearWrappers()
 {
-   ElementWrapper* lhsEw = lhsWrapper;
-   ElementWrapper* rhsEw = rhsWrapper;
-   
-   if (rhsEw)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (rhsEw, rhsEw->GetDescription(), "Assignment::ClearWrappers()",
-          //GetGeneratingString(Gmat::NO_COMMENTS) + " deleting rhs wrapper");
-          " deleting rhs wrapper");
-      #endif
-      delete rhsEw;
-      rhsEw = NULL;
-   }
-   
-   // clear rhs math wrapper map
+   std::set<ElementWrapper*> operands;
+   if (lhsWrapper) operands.insert(lhsWrapper);
+   if (rhsWrapper) operands.insert(rhsWrapper);
    if (rhsEquation)
    {
-      // Check if thr RHS equation contains any LHS wrappers.
-      // If so, release ownership here to avoid double deletion.
-      WrapperMap rhsWrapperMap = rhsEquation->GetMathWrapperMap();
-      if (lhsEw)
-      {
-         if (rhsWrapperMap.find(lhsEw->GetDescription()) !=
-            rhsWrapperMap.end())
-         {
-            if (lhsEw == rhsWrapperMap.at(lhsEw->GetDescription()))
-               lhsEw = NULL;
-         }
-      }
+      for (const auto &entry : rhsEquation->GetMathWrapperMap())
+         operands.erase(entry.second);
       rhsEquation->ClearWrappers();
    }
-//   std::map<std::string, ElementWrapper *>::iterator ewi;
-//   for (ewi = mathWrapperMap.begin(); ewi != mathWrapperMap.end(); ++ewi)
-//   {
-//      if (ewi->second != NULL)
-//      {
-//         // if it is not the same as lhs wrapper, delete
-//         if (ewi->second != lhsEw)
-//         {
-//            #ifdef DEBUG_MEMORY
-//            MemoryTracker::Instance()->Remove
-//               (ewi->second, (ewi->second)->GetDescription(),
-//                "Assignment::ClearWrappers()",
-//                //GetGeneratingString(Gmat::NO_COMMENTS) + " deleting math node wrapper");
-//                " deleting math node wrapper");
-//            #endif
-//            delete ewi->second;
-//            ewi->second = NULL;
-//         }
-//      }
-//   }
-   
-   if (lhsEw && lhsEw != rhsWrapper)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (lhsEw, lhsEw->GetDescription(), "Assignment::ClearWrappers()",
-          //GetGeneratingString(Gmat::NO_COMMENTS) + " deleting lhs wrapper");
-          " deleting lhs wrapper");
-      #endif
-      delete lhsEw;
-      lhsEw = NULL;
-   }
-   
    lhsWrapper = NULL;
    rhsWrapper = NULL;
-   
    mathWrapperMap.clear();
+   for (ElementWrapper *wrapper : operands) delete wrapper;
 }
 
 
@@ -2054,6 +2020,22 @@ bool Assignment::ValidateRmatrix(ElementWrapper *lhsWrapper, ElementWrapper *rhs
    bool retval = false;
    Gmat::ParameterType lhsDataType = lhsWrapper->GetDataType();
    Gmat::ParameterType rhsDataType = rhsWrapper->GetDataType();
+
+   if (rhsDataType == Gmat::STRING_TYPE &&
+       rhsWrapper->GetWrapperType() == Gmat::STRING_WT &&
+       GmatStringUtil::IsEnclosedWithBrackets(rhsWrapper->EvaluateString()))
+   {
+      const RealArray values = GmatStringUtil::ToRealArray(rhsWrapper->EvaluateString(), false, true);
+      const Rmatrix &destination = lhsWrapper->EvaluateArray();
+      retval = !values.empty() && values.size() ==
+         destination.GetNumRows() * destination.GetNumColumns();
+      for (Real value : values)
+         if (!std::isfinite(value))
+            retval = false;
+      if (!retval)
+         lastErrorMessage = "Matrix literal size does not match left of the equal sign.";
+      return retval;
+   }
    
    if ((rhsDataType != Gmat::STRING_TYPE) &&
        (rhsDataType != Gmat::RMATRIX_TYPE))
@@ -2255,17 +2237,10 @@ bool Assignment::ValidateRvector(ElementWrapper *lhsWrapper, ElementWrapper *rhs
 //------------------------------------------------------------------------------
 void Assignment::ClearMathTree()
 {
-   if (rhsEquation)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (rhsEquation, rhsEquation->GetName(), "Assignment::~Assignment()", "deleting rhsEquation");
-      #endif
-      delete rhsEquation;
-   }
-   
-   rhsEquation = NULL;
+   // Clear while the equation map can still identify shared LHS/RHS wrappers.
    ClearWrappers();
+   delete rhsEquation;
+   rhsEquation = NULL;
 }
 
 
@@ -2333,7 +2308,7 @@ void Assignment::HandleObjectPropertyChange(ElementWrapper *lhsWrapper)
             MessageInterface::ShowMessage("   Calling Publisher to handle orbit color change\n");
             #endif
             publisher->SetOrbitColorChanged(this, obj->GetStringParameter("OrbitColor"),
-                                            obj->GetName(), lhs + " = " + rhs);
+                                            obj->GetName(), lhs + " = " + rhs, obj);
          }
          else if (propName == "TargetColor")
          {
@@ -2341,7 +2316,7 @@ void Assignment::HandleObjectPropertyChange(ElementWrapper *lhsWrapper)
             MessageInterface::ShowMessage("   Calling Publisher to handle target color change\n");
             #endif
             publisher->SetTargetColorChanged(this, obj->GetStringParameter("TargetColor"),
-                                             obj->GetName(), lhs + " = " + rhs);
+                                             obj->GetName(), lhs + " = " + rhs, obj);
          }
          else
          {
@@ -2349,7 +2324,7 @@ void Assignment::HandleObjectPropertyChange(ElementWrapper *lhsWrapper)
             MessageInterface::ShowMessage("   Calling Publisher to handle spacecraft property change\n");
             #endif
             publisher->SetSpacecraftPropertyChanged(this, obj->GetRealParameter("A1Epoch"),
-                                                    obj->GetName(), lhs + " = " + rhs);
+                                                    obj->GetName(), lhs + " = " + rhs, obj);
          }
       }
       else if (propName == "OrbitColor")
@@ -2358,7 +2333,7 @@ void Assignment::HandleObjectPropertyChange(ElementWrapper *lhsWrapper)
          MessageInterface::ShowMessage("   Calling Publisher to handle orbit color change\n");
          #endif
          publisher->SetOrbitColorChanged(this, obj->GetStringParameter("OrbitColor"),
-                                         obj->GetName(), lhs + " = " + rhs);
+                                         obj->GetName(), lhs + " = " + rhs, obj);
       }
       else if (propName == "TargetColor")
       {
@@ -2366,7 +2341,7 @@ void Assignment::HandleObjectPropertyChange(ElementWrapper *lhsWrapper)
          MessageInterface::ShowMessage("   Calling Publisher to handle target color change\n");
          #endif
          publisher->SetTargetColorChanged(this, obj->GetStringParameter("TargetColor"),
-                                          obj->GetName(), lhs + " = " + rhs);
+                                          obj->GetName(), lhs + " = " + rhs, obj);
       }
    }
    #ifdef DEBUG_PROPERTY_CHANGE
@@ -2621,9 +2596,12 @@ bool Assignment::ParseRHS(std::string &rhs)
           configObjectMap);
       #endif
 
-      RHSEquation *rhsParser = new RHSEquation;
+      std::unique_ptr<RHSEquation> rhsParser(new RHSEquation);
       if (rhsParser->BuildExpression(rhs, configObjectMap))
-         rhsEquation = rhsParser;
+      {
+         ClearMathTree();
+         rhsEquation = rhsParser.release();
+      }
       else // if not an equation, check for unexpected commas on the right-hand-side
       {
          #ifdef DEBUG_ASSIGNMENT_IA
@@ -2633,7 +2611,6 @@ bool Assignment::ParseRHS(std::string &rhs)
 
          // Delete old MathTree and clear mathWrapperMap
          ClearMathTree();
-         delete rhsParser;
 
          // Check if all brackets are balanced if not enclosed with single quotes
          if (!GmatStringUtil::IsEnclosedWith(rhs, "'"))
@@ -2645,6 +2622,8 @@ bool Assignment::ParseRHS(std::string &rhs)
          }
       }
    }
+   else
+      ClearMathTree();
 
    return retval;
 }

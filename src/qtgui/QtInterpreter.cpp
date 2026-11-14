@@ -1,4 +1,5 @@
 #include "QtInterpreter.hpp"
+#include "QtMatlabCallbackServer.hpp"
 #include "Moderator.hpp"
 #include <QCoreApplication>
 #include <QEventLoop>
@@ -8,6 +9,14 @@ QtInterpreter::QtInterpreter()
 {
    Initialize();
    eventClock.start();
+}
+
+QtInterpreter::~QtInterpreter() = default;
+
+void QtInterpreter::StartMatlabServer()
+{
+   if (!matlabCallbacks) matlabCallbacks=std::make_unique<QtMatlabCallbackServer>();
+   matlabCallbacks->start();
 }
 
 void QtInterpreter::SetInputFocus()

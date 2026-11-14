@@ -44,6 +44,8 @@ public:
    virtual ~NotAKnotInterpolator();
    NotAKnotInterpolator(const NotAKnotInterpolator &csi);
    NotAKnotInterpolator&      operator=(const NotAKnotInterpolator &csi);
+   void ValidateRestorationLayout(const NotAKnotInterpolator &source) const;
+   void RestoreValues(const NotAKnotInterpolator &source);
 
    virtual bool               Interpolate(const Real ind, Real *results);
 

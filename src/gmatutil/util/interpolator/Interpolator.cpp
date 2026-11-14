@@ -32,6 +32,10 @@
 
 #include "Interpolator.hpp"
 #include "MessageInterface.hpp"
+#include <algorithm>
+#include <memory>
+#include <typeinfo>
+#include <vector>
 
 
 //------------------------------------------------------------------------------
@@ -59,6 +63,7 @@ Interpolator::Interpolator(const std::string &name, const std::string &typestr,
    latestPoint        (-1),
    rangeCalculated    (false),
    dataIncreases      (true),
+   inputDirection     (0),
    forceInterpolation (true),
    allowExtrapolation (false),
    resetToBaseOrder   (true),
@@ -92,6 +97,8 @@ Interpolator::~Interpolator()
 //------------------------------------------------------------------------------
 Interpolator::Interpolator(const Interpolator &i) :
 //   GmatBase           (i),
+   independent        (NULL),
+   dependent          (NULL),
    previousX          (i.previousX),
    dimension          (i.dimension),
    requiredPoints     (i.requiredPoints),
@@ -100,6 +107,7 @@ Interpolator::Interpolator(const Interpolator &i) :
    latestPoint        (i.latestPoint),
    rangeCalculated    (i.rangeCalculated),
    dataIncreases      (i.dataIncreases),
+   inputDirection     (i.inputDirection),
    forceInterpolation (i.forceInterpolation),
    allowExtrapolation (i.allowExtrapolation),
    resetToBaseOrder   (i.resetToBaseOrder),
@@ -113,11 +121,8 @@ Interpolator::Interpolator(const Interpolator &i) :
       dependent = NULL;
    }
 
-   if (rangeCalculated)
-   {
-      range[0] = i.range[0];
-      range[1] = i.range[1];
-   }
+   range[0] = i.range[0];
+   range[1] = i.range[1];
 }
 
 
@@ -149,25 +154,66 @@ Interpolator& Interpolator::operator=(const Interpolator &i)
    bufferSize     = i.bufferSize;
    pointCount     = i.pointCount;
    latestPoint    = i.latestPoint;
+   previousX      = i.previousX;
    
    // Copy over the memory from i
    if (i.independent)
       CopyArrays(i);
    
    rangeCalculated = i.rangeCalculated;
-   if (rangeCalculated)
-   {
-      range[0] = i.range[0];
-      range[1] = i.range[1];
-   }
+   range[0] = i.range[0];
+   range[1] = i.range[1];
    
    dataIncreases      = i.dataIncreases;
+   inputDirection     = i.inputDirection;
    forceInterpolation = i.forceInterpolation;
    allowExtrapolation = i.allowExtrapolation;
    resetToBaseOrder   = i.resetToBaseOrder;
    instanceName       = i.instanceName;
    
    return *this;
+}
+
+void Interpolator::ValidateTableRestoration(const Interpolator &source) const
+{
+   if (typeid(*this) != typeid(source) || dimension != source.dimension ||
+       bufferSize != source.bufferSize || dimension < 0 || bufferSize < 1)
+      throw InterpolatorException("Prepare interpolation dimensions before restoring a changed table.");
+   const auto check = [](const Interpolator &value)
+   {
+      if ((value.independent == nullptr) != (value.dependent == nullptr) ||
+          value.pointCount < 0 || value.latestPoint < -1 || value.latestPoint >= value.bufferSize ||
+          (value.pointCount > 0 && (!value.independent || value.latestPoint < 0)))
+         throw InterpolatorException("Inconsistent captured interpolation table storage.");
+      if (value.dependent)
+         for (Integer row = 0; row < value.bufferSize; ++row)
+            if (!value.dependent[row])
+               throw InterpolatorException("Incomplete interpolation table row storage.");
+   };
+   check(*this); check(source);
+   if (source.independent && !independent)
+      throw InterpolatorException("Prepare interpolation table storage before restoration.");
+}
+
+void Interpolator::RestoreTableValues(const Interpolator &source)
+{
+   ValidateTableRestoration(source);
+   if (independent)
+      for (Integer row = 0; row < bufferSize; ++row)
+      {
+         independent[row] = source.independent ? source.independent[row] : 0.0;
+         if (source.dependent) std::copy_n(source.dependent[row], dimension, dependent[row]);
+         else std::fill_n(dependent[row], dimension, 0.0);
+      }
+   requiredPoints = source.requiredPoints;
+   pointCount = source.pointCount; latestPoint = source.latestPoint;
+   previousX = source.previousX;
+   range[0] = source.range[0]; range[1] = source.range[1];
+   rangeCalculated = source.rangeCalculated;
+   dataIncreases = source.dataIncreases; inputDirection = source.inputDirection;
+   forceInterpolation = source.forceInterpolation;
+   allowExtrapolation = source.allowExtrapolation;
+   resetToBaseOrder = source.resetToBaseOrder;
 }
 
 
@@ -197,7 +243,24 @@ Interpolator& Interpolator::operator=(const Interpolator &i)
 bool Interpolator::AddPoint(const Real ind, const Real *data)
 {
    Integer i;
-   
+
+   // Accept either time direction, but keep it until Clear. Reject before
+   // changing the buffer so an invalid point cannot contaminate interpolation.
+   Integer direction = 0;
+   if (pointCount > 0)
+   {
+      const Real last = independent[latestPoint];
+      direction = (ind > last ? 1 : (ind < last ? -1 : 0));
+      if (direction != 0 && inputDirection != 0 && direction != inputDirection)
+      {
+         InterpolatorException error;
+         error.SetDetails("The independent data provided to interpolator '%s' "
+            "is not monotonic: current data is %.16g, previous data is %.16g",
+            instanceName.c_str(), ind, last);
+         throw error;
+      }
+   }
+
    if (!independent)
       AllocateArrays();
    
@@ -205,6 +268,8 @@ bool Interpolator::AddPoint(const Real ind, const Real *data)
    if (latestPoint == bufferSize-1)
       latestPoint = -1;
    
+   if (direction != 0)
+      inputDirection = direction;
    dataIncreases = (ind > previousX ? true : false);
    previousX = ind;
    
@@ -309,6 +374,7 @@ void Interpolator::Clear()
 {
    latestPoint = -1;
    pointCount = 0;
+   inputDirection = 0;
    previousX = -9.9999e65;
    resetToBaseOrder = true;
 }
@@ -390,14 +456,18 @@ bool Interpolator::GetRange(Real &lower, Real &upper)
 //------------------------------------------------------------------------------
 void Interpolator::AllocateArrays()
 {
-   Integer i;
-
+   auto nextIndependent = std::make_unique<Real[]>(bufferSize);
+   auto nextDependent = std::make_unique<Real*[]>(bufferSize);
+   std::vector<std::unique_ptr<Real[]>> rows;
+   rows.reserve(bufferSize);
+   for (Integer i = 0; i < bufferSize; ++i)
+   {
+      rows.push_back(std::make_unique<Real[]>(dimension));
+      nextDependent[i] = rows.back().get();
+   }
    CleanupArrays();
-    
-   independent = new Real[bufferSize];
-   dependent = new Real*[bufferSize];
-   for (i = 0; i < bufferSize; ++i)
-      dependent[i] = new Real[dimension];
+   independent = nextIndependent.release(); dependent = nextDependent.release();
+   for (auto &row : rows) row.release();
    latestPoint = -1;
 }
 
@@ -447,6 +517,9 @@ void Interpolator::CopyArrays(const Interpolator &i)
    memcpy(independent, i.independent, bufferSize*sizeof(Real));
    for (j = 0; j < bufferSize; ++j)
       memcpy(dependent[j], i.dependent[j], dimension*sizeof(Real));
+   // Allocation clears the counters; the copied buffer retains their values.
+   pointCount = i.pointCount;
+   latestPoint = i.latestPoint;
 }
 
 

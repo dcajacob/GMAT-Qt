@@ -31,6 +31,7 @@
 
 #include "gmatdefs.hpp"
 #include "Array.hpp"
+#include "ObjectMatlabExportScope.hpp"
 #include "ParameterException.hpp"
 #include "StringUtil.hpp"          // for SeparateBy(), GetArrayIndexVar()
 #include "GmatGlobal.hpp"          // for IsWritingGmatKeyword()
@@ -283,16 +284,16 @@ const std::string* Array::GetParameterList() const
 //------------------------------------------------------------------------------
 GmatBase* Array::Clone() const
 {
-   return new Array(*this);
+   return CompleteParameterClone(new Array(*this));
 }
 
 
 //------------------------------------------------------------------------------
 // void Copy(const GmatBase* orig)
 //------------------------------------------------------------------------------
-void Array::Copy(const GmatBase* orig)
+void Array::Copy(const GmatBase *source)
 {
-   operator=(*((Array *)(orig)));
+   CopyParameterValue<Array>(source);
 }
 
 
@@ -338,7 +339,7 @@ Gmat::ParameterType Array::GetParameterType(const Integer id) const
 std::string Array::GetParameterTypeString(const Integer id) const
 {
    if (id >= ParameterParamCount && id < ArrayParamCount)
-      return PARAM_TYPE_STRING[GetParameterType(id - ParameterParamCount)];
+      return PARAM_TYPE_STRING[GetParameterType(id)];
    else
       return Parameter::GetParameterTypeString(id);
 }
@@ -955,6 +956,7 @@ const std::string& Array::GetGeneratingString(Gmat::WriteMode mode,
                                               const std::string &prefix,
                                               const std::string &useName)
 {
+   ObjectMatlabModeScope matlabMode(inMatlabMode, mode);
    #ifdef DEBUG_GEN_STRING
    MessageInterface::ShowMessage("Array::GetGeneratingString() entered\n");
    #endif
@@ -972,6 +974,9 @@ const std::string& Array::GetGeneratingString(Gmat::WriteMode mode,
    if (mode == Gmat::MATLAB_STRUCT)
       inMatlabMode = true;
    
+   matlabMode.Apply();
+   ObjectMatlabExportScope::Prepare(data);
+
    if (useName != "")
       nomme = useName;
    else
@@ -1051,6 +1056,7 @@ std::string Array::GetInitialValueString(const std::string &prefix)
    #endif
    
    std::stringstream data;
+   ObjectScriptExportScope::Prepare(data);
    bool writeGmatKeyword = GmatGlobal::Instance()->IsWritingGmatKeyword();
    
    Integer row = GetIntegerParameter("NumRows");
@@ -1068,6 +1074,14 @@ std::string Array::GetInitialValueString(const std::string &prefix)
          
          if (realVal != 0.0)
          {
+            if (ObjectScriptExportScope::IsActive())
+            {
+               if (writeGmatKeyword) data << "GMAT ";
+               data << instanceName << "(" << i + 1 << ", " << j + 1 << ") = "
+                    << ObjectScriptExportScope::RealLiteral(realVal) << ";"
+                    << GetInlineComment() << "\n";
+               continue;
+            }
             //========================================================
             #ifndef __WRITE_INITIAL_VALUE_STRING__
             //========================================================

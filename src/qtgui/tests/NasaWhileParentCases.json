@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "ForWhileParent",
+      "family": "For",
+      "group": "WhileParent",
+      "parent": "Inner",
+      "parent_type": "While",
+      "legacy_object": "For",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1435",
+          "fingerprint": "af5dc1870bc47017490e1fdf4b535619df2eb83ca6c3abac1a04c5dd76f3d46a",
+          "operation": "While Structure Append",
+          "test_case": "TreeControls_Structure_AppendWHILE"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1443",
+          "fingerprint": "cd1e5b854e40cd47b357ce048cb8a6170c7f9cd47a61a42655e6fedd337a219b",
+          "operation": "Insert Before EndWhile",
+          "test_case": "TreeControls_Structure_InsertBeforeEndWHILE"
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "For"
+    },
+    {
+      "key": "IfWhileParent",
+      "family": "If",
+      "group": "WhileParent",
+      "parent": "Inner",
+      "parent_type": "While",
+      "legacy_object": "If",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1501",
+          "fingerprint": "d830f6d1f5d3e32c66d859a930d749dbe61e03be48efe669873144fff31f8bd6",
+          "operation": "While Structure Append",
+          "test_case": "TreeControls_Structure_AppendWHILE"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1509",
+          "fingerprint": "8a88619bccf35c2fb1177ee7f4fecf655eba96247ae720e0f2f4342f37a43cea",
+          "operation": "Insert Before EndWhile",
+          "test_case": "TreeControls_Structure_InsertBeforeEndWHILE"
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "IfNoElse"
+    },
+    {
+      "key": "IfElseWhileParent",
+      "family": "IfElse",
+      "group": "WhileParent",
+      "parent": "Inner",
+      "parent_type": "While",
+      "legacy_object": "If-Else",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1570",
+          "fingerprint": "b1efe74521ad188a7abdaa2dfc54f9c75bc5be820d03351d0f74089c678a5e7c",
+          "operation": "While Structure Append",
+          "test_case": "TreeControls_Structure_AppendWHILE"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1578",
+          "fingerprint": "b4594f5cb54579a274f8cdbaffe90085ee8437afcc2a198dc68f7fbeb4d58740",
+          "operation": "Insert Before EndWhile",
+          "test_case": "TreeControls_Structure_InsertBeforeEndWHILE"
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "If"
+    },
+    {
+      "key": "WhileWhileParent",
+      "family": "While",
+      "group": "WhileParent",
+      "parent": "Inner",
+      "parent_type": "While",
+      "legacy_object": "While",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1641",
+          "fingerprint": "fd96fc4fe7356eed0e8bdd19947022bb84333adff25c4f69fe3b446f2b68a5e4",
+          "operation": "While Structure Append",
+          "test_case": "TreeControls_Structure_AppendWHILE"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1649",
+          "fingerprint": "13b4c8266a62ea4d3c15432c2ef3a80857d6ef7934b1b1a865b7395be3617df2",
+          "operation": "Insert Before EndWhile",
+          "test_case": "TreeControls_Structure_InsertBeforeEndWHILE"
+        }
+      ],
+      "kind": "control",
+      "recipe_key": "While"
+    },
+    {
+      "key": "TargetWhileParent",
+      "family": "Target",
+      "group": "WhileParent",
+      "parent": "Inner",
+      "parent_type": "While",
+      "legacy_object": "Target",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1376",
+          "fingerprint": "48f3f3aa0e26b50d5dd4329c85b2ca27b04a99b817135a35fbe964e9885035be",
+          "operation": "While Structure Append",
+          "test_case": "TreeControls_Structure_AppendWHILE"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1384",
+          "fingerprint": "5300a663e9b1168ec7fbf4678efeb75048a11367411173db4ba96b92ff548348",
+          "operation": "Insert Before EndWhile",
+          "test_case": "TreeControls_Structure_InsertBeforeEndWHILE"
+        }
+      ],
+      "kind": "solver",
+      "reused_reference_case": "Target"
+    },
+    {
+      "key": "OptimizeWhileParent",
+      "family": "Optimize",
+      "group": "WhileParent",
+      "parent": "Inner",
+      "parent_type": "While",
+      "legacy_object": "Optimize",
+      "positions": [
+        {
+          "position": "BranchAppend",
+          "historical_key": "H2012:R1244",
+          "fingerprint": "abe101f08c6224fcf239507d53768fb72e609ebc183360760cf6ad6535790651",
+          "operation": "While Structure Append",
+          "test_case": "TreeControls_Structure_AppendWHILE"
+        },
+        {
+          "position": "EndBefore",
+          "historical_key": "H2012:R1252",
+          "fingerprint": "3eeb6b39f43fef8de09bfb7c76b17fbc82885480beef23fcac87f16f1b9430f7",
+          "operation": "Insert Before EndWhile",
+          "test_case": "TreeControls_Structure_InsertBeforeEndWHILE"
+        }
+      ],
+      "kind": "solver",
+      "reused_reference_case": "Optimize"
+    }
+  ],
+  "scope": "Six complete child families appended or inserted before EndWhile in explicit one-pass inner While repeated by two outer For iterations;separate actual native parent-loop counter receipts. Existing If/Outer cases unchanged;not arbitrary loop domains or latest full-suite qualification."
+}

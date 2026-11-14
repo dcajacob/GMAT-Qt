@@ -51,6 +51,11 @@ function [F,GradF] = CallGMATfminconSolver(X)
 % --- Declare global variables
 global NonLinearEqCon JacNonLinearEqCon NonLinearIneqCon JacNonLinearIneqCon
 global callbackResults
+global GMAT_QT_CALLBACK
+if isstruct(GMAT_QT_CALLBACK) && isfield(GMAT_QT_CALLBACK,'port')
+    [F, GradF] = GmatQtFminconCall(X);
+    return;
+end
 
 xString = sprintf('%.16f ', X)
 CallGMAT('CallbackData',xString) % does there need to be waiting here?

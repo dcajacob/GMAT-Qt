@@ -29,6 +29,7 @@
  */
 //------------------------------------------------------------------------------
 #include "CallGmatFunction.hpp"
+#include "CommandException.hpp"
 #include "BeginFunction.hpp"
 #include "StringTokenizer.hpp"
 #include "StringUtil.hpp"          // for Replace()
@@ -138,12 +139,21 @@ bool CallGmatFunction::Initialize()
    MessageInterface::ShowMessage
       ("CallGmatFunction::Initialize() this=<%p> entered, command = '%s'\n   "
        "function type is '%s', callingFunction is '%s'\n", this,
-       GetGeneratingString(Gmat::NO_COMMENTS).c_str(), mFunction->GetTypeName().c_str(),
+       GetGeneratingString(Gmat::NO_COMMENTS).c_str(),
+       mFunction ? mFunction->GetTypeName().c_str() : "NULL",
        callingFunction? (callingFunction->GetFunctionName()).c_str() : "NULL");
    MessageInterface::ShowMessage("   isGmatFunction = %d\n", isGmatFunction);
    #endif
    
    bool rv = CallFunction::Initialize();
+
+   // Canonical serialization adds brackets even for a one-output call. Check
+   // the original parsed syntax, not the regenerated command text, including
+   // when a caller command sequence was cached before the policy changed.
+   if (rv && mFunction && isGmatFunction && mNumOutputParams > 0 &&
+       !mOutputBracketSyntax && mFunction->GetBooleanParameter("RequireOutputBrackets"))
+      throw CommandException("GmatFunction '" + mFunctionName +
+         "' requires square brackets around call outputs, including a single output.");
    
    // Handle additional initialization for GmatFunctions
    if (isGmatFunction)

@@ -10,7 +10,7 @@ class CommandEditor final : public EditablePanel
 public:
    using Apply=std::function<QString(const QString &)>;
    CommandEditor(const QString &statement, bool inserting, const QMap<QString,QString> &templates,
-                 Apply apply, const QStringList &propagators={}, const QStringList &spacecraft={}, QWidget *parent=nullptr, const QStringList &formations={}, std::function<void()> summary={}, std::function<QString()> corrections={});
+                 Apply apply, const QStringList &propagators={}, const QStringList &spacecraft={}, QWidget *parent=nullptr, const QStringList &formations={}, std::function<void()> summary={}, std::function<QString()> corrections={}, std::function<QString(const QString &)> commandValidation={}, const QMap<QString,QString> &pendingFiniteResources={});
    bool hasChanges() const override;
    void discardChanges() override { applied=true; }
 private:
@@ -18,6 +18,7 @@ private:
    QLineEdit *name;
    QString nameError;
    bool synchronizingName=false;
+   bool rawSourceEdited=false;
    QString original;
    bool inserting=false, applied=false;
 };

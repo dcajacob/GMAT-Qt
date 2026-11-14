@@ -36,6 +36,10 @@
 #include "RealUtilities.hpp"
 
 #include <sstream>
+#include <algorithm>
+#include <cstring>
+#include <memory>
+#include <utility>
 #include "MessageInterface.hpp"
 
 //#define DEBUG_STATE_LOADING
@@ -59,25 +63,14 @@ GmatState::GmatState(Integer size) :
    theEpoch          (GmatTimeConstants::MJD_OF_J2000),
    theEpochGT        (GmatTimeConstants::MJD_OF_J2000),
    hasPrecisionTime  (false),
-   stateSize         (size)   
+   theData           (nullptr),
+   dataIDs           (nullptr),
+   associatedElements(nullptr),
+   stateSize         (0),
+   layoutIdentity    (std::make_shared<const int>(0))
 {
-   if (stateSize == 0)
-   {
-      theData = NULL;
-
-      dataIDs = NULL;
-      associatedElements = NULL;
-
-   }
-   else
-   {
-      theData = new Real[stateSize];
-
-      Zero();
-      dataIDs = new Integer[stateSize];
-      associatedElements = new Integer[stateSize];
-      dataTypes.assign(stateSize, "");
-   }
+   if (size < 0) throw GmatBaseException("GmatState requested a negative size.");
+   if (size > 0) Resize(size, false);
 }
 
 //------------------------------------------------------------------------------
@@ -107,34 +100,18 @@ GmatState::~GmatState()
  * @param gs The state that is copied here
  */
 //------------------------------------------------------------------------------
-GmatState::GmatState(const GmatState& gs) :
-   theEpoch          (gs.theEpoch),
-   theEpochGT        (gs.theEpochGT),
-   hasPrecisionTime  (gs.hasPrecisionTime),
-   stateSize         (gs.stateSize)
+GmatState::GmatState(const GmatState& gs) : GmatState(gs.stateSize)
 {
+   theEpoch = gs.theEpoch;
+   theEpochGT = gs.theEpochGT;
+   hasPrecisionTime = gs.hasPrecisionTime;
+   if (stateSize)
+   {
+      std::memcpy(theData, gs.theData, stateSize * sizeof(Real));
+      std::memcpy(dataIDs, gs.dataIDs, stateSize * sizeof(Integer));
+      std::memcpy(associatedElements, gs.associatedElements, stateSize * sizeof(Integer));
+   }
    dataTypes = gs.dataTypes;
-
-   if (stateSize == 0)
-   {
-      theData = NULL;
-      dataIDs = NULL;
-      associatedElements = NULL;
-   }
-   else
-   {
-      theData = new Real[stateSize];
-      dataIDs = new Integer[stateSize];
-      associatedElements = new Integer[stateSize];
-      
-      memcpy(theData, gs.theData, stateSize * sizeof(Real));
-      memcpy(dataIDs, gs.dataIDs, stateSize * sizeof(Integer));
-      memcpy(associatedElements, gs.associatedElements, stateSize * sizeof(Integer));
-      
-      dataTypes.assign(stateSize, "");
-      for (Integer i = 0; i < stateSize; ++i)
-         dataTypes[i] = gs.dataTypes[i];
-   }
 }
 
 //------------------------------------------------------------------------------
@@ -150,42 +127,31 @@ GmatState& GmatState::operator=(const GmatState& gs)
 {
    if (this != &gs)
    {
-      theEpoch         = gs.theEpoch;
-      theEpochGT       = gs.theEpochGT;
-      hasPrecisionTime = gs.hasPrecisionTime;
-      stateSize        = gs.stateSize;
-      
-      if (theData != NULL)
-         delete [] theData;
-      if (dataIDs != NULL)
-         delete [] dataIDs;
-      if (associatedElements != NULL)
-         delete [] associatedElements;
-      
-      dataTypes.clear();
-
-      if (stateSize == 0)
-      {
-         theData = NULL;
-         dataIDs = NULL;
-         associatedElements = NULL;
-      }
-      else
-      {
-         theData = new Real[stateSize];
-         dataIDs = new Integer[stateSize];
-         associatedElements = new Integer[stateSize];
-         memcpy(theData, gs.theData, stateSize * sizeof(Real));
-         memcpy(dataIDs, gs.dataIDs, stateSize * sizeof(Integer));
-         memcpy(associatedElements, gs.associatedElements, stateSize * sizeof(Integer));
-         
-         dataTypes.assign(stateSize, "");
-         for (Integer i = 0; i < stateSize; ++i)
-            dataTypes[i] = gs.dataTypes[i];
-      }
+      // All allocation/copy work completes before the old storage is retired.
+      GmatState next(gs);
+      Swap(next);
    }
-
    return *this;
+}
+
+std::shared_ptr<const void> GmatState::GetLayoutIdentity() const
+{
+   return layoutIdentity;
+}
+
+void GmatState::Swap(GmatState &other) noexcept
+{
+   if (&other == this) return;
+   using std::swap;
+   swap(theEpoch, other.theEpoch);
+   swap(theEpochGT, other.theEpochGT);
+   swap(hasPrecisionTime, other.hasPrecisionTime);
+   swap(theData, other.theData);
+   swap(dataIDs, other.dataIDs);
+   swap(associatedElements, other.associatedElements);
+   dataTypes.swap(other.dataTypes);
+   swap(stateSize, other.stateSize);
+   layoutIdentity.swap(other.layoutIdentity);
 }
 
 
@@ -338,11 +304,15 @@ GmatTime GmatState::SetEpochGT(const GmatTime ep)
 
 bool GmatState::SetPrecisionTimeFlag(bool onOff)
 {
+   std::shared_ptr<const void> nextIdentity(layoutIdentity);
+   if (onOff != hasPrecisionTime) nextIdentity = std::make_shared<const int>(0);
+
    if ((hasPrecisionTime == false)&& (onOff == true))
       if (!GmatMathUtil::IsEqual(theEpochGT.GetMjd(), theEpoch, 1e-6))
          theEpochGT = theEpoch; // only set epoch if they differ by more than 1 us
       
    hasPrecisionTime = onOff;
+   layoutIdentity.swap(nextIdentity);
    return hasPrecisionTime;
 }
 
@@ -367,9 +337,14 @@ bool GmatState::SetElementProperties(const Integer index, const Integer id,
       throw GmatBaseException("Cannot set state element properties: "
                   "index out of range.");
    
+   if (dataIDs[index] == id && dataTypes[index] == textId &&
+         associatedElements[index] == associate) return true;
+   std::string nextText(textId);
+   std::shared_ptr<const void> nextIdentity = std::make_shared<const int>(0);
    dataIDs[index] = id;
-   dataTypes[index] = textId;
+   dataTypes[index].swap(nextText);
    associatedElements[index] = associate;
+   layoutIdentity.swap(nextIdentity);
    
    return true;
 }
@@ -387,54 +362,34 @@ const StringArray& GmatState::GetElementDescriptions()
 //------------------------------------------------------------------------------
 void GmatState::Resize(Integer newSize, bool withCopy)
 {
-   if (newSize == stateSize)
-   {
-      // If size does not change, do not zero regardless of the withCopy 
-      //setting and just return
-      return;
-   }
-   
-   if (newSize <= 0)
-      throw GmatBaseException("GmatState Resize requested an invalid size");
-   
-   Real *newData = new Real[newSize];
-   Integer *newIDs = new Integer[newSize];
-   Integer *newAssociates = new Integer[newSize];
-   StringArray newTypes;
-   newTypes.assign(newSize, "");
-
-   Integer start = 0;
-
+   if (newSize == stateSize) return;
+   if (newSize <= 0) throw GmatBaseException("GmatState Resize requested an invalid size");
+   std::unique_ptr<Real[]> nextData(new Real[newSize]());
+   std::unique_ptr<Integer[]> nextIDs(new Integer[newSize]);
+   std::unique_ptr<Integer[]> nextAssociates(new Integer[newSize]);
+   std::fill_n(nextIDs.get(), newSize, -1);
+   std::fill_n(nextAssociates.get(), newSize, -1);
+   StringArray nextTypes(newSize, "");
+   std::shared_ptr<const void> nextIdentity = std::make_shared<const int>(0);
    if (withCopy)
    {
-      // copy as much of the current state as possible into the new state 
-      Integer size = (newSize > stateSize ? stateSize : newSize);
-      memcpy(newData, theData, size*sizeof(Real));
-      memcpy(newIDs, dataIDs, size*sizeof(Integer));
-      memcpy(newAssociates, associatedElements, size*sizeof(Integer));
-  
-      for (Integer i = 0; i < size; ++i)
-         newTypes[i] = dataTypes[i];
-         
-      start = size;
+      const Integer count = std::min(newSize, stateSize);
+      if (count)
+      {
+         std::memcpy(nextData.get(), theData, count * sizeof(Real));
+         std::memcpy(nextIDs.get(), dataIDs, count * sizeof(Integer));
+         std::memcpy(nextAssociates.get(), associatedElements, count * sizeof(Integer));
+         for (Integer i = 0; i < count; ++i) nextTypes[i] = dataTypes[i];
+      }
    }
-   
+   std::unique_ptr<Real[]> oldData(theData);
+   std::unique_ptr<Integer[]> oldIDs(dataIDs), oldAssociates(associatedElements);
+   theData = nextData.release();
+   dataIDs = nextIDs.release();
+   associatedElements = nextAssociates.release();
+   dataTypes.swap(nextTypes);
    stateSize = newSize;
-   delete [] theData;
-   delete [] dataIDs;
-   delete [] associatedElements;
-   theData = newData;
-   dataIDs = newIDs;
-   associatedElements = newAssociates;
-   dataTypes.assign(newSize, "");
-   dataTypes = newTypes;
-
-   #ifdef DEBUG_STATE_LOADING
-      MessageInterface::ShowMessage("dataType size is %d\n", dataTypes.size());
-   #endif
-      
-   // Zero the unset entries in the state data
-   Zero(start, newSize - start);
+   layoutIdentity.swap(nextIdentity);
 }
 
 
@@ -483,4 +438,33 @@ void GmatState::Zero(Integer begin, UnsignedInt length)
    {
       theData[i]    = 0.0;
    }
+}
+
+void GmatState::ValidateRestorationLayout(const GmatState &source) const
+{
+   if (stateSize != source.stateSize || dataTypes != source.dataTypes ||
+       hasPrecisionTime != source.hasPrecisionTime ||
+       (stateSize && (!theData || !source.theData || !dataIDs || !source.dataIDs ||
+                     !associatedElements || !source.associatedElements)))
+   {
+      std::stringstream message;
+      message << "Restoration requires the same native state layout. Source has "
+              << source.stateSize << " elements (precision time "
+              << source.hasPrecisionTime << "); destination has " << stateSize
+              << " elements (precision time " << hasPrecisionTime << ").";
+      throw GmatBaseException(message.str());
+   }
+   for (Integer i = 0; i < stateSize; ++i)
+      if (dataIDs[i] != source.dataIDs[i] || associatedElements[i] != source.associatedElements[i])
+         throw GmatBaseException("Restoration cannot change an active state element role.");
+}
+
+void GmatState::RestoreValues(const GmatState &source)
+{
+   if (&source == this) return;
+   ValidateRestorationLayout(source);
+   for (Integer i = 0; i < stateSize; ++i) theData[i] = source.theData[i];
+   theEpoch = source.theEpoch;
+   theEpochGT = source.theEpochGT;
+   // State, ID and association buffers retain their existing storage.
 }

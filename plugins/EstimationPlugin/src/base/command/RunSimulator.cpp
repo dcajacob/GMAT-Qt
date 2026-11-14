@@ -31,6 +31,7 @@
 
 
 #include "RunSimulator.hpp"
+#include "NavigationCommandUpdates.hpp"
 
 #include "MessageInterface.hpp"
 
@@ -76,6 +77,10 @@ RunSimulator::RunSimulator() :
 //------------------------------------------------------------------------------
 RunSimulator::~RunSimulator()
 {
+   SetCloneNotificationsEnabled(false);
+   for (auto *setup : propagators) delete setup;
+   propagators.clear();
+
    if (theSimulator)
       delete theSimulator;
 
@@ -119,27 +124,32 @@ RunSimulator::RunSimulator(const RunSimulator & rs) :
  * @return A reference to this instance
  */
 //------------------------------------------------------------------------------
-RunSimulator & RunSimulator::operator=(const RunSimulator & rs)
+RunSimulator& RunSimulator::operator=(const RunSimulator &rs)
 {
    if (&rs != this)
    {
-      theSimulator    = NULL;
-      commandRunning  = false;
+      ClearNavigationReferences(true);
+      SetCloneNotificationsEnabled(false);
+      pendingDefinition.reset();
+      for (auto *setup : propagators) delete setup;
+      propagators.clear();
+      p.clear(); fm.clear(); psm.clear();
+      delete theSimulator;
+      theSimulator = nullptr;
+      RunSolver::operator=(rs);
+      commandRunning = false;
       commandComplete = false;
-      
-      needToResetSTM  = rs.needToResetSTM;
-
-      currentEvent    = NULL;
-      eventProcessComplete = false;
-      eventMan        = NULL;
-      bufferFilled    = false;
       overridePropInit = true;
+      bufferFilled = false;
+      currentEvent = nullptr;
+      eventMan = nullptr;
+      eventProcessComplete = false;
+      needToResetSTM = rs.needToResetSTM;
       includeSTMPropagation = rs.includeSTMPropagation;
-
    }
-
    return *this;
 }
+
 
 //------------------------------------------------------------------------------
 // GmatBase* Clone() const
@@ -295,6 +305,19 @@ const std::string& RunSimulator::GetGeneratingString(Gmat::WriteMode mode,
 //------------------------------------------------------------------------------
 bool RunSimulator::Initialize()
 {
+   bool preparedSuccessfully = false;
+   const auto onFailure = [&](void*)
+   {
+      if (!preparedSuccessfully)
+      {
+         isInitialized = false;
+         SetCloneNotificationsEnabled(theSimulator || pendingDefinition);
+      }
+   };
+   std::unique_ptr<void, decltype(onFailure)> preparationGuard(this, onFailure);
+
+   SetCloneNotificationsEnabled(false);
+   isInitialized = false;
 #ifdef DEBUG_INITIALIZATION
    MessageInterface::ShowMessage("Start RunSimulator::Initialize()\n");
 #endif
@@ -305,24 +328,21 @@ bool RunSimulator::Initialize()
       throw CommandException("Cannot initialize RunSimulator command -- the "
             "simulator name is not specified.");
 
-   // Clear the old clone if it was set
-   if (theSimulator != NULL)
-   {
-      delete theSimulator;
-      theSimulator = NULL;
-   }
+   auto *simObj = pendingDefinition ? pendingDefinition.get() :
+      dynamic_cast<Simulator*>(FindObject(solverName));
+   if (!simObj)
+      throw CommandException("Cannot resolve the selected Simulator definition for " + solverName + ".\n");
+   const GmatBase *source = pendingDefinition ? pendingDefinition->GetCloneSource() : simObj;
+   auto prepared = NavigationCommandUpdates::Clone(*simObj, *this, source, GetCommandOwnedObjects());
+   ClearNavigationReferences(true);
+   commandRunning = false;
+   delete theSimulator;
+   theSimulator = prepared.release();
 
-   GmatBase *simObj = FindObject(solverName);
-   if (simObj == NULL)
-      throw CommandException("Cannot initialize RunSimulator command -- the "
-            "simulator named " + solverName + " cannot be found.");
+   if (!theSimulator->Initialize())
+      throw CommandException("Cannot initialize the command-owned Simulator.\n");
 
-   if (!simObj->IsOfType("Simulator"))
-      throw CommandException("Cannot initialize RunSimulator command -- the "
-            "object named " + solverName + " is not a simulator.");
-
-   theSimulator = (Simulator*)(simObj->Clone());
-   theSimulator->Initialize();
+   theSimulator->TakeAction("Reset");
 
    // Set the observation data streams for the measurement manager
    MeasurementManager *measman = theSimulator->GetMeasurementManager();
@@ -335,7 +355,7 @@ bool RunSimulator::Initialize()
          if (obj->IsOfType(Gmat::DATASTREAM))
          {
             DataFile *df = (DataFile*)obj;
-            measman->SetStreamObject(df);
+            NavigationCommandUpdates::AttachStream(*measman, *theSimulator, *df, false);
          }
       }
       else
@@ -354,7 +374,7 @@ bool RunSimulator::Initialize()
          if (obj->IsOfType(Gmat::DATASTREAM))
          {
             DataFile *df = (DataFile*)obj;
-            measman->SetRampTableDataStreamObject(df);
+            NavigationCommandUpdates::AttachStream(*measman, *theSimulator, *df, true);
          }
          else
             MessageInterface::ShowMessage(" Object '%s' is not Gmat::DATASTREAM\n", obj->GetName().c_str());
@@ -404,11 +424,12 @@ bool RunSimulator::Initialize()
       propagators.clear();
       p.clear();
       fm.clear();
+      psm.clear();
    }
 
    propObjectNames.clear();
    std::map<PropSetup*, StringArray> satList;
-   std::map<std::string,PropSetup*> knownProps;
+   std::map<PropSetup*, PropSetup*> knownProps;
 
    // Setup new ones
    StringArray scraft = measman->GetParticipantList();
@@ -431,16 +452,20 @@ bool RunSimulator::Initialize()
          std::string propName = prop->GetName();
          PropSetup *ps = nullptr;
 
-         if (knownProps.find(propName) == knownProps.end())
+         if (knownProps.find(prop) == knownProps.end())
          {
-            ps = (PropSetup*)prop->Clone();
+            std::set<GmatBase*> forbidden{this, theSimulator};
+            for (auto *existing : propagators) forbidden.insert(existing);
+            auto preparedGroup = NavigationPropagationCopies::Clone(*prop, *this, true, forbidden);
+            ps = preparedGroup.get();
             ps->SetPrecisionTimeFlag(true);
             propagators.push_back(ps);
+            preparedGroup.release();
 
             StringArray satNames;
             satNames.push_back(scraft[i]);
             satList[ps] = satNames;
-            knownProps[propName] = ps;
+            knownProps[prop] = ps;
 
             p.push_back(ps->GetPropagator());
             fm.push_back(ps->GetODEModel());
@@ -453,14 +478,18 @@ bool RunSimulator::Initialize()
             // One Ephem Prop per spacecraft
             if (prop->GetPropagator()->IsOfType("EphemerisPropagator"))
             {
-               ps = (PropSetup*)prop->Clone();
+               std::set<GmatBase*> forbidden{this, theSimulator};
+               for (auto *existing : propagators) forbidden.insert(existing);
+               auto preparedGroup = NavigationPropagationCopies::Clone(*prop, *this, true, forbidden);
+               ps = preparedGroup.get();
                ps->SetPrecisionTimeFlag(true);
                propagators.push_back(ps);
+               preparedGroup.release();
 
                StringArray satNames;
                satNames.push_back(scraft[i]);
                satList[ps] = satNames;
-               knownProps[propName] = ps;
+               knownProps[prop] = ps;
 
                Propagator *prop = ps->GetPropagator();
                p.push_back(prop);
@@ -472,7 +501,7 @@ bool RunSimulator::Initialize()
             }
             else
             {
-               ps = knownProps[propName];
+               ps = knownProps[prop];
                StringArray satNames = satList[ps];
                if (find(satNames.begin(), satNames.end(), scraft[i]) == satNames.end())
                   (satList[ps]).push_back(scraft[i]);
@@ -505,6 +534,15 @@ bool RunSimulator::Initialize()
       MessageInterface::ShowMessage("Exit RunSimulator::Initialize()\n");
    #endif
 
+   isInitialized = retval;
+   if (retval)
+   {
+      pendingDefinition.reset();
+      commandRunning = false;
+      commandComplete = false;
+      SetCloneNotificationsEnabled(true);
+   }
+   preparedSuccessfully = retval && isInitialized;
    return retval;
 }
 
@@ -560,10 +598,15 @@ bool RunSimulator::Execute()
             GetTypeName().c_str());
    #endif
 
-   // Reset the command if called after it has completed execution
-   // todo: Debug this piece; reentrance in a For loop doesn't work yet
-//   if (commandComplete)
-//      TakeAction("Reset");
+   // A containing loop can invoke this command again after FINISHED. Rebuild
+   // the command-local simulator and propagators before resetting its state;
+   // resetting only the state machine retains stale measurement adapters.
+   if (pendingDefinition || commandComplete || !isInitialized || !theSimulator)
+   {
+      if (!Initialize())
+         throw CommandException("Cannot reinitialize RunSimulator on reentry.");
+      TakeAction("Reset");
+   }
 
 
    // Here we should check to see if the command is currently propagating and
@@ -667,6 +710,9 @@ bool RunSimulator::Execute()
 //------------------------------------------------------------------------------
 void RunSimulator::RunComplete()
 {
+   ClearNavigationReferences(true);
+   SetCloneNotificationsEnabled(false);
+   pendingDefinition.reset();
    #ifdef DEBUG_SIMULATOR_EXECUTION
       MessageInterface::ShowMessage("Entered RunSimulator::RunComplete()\n");
    #endif
@@ -676,7 +722,7 @@ void RunSimulator::RunComplete()
 
    if (eventMan)
    {
-      eventMan->CleanUp();
+      // This command's event registrations were detached above.
       eventMan = NULL;
    }
 
@@ -768,15 +814,67 @@ bool RunSimulator::HasLocalClones()
 //------------------------------------------------------------------------------
 void RunSimulator::UpdateClonedObject(GmatBase *obj)
 {
-   if (obj->IsOfType("Spacecraft"))
-      return;
-   if (obj->IsOfType("Parameter"))
-      return;
-   throw CommandException("To do: implement RunSimulator::UpdateClonedObject "
-         "for " + obj->GetTypeName() + " objects");
+   UpdateClonedObjectParameter(obj, -1);
 }
 
+void RunSimulator::UpdateClonedObjectParameter(GmatBase *obj, Integer parameterId)
+{
+   auto *selected = dynamic_cast<Simulator*>(FindObject(solverName));
+   auto prepared = NavigationCommandUpdates::Prepare(theSimulator, pendingDefinition.get(), selected,
+      propagators, *this, obj, parameterId, GetCommandOwnedObjects());
+   if (!prepared) return;
+   pendingDefinition = std::move(prepared);
+   // Keep the current engine ready until Execute reaches its restart boundary.
+   // Its active subscription also receives later edits to this pending value.
+   SetCloneNotificationsEnabled(true);
+}
 
+ObjectArray RunSimulator::GetCommandOwnedObjects() const
+{
+   ObjectArray result = RunSolver::GetCommandOwnedObjects();
+   if (theSimulator) result.push_back(theSimulator);
+   if (pendingDefinition) result.push_back(pendingDefinition.get());
+   for (auto *setup : propagators) if (setup) result.push_back(setup);
+   return result;
+}
+
+void RunSimulator::ClearNavigationReferences(bool closeStreams)
+{
+   const bool closeFailed = closeStreams && commandRunning && theSimulator &&
+      !theSimulator->GetMeasurementManager()->ProcessingComplete();
+   if (eventMan)
+   {
+      for (auto *event : eventList) if (event) eventMan->ClearObject(event);
+      for (auto *setup : propagators) if (setup) eventMan->ClearObject(setup);
+   }
+   eventList.clear();
+   currentEvent = nullptr;
+   eventIndex = 0;
+   eventProcessComplete = false;
+   bufferFilled = false;
+   if (closeFailed)
+   {
+      isInitialized = false;
+      throw CommandException("Cannot close measurement streams before navigation restart.\n");
+   }
+}
+
+void RunSimulator::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   ClearNavigationReferences(true);
+   SetCloneNotificationsEnabled(false);
+   pendingDefinition.reset();
+   for (auto *setup : propagators) delete setup;
+   propagators.clear();
+   p.clear(); fm.clear(); psm.clear();
+   delete theSimulator;
+   theSimulator = nullptr;
+   eventMan = nullptr;
+   commandRunning = false;
+   commandComplete = true;
+   RunSolver::RetireFunctionBindings(store);
+}
 
 //------------------------------------------------------------------------------
 // Methods triggered by the finite state machine

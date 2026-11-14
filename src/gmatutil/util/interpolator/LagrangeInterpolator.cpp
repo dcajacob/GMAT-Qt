@@ -30,6 +30,11 @@
 //------------------------------------------------------------------------------
 
 #include "LagrangeInterpolator.hpp"
+#include <algorithm>
+#include <array>
+#include <memory>
+#include <typeinfo>
+#include <vector>
 #include "InterpolatorException.hpp"
 #include "RealUtilities.hpp"         // for GmatMathUtil::Abs()
 #include "MessageInterface.hpp"
@@ -123,7 +128,8 @@ LagrangeInterpolator::LagrangeInterpolator(const LagrangeInterpolator &li) :
    y              (NULL)
 {
    bufferSize = li.bufferSize;
-   AllocateArrays();
+   if (li.independent)
+      CopyArrays(li);
 }
 
 
@@ -144,8 +150,9 @@ LagrangeInterpolator::operator=(const LagrangeInterpolator &li)
    if (&li == this)
       return *this;
    
-   CleanupArrays();
-   CopyArrays(li);
+   Interpolator::operator=(li);
+   if (li.independent)
+      CopyArrays(li);
    
    order      = li.order;
    baseOrder  = li.baseOrder;
@@ -315,6 +322,10 @@ bool LagrangeInterpolator::AdjustOrderToNumPoints()
 void LagrangeInterpolator::Clear()
 {
    Interpolator::Clear();
+   // A temporary short-segment reduction belongs to the discarded data.
+   order = baseOrder;
+   requiredPoints = order + 1;
+   resetToBaseOrder = true;
    previousX = -9.9999e75;
    actualSize = 0;
    beginIndex = 0;
@@ -336,6 +347,15 @@ void LagrangeInterpolator::Clear()
 //------------------------------------------------------------------------------
 bool LagrangeInterpolator::AddPoint(const Real ind, const Real *data)
 {
+   // Repeated publications at one epoch update that sample, rather than
+   // supply an additional independent constraint (and a zero denominator).
+   // Preserve the established time direction when replacing the last value.
+   if (pointCount > 0 && independent[latestPoint] == ind)
+   {
+      for (Integer i = 0; i < dimension; ++i)
+         dependent[latestPoint][i] = data[i];
+      return true;
+   }
    #ifdef DEBUG_LAGRANGE_ADD
    MessageInterface::ShowMessage
       ("Lagrange::AddPoint() entered, ind=%f, previousX=%g, data[0]=%f, "
@@ -626,17 +646,19 @@ Interpolator* LagrangeInterpolator::Clone() const
 //------------------------------------------------------------------------------
 void LagrangeInterpolator::AllocateArrays()
 {
-   Interpolator::AllocateArrays();
-   
-   x = new Real[bufferSize+1];
-   y = new Real*[bufferSize+1];
-
+   auto nextX = std::make_unique<Real[]>(bufferSize+1);
+   auto nextY = std::make_unique<Real*[]>(bufferSize+1);
+   std::vector<std::unique_ptr<Real[]>> rows;
+   rows.reserve(bufferSize+1);
    for (Integer i = 0; i <= bufferSize; ++i)
    {
-      x[i] = -9.9999e75;
-      y[i]  = new Real[dimension];
+      nextX[i] = -9.9999e75;
+      rows.push_back(std::make_unique<Real[]>(dimension));
+      nextY[i] = rows.back().get();
    }
-   
+   Interpolator::AllocateArrays();
+   x = nextX.release(); y = nextY.release();
+   for (auto &row : rows) row.release();
    latestPoint = -1;
 }
 
@@ -933,3 +955,36 @@ Integer LagrangeInterpolator::FindStartingPoint(Real ind)
 }
 
 
+
+void LagrangeInterpolator::ValidateRestorationLayout(const LagrangeInterpolator &source) const
+{
+   if (typeid(*this) != typeid(LagrangeInterpolator))
+      throw InterpolatorException("A derived Lagrange interpolator needs its own restoration provider.");
+   ValidateTableRestoration(source);
+   for (const auto *value : {this, &source})
+   {
+      const bool allocated = value->independent != nullptr;
+      if ((value->x != nullptr) != allocated || (value->y != nullptr) != allocated)
+         throw InterpolatorException("Inconsistent Lagrange interpolation scratch storage.");
+      if (allocated)
+         for (Integer row = 0; row <= bufferSize; ++row)
+            if (!value->y[row]) throw InterpolatorException("Incomplete Lagrange scratch rows.");
+   }
+}
+
+void LagrangeInterpolator::RestoreValues(const LagrangeInterpolator &source)
+{
+   if (&source == this) return;
+   ValidateRestorationLayout(source);
+   RestoreTableValues(source);
+   if (x)
+      for (Integer row = 0; row <= bufferSize; ++row)
+      {
+         x[row] = source.x ? source.x[row] : -9.9999e75;
+         if (source.y) std::copy_n(source.y[row], dimension, y[row]);
+         else std::fill_n(y[row], dimension, 0.0);
+      }
+   order = source.order; baseOrder = source.baseOrder; actualSize = source.actualSize;
+   beginIndex = source.beginIndex; endIndex = source.endIndex; dataIndex = source.dataIndex;
+   startPoint = source.startPoint; lastX = source.lastX;
+}

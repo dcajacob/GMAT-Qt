@@ -1,3 +1,5 @@
+#include "AcceptanceView.hpp"
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "ResourceEditor.hpp"
 #include "ResourceProperties.hpp"
@@ -33,7 +35,7 @@ static void checkProperties(GmatBase &object,ResourceEditor &panel)
 int main(int argc,char **argv)
 {
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv);
-   if (QGuiApplication::platformName()!="offscreen" || argc<2 || argc>3) return 2;
+   if (!acceptanceWidgetPlatform() || argc<2 || argc>3) return 2;
    QApplication::setOrganizationName("GMATTests"); QApplication::setApplicationName("ResourceVisibility");
    try {
       TestSettings settings; QTemporaryDir files;
@@ -44,11 +46,13 @@ int main(int argc,char **argv)
       const QString source="Create Spacecraft Vehicle;\nCreate OrbitView Orb;\nOrb.Add = {Vehicle, Earth};\nOrb.ShowPlot = false;\n"+layout+
          "Create GroundTrack Ground;\nCreate XYPlot XY;\nCreate ReportFile OutputReport;\nCreate EphemerisFile Export;\nExport.Spacecraft = Vehicle;\nCreate DynamicDataDisplay Data;\nBeginMissionSequence;\n";
       editor->setPlainText(source); require(window.buildScript(),"Visibility fixture failed");
+      acceptanceView(window);
       auto *tree=window.findChild<QTreeWidget *>("Resources"); auto *area=window.findChild<QMdiArea *>("workspace");
       for (const auto &name:QStringList{"Orb","Ground","XY","OutputReport","Export","Data"}) {
          const auto items=tree->findItems(name,Qt::MatchExactly|Qt::MatchRecursive); require(items.size()==1,"Resource tree entry missing"); tree->itemDoubleClicked(items.first(),0);
          auto *child=area->activeSubWindow(); auto *panel=dynamic_cast<ResourceEditor *>(child->widget()); require(panel,"Resource editor missing");
          checkProperties(*Moderator::Instance()->GetConfiguredObject(name.toStdString()),*panel);
+      acceptanceView(*panel);
          if (name=="Orb") {
             auto *tabs=panel->findChild<QTabWidget *>("resourceEditorTabs");
             for (int tab=0;tab<tabs->count();++tab) if (tabs->tabText(tab)=="Advanced") tabs->setCurrentIndex(tab);

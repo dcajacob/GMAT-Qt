@@ -32,7 +32,20 @@
 #include "SPKPropagator.hpp"
 #include "MessageInterface.hpp"
 #include "FileManager.hpp"
+#include "SolarSystem.hpp"
 #include <sstream>                 // for stringstream
+#include <cmath>
+#include "GmatConstants.hpp"
+
+namespace
+{
+void ValidateKernelState(const Rvector6 &state, const std::string &name)
+{
+   for (Integer i = 0; i < 6; ++i)
+      if (!std::isfinite(state[i]) || state[i] == -GmatRealConstants::REAL_MAX)
+         throw PropagatorException("SPK state data is unavailable or invalid for '" + name + "'.\n");
+}
+}
 
 //#define DEBUG_INITIALIZATION
 //#define DEBUG_PROPAGATION
@@ -341,21 +354,27 @@ bool SPKPropagator::SetStringParameter(const Integer id,
       return true;         // Idempotent, so return true
    }
 
-   bool retval = EphemerisPropagator::SetStringParameter(id, value);
-
-   if ((retval = true) && (id == EPHEM_CENTRAL_BODY))
+   if (id == EPHEM_CENTRAL_BODY)
    {
-      // Special case code that we may want to remove later
       if (value == "Moon")
          throw PropagatorException("\"Moon\" is not an allowed central body; "
                "try \"Luna\"", Gmat::ERROR_);
-      if (centralBody == "Luna")
-         spkCentralBody = "Moon";
-      else
-         spkCentralBody = centralBody;
+      if (value.empty())
+         throw PropagatorException("SPK propagation requires a celestial-body origin");
+      CelestialBody *origin = solarSystem ? solarSystem->GetBody(value) : NULL;
+      if (solarSystem && !origin)
+         throw PropagatorException("SPK propagation origin (" + value +
+               ") was not found in the solar system");
+      if (centralBody != value)
+      {
+         centralBody = value;
+         propOrigin = origin;
+         isInitialized = false;
+      }
+      return true;
    }
 
-   return retval;
+   return EphemerisPropagator::SetStringParameter(id, value);
 }
 
 
@@ -597,6 +616,11 @@ bool SPKPropagator::Initialize()
       if (skr == NULL)
          skr = new SpiceOrbitKernelReader;
 
+      // Read the kernel in the engine's J2000 origin first. The selected
+      // propagation origin uses GMAT's body provider, so a DE, SPICE or analytic
+      // body is translated with the same state used by ReturnFromOrigin.
+      SetSolarSystem(solarSystem);
+      spkCentralBody = j2kBodyName == "Luna" ? "Moon" : j2kBodyName;
       spkCentralBodyNaifId = skr->GetNaifID(spkCentralBody);
 
       stepTaken = 0.0;
@@ -737,16 +761,17 @@ bool SPKPropagator::Initialize()
                            spkCentralBody.c_str());
                         #endif
 
+                        if (!stopOutsideOfEphem && !IsValidEpoch(currentEpochGT.GetMjd()))
+                           setState = false;
                         if (setState)
-                           outState = skr->GetTargetState(scName, id, currentEpochGT,
-                                            spkCentralBody, spkCentralBodyNaifId);
-
-                        // Fill in the Cartesian state data
-                        std::memcpy(state + i * perSatDim, outState.GetDataVector(),
-                                    6*sizeof(Real));
+                        {
+                           outState = ReadKernelState(scName, id, currentEpochGT);
+                           std::memcpy(state + i * perSatDim, outState.GetDataVector(),
+                                       6*sizeof(Real));
+                        }
                      }
 
-                     UpdateSpaceObjectGT(currentEpochGT);
+                     if (setState) UpdateSpaceObjectGT(currentEpochGT);
 
                      retval = true;
                   }
@@ -792,14 +817,16 @@ bool SPKPropagator::Initialize()
                            spkCentralBody.c_str());
                         #endif
 
+                        if (!stopOutsideOfEphem && !IsValidEpoch(currentEpoch))
+                           setState = false;
                         if (setState)
-                           outState = skr->GetTargetState(scName, id, A1Mjd(currentEpoch),
-                                                       spkCentralBody, spkCentralBodyNaifId);
-
-                        std::memcpy(state, outState.GetDataVector(), 6*sizeof(Real));
+                        {
+                           outState = ReadKernelState(scName, id, A1Mjd(currentEpoch));
+                           std::memcpy(state, outState.GetDataVector(), 6*sizeof(Real));
+                        }
                      }
 
-                     UpdateSpaceObject(currentEpoch);
+                     if (setState) UpdateSpaceObject(currentEpoch);
 
                      retval = true;
                   }
@@ -845,7 +872,20 @@ bool SPKPropagator::Initialize()
 //------------------------------------------------------------------------------
 bool SPKPropagator::LoadSpans()
 {
-   skr->GetCoverageSpans(spkFileNames, naifIds[0], spanStart, spanEnd);
+   if (hasPrecisionTime)
+   {
+      std::vector<GmatTime> starts, ends;
+      skr->GetCoverageSpans(spkFileNames, naifIds[0], starts, ends);
+      spanStart.clear();
+      spanEnd.clear();
+      for (UnsignedInt i = 0; i < starts.size(); ++i)
+      {
+         spanStart.push_back(starts[i].GetMjd());
+         spanEnd.push_back(ends[i].GetMjd());
+      }
+   }
+   else
+      skr->GetCoverageSpans(spkFileNames, naifIds[0], spanStart, spanEnd);
 
    #ifdef DEBUG_GAPS
       MessageInterface::ShowMessage("%s has %d ephemeris spans for %s\n",
@@ -867,6 +907,7 @@ bool SPKPropagator::LoadSpans()
 //@todo: need GmatTime modification
 bool SPKPropagator::Step()
 {
+   if (!skr) { stepTaken = 0.0; return false; }
    #ifdef DEBUG_PROPAGATION
    if (hasPrecisionTime)
    {
@@ -939,29 +980,8 @@ bool SPKPropagator::Step()
                   retval = false;
                }
 
-			   bool skipEphemerisProp = true;
-
-			   try {
-				   if (takeStep)
-					   outState = skr->GetTargetState(scName, id, currentEpochGT,
-						   spkCentralBody, spkCentralBodyNaifId);
-			   }
-			   catch (BaseException &e)
-			   {
-				   if (!skipEphemerisProp)
-					   throw;
-				   else
-				   {
-					   if (takeStep)
-						   if ((currentEpochGT < ephemStart - 1e-10) ||
-							   (currentEpochGT > ephemEnd + 1e-10))
-							   throw;
-					#ifdef DEBUG_GAP
-					   MessageInterface::ShowMessage("Skipping %s\n",
-						   currentEpochGT.ToString().c_str());
-					#endif
-				   }
-			   }
+               if (!takeStep) { stepTaken = 0.0; return false; }
+               outState = ReadKernelState(scName, id, currentEpochGT);
 
                /**
                *  @todo: When SPKProp can evolve more than one spacecraft, these
@@ -1041,30 +1061,8 @@ bool SPKPropagator::Step()
                   takeStep = false;
                   retval = false;
                }
-			   //Always skip gaps for now
-			   bool skipEphemerisProp = true;
-
-			   try {
-				   if (takeStep)
-					   outState = skr->GetTargetState(scName, id, A1Mjd(currentEpoch),
-						   spkCentralBody, spkCentralBodyNaifId);
-			   } 
-			   catch (BaseException &e)
-			   {
-				   if (!skipEphemerisProp)
-					   throw;
-				   else
-				   {
-					   if (takeStep)
-						   if ((currentEpochGT < ephemStart - 1e-10) ||
-							   (currentEpochGT > ephemEnd + 1e-10))
-							   throw;
-					#ifdef DEBUG_GAP
-					   MessageInterface::ShowMessage("Skipping %s\n",
-						   currentEpochGT.ToString().c_str());
-					#endif
-				   }
-			   }
+               if (!takeStep) { stepTaken = 0.0; return false; }
+               outState = ReadKernelState(scName, id, A1Mjd(currentEpoch));
                /**
                 *  @todo: When SPKProp can evolve more than one spacecraft, these
                 *  memcpy lines need revision
@@ -1161,6 +1159,7 @@ Real SPKPropagator::GetStepTaken()
 //------------------------------------------------------------------------------
 void SPKPropagator::UpdateState()
 {
+   if (!skr) throw PropagatorException("SPK kernel reader is not initialized.\n");
    #ifdef DEBUG_EXECUTION
       if (hasPrecisionTime)
          MessageInterface::ShowMessage("Updating state to epochGT %s\n", 
@@ -1210,31 +1209,8 @@ void SPKPropagator::UpdateState()
                   takeStep = false;
                }
 
-               // Always skip gaps for now
-               bool skipEphemerisProp = true;
-
-               try
-               {
-                  if (takeStep)
-                     outState = skr->GetTargetState(scName, id, currentEpochGT,
-                        spkCentralBody, spkCentralBodyNaifId);
-               }
-               catch (BaseException &)
-               {
-                  if (!skipEphemerisProp)
-                     throw;
-                  else
-                  {
-                     if (takeStep)
-                        if ((currentEpochGT < ephemStart - 1e-10) ||
-                            (currentEpochGT > ephemEnd + 1e-10))
-                           throw;
-                     #ifdef DEBUG_GAP
-                        MessageInterface::ShowMessage("Skipping %s\n",
-                              currentEpochGT.ToString().c_str());
-                     #endif
-                  }
-               }
+               if (!takeStep) throw PropagatorException("No SPK state is available at the requested epoch.\n");
+               outState = ReadKernelState(scName, id, currentEpochGT);
 
                /**
                *  @todo: When SPKProp can evolve more than one spacecraft, this
@@ -1291,9 +1267,9 @@ void SPKPropagator::UpdateState()
                   takeStep = false;
                }
 
-               if (takeStep)
-                  outState = skr->GetTargetState(scName, id, A1Mjd(currentEpoch),
-                     spkCentralBody, spkCentralBodyNaifId);
+               if (!takeStep)
+                  throw PropagatorException("No SPK state is available at the requested epoch.\n");
+               outState = ReadKernelState(scName, id, A1Mjd(currentEpoch));
 
                /**
                 *  @todo: When SPKProp can evolve more than one spacecraft, this
@@ -1348,8 +1324,22 @@ void SPKPropagator::SetEphemSpan(Integer whichOne)
       // @todo: When the SPKPropagator supports more than one spacecraft, the
       // ephem span needs to be modified to track spans for each spacecraft
       for (UnsignedInt i = 0; i < naifIds.size(); ++i)
-         skr->GetCoverageStartAndEnd(spkFileNames, naifIds[i], ephemStart,
-               ephemEnd);
+      {
+         if (hasPrecisionTime)
+         {
+            GmatTime endGT;
+            skr->GetCoverageStartAndEnd(spkFileNames, naifIds[i], ephemStartGT,
+                  endGT);
+            ephemStart = ephemStartGT.GetMjd();
+            ephemEnd = endGT.GetMjd();
+         }
+         else
+         {
+            skr->GetCoverageStartAndEnd(spkFileNames, naifIds[i], ephemStart,
+                  ephemEnd);
+            ephemStartGT = GmatTime(ephemStart);
+         }
+      }
 	  
 	  if (!initialEphemEpochSet)
 	  {
@@ -1361,4 +1351,61 @@ void SPKPropagator::SetEphemSpan(Integer whichOne)
                ephemStart, ephemEnd);
       #endif
    }
+}
+
+
+Rvector6 SPKPropagator::ReadKernelState(const std::string &name, Integer id,
+      const A1Mjd &epoch)
+{
+   Rvector6 result = skr->GetTargetState(name, id, epoch,
+         spkCentralBody, spkCentralBodyNaifId);
+   ValidateKernelState(result, name);
+   if (centralBody != j2kBodyName)
+   {
+      if (!propOrigin || !j2kBody)
+         throw PropagatorException("SPK propagation origin is not initialized");
+      try
+      {
+         const Rvector6 originState = propOrigin->GetMJ2000State(epoch);
+         const Rvector6 j2000State = j2kBody->GetMJ2000State(epoch);
+         ValidateKernelState(originState, centralBody);
+         ValidateKernelState(j2000State, j2kBodyName);
+         result -= originState - j2000State;
+      }
+      catch (BaseException &error)
+      {
+         throw PropagatorException("Cannot translate SPK propagation origin " +
+               centralBody + ": " + error.GetFullMessage());
+      }
+   }
+   ValidateKernelState(result, name);
+   return result;
+}
+
+Rvector6 SPKPropagator::ReadKernelState(const std::string &name, Integer id,
+      const GmatTime &epoch)
+{
+   Rvector6 result = skr->GetTargetState(name, id, epoch,
+         spkCentralBody, spkCentralBodyNaifId);
+   ValidateKernelState(result, name);
+   if (centralBody != j2kBodyName)
+   {
+      if (!propOrigin || !j2kBody)
+         throw PropagatorException("SPK propagation origin is not initialized");
+      try
+      {
+         const Rvector6 originState = propOrigin->GetMJ2000State(epoch);
+         const Rvector6 j2000State = j2kBody->GetMJ2000State(epoch);
+         ValidateKernelState(originState, centralBody);
+         ValidateKernelState(j2000State, j2kBodyName);
+         result -= originState - j2000State;
+      }
+      catch (BaseException &error)
+      {
+         throw PropagatorException("Cannot translate SPK propagation origin " +
+               centralBody + ": " + error.GetFullMessage());
+      }
+   }
+   ValidateKernelState(result, name);
+   return result;
 }

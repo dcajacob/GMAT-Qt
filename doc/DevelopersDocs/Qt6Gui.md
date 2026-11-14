@@ -1,4 +1,404 @@
+## Latest checkpoint: actual MATLAB script/high-level C-API interface admitted
+
+Coverage is **1,050/1,158 (90.7%)**,108 open and **51 more needed**. The whole-row
+audit admits All Others!E245/E247/E248:actual MATLAB script execution and the
+high-level C-API child/sole-child parent. Historical operations remain1,816/2,367.
+All139 original records and59 hold identities survive:30 resolved,29 unresolved,
+including seven MATLAB rows. All broader qualification gates stay open.
+
+All48 GUI contexts and six original C clients pass. Actual shipped helpers,
+SDK-generated wrapper/current libraries,four reverse-script phases,error recovery,
+handle unload/reopen,root/UTF-8 guards,source/history/disk isolation,GUI result,
+ReportViewer and Unicode reopen pass. C clients retain3,806 original assertions.
+All24 visible contexts start minimized,resizable,nonfullscreen:282 exposures.
+Seventeen corrupt proofs are rejected. No screenshots or runtime/kernel copies.
+
+Core inventory263:254 prior paths unchanged,five existing increments,four newly
+pending. Root syntax,explicit UTF-8 C++ overloads,precise elapsed references and
+submicrosecond time-stop clock/rounding repairs remain subject to technical and
+scientific scrutiny. TimeData/elapsed ABI grows32 bytes;C signatures and695 older
+test/case sources are unchanged. All22 initial new-test assertions survive.
+Seventeen valid failures,five failed builds,25 source capsules and one explicitly
+inadmissible old-binary pairing remain. Final execution source25 removes tracing.
+The post-run ten-source addendum and its exact execution custody are explicit.
+
+Missing FRR-36,FRR-37/Object/Literals conflicts,unsupported Unix single-use,
+cross-GMAT-process sharing,reverse function restriction,all321 Parameter whole
+obligations,E477/E491/E406,old menu/plot conflicts and science/core/current-build/
+NASA/MATLAB gates remain open. Full95% goal active;continue exact remaining rows.
+See [the complete C-interface audit](Qt6ParityValidation/coverage95-20261103-matlab-c-interface.rst).
+
+## Latest checkpoint: actual Resource Tree MATLAB interface admitted
+
+Coverage is **1,047/1,158 (90.4%)**, with 111 open and **54 more needed**.
+The independent audit admits All Others!E154/E155, the complete interface parent
+and sole GMAT->MATLAB child. Historical operations remain 1,816/2,367. All 139
+reviewed original records and 59 hold identities survive: 28 resolved,31 unresolved,
+including nine MATLAB rows. All wider qualification gates remain open.
+
+Ten GUI contexts pass: four new interface and six affected original regressions,
+including 16 affected MATLAB/fmincon missions and two new real MATLAB calls.
+Actual Open/Close/cancel, distinct closed/reopened PIDs, mission workspace reuse,
+dirty source/history/Unicode and real provider absence pass in both modes.
+Twenty popup actions, 996 busy guards and 13 corrupt-proof rejections are retained.
+Five visible contexts start minimized,resizable,nonfullscreen: 75 native exposures.
+
+Two frontend paths expose the conditional runtime node and existing Engine APIs;
+all 259 core paths and 12 tracked older tests are unchanged. The initial missing-node
+failures,failed API build and startup-comment fixture failure remain with sources 1-4.
+Source 3's Available pass is reused; source 4 changes only the negative fixture.
+No numerical bound,public API,member/layout or generated startup changes.
+
+The nine remaining MATLAB I/O/process/reverse-interface clauses,missing FRR-36,
+old Object/Literals and menu failures,all 321 Parameter whole obligations,
+E477/E491/E406,plot/source conflicts and scientific/core/current-build/NASA/MATLAB
+gates remain open. Full95% goal active. Next audit these exact remaining scopes.
+See [the complete interface audit](Qt6ParityValidation/coverage95-20261103-matlab-interface-tree.rst).
+
+## Latest checkpoint: complete fmincon property parent admitted
+
+Coverage is **1,045/1,158 (90.2%)**, with 113 open and **56 more needed**. The
+independent audit admits FRR!E272 and E275-E279: all five remaining tolerance/
+finite-difference children and their complete seven-property parent. Historical
+operations remain 1,816/2,367. All139 original records and59 hold identities
+survive:26 resolved,33 unresolved,including11 MATLAB rows. All23 tracked fmincon/selection/Vary
+rows are source-versioned; broader qualification gates stay open.
+
+Twelve new contexts pass, with60 positive real fmincon missions,270 actual MATLAB
+notifications and990 independently checked raw branch evaluations. Equal/inverted
+perturbation ranges cause four expected MATLAB failures followed by Engine and
+corrected mission recovery in the same windows. Six prior contexts/18 missions
+and98 invalid controls are reused at exact sources. Twenty-one corrupt proofs
+are rejected. Six visible contexts start minimized,resizable,nonfullscreen.
+
+All259 core paths,all11 production paths and11 older test sources are unchanged.
+All43 initial new-test assertions survive the range-profile extension (46 total).
+No numerical bound,algorithm,API/layout or startup changes. Earlier core/ABI
+patches and failures remain pending review. All321 Parameter whole obligations,
+E477/E491/E406,old I/O/menu failures,plot/source conflicts and scientific/core/
+current-build/NASA/MATLAB gates remain open. The full95% goal stays active.
+Next audit the11 remaining original MATLAB I/O,process-mode and reverse-interface
+rows with exact whole-row conjunctions and retained failed probes.
+See [the complete property audit](Qt6ParityValidation/coverage95-20261103-fmincon-options.rst).
+
+## Latest checkpoint: actual fmincon iterations/output/limits admitted
+
+Coverage is **1,039/1,158 (89.7%)**,119 open and **62 more needed**. The independent
+audit admits FRR!E273/E274 and E280-E285: real iteration/evaluation limits and the
+complete optional message/report conjunction. Historical operations remain1,816/2,367.
+All139 reviewed records and59 hold identities survive:20 resolved,39 unresolved,
+including17 MATLAB rows. All global qualification gates remain open.
+
+Twenty-eight GUI contexts pass,including36 new iteration missions and40 affected
+original solves,plus two intentional Stop attempts. Actual MATLAB OutputFcn and
+fourth-output counters,physical/scaled controls,all three constraint senses,cost,
+optional messages/files and raw/viewer/repeat/Unicode reopen agree. Fourteen visible
+contexts start minimized,resizable,nonfullscreen;zero screenshots/runtime/kernel copies.
+
+Both missing-history failures,one failed build and the configured2/exact2 new test
+failure remain. Installed active-set uses strict-greater evaluation termination;
+the corrected exact count3 oracle retains limit2 and all physical/cost bounds.
+Nine older test sources remain byte-identical. Six core paths change:253 prior
+hashes unchanged,four existing increments,two newly pending headers. One new
+nonvirtual bridge and two plugin data members require ABI/technical review.
+
+The remaining six optimizer rows are FRR!E272 and E275-E279. All321 Parameter whole
+obligations,E477/E491/E406,old I/O/menu failures,plot/source conflicts and scientific/
+core/current-build/NASA/MATLAB gates remain open. Full95% goal stays active.
+See [the actual iteration audit](Qt6ParityValidation/coverage95-20261103-fmincon-iterations.rst).
+
+## Latest checkpoint: eight optimizer selection/Vary rows admitted
+
+Coverage is **1,031/1,158 (89.0%)**, with 127 open and **70 more needed**.
+The independent audit admits exactly FRC!E14, E16 and E35–E40: both conditional
+optimizer choices and the complete five-setting fmincon Vary parent/children.
+Historical operations remain 1,816/2,367. All 139 reviewed records and 59 original
+hold identities survive: 12 resolved, 47 unresolved, including 25 MATLAB rows.
+
+Twenty-four GUI contexts pass, including nine new profiles in both modes and
+six affected original regressions. Positive contexts execute 96 solver missions:
+62 real fmincon solves and 34 VF13ad missions. Active lower/upper bounds,
+nonidentity individual/combined scales, reference-valued fields, actual MATLAB
+initial/bounds/final arrays, history/Unicode reopen and raw/native/viewer results
+agree with independent oracles. There are 64 new atomic invalid checks, 20 legacy
+property rejections and 14 corrupt-proof controls. Twelve visible contexts start
+minimized, resizable and nonfullscreen and record 58 native exposures.
+
+One Qt CommandForm validation repair rejects edited nonfinite numeric values and
+nonpositive numeric multiplicative factors. References and untouched settings are
+preserved. The before failure and compiler failure remain; original numerical
+assertions and all six prior test sources remain unchanged. All 257 core paths
+are unchanged, as are solver formulas, API/layout and generated startup.
+
+The remaining 14 optimizer rows are FRR!E272–E285: discriminating options/limits
+and actual MATLAB iteration/message/report truth remain. All 321 Parameter whole
+obligations, E477/E491/E406, plot/source conflicts and scientific/core/current-build/
+NASA/MATLAB gates remain open. Next: actual optimizer iteration notifications,
+discriminating limits/options and complete optional progress/report conjunctions.
+Full 95% goal active. See [the selection/Vary audit](Qt6ParityValidation/coverage95-20261103-fmincon-vary-selection.rst).
+
+## Latest checkpoint: fmincon Resource Tree leaf admitted
+
+The independent audit admits **All Others!E139**, actual fmincon Resource Tree
+creation/configuration. Coverage is **1,023/1,158 (88.3%)**,135 open and **78 needed**;
+historical operations remain1,816/2,367. All139 prior row records and59 original
+hold identities remain:four resolved,55 unresolved,including33 MATLAB rows.
+
+Four GUI contexts pass:all11 resource editor fields,six real GUI-configured solves,
+six affected constrained-regression solves,98 invalid input controls and ten
+corrupt-proof controls. Two visible contexts start minimized,resizable,nonfullscreen
+and record27 native exposures. Real native/MATLAB options,history/Unicode reopen,
+analytic controls/cost/constraints,raw reports and ReportViewer pass. ShowProgress
+off/on behavior matches the local guide. All six prior test sources and all36
+existing solve assertions remain byte-identical. Failures and exact versions remain.
+
+Two production paths expose six option aliases and repair their read-only metadata
+and GUI validation. Core inventory remains257 paths,256 unchanged,one existing
+fmincon increment;no new API/member/virtual slot/formula. Generated startup unchanged.
+The other22 optimizer rows,all321 Parameter whole obligations,E477/E491/E406,
+plot/source conflicts and scientific/core/current-build/NASA/MATLAB gates remain open.
+Next:actual solver/Vary GUI selection,nonidentity scales and active lower-bound
+controls;then discriminating options/limits and actual MATLAB iteration reports.
+Full95% goal active. See [the resource audit](Qt6ParityValidation/coverage95-20261103-fmincon-resource-configuration.rst).
+
 # Qt 6 desktop GUI
+
+## Latest checkpoint: real fmincon callbacks and recovery
+
+The real Linux Qt MATLAB/fmincon callback path now executes and recovers.
+The component audit passes42 GUI contexts:18 completed real fmincon solves,two
+intentional Stop attempts,28 affected I/O contexts and four actual MAT-file writer
+contexts. Ten wire rejection controls pass per mode;ten corrupt proofs are rejected.
+All21 visible contexts start minimized,resizable,nonfullscreen and record42 native
+exposures. Exact source versions3/4/5/6,raw results,actual SDK maps and before failures
+remain. Original five startup and29 solve checks survive;I/O and full-catalogue test
+sources are byte-identical. No numerical bounds are relaxed.
+
+Coverage remains **1,022/1,158 (88.3%)**,136 open and **79 more needed**;
+historical operations remain1,816/2,367. All23 optimizer rows are still open:
+backend solves do not prove actual GUI configuration,limits/scales or real iteration/
+progress/report conjunctions. The overlay retains139 prior records and59 original
+hold identities:three resolved,56 unresolved,including34 MATLAB rows. All321 Parameter
+whole obligations,E477/E491/E406,plot/source conflicts and qualification gates remain.
+
+Core inventory:257 paths,245 prior hashes unchanged,three existing increments and
+nine newly pending paths. The integration adds two nonvirtual core methods,a private
+MATLAB-library worker and callback validation/lifetime handling;technical scrutiny
+remains pending. Linux Qt fmincon is enabled locally,and generated startup gains one
+active plugin line,with exact before/after bytes and hashes retained. Zero screenshots,
+runtime/kernel copies or terminated licensing services. Old Object/Literals probes
+and the PrepareMissionSequence full-menu failures remain registered/unqualified.
+
+Next:complete actual Resource Tree/solver/Vary configuration and nonidentity scales/
+limits,then actual MATLAB iteration notifications and optional message/report proof.
+Use the23-row gap audit;do not infer all rows from an analytic solve. Full95% goal
+active and incomplete.
+See [the callback integration audit](Qt6ParityValidation/coverage95-20261103-fmincon-callback-integration.rst).
+Stage: `build/nasa-coverage/coverage95-20261103-fmincon-callback-integration/`.
+
+## Latest checkpoint: MATLAB Mission Tree requirement admitted
+
+The independent audit admits **All Others!E180**, complete MATLAB-call creation
+and configuration in the Mission Tree. Coverage is **1,022/1,158 (88.3%)**,
+136 open and **79 more needed**; historical operations remain1,816/2,367.
+All139 prior per-row records and59 original hold identities survive:three resolved,
+56 unresolved, including34 MATLAB rows. Parent and broader MATLAB bundle gates
+remain open. This is one exact leaf admission, not complete MATLAB qualification.
+
+Fourteen placements/editors pass in both modes:28 positive GUI contexts,84 missions,
+114 actual MATLAB calls and448 visible native exposures. Actual menus/pickers,
+Cancel/draft isolation,Apply/history,Unicode save/reopen,editable named native calls,
+branch/ScriptEvent hierarchy,raw reports and real ReportViewer pass. Two production
+repairs add the conditional MATLAB template and preserve keyword-free call labels.
+Core inventory:248 paths,247 prior hashes unchanged,one GmatCommand.cpp increment.
+Exact patches,source capsules,failures and one controlled visible interruption remain.
+All55 original catalogue checks remain;49 new-call constraints are retained with
+one precise End-comment oracle correction. Solver nominal/publication expectations
+are exact; no numeric bounds are relaxed. Ten corrupt-proof controls pass.
+
+All three broader catalogue scenarios remain FAILED in both modes for the separate
+PrepareMissionSequence omission. Their60 queries contain the correct MATLAB entry.
+No menu assertion or failed Object/Literals I/O probe was disabled. Zero screenshots,
+runtime/kernel copies or killed licensing services. Global startup and Fmincon's
+platform guard remain unchanged. General I/O,modes,reverse interface,optimizer,
+all321 Parameter whole obligations,E477/E491/E406,plot/source conflicts and scientific/
+core/current-build/NASA gates remain open. Full95% goal active and incomplete.
+Next priority: implement and test actual Qt/fmincon callbacks, then complete original
+configuration/Vary/progress/report rows; do not remove the guard alone or batch23
+Parameters automatically.
+See [the MATLAB Mission Tree audit](Qt6ParityValidation/coverage95-20261103-matlab-mission-call.rst).
+Stage: `build/nasa-coverage/coverage95-20261103-matlab-mission-call/`.
+
+## Latest checkpoint: two MATLAB requirements admitted
+
+The independent audit admits **All Others!E152** (Resource Tree MATLAB-function
+creation/configuration) and **FRR!E478** (MATLAB calls inside GMAT functions).
+Coverage is **1,021/1,158 (88.2%)**, 137 open and **80 more needed**; historical
+operations remain 1,816/2,367. The original workbook scope separates these rows
+from general I/O, process modes, reverse interface and optimizer siblings. Their
+copied bundle planning gate remains recorded and false; parent rows stay open.
+All139 prior records and all59 original hold identities survive:two resolved,
+57 unresolved, including35 MATLAB rows. MATLAB availability is verified.
+
+Fourteen profiles pass individually in both modes:28 GUI contexts,66 missions,
+264 real MATLAB calls,198 inside GMAT functions,66 nested wrapper calls and28
+visible exposures. Exact per-case source versions3/7/9/12 and mixed-batch failures
+remain. The sealed creation component is reused. Three production paths repair
+failed-initialization cleanup, exact quoted-string transfer and formal-input/output
+aliases. The original close crash and unsuccessful first repair remain. Object
+and Literals positive probes still fail and remain registered;the full16-case suite
+is not all green. Original24 runtime assertions remain;seven corrupt-proof controls
+pass. Zero screenshots/runtime/kernel copies and no killed licensing services.
+
+Core inventory:248 pending paths,245 prior hashes unchanged,existing Sandbox.cpp
+and Interpreter.cpp incremented,and newly changed CallMatlabFunction.cpp. Exact
+patches/source capsules/failures and per-row overlay remain. No new API/layout/
+formula/writable flag from these increments. Global startup and Fmincon platform
+guard remain unchanged. General I/O,missing FRR36 reference,Unix single-use,
+reverse interface,optimizer,all321 Parameter whole obligations,E477/E491/E406,
+plot conjunctions and scientific/core/current-build/NASA gates remain open.
+Full95% goal active. Next review documented MATLAB array-element/property outputs
+and the remaining whole-row closure paths;do not automatically batch23 Parameters.
+See [the exact MATLAB row audit](Qt6ParityValidation/coverage95-20261103-matlab-function-io.rst).
+Stage: `build/nasa-coverage/coverage95-20261103-matlab-function-io/`.
+
+## Latest checkpoint: real MATLAB creation and error recovery
+
+The actual Resource Tree MATLAB function creation/configuration case now passes
+headless and visibly against R2026b Update1. Real Add/creator Cancel/accept, native
+field census, isolated Unicode FunctionPath draft/Apply/Undo/Redo, save/reopen,
+four actual calls, raw reports and actual ReportViewer all pass. A reproduced
+stale-error bug in MatlabInterface.cpp is repaired; runtime/syntax error rejection
+and subsequent successful workspace evaluations pass. Selected scratch-named
+expressions pass; arbitrary namespace hygiene remains open.
+
+Final runs headless-v5/visible-v2 use source capsule v6 and identical 83 actual
+mapped project/SDK images. One final visible process records 14 native exposures,
+initially minimized/resizable/nonfullscreen, zero screenshots/runtime/kernel copies.
+All 39 original require expressions remain. Fourteen negative audit controls pass.
+Three failed native invocations, three failed builds, two uninstrumented functional
+passes, metadata/offline audit failures and exact sources remain. The opt-in output
+capture fixes detached SDK services holding CTest pipes; no licensing service was
+killed. The new target explicitly links the shared observer. All handles terminal.
+
+Coverage remains **1,019/1,158**, 139 open, **82 needed**; historical 1,816/2,367.
+All 59 original holds and 37 MATLAB acceptance rows remain open. E152 creation
+constituents pass, but its recorded MATLAB bundle closure gate is preserved:
+general I/O, sharing/isolation and optimizer behavior still need proof. No whole
+row is admitted from this finite witness. MATLAB availability is verified.
+The core inventory is 247 paths: all prior 245 unchanged, plus plugin CMake and
+MatlabInterface.cpp. Private Engine/Matrix/MAT C API linkage avoids the SDK Qt
+collision. Exact core/launcher patches remain pending scrutiny. No formula/API/
+layout/metadata change. Global startup and Fmincon's platform guard remain unchanged.
+
+Next: review original FRR-36 I/O clauses and actual shared/single-use process
+contracts, then GMAT optimizer/reverse-interface implementation. Reuse the creation
+evidence; preserve all321 Parameter whole obligations, E477/E491/E406, source
+conflicts and scientific/core/current-build/NASA gates. Full95% goal active.
+See [the MATLAB creation audit](Qt6ParityValidation/coverage95-20261103-matlab-function-resource.rst).
+Stage: `build/nasa-coverage/coverage95-20261103-matlab-function-resource/`.
+
+## Latest checkpoint: GMAT MATLAB interface builds on Linux Qt
+
+The real MATLAB C Engine and constrained fmincon prerequisites pass after the user
+installed csh. The **GMAT MatlabInterface plugin now builds** against R2026b Update1.
+CMake originally skipped it for missing wx. A source-only dependency repair builds
+the Linux Qt Engine path without the unused legacy wx IPC client sources/includes/
+libraries. Other platform/application combinations retain their previous condition.
+Both configures and the first plugin build pass;linkage has no missing or wx library.
+No C++/factory/numerical change. Fmincon's non-Windows guard and global startup remain
+unchanged. The plugin is built,not yet exercised by a GMAT acceptance mission.
+
+**Next exact-row target: All Others!E152**, actual Resource Tree MATLAB-function
+creation/configuration. Review its inherited scope,then test real Add/creator
+Cancel/accept,native type,file/path editor,Apply/history/save/reopen and independent
+real MATLAB call results with source/image custody. Use isolated startup/plugin
+loading. Keep broader I/O,nesting,optimizer,shared/single-use and reverse-interface
+obligations separate and open. The sealed LAC repair remains20passing case contexts
+with its original failure preserved;existing26mapped image hashes remain unchanged.
+
+Coverage stays **1,019/1,158**,139open,**82needed**;historical1,816/2,367.
+All59original hold keys and37MATLAB acceptance rows remain open;MATLAB availability
+is now verified. Preserve all321Parameter whole obligations,E477/E491/E406,source
+conflicts and scientific/core/current-build/NASA gates. Full95% goal active.
+See [the MATLAB integration build](Qt6ParityValidation/coverage95-20261103-matlab-integration-build.rst).
+Stage:`build/nasa-coverage/coverage95-20261103-matlab-integration/`.
+
+## Latest checkpoint: frame dependencies repaired; MATLAB verified
+
+Coverage remains **1,019/1,158 (88.0%)**,139 open and **82 more needed**;
+historical operations remain1,816/2,367. Six new LAC frame cases and four affected
+regressions pass unattended and visibly. The preserved failure measured46.584746km
+sampled-position error. OrbitPlot now recursively collects actual frame references,
+including ReferenceObject and nested constraint frames,with visited identities and
+copied static-name lists. One existing core-path increment;244 others unchanged,
+245 total. No formula/API/layout/parameter/flag change or whole-row admission.
+The audit checks226epoch/connection pairs,588Cartesian and144final-owner components,
+ten diagnostics,eight identical old regression outputs,and four negative controls.
+Five process maps bind26project images each;two visible maps,four native exposures,
+initially minimized/resizable/nonfullscreen,zero screenshots/runtime/kernel copies.
+Both builds pass;one sandbox launch failure and one native geometric failure remain.
+
+The user installed **MATLAB R2026b Update1** at `/usr/local/MATLAB/R2026b`,with
+Optimization Toolbox and a working trial license. Both a direct constrained
+fmincon solve and the real C Engine probe pass with expected(1.5,-1.5),objective0.5.
+Engine startup initially failed because `/bin/csh` was missing;the exec trace is
+retained,the user installed csh,and the identical compiled probe now passes.
+MATLAB availability is now verified:do not carry forward older unavailable claims.
+The37MATLAB requirement rows and all59original hold keys still need acceptance.
+
+**Next priority: GMAT MATLAB plugin integration.** Its Unix interface build still
+requires wx/legacy IPC sources,and FminconOptimizer has a non-Windows CMake return.
+Review real dependencies and enable/test the GMAT-to-MATLAB function path;do not
+remove the optimizer platform guard or claim Qt callbacks without implementation
+and tests. Shared/single-use and reverse-interface scopes stay explicit. The four
+plot rows still retain general sampled force/attitude,provider/lifetime and remaining
+solver/render conjunctions. All321Parameter whole obligations remain open;no automatic
+23-owner batch. Preserve source conflicts,E477/E491/E406 and all qualification gates.
+See [frame evidence](Qt6ParityValidation/coverage95-20261103-plot-frame-dependencies.rst) and [MATLAB prerequisites](Qt6ParityValidation/coverage95-20261103-matlab-prerequisite.rst).
+Stages:`build/nasa-coverage/coverage95-20261103-plot-frame-dependencies/` and
+`build/nasa-coverage/coverage95-20261103-matlab-prerequisite/`. Full95% goal active.
+
+## Latest checkpoint: exact-row closure review
+
+Coverage remains **1,019/1,158 (88.0%)**, 139 open and **82 more needed**.
+The new closure overlay retains all139 original rows, fingerprints, gaps and
+59holds. Recent Parameter batches are supporting evidence:298 native-bound
+names,23 queued,all321 whole obligations still open. Do not automatically launch
+another owner batch without a complete original-row closure path.
+
+Four existing offline plot audits reproduce at their sealed versions:original
+boundary,origin,rotating frames and solver paint. No native replay or production
+change. The original enabled GroundTrack boundary already passes unchanged;
+IntegrationStepsToSkip already exists. Those are not the remaining blockers.
+
+Next whole-row review is FRR!E329/E330/E633/E634. The source route census finds
+22 offered axis labels and a concrete missing dependency path:LocalAlignedConstrained
+reads a spacecraft ReferenceObject and a nested ConstraintCoordinateSystem,while
+OrbitPlot explicitly collects extra frame references only for ObjectReferenced.
+This is a source-based risk,not a reproduced native failure. First complete the
+recursive frame/input dependency contract;then use unequal provider steps and a
+spacecraft ReferenceObject as the first discriminating witness,preserving any
+failure before repair. General sampled force/attitude inputs,provider lifetimes
+and remaining solver/render clauses stay open. No broad passing matrix or row
+admission follows from the four constituent audit passes.
+
+MATLAB remains unavailable per user;the product/trial discussion supplies no
+installation. Preserve37MATLAB and all59holds. Six MarsGRAM gaps are additional
+to those59;1,099 is only an optimistic ceiling. E477/E491/E406,Save state/graphs,
+OEM/source conflicts and all scientific/core/current-build/NASA gates remain.
+See [the closure review](Qt6ParityValidation/coverage95-20261103-exact-row-closure-review.rst). Artifacts and reusable review tool:
+`build/nasa-coverage/coverage95-20261103-exact-row-closure-review/` and
+`src/qtgui/tests/ReviewNasaClosureQueue.py`. Full95% goal active/incomplete.
+
+## Bounded failure-repair handoff — 2026-10-31
+
+The [final repair report](Qt6ParityValidation/remaining-failures-20261031.rst)
+records passing receipts for all 18 remaining registrations and five associated
+findings, plus the earlier Paths/Debugger repairs. It includes visible replay
+commands, preserved assertions, exact core patches and remaining gaps.
+Ten core files changed in this goal; all 93 tracked files still await technical
+approval. Full current-build and broader NASA qualification remain deferred.
 
 ## Playback layout — 2026-10-05
 
@@ -410,6 +810,14 @@ Unrelated panels retain their existing stale-snapshot protection after a change.
 
 ## Functional validation
 
+The [GUI acceptance runner](Qt6GuiAcceptance.rst) reuses all registered checks
+for unattended or visible runs, with NASA-source mechanism mappings, per-case
+logs, JUnit, widget observations, screenshots and explicit coverage gaps. Run
+`python3 src/qtgui/tests/RunAcceptance.py --build --visible` from a desktop
+terminal, or omit `--visible` for automation. Passing regression checks does not
+establish full widget/requirement acceptance; the generated report keeps those
+limits separate.
+
 The complete Qt suite is registered with CTest when `GMAT_QT_BUILD_TESTS=ON`.
 From an already configured GMAT build, run:
 
@@ -419,14 +827,14 @@ cmake --build build/linux-gui --target check-qt --config Release --parallel 6
 ```
 
 `check-qt` builds the frontend, enabled native plugins and test executables, then
-runs six checks: files, workflow, mission editing, plots, high-DPI plots and the
-launcher. To rerun without rebuilding, use
+runs the currently registered `qt-gui` checks. To rerun without rebuilding, use
 `ctest --test-dir build/linux-gui -C Release -L qt-gui --output-on-failure`.
 CTest locks serialize access to shared engine outputs even under parallel CTest.
 Each GUI test uses temporary INI settings rather than normal platform settings;
 the launcher uses the new `--settings-dir` option for the same isolation.
 A small Python launcher supplies runtime DLL search directories on Windows.
-The six-test suite passes on Linux and native Windows with Qt 6.10.2.
+The earlier six-test checkpoint passed on Linux and native Windows with Qt 6.10.2;
+it is historical evidence, not a result for the expanded current suite.
 The Windows run uses MSVC 2022 with the wx GUI disabled. Its initial build
 exposed Windows min/max macro collisions; the Qt frontend and its consumers
 now define NOMINMAX. See [Windows evidence](Qt6WindowsValidation/README.md).
@@ -2632,3 +3040,19 @@ preserved. Complete minimized-window recovery, distinct resize, viewer close/reo
 and normal interactive exit remain unqualified. No application code changed or
 rebuild was required. Older host-stop statements retain historical checkpoint scope;
 full replacement qualification and historical crash attribution remain open.
+
+## NASA modifier-order acceptance increment — 2026-10-27
+
+`QtGui.NasaSpkModifierOrder` covers both guide-supported synchronization/backward modifier orders through the actual mission editor, group dialog and raw Apply. Shared header parsing fixes source-to-node matching and assignment parsing without changing authored source. Six configured SPK flag rejections, corrected Apply, source/history isolation, Undo/Redo and Unicode persistence are checked. The new case passed unattended and visibly; a focused visible layout correction retains prior semantic passes and excludes the preceding 341 checks. No additional NASA row credit or scientific/native/full-regression qualification is claimed. Evidence: `build/nasa-coverage/spk-modifier-review/report.md`.
+
+## NASA celestial-body configuration increment — 2026-10-27
+
+Three new `QtGui.NasaBodyKernel*` cases cover actual source/central-body controls, orbit kernel-list actions and invalid-input atomicity. A precise preflight SPK diagnostic fixes the new failure without weakening assertions. First unattended passes were retained, only the failing case was rerun, and the first three-case visible cohort passed with 133 captures; the preceding 342 checks stayed unselected. The versioned estimate is 209/1158 bounded requirements (18.0%) and 637/2367 historical operations (26.9%), with body science/native/platform/provenance and full current regression still open. [Replay, evidence and explicit gaps](Qt6ParityValidation/nasa-body-kernels-20261027.md).
+
+## NASA custom-body orientation increment — 2026-10-27
+
+Eight new `QtGui.NasaBodyOrientation*` cases check actual orientation/reference-epoch controls and independent three-epoch position/velocity reports. The epoch field is now exposed; omitted custom pole-rate derivatives and elapsed-time cancellation are fixed. Seven unattended passes were retained and only the failed spin-rate case rerun; the first visible cohort passed all eight with 189 captures, 144 independent state components and 23 invalid-input rejections. All preceding 345 checks stayed unselected. Five new bounded row scopes bring the versioned estimate to 214/1158 (18.5%); historical operations remain 637/2367 (26.9%). Historical rotation-drift wording and its parent, broader science/native/platform/provenance and full final regression remain open. [Replay, independent oracle, fixes and limits](Qt6ParityValidation/nasa-body-orientation-20261027.md).
+
+## NASA BodyFixed/SPICE rotation increment — 2026-10-27
+
+Five new `QtGui.NasaBodySpiceRotation*` cases passed their first visible cohort with 324 captures, 162 independent state components, 27 LLA components and bounded rejection/recovery. Eligible-body rotation source selection now has a separate chooser preserving the imported read-only display; FK/PCK preflight and numeric-frame resolution fix newly exposed failures. Unattended passes were retained and only failing cases rerun; all preceding 353 checks stayed unselected. One new bounded BodyFixed scope brings the versioned estimate to 215/1158 (18.6%); historical operations remain 637/2367 (26.9%). Distant-origin/general science/native/platform/provenance and full final regression gaps remain explicit. [Replay, independent expectations and evidence](Qt6ParityValidation/nasa-body-spice-rotation-20261027.md).

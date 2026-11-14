@@ -37,7 +37,7 @@
 #include "Rvector.hpp"
 #include "Rmatrix.hpp"
 
-class EquationWrapper: public ElementWrapper
+class GMAT_API EquationWrapper: public ElementWrapper
 {
 public:
    EquationWrapper(const std::string &eq = "");
@@ -46,6 +46,8 @@ public:
    EquationWrapper& operator=(const EquationWrapper& ew);
 
    virtual ElementWrapper* Clone() const;
+   void RebindClonedReferences(const ElementWrapper &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
 
    void SetEquation(const std::string &eq);
    void SetConfiguredObjectMap(ObjectMap *map);
@@ -61,6 +63,11 @@ public:
 
    bool                    ConstructTree();
    RHSEquation             *GetTree();
+   std::vector<RHSEquation*> GetOwnedDefinitions() const;
+   void GetClonedOwnedObjects(const EquationWrapper &target,
+         ObjectArray &originals, ObjectArray &copies) const;
+   void GetClonedOwnedObjects(const EquationWrapper &target,
+         ObjectArray &originals, ObjectArray &copies, bool sourceOwnedOnly) const;
    bool                    Initialize(ObjectMap *objectMap,
                                       ObjectMap *globalObjectMap);
    bool                    Initialize();
@@ -76,9 +83,8 @@ public:
    virtual const Rvector&  EvaluateRvector() const;
    virtual bool            SetRvector(const Rvector &toValue);
 
-   // Disable string returns for now
-//   virtual bool            SetString(const std::string &toValue);
-//   virtual std::string     EvaluateString() const;
+   std::string             EvaluateString() const override;
+   GmatBase*               EvaluateObject() const override;
 
 protected:
    /// String expression for the equation
@@ -86,13 +92,15 @@ protected:
    /// Return type for the equation
    Gmat::ParameterType     dataType;
    /// Equation manager
-   RHSEquation             theTree;
+   // Older definitions can own values still referenced by configured bindings.
+   std::vector<std::unique_ptr<RHSEquation>> retainedDefinitions;
+   mutable RHSEquation     theTree;
    /// Return container for an Rvector
-   Rvector                 retVec;
+   mutable Rvector         retVec;
    /// Return container for an Rmatrix
-   Rmatrix                 retMat;
+   mutable Rmatrix         retMat;
    /// Output from running the math tree
-   ElementWrapper          *resultant;
+   mutable ElementWrapper  *resultant;
 
    /// Objects referenced in the equation
    StringArray             refObjects;
@@ -102,11 +110,17 @@ protected:
    ObjectMap               equationObjectMap;
 
    /// Flag used to warn if the equation is not yet evaluated
-   bool                    hasEvaluated;
+   mutable bool            hasEvaluated;
+   bool                    isEquationInitialized;
 
    // Disable string returns for now
 //   /// String return container
 //   std::string             retStr;
+
+   void BindActualReferences(const EquationWrapper &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+   void                    ClearResult() const;
+   ElementWrapper&         EvaluateCurrent() const;
 
    virtual void            SetupWrapper();
 };

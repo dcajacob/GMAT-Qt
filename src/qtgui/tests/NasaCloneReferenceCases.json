@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "Barycenter",
+      "family": "Barycenter",
+      "type": "Barycenter",
+      "prefix": "resource_",
+      "all": {
+        "SpiceFrameId": "J2000",
+        "OrbitColor": "Red",
+        "TargetColor": "Blue",
+        "BodyNames": "Jupiter, Neptune"
+      },
+      "order": [
+        "SpiceFrameId",
+        "OrbitColor",
+        "TargetColor",
+        "BodyNames"
+      ],
+      "edit_field": "BodyNames",
+      "clone_value": "Mars, Venus",
+      "original_value": "Earth, Luna",
+      "setup": "NasaItem.BodyNames = {Earth};\n",
+      "historical_keys": [
+        "H2012:R1048",
+        "H2012:R1049",
+        "H2012:R1050",
+        "H2012:R1051",
+        "H2012:R1052"
+      ]
+    },
+    {
+      "key": "ReportFile",
+      "family": "ReportFile",
+      "type": "ReportFile",
+      "prefix": "resource_",
+      "all": {
+        "SolverIterations": "All",
+        "Filename": "@DIR@/reference-output.txt",
+        "Precision": "11",
+        "Add": "PlotX, PlotY",
+        "WriteHeaders": "false",
+        "LeftJustify": "Off",
+        "ZeroFill": "On",
+        "FixedWidth": "false",
+        "Delimiter": ";",
+        "ColumnWidth": "17",
+        "WriteReport": "false",
+        "AppendToExistingFile": "true"
+      },
+      "order": [
+        "SolverIterations",
+        "Filename",
+        "Precision",
+        "Add",
+        "WriteHeaders",
+        "LeftJustify",
+        "ZeroFill",
+        "ColumnWidth",
+        "FixedWidth",
+        "Delimiter",
+        "WriteReport",
+        "AppendToExistingFile"
+      ],
+      "edit_field": "Precision",
+      "clone_value": "9",
+      "original_value": "13",
+      "setup": "",
+      "historical_keys": [
+        "H2012:R1178",
+        "H2012:R1179",
+        "H2012:R1180",
+        "H2012:R1181",
+        "H2012:R1182",
+        "H2012:R1188"
+      ]
+    }
+  ],
+  "scope": "All16current editable fields across selected Barycenter/ReportFile definitions. Full editable clone state,isolation,delete/history/persistence and continuation. Shared body/parameter/path references retained;no barycenter ephemeris/science or inactive-report serialization/runtime-file independence inferred. Not all conditional configurations/private keyword payloads/native OS input/GPU/hardware/platform/stress/current NASA/full newest-build."
+}

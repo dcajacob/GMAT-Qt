@@ -46,6 +46,32 @@
 #include "SolarSystem.hpp"
 
 #include <iostream>
+#include <cmath>
+
+namespace
+{
+// Sum products with their rounding residuals. Rotation-rate and velocity
+// contributions can nearly cancel, so rounding each dot product separately
+// discards information that is still present in the input Cartesian state.
+Real RotationProducts(const Real *matrix, const Real *state,
+      const Real *rate = nullptr, const Real *position = nullptr)
+{
+   Real sum = 0.0, residual = 0.0;
+   auto add = [&](Real left, Real right)
+   {
+      const Real product = left * right;
+      const Real next = sum + product;
+      residual += std::fma(left, right, -product) +
+            (std::abs(sum) >= std::abs(product) ?
+             (sum - next) + product : (product - next) + sum);
+      sum = next;
+   };
+   if (rate)
+      for (Integer i = 0; i < 3; ++i) add(rate[i], position[i]);
+   for (Integer i = 0; i < 3; ++i) add(matrix[i], state[i]);
+   return sum + residual;
+}
+}
 
 
 using namespace GmatMathUtil;           // for trig functions, etc.
@@ -1545,16 +1571,8 @@ bool AxisSystem::CompleteRotateToBase(const Rvector &inState, Rvector &outState)
    for (Integer p = 0; p < 3; ++p)
    {
       p3 = 3*p;
-      outPos[p] = rotData[p3]   * tmpPosTo[0]   + 
-                  rotData[p3+1] * tmpPosTo[1] + 
-                  rotData[p3+2] * tmpPosTo[2];
-      outVel[p] = (rotDotData[p3]    * tmpPosTo[0]   + 
-                   rotDotData[p3+1]  * tmpPosTo[1] + 
-                   rotDotData[p3+2]  * tmpPosTo[2])
-                  +
-                  (rotData[p3]    * tmpVelTo[0]   + 
-                   rotData[p3+1]  * tmpVelTo[1] + 
-                   rotData[p3+2]  * tmpVelTo[2]);
+      outPos[p] = RotationProducts(rotData + p3, tmpPosTo);
+      outVel[p] = RotationProducts(rotData + p3, tmpVelTo, rotDotData + p3, tmpPosTo);
    }     
  
    outState.Set(6,outPos[0], outPos[1], outPos[2], 
@@ -1606,16 +1624,8 @@ bool AxisSystem::CompleteRotateToBase(const Real *inState, Real *outState)
    for (Integer p = 0; p < 3; ++p)
    {
       p3 = 3*p;
-      outState[p] = rotData[p3]   * pos[0]   + 
-                    rotData[p3+1] * pos[1] + 
-                    rotData[p3+2] * pos[2];
-      outState[p+3] = (rotDotData[p3]    * pos[0]   + 
-                       rotDotData[p3+1]  * pos[1] + 
-                       rotDotData[p3+2]  * pos[2])
-                      +
-                      (rotData[p3]    * vel[0]   + 
-                       rotData[p3+1]  * vel[1] + 
-                       rotData[p3+2]  * vel[2]);
+      outState[p] = RotationProducts(rotData + p3, pos);
+      outState[p+3] = RotationProducts(rotData + p3, vel, rotDotData + p3, pos);
    }    
    
    
@@ -1675,16 +1685,8 @@ bool AxisSystem::CompleteRotateFromBase(const Rvector &inState, Rvector &outStat
    for (Integer p = 0; p < 3; ++p)
    {
       p3 = 3*p;
-      outPos[p] = rotDataT[p3]   * tmpPos[0]   + 
-                  rotDataT[p3+1] * tmpPos[1] + 
-                  rotDataT[p3+2] * tmpPos[2];
-      outVel[p] = (rotDotDataT[p3]    * tmpPos[0]   + 
-                   rotDotDataT[p3+1]  * tmpPos[1] + 
-                   rotDotDataT[p3+2]  * tmpPos[2])
-                  +
-                  (rotDataT[p3]    * tmpVel[0]   + 
-                   rotDataT[p3+1]  * tmpVel[1] + 
-                   rotDataT[p3+2]  * tmpVel[2]);
+      outPos[p] = RotationProducts(rotDataT + p3, tmpPos);
+      outVel[p] = RotationProducts(rotDataT + p3, tmpVel, rotDotDataT + p3, tmpPos);
    }     
    outState.Set(6,outPos[0], outPos[1], outPos[2], 
                   outVel[0], outVel[1], outVel[2]);
@@ -1742,16 +1744,8 @@ bool AxisSystem::CompleteRotateFromBase(const Real *inState, Real *outState)
    for (Integer p = 0; p < 3; ++p)
    {
       p3 = 3*p;
-      outState[p]   = rotDataT[p3]   * pos[0]   + 
-                      rotDataT[p3+1] * pos[1] + 
-                      rotDataT[p3+2] * pos[2];
-      outState[p+3] = (rotDotDataT[p3]    * pos[0]   + 
-                       rotDotDataT[p3+1]  * pos[1] + 
-                       rotDotDataT[p3+2]  * pos[2])
-                      +
-                      (rotDataT[p3]    * vel[0]   + 
-                       rotDataT[p3+1]  * vel[1] + 
-                       rotDataT[p3+2]  * vel[2]);
+      outState[p] = RotationProducts(rotDataT + p3, pos);
+      outState[p+3] = RotationProducts(rotDataT + p3, vel, rotDotDataT + p3, pos);
    }     
    #ifdef DEBUG_CALCS
       MessageInterface::ShowMessage(

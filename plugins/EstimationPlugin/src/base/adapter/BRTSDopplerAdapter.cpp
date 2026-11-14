@@ -979,6 +979,8 @@ const MeasurementData& BRTSDopplerAdapter::CalculateMeasurement(bool withEvents,
       ObservationData* forObservation, std::vector<RampTableData>* rampTable,
       bool forSimulation)
 {
+   ObservationEpochGuard observationEpoch(cMeasurement, forObservation);
+
    #ifdef DEBUG_DOPPLER_CALCULATION
       MessageInterface::ShowMessage("BRTSDopplerAdapter::CalculateMeasurement(%s, "
             "<%p>, <%p>) called\n", (withEvents ? "true" : "false"), forObservation,
@@ -989,7 +991,7 @@ const MeasurementData& BRTSDopplerAdapter::CalculateMeasurement(bool withEvents,
 
    GmatTime computeEpoch;
    if (forObservation)
-      computeEpoch = forObservation->epochGT;
+      computeEpoch = forObservation->GetEpochInA1();
    else
    {
       for (UnsignedInt i = 0; i < refObjects.size(); ++i)
@@ -1075,6 +1077,7 @@ const MeasurementData& BRTSDopplerAdapter::CalculateMeasurement(bool withEvents,
 #ifdef DEBUG_DOPPLER_CALCULATION
       MessageInterface::ShowMessage("Compute range for End Long-Path...\n");
 #endif
+      calcData->SetIntegrationInterval(dopplerCountInterval);
       BRTSRangeAdapter::CalculateMeasurement(withEvents, forObservation, rampTB, forSimulation);
 #ifdef DEBUG_DOPPLER_CALCULATION
       MessageInterface::ShowMessage("Complete calculation range for End Long-Path.\n");
@@ -1099,8 +1102,7 @@ const MeasurementData& BRTSDopplerAdapter::CalculateMeasurement(bool withEvents,
          obData = new ObservationData(*forObservation);
       else
          obData = new ObservationData();
-      obData->epochGT = tm;
-      obData->epoch   = tm.GetMjd();
+      obData->SetReceiverEpochInA1(tm);
 
       // 2.3.2. Compute range in Km w/o any noise and bias for End-Short path
       // For End-Short path, range calculation does not add bias and noise to calculated value
@@ -1347,7 +1349,7 @@ const MeasurementData& BRTSDopplerAdapter::CalculateMeasurement(bool withEvents,
                   {
                      // add pass bias
                      // specify pass number associate to the current observation
-                     Real passBias = measErrorModel->GetPassBias(cMeasurement.epochGT);
+                     Real passBias = measErrorModel->GetPassBias(observationEpoch.GetEpoch(cMeasurement.epochGT));
                      cMeasurement.value[i] = cMeasurement.value[i] + passBias;                       // pass bias unit: Km/s
                      cMeasurement.correction[i] = cMeasurement.correction[i] + passBias;             // pass bias unit: Km/s
                   }

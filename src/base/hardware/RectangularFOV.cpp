@@ -25,6 +25,7 @@
  */
  //------------------------------------------------------------------------------
 #include "RectangularFOV.hpp"
+#include <memory>
 #include "RealUtilities.hpp"
 #include "GmatConstants.hpp"
 #include "FieldOfViewException.hpp"
@@ -145,7 +146,9 @@ RectangularFOV::~RectangularFOV()
 //------------------------------------------------------------------------------
 GmatBase* RectangularFOV::Clone() const
 {
-	return new RectangularFOV(*this);
+	std::unique_ptr<RectangularFOV> value(new RectangularFOV(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //------------------------------------------------------------------------------
@@ -472,4 +475,18 @@ Real RectangularFOV::GetRealParameter(const std::string &label) const
 Real RectangularFOV::SetRealParameter(const std::string &label, const Real value)
 {
 	return SetRealParameter(GetParameterID(label), value);
+}
+
+// Whole-object script assignment and GmatFunction outputs use this virtual API.
+// Retain the existing class assignment logic and the destination's identity.
+void RectangularFOV::Copy(const GmatBase* source)
+{
+   const auto* typed = dynamic_cast<const RectangularFOV*>(source);
+   if (!typed || typed->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Cannot copy into " + GetTypeName() +
+                             " from a null or incompatible object");
+   if (typed == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*typed);
+   RebindFunctionValueContext(*typed);
 }

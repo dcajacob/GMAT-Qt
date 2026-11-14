@@ -1,0 +1,152 @@
+name: Qt preview packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      reuse_windows_run:
+        description: Optional run ID containing a verified Windows package with identical production sources
+        required: false
+        default: ''
+        type: string
+      reuse_native_run:
+        description: Optional prior run with exact compiled native inputs for packaging-only retries
+        required: false
+        default: ''
+        type: string
+      reuse_macos_arm64_run:
+        description: Optional run containing a verified Apple Silicon package with identical production sources
+        required: false
+        default: ''
+        type: string
+      reuse_macos_x64_run:
+        description: Optional run containing a verified Intel Mac package with identical production sources
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2022
+            platform: windows-x64
+          - runner: macos-15
+            platform: macos-arm64
+          - runner: macos-15-intel
+            platform: macos-x64
+    # Exact ZIP/source verification is platform independent; native execution
+    # already happened in the selected producer. Use a native runner only
+    # when this job actually builds and executes the application.
+    runs-on: >-
+      ${{ ((matrix.platform == 'windows-x64' && inputs.reuse_windows_run != '') ||
+           (matrix.platform == 'macos-arm64' && inputs.reuse_macos_arm64_run != '') ||
+           (matrix.platform == 'macos-x64' && inputs.reuse_macos_x64_run != '')) &&
+          'ubuntu-latest' || matrix.runner }}
+    env:
+      REUSE_PACKAGE_RUN: ${{ matrix.platform == 'windows-x64' && inputs.reuse_windows_run || matrix.platform == 'macos-arm64' && inputs.reuse_macos_arm64_run || matrix.platform == 'macos-x64' && inputs.reuse_macos_x64_run || '' }}
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore Windows dependency SDK
+        if: matrix.platform == 'windows-x64' && env.REUSE_PACKAGE_RUN == '' && inputs.reuse_native_run == ''
+        id: windows-sdk
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/preview-package/deps/osg
+            C:\vcpkg\installed
+          key: gmat-qt-preview-windows-2022-osg365-sdk-v1
+      - name: Restore compiled native inputs for packaging retry
+        if: inputs.reuse_native_run != '' && env.REUSE_PACKAGE_RUN == ''
+        uses: actions/download-artifact@v4
+        with:
+          name: native-inputs-${{ matrix.platform }}
+          run-id: ${{ inputs.reuse_native_run }}
+          github-token: ${{ github.token }}
+          path: build/preview-package/reuse-native
+      - name: Wait for the existing Windows native build
+        if: matrix.platform == 'windows-x64' && env.REUSE_PACKAGE_RUN != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REUSE_RUN_ID: ${{ env.REUSE_PACKAGE_RUN }}
+        run: python tools/preview/WaitForWindowsPackage.py
+      - name: Reuse verified native package
+        if: env.REUSE_PACKAGE_RUN != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: package-${{ matrix.platform }}
+          run-id: ${{ env.REUSE_PACKAGE_RUN }}
+          github-token: ${{ github.token }}
+          path: build/preview-package/dist
+      - name: Verify reused source and artifact identities
+        if: env.REUSE_PACKAGE_RUN != ''
+        run: python tools/preview/VerifyReusedPackage.py build/preview-package/dist ${{ matrix.platform }}
+      - name: Build and verify portable package
+        if: env.REUSE_PACKAGE_RUN == ''
+        run: python tools/preview/BuildPreviewPackage.py --platform ${{ matrix.platform }}
+      - name: Preserve build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-${{ matrix.platform }}
+          path: build/preview-package/logs/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Preserve completed Windows dependency SDK
+        if: always() && matrix.platform == 'windows-x64' && steps.windows-sdk.outputs.cache-hit != 'true' && hashFiles('build/preview-package/deps/osg/preview-sdk-sha256.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build/preview-package/deps/osg
+            C:\vcpkg\installed
+          key: gmat-qt-preview-windows-2022-osg365-sdk-v1
+      - name: Preserve compiled native inputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-inputs-${{ matrix.platform }}
+          path: build/preview-package/native-inputs-*.tar.gz
+          if-no-files-found: ignore
+          retention-days: 3
+      - name: Upload verified package
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.platform }}
+          path: build/preview-package/dist/*
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: package-*
+          merge-multiple: true
+          path: dist
+      - name: Publish private preview downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PREVIEW_COMMIT: ${{ github.sha }}
+          PREVIEW_TAG: qt-preview-20261104-${{ github.run_number }}
+        run: |
+          cat > release-notes.txt <<'EOF'
+          Frozen Qt 6 GMAT preview for exploratory testing.
+
+          Windows: unzip the entire folder, then open bin/GmatQt.exe. If Windows reports a missing VCRUNTIME140 or MSVCP140 library, install Microsoft's x64 Visual C++ Redistributable: https://aka.ms/vc14/vc_redist.x64.exe .
+          Mac: unzip and keep the extracted folder together, then open GMAT-Qt.app inside it. Choose arm64 for Apple Silicon or x64 for Intel; macOS 15 or newer. The Mac apps are ad-hoc signed, without Apple notarization.
+
+          Optional licensed MATLAB/fmincon and VF13ad components are excluded. Each package passed its bundled native mission probe and independent state comparison. This is a preview; full scientific, platform and NASA acceptance remain incomplete. Source-versioned campaign coverage is 1052/1158.
+          EOF
+          gh release create "$PREVIEW_TAG" dist/* --target "$PREVIEW_COMMIT" --prerelease --title "Qt preview — 2026-11-04 (build $GITHUB_RUN_NUMBER)" --notes-file release-notes.txt

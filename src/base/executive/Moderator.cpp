@@ -36,6 +36,8 @@
 //------------------------------------------------------------------------------
 
 #include "Moderator.hpp"
+#include "Validator.hpp"
+#include <memory>
 
 // factories
 #include "AtmosphereFactory.hpp"
@@ -88,6 +90,7 @@
 #include <errno.h>                 
 
 #include <chrono>
+#include <exception>                // for mission completion diagnostics
 
 #ifdef __linux__
    #include <iostream>              // to detect GUI plugins
@@ -170,6 +173,19 @@
 //#define __CREATE_DEFAULT_BC__
 //#define __SHOW_FINAL_STATE__
 //#define __DISABLE_SOLAR_SYSTEM_CLONING__
+
+namespace
+{
+// Opening Script Event markers group their contents; they do not change which
+// first command selects the mission's execution/preparation mode. Do not skip
+// assignments, branch commands or any other preceding executable command.
+GmatCommand *FirstSequenceCommand(GmatCommand *command)
+{
+   while (command && command->GetTypeName() == "BeginScript")
+      command = command->GetNext();
+   return command;
+}
+}
 
 //---------------------------------
 // static data
@@ -1339,6 +1355,22 @@ void Moderator::SetInterpreterMapAndSS(Interpreter *interp)
 //------------------------------------------------------------------------------
 // void SetObjectMap(ObjectMap *objMap)
 //------------------------------------------------------------------------------
+std::function<void()> Moderator::CaptureInterpreterContext()
+{
+   return [this, objects = objectMapInUse, previous = previousObjectMap,
+         function = currentFunction, system = theInternalSolarSystem,
+         manage = objectManageOption]() noexcept
+   {
+      // Restore actual navigation slots, including null, without setter side
+      // effects or rolling back the objects created by nested interpretation.
+      objectMapInUse = objects;
+      previousObjectMap = previous;
+      currentFunction = function;
+      theInternalSolarSystem = system;
+      objectManageOption = manage;
+   };
+}
+
 void Moderator::SetObjectMap(ObjectMap *objMap)
 {
    if (objMap != NULL)
@@ -2432,6 +2464,17 @@ GmatBase* Moderator::CreateObject(UnsignedInt objTypeId, const std::string &type
       
       // Add object to object map in use
       AddObjectToObjectMapInUse(name, obj, objTypeId);
+
+      if (objTypeId == Gmat::ATTITUDE && objectManageOption == 1)
+      {
+         // Named main-script attitude prototypes also serialize numeric state.
+         // Supply their declared frame; runtime/function instances are rebound
+         // by ObjectInitializer to the active local/global reference maps.
+         const std::string frameName = obj->GetRefObjectName(Gmat::COORDINATE_SYSTEM);
+         GmatBase *frame = FindObject(frameName);
+         if (frame && frame->IsOfType(Gmat::COORDINATE_SYSTEM))
+            obj->SetRefObject(frame, Gmat::COORDINATE_SYSTEM, frameName);
+      }
       
       // @todo Set defaults if creating default object
       
@@ -2707,7 +2750,9 @@ CelestialBody* Moderator::CreateCelestialBody(const std::string &type,
    #endif
    if (GetCelestialBody(name) == NULL)
    {
-      CelestialBody *obj = theFactoryManager->CreateCelestialBody(type, name);
+      std::unique_ptr<CelestialBody> pendingBody(
+         theFactoryManager->CreateCelestialBody(type, name));
+      CelestialBody *obj = pendingBody.get();
       
       if (obj == NULL)
          throw GmatBaseException
@@ -2729,7 +2774,10 @@ CelestialBody* Moderator::CreateCelestialBody(const std::string &type,
       obj->SetUserDefined(true);
       obj->SetSolarSystem(ss);
       obj->SetUpBody(); //Added so that it works inside a GmatFunction (LOJ: 2010.04.30)
-      ss->AddBody(obj);
+      if (!ss->AddBody(obj))
+         throw GmatBaseException("Unable to register celestial body \"" + name + "\"\n");
+      // SolarSystem takes ownership only after registration succeeds.
+      pendingBody.release();
       #ifdef DEBUG_CREATE_BODY
       MessageInterface::ShowMessage
          ("Moderator::CreateCelestialBody() Created CelestialBody <%p> "
@@ -6208,7 +6256,17 @@ GmatCommand* Moderator::InterpretGmatFunction(Function *funct, ObjectMap *objMap
                               "InterpretGmatFunction()");
    
    GmatCommand *cmd = NULL;
-   cmd = theScriptInterpreter->InterpretGmatFunction(funct);
+   try
+   {
+      cmd = theScriptInterpreter->InterpretGmatFunction(funct);
+   }
+   catch (...)
+   {
+      // Function parsing may fail before returning a control sequence. Do
+      // not retain a function context while the GUI rebuilds its mission.
+      currentFunction = NULL;
+      throw;
+   }
    
    // Do not reset configuration changed flag here (LOJ: 2015.10.4 GMT5374)
    // #if DEBUG_GMAT_FUNCTION
@@ -7248,6 +7306,49 @@ Integer Moderator::RunMission(Integer sandboxNum)
    //MessageInterface::ShowMessage("Moderator::RunMission() entered\n");
    MessageInterface::ShowMessage("Running mission...\n");
    Integer status = 1;
+   // Completion is best effort across independent phases. A terminal failure
+   // must neither report success nor prevent UI/configuration restoration.
+   // Preserve a prior execution failure status; promote a successful or stopped
+   // run to failure if its completion fails.
+   auto completePhase = [&status](const char *phase, auto action)
+   {
+      try
+      {
+         action();
+      }
+      catch (BaseException &error)
+      {
+         if (status == 1 || status == -4)
+            status = -5;
+         try
+         {
+            MessageInterface::ShowMessage("Mission completion error (%s): %s\n",
+                  phase, error.GetFullMessage().c_str());
+         }
+         catch (...) {}
+      }
+      catch (const std::exception &error)
+      {
+         if (status == 1 || status == -4)
+            status = -6;
+         try
+         {
+            MessageInterface::ShowMessage("Mission completion error (%s): %s\n",
+                  phase, error.what());
+         }
+         catch (...) {}
+      }
+      catch (...)
+      {
+         if (status == 1 || status == -4)
+            status = -6;
+         try
+         {
+            MessageInterface::ShowMessage("Mission completion error (%s): unknown exception\n", phase);
+         }
+         catch (...) {}
+      }
+   };
    // Set to 1 to always run the mission and get the sandbox error message
    // Changed this code while looking at Bug 1532 (LOJ: 2009.11.13)
    isRunReady = true;
@@ -7382,8 +7483,8 @@ Integer Moderator::RunMission(Integer sandboxNum)
          else
          {
             // Execute only the PrepareMissionSequence command
-            GmatCommand *cmd = commands[sandboxNum-1]->GetNext();
-            if (cmd->GetTypeName() == "PrepareMissionSequence")
+            GmatCommand *cmd = FirstSequenceCommand(commands[sandboxNum-1]->GetNext());
+            if (cmd && cmd->GetTypeName() == "PrepareMissionSequence")
                cmd->Execute();
          }
       }
@@ -7424,7 +7525,10 @@ Integer Moderator::RunMission(Integer sandboxNum)
          #endif
 
          // Tell commands to reset their run states
-         commands[sandboxNum-1]->RunComplete(true);
+         completePhase("command reset", [&]()
+         {
+            commands[sandboxNum-1]->RunComplete(true);
+         });
 
          //throw; // LOJ: We want to finish up the clearing process below
       }
@@ -7438,72 +7542,94 @@ Integer Moderator::RunMission(Integer sandboxNum)
    }
    
    runState = Gmat::IDLE;
-   thePublisher->SetRunState(runState);
-   thePublisher->NotifyEndOfRun();
+   completePhase("publisher idle state", [&]()
+   {
+      thePublisher->SetRunState(runState);
+   });
+   completePhase("subscriber end-of-run notification", [&]()
+   {
+      thePublisher->NotifyEndOfRun();
+   });
    if (theUiInterpreter != NULL)
-      theUiInterpreter->NotifyRunCompleted();
+      completePhase("UI completion notification", [&]()
+      {
+         theUiInterpreter->NotifyRunCompleted();
+      });
    
-   #if DEBUG_RUN > 1
-   MessageInterface::ShowMessage("===> status=%d\n", status);
-   #endif
-   
-   if (status == 1)
-      MessageInterface::ShowMessage("\nMission run completed.\n");
-   else if (status == -4)
-      MessageInterface::ShowMessage("\n *** Mission run interrupted.\n");
-   else
-      MessageInterface::ShowMessage("\n *** Mission run failed.\n");
-   
-//   clock_t t2 = clock();
-
-   std::chrono::system_clock::time_point time2 = std::chrono::system_clock::now();
-   long int millis2 =
-         std::chrono::duration_cast<std::chrono::milliseconds>
-         (time2.time_since_epoch()).count();
-
-   Real ms = millis2 - millis1;
-
-   //MessageInterface::ShowMessage
-   //   ("===> Total Run Time: %f seconds\n", (Real)(t2-t1)/CLOCKS_PER_SEC);
-   
-   MessageInterface::ShowMessage
-      ("===> Total Run Time: %.3lf seconds\n", (ms/1000));
-
-   #ifdef DEBUG_MEMORY
-   StringArray tracks = MemoryTracker::Instance()->GetTracks(false, false);
-   MessageInterface::ShowMessage
-      ("===> There are %d memory tracks after MissionRun\n", tracks.size());
-   #endif
-   
-   // show final state
-   #ifdef __SHOW_FINAL_STATE__
-   showFinalState = true;
-   #endif
-   
-   if (showFinalState)
+   completePhase("run diagnostics", [&]()
    {
-      GmatCommand *cmd = GetFirstCommand();
-      MessageInterface::ShowMessage(GmatCommandUtil::GetCommandSeqString(cmd));
-      GmatCommand *lastCmd = GmatCommandUtil::GetLastCommand(cmd);
+      #if DEBUG_RUN > 1
+      MessageInterface::ShowMessage("===> status=%d\n", status);
+      #endif
+   
+   //   clock_t t2 = clock();
+
+      std::chrono::system_clock::time_point time2 = std::chrono::system_clock::now();
+      long int millis2 =
+            std::chrono::duration_cast<std::chrono::milliseconds>
+            (time2.time_since_epoch()).count();
+
+      Real ms = millis2 - millis1;
+
+      //MessageInterface::ShowMessage
+      //   ("===> Total Run Time: %f seconds\n", (Real)(t2-t1)/CLOCKS_PER_SEC);
+   
+      MessageInterface::ShowMessage
+         ("===> Total Run Time: %.3lf seconds\n", (ms/1000));
+
+      #ifdef DEBUG_MEMORY
+      StringArray tracks = MemoryTracker::Instance()->GetTracks(false, false);
+      MessageInterface::ShowMessage
+         ("===> There are %d memory tracks after MissionRun\n", tracks.size());
+      #endif
+   
+      // show final state
+      #ifdef __SHOW_FINAL_STATE__
+      showFinalState = true;
+      #endif
+   
+      if (showFinalState)
+      {
+         GmatCommand *cmd = GetFirstCommand();
+         MessageInterface::ShowMessage(GmatCommandUtil::GetCommandSeqString(cmd));
+         GmatCommand *lastCmd = GmatCommandUtil::GetLastCommand(cmd);
       
-      MessageInterface::ShowMessage("\n========== Final State ==========\n");
-      MessageInterface::ShowMessage(lastCmd->GetStringParameter("MissionSummary"));
-      MessageInterface::ShowMessage("\n\n");      
-   }
-   else
-   {
-      MessageInterface::ShowMessage("\n========================================\n");
-   }
+         MessageInterface::ShowMessage("\n========== Final State ==========\n");
+         MessageInterface::ShowMessage(lastCmd->GetStringParameter("MissionSummary"));
+         MessageInterface::ShowMessage("\n\n");      
+      }
+      else
+      {
+         MessageInterface::ShowMessage("\n========================================\n");
+      }
    
+   });
+
    // Reset solar system in use and object map (LOJ: 2009.03.19)
    // So that users can create new objects from the GUI after GmatFunction run.
-   objectMapInUse = theConfigManager->GetObjectMap();
-   SetSolarSystemAndObjectMap(theSolarSystemInUse, objectMapInUse, false,
-                              "RunMission()");
+   completePhase("configured solar system and object map", [&]()
+   {
+      objectMapInUse = theConfigManager->GetObjectMap();
+      SetSolarSystemAndObjectMap(theSolarSystemInUse, objectMapInUse, false,
+                                 "RunMission()");
+   });
    // Reset the EOP file to its start-up file value (since it may have been 
    // changed on the Earth object)
-   std::string origEopName = theFileManager->GetFullPathname("EOP_FILE");
-   GmatGlobal::Instance()->GetEopFile()->ResetEopFile(origEopName);
+   completePhase("startup EOP file", [&]()
+   {
+      std::string origEopName = theFileManager->GetFullPathname("EOP_FILE");
+      GmatGlobal::Instance()->GetEopFile()->ResetEopFile(origEopName);
+   });
+
+   completePhase("run outcome message", [&]()
+   {
+      if (status == 1)
+         MessageInterface::ShowMessage("\nMission run completed.\n");
+      else if (status == -4)
+         MessageInterface::ShowMessage("\n *** Mission run interrupted.\n");
+      else
+         MessageInterface::ShowMessage("\n *** Mission run failed.\n");
+   });
 
    exitCode = status;
 
@@ -7675,6 +7801,12 @@ std::string Moderator::GetMainScriptFileName()
 bool Moderator::InterpretScript(const std::string &filename, bool readBack,
                                 const std::string &newPath)
 {
+   return InterpretScript(filename, readBack, newPath, false);
+}
+
+bool Moderator::InterpretScript(const std::string &filename, bool readBack,
+                                const std::string &newPath, bool allowUtf8)
+{
    #if DEBUG_INTERPRET
    MessageInterface::ShowMessage
       ("Moderator::InterpretScript() entered\n   filename='%s', readBack=%d, "
@@ -7717,7 +7849,8 @@ bool Moderator::InterpretScript(const std::string &filename, bool readBack,
       if (theUiInterpreter != NULL)
          theUiInterpreter->ResetIconFile();
       
-      isGoodScript = theScriptInterpreter->Interpret(filename);
+      isGoodScript = allowUtf8 ? theScriptInterpreter->Interpret(filename, true) :
+            theScriptInterpreter->Interpret(filename);
       foundBeginMissionSeq = theScriptInterpreter->FoundBeginMissionSequence();
       
       #ifdef DEBUG_MEMORY
@@ -7760,7 +7893,7 @@ bool Moderator::InterpretScript(const std::string &filename, bool readBack,
          }
          
          SaveScript(newfile);
-         InterpretScript(newfile);
+         InterpretScript(newfile, false, "", allowUtf8);
       }
       
       if (isGoodScript)
@@ -7799,6 +7932,7 @@ bool Moderator::InterpretScript(const std::string &filename, bool readBack,
       // Append BeginMissionSequence command if not there (New since 2010.07.09)
       GmatCommand *first = GetFirstCommand();
       GmatCommand *second = first->GetNext();
+      GmatCommand *sequenceStart = FirstSequenceCommand(second);
 
       
       #if DEBUG_INTERPRET
@@ -7806,7 +7940,7 @@ bool Moderator::InterpretScript(const std::string &filename, bool readBack,
       #endif
       
       std::string firstCommandType = 
-         (second != NULL ? second->GetTypeName() : "");
+         (sequenceStart != NULL ? sequenceStart->GetTypeName() : "");
       
       if (!IsSequenceStarter(firstCommandType))
       {
@@ -7855,7 +7989,7 @@ bool Moderator::InterpretScript(const std::string &filename, bool readBack,
          InsertCommand(bms, first);
       }
       
-      if (second != NULL && second->GetTypeName() == "PrepareMissionSequence")
+      if (sequenceStart != NULL && sequenceStart->GetTypeName() == "PrepareMissionSequence")
          loadSandboxAndPause = true;
       else
          loadSandboxAndPause = false;
@@ -7912,6 +8046,7 @@ bool Moderator::InterpretScript(std::istringstream *ss, bool clearObjs)
    #endif
    bool isGoodScript = false;
    isRunReady = false;
+   loadSandboxAndPause = false;
    endOfInterpreter = false;
    runState = Gmat::IDLE;
    
@@ -7934,6 +8069,8 @@ bool Moderator::InterpretScript(std::istringstream *ss, bool clearObjs)
             ("Moderator::InterpretScript() successfully interpreted the script\n");
          #endif
          
+         GmatCommand *sequenceStart = FirstSequenceCommand(GetFirstCommand()->GetNext());
+         loadSandboxAndPause = sequenceStart && sequenceStart->GetTypeName() == "PrepareMissionSequence";
          isRunReady = true;
       }
       else
@@ -8019,9 +8156,32 @@ std::string Moderator::GetScript(Gmat::WriteMode mode)
    try
    {
       std::stringstream os;
+      // Serialization can be requested while a function is executing. Do not
+      // retain a pointer to this stack stream or replace the active scope map.
+      struct SerializationContext
+      {
+         ScriptInterpreter *interpreter;
+         std::ostream *stream;
+         ObjectMap *objects;
+         ObjectMap *validatorObjects;
+         ObjectMap *savedModeratorObjects;
+         ObjectMap *savedPreviousObjects;
+         ObjectMap *&moderatorObjects;
+         ObjectMap *&previousObjects;
+         ~SerializationContext()
+         {
+            interpreter->SetOutStream(stream);
+            if (objects) interpreter->SetObjectMap(objects);
+            if (validatorObjects) Validator::Instance()->SetObjectMap(validatorObjects);
+            moderatorObjects = savedModeratorObjects;
+            previousObjects = savedPreviousObjects;
+         }
+      } context{theScriptInterpreter, theScriptInterpreter->GetOutStream(),
+                theScriptInterpreter->GetObjectMap(), Validator::Instance()->GetObjectMap(),
+                objectMapInUse, previousObjectMap, objectMapInUse, previousObjectMap};
       theScriptInterpreter->SetOutStream(&os);
       
-      if (theScriptInterpreter->Build(mode))
+      if (theScriptInterpreter->Build(mode) && os.good())
       {
          return os.str();
       }
@@ -9649,7 +9809,13 @@ void Moderator::SetParameterRefObject(Parameter *param, const std::string &type,
                 depObj->GetTypeName().c_str(), depObj->GetName().c_str());
          }
          #endif
-         param->AddRefObject(depObj);
+         if (type == "HA" && depObj->IsOfType(Gmat::COORDINATE_SYSTEM))
+         {
+            param->SetRefObjectName(Gmat::COORDINATE_SYSTEM, newDep);
+            param->SetRefObject(depObj, Gmat::COORDINATE_SYSTEM, newDep);
+         }
+         else
+            param->AddRefObject(depObj);
       }
    }
    

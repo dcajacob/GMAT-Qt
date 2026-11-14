@@ -71,7 +71,9 @@
             <entry><para> Field to set the parameters the desired row, the
             first entry in this array must be the row number desired. Ex.
             MyDynamicDataDisplay.AddParameters = {1, Sat.X, Array(2,
-            1)};</para> <variablelist>
+            1)}; An empty assignment, <literal>AddParameters = {};</literal>,
+            clears the complete table and its parameter bindings before new
+            rows are added.</para> <variablelist>
                 <varlistentry>
                   <term>Data Type</term>
 
@@ -853,6 +855,34 @@
       warning and critical bound colors will not be applied even if bounds are
       violated.</para>
     </refsection>
+  </refsection>
+
+  <refsection>
+    <title>Saving the table layout and cell appearance</title>
+    <para>Save begins a DynamicDataDisplay snapshot with
+    <literal>AddParameters = {};</literal> and then records every row. Reading
+    successive snapshots therefore replaces the layout, including shorter or
+    empty tables, instead of appending cells to the earlier layout.</para>
+    <para>Four additional write-only row properties preserve cell appearance by
+    position, including blank cells. Each accepts a one-based row number followed
+    by settings for consecutive columns of an existing row:</para>
+    <programlisting><code>myDisplay.RowBackgroundColors = {1, White, [20 30 40]};
+myDisplay.RowTextColorModes = {1, Auto, Manual};
+myDisplay.RowWarnBounds = {1, [-1000 1000], [-50 50]};
+myDisplay.RowCritBounds = {1, [-3000 3000], [-100 100]};</code></programlisting>
+    <para><literal>RowTextColorModes</literal> selects automatic warning/critical
+    coloring or keeps the cell's selected text color. Manual mode can retain a
+    fixed black color. Set the colors with <literal>RowTextColors</literal> before
+    setting the modes; Auto resets the initial text color to black and allows
+    later data updates to apply warning/critical colors. Existing black/zero
+    behavior in <literal>TextColor</literal> and <literal>RowTextColors</literal>
+    is unchanged.</para>
+    <para>Explicit snapshots write the row properties for the complete layout,
+    including default backgrounds, bounds and automatic modes. Ordinary script
+    saving uses these extra forms when a blank-cell setting or fixed black text
+    color cannot be expressed by the older parameter-name forms. Readers need
+    support for these row properties. Values shown as warning/critical output
+    colors are recalculated; they are not saved as manual color overrides.</para>
   </refsection>
 
   <refsection>

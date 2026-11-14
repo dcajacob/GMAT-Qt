@@ -8,6 +8,7 @@
          xmlns:html="http://www.w3.org/1999/xhtml"
          xmlns:db="http://docbook.org/ns/docbook">
   <title>Force Models</title>
+  <para>For every Report command, list Sat1.A1ModJulian first, followed by Sat1.X, Sat1.Y, Sat1.Z, Sat1.VX, Sat1.VY and Sat1.VZ. The epoch column is part of the shipped report and is needed to identify each leg endpoint.</para>
 
   <section>
     <title>Objective and Overview</title>
@@ -197,7 +198,7 @@
                 </listitem>
 
                 <listitem>
-                  <para>Set the Min Step Size to 30</para>
+                  <para>Set the Min Step Size to 0</para>
                 </listitem>
 
                 <listitem>
@@ -251,7 +252,7 @@
                 </listitem>
 
                 <listitem>
-                  <para>Set the Min Step Size to 30</para>
+                  <para>Set the Min Step Size to 0</para>
                 </listitem>
 
                 <listitem>
@@ -295,7 +296,7 @@
                 </listitem>
 
                 <listitem>
-                  <para>Set the Min Step Size to 30</para>
+                  <para>Set the Min Step Size to 0</para>
                 </listitem>
 
                 <listitem>
@@ -324,8 +325,7 @@
                 </listitem>
 
                 <listitem>
-                  <para>Set the Initial Step Size to 30, as for the other
-                  fixed-step propagators</para>
+                  <para>Set the Initial Step Size to 60, as for the other propagators</para>
                 </listitem>
 
                 <listitem>
@@ -333,7 +333,7 @@
                 </listitem>
 
                 <listitem>
-                  <para>Set the Min Step Size to 30</para>
+                  <para>Set the Min Step Size to 0</para>
                 </listitem>
 
                 <listitem>
@@ -376,7 +376,7 @@
                 </listitem>
 
                 <listitem>
-                  <para>Set the Min Step Size to 30</para>
+                  <para>Set the Min Step Size to 0</para>
                 </listitem>
 
                 <listitem>
@@ -420,7 +420,7 @@
                 </listitem>
 
                 <listitem>
-                  <para>Set the Min Step Size to 30</para>
+                  <para>Set the Min Step Size to 0</para>
                 </listitem>
 
                 <listitem>
@@ -441,9 +441,7 @@
                 </listitem>
 
                 <listitem>
-                  <para>In RKV89SRP, set StopIfAccuracyIsViolated to false.
-                  This permits the fixed 30-second demonstration to continue
-                  when its requested accuracy cannot be met</para>
+                  <para>Keep StopIfAccuracyIsViolated true. MinStep 0 permits the integrator to reduce a step to meet Accuracy 1e-12, as in the shipped script.</para>
                 </listitem>
               </itemizedlist>
             </listitem>
@@ -554,8 +552,7 @@
       </listitem>
 
       <listitem>
-        <para>Append the Mission Sequence Folder with a Report: Add Sat1.X, Y,
-        Z, VX, VY, and VZ to the Parameter List</para>
+        <para>Append the Mission Sequence Folder with a Report: add Sat1.A1ModJulian first, then Sat1.X, Y, Z, VX, VY and VZ to the Parameter List</para>
       </listitem>
 
       <listitem>
@@ -830,15 +827,7 @@
     models. This sequential demonstration is not a controlled comparison of
     models from identical initial states.</para>
 
-    <para>The report has seven rows of six Cartesian state values: the initial
-    state and one endpoint for each 0.1-day leg. The last epoch is 04 Jan 2003
-    14:24:00 UTC. The fixed-step SRP leg can print an accuracy-violation warning
-    even with StopIfAccuracyIsViolated false; retain and inspect that warning.
-    Completing this observation tutorial does not demonstrate that 1e-12
-    accuracy was met. The supplied comparison script allows smaller steps,
-    whereas the instructions above deliberately retain 30-second fixed steps.
-    Mission Summary reports the leg epochs; whole-mission timing alone does
-    not measure the cost of each force model.</para>
+    <para>The final elapsed time is 14:24:00 UTC. Keep MinStep 0 for all six propagators, as in the shipped comparison script. A fixed 30-second minimum is a different integration configuration and must be treated as a separate experiment.</para>
 
     <screenshot>
       <info>

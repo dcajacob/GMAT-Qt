@@ -51,6 +51,7 @@
 #define SpiceInterface_hpp
 
 #include "gmatdefs.hpp"
+#include <cstdint>
 #include "A1Mjd.hpp"
 #include "Rvector6.hpp"
 #include "Rmatrix33.hpp"
@@ -65,11 +66,17 @@ extern "C"
 #define MAX_LONG_MESSAGE_VALUE 1840
 #define MAX_SHORT_MESSAGE_VALUE 320
 
+class GmatTime;
+
 class GMAT_API SpiceInterface
 {
 public:
    /// static method to check for valid kernels
    static bool         IsValidKernel(const std::string &fileName, const std::string &ofType);
+   // Cache identity for native pool mutations. Direct native CSPICE callers
+   // notify before a mutation, including one that can partially fail.
+   static std::uint64_t GetKernelPoolRevision() noexcept;
+   static void         NotifyKernelPoolChanged() noexcept;
 
    /// class methods
    SpiceInterface();
@@ -94,7 +101,14 @@ public:
    virtual Integer     GetNaifID(const std::string &forObj, bool popupMsg = true);
    
    virtual Real        SpiceTimeToA1(SpiceDouble spiceTime);
+   // Preserve seconds relative to J2000 through the native nonlinear clock.
+   GmatTime SpiceTimeToA1GT(SpiceDouble spiceTime);
    virtual SpiceDouble A1ToSpiceTime(Real a1Time);
+   SpiceDouble A1ToSpiceTime(const GmatTime &a1Time);
+   // Return the same encoded ET and the precise A1 epoch it represents.
+   // A caller must sample its state at canonicalEpoch before using that tag.
+   SpiceDouble A1ToSpiceTime(const GmatTime &a1Time,
+                            GmatTime &canonicalEpoch);
 
    static const Integer     DEFAULT_NAIF_ID;
    static const Integer     DEFAULT_NAIF_ID_REF_FRAME;
@@ -134,6 +148,9 @@ protected:
 
    static std::string FindKernel(const std::string &withName);
    
+   // Query KEEPER without furnishing a file or changing its load priority.
+   StringArray GetLoadedKernelNames(const std::string &kind);
+   std::string ResolveLoadedKernel(const std::string &fileName);
    virtual std::string GetFullKernelPath(const std::string &forKernel);
 
 };

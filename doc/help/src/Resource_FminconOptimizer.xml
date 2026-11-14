@@ -45,6 +45,17 @@
     <para>This resource cannot be modified in the Mission Sequence. This
     resource is unavailable for use in the API.</para>
 
+    <para>Each execution of an Optimize block starts a fresh solve, including
+    repeated executions inside a loop. Convergence and iteration information
+    belong to that execution. A MATLAB evaluation failure stops the solve and
+    reports its error; it does not continue with results from an earlier solve.</para>
+
+    <para>Working-directory and MATLAB search-path settings preserve spaces
+    and apostrophes in directory names. Connection setup reports failed path
+    changes or unreadable support-file checks before starting optimization.</para>
+
+    <para xml:id="FminconOptimizer_UnitConventions">MATLAB receives the variables after the additive and multiplicative scaling configured by Vary. Finite-difference limits therefore use scaled-variable units. Relative stopping criteria are dimensionless; absolute criteria retain scaled-variable, objective, gradient or constraint units. TolFun is a legacy name used for function and optimality tolerances. These descriptions do not imply automatic unit conversion.</para>
+
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="VF13ad"/>,<xref linkend="Optimize"/>,<xref linkend="Vary"/>,
     <xref linkend="NonlinearConstraint"/>, <xref linkend="Minimize"/></para>
@@ -112,7 +123,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>scaled-variable units</para>
                   </listitem>
                 </varlistentry>
 
@@ -170,7 +181,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>scaled-variable units</para>
                   </listitem>
                 </varlistentry>
 
@@ -229,7 +240,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>evaluations</para>
                   </listitem>
                 </varlistentry>
 
@@ -529,7 +540,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>constraint units</para>
                   </listitem>
                 </varlistentry>
 
@@ -584,7 +595,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>dimensionless or objective/gradient units</para>
                   </listitem>
                 </varlistentry>
 
@@ -640,7 +651,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>dimensionless or scaled-variable units</para>
                   </listitem>
                 </varlistentry>
 

@@ -1,0 +1,122 @@
+{
+  "cases": [
+    {
+      "key": "Sun",
+      "body": "Sun",
+      "type": "Star",
+      "user": false,
+      "historical_key": "H2012:R924",
+      "unresolved_keys": []
+    },
+    {
+      "key": "Mercury",
+      "body": "Mercury",
+      "type": "Planet",
+      "user": false,
+      "historical_key": "H2012:R729",
+      "unresolved_keys": []
+    },
+    {
+      "key": "Venus",
+      "body": "Venus",
+      "type": "Planet",
+      "user": false,
+      "historical_key": "H2012:R1002",
+      "unresolved_keys": []
+    },
+    {
+      "key": "Luna",
+      "body": "Luna",
+      "type": "Moon",
+      "user": false,
+      "historical_key": "H2012:R651",
+      "unresolved_keys": []
+    },
+    {
+      "key": "Mars",
+      "body": "Mars",
+      "type": "Planet",
+      "user": false,
+      "historical_key": "H2012:R690",
+      "unresolved_keys": []
+    },
+    {
+      "key": "Jupiter",
+      "body": "Jupiter",
+      "type": "Planet",
+      "user": false,
+      "historical_key": "H2012:R612",
+      "unresolved_keys": []
+    },
+    {
+      "key": "Saturn",
+      "body": "Saturn",
+      "type": "Planet",
+      "user": false,
+      "historical_key": null,
+      "unresolved_keys": [
+        "H2012:R885"
+      ]
+    },
+    {
+      "key": "Uranus",
+      "body": "Uranus",
+      "type": "Planet",
+      "user": false,
+      "historical_key": "H2012:R963",
+      "unresolved_keys": []
+    },
+    {
+      "key": "Neptune",
+      "body": "Neptune",
+      "type": "Planet",
+      "user": false,
+      "historical_key": "H2012:R807",
+      "unresolved_keys": []
+    },
+    {
+      "key": "Pluto",
+      "body": "Pluto",
+      "type": "Planet",
+      "user": false,
+      "historical_key": "H2012:R846",
+      "unresolved_keys": []
+    },
+    {
+      "key": "Moon",
+      "body": "ScriptMoon",
+      "type": "Moon",
+      "user": true,
+      "historical_key": null,
+      "unresolved_keys": [
+        "H2012:R573",
+        "H2012:R768",
+        "H2012:R1041"
+      ]
+    },
+    {
+      "key": "Asteroid",
+      "body": "ScriptAsteroid",
+      "type": "Asteroid",
+      "user": true,
+      "historical_key": "H2012:R417",
+      "unresolved_keys": []
+    },
+    {
+      "key": "Comet",
+      "body": "ScriptComet",
+      "type": "Comet",
+      "user": true,
+      "historical_key": "H2012:R456",
+      "unresolved_keys": []
+    },
+    {
+      "key": "Planet",
+      "body": "ScriptPlanet",
+      "type": "Planet",
+      "user": true,
+      "historical_key": "H2012:R495",
+      "unresolved_keys": []
+    }
+  ]
+}

@@ -32,6 +32,10 @@
 
 
 #include "NotAKnotInterpolator.hpp"
+#include <algorithm>
+#include <array>
+#include <memory>
+#include <typeinfo>
 #include "MessageInterface.hpp"
 
 //#define DUMP_SPLINE_POINTS
@@ -53,6 +57,8 @@
 NotAKnotInterpolator::NotAKnotInterpolator(const std::string &name,
                                            Integer dim) :
    Interpolator        (name, "NotAKnotInterpolator", dim),
+   h                   {},
+   A                   {},
    lastX               (-9.9999e75)
 {
    bufferSize = 5;
@@ -98,6 +104,11 @@ NotAKnotInterpolator::~NotAKnotInterpolator()
 //------------------------------------------------------------------------------
 NotAKnotInterpolator::NotAKnotInterpolator(const NotAKnotInterpolator &csi) :
    Interpolator       (csi),
+   a                  {},
+   b                  {},
+   c                  {},
+   d                  {},
+   delta              {},
    lastX              (csi.lastX)
 {
    B[0]  = NULL;
@@ -109,14 +120,14 @@ NotAKnotInterpolator::NotAKnotInterpolator(const NotAKnotInterpolator &csi) :
    s[3]  = NULL;
    s[4]  = NULL;
    
-   CopyArrays(csi);
-   
    Integer i, j;
    for (i = 0; i < bufferSize; ++i)
    {
       x[i]  = -9.9999e75;
       y[i]  = NULL;
    }
+   if (csi.independent)
+      CopyArrays(csi);
    
    for (i = 0; i < 4; i++)
       h[i] = csi.h[i];
@@ -146,11 +157,12 @@ NotAKnotInterpolator& NotAKnotInterpolator::operator=
    if (&csi == this)
       return *this;
    
-   CleanupArrays();
+   Interpolator::operator=(csi);
    
    lastX = csi.lastX;
    
-   CopyArrays(csi);
+   if (csi.independent)
+      CopyArrays(csi);
    
    Integer i, j;
    
@@ -244,32 +256,32 @@ bool NotAKnotInterpolator::Interpolate(const Real ind, Real *results)
 //------------------------------------------------------------------------------
 void NotAKnotInterpolator::AllocateArrays()
 {
+   std::array<std::unique_ptr<Real[]>,5> nextY, nextS;
+   std::array<std::unique_ptr<Real[]>,4> nextA, nextB, nextC, nextD, nextDelta;
+   std::array<std::unique_ptr<Real[]>,3> nextRhs;
+   for (Integer row = 0; row < 5; ++row)
+   {
+      nextY[row] = std::make_unique<Real[]>(dimension);
+      nextS[row] = std::make_unique<Real[]>(dimension);
+   }
+   for (Integer row = 0; row < 4; ++row)
+   {
+      nextA[row] = std::make_unique<Real[]>(dimension); nextB[row] = std::make_unique<Real[]>(dimension);
+      nextC[row] = std::make_unique<Real[]>(dimension); nextD[row] = std::make_unique<Real[]>(dimension);
+      nextDelta[row] = std::make_unique<Real[]>(dimension);
+   }
+   for (auto &row : nextRhs) row = std::make_unique<Real[]>(dimension);
    Interpolator::AllocateArrays();
-
-   Integer i;
-   for (i = 0; i < bufferSize; ++i)
+   for (Integer row = 0; row < 5; ++row)
    {
-      y[i]  = new Real[dimension];
+      y[row] = nextY[row].release(); s[row] = nextS[row].release();
    }
-   
-   for (Integer j = 0; j < 4; ++j)
+   for (Integer row = 0; row < 4; ++row)
    {
-      a[j] = new Real[dimension];
-      b[j] = new Real[dimension];
-      c[j] = new Real[dimension];
-      d[j] = new Real[dimension];
-      delta[j] = new Real[dimension];
+      a[row] = nextA[row].release(); b[row] = nextB[row].release();
+      c[row] = nextC[row].release(); d[row] = nextD[row].release(); delta[row] = nextDelta[row].release();
    }
-   
-   B[0] = new Real[dimension];
-   B[1] = new Real[dimension];
-   B[2] = new Real[dimension];
-   s[0] = new Real[dimension];
-   s[1] = new Real[dimension];
-   s[2] = new Real[dimension];
-   s[3] = new Real[dimension];
-   s[4] = new Real[dimension];   
-    
+   for (Integer row = 0; row < 3; ++row) B[row] = nextRhs[row].release();
    latestPoint = -1;
 }
 
@@ -347,6 +359,8 @@ void NotAKnotInterpolator::CopyArrays(const NotAKnotInterpolator &i)
       x[j] = i.x[j];
       memcpy( y[j],  i.y[j], dimension*sizeof(Real));
    }
+   for (Integer row = 0; row < 5; ++row) std::copy_n(i.s[row], dimension, s[row]);
+   for (Integer row = 0; row < 3; ++row) std::copy_n(i.B[row], dimension, B[row]);
    for (Integer j = 0; j < 4; ++j)
    {
       memcpy(a[j],  i.a[j], dimension*sizeof(Real));
@@ -585,3 +599,53 @@ Interpolator* NotAKnotInterpolator::Clone() const
    return (new NotAKnotInterpolator(*this));
 }
 
+
+void NotAKnotInterpolator::ValidateRestorationLayout(const NotAKnotInterpolator &source) const
+{
+   if (typeid(*this) != typeid(NotAKnotInterpolator) || bufferSize != 5)
+      throw InterpolatorException("A changed not-a-knot spline needs native preparation.");
+   ValidateTableRestoration(source);
+   for (const auto *value : {this, &source})
+   {
+      const bool allocated = value->independent != nullptr;
+      for (Integer row = 0; row < 5; ++row)
+         if ((value->y[row] != nullptr) != allocated || (value->s[row] != nullptr) != allocated)
+            throw InterpolatorException("Incomplete not-a-knot spline scratch rows.");
+      for (Integer row = 0; row < 4; ++row)
+         for (const auto *array : {value->a[row], value->b[row], value->c[row], value->d[row], value->delta[row]})
+            if ((array != nullptr) != allocated)
+               throw InterpolatorException("Incomplete not-a-knot spline coefficients.");
+      for (Integer row = 0; row < 3; ++row)
+         if ((value->B[row] != nullptr) != allocated)
+            throw InterpolatorException("Incomplete not-a-knot spline right-hand side.");
+   }
+}
+
+void NotAKnotInterpolator::RestoreValues(const NotAKnotInterpolator &source)
+{
+   if (&source == this) return;
+   ValidateRestorationLayout(source);
+   RestoreTableValues(source);
+   const auto restore = [&](Real *target, const Real *from)
+   {
+      if (target)
+      {
+         if (from) std::copy_n(from, dimension, target);
+         else std::fill_n(target, dimension, 0.0);
+      }
+   };
+   for (Integer row = 0; row < 5; ++row)
+   {
+      x[row] = source.x[row]; restore(y[row], source.y[row]); restore(s[row], source.s[row]);
+   }
+   for (Integer row = 0; row < 4; ++row)
+   {
+      h[row] = source.h[row]; restore(a[row], source.a[row]); restore(b[row], source.b[row]);
+      restore(c[row], source.c[row]); restore(d[row], source.d[row]); restore(delta[row], source.delta[row]);
+   }
+   for (Integer row = 0; row < 3; ++row)
+   {
+      std::copy_n(source.A[row], 3, A[row]); restore(B[row], source.B[row]);
+   }
+   lastX = source.lastX;
+}

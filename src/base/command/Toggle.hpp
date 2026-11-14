@@ -49,6 +49,7 @@ class GMAT_API Toggle : public GmatCommand
 public:
    Toggle();
    virtual ~Toggle();
+   void RetireFunctionBindings(ObjectMap *store) override;
 
    Toggle(const Toggle& t);
    Toggle& operator=(const Toggle& t);

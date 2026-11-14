@@ -148,7 +148,12 @@ bool MHA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* MHA::Clone(void) const
 {
-   return new MHA(*this);
+   return CompleteParameterClone(new MHA(*this));
+}
+
+void MHA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<MHA>(source);
 }
 
 
@@ -267,7 +272,12 @@ bool Longitude::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* Longitude::Clone(void) const
 {
-   return new Longitude(*this);
+   return CompleteParameterClone(new Longitude(*this));
+}
+
+void Longitude::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Longitude>(source);
 }
 
 
@@ -384,7 +394,12 @@ bool Altitude::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* Altitude::Clone(void) const
 {
-   return new Altitude(*this);
+   return CompleteParameterClone(new Altitude(*this));
+}
+
+void Altitude::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Altitude>(source);
 }
 
 
@@ -503,7 +518,12 @@ bool Latitude::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* Latitude::Clone(void) const
 {
-   return new Latitude(*this);
+   return CompleteParameterClone(new Latitude(*this));
+}
+
+void Latitude::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Latitude>(source);
 }
 
 
@@ -622,5 +642,10 @@ bool LST::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* LST::Clone(void) const
 {
-   return new LST(*this);
+   return CompleteParameterClone(new LST(*this));
+}
+
+void LST::Copy(const GmatBase *source)
+{
+   CopyParameterValue<LST>(source);
 }

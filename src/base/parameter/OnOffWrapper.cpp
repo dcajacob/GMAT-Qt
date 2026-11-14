@@ -120,6 +120,14 @@ ElementWrapper* OnOffWrapper::Clone() const
    return new OnOffWrapper(*this);
 }
 
+void OnOffWrapper::RebindClonedReferences(const ElementWrapper &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   CheckCloneType(source);
+   (void)resolve;
+}
+
+
 
 
 //------------------------------------------------------------------------------

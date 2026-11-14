@@ -122,5 +122,10 @@ bool SurfaceHeight::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SurfaceHeight::Clone() const
 {
-   return new SurfaceHeight(*this);
+   return CompleteParameterClone(new SurfaceHeight(*this));
+}
+
+void SurfaceHeight::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SurfaceHeight>(source);
 }

@@ -31,6 +31,8 @@
 
 
 #include "SpaceObject.hpp"
+#include "PlotOriginScope.hpp"
+#include "OrbitStmContext.hpp"
 #include "MessageInterface.hpp"
 
 
@@ -84,6 +86,7 @@ SpaceObject::SpaceObject(UnsignedInt typeId, const std::string &typeStr,
 {
    objectTypes.push_back(Gmat::SPACEOBJECT);
    objectTypeNames.push_back("SpaceObject");
+   OrbitStmContext::Register(this);
 }
 
 
@@ -96,6 +99,7 @@ SpaceObject::SpaceObject(UnsignedInt typeId, const std::string &typeStr,
 //------------------------------------------------------------------------------
 SpaceObject::~SpaceObject()
 {
+   OrbitStmContext::Forget(this);
 }
 
 
@@ -120,6 +124,7 @@ SpaceObject::SpaceObject(const SpaceObject& so) :
    hasEphemPropagated(so.hasEphemPropagated)
 {
    j2000Body = so.j2000Body;
+   OrbitStmContext::Register(this, &so);
 }
 
 
@@ -139,11 +144,26 @@ SpaceObject& SpaceObject::operator=(const SpaceObject& so)
    if (this == &so)
       return *this;
       
+   const bool restoring = GmatBase::IsNativeRestorationCopy();
+   if (restoring)
+   {
+      state.ValidateRestorationLayout(so.state);
+      if (originName != so.originName || (origin && so.origin && origin != so.origin))
+         throw SpaceObjectException("Restoration requires the same active origin binding.");
+   }
    SpacePoint::operator=(so);
-   state         = so.state;
+   if (restoring) state.RestoreValues(so.state);
+   else state = so.state;
+   // Ordinary SpacePoint assignment preserves its GmatBase metadata. Match
+   // this owner's clock mode to the complete GmatState value just copied;
+   // otherwise precise stamps survive in storage but readers select Real.
+   hasPrecisionTime = state.HasPrecisionTime();
    isManeuvering = so.isManeuvering;
-   originName    = so.originName;
-   origin        = so.origin;
+   if (!restoring)
+   {
+      originName = so.originName;
+      origin = so.origin;
+   }
    parmsChanged  = true;       // Always update after using assignment
    lastStopTriggered = so.lastStopTriggered;
    hasPublished  = so.hasPublished;
@@ -371,7 +391,9 @@ const Rvector6 SpaceObject::GetMJ2000State(const A1Mjd &atTime)
       throw SpaceObjectException(errmsg);
    }
          
-   Real *st = state.GetState(); //ps.GetState();
+   const auto *sample = OrbitStmContext::Scope::Find(this, atTime.Get());
+   if (!sample) sample = PlotOriginScope::Find(this, atTime.Get());
+   const Real *st = sample ? sample->GetDataVector() : state.GetState(); //ps.GetState();
 
    #ifdef DEBUG_J2000_STATE
       MessageInterface::ShowMessage("   %s Object state: [%lf %lf %lf %lf %lf "
@@ -437,7 +459,9 @@ const Rvector6 SpaceObject::GetMJ2000State(const GmatTime &atTime)
       throw SpaceObjectException(errmsg);
    }
 
-   Real *st = state.GetState(); //ps.GetState();
+   const auto *sample = OrbitStmContext::Scope::Find(this, atTime);
+   if (!sample) sample = PlotOriginScope::Find(this, atTime);
+   const Real *st = sample ? sample->GetDataVector() : state.GetState(); //ps.GetState();
 
 #ifdef DEBUG_J2000_STATE
    MessageInterface::ShowMessage("   %s Object state: [%lf %lf %lf %lf %lf "
@@ -676,7 +700,10 @@ GmatTime SpaceObject::GetGmatTimeParameter(const std::string &label) const
 Real SpaceObject::SetRealParameter(const Integer id, const Real value)
 {
    if (id == EPOCH_PARAM)
+   {
+      state.SetEpochGT(GmatTime(value));
       return state.SetEpoch(value);
+   }
    return SpacePoint::SetRealParameter(id, value);
 }
 

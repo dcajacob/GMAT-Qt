@@ -9,6 +9,7 @@
 #include "GmatGlobal.hpp"
 #include "BaseException.hpp"
 #include <QApplication>
+#include <QEventLoop>
 #include <QAction>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -37,11 +38,20 @@
 #include <functional>
 
 static void require(bool ok,const char *message) { if (!ok) throw std::runtime_error(message); }
+// Opt-in viewing only: ordinary CTest timing and assertions are unchanged.
+static int watchDelay() { return qBound(0,qEnvironmentVariableIntValue("GMAT_QT_WATCH_MS"),5000); }
+static void watchPoint(const char *step)
+{
+   if (!watchDelay()) return;
+   std::cout<<"WATCH: "<<step<<std::endl;
+   QEventLoop loop; QTimer::singleShot(watchDelay(),&loop,&QEventLoop::quit); loop.exec();
+}
+
 static void write(const QString &path,const QByteArray &bytes) { QFile file(path); require(file.open(QIODevice::WriteOnly) && file.write(bytes)==bytes.size(),"Desktop fixture write failed"); }
 static void escape(QWidget *widget) { QKeyEvent key(QEvent::KeyPress,Qt::Key_Escape,Qt::NoModifier); QApplication::sendEvent(widget,&key); }
 static void later(QWidget *owner,std::exception_ptr &failure,std::function<void()> action)
 {
-   QTimer::singleShot(0,owner,[owner,&failure,action] { try { action(); } catch (...) { failure=std::current_exception(); for (auto *dialog:owner->findChildren<QDialog *>()) dialog->reject(); } });
+   QTimer::singleShot(watchDelay(),owner,[owner,&failure,action] { try { action(); } catch (...) { failure=std::current_exception(); for (auto *dialog:owner->findChildren<QDialog *>()) dialog->reject(); } });
 }
 int main(int argc,char **argv)
 {
@@ -51,6 +61,8 @@ int main(int argc,char **argv)
    QDir::setCurrent(QFileInfo(startup).absolutePath());
    try {
       TestSettings settings; MainWindow window; window.show(); require(window.initialize(startup),"Desktop runtime unavailable");
+      if (watchDelay()) std::cout<<"WATCH: Qt platform="<<QGuiApplication::platformName().toStdString()<<" DISPLAY="<<qgetenv("DISPLAY").constData()<<std::endl;
+      watchPoint("Main workspace and mission source");
       auto *editor=window.findChild<QPlainTextEdit *>("scriptEditor"); const auto original=editor->toPlainText();
       editor->appendPlainText("% retain pending text while inspecting About"); const auto pending=editor->toPlainText();
       const auto root=QString::fromStdString(FileManager::Instance()->GetRootPath()); QFile license(QDir(root).filePath("License.txt"));
@@ -95,10 +107,10 @@ int main(int argc,char **argv)
          auto *tree=window.findChild<QTreeWidget *>("Resources"); require(tree,"Resource tree missing");
          const auto items=tree->findItems(name,Qt::MatchExactly|Qt::MatchRecursive); require(items.size()==1,"Apply resource missing");
          require(QMetaObject::invokeMethod(tree,"itemDoubleClicked",Qt::DirectConnection,Q_ARG(QTreeWidgetItem *,items[0]),Q_ARG(int,0)),"Resource cannot open");
-         for (auto *child:workspace->subWindowList()) if (child->property("resourceName").toString()==name) return child;
+         for (auto *child:workspace->subWindowList()) if (child->property("resourceName").toString()==name) { watchPoint("Opened resource editor"); return child; }
          throw std::runtime_error("Apply panel missing");
       };
-      auto apply=[](QMdiSubWindow *child) { child->widget()->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click(); };
+      auto apply=[](QMdiSubWindow *child) { watchPoint("Pending editor changes before Apply"); child->widget()->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click(); watchPoint("Apply result or validation message"); };
       auto *v=open("V"),*w=open("W"),*sat=open("Sat");
       auto *oldSat=sat->widget(); auto *section=oldSat->findChild<QTabBar *>("propertySections"); section->setCurrentIndex(section->count()-1);
       oldSat->findChild<QLineEdit *>("propertyFilter")->setText("DryMass"); oldSat->findChild<QTableWidget *>("resourceProperties")->setColumnWidth(0,211);
@@ -114,6 +126,7 @@ int main(int argc,char **argv)
       dynamic_cast<EditablePanel *>(w->widget())->discardChanges(); w->close();
       require(window.runMission()==MainWindow::RunResult::Completed,"Repeated Apply mission failed");
       QFile result(report); require(result.open(QIODevice::ReadOnly),"Apply report missing"); const auto expectedReport=result.readAll(); result.close();
+      watchPoint("Executed report mission; checking Undo and Redo next");
       editor->undo(); const auto firstApply=editor->toPlainText(); require(firstApply!=current,"Repeated Apply Undo missing"); editor->undo(); require(editor->toPlainText()==prefix+mission,"First Apply Undo not exact"); editor->redo(); require(editor->toPlainText()==firstApply,"First Apply Redo not exact"); editor->redo(); require(editor->toPlainText()==current,"Repeated Apply Redo not exact");
       require(window.saveScriptTo(files.filePath("Apply ü.script")) && window.loadScript(files.filePath("Apply ü.script")) && window.runMission()==MainWindow::RunResult::Completed,"Apply save/reopen failed");
       require(result.open(QIODevice::ReadOnly) && result.readAll()==expectedReport,"Apply save/reopen changed calculations"); result.close();
@@ -147,6 +160,7 @@ int main(int argc,char **argv)
          require(editor->toPlainText().contains("% retain command comment"),"Command Apply lost its comment");
          if (step=="2") firstCommandScript=editor->toPlainText();
       }
+      watchPoint("Accepted command edits");
       const auto acceptedCommandScript=editor->toPlainText();
       auto *bad=command->widget()->findChild<QPlainTextEdit *>("commandSource"); bad->setPlainText("V = MissingName;"); apply(command);
       require(editor->toPlainText()==acceptedCommandScript && dynamic_cast<CommandEditor *>(command->widget())->hasChanges() && bad->toPlainText()=="V = MissingName;","Failed command Apply lost accepted source or pending text");
@@ -165,7 +179,7 @@ int main(int argc,char **argv)
          for (int i=0;i<snapshot.nodes.size();++i) if (snapshot.nodes[i].type=="If") anchor=i;
          require(anchor>=0,"Insertion branch anchor missing"); tree->expandAll(); auto *selected=item(anchor); tree->scrollToItem(selected); QApplication::processEvents();
          std::exception_ptr menuFailure;
-         QTimer::singleShot(0,&window,[&] {
+         QTimer::singleShot(watchDelay(),&window,[&] {
             try {
                auto *menu=qobject_cast<QMenu *>(QApplication::activePopupWidget()); require(menu,"Insertion menu did not open"); QAction *choice=nullptr;
                for (auto *action:menu->actions()) if (action->text()==operation) choice=action;
@@ -179,6 +193,7 @@ int main(int argc,char **argv)
          require(editor->toPlainText().count("V + 6")==1 && !editor->toPlainText().contains("V + 5") && editor->toPlainText().contains("If V > 0") && editor->toPlainText().contains("W = W + 1"),"Second insertion Apply duplicated the command or edited its anchor");
          insert->close();
       }
+      watchPoint("Completed visible desktop checks");
       std::cout<<"PASS: About menu engine/build/runtime details, credits, exact offline license, read-only/search/Close/Escape, compact layout, missing/malformed license correction and pending mission/Undo preservation\n";
       std::cout<<"PASS: repeated workspace Apply keeps resource windows open, refreshes clean snapshots/page/filter/columns, preserves other pending edits, rejects stale Apply, exact Undo/Redo, Unicode save/reopen and independent numeric reports\n";
       std::cout<<"PASS: repeated command Apply stays open and refreshes accepted controls, rejects invalid changes without losing pending text, exact Undo/Redo, Unicode save/reopen and independent reports; before/after-branch/append insertion becomes editing without duplication\n";

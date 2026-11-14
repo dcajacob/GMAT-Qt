@@ -29,6 +29,7 @@
 
 
 #include "SolarPowerSystem.hpp"
+#include <memory>
 #include "StringUtil.hpp"          // for GmatStringUtil
 #include "HardwareException.hpp"
 #include "MessageInterface.hpp"
@@ -200,6 +201,11 @@ SolarPowerSystem& SolarPowerSystem::operator=(const SolarPowerSystem& copy)
    #endif
    if (&copy != this)
    {
+      const bool restoring = GmatBase::IsNativeRestorationCopy();
+      if (restoring && (shadowBodyNames != copy.shadowBodyNames || shadowModel != copy.shadowModel ||
+          defaultShadowBodyNames != copy.defaultShadowBodyNames ||
+          (shadowState == nullptr) != (copy.shadowState == nullptr)))
+         throw HardwareException("Prepare solar shadow bindings before changing an active restoration graph.");
       PowerSystem::operator=(copy);
 
       solarCoeff1       = copy.solarCoeff1;
@@ -222,22 +228,29 @@ SolarPowerSystem& SolarPowerSystem::operator=(const SolarPowerSystem& copy)
       {
          defaultShadowBodyNames.push_back((copy.defaultShadowBodyNames).at(i));
       }
-      shadowBodies.clear();
-      // copy the list of body pointers - do I want to do this???
-      for (unsigned int i = 0; i < (copy.shadowBodies).size(); i++)
+      if (!restoring)
       {
-         shadowBodies.push_back((copy.shadowBodies).at(i));
+         shadowBodies.clear();
+         // copy the list of body pointers - do I want to do this???
+         for (unsigned int i = 0; i < (copy.shadowBodies).size(); i++)
+         {
+            shadowBodies.push_back((copy.shadowBodies).at(i));
+         }
+
       }
 
       shadowModel = copy.shadowModel;
 
-      if (shadowState)
+      if (!restoring)
       {
-         delete shadowState;
-         shadowState        = NULL;
-      }
+         if (shadowState)
+         {
+            delete shadowState;
+            shadowState        = NULL;
+         }
 
-      shadowState           = new ShadowState();
+         shadowState           = new ShadowState();
+      }
    }
 
    #ifdef DEBUG_SOLAR_POWER
@@ -256,6 +269,17 @@ SolarPowerSystem& SolarPowerSystem::operator=(const SolarPowerSystem& copy)
  */
 //------------------------------------------------------------------------------
 bool SolarPowerSystem::Initialize()
+{
+   return InitializeResource(GetFunctionValueContext() != nullptr);
+}
+
+bool SolarPowerSystem::InitializeClonedResource()
+{
+   if (spacecraft) scOrigin = spacecraft->GetOrigin();
+   return InitializeResource(true);
+}
+
+bool SolarPowerSystem::InitializeResource(bool preserveBindings)
 {
    #ifdef DEBUG_SOLAR_POWER
       MessageInterface::ShowMessage("Calling Initialization on %s\n",
@@ -279,25 +303,26 @@ bool SolarPowerSystem::Initialize()
       shadowBodyNames = defaultShadowBodyNames;
 //      shadowBodyNames.push_back("Earth");
 
-   // Set up the list of shadowBodies using current solarSystem
-   shadowBodies.clear();
-   for (unsigned int ii = 0; ii < shadowBodyNames.size(); ii++)
+   // Keep actual mapped body identities in retained values; normal native
+   // initialization still resolves all declarations in the current system.
+   std::vector<CelestialBody*> selected;
+   for (const std::string &name : shadowBodyNames)
    {
-      CelestialBody *body = solarSystem->GetBody(shadowBodyNames.at(ii));
+      CelestialBody *body = NULL;
+      if (preserveBindings)
+         for (CelestialBody *candidate : shadowBodies)
+            if (candidate && candidate->GetName() == name)
+            {
+               if (body && body != candidate) throw HardwareException("Ambiguous retained solar shadow body.");
+               body = candidate;
+            }
+      if (!body) body = solarSystem->GetBody(name);
       if (!body)
-      {
-         std::string errmsg = "SolarPowerSystem ";
-         errmsg += instanceName + " cannot find body ";
-         errmsg += shadowBodyNames.at(ii) + ".  ShadowBodies must be ";
-         errmsg += "Celestial Bodies.\n";
-         throw HardwareException(errmsg);
-      }
-      shadowBodies.push_back(body);
-      #ifdef DEBUG_SOLAR_POWER
-         MessageInterface::ShowMessage("Adding shadow body %s to %s\n",
-               body->GetName().c_str(), instanceName.c_str());
-      #endif
+         throw HardwareException("SolarPowerSystem " + instanceName +
+               " cannot find shadow body " + name + ".");
+      selected.push_back(body);
    }
+   shadowBodies.swap(selected);
 
    if (!shadowState)
       shadowState = new ShadowState();
@@ -318,7 +343,9 @@ bool SolarPowerSystem::Initialize()
 //---------------------------------------------------------------------------
 GmatBase* SolarPowerSystem::Clone() const
 {
-   return new SolarPowerSystem(*this);
+   std::unique_ptr<SolarPowerSystem> value(new SolarPowerSystem(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //---------------------------------------------------------------------------
@@ -334,7 +361,13 @@ GmatBase* SolarPowerSystem::Clone() const
 //---------------------------------------------------------------------------
 void SolarPowerSystem::Copy(const GmatBase* orig)
 {
-   operator=(*((SolarPowerSystem *)(orig)));
+   const auto *source = dynamic_cast<const SolarPowerSystem*>(orig);
+   if (!source || source->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Incompatible SolarPowerSystem value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 //------------------------------------------------------------------------------
@@ -350,6 +383,35 @@ void SolarPowerSystem::SetSpacecraft(Spacecraft *sc)
 //------------------------------------------------------------------------------
 //  bool TakeAction(const std::string &action,const std::string &actionData)
 //------------------------------------------------------------------------------
+void SolarPowerSystem::SetField(const Integer id, const StringArray &value)
+{
+   if (id != SHADOW_BODIES) { PowerSystem::SetField(id, value); return; }
+   if (value == shadowBodyNames && (!value.empty() || settingNoBodies)) return;
+   StringArray names(value), seen;
+   std::vector<CelestialBody*> bodies;
+   for (const auto &name : names)
+   {
+      if (!GmatStringUtil::IsValidIdentity(name) || std::find(seen.begin(), seen.end(), name) != seen.end())
+         throw HardwareException("Invalid or repeated solar shadow body: " + name);
+      seen.push_back(name);
+      CelestialBody *selected = nullptr;
+      for (auto *body : shadowBodies)
+         if (body && body->GetName() == name)
+         {
+            if (selected && selected != body) throw HardwareException("Ambiguous solar shadow body: " + name);
+            selected = body;
+         }
+      if (!selected && solarSystem) selected = solarSystem->GetBody(name);
+      if (!selected && spacecraft && spacecraft->IsInitialized())
+         throw HardwareException("Cannot bind solar shadow body: " + name);
+      if (selected) bodies.push_back(selected);
+   }
+   shadowBodyNames.swap(names);
+   shadowBodies.swap(bodies);
+   settingNoBodies = value.empty();
+   isInitialized = false;
+}
+
 bool SolarPowerSystem::TakeAction(const std::string &action,
                                   const std::string &actionData)
 {
@@ -551,15 +613,16 @@ std::string SolarPowerSystem::GetParameterUnit(const Integer id) const
    switch (id)
    {
    case SOLAR_COEFF1:
-      return "kW?";       // these are TBD
+      // GetPowerGenerated uses r = Sun distance / one AU in its scale factor.
+      return "dimensionless";
    case SOLAR_COEFF2:
-      return "kW?";
+      return "dimensionless";
    case SOLAR_COEFF3:
-      return "kW?";
+      return "dimensionless";
    case SOLAR_COEFF4:
-      return "kW?";
+      return "dimensionless";
    case SOLAR_COEFF5:
-      return "kW?";
+      return "dimensionless";
    default:
       return PowerSystem::GetParameterUnit(id);
    }
@@ -1011,4 +1074,30 @@ bool SolarPowerSystem::WriteEmptyStringArray(Integer id)
    if (id == SHADOW_BODIES)
       return true;
    return PowerSystem::WriteEmptyStringArray(id);
+}
+
+void SolarPowerSystem::RebindClonedReferences(const PowerSystem &source,
+      SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *original = dynamic_cast<const SolarPowerSystem*>(&source);
+   if (!original) throw HardwareException("Incompatible retained SolarPowerSystem.");
+   if (original == this) return;
+   std::vector<CelestialBody*> bodies;
+   StringArray names = original->shadowBodyNames;
+   for (CelestialBody *from : original->shadowBodies)
+   {
+      if (!from) throw HardwareException("Null retained solar shadow body.");
+      auto *to = dynamic_cast<CelestialBody*>(resolve(from));
+      if (!to || to->GetTypeName() != from->GetTypeName())
+         throw HardwareException("Incompatible retained solar shadow body.");
+      bodies.push_back(to);
+      for (std::string &name : names) if (name == from->GetName()) name = to->GetName();
+   }
+   std::unique_ptr<ShadowState> evaluator(new ShadowState());
+   evaluator->SetSolarSystem(system);
+   PowerSystem::RebindClonedReferences(source, system, resolve);
+   shadowBodies.swap(bodies);
+   shadowBodyNames.swap(names);
+   delete shadowState;
+   shadowState = evaluator.release();
 }

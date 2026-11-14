@@ -209,7 +209,7 @@ bool SpiceAxes::Initialize()
          origin->GetName().c_str(), origin);
 #endif
    AxisSystem::Initialize();
-   if (originName == GmatSolarSystemDefaults::EARTH_NAME) InitializeFK5();
+   if (GetOriginPhysicalName() == GmatSolarSystemDefaults::EARTH_NAME) InitializeFK5();
 
    // Check for spacecraft origin whose attitude does not compute rates
    if (origin && origin->IsOfType("Spacecraft"))

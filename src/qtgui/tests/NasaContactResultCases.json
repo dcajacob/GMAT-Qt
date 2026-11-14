@@ -1,0 +1,242 @@
+{
+  "cases": [
+    {
+      "key": "MultiStation",
+      "target": "Sat",
+      "observers": [
+        "North",
+        "East",
+        "Dark"
+      ],
+      "events": {
+        "North": [
+          {
+            "start": 583.6585587859154,
+            "end": 1416.5373391509056,
+            "duration": 832.8787803649902
+          }
+        ],
+        "East": [
+          {
+            "start": 2773.493088543415,
+            "end": 3226.2079913020134,
+            "duration": 452.7149027585983
+          }
+        ],
+        "Dark": []
+      },
+      "initial_state": [
+        7000.0,
+        0.0,
+        0.0,
+        -0.0,
+        5.3358654506221255,
+        5.335865450622125
+      ],
+      "other_state": [
+        4.286263797015736e-13,
+        4949.747468305833,
+        4949.747468305833,
+        -7.546053287267836,
+        3.2672752723926677e-16,
+        3.267275272392667e-16
+      ],
+      "final_state": [
+        5244.7650189052365,
+        3278.142758977098,
+        3278.1427589770974,
+        -4.99763676852371,
+        3.9979086372868498,
+        3.997908637286849
+      ],
+      "mu": 398600.4415,
+      "duration": 6500,
+      "start": 0.0,
+      "end": 6500.0,
+      "bounded": false,
+      "write_report": true,
+      "time_tolerance": 0.002,
+      "duration_tolerance": 0.002
+    },
+    {
+      "key": "SingleStation",
+      "target": "Sat",
+      "observers": [
+        "East"
+      ],
+      "events": {
+        "East": [
+          {
+            "start": 2773.493088543415,
+            "end": 3226.2079913020134,
+            "duration": 452.7149027585983
+          }
+        ]
+      },
+      "initial_state": [
+        7000.0,
+        0.0,
+        0.0,
+        -0.0,
+        5.3358654506221255,
+        5.335865450622125
+      ],
+      "other_state": [
+        4.286263797015736e-13,
+        4949.747468305833,
+        4949.747468305833,
+        -7.546053287267836,
+        3.2672752723926677e-16,
+        3.267275272392667e-16
+      ],
+      "final_state": [
+        5244.7650189052365,
+        3278.142758977098,
+        3278.1427589770974,
+        -4.99763676852371,
+        3.9979086372868498,
+        3.997908637286849
+      ],
+      "mu": 398600.4415,
+      "duration": 6500,
+      "start": 0.0,
+      "end": 6500.0,
+      "bounded": false,
+      "write_report": true,
+      "time_tolerance": 0.002,
+      "duration_tolerance": 0.002
+    },
+    {
+      "key": "Bounded",
+      "target": "Sat",
+      "observers": [
+        "North",
+        "East",
+        "Dark"
+      ],
+      "events": {
+        "North": [
+          {
+            "start": 800.0,
+            "end": 1416.5373391509056,
+            "duration": 616.5373391509056
+          }
+        ],
+        "East": [
+          {
+            "start": 2773.493088543415,
+            "end": 3200.0,
+            "duration": 426.50691145658493
+          }
+        ],
+        "Dark": []
+      },
+      "initial_state": [
+        7000.0,
+        0.0,
+        0.0,
+        -0.0,
+        5.3358654506221255,
+        5.335865450622125
+      ],
+      "other_state": [
+        4.286263797015736e-13,
+        4949.747468305833,
+        4949.747468305833,
+        -7.546053287267836,
+        3.2672752723926677e-16,
+        3.267275272392667e-16
+      ],
+      "final_state": [
+        5244.7650189052365,
+        3278.142758977098,
+        3278.1427589770974,
+        -4.99763676852371,
+        3.9979086372868498,
+        3.997908637286849
+      ],
+      "mu": 398600.4415,
+      "duration": 6500,
+      "start": 800.0,
+      "end": 3200.0,
+      "bounded": true,
+      "write_report": true,
+      "time_tolerance": 0.002,
+      "duration_tolerance": 0.002
+    }
+  ],
+  "stations": [
+    {
+      "name": "North",
+      "latitude": 38.53145342651449,
+      "longitude": 128.14669391464798,
+      "height": 0.0,
+      "minimum_elevation": 0.0,
+      "fixed_position": [
+        -3085.8492467372366,
+        3928.931000186937,
+        3951.761031947185
+      ],
+      "up": [
+        -0.4831878954966736,
+        0.6151991720072575,
+        0.6229441679693939
+      ]
+    },
+    {
+      "name": "East",
+      "latitude": -3.7405234971532204,
+      "longitude": 250.7538450137314,
+      "height": 1.0,
+      "minimum_elevation": 15.0,
+      "fixed_position": [
+        -2098.2879823068383,
+        -6009.869738105753,
+        -413.3830356663609
+      ],
+      "up": [
+        -0.32892509234650275,
+        -0.9420999287350512,
+        -0.06523808628597345
+      ]
+    },
+    {
+      "name": "Dark",
+      "latitude": -80.0,
+      "longitude": 80.0,
+      "height": 0.0,
+      "minimum_elevation": 0.0,
+      "fixed_position": [
+        192.95174326159153,
+        1094.2837136230075,
+        -6259.542552652452
+      ],
+      "up": [
+        0.03015368960704583,
+        0.1710100716628344,
+        -0.984807753012208
+      ]
+    }
+  ],
+  "physical_inputs": {
+    "tt0": 64.184,
+    "earth_radii": [
+      6378.1366,
+      6378.1366,
+      6356.7519
+    ],
+    "sun_radius": 695700.0,
+    "kernels": {
+      "application/data/time/SPICELeapSecondKernel.tls": "678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b",
+      "application/data/planetary_coeff/SPICEPlanetaryConstantsKernel.tpc": "3dff7b1dbeceaa01f25467767d3fa25816051c85d162d1edf04acb310ee28bb1",
+      "application/data/planetary_ephem/spk/DE421AllPlanets.bsp": "d6f02ca7f99bcea29c472e4955b52faccd026ae3d5dbc7bd6306979b5b57ea99",
+      "application/data/planetary_coeff/SPICEEarthPredictedKernel.bpc": "f5ed4d1f460dbcf40bf24f657ab9021718048e18fb723093bfd229066b4e3a49",
+      "application/data/planetary_coeff/SPICEEarthCurrentKernel.bpc": "6d899c83542e32dfd77f3b3b79383db88860adca59adf60f4823780760589a52",
+      "application/data/planetary_coeff/earth_latest_high_prec.bpc": "94b3cedf59698eedf429ed50e25a2c9cec3e916cbc1bc5ce405671ce11b3a527",
+      "application/data/icrf/ICRF_Table.txt": "e6b3969a7961c56cacd37a3daa2a98d1d7d765e8605699d5151db2a5bde44547"
+    }
+  },
+  "equatorial_radius": 6378.1366,
+  "flattening": 0.0033528131084554717,
+  "scope": "Independent ellipsoid geodetic station algebra, normal-vector elevation and bisection roots for one prescribed6500s circular Earth orbit; multiple selected observers including no-contact membership, selected-only isolation and clipped interval. Geometric SPICE time/orientation and shared hashed FK5/ICRF data only, no native contact/GF/station conversion truth. Earth station shape is explicitly aligned with PCK to remove shape-input ambiguity; arbitrary configured-body shape/topocentric-frame consistency is not qualified. No light time, stellar, third-body occultation, FOV/masks, detailed azimuth/elevation/range/maxima, arbitrary trajectories, selectable rise-only/set-only semantics, native OS input/hardware/platform/stress/private current NASA or full current-build suite qualification."
+}

@@ -1,0 +1,185 @@
+#include "CommandEditor.hpp"
+#include "MissionModel.hpp"
+#include "InspectionDialog.hpp"
+#include "PropagationForm.hpp"
+#include "PropagationStopsDialog.hpp"
+#include "PropagationGroupsDialog.hpp"
+#include "PropagationColorDialog.hpp"
+#include "CommandForm.hpp"
+#include "ScriptEventDialog.hpp"
+#include <QComboBox>
+#include <QDialogButtonBox>
+#include <QFontDatabase>
+#include <QLabel>
+#include <QLineEdit>
+#include <QFormLayout>
+#include <QSignalBlocker>
+#include <QScrollArea>
+#include <stdexcept>
+#include <QMessageBox>
+#include <QPlainTextEdit>
+#include <QPushButton>
+#include <QVBoxLayout>
+#include <QRegularExpression>
+#include "Moderator.hpp"
+#include "GmatBase.hpp"
+CommandEditor::CommandEditor(const QString &statement,bool adding,const QMap<QString,QString> &templates,
+                             Apply apply,const QStringList &propagators,const QStringList &spacecraft,QWidget *parent,const QStringList &formations,std::function<void()> summary,std::function<QString()> corrections,std::function<QString(const QString &)> commandValidation,const QMap<QString,QString> &pendingFiniteResources)
+   : EditablePanel(parent),original(statement),inserting(adding)
+{
+   auto *layout=new QVBoxLayout(this);
+   layout->addWidget(new QLabel(adding ? "Insert mission command" : "Edit mission command",this));
+   auto *choices=new QComboBox(this); choices->setObjectName("commandTemplate");
+   choices->addItem("Choose a command template…"); choices->addItems(templates.keys());
+   if (adding) layout->addWidget(choices); else choices->hide();
+   source=new QPlainTextEdit(statement,this); source->setObjectName("commandSource");
+   source->setTabChangesFocus(true);
+   name=new QLineEdit(this); name->setObjectName("commandName");
+   name->setPlaceholderText("Optional command name");
+   name->setToolTip("Names appear in the Mission tree. Apply commits the name with the other pending command edits.");
+   auto *identity=new QFormLayout; identity->addRow("Name (optional)",name); layout->addLayout(identity);
+   auto helpTopic=[this] {
+      auto text=source->toPlainText();
+      text.remove(QRegularExpression("(?m)^\\s*%[^\\n]*\\n?"));
+      const auto match=QRegularExpression("^\\s*([A-Za-z][A-Za-z0-9_]*)").match(text);
+      auto type=match.hasMatch() ? match.captured(1) : QString("CallGmatFunction");
+      const auto call=QRegularExpression(R"(^\s*(?:GMAT\s+)?(?:'[^'\n]*'\s+)?(?:(?:\[[^\];\n]*\]|[A-Za-z][A-Za-z0-9_]*)\s*=\s*)?([A-Za-z][A-Za-z0-9_]*)\s*(?=\(|;|%|$))").match(text);
+      auto *moderator=Moderator::Instance();
+      auto *function=call.hasMatch() && moderator->IsInitialized() ? moderator->GetConfiguredObject(call.captured(1).toStdString()) : nullptr;
+      if (QRegularExpression(R"(^\s*(?:GMAT\s+)?(?:'[^'\n]*'\s+)?(?:(?:\[[^\];\n]*\]|[A-Za-z][A-Za-z0-9_]*)\s*=\s*)?Python\.[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*\s*(?=\(|;|%|$))").match(text).hasMatch()) type="CallPythonFunction";
+      else if (function && function->IsOfType("Function")) type="CallGmatFunction";
+      else if (type=="GMAT" || type=="Equation" || QRegularExpression(R"(^\s*(?:GMAT\s+)?(?:'[^'\n]*'\s+)?[A-Za-z][A-Za-z0-9_.]*(?:\([^)]*\))?\s*=)").match(text).hasMatch()) type="Assignment";
+      else if (auto *object=Moderator::Instance()->GetConfiguredObject(type.toStdString());object && object->IsOfType("Function")) type="CallGmatFunction";
+      if (text.trimmed().isEmpty()) type="index";
+      setProperty("helpTopic",type);
+   };
+   connect(source,&QPlainTextEdit::textChanged,this,helpTopic); helpTopic();
+   auto *event=new QPushButton("Script event…",this); event->setObjectName("editScriptEvent"); layout->addWidget(event);
+   auto showEvent=[this,event] { event->setVisible(ScriptEventDialog::supports(source->toPlainText())); };
+   connect(source,&QPlainTextEdit::textChanged,this,showEvent); showEvent();
+   connect(event,&QPushButton::clicked,this,[this] {
+      ScriptEventDialog dialog(source->toPlainText(),this); if (dialog.exec()!=QDialog::Accepted) return;
+      auto cursor=source->textCursor(); cursor.beginEditBlock(); cursor.select(QTextCursor::Document); cursor.insertText(dialog.statement()); cursor.endEditBlock();
+   });
+   auto *propagation=new PropagationForm(propagators,spacecraft,[this](const QString &text) {
+      auto cursor=source->textCursor(); cursor.beginEditBlock(); cursor.select(QTextCursor::Document);
+      cursor.insertText(text); cursor.endEditBlock();
+   },this);
+   auto *typed=new QWidget(this); auto *typedLayout=new QVBoxLayout(typed); typedLayout->setContentsMargins(0,0,0,0);
+   typedLayout->setSizeConstraint(QLayout::SetMinimumSize);
+   auto *typedScroll=new QScrollArea(this); typedScroll->setObjectName("commandTypedControls");
+   typedScroll->setWidgetResizable(true); typedScroll->setWidget(typed);
+   typedScroll->setMinimumHeight(110); layout->addWidget(typedScroll,1);
+   typedLayout->addWidget(propagation);
+   connect(source,&QPlainTextEdit::textChanged,propagation,[this,propagation] { propagation->setStatement(source->toPlainText()); });
+   propagation->setStatement(statement);
+   auto *groups=new QPushButton("Propagators and spacecraft…",this); groups->setObjectName("editPropagationGroups"); typedLayout->addWidget(groups);
+   auto showGroups=[this,groups] { groups->setVisible(PropagationGroupsDialog::supports(source->toPlainText())); };
+   connect(source,&QPlainTextEdit::textChanged,this,showGroups); showGroups();
+   connect(groups,&QPushButton::clicked,this,[this,propagators,spacecraft,formations,commandValidation] {
+      PropagationGroupsDialog dialog(source->toPlainText(),propagators,spacecraft+formations,this,commandValidation);
+      if (dialog.exec()!=QDialog::Accepted) return;
+      auto cursor=source->textCursor(); cursor.beginEditBlock(); cursor.select(QTextCursor::Document); cursor.insertText(dialog.statement()); cursor.endEditBlock();
+   });
+   auto *stops=new QPushButton("Stopping conditions…",this); stops->setObjectName("editPropagationStops"); typedLayout->addWidget(stops);
+   auto showStops=[this,stops] { stops->setVisible(PropagationStopsDialog::supports(source->toPlainText())); };
+   connect(source,&QPlainTextEdit::textChanged,this,showStops); showStops();
+   connect(stops,&QPushButton::clicked,this,[this] {
+      PropagationStopsDialog dialog(source->toPlainText(),this);
+      if (dialog.exec()!=QDialog::Accepted) return;
+      auto cursor=source->textCursor(); cursor.beginEditBlock(); cursor.select(QTextCursor::Document); cursor.insertText(dialog.statement()); cursor.endEditBlock();
+   });
+   auto *color=new QPushButton("Segment color…",this); color->setObjectName("editPropagationColor"); typedLayout->addWidget(color);
+   auto showColor=[this,color] { color->setVisible(PropagationColorDialog::supports(source->toPlainText())); };
+   connect(source,&QPlainTextEdit::textChanged,this,showColor); showColor();
+   connect(color,&QPushButton::clicked,this,[this] {
+      PropagationColorDialog dialog(source->toPlainText(),this); if (dialog.exec()!=QDialog::Accepted) return;
+      auto cursor=source->textCursor(); cursor.beginEditBlock(); cursor.select(QTextCursor::Document); cursor.insertText(dialog.statement()); cursor.endEditBlock();
+   });
+   auto *command=new CommandForm([this](const QString &text) {
+      auto cursor=source->textCursor(); cursor.beginEditBlock(); cursor.select(QTextCursor::Document);
+      cursor.insertText(text); cursor.endEditBlock();
+   },this,pendingFiniteResources);
+   typedLayout->addWidget(command);
+   auto showTyped=[typedScroll,propagation,groups,stops,color,command] { typedScroll->setVisible(!propagation->isHidden() || !groups->isHidden() || !stops->isHidden() || !color->isHidden() || !command->isHidden()); };
+   connect(source,&QPlainTextEdit::textChanged,command,[this,command] { command->setStatement(source->toPlainText()); });
+   connect(source,&QPlainTextEdit::textChanged,this,showTyped);
+   command->setStatement(statement); showTyped();
+   source->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+   source->setLineWrapMode(QPlainTextEdit::NoWrap); source->setMinimumHeight(90); layout->addWidget(source,1);
+   auto *status=new QLabel("Apply validates the complete mission and updates the script. Branches include their enclosed commands.",this);
+   status->setObjectName("commandStatus");
+   status->setWordWrap(true); layout->addWidget(status);
+   connect(source,&QPlainTextEdit::textChanged,status,[status] {
+      status->setText("Apply validates the complete mission and updates the script. Branches include their enclosed commands.");
+   });
+   auto syncName=[this] {
+      if (synchronizingName) return;
+      QSignalBlocker blocker(name); nameError.clear();
+      try {
+         const auto label=missionCommandLabel(source->toPlainText());
+         name->setEnabled(label.editable()); name->setText(label.name);
+      } catch (const std::exception &) { name->setEnabled(false); name->clear(); }
+   };
+   connect(source,&QPlainTextEdit::textChanged,this,syncName); syncName();
+   connect(name,&QLineEdit::textChanged,this,[this,status] {
+      if (synchronizingName) return;
+      try {
+         const auto replacement=setMissionCommandLabel(source->toPlainText(),name->text());
+         nameError.clear(); synchronizingName=true;
+         if (replacement!=source->toPlainText()) {
+            auto cursor=source->textCursor(); cursor.beginEditBlock(); cursor.select(QTextCursor::Document);
+            cursor.insertText(replacement); cursor.endEditBlock();
+         }
+         synchronizingName=false;
+         status->setText("Apply validates the complete mission and updates the script. Branches include their enclosed commands.");
+      } catch (const std::exception &error) {
+         synchronizingName=false; nameError=QString::fromUtf8(error.what()); status->setText(nameError);
+      }
+   });
+   connect(choices,&QComboBox::textActivated,this,[this,templates](const QString &name) {
+      if (!templates.contains(name)) return;
+      if (source->document()->isModified() && QMessageBox::question(this,"Replace command text",
+          "Replace the edited command text with this template?",QMessageBox::Yes|QMessageBox::Cancel,
+          QMessageBox::Cancel)!=QMessageBox::Yes) return;
+      source->setPlainText(templates.value(name));
+   });
+   auto *buttons=new QDialogButtonBox(QDialogButtonBox::Apply|QDialogButtonBox::Close,this);
+   layout->addWidget(buttons);
+   if (!adding) {
+      auto *preview=new QPushButton("Show script…",this); preview->setObjectName("showScript"); buttons->addButton(preview,QDialogButtonBox::ActionRole);
+      connect(preview,&QPushButton::clicked,this,[this,statement] {
+         InspectionDialog dialog("Command script",statement,"Applied command. Pending edits are not included.",this); dialog.exec();
+      });
+      if (summary) {
+         auto *inspect=new QPushButton("Summary…",this); inspect->setObjectName("showCommandSummary"); buttons->addButton(inspect,QDialogButtonBox::ActionRole);
+         connect(inspect,&QPushButton::clicked,this,[summary] { summary(); });
+      }
+      if (corrections) {
+         auto *correct=new QPushButton("Apply Corrections",this); correct->setObjectName("applySolverCorrections");
+         correct->setToolTip("Use the last solver result for numeric Vary initial guesses. Reference guesses are retained. The script change can be undone.");
+         buttons->addButton(correct,QDialogButtonBox::ActionRole);
+         connect(correct,&QPushButton::clicked,this,[this,corrections,status] {
+            const auto error=hasChanges() ? QString("Apply or discard this panel's pending changes before applying solver corrections.") : corrections();
+            if (error.isEmpty()) { applied=true; appliedSuccessfully(); }
+            else status->setText(error);
+         });
+      }
+   }
+   connect(buttons->button(QDialogButtonBox::Apply),&QPushButton::clicked,this,[this,apply,status,command,commandValidation] {
+      // A retained clean panel has nothing to commit. Rebuilding it would
+      // invalidate run results and put a no-op ahead of the actual Undo edit.
+      if (!hasChanges()) return;
+      auto error=nameError;
+      if (error.isEmpty()) error=command->validationError();
+      if (error.isEmpty() && commandValidation) error=commandValidation(source->toPlainText());
+      if (error.isEmpty()) error=apply(source->toPlainText());
+      if (error.isEmpty()) { applied=true; appliedSuccessfully(); }
+      else status->setText(error);
+   });
+   connect(buttons->button(QDialogButtonBox::Close),&QPushButton::clicked,this,[this] { parentWidget()->close(); });
+}
+bool CommandEditor::hasChanges() const
+{
+   return !applied && (inserting || source->toPlainText()!=original || !nameError.isEmpty());
+}

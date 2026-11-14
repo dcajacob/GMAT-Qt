@@ -29,6 +29,8 @@
 //------------------------------------------------------------------------------
 
 #include "SNCProcessNoise.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "NoiseException.hpp"
 #include "StringUtil.hpp"
 #include "MessageInterface.hpp"
@@ -71,7 +73,9 @@ SNCProcessNoise::PARAMETER_TYPE[SNCProcessNoiseParamCount - ProcessNoiseBasePara
  */
 //------------------------------------------------------------------------------
 SNCProcessNoise::SNCProcessNoise(const std::string &name) :
-   ProcessNoiseBase    ("SNCProcessNoise",name,"StateNoiseCompensation")
+   ProcessNoiseBase    ("SNCProcessNoise",name,"StateNoiseCompensation"),
+   elapsedTime        (0.0),
+   currentEpoch       (21545.0)
 {
    objectTypeNames.push_back("SNCProcessNoise");
 
@@ -103,8 +107,14 @@ SNCProcessNoise::~SNCProcessNoise()
 SNCProcessNoise::SNCProcessNoise(
       const SNCProcessNoise& spn) :
    ProcessNoiseBase (spn),
-   accelSigmaVec    (spn.accelSigmaVec)
+   accelSigmaVec    (spn.accelSigmaVec),
+   elapsedTime      (spn.elapsedTime),
+   currentEpoch     (spn.currentEpoch),
+   currentEpochGT   (spn.currentEpochGT)
 {
+   // A noise matrix need not have been computed yet.
+   if (spn.currentProcessNoise.IsSized())
+      currentProcessNoise = spn.currentProcessNoise;
 }
 
 
@@ -157,9 +167,16 @@ SNCProcessNoise& SNCProcessNoise::operator=(
 {
    if (this != &spn)
    {
+      Rmatrix noiseSnapshot;
+      if (spn.currentProcessNoise.IsSized())
+         noiseSnapshot = spn.currentProcessNoise;
       ProcessNoiseBase::operator=(spn);
 
       accelSigmaVec = spn.accelSigmaVec;
+      elapsedTime = spn.elapsedTime;
+      currentEpoch = spn.currentEpoch;
+      currentEpochGT = spn.currentEpochGT;
+      currentProcessNoise.Swap(noiseSnapshot);
    }
    return *this;
 }
@@ -289,7 +306,9 @@ Rmatrix SNCProcessNoise::GetProcessNoise(const Real elapsedTime)
 //------------------------------------------------------------------------------
 GmatBase* SNCProcessNoise::Clone(void) const
 {
-   return (new SNCProcessNoise(*this));
+   std::unique_ptr<SNCProcessNoise> value(new SNCProcessNoise(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -367,7 +386,7 @@ Integer SNCProcessNoise::GetParameterID(const std::string &str) const
  //---------------------------------------------------------------------------
 GmatTime SNCProcessNoise::GetGmatTimeParameter(const std::string &label) const
 {
-   return GetRealParameter(SNCProcessNoise::GetParameterID(label));
+   return GetGmatTimeParameter(SNCProcessNoise::GetParameterID(label));
 }
 
 //---------------------------------------------------------------------------
@@ -380,13 +399,13 @@ GmatTime SNCProcessNoise::GetGmatTimeParameter(const std::string &label) const
  //---------------------------------------------------------------------------
 GmatTime SNCProcessNoise::GetGmatTimeParameter(const Integer id) const
 {
-   if (id == ELAPSED_TIME)
+   if (id == CURRENT_EPOCH_GT)
    {
-      return elapsedTime;
+      return currentEpochGT;
    }
 
 
-   return ProcessNoiseBase::GetRealParameter(id);
+   return ProcessNoiseBase::GetGmatTimeParameter(id);
 }
 
 //---------------------------------------------------------------------------
@@ -710,4 +729,35 @@ const Rvector& SNCProcessNoise::SetRvectorParameter(const std::string &label,
                                    const Rvector &value)
 {
    return SetRvectorParameter(GetParameterID(label), value);
+}
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void SNCProcessNoise::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const SNCProcessNoise*>(original);
+   if (!source || typeid(*source) != typeid(SNCProcessNoise) ||
+       typeid(*this) != typeid(SNCProcessNoise))
+      throw GmatBaseException("Cannot copy incompatible object into SNCProcessNoise");
+   if (source == this)
+      return;
+   const auto previous = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
+}
+
+// Use the registered script factory spelling when exporting a named noise
+// resource. Its native runtime type and owned-object serialization are intact.
+const std::string& SNCProcessNoise::GetGeneratingString(Gmat::WriteMode mode,
+      const std::string &prefix, const std::string &useName)
+{
+   ProcessNoiseBase::GetGeneratingString(mode, prefix, useName);
+   if (mode == Gmat::SCRIPTING || mode == Gmat::SHOW_SCRIPT)
+   {
+      const std::string name = useName.empty() ? GetName() : useName;
+      const std::string declaration = "Create SNCProcessNoise " + name + ";";
+      const auto at = generatingString.rfind(declaration);
+      if (at != std::string::npos && (at == 0 || generatingString[at-1] == '\n'))
+         generatingString.replace(at, declaration.size(), "Create StateNoiseCompensation " + name + ";");
+   }
+   return generatingString;
 }

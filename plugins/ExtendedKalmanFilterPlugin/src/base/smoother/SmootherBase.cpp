@@ -27,12 +27,28 @@
 //------------------------------------------------------------------------------
 
 #include "SmootherBase.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration smootherBaseValueProvider({
+   SmootherBase::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const SmootherBase*>(object) != nullptr; },
+   [](const GmatBase *object) { return dynamic_cast<const SmootherBase*>(object)->GetFunctionValueOwnedObjectsImpl(); },
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<SmootherBase*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   [](GmatBase *object, const Solver &source) { dynamic_cast<SmootherBase*>(object)->PrepareClonedSolverValueImpl(source); }
+});
+}
 
 #include "GmatConstants.hpp"
 #include <sstream>
 #include "MessageInterface.hpp"
 #include "FileUtil.hpp"
 #include "EstimatorException.hpp"
+#include "NavigationMeasurementCopies.hpp"
+#include "NavigationPropagationCopies.hpp"
 #include "Solver.hpp"
 #include "ODEModel.hpp"
 #include "Propagator.hpp"
@@ -113,6 +129,7 @@ SmootherBase::SmootherBase(const std::string &type, const std::string &name) :
 //------------------------------------------------------------------------------
 SmootherBase::~SmootherBase()
 {
+   NavigationMeasurementCopies::DeleteOwned(esmObjBuffer);
    if (filter)
       delete filter;
 }
@@ -129,20 +146,24 @@ SmootherBase::~SmootherBase()
 //------------------------------------------------------------------------------
 SmootherBase::SmootherBase(const SmootherBase & sb) :
    Estimator               (sb),
-   filter                  (sb.filter),
+   filter                  (NULL),
    filterName              (sb.filterName),
-   filterIndex             (sb.filterIndex),
+   filterIndex             (0),
    delayFilterRectifySpan  (sb.delayFilterRectifySpan),
    deweightThresholdFilter (sb.deweightThresholdFilter),
    deweightCoeffFilter     (sb.deweightCoeffFilter),
-   smootherState           (sb.smootherState)
+   smootherState           (FILTERING)
 {
-   if (sb.filter)
-      filter = (SeqEstimator*)sb.filter->Clone();
-   else
-      filter = NULL;
+   auto buffer = NavigationMeasurementCopies::CloneValues(sb.esmObjBuffer, this, {}, true);
+   auto stats = sb.forwardFilterInfo;
+   std::unique_ptr<SeqEstimator> nextFilter;
+   if (sb.filter) nextFilter = NavigationMeasurementCopies::Clone(*sb.filter, this, false);
+   esmObjBuffer = NavigationMeasurementCopies::BorrowValues(buffer);
+   forwardFilterInfo.swap(stats);
+   filter = nextFilter.release();
+   if (filter) filter->forwardFilterInfo = forwardFilterInfo.empty() ? nullptr : &forwardFilterInfo;
+   NavigationMeasurementCopies::ReleaseValues(buffer);
 }
-
 
 //------------------------------------------------------------------------------
 // SmootherBase& operator=(const SmootherBase &sb)
@@ -160,19 +181,26 @@ SmootherBase& SmootherBase::operator=(
 {
    if (this != &sb)
    {
+      auto buffer = NavigationMeasurementCopies::CloneValues(sb.esmObjBuffer, this, esmObjBuffer, true);
+      auto stats = sb.forwardFilterInfo;
+      std::unique_ptr<SeqEstimator> prepared;
+      if (sb.filter) prepared = NavigationMeasurementCopies::Clone(*sb.filter, this, false, {filter});
       Estimator::operator=(sb);
 
-      if (sb.filter)
-         filter = (SeqEstimator*)sb.filter->Clone();
-      else
-         filter = NULL;
+      if (filter && prepared) GmatBase::RetargetCloneSources(*filter, *prepared);
+      delete filter;
+      filter = prepared.release();
 
       filterName        = sb.filterName;
-      filterIndex       = sb.filterIndex;
+      filterIndex       = 0;
       delayFilterRectifySpan = sb.delayFilterRectifySpan;
       deweightThresholdFilter = sb.deweightThresholdFilter;
       deweightCoeffFilter = sb.deweightCoeffFilter;
-      smootherState     = sb.smootherState;
+      smootherState     = FILTERING;
+      forwardFilterInfo.swap(stats);
+      backwardFilterInfo.clear(); smootherStats.clear();
+      if (filter) filter->forwardFilterInfo = forwardFilterInfo.empty() ? nullptr : &forwardFilterInfo;
+      NavigationMeasurementCopies::PublishValues(esmObjBuffer, buffer);
    }
    return *this;
 }
@@ -706,14 +734,18 @@ GmatBase* SmootherBase::GetRefObject(const UnsignedInt type,
 bool SmootherBase::SetRefObject(GmatBase *obj, const UnsignedInt type,
    const std::string & name)
 {
+   if (!obj) return false;
    if (name == filterName)
    {
       if (obj->IsOfType("SeqEstimator"))
       {
-         if (filter)
-            delete filter;
-
-         filter = (SeqEstimator*) obj->Clone();
+         auto *definition = dynamic_cast<SeqEstimator*>(obj);
+         if (!definition) throw EstimatorException("A smoother requires a sequential filter definition.\n");
+         auto prepared = NavigationMeasurementCopies::Clone(*definition, this, definition != filter, {filter});
+         if (filter) GmatBase::RetargetCloneSources(*filter, *prepared);
+         delete filter;
+         filter = prepared.release();
+         isInitialized = false;
          return true;
       }
    }
@@ -872,6 +904,19 @@ void SmootherBase::StateCleanUp()
 bool SmootherBase::TakeAction(const std::string & action,
       const std::string & actionData)
 {
+   if (action == "Reset")
+   {
+      currentState = INITIALIZING;
+      smootherState = FILTERING;
+      filterIndex = 0;
+      backwardFilterInfo.clear();
+      smootherStats.clear();
+      measManager.SetDirection(true);
+      measManager.Reset();
+      if (filter) filter->TakeAction("RunForwards");
+      return true;
+   }
+
    return Estimator::TakeAction(action, actionData);
 }
 
@@ -996,7 +1041,8 @@ void SmootherBase::PrepareFilter()
  //------------------------------------------------------------------------------
 void SmootherBase::SetForwardFilterInfo(std::vector<SeqEstimator::UpdateInfoType> filterInfo)
 {
-   forwardFilterInfo = filterInfo;
+   if (!filter) throw EstimatorException("A smoother needs an owned filter before forward-pass data.\n");
+   forwardFilterInfo.swap(filterInfo);
    filter->forwardFilterInfo = &forwardFilterInfo;
 }
 
@@ -1014,7 +1060,8 @@ void SmootherBase::SetForwardFilterInfo(std::vector<SeqEstimator::UpdateInfoType
  //------------------------------------------------------------------------------
 void SmootherBase::SetObjectBuffer(const ObjectArray &buffer)
 {
-   esmObjBuffer = buffer;
+   auto copies = NavigationMeasurementCopies::CloneValues(buffer, this, esmObjBuffer, true);
+   NavigationMeasurementCopies::PublishValues(esmObjBuffer, copies);
 }
 
 
@@ -1223,7 +1270,7 @@ bool SmootherBase::Initialize()
    if (textFileMode != "Verbose" && textFileMode != "Debug")
       filter->TakeAction("NoOutput");
 
-   filter->Initialize();
+   if (!filter->Initialize()) return false;
 
    if (filter->IsInitialized())
    {
@@ -1255,7 +1302,14 @@ bool SmootherBase::Initialize()
                foundInList = true;
          }
          if (!foundInList)
-            propagators.push_back((PropSetup*)(filter->GetPropagator(it->first)->Clone()));
+         {
+            auto *definition = filter->GetPropagator(it->first);
+            std::set<GmatBase*> forbidden{this, filter};
+            for (auto *existing : propagators) forbidden.insert(existing);
+            auto value = NavigationPropagationCopies::Clone(*definition, *this, true, forbidden);
+            propagators.push_back(value.get());
+            value.release();
+         }
          foundInList = false;
       }
 
@@ -1263,7 +1317,10 @@ bool SmootherBase::Initialize()
 
       measurementNames = filter->GetStringArrayParameter("Measurements");
       measManager = *(filter->GetMeasurementManager());
+      measManager.SetOwner(this);
+      measManager.SetPropagators(&propagators, &propagatorSatMap);
       esm = *(filter->GetEstimationStateManager());
+      esm.RebindMeasurementReferences(*filter->GetEstimationStateManager(), measManager);
       dataFilterStrings = filter->GetStringArrayParameter("DataFilters");
    }
 
@@ -1287,10 +1344,8 @@ bool SmootherBase::Initialize()
 
 bool SmootherBase::Reinitialize()
 {
-   Estimator::Reinitialize();
-   filter->Reinitialize();
-
-   return true;
+   if (!Estimator::Reinitialize()) return false;
+   return filter && filter->Reinitialize();
 }
 
 
@@ -2914,4 +2969,36 @@ std::string SmootherBase::GetMeasurementResidualTitles()
       return "RecNum  UTCGregorian-Epoch        Obs-Type            " + GmatStringUtil::GetAlignmentString("Participants", pcolumnLen) + " Edit          Observed (O)          Computed (C)       Residual (O-C)  Elev.\n";
    else
       return "RecNum  UTCGregorian-Epoch        TAIModJulian-Epoch Obs Type            Units  " + GmatStringUtil::GetAlignmentString("Participants", pcolumnLen) + " Edit               Obs (O)    Obs-Correction (O)               Cal (C)       Residual (O-C)            Weight (W)             W*(O-C)^2         sqrt(W)*|O-C|    Elevation-Angle    Partial-Derivatives";
+}
+
+ObjectArray SmootherBase::GetFunctionValueOwnedObjectsImpl() const
+{
+   ObjectArray result = Estimator::GetFunctionValueOwnedObjectsImpl();
+   result.push_back(filter);
+   result.insert(result.end(), esmObjBuffer.begin(), esmObjBuffer.end());
+   return result;
+}
+
+void SmootherBase::PrepareClonedSolverValueImpl(const Solver &source)
+{
+   Estimator::PrepareClonedSolverValueImpl(source);
+   filterIndex = 0; smootherState = FILTERING;
+   backwardFilterInfo.clear(); smootherStats.clear();
+}
+
+bool SmootherBase::RebindFunctionValueReferencesImpl(const GmatBase &source, SolarSystem *system,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   Estimator::RebindFunctionValueReferencesImpl(source, system, resolve);
+   const auto *original = dynamic_cast<const SmootherBase*>(&source);
+   if (!original || ((original->filter == nullptr) != (filter == nullptr)) ||
+       (original->filter && resolve(original->filter) != filter))
+      throw EstimatorException("Smoother filter ownership was not registered before binding.\n");
+   if (filter)
+   {
+      filterName = filter->GetName();
+      filter->forwardFilterInfo = forwardFilterInfo.empty() ? nullptr : &forwardFilterInfo;
+   }
+   filterIndex = 0; smootherState = FILTERING;
+   return true;
 }

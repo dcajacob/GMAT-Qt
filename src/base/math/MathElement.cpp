@@ -30,6 +30,8 @@
 //------------------------------------------------------------------------------
 
 #include "MathElement.hpp"
+#include "Rvec3Var.hpp"
+#include "ExpressionBinding.hpp"
 #include "StringUtil.hpp"  // for ToReal()
 #include "MessageInterface.hpp"
 #include <sstream>
@@ -108,7 +110,9 @@ MathElement::MathElement(const MathElement &me) :
    MathNode      (me),
    refObject     (me.refObject),
    refObjectName (me.refObjectName),
-   refObjectType (me.refObjectType)
+   refObjectType (me.refObjectType),
+   wrapperObjectNames(me.wrapperObjectNames),
+   theWrapperMap(NULL)
 {
 }
 
@@ -133,6 +137,8 @@ MathElement& MathElement::operator=(const MathElement &me)
    refObject = me.refObject;
    refObjectName = me.refObjectName;
    refObjectType = me.refObjectType;
+   wrapperObjectNames = me.wrapperObjectNames;
+   theWrapperMap = NULL;
    
    return *this;
 }
@@ -152,6 +158,13 @@ void MathElement::SetMathWrappers(std::map<std::string, ElementWrapper*> *wrappe
    #endif
 }
 
+
+void MathElement::RetireExpressionReferences()
+{
+   refObject = nullptr;
+   theWrapperMap = nullptr;
+   isInitialized = false;
+}
 
 // Inherited MathElement methods
 //------------------------------------------------------------------------------
@@ -218,6 +231,14 @@ void MathElement::GetOutputInfo(Integer &type, Integer &rowCount, Integer &colCo
                                 refObject->GetTypeName() + "\" is invalid");
          
          type = refObject->GetReturnType();
+         if (type == Gmat::RVECTOR_TYPE)
+         {
+            // Metadata reads the stored shape without evaluating a Parameter.
+            const auto *fixedThree = dynamic_cast<const Rvec3Var*>(refObject);
+            rowCount = fixedThree ? fixedThree->GetRvector3().GetSize() :
+                  refObject->GetIntegerParameter("VectorSize");
+            colCount = 1;
+         }
          #ifdef DEBUG_INPUT_OUTPUT
          MessageInterface::ShowMessage("   object return type = %d\n", type);
          #endif
@@ -298,6 +319,8 @@ bool MathElement::ValidateInputs()
 //------------------------------------------------------------------------------
 Real MathElement::Evaluate()
 {
+   if (elementType == Gmat::RVECTOR_TYPE)
+      throw MathException("Cannot evaluate a vector math element as a scalar.\n");
    #ifdef DEBUG_EVALUATE
    MessageInterface::ShowMessage
       ("MathElement::Evaluate() this='%s', refObjectName='%s', refObject=<%p>, "
@@ -320,6 +343,8 @@ Real MathElement::Evaluate()
       #endif
       
       ElementWrapper *wrapper = FindWrapper(refObjectName);
+      if (!wrapper)
+         throw MathException("No numerical wrapper is bound for \"" + refObjectName + "\".");
       
       if (elementType == Gmat::REAL_TYPE || elementType == Gmat::RMATRIX_TYPE)
       {
@@ -329,7 +354,7 @@ Real MathElement::Evaluate()
              wrapper->GetDescription().c_str());
          #endif
          ///@note ArrayWrapper::EvaluateReal() returns 1x1 matrix as real number
-         realValue = wrapper->EvaluateReal();
+         realValue = wrapper->EvaluateRealForCalculation();
       }
       else
       {
@@ -363,6 +388,12 @@ Real MathElement::Evaluate()
 //------------------------------------------------------------------------------
 Rmatrix MathElement::MatrixEvaluate()
 {
+   if (elementType == Gmat::RVECTOR_TYPE)
+   {
+      Rmatrix column;
+      column.MakeOneColumnMatrix(VectorEvaluate());
+      return column;
+   }
    #ifdef DEBUG_EVALUATE
    MessageInterface::ShowMessage
       ("MathElement::MatrixEvaluate() this='%s', refObjectName='%s', refObject=<%p>, "
@@ -419,8 +450,19 @@ Rmatrix MathElement::MatrixEvaluate()
 
 
 //------------------------------------------------------------------------------
-// bool SetChildren(MathNode *leftChild, MathNode *rightChild)
+// Rvector VectorEvaluate()
 //------------------------------------------------------------------------------
+Rvector MathElement::VectorEvaluate()
+{
+   if (isFunctionInput || !refObject || refObject->GetReturnType() != Gmat::RVECTOR_TYPE)
+      throw MathException("MathElement does not have a bound vector Parameter.\n");
+   ElementWrapper *wrapper = FindWrapper(refObjectName);
+   if (!wrapper)
+      throw MathException("No vector wrapper is bound for \"" + refObjectName + "\".\n");
+   return wrapper->EvaluateRvector();
+}
+
+// MathElement is a leaf and cannot adopt expression children.
 bool MathElement::SetChildren(MathNode *leftChild, MathNode *rightChild)
 {
    throw MathException("SetChildren() is not valid for MathElement");
@@ -770,8 +812,10 @@ void MathElement::SetWrapperObject(GmatBase *obj, const std::string &name)
       ("MathElement::SetWrapperObject() obj=<%p>, name='%s'\n", obj, name.c_str());
    #endif
    
-   refObject = (Parameter*) obj;
-   refObjectType = refObject->GetTypeName().c_str();
+   auto *parameter = dynamic_cast<Parameter*>(obj);
+   if (!parameter) throw MathException("MathElement requires a bound Parameter.\n");
+   refObject = parameter;
+   refObjectType = refObject->GetTypeName();
    
    // go through wrapperObjectNames
    for (UnsignedInt i=0; i<wrapperObjectNames.size(); i++)
@@ -826,6 +870,10 @@ void MathElement::SetWrapperObject(GmatBase *obj, const std::string &name)
                 matrix.ToString().c_str());
             #endif
             
+         }
+         else if (refObject->GetReturnType() == Gmat::RVECTOR_TYPE)
+         {
+            elementType = Gmat::RVECTOR_TYPE;
          }
          else if (refObject->GetReturnType() == Gmat::REAL_TYPE)
          {
@@ -888,3 +936,16 @@ ElementWrapper* MathElement::FindWrapper(const std::string &name)
    return wrapper;
 }
 
+
+void MathElement::RebindExpressionReferences(const MathNode &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve, WrapperMap *wrappers)
+{
+   const auto *element = dynamic_cast<const MathElement*>(&source);
+   if (!element || typeid(*this) != typeid(source))
+      throw MathException("Incompatible native MathElement copy.\n");
+   Parameter *parameter = BindExpressionReference(element->refObject, resolve);
+   refObject = parameter;
+   theWrapperMap = wrappers;
+   // Keep lexical names, array-index metadata, literal values and dimensions;
+   // native SetRefObject would read/cache values while setting these roles.
+}

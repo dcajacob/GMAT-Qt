@@ -34,7 +34,9 @@
 #include <stdio.h>
 #include <iomanip>
 #include <sstream>
+#include <filesystem>
 #include "ReportFile.hpp"
+#include "Function.hpp"
 #include "MessageInterface.hpp"
 #include "Publisher.hpp"           // for Instance()
 #include "FileManager.hpp"         // for GetPathname()
@@ -220,6 +222,7 @@ ReportFile::ReportFile(const ReportFile &rf) :
       ("ReportFile:: copy constructor entered, r.mNumParams=%d, mNumParams=%d, fileName='%s'\n",
        rf.mNumParams, mNumParams, fileName.c_str());
    #endif
+   if (typeid(rf) == typeid(ReportFile)) ReconnectSubscriberCopy(rf);
 }
 
 
@@ -234,43 +237,64 @@ ReportFile& ReportFile::operator=(const ReportFile& rf)
 {
    if (this == &rf)
       return *this;
-   
-   Subscriber::operator=(rf);
-   
-   outputPath = rf.outputPath;
-   fileName = rf.fileName;
-   defFileName = rf.defFileName;
-   fullPathFileName = rf.fullPathFileName;
-   precision = rf.precision;
-   columnWidth = rf.columnWidth;
-   appendToExistingFile = rf.appendToExistingFile;
-   writeHeaders = rf.writeHeaders;
-   headerReset = rf.headerReset;
-   leftJustify = rf.leftJustify;
-   zeroFill = rf.zeroFill;
-   usingDefaultFileName = rf.usingDefaultFileName;
-   fixedWidth = rf.fixedWidth;
-   writeFinalSolverData = rf.writeFinalSolverData;
-   finalSolverDataPosition = 0;
-   delimiter = rf.delimiter;
-   mParams = rf.mParams; 
-   mNumParams = rf.mNumParams;
-   mParamNames = rf.mParamNames;
-   mAllRefObjectNames = rf.mAllRefObjectNames;
-   lastUsedProvider = rf.lastUsedProvider;
-   mLastReportTime = rf.mLastReportTime;
-   usedByReport = rf.usedByReport;
-   calledByReport = rf.calledByReport;
-   
-   initial = true;
-   initialFromReport = true;
-   
-   #ifdef DEBUG_REPORTFILE
-   MessageInterface::ShowMessage
-      ("ReportFile::operator= entered, r.mNumParams=%d, mNumParams=%d\n",
-       rf.mNumParams, mNumParams);
-   #endif
-   
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = typeid(*this) == typeid(ReportFile) ? BeginSubscriberValueCopy(rf) : SubscriberValueCopyToken{};
+   {
+      FunctionValueCopyGuard nativeCopy;
+
+      const bool writerChanged = fileName != rf.fileName ||
+            fullPathFileName != rf.fullPathFileName || outputPath != rf.outputPath ||
+            appendToExistingFile != rf.appendToExistingFile;
+      if (writerChanged && dstream.is_open())
+      {
+         dstream.close();
+         if (dstream.fail())
+         {
+            isInitialized = false;
+            GmatBase::isInitialized = false;
+            throw GmatBaseException("Cannot close the replaced ReportFile output.\n");
+         }
+         dstream.clear();
+      }
+      Subscriber::operator=(rf);
+
+
+      outputPath = rf.outputPath;
+      fileName = rf.fileName;
+      defFileName = rf.defFileName;
+      fullPathFileName = rf.fullPathFileName;
+      precision = rf.precision;
+      columnWidth = rf.columnWidth;
+      appendToExistingFile = rf.appendToExistingFile;
+      writeHeaders = rf.writeHeaders;
+      headerReset = rf.headerReset;
+      leftJustify = rf.leftJustify;
+      zeroFill = rf.zeroFill;
+      usingDefaultFileName = rf.usingDefaultFileName;
+      fixedWidth = rf.fixedWidth;
+      writeFinalSolverData = rf.writeFinalSolverData;
+      finalSolverDataPosition = 0;
+      delimiter = rf.delimiter;
+      mParams = rf.mParams;
+      mNumParams = rf.mNumParams;
+      mParamNames = rf.mParamNames;
+      mAllRefObjectNames = rf.mAllRefObjectNames;
+      lastUsedProvider = rf.lastUsedProvider;
+      mLastReportTime = rf.mLastReportTime;
+      usedByReport = rf.usedByReport;
+      calledByReport = rf.calledByReport;
+
+      initial = true;
+      initialFromReport = true;
+
+      #ifdef DEBUG_REPORTFILE
+      MessageInterface::ShowMessage
+         ("ReportFile::operator= entered, r.mNumParams=%d, mNumParams=%d\n",
+          rf.mNumParams, mNumParams);
+      #endif
+
+   }
+   if (typeid(*this) == typeid(ReportFile)) CompleteSubscriberValueCopy(rf, transaction);
    return *this;
 }
 
@@ -601,8 +625,10 @@ bool ReportFile::WriteData(WrapperArray wrapperArray, bool parsable)
       dstream.seekp(finalSolverDataPosition, std::ios_base::beg);
    }
    
-   if (leftJustify)
-      dstream.setf(std::ios::left);
+   // Assignment commands can change alignment while this stream is open.
+   // Replace the previous adjustment field in both directions on every write.
+   dstream.setf(leftJustify ? std::ios::left : std::ios::right,
+                std::ios::adjustfield);
 
    // write to datastream
    for (UnsignedInt row=0; row < maxRow; row++)
@@ -656,6 +682,22 @@ bool ReportFile::WriteData(WrapperArray wrapperArray, bool parsable)
    delete[] output;
    delete[] colWidths;
    
+   // Replacing a final solver row can shorten its text (for example,
+   // 2.999999999 becomes 3). Seeking alone leaves the previous tail on disk.
+   if (writeFinalSolverData)
+   {
+      const auto end = dstream.tellp();
+      dstream.flush();
+      if (!dstream.good() || end < std::ofstream::pos_type(0))
+         throw SubscriberException("Cannot finalize solver data in report file: " + fullPathFileName);
+      std::error_code error;
+      std::filesystem::resize_file(std::filesystem::u8path(fullPathFileName),
+         static_cast<std::uintmax_t>(static_cast<std::streamoff>(end)), error);
+      if (error)
+         throw SubscriberException("Cannot truncate final solver data in report file: " +
+            fullPathFileName + ": " + error.message());
+   }
+
    if (isEndOfRun)  // close file
    {
       if (dstream.is_open())
@@ -673,6 +715,32 @@ bool ReportFile::WriteData(WrapperArray wrapperArray, bool parsable)
 //----------------------------------
 // methods inherited from GmatBase
 //----------------------------------
+
+std::unique_ptr<FunctionInvocationState> ReportFile::SuspendFunctionBindings()
+{
+   const auto names = mParamNames;
+   auto parameters = std::make_shared<std::vector<Parameter*>>(mParams);
+   auto identities = std::make_shared<std::vector<std::weak_ptr<const void>>>();
+   for (auto *parameter : *parameters)
+      identities->push_back(parameter ? parameter->GetLifetimeToken() : std::weak_ptr<const void>{});
+   auto restore = [this, names, parameters, identities]()
+   {
+      bool valid = names == mParamNames;
+      for (size_t i = 0; i < parameters->size(); ++i)
+         if ((*parameters)[i] && !GmatBase::IsLiveReference((*parameters)[i], (*identities)[i]))
+         { (*parameters)[i] = nullptr; valid = false; }
+      mParams.swap(*parameters);
+      if (!valid)
+      {
+         if (names != mParamNames) mParams.clear();
+         isInitialized = false;
+         GmatBase::isInitialized = false;
+         throw SubscriberException("Cannot restore ReportFile parameter bindings.\n");
+      }
+   };
+   return std::make_unique<FunctionInvocationState>(*this, std::move(restore),
+         Subscriber::SuspendFunctionBindings());
+}
 
 //------------------------------------------------------------------------------
 // virtual bool Initialize()
@@ -704,13 +772,24 @@ bool ReportFile::Initialize()
    // correctly in functions on Mac and Linux
    if (!dstream.is_open())
    {
-      if (GmatFileUtil::DoesFileExist(fullPathFileName) && !appendToExistingFile)
+#ifdef _WIN32
+      const auto nativeReportPath = std::filesystem::u8path(fullPathFileName);
+      std::error_code reportPathError;
+      const bool reportExists = std::filesystem::exists(nativeReportPath, reportPathError);
+#else
+      const bool reportExists = GmatFileUtil::DoesFileExist(fullPathFileName);
+#endif
+      if (reportExists && !appendToExistingFile && (active || usedByReport))
       {
          #ifdef DEBUG_REPORTFILE_INIT
             MessageInterface::ShowMessage("Removing the existing \"%s\" file\n",
                   fullPathFileName.c_str());
          #endif
+#ifdef _WIN32
+         std::filesystem::remove(nativeReportPath, reportPathError);
+#else
          remove(fullPathFileName.c_str());
+#endif
       }
    }
    
@@ -781,7 +860,15 @@ bool ReportFile::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* ReportFile::Clone() const
 {
-   return (new ReportFile(*this));
+   if (typeid(*this) != typeid(ReportFile))
+      throw GmatBaseException("A derived ReportFile must provide its complete Clone.\n");
+   std::unique_ptr<ReportFile> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new ReportFile(*this));
+   }
+   value->ReconnectSubscriberCopy(*this);
+   return value.release();
 }
 
 
@@ -794,9 +881,19 @@ GmatBase* ReportFile::Clone() const
  * @param orig The original that is being copied.
  */
 //---------------------------------------------------------------------------
-void ReportFile::Copy(const GmatBase* orig)
+void ReportFile::Copy(const GmatBase *original)
 {
-   operator=(*((ReportFile *)(orig)));
+   const auto *source = dynamic_cast<const ReportFile*>(original);
+   if (!source || typeid(*source) != typeid(*this) || !HasSubscriberValueReferenceProvider())
+      throw GmatBaseException("Cannot copy an incompatible ReportFile value.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = BeginSubscriberValueCopy(*source);
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   CompleteSubscriberValueCopy(*source, transaction);
 }
 
 
@@ -1615,11 +1712,17 @@ bool ReportFile::OpenReportFile()
    if (dstream.is_open())
       dstream.close();
 
+   // Qt supplies UTF-8 paths. A narrow Windows fstream uses the active
+   // code page and otherwise creates a different, mojibake filename.
+#ifdef _WIN32
+   const auto nativeReportPath = std::filesystem::u8path(fullPathFileName);
+#else
+   const auto &nativeReportPath = fullPathFileName;
+#endif
    if (!appendToExistingFile)
-      dstream.open(fullPathFileName.c_str());
+      dstream.open(nativeReportPath);
    else
-      dstream.open(fullPathFileName.c_str(),
-         std::ofstream::out | std::ofstream::app);
+      dstream.open(nativeReportPath, std::ofstream::out | std::ofstream::app);
    if (!dstream.is_open())
    {
       #ifdef DEBUG_REPORTFILE_OPEN
@@ -2022,6 +2125,7 @@ bool ReportFile::Distribute(const Real * dat, Integer len)
       
       // Write to report file using ReportFile::WriateData().
       // This method takes ElementWrapper array to write data to stream
+      Publisher::ParameterStateScope parameterSamples(dat, len);
       WriteData(yParamWrappers);
       mLastReportTime = dat[0];
       
@@ -2067,3 +2171,20 @@ bool ReportFile::IsNotANumber(Real rval)
    return false;
 }
 
+
+
+bool ReportFile::HasSubscriberValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(ReportFile);
+}
+
+void ReportFile::RebindSubscriberValueReferences(const Subscriber &original,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &source = dynamic_cast<const ReportFile&>(original);
+   std::vector<Parameter*> parameters;
+   parameters.reserve(source.mParams.size());
+   for (auto *parameter : source.mParams) parameters.push_back(MapSubscriberReference(parameter, resolve));
+   Subscriber::RebindSubscriberValueReferences(source, resolve);
+   mParams.swap(parameters);
+}

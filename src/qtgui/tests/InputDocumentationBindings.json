@@ -1,0 +1,1042 @@
+{
+  "scope": "Reviewed spelling and inherited-field documentation routes only. No all-input or numerical qualification.",
+  "bindings": [
+    {
+      "type": "Angle",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "ConvertTime",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "GetEphemStates",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "GetLastState",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "Num2str",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "Pause",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "QuaternionProduct",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "QuaternionRotation",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "QuaternionToDCM",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "RotationMatrix",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "SetSeed",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "Sign",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "Str2num",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "SystemTime",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "num2str",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "pause",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "sign",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "str2num",
+      "field": "FunctionPath",
+      "documentation_owner": "GmatFunction",
+      "documentation_field": "FunctionPath",
+      "source_evidence": [
+        "src/base/function/Function.cpp",
+        "src/base/function/Function.hpp"
+      ],
+      "reason": "Inherited FunctionPath is a filename, not a physical quantity. A built-in factory type does not require a user function file merely because its base metadata includes this field."
+    },
+    {
+      "type": "Receiver",
+      "field": "DirectionX",
+      "documentation_owner": "Imager",
+      "documentation_field": "DirectionX",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Receiver",
+      "field": "DirectionY",
+      "documentation_owner": "Imager",
+      "documentation_field": "DirectionY",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Receiver",
+      "field": "DirectionZ",
+      "documentation_owner": "Imager",
+      "documentation_field": "DirectionZ",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Receiver",
+      "field": "SecondDirectionX",
+      "documentation_owner": "Imager",
+      "documentation_field": "SecondDirectionX",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Receiver",
+      "field": "SecondDirectionY",
+      "documentation_owner": "Imager",
+      "documentation_field": "SecondDirectionY",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Receiver",
+      "field": "SecondDirectionZ",
+      "documentation_owner": "Imager",
+      "documentation_field": "SecondDirectionZ",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Receiver",
+      "field": "HWOriginInBCSX",
+      "documentation_owner": "Imager",
+      "documentation_field": "HWOriginInBCSX",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Receiver",
+      "field": "HWOriginInBCSY",
+      "documentation_owner": "Imager",
+      "documentation_field": "HWOriginInBCSY",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Receiver",
+      "field": "HWOriginInBCSZ",
+      "documentation_owner": "Imager",
+      "documentation_field": "HWOriginInBCSZ",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Receiver",
+      "field": "FieldOfView",
+      "documentation_owner": "Imager",
+      "documentation_field": "FieldOfView",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transmitter",
+      "field": "DirectionX",
+      "documentation_owner": "Imager",
+      "documentation_field": "DirectionX",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transmitter",
+      "field": "DirectionY",
+      "documentation_owner": "Imager",
+      "documentation_field": "DirectionY",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transmitter",
+      "field": "DirectionZ",
+      "documentation_owner": "Imager",
+      "documentation_field": "DirectionZ",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transmitter",
+      "field": "SecondDirectionX",
+      "documentation_owner": "Imager",
+      "documentation_field": "SecondDirectionX",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transmitter",
+      "field": "SecondDirectionY",
+      "documentation_owner": "Imager",
+      "documentation_field": "SecondDirectionY",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transmitter",
+      "field": "SecondDirectionZ",
+      "documentation_owner": "Imager",
+      "documentation_field": "SecondDirectionZ",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transmitter",
+      "field": "HWOriginInBCSX",
+      "documentation_owner": "Imager",
+      "documentation_field": "HWOriginInBCSX",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transmitter",
+      "field": "HWOriginInBCSY",
+      "documentation_owner": "Imager",
+      "documentation_field": "HWOriginInBCSY",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transmitter",
+      "field": "HWOriginInBCSZ",
+      "documentation_owner": "Imager",
+      "documentation_field": "HWOriginInBCSZ",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transmitter",
+      "field": "FieldOfView",
+      "documentation_owner": "Imager",
+      "documentation_field": "FieldOfView",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transponder",
+      "field": "DirectionX",
+      "documentation_owner": "Imager",
+      "documentation_field": "DirectionX",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transponder",
+      "field": "DirectionY",
+      "documentation_owner": "Imager",
+      "documentation_field": "DirectionY",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transponder",
+      "field": "DirectionZ",
+      "documentation_owner": "Imager",
+      "documentation_field": "DirectionZ",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transponder",
+      "field": "SecondDirectionX",
+      "documentation_owner": "Imager",
+      "documentation_field": "SecondDirectionX",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transponder",
+      "field": "SecondDirectionY",
+      "documentation_owner": "Imager",
+      "documentation_field": "SecondDirectionY",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transponder",
+      "field": "SecondDirectionZ",
+      "documentation_owner": "Imager",
+      "documentation_field": "SecondDirectionZ",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transponder",
+      "field": "HWOriginInBCSX",
+      "documentation_owner": "Imager",
+      "documentation_field": "HWOriginInBCSX",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transponder",
+      "field": "HWOriginInBCSY",
+      "documentation_owner": "Imager",
+      "documentation_field": "HWOriginInBCSY",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transponder",
+      "field": "HWOriginInBCSZ",
+      "documentation_owner": "Imager",
+      "documentation_field": "HWOriginInBCSZ",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Transponder",
+      "field": "FieldOfView",
+      "documentation_owner": "Imager",
+      "documentation_field": "FieldOfView",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/hardware/RFHardware.hpp",
+        "plugins/EstimationPlugin/src/base/hardware/Sensor.hpp",
+        "src/base/hardware/Imager.hpp",
+        "src/base/hardware/Hardware.cpp"
+      ],
+      "reason": "Radio hardware inherits Sensor -> Imager -> Hardware geometry and field-of-view reference conventions."
+    },
+    {
+      "type": "Barycenter",
+      "field": "SpiceFrameId",
+      "documentation_owner": "CelestialBody",
+      "documentation_field": "SpiceFrameId",
+      "source_evidence": [
+        "src/base/foundation/SpacePoint.cpp"
+      ],
+      "reason": "Shared SpacePoint frame identifier. Binding describes the textual identifier only; it does not establish that a particular derived resource uses a SPICE frame."
+    },
+    {
+      "type": "Formation",
+      "field": "SpiceFrameId",
+      "documentation_owner": "CelestialBody",
+      "documentation_field": "SpiceFrameId",
+      "source_evidence": [
+        "src/base/foundation/SpacePoint.cpp"
+      ],
+      "reason": "Shared SpacePoint frame identifier. Binding describes the textual identifier only; it does not establish that a particular derived resource uses a SPICE frame."
+    },
+    {
+      "type": "LibrationPoint",
+      "field": "SpiceFrameId",
+      "documentation_owner": "CelestialBody",
+      "documentation_field": "SpiceFrameId",
+      "source_evidence": [
+        "src/base/foundation/SpacePoint.cpp"
+      ],
+      "reason": "Shared SpacePoint frame identifier. Binding describes the textual identifier only; it does not establish that a particular derived resource uses a SPICE frame."
+    },
+    {
+      "type": "PlanetographicRegion",
+      "field": "SpiceFrameId",
+      "documentation_owner": "CelestialBody",
+      "documentation_field": "SpiceFrameId",
+      "source_evidence": [
+        "src/base/foundation/SpacePoint.cpp"
+      ],
+      "reason": "Shared SpacePoint frame identifier. Binding describes the textual identifier only; it does not establish that a particular derived resource uses a SPICE frame."
+    },
+    {
+      "type": "Spacecraft",
+      "field": "SpiceFrameId",
+      "documentation_owner": "CelestialBody",
+      "documentation_field": "SpiceFrameId",
+      "source_evidence": [
+        "src/base/foundation/SpacePoint.cpp"
+      ],
+      "reason": "Shared SpacePoint frame identifier. Binding describes the textual identifier only; it does not establish that a particular derived resource uses a SPICE frame."
+    },
+    {
+      "type": "ElectricThruster",
+      "field": "Tank",
+      "documentation_owner": "ElectricThruster",
+      "documentation_field": "Tanks",
+      "source_evidence": [
+        "src/base/hardware/Thruster.cpp"
+      ],
+      "reason": "Native Tank is the guide's Tanks object-name list."
+    },
+    {
+      "type": "CoordinateSystem",
+      "field": "ConstraintCoordinateSystem",
+      "documentation_owner": "CoordinateSystem",
+      "documentation_field": "Constraint Coordinate System",
+      "source_evidence": [
+        "src/base/coordsystem/ObjectReferencedAxes.cpp"
+      ],
+      "reason": "Exact field name differs only by the spaces in the guide label."
+    },
+    {
+      "type": "TextEphemFile",
+      "field": "AppendToExistingFile",
+      "documentation_owner": "ReportFile",
+      "documentation_field": "AppendToExistingFile",
+      "source_evidence": [
+        "src/base/subscriber/TextEphemFile.hpp",
+        "src/base/subscriber/ReportFile.cpp"
+      ],
+      "reason": "TextEphemFile inherits these ReportFile output/formatting controls. Binding does not establish that every report option is effective in every ephemeris mode."
+    },
+    {
+      "type": "TextEphemFile",
+      "field": "ColumnWidth",
+      "documentation_owner": "ReportFile",
+      "documentation_field": "ColumnWidth",
+      "source_evidence": [
+        "src/base/subscriber/TextEphemFile.hpp",
+        "src/base/subscriber/ReportFile.cpp"
+      ],
+      "reason": "TextEphemFile inherits these ReportFile output/formatting controls. Binding does not establish that every report option is effective in every ephemeris mode."
+    },
+    {
+      "type": "TextEphemFile",
+      "field": "Delimiter",
+      "documentation_owner": "ReportFile",
+      "documentation_field": "Delimiter",
+      "source_evidence": [
+        "src/base/subscriber/TextEphemFile.hpp",
+        "src/base/subscriber/ReportFile.cpp"
+      ],
+      "reason": "TextEphemFile inherits these ReportFile output/formatting controls. Binding does not establish that every report option is effective in every ephemeris mode."
+    },
+    {
+      "type": "TextEphemFile",
+      "field": "Filename",
+      "documentation_owner": "ReportFile",
+      "documentation_field": "Filename",
+      "source_evidence": [
+        "src/base/subscriber/TextEphemFile.hpp",
+        "src/base/subscriber/ReportFile.cpp"
+      ],
+      "reason": "TextEphemFile inherits these ReportFile output/formatting controls. Binding does not establish that every report option is effective in every ephemeris mode."
+    },
+    {
+      "type": "TextEphemFile",
+      "field": "FixedWidth",
+      "documentation_owner": "ReportFile",
+      "documentation_field": "FixedWidth",
+      "source_evidence": [
+        "src/base/subscriber/TextEphemFile.hpp",
+        "src/base/subscriber/ReportFile.cpp"
+      ],
+      "reason": "TextEphemFile inherits these ReportFile output/formatting controls. Binding does not establish that every report option is effective in every ephemeris mode."
+    },
+    {
+      "type": "TextEphemFile",
+      "field": "LeftJustify",
+      "documentation_owner": "ReportFile",
+      "documentation_field": "LeftJustify",
+      "source_evidence": [
+        "src/base/subscriber/TextEphemFile.hpp",
+        "src/base/subscriber/ReportFile.cpp"
+      ],
+      "reason": "TextEphemFile inherits these ReportFile output/formatting controls. Binding does not establish that every report option is effective in every ephemeris mode."
+    },
+    {
+      "type": "TextEphemFile",
+      "field": "Precision",
+      "documentation_owner": "ReportFile",
+      "documentation_field": "Precision",
+      "source_evidence": [
+        "src/base/subscriber/TextEphemFile.hpp",
+        "src/base/subscriber/ReportFile.cpp"
+      ],
+      "reason": "TextEphemFile inherits these ReportFile output/formatting controls. Binding does not establish that every report option is effective in every ephemeris mode."
+    },
+    {
+      "type": "TextEphemFile",
+      "field": "SolverIterations",
+      "documentation_owner": "ReportFile",
+      "documentation_field": "SolverIterations",
+      "source_evidence": [
+        "src/base/subscriber/TextEphemFile.hpp",
+        "src/base/subscriber/ReportFile.cpp"
+      ],
+      "reason": "TextEphemFile inherits these ReportFile output/formatting controls. Binding does not establish that every report option is effective in every ephemeris mode."
+    },
+    {
+      "type": "TextEphemFile",
+      "field": "WriteHeaders",
+      "documentation_owner": "ReportFile",
+      "documentation_field": "WriteHeaders",
+      "source_evidence": [
+        "src/base/subscriber/TextEphemFile.hpp",
+        "src/base/subscriber/ReportFile.cpp"
+      ],
+      "reason": "TextEphemFile inherits these ReportFile output/formatting controls. Binding does not establish that every report option is effective in every ephemeris mode."
+    },
+    {
+      "type": "TextEphemFile",
+      "field": "WriteReport",
+      "documentation_owner": "ReportFile",
+      "documentation_field": "WriteReport",
+      "source_evidence": [
+        "src/base/subscriber/TextEphemFile.hpp",
+        "src/base/subscriber/ReportFile.cpp"
+      ],
+      "reason": "TextEphemFile inherits these ReportFile output/formatting controls. Binding does not establish that every report option is effective in every ephemeris mode."
+    },
+    {
+      "type": "TextEphemFile",
+      "field": "ZeroFill",
+      "documentation_owner": "ReportFile",
+      "documentation_field": "ZeroFill",
+      "source_evidence": [
+        "src/base/subscriber/TextEphemFile.hpp",
+        "src/base/subscriber/ReportFile.cpp"
+      ],
+      "reason": "TextEphemFile inherits these ReportFile output/formatting controls. Binding does not establish that every report option is effective in every ephemeris mode."
+    },
+    {
+      "type": "Smoother",
+      "field": "DataFilters",
+      "documentation_owner": "ExtendedKalmanFilter",
+      "documentation_field": "DataFilters",
+      "source_evidence": [
+        "plugins/ExtendedKalmanFilterPlugin/src/base/smoother/SmootherBase.hpp",
+        "plugins/EstimationPlugin/src/base/estimator/Estimator.cpp",
+        "src/base/solver/Solver.cpp"
+      ],
+      "reason": "Shared Estimator/Solver reference and logical controls; this binding does not assert full filter/smoother behavioral equivalence."
+    },
+    {
+      "type": "Smoother",
+      "field": "Measurements",
+      "documentation_owner": "ExtendedKalmanFilter",
+      "documentation_field": "Measurements",
+      "source_evidence": [
+        "plugins/ExtendedKalmanFilterPlugin/src/base/smoother/SmootherBase.hpp",
+        "plugins/EstimationPlugin/src/base/estimator/Estimator.cpp",
+        "src/base/solver/Solver.cpp"
+      ],
+      "reason": "Shared Estimator/Solver reference and logical controls; this binding does not assert full filter/smoother behavioral equivalence."
+    },
+    {
+      "type": "Smoother",
+      "field": "Propagator",
+      "documentation_owner": "ExtendedKalmanFilter",
+      "documentation_field": "Propagator",
+      "source_evidence": [
+        "plugins/ExtendedKalmanFilterPlugin/src/base/smoother/SmootherBase.hpp",
+        "plugins/EstimationPlugin/src/base/estimator/Estimator.cpp",
+        "src/base/solver/Solver.cpp"
+      ],
+      "reason": "Shared Estimator/Solver reference and logical controls; this binding does not assert full filter/smoother behavioral equivalence."
+    },
+    {
+      "type": "Smoother",
+      "field": "ShowAllResiduals",
+      "documentation_owner": "ExtendedKalmanFilter",
+      "documentation_field": "ShowAllResiduals",
+      "source_evidence": [
+        "plugins/ExtendedKalmanFilterPlugin/src/base/smoother/SmootherBase.hpp",
+        "plugins/EstimationPlugin/src/base/estimator/Estimator.cpp",
+        "src/base/solver/Solver.cpp"
+      ],
+      "reason": "Shared Estimator/Solver reference and logical controls; this binding does not assert full filter/smoother behavioral equivalence."
+    },
+    {
+      "type": "Smoother",
+      "field": "ShowProgress",
+      "documentation_owner": "ExtendedKalmanFilter",
+      "documentation_field": "ShowProgress",
+      "source_evidence": [
+        "plugins/ExtendedKalmanFilterPlugin/src/base/smoother/SmootherBase.hpp",
+        "plugins/EstimationPlugin/src/base/estimator/Estimator.cpp",
+        "src/base/solver/Solver.cpp"
+      ],
+      "reason": "Shared Estimator/Solver reference and logical controls; this binding does not assert full filter/smoother behavioral equivalence."
+    },
+    {
+      "type": "EclipseLocator",
+      "field": "InputEpochFormat",
+      "documentation_owner": "ContactLocator",
+      "documentation_field": "InputEpochFormat",
+      "source_evidence": [
+        "src/base/event/EventLocator.cpp"
+      ],
+      "reason": "Shared EventLocator epoch format selector; epochs themselves retain the selected representation and time system."
+    },
+    {
+      "type": "IntrusionLocator",
+      "field": "OccultingBodies",
+      "documentation_owner": "EclipseLocator",
+      "documentation_field": "OccultingBodies",
+      "source_evidence": [
+        "src/base/event/EventLocator.cpp"
+      ],
+      "reason": "Inherited EventLocator celestial-body name list; no physical number is entered."
+    },
+    {
+      "type": "Array",
+      "field": "RmatValue",
+      "documentation_owner": "Array",
+      "documentation_field": "value",
+      "source_evidence": [
+        "src/base/parameter/Array.cpp"
+      ],
+      "reason": "Native matrix value corresponds to the guide value entry; numbers have user-assigned meaning, not one inferred common physical unit."
+    },
+    {
+      "type": "ForceModel",
+      "field": "Drag",
+      "documentation_owner": "ForceModel",
+      "documentation_field": "Drag.AtmosphereModel",
+      "source_evidence": [
+        "src/base/forcemodel/ODEModel.cpp"
+      ],
+      "reason": "Native Drag string dispatch returns the drag force AtmosphereModel name."
+    },
+    {
+      "type": "ODEModel",
+      "field": "Drag",
+      "documentation_owner": "ForceModel",
+      "documentation_field": "Drag.AtmosphereModel",
+      "source_evidence": [
+        "src/base/forcemodel/ODEModel.cpp"
+      ],
+      "reason": "Native Drag string dispatch returns the drag force AtmosphereModel name."
+    },
+    {
+      "type": "GroundTrack",
+      "field": "MaxPlotPoints",
+      "documentation_owner": "QtInputConventions",
+      "documentation_field": "MaxPlotPoints",
+      "source_evidence": [
+        "src/base/subscriber/OrbitPlot.cpp",
+        "src/base/subscriber/GroundTrack.cpp"
+      ],
+      "reason": "Stored plot point capacity is a positive count, not seconds."
+    },
+    {
+      "type": "GroundTrackPlot",
+      "field": "MaxPlotPoints",
+      "documentation_owner": "QtInputConventions",
+      "documentation_field": "MaxPlotPoints",
+      "source_evidence": [
+        "src/base/subscriber/OrbitPlot.cpp",
+        "src/base/subscriber/GroundTrack.cpp"
+      ],
+      "reason": "Stored plot point capacity is a positive count, not seconds."
+    },
+    {
+      "type": "OrbitView",
+      "field": "MaxPlotPoints",
+      "documentation_owner": "QtInputConventions",
+      "documentation_field": "MaxPlotPoints",
+      "source_evidence": [
+        "src/base/subscriber/OrbitPlot.cpp",
+        "src/base/subscriber/GroundTrack.cpp"
+      ],
+      "reason": "Stored plot point capacity is a positive count, not seconds."
+    },
+    {
+      "type": "ExtendedKalmanFilter",
+      "field": "DataFile",
+      "documentation_owner": "QtInputConventions",
+      "documentation_field": "DataFile",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/estimator/Estimator.cpp"
+      ],
+      "reason": "Estimator output filename, not a physical quantity."
+    },
+    {
+      "type": "Smoother",
+      "field": "DataFile",
+      "documentation_owner": "QtInputConventions",
+      "documentation_field": "DataFile",
+      "source_evidence": [
+        "plugins/EstimationPlugin/src/base/estimator/Estimator.cpp"
+      ],
+      "reason": "Estimator output filename, not a physical quantity."
+    },
+    {
+      "type": "FiniteBurn",
+      "field": "ThrottleLogicAlgorithm",
+      "documentation_owner": "QtInputConventions",
+      "documentation_field": "ThrottleLogicAlgorithm",
+      "source_evidence": [
+        "src/base/burn/FiniteBurn.cpp"
+      ],
+      "reason": "Named algorithm selector."
+    },
+    {
+      "type": "MessageWindow",
+      "field": "SolverIterations",
+      "documentation_owner": "QtInputConventions",
+      "documentation_field": "SolverIterations",
+      "source_evidence": [
+        "src/base/subscriber/Subscriber.cpp",
+        "src/base/subscriber/MessageWindow.cpp"
+      ],
+      "reason": "Subscriber output mode and positive decimal digit count; Precision replaces corrupt pre-repair metadata."
+    },
+    {
+      "type": "MessageWindow",
+      "field": "Precision",
+      "documentation_owner": "QtInputConventions",
+      "documentation_field": "Precision",
+      "source_evidence": [
+        "src/base/subscriber/Subscriber.cpp",
+        "src/base/subscriber/MessageWindow.cpp"
+      ],
+      "reason": "Subscriber output mode and positive decimal digit count; Precision replaces corrupt pre-repair metadata."
+    },
+    {
+      "type": "Spacecraft",
+      "field": "AnomalyType",
+      "documentation_owner": "QtInputConventions",
+      "documentation_field": "AnomalyType",
+      "source_evidence": [
+        "src/base/spacecraft/Spacecraft.cpp",
+        "src/base/attitude/Attitude.cpp"
+      ],
+      "reason": "Representation selectors and power-resource reference do not accept physical quantities."
+    },
+    {
+      "type": "Spacecraft",
+      "field": "AttitudeDisplayStateType",
+      "documentation_owner": "QtInputConventions",
+      "documentation_field": "AttitudeDisplayStateType",
+      "source_evidence": [
+        "src/base/spacecraft/Spacecraft.cpp",
+        "src/base/attitude/Attitude.cpp"
+      ],
+      "reason": "Representation selectors and power-resource reference do not accept physical quantities."
+    },
+    {
+      "type": "Spacecraft",
+      "field": "PowerSystem",
+      "documentation_owner": "QtInputConventions",
+      "documentation_field": "PowerSystem",
+      "source_evidence": [
+        "src/base/spacecraft/Spacecraft.cpp",
+        "src/base/attitude/Attitude.cpp"
+      ],
+      "reason": "Representation selectors and power-resource reference do not accept physical quantities."
+    },
+    {
+      "type": "Array",
+      "field": "Object",
+      "documentation_owner": "QtInputConventions",
+      "documentation_field": "Object",
+      "source_evidence": [
+        "src/base/parameter/Parameter.cpp"
+      ],
+      "reason": "Inherited parameter-owner reference, not a numeric array value."
+    },
+    {
+      "type": "Spacecraft",
+      "field": "DragArea",
+      "documentation_owner": "SpacecraftBallisticMass",
+      "documentation_field": "Drag Area",
+      "source_evidence": [
+        "src/base/spacecraft/Spacecraft.cpp"
+      ],
+      "reason": "Bind the native name to the active user-guide label; spaces/hyphen differ, and the quantity/selector meaning is unchanged."
+    },
+    {
+      "type": "Spacecraft",
+      "field": "AttitudeRateDisplayStateType",
+      "documentation_owner": "SpacecraftAttitude",
+      "documentation_field": "AttitudeRate-DisplayStateType",
+      "source_evidence": [
+        "src/base/attitude/Attitude.cpp"
+      ],
+      "reason": "Bind the native name to the active user-guide label; spaces/hyphen differ, and the quantity/selector meaning is unchanged."
+    }
+  ]
+}

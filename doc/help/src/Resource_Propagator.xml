@@ -36,6 +36,81 @@
     <guilabel>Propagator</guilabel> in the mission,( i.e.
     <literal>myPropagator = yourPropagator</literal> ).</para>
 
+    <para>In Qt, use <guimenuitem>Clone propagator</guimenuitem> in the Edit menu
+    or the propagator's context menu to copy a named setup. The standard Clone
+    action retains its native restriction on propagators. The additional command
+    copies the authored configuration and opens the propagation settings for
+    optional changes before committing the copy. The numerical force-model
+    reference is preserved; choosing another model on the copy changes that
+    reference, while editing a shared model resource affects setups using it.
+    Ephemeris propagators retain their type-specific configuration without
+    acquiring a numerical force model.</para>
+
+    <para>An ephemeris propagator uses the complete state-vector size supplied
+    by its propagation state manager, including all registered spacecraft.
+    Native state preparation allocates required replacement buffers before
+    retiring the previous storage. A failed allocation leaves that storage
+    intact and the propagator awaiting successful initialization. File
+    interpolation changes likewise construct the selected interpolator before
+    replacing its previous cache.</para>
+
+    <para>Ephemeris state publication evaluates the requested epoch before
+    converting to the propagated object's origin. Real and precision epoch
+    values stay synchronized during explicit time changes, state refresh and
+    trial-step reversion. STK frame conversion uses the same epoch as the
+    interpolated state. A failed explicit-duration step restores the selected
+    default step size; it does not declare the failed provider operation
+    successful or resume an interrupted session.</para>
+
+    <para>An SPK lookup that has no valid state does not publish a default
+    Cartesian vector. Kernel gaps retain the reader's native missing-data
+    marker; the propagator rejects that marker before origin conversion or
+    state publication. Optional measurement preparation outside covered epochs
+    keeps the spacecraft state intact for the existing gap-editing workflow.
+    Ordinary range errors, rejected steps and caller-controlled gap skipping
+    retain their native error handling.</para>
+
+    <para>Native SPICE coverage envelopes are associated with the current
+    kernel pool. A load, unload or pool reset causes the reader to recompute
+    its cached envelope before using it to classify a failed state lookup.
+    This also covers the native TLE propagator's leap-second-kernel load.</para>
+    <para>The reader discovers currently loaded SPK coverage from CSPICE's
+    KEEPER table, including meta-kernel children. Loaded-state checks use that
+    table before reusing filename bookkeeping. Coverage queries retain native
+    load priority and do not furnish an already-loaded child or filesystem
+    alias again. Explicit propagator kernel selections remain unchanged.</para>
+
+    <para>Recovery after a failed native unload uses the observed order of
+    directly furnished roots rather than sorting requested filenames. This
+    retains repeated furnish operations and includes roots loaded outside
+    the wrapper's filename list. An unload error remains a reported failure
+    even when some remaining kernels can be reloaded. This recovery is not
+    a replacement for resolving missing files or validating a meta-kernel's
+    complete dependencies.</para>
+
+    <para>Meta-kernel recovery preserves the observed surviving child order,
+    including repeated entries and prior child removals. The requested last
+    child occurrence is omitted when recovering from a child unload failure.
+    Replayed roots are checked before later roots are loaded; GMAT attempts
+    to retire an incomplete root and reports any retirement failure. This
+    checks loaded file/type/source entries, not the earlier contents of files
+    that have since changed.</para>
+
+    <para>Native setup copies own their cloned propagator and force model.
+    Components remain guarded while a copy is being constructed. Assignment
+    prepares both component copies before replacing the existing pair; a
+    component-cloning failure leaves that pair in place. Component setters also
+    clone before replacement, including when passed the setup's own component
+    pointer. A null force-model pointer clears the model safely. Replacing or
+    clearing a component invalidates initialization, so initialize the setup
+    again before using the replacement.</para>
+
+    <para>Updates to owned engine components follow their actual source
+    definitions. Equal resource names alone do not select a force model or
+    integrator for updating. A command's runtime setup copy follows its selected
+    setup and component definitions; an independent copied value retains its own
+    state until explicitly assigned or initialized for use.</para>
+
     <para>GMAT's documentation for <guilabel>Propagator</guilabel> components
     is broken down into these sections:</para>
 
@@ -186,7 +261,7 @@
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Selected error-metric numerical scale: dimensionless in normalized branches; propagated-component scale in absolute fallbacks</para>
                     </listitem>
                   </varlistentry>
                 </variablelist></entry>
@@ -362,7 +437,7 @@
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Selected error-metric numerical scale: dimensionless in normalized branches; propagated-component scale in absolute fallbacks</para>
                     </listitem>
                   </varlistentry>
                 </variablelist></entry>
@@ -418,7 +493,7 @@
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>s</para>
                     </listitem>
                   </varlistentry>
                 </variablelist></entry>
@@ -474,7 +549,7 @@
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Integer count or order (samples, segments, iterations or polynomial degree as described)</para>
                     </listitem>
                   </varlistentry>
                 </variablelist></entry>
@@ -646,7 +721,7 @@
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Selected error-metric numerical scale: dimensionless in normalized branches; propagated-component scale in absolute fallbacks</para>
                     </listitem>
                   </varlistentry>
                 </variablelist></entry>
@@ -752,6 +827,8 @@
 
   <refsection xml:id="Propagator_Numeric_Remarks">
     <title>Remarks</title>
+
+    <para>Accuracy, LowerError and TargetError share the numerical error metric selected by ForceModel.ErrorControl. Relative-error branches divide by state/step norms and are dimensionless. Below the relative-error threshold, absolute fallback errors retain the propagated component scale (for example km for position or km/s for velocity). Non-Cartesian components follow their own numerical scales. One tolerance is applied to the resulting combined metric, so it does not define an independent universal SI unit. ErrorControl=None suppresses that accuracy control. The field reference and selected state/error model should be considered together.</para>
 
     <refsection>
       <title>Best Practices for Using Numerical Integrators</title>
@@ -1023,6 +1100,39 @@
       </mediaobject>
     </refsection>
 
+    <refsection xml:id="Propagator_BulirschStoerReductionUnits">
+      <title>BulirschStoer Step-Reduction Factors</title>
+      <para><guilabel>MinimumTolerance</guilabel> is an optional tolerance floor
+      in the same error-metric units as <guilabel>Accuracy</guilabel>:
+      dimensionless for normalized errors, or the corresponding state-error
+      units in absolute fallback branches. The allowed value is between zero
+      and one. Its default, zero, disables the
+      floor and retains the ordinary accuracy policy. When enabled, the
+      operational tolerance is the larger of <guilabel>Accuracy</guilabel> and
+      <guilabel>MinimumTolerance</guilabel>. Accuracy keeps its requested value;
+      disabling the floor restores that requested tolerance. Changing either
+      value refreshes the extrapolation control coefficients.</para>
+      <para>When Type is BulirschStoer, MinimumReduction and MaximumReduction
+      bound the multiplier used to reduce an attempted integration step. The
+      new step is the old step multiplied by the selected factor. These fields
+      are dimensionless ratios, not times in seconds. MaximumReduction is the
+      lower clamp on that factor; MinimumReduction is the upper clamp. Their
+      names describe the amount of reduction rather than the ordering of the
+      multiplier values.</para>
+      <informaltable><tgroup cols="2"><tbody>
+        <row><entry><guilabel>MaximumReduction</guilabel></entry><entry>
+          <para>Lower clamp on the step-reduction multiplier, limiting the
+          largest reduction of an attempted step.</para>
+          <variablelist><varlistentry><term>Units</term><listitem><para>Dimensionless ratio of new step to old step</para></listitem></varlistentry></variablelist>
+        </entry></row>
+        <row><entry><guilabel>MinimumReduction</guilabel></entry><entry>
+          <para>Upper clamp on the step-reduction multiplier, setting the
+          smallest reduction of an attempted step.</para>
+          <variablelist><varlistentry><term>Units</term><listitem><para>Dimensionless ratio of new step to old step</para></listitem></varlistentry></variablelist>
+        </entry></row>
+      </tbody></tgroup></informaltable>
+    </refsection>
+
     <refsection>
       <title>Fields Unique to the AdamsBashforthMoulton Integrator</title>
 
@@ -1161,8 +1271,12 @@ Propagate aProp(aSat) {aSat.ElapsedDays = .2}</code></programlisting>
             <row>
               <entry><guilabel>CentralBody</guilabel></entry>
 
-              <entry><para>The central body of propagation. This field has no
-              effect for SPK, Code500, CCSDS-OEM, or STK
+              <entry><para>The central body of propagation. For SPK, this
+              selects the origin of the propagator's model state. The kernel
+              state is read in the internal J2000 origin, translated using the
+              selected body's GMAT ephemeris provider, and returned to the
+              internal origin when updating spacecraft. Earth remains the
+              default. This field has no effect for Code500, CCSDS-OEM, or STK
               propagators.</para><variablelist>
                   <varlistentry>
                     <term>Data Type</term>
@@ -1265,8 +1379,7 @@ Propagate aProp(aSat) {aSat.ElapsedDays = .2}</code></programlisting>
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A unless Mod Julian and in that case Modified
-                      Julian Date</para>
+                      <para>Time-system and date-representation selector; no physical quantity. StartEpoch uses the selected representation.</para>
                     </listitem>
                   </varlistentry>
 
@@ -1384,7 +1497,7 @@ Propagate aProp(aSat) {aSat.ElapsedDays = .2}</code></programlisting>
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Seconds (ephemeris-propagator step interval)</para>
                     </listitem>
                   </varlistentry>
 
@@ -1879,8 +1992,7 @@ Propagate spkProp(aSpacecraft) {aSpacecraft.ElapsedDays = 12}</code></programlis
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A unless Mod Julian and in that case Modified
-                      Julian Date</para>
+                      <para>Time-system and date-representation selector; no physical quantity. StartEpoch uses the selected representation.</para>
                     </listitem>
                   </varlistentry>
 
@@ -2001,7 +2113,7 @@ Propagate spkProp(aSpacecraft) {aSpacecraft.ElapsedDays = 12}</code></programlis
                     <term>Units</term>
 
                     <listitem>
-                      <para>Seconds</para>
+                      <para>Seconds (ephemeris-propagator step interval)</para>
                     </listitem>
                   </varlistentry>
 
@@ -2355,8 +2467,7 @@ EndWhile</code></programlisting>
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A unless Mod Julian and in that case Modified
-                      Julian Date</para>
+                      <para>Time-system and date-representation selector; no physical quantity. StartEpoch uses the selected representation.</para>
                     </listitem>
                   </varlistentry>
 
@@ -2477,7 +2588,7 @@ EndWhile</code></programlisting>
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Seconds (ephemeris-propagator step interval)</para>
                     </listitem>
                   </varlistentry>
 
@@ -2963,8 +3074,7 @@ EndWhile;</code></programlisting>
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A unless Mod Julian and in that case Modified
-                      Julian Date</para>
+                      <para>Time-system and date-representation selector; no physical quantity. StartEpoch uses the selected representation.</para>
                     </listitem>
                   </varlistentry>
 
@@ -3085,7 +3195,7 @@ EndWhile;</code></programlisting>
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Seconds (ephemeris-propagator step interval)</para>
                     </listitem>
                   </varlistentry>
 
@@ -3501,7 +3611,7 @@ EndWhile;</code></programlisting>
                     <term>Units</term>
 
                     <listitem>
-                      <para>N/A</para>
+                      <para>Seconds (ephemeris-propagator step interval)</para>
                     </listitem>
                   </varlistentry>
 

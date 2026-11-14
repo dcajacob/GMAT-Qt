@@ -1,4 +1,5 @@
 #include "EpochIntervalDialog.hpp"
+#include "ResourceProperties.hpp"
 #include "GmatBase.hpp"
 #include "BaseException.hpp"
 #include "TimeSystemConverter.hpp"
@@ -11,6 +12,7 @@
 #include <QDialogButtonBox>
 #include <QSignalBlocker>
 #include <cmath>
+#include <algorithm>
 #include <memory>
 #include <stdexcept>
 
@@ -82,6 +84,16 @@ QSet<QString> applyWarmStartProperties(GmatBase &object,const QMap<QString,QStri
    object.SetStringParameter("WarmStartEpoch",value.toStdString());
    return consumed;
 }
+QString convertEphemerisEpoch(const QString &value,const QString &from,const QString &to)
+{
+   const auto &formats=TimeSystemConverter::Instance()->GetValidTimeRepresentations();
+   const auto valid=[&](const QString &format) { return std::find(formats.begin(),formats.end(),format.toStdString())!=formats.end(); };
+   if (!valid(from) || !valid(to)) throw std::runtime_error("Select a supported ephemeris epoch format.");
+   const auto input=value.trimmed();
+   if (input=="FromSpacecraft" || input=="EphemStart") return input;
+   epoch(from,input); // Validate even a same-format or paired transaction now.
+   return convertEpochInterval({{"EpochFormat",from},{"InitialEpoch",input},{"FinalEpoch",input}},to).value("InitialEpoch");
+}
 EpochIntervalDialog::EpochIntervalDialog(GmatBase &object,const QMap<QString,QString> &pending,QWidget *parent) : QDialog(parent)
 {
    setObjectName("epochIntervalDialog"); setWindowTitle("Time interval — "+QString::fromStdString(object.GetName()));
@@ -90,8 +102,15 @@ EpochIntervalDialog::EpochIntervalDialog(GmatBase &object,const QMap<QString,QSt
    auto *form=new QFormLayout; layout->addLayout(form); format=new QComboBox(this); format->setObjectName("intervalEpochFormat");
    for (const auto &name:TimeSystemConverter::Instance()->GetValidTimeRepresentations()) format->addItem(QString::fromStdString(name));
    format->setCurrentText(values["EpochFormat"]); previousFormat=values["EpochFormat"]; form->addRow("Epoch format",format);
-   start=new QLineEdit(values["InitialEpoch"],this); start->setObjectName("intervalInitialEpoch"); form->addRow("Initial epoch",start);
-   finish=new QLineEdit(values["FinalEpoch"],this); finish->setObjectName("intervalFinalEpoch"); form->addRow("Final epoch",finish);
+   start=new QLineEdit(values["InitialEpoch"],this); start->setObjectName("intervalInitialEpoch");
+   finish=new QLineEdit(values["FinalEpoch"],this); finish->setObjectName("intervalFinalEpoch");
+   auto *startLabel=new QLabel(this),*finishLabel=new QLabel(this);
+   form->addRow(startLabel,start); form->addRow(finishLabel,finish);
+   auto updateUnits=[this,startLabel,finishLabel] {
+      const auto unit=epochInputUnit(format->currentText());
+      startLabel->setText("Initial epoch ("+unit+")"); finishLabel->setText("Final epoch ("+unit+")");
+   };
+   updateUnits();
    error=new QLabel(this); error->setObjectName("epochIntervalError"); error->setWordWrap(true); layout->addWidget(error);
    connect(format,&QComboBox::currentTextChanged,this,[this](const QString &next) {
       try {
@@ -100,6 +119,7 @@ EpochIntervalDialog::EpochIntervalDialog(GmatBase &object,const QMap<QString,QSt
       } catch (BaseException &failure) { const QSignalBlocker blocker(format); format->setCurrentText(previousFormat); error->setText(QString::fromStdString(failure.GetFullMessage())); }
       catch (const std::exception &failure) { const QSignalBlocker blocker(format); format->setCurrentText(previousFormat); error->setText(QString::fromUtf8(failure.what())); }
    });
+   connect(format,&QComboBox::currentTextChanged,this,[updateUnits] { updateUnits(); });
    auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,this); layout->addWidget(buttons); connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);
    connect(buttons,&QDialogButtonBox::accepted,this,[this,&object] {
       try { std::unique_ptr<GmatBase> copy(object.Clone()); applyEpochIntervalProperties(*copy,settings()); accept(); }

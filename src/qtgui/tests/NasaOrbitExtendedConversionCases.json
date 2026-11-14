@@ -1,0 +1,1350 @@
+{
+  "schema_version": 1,
+  "scope": "42 new directed GUI pairs complete the nine-representation elliptic EarthMJ2000Eq matrix with30retained pairs;other five native representations,frame/origin/anomaly/singular/hyperbolic/all-domain requirements remain open",
+  "position_tolerance_km": 1e-06,
+  "velocity_tolerance_km_s": 1e-09,
+  "displayed_field_tolerance": 1e-06,
+  "cases": [
+    {
+      "key": "Cartesian",
+      "mu": 398600.4418,
+      "keplerian": [
+        9000,
+        0.2,
+        30,
+        40,
+        50,
+        60
+      ],
+      "cartesian": [
+        -6166.616962325734,
+        3169.7715761895997,
+        3690.4292016319305,
+        -4.879417119182025,
+        -5.733436239724976,
+        -0.7249429977623574
+      ],
+      "expected_pairs": 3,
+      "targets": [
+        {
+          "key": "ModifiedEquinoctial",
+          "values": [
+            8640.0,
+            1.2246467991473533e-17,
+            0.2,
+            0.20526098990007927,
+            0.17223442092023988,
+            150
+          ],
+          "names": [
+            "SemilatusRectum",
+            "ModEquinoctialF",
+            "ModEquinoctialG",
+            "ModEquinoctialH",
+            "ModEquinoctialK",
+            "TLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "AlternateEquinoctial",
+          "values": [
+            9000,
+            0.2,
+            1.2246467991473533e-17,
+            0.1663656753428019,
+            0.19826689127414615,
+            131.6393343554517
+          ],
+          "names": [
+            "SMA",
+            "EquinoctialH",
+            "EquinoctialK",
+            "AltEquinoctialP",
+            "AltEquinoctialQ",
+            "MLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "Delaunay",
+          "values": [
+            41.639334355451695,
+            50,
+            40,
+            59894.94115699589,
+            58684.81760346538,
+            50822.54286105724
+          ],
+          "names": [
+            "Delaunayl",
+            "Delaunayg",
+            "Delaunayh",
+            "DelaunayL",
+            "DelaunayG",
+            "DelaunayH"
+          ],
+          "units": [
+            "deg",
+            "deg",
+            "deg",
+            "km^2/sec",
+            "km^2/sec",
+            "km^2/sec"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Keplerian",
+      "mu": 398600.4418,
+      "keplerian": [
+        9200,
+        0.22,
+        35,
+        55,
+        40,
+        75
+      ],
+      "cartesian": [
+        -7045.136546226245,
+        659.6376160132244,
+        4305.849651563947,
+        -2.90450861962834,
+        -6.5966011759091225,
+        -0.9833860457413525
+      ],
+      "expected_pairs": 3,
+      "targets": [
+        {
+          "key": "ModifiedEquinoctial",
+          "values": [
+            8754.72,
+            -0.019174263404484762,
+            0.219162833580184,
+            0.18084795571100823,
+            0.25827764747206255,
+            170
+          ],
+          "names": [
+            "SemilatusRectum",
+            "ModEquinoctialF",
+            "ModEquinoctialG",
+            "ModEquinoctialH",
+            "ModEquinoctialK",
+            "TLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "AlternateEquinoctial",
+          "values": [
+            9200,
+            0.219162833580184,
+            -0.019174263404484762,
+            0.24632377039348102,
+            0.17247776086975317,
+            146.82474557295163
+          ],
+          "names": [
+            "SMA",
+            "EquinoctialH",
+            "EquinoctialK",
+            "AltEquinoctialP",
+            "AltEquinoctialQ",
+            "MLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "Delaunay",
+          "values": [
+            51.82474557295163,
+            40,
+            55,
+            60556.78380297289,
+            59073.13484008865,
+            48389.87916681788
+          ],
+          "names": [
+            "Delaunayl",
+            "Delaunayg",
+            "Delaunayh",
+            "DelaunayL",
+            "DelaunayG",
+            "DelaunayH"
+          ],
+          "units": [
+            "deg",
+            "deg",
+            "deg",
+            "km^2/sec",
+            "km^2/sec",
+            "km^2/sec"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "ModifiedKeplerian",
+      "mu": 398600.4418,
+      "keplerian": [
+        9400,
+        0.25,
+        42,
+        62,
+        33,
+        81
+      ],
+      "cartesian": [
+        -6703.087507317197,
+        -342.6635730158081,
+        5184.170085694044,
+        -2.4446786414603823,
+        -6.695754049744708,
+        -0.8868466569764973
+      ],
+      "expected_pairs": 3,
+      "targets": [
+        {
+          "key": "ModifiedEquinoctial",
+          "values": [
+            8812.5,
+            -0.021788935686914503,
+            0.2490486745229364,
+            0.18021324842537462,
+            0.33893182571963515,
+            176
+          ],
+          "names": [
+            "SemilatusRectum",
+            "ModEquinoctialF",
+            "ModEquinoctialG",
+            "ModEquinoctialH",
+            "ModEquinoctialK",
+            "TLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "AlternateEquinoctial",
+          "values": [
+            9400,
+            0.2490486745229364,
+            -0.021788935686914503,
+            0.31642011840881223,
+            0.1682435613254074,
+            148.791908619009
+          ],
+          "names": [
+            "SMA",
+            "EquinoctialH",
+            "EquinoctialK",
+            "AltEquinoctialP",
+            "AltEquinoctialQ",
+            "MLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "Delaunay",
+          "values": [
+            53.79190861900901,
+            33,
+            62,
+            61211.470762594814,
+            59267.751715097984,
+            44044.523004754024
+          ],
+          "names": [
+            "Delaunayl",
+            "Delaunayg",
+            "Delaunayh",
+            "DelaunayL",
+            "DelaunayG",
+            "DelaunayH"
+          ],
+          "units": [
+            "deg",
+            "deg",
+            "deg",
+            "km^2/sec",
+            "km^2/sec",
+            "km^2/sec"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Equinoctial",
+      "mu": 398600.4418,
+      "keplerian": [
+        9600,
+        0.18,
+        52,
+        75,
+        55,
+        94
+      ],
+      "cartesian": [
+        -4968.213794614637,
+        -7016.657079760126,
+        3817.914253568937,
+        1.8137603993483633,
+        -4.978804086499837,
+        -3.891748713522802
+      ],
+      "expected_pairs": 3,
+      "targets": [
+        {
+          "key": "ModifiedEquinoctial",
+          "values": [
+            9288.960000000001,
+            -0.11570176974357708,
+            0.13788799976141602,
+            0.12623448283799688,
+            0.4711135036185859,
+            224
+          ],
+          "names": [
+            "SemilatusRectum",
+            "ModEquinoctialF",
+            "ModEquinoctialG",
+            "ModEquinoctialH",
+            "ModEquinoctialK",
+            "TLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "AlternateEquinoctial",
+          "values": [
+            9600,
+            0.13788799976141602,
+            -0.11570176974357708,
+            0.42343401218352605,
+            0.11345880161244597,
+            203.3410646109463
+          ],
+          "names": [
+            "SMA",
+            "EquinoctialH",
+            "EquinoctialK",
+            "AltEquinoctialP",
+            "AltEquinoctialQ",
+            "MLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "Delaunay",
+          "values": [
+            73.34106461094629,
+            55,
+            75,
+            61859.22923283154,
+            60848.85832834111,
+            37462.29789030846
+          ],
+          "names": [
+            "Delaunayl",
+            "Delaunayg",
+            "Delaunayh",
+            "DelaunayL",
+            "DelaunayG",
+            "DelaunayH"
+          ],
+          "units": [
+            "deg",
+            "deg",
+            "deg",
+            "km^2/sec",
+            "km^2/sec",
+            "km^2/sec"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "SphericalAZFPA",
+      "mu": 398600.4418,
+      "keplerian": [
+        9800,
+        0.3,
+        64,
+        88,
+        18,
+        101
+      ],
+      "cartesian": [
+        -3784.684695151821,
+        -4456.681374501294,
+        7436.130608424644,
+        0.35860729208519615,
+        -6.483533567575466,
+        -1.1987324822673964
+      ],
+      "expected_pairs": 3,
+      "targets": [
+        {
+          "key": "ModifiedEquinoctial",
+          "values": [
+            8918.0,
+            -0.08269120674509971,
+            0.2883785087814957,
+            0.02180762588645356,
+            0.6244886983835491,
+            207
+          ],
+          "names": [
+            "SemilatusRectum",
+            "ModEquinoctialF",
+            "ModEquinoctialG",
+            "ModEquinoctialH",
+            "ModEquinoctialK",
+            "TLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "AlternateEquinoctial",
+          "values": [
+            9800,
+            0.2883785087814957,
+            -0.08269120674509971,
+            0.5295964517353734,
+            0.01849391561469853,
+            172.2759684860485
+          ],
+          "names": [
+            "SMA",
+            "EquinoctialH",
+            "EquinoctialK",
+            "AltEquinoctialP",
+            "AltEquinoctialQ",
+            "MLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "Delaunay",
+          "values": [
+            66.2759684860485,
+            18,
+            88,
+            62500.274636516595,
+            59621.462075098425,
+            26136.328703102386
+          ],
+          "names": [
+            "Delaunayl",
+            "Delaunayg",
+            "Delaunayh",
+            "DelaunayL",
+            "DelaunayG",
+            "DelaunayH"
+          ],
+          "units": [
+            "deg",
+            "deg",
+            "deg",
+            "km^2/sec",
+            "km^2/sec",
+            "km^2/sec"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "SphericalRADEC",
+      "mu": 398600.4418,
+      "keplerian": [
+        10000,
+        0.12,
+        25,
+        103,
+        67,
+        126
+      ],
+      "cartesian": [
+        4430.69935871537,
+        -9581.033256010647,
+        -1008.0999356432385,
+        5.0448481712826645,
+        1.9119415812803433,
+        -2.4927139487929804
+      ],
+      "expected_pairs": 3,
+      "targets": [
+        {
+          "key": "ModifiedEquinoctial",
+          "values": [
+            9856.0,
+            -0.11817693036146495,
+            0.020837781320031633,
+            -0.049870448103936794,
+            0.2160126428019422,
+            296
+          ],
+          "names": [
+            "SemilatusRectum",
+            "ModEquinoctialF",
+            "ModEquinoctialG",
+            "ModEquinoctialH",
+            "ModEquinoctialK",
+            "TLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "AlternateEquinoctial",
+          "values": [
+            10000,
+            0.020837781320031633,
+            -0.11817693036146495,
+            0.2108922806549606,
+            -0.04868831935715535,
+            284.27624790857334
+          ],
+          "names": [
+            "SMA",
+            "EquinoctialH",
+            "EquinoctialK",
+            "AltEquinoctialP",
+            "AltEquinoctialQ",
+            "MLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "Delaunay",
+          "values": [
+            114.27624790857334,
+            67,
+            103,
+            63134.81145928924,
+            62678.592472875454,
+            56806.09643866378
+          ],
+          "names": [
+            "Delaunayl",
+            "Delaunayg",
+            "Delaunayh",
+            "DelaunayL",
+            "DelaunayG",
+            "DelaunayH"
+          ],
+          "units": [
+            "deg",
+            "deg",
+            "deg",
+            "km^2/sec",
+            "km^2/sec",
+            "km^2/sec"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "ModifiedEquinoctial",
+      "mu": 398600.4418,
+      "keplerian": [
+        10800,
+        0.17,
+        47,
+        112,
+        38,
+        143
+      ],
+      "cartesian": [
+        4679.267974918806,
+        -11196.009216714616,
+        -154.89598737516408,
+        3.576878312822121,
+        0.8652892685735869,
+        -3.9040300159616117
+      ],
+      "expected_pairs": 8,
+      "targets": [
+        {
+          "key": "Cartesian",
+          "values": [
+            4679.267974918806,
+            -11196.009216714616,
+            -154.89598737516408,
+            3.576878312822121,
+            0.8652892685735869,
+            -3.9040300159616117
+          ],
+          "names": [
+            "X",
+            "Y",
+            "Z",
+            "VX",
+            "VY",
+            "VZ"
+          ],
+          "units": [
+            "km",
+            "km",
+            "km",
+            "km/s",
+            "km/s",
+            "km/s"
+          ]
+        },
+        {
+          "key": "Keplerian",
+          "values": [
+            10800,
+            0.17,
+            47,
+            112,
+            38,
+            143
+          ],
+          "names": [
+            "SMA",
+            "ECC",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedKeplerian",
+          "values": [
+            8964.0,
+            12636.0,
+            47,
+            112,
+            38,
+            143
+          ],
+          "names": [
+            "RadPer",
+            "RadApo",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "Equinoctial",
+          "values": [
+            10800,
+            0.08499999999999999,
+            -0.14722431864335458,
+            0.4031510138296177,
+            -0.16288358255919758,
+            279.98421176719137
+          ],
+          "names": [
+            "SMA",
+            "EquinoctialH",
+            "EquinoctialK",
+            "EquinoctialP",
+            "EquinoctialQ",
+            "MLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalAZFPA",
+          "values": [
+            12135.491911280906,
+            292.68203540149176,
+            -0.7313364304062983,
+            5.36509406707609,
+            136.99564706159518,
+            83.24869497645452
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "AZI",
+            "FPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalRADEC",
+          "values": [
+            12135.491911280906,
+            292.68203540149176,
+            -0.7313364304062983,
+            5.36509406707609,
+            13.599263549249542,
+            -46.69160301381379
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "RAV",
+            "DECV"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "AlternateEquinoctial",
+          "values": [
+            10800,
+            0.08499999999999999,
+            -0.14722431864335458,
+            0.3697136987310274,
+            -0.1493740303378532,
+            279.98421176719137
+          ],
+          "names": [
+            "SMA",
+            "EquinoctialH",
+            "EquinoctialK",
+            "AltEquinoctialP",
+            "AltEquinoctialQ",
+            "MLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "Delaunay",
+          "values": [
+            129.98421176719137,
+            38,
+            112,
+            65611.62070426244,
+            64656.58204348096,
+            44095.6829209004
+          ],
+          "names": [
+            "Delaunayl",
+            "Delaunayg",
+            "Delaunayh",
+            "DelaunayL",
+            "DelaunayG",
+            "DelaunayH"
+          ],
+          "units": [
+            "deg",
+            "deg",
+            "deg",
+            "km^2/sec",
+            "km^2/sec",
+            "km^2/sec"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "AlternateEquinoctial",
+      "mu": 398600.4418,
+      "keplerian": [
+        11300,
+        0.29,
+        68,
+        152,
+        17,
+        209
+      ],
+      "cartesian": [
+        10259.464533626888,
+        -1222.9868002036135,
+        -9248.641196214792,
+        -3.0215441128306737,
+        2.7054013964996573,
+        -2.4013258349107027
+      ],
+      "expected_pairs": 8,
+      "targets": [
+        {
+          "key": "Cartesian",
+          "values": [
+            10259.464533626888,
+            -1222.9868002036135,
+            -9248.641196214792,
+            -3.0215441128306737,
+            2.7054013964996573,
+            -2.4013258349107027
+          ],
+          "names": [
+            "X",
+            "Y",
+            "Z",
+            "VX",
+            "VY",
+            "VZ"
+          ],
+          "units": [
+            "km",
+            "km",
+            "km",
+            "km/s",
+            "km/s",
+            "km/s"
+          ]
+        },
+        {
+          "key": "Keplerian",
+          "values": [
+            11300,
+            0.29,
+            68,
+            152,
+            17,
+            209
+          ],
+          "names": [
+            "SMA",
+            "ECC",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedKeplerian",
+          "values": [
+            8023.0,
+            14577.0,
+            68,
+            152,
+            17,
+            209
+          ],
+          "names": [
+            "RadPer",
+            "RadApo",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "Equinoctial",
+          "values": [
+            11300,
+            0.05533460865919791,
+            -0.2846718831998225,
+            0.31666256751440736,
+            -0.5955556713088657,
+            37.766026406923785
+          ],
+          "names": [
+            "SMA",
+            "EquinoctialH",
+            "EquinoctialK",
+            "EquinoctialP",
+            "EquinoctialQ",
+            "MLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalAZFPA",
+          "values": [
+            13866.85520247982,
+            353.2020939706514,
+            -41.832886637416,
+            4.7133100160474894,
+            149.81692118188062,
+            100.66801729519285
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "AZI",
+            "FPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalRADEC",
+          "values": [
+            13866.85520247982,
+            353.2020939706514,
+            -41.832886637416,
+            4.7133100160474894,
+            138.1596734174653,
+            -30.629038637632103
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "RAV",
+            "DECV"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedEquinoctial",
+          "values": [
+            10349.67,
+            -0.2846718831998225,
+            0.05533460865919791,
+            -0.5955556713088657,
+            0.31666256751440736,
+            18
+          ],
+          "names": [
+            "SemilatusRectum",
+            "ModEquinoctialF",
+            "ModEquinoctialG",
+            "ModEquinoctialH",
+            "ModEquinoctialK",
+            "TLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "Delaunay",
+          "values": [
+            228.7660264069238,
+            17,
+            152,
+            67113.22516717551,
+            64229.144743521276,
+            24060.661110388035
+          ],
+          "names": [
+            "Delaunayl",
+            "Delaunayg",
+            "Delaunayh",
+            "DelaunayL",
+            "DelaunayG",
+            "DelaunayH"
+          ],
+          "units": [
+            "deg",
+            "deg",
+            "deg",
+            "km^2/sec",
+            "km^2/sec",
+            "km^2/sec"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Delaunay",
+      "mu": 398600.4418,
+      "keplerian": [
+        12200,
+        0.36,
+        105,
+        210,
+        51,
+        312
+      ],
+      "cartesian": [
+        -7458.806359744523,
+        -4172.495752311359,
+        432.6038833565801,
+        0.7907405548118701,
+        2.6998828316872525,
+        7.250616523414578
+      ],
+      "expected_pairs": 8,
+      "targets": [
+        {
+          "key": "Cartesian",
+          "values": [
+            -7458.806359744523,
+            -4172.495752311359,
+            432.6038833565801,
+            0.7907405548118701,
+            2.6998828316872525,
+            7.250616523414578
+          ],
+          "names": [
+            "X",
+            "Y",
+            "Z",
+            "VX",
+            "VY",
+            "VZ"
+          ],
+          "units": [
+            "km",
+            "km",
+            "km",
+            "km/s",
+            "km/s",
+            "km/s"
+          ]
+        },
+        {
+          "key": "Keplerian",
+          "values": [
+            12200,
+            0.36,
+            105,
+            210,
+            51,
+            312
+          ],
+          "names": [
+            "SMA",
+            "ECC",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedKeplerian",
+          "values": [
+            7808.0,
+            16592.0,
+            105,
+            210,
+            51,
+            312
+          ],
+          "names": [
+            "RadPer",
+            "RadApo",
+            "INC",
+            "RAAN",
+            "AOP",
+            "TA"
+          ],
+          "units": [
+            "km",
+            "km",
+            "deg",
+            "deg",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "Equinoctial",
+          "values": [
+            12200,
+            -0.35556780261424953,
+            -0.05631640741448317,
+            -0.651612686420603,
+            -1.1286262797369309,
+            238.55670238313928
+          ],
+          "names": [
+            "SMA",
+            "EquinoctialH",
+            "EquinoctialK",
+            "EquinoctialP",
+            "EquinoctialQ",
+            "MLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalAZFPA",
+          "values": [
+            8557.491410169037,
+            209.2228801758898,
+            2.897688692953168,
+            7.777279595043261,
+            344.98034439927744,
+            102.16659774151073
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "AZI",
+            "FPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalRADEC",
+          "values": [
+            8557.491410169037,
+            209.2228801758898,
+            2.897688692953168,
+            7.777279595043261,
+            73.67576967315291,
+            68.79335250542941
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "RAV",
+            "DECV"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "ModifiedEquinoctial",
+          "values": [
+            10618.880000000001,
+            -0.05631640741448317,
+            -0.35556780261424953,
+            -1.1286262797369309,
+            -0.651612686420603,
+            213
+          ],
+          "names": [
+            "SemilatusRectum",
+            "ModEquinoctialF",
+            "ModEquinoctialG",
+            "ModEquinoctialH",
+            "ModEquinoctialK",
+            "TLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        },
+        {
+          "key": "AlternateEquinoctial",
+          "values": [
+            12200,
+            -0.35556780261424953,
+            -0.05631640741448317,
+            -0.3966766701456177,
+            -0.68706414686945,
+            238.55670238313928
+          ],
+          "names": [
+            "SMA",
+            "EquinoctialH",
+            "EquinoctialK",
+            "AltEquinoctialP",
+            "AltEquinoctialQ",
+            "MLONG"
+          ],
+          "units": [
+            "km",
+            "",
+            "",
+            "",
+            "",
+            "deg"
+          ]
+        }
+      ]
+    }
+  ]
+}

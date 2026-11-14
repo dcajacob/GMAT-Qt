@@ -1,0 +1,961 @@
+{
+  "schema_version": 1,
+  "scope": "Six previously unexecuted directed Planetodetic/Cartesian/spherical GUI edges on four spheroids in a body-fixed Earth frame; existing98fixtureedges not replayed. Conic/inertial cross-frame, other14type pairs, singularities, model/averaging/convention and wholeFRR13 gates remain open.",
+  "position_tolerance_km": 1e-06,
+  "velocity_tolerance_km_s": 1e-09,
+  "displayed_field_tolerance": 1e-06,
+  "cases": [
+    {
+      "key": "Sphere_Cartesian",
+      "source": "Cartesian",
+      "shape": "Sphere",
+      "flattening": 0.0,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        4443.8648018459335,
+        3111.6276330373203,
+        4884.653426419665,
+        -4.440455015746474,
+        4.551191806415724,
+        3.3777229599756042
+      ],
+      "expected_pairs": 1,
+      "targets": [
+        {
+          "key": "Planetodetic",
+          "values": [
+            7300,
+            35,
+            42,
+            7.2,
+            63,
+            12
+          ],
+          "names": [
+            "PlanetodeticRMAG",
+            "PlanetodeticLON",
+            "PlanetodeticLAT",
+            "PlanetodeticVMAG",
+            "PlanetodeticAZI",
+            "PlanetodeticHFPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/sec",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Sphere_SphericalAZFPA",
+      "source": "SphericalAZFPA",
+      "shape": "Sphere",
+      "flattening": 0.0,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        4443.8648018459335,
+        3111.6276330373203,
+        4884.653426419665,
+        -4.440455015746474,
+        4.551191806415724,
+        3.3777229599756042
+      ],
+      "expected_pairs": 1,
+      "targets": [
+        {
+          "key": "Planetodetic",
+          "values": [
+            7300,
+            35,
+            42,
+            7.2,
+            63,
+            12
+          ],
+          "names": [
+            "PlanetodeticRMAG",
+            "PlanetodeticLON",
+            "PlanetodeticLAT",
+            "PlanetodeticVMAG",
+            "PlanetodeticAZI",
+            "PlanetodeticHFPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/sec",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Sphere_SphericalRADEC",
+      "source": "SphericalRADEC",
+      "shape": "Sphere",
+      "flattening": 0.0,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        4443.8648018459335,
+        3111.6276330373203,
+        4884.653426419665,
+        -4.440455015746474,
+        4.551191806415724,
+        3.3777229599756042
+      ],
+      "expected_pairs": 1,
+      "targets": [
+        {
+          "key": "Planetodetic",
+          "values": [
+            7300,
+            35,
+            42,
+            7.2,
+            63,
+            12
+          ],
+          "names": [
+            "PlanetodeticRMAG",
+            "PlanetodeticLON",
+            "PlanetodeticLAT",
+            "PlanetodeticVMAG",
+            "PlanetodeticAZI",
+            "PlanetodeticHFPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/sec",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Sphere_Planetodetic",
+      "source": "Planetodetic",
+      "shape": "Sphere",
+      "flattening": 0.0,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        4443.8648018459335,
+        3111.6276330373203,
+        4884.653426419665,
+        -4.440455015746474,
+        4.551191806415724,
+        3.3777229599756042
+      ],
+      "expected_pairs": 3,
+      "targets": [
+        {
+          "key": "Cartesian",
+          "values": [
+            4443.8648018459335,
+            3111.6276330373203,
+            4884.653426419665,
+            -4.440455015746474,
+            4.551191806415724,
+            3.3777229599756042
+          ],
+          "names": [
+            "X",
+            "Y",
+            "Z",
+            "VX",
+            "VY",
+            "VZ"
+          ],
+          "units": [
+            "km",
+            "km",
+            "km",
+            "km/s",
+            "km/s",
+            "km/s"
+          ]
+        },
+        {
+          "key": "SphericalAZFPA",
+          "values": [
+            7300.000000000001,
+            35.0,
+            41.99999999999999,
+            7.2,
+            62.999999999999986,
+            78.00000000000001
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "AZI",
+            "FPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalRADEC",
+          "values": [
+            7300.000000000001,
+            35.0,
+            41.99999999999999,
+            7.2,
+            134.29440845229095,
+            27.97772026076168
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "RAV",
+            "DECV"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Earthlike_Cartesian",
+      "source": "Cartesian",
+      "shape": "Earthlike",
+      "flattening": 0.0033333333333333335,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        -2864.4863236673823,
+        4090.910433485619,
+        5324.3938553342405,
+        -6.396318881597252,
+        -1.846143552911182,
+        -3.4538179956342443
+      ],
+      "expected_pairs": 1,
+      "targets": [
+        {
+          "key": "Planetodetic",
+          "values": [
+            7300,
+            125,
+            47,
+            7.5,
+            122,
+            -8
+          ],
+          "names": [
+            "PlanetodeticRMAG",
+            "PlanetodeticLON",
+            "PlanetodeticLAT",
+            "PlanetodeticVMAG",
+            "PlanetodeticAZI",
+            "PlanetodeticHFPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/sec",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Earthlike_SphericalAZFPA",
+      "source": "SphericalAZFPA",
+      "shape": "Earthlike",
+      "flattening": 0.0033333333333333335,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        -2864.4863236673823,
+        4090.910433485619,
+        5324.3938553342405,
+        -6.396318881597252,
+        -1.846143552911182,
+        -3.4538179956342443
+      ],
+      "expected_pairs": 1,
+      "targets": [
+        {
+          "key": "Planetodetic",
+          "values": [
+            7300,
+            125,
+            47,
+            7.5,
+            122,
+            -8
+          ],
+          "names": [
+            "PlanetodeticRMAG",
+            "PlanetodeticLON",
+            "PlanetodeticLAT",
+            "PlanetodeticVMAG",
+            "PlanetodeticAZI",
+            "PlanetodeticHFPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/sec",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Earthlike_SphericalRADEC",
+      "source": "SphericalRADEC",
+      "shape": "Earthlike",
+      "flattening": 0.0033333333333333335,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        -2864.4863236673823,
+        4090.910433485619,
+        5324.3938553342405,
+        -6.396318881597252,
+        -1.846143552911182,
+        -3.4538179956342443
+      ],
+      "expected_pairs": 1,
+      "targets": [
+        {
+          "key": "Planetodetic",
+          "values": [
+            7300,
+            125,
+            47,
+            7.5,
+            122,
+            -8
+          ],
+          "names": [
+            "PlanetodeticRMAG",
+            "PlanetodeticLON",
+            "PlanetodeticLAT",
+            "PlanetodeticVMAG",
+            "PlanetodeticAZI",
+            "PlanetodeticHFPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/sec",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Earthlike_Planetodetic",
+      "source": "Planetodetic",
+      "shape": "Earthlike",
+      "flattening": 0.0033333333333333335,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        -2864.4863236673823,
+        4090.910433485619,
+        5324.3938553342405,
+        -6.396318881597252,
+        -1.846143552911182,
+        -3.4538179956342443
+      ],
+      "expected_pairs": 3,
+      "targets": [
+        {
+          "key": "Cartesian",
+          "values": [
+            -2864.4863236673823,
+            4090.910433485619,
+            5324.3938553342405,
+            -6.396318881597252,
+            -1.846143552911182,
+            -3.4538179956342443
+          ],
+          "names": [
+            "X",
+            "Y",
+            "Z",
+            "VX",
+            "VY",
+            "VZ"
+          ],
+          "units": [
+            "km",
+            "km",
+            "km",
+            "km/s",
+            "km/s",
+            "km/s"
+          ]
+        },
+        {
+          "key": "SphericalAZFPA",
+          "values": [
+            7299.999999999999,
+            125.00000000000001,
+            46.83352293537054,
+            7.499999999999999,
+            122.0,
+            98.00000000000001
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "AZI",
+            "FPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalRADEC",
+          "values": [
+            7299.999999999999,
+            125.00000000000001,
+            46.83352293537054,
+            7.499999999999999,
+            196.09951192010433,
+            -27.419961485335463
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "RAV",
+            "DECV"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Oblate_Cartesian",
+      "source": "Cartesian",
+      "shape": "Oblate",
+      "flattening": 0.1,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        -3965.5864131301896,
+        -2776.7334998957635,
+        7587.086098796682,
+        -6.418783818118773,
+        2.2377840263309263,
+        -0.17758645149541966
+      ],
+      "expected_pairs": 1,
+      "targets": [
+        {
+          "key": "Planetodetic",
+          "values": [
+            9000,
+            215,
+            61,
+            6.8,
+            238,
+            17
+          ],
+          "names": [
+            "PlanetodeticRMAG",
+            "PlanetodeticLON",
+            "PlanetodeticLAT",
+            "PlanetodeticVMAG",
+            "PlanetodeticAZI",
+            "PlanetodeticHFPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/sec",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Oblate_SphericalAZFPA",
+      "source": "SphericalAZFPA",
+      "shape": "Oblate",
+      "flattening": 0.1,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        -3965.5864131301896,
+        -2776.7334998957635,
+        7587.086098796682,
+        -6.418783818118773,
+        2.2377840263309263,
+        -0.17758645149541966
+      ],
+      "expected_pairs": 1,
+      "targets": [
+        {
+          "key": "Planetodetic",
+          "values": [
+            9000,
+            215,
+            61,
+            6.8,
+            238,
+            17
+          ],
+          "names": [
+            "PlanetodeticRMAG",
+            "PlanetodeticLON",
+            "PlanetodeticLAT",
+            "PlanetodeticVMAG",
+            "PlanetodeticAZI",
+            "PlanetodeticHFPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/sec",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Oblate_SphericalRADEC",
+      "source": "SphericalRADEC",
+      "shape": "Oblate",
+      "flattening": 0.1,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        -3965.5864131301896,
+        -2776.7334998957635,
+        7587.086098796682,
+        -6.418783818118773,
+        2.2377840263309263,
+        -0.17758645149541966
+      ],
+      "expected_pairs": 1,
+      "targets": [
+        {
+          "key": "Planetodetic",
+          "values": [
+            9000,
+            215,
+            61,
+            6.8,
+            238,
+            17
+          ],
+          "names": [
+            "PlanetodeticRMAG",
+            "PlanetodeticLON",
+            "PlanetodeticLAT",
+            "PlanetodeticVMAG",
+            "PlanetodeticAZI",
+            "PlanetodeticHFPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/sec",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Oblate_Planetodetic",
+      "source": "Planetodetic",
+      "shape": "Oblate",
+      "flattening": 0.1,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        -3965.5864131301896,
+        -2776.7334998957635,
+        7587.086098796682,
+        -6.418783818118773,
+        2.2377840263309263,
+        -0.17758645149541966
+      ],
+      "expected_pairs": 3,
+      "targets": [
+        {
+          "key": "Cartesian",
+          "values": [
+            -3965.5864131301896,
+            -2776.7334998957635,
+            7587.086098796682,
+            -6.418783818118773,
+            2.2377840263309263,
+            -0.17758645149541966
+          ],
+          "names": [
+            "X",
+            "Y",
+            "Z",
+            "VX",
+            "VY",
+            "VZ"
+          ],
+          "units": [
+            "km",
+            "km",
+            "km",
+            "km/s",
+            "km/s",
+            "km/s"
+          ]
+        },
+        {
+          "key": "SphericalAZFPA",
+          "values": [
+            9000.0,
+            215.0,
+            57.45930039585239,
+            6.8,
+            238.0,
+            73.0
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "AZI",
+            "FPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalRADEC",
+          "values": [
+            9000.0,
+            215.0,
+            57.45930039585239,
+            6.8,
+            160.7798853052178,
+            -1.4964869300190038
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "RAV",
+            "DECV"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Southern_Cartesian",
+      "source": "Cartesian",
+      "shape": "Southern",
+      "flattening": 0.05,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        1228.734000631506,
+        -4585.69771934415,
+        -7050.644593403778,
+        -3.8727698218914854,
+        -3.402175059226766,
+        4.882300561520352
+      ],
+      "expected_pairs": 1,
+      "targets": [
+        {
+          "key": "Planetodetic",
+          "values": [
+            8500,
+            -75,
+            -58,
+            7.1,
+            315,
+            -23
+          ],
+          "names": [
+            "PlanetodeticRMAG",
+            "PlanetodeticLON",
+            "PlanetodeticLAT",
+            "PlanetodeticVMAG",
+            "PlanetodeticAZI",
+            "PlanetodeticHFPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/sec",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Southern_SphericalAZFPA",
+      "source": "SphericalAZFPA",
+      "shape": "Southern",
+      "flattening": 0.05,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        1228.734000631506,
+        -4585.69771934415,
+        -7050.644593403778,
+        -3.8727698218914854,
+        -3.402175059226766,
+        4.882300561520352
+      ],
+      "expected_pairs": 1,
+      "targets": [
+        {
+          "key": "Planetodetic",
+          "values": [
+            8500,
+            -75,
+            -58,
+            7.1,
+            315,
+            -23
+          ],
+          "names": [
+            "PlanetodeticRMAG",
+            "PlanetodeticLON",
+            "PlanetodeticLAT",
+            "PlanetodeticVMAG",
+            "PlanetodeticAZI",
+            "PlanetodeticHFPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/sec",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Southern_SphericalRADEC",
+      "source": "SphericalRADEC",
+      "shape": "Southern",
+      "flattening": 0.05,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        1228.734000631506,
+        -4585.69771934415,
+        -7050.644593403778,
+        -3.8727698218914854,
+        -3.402175059226766,
+        4.882300561520352
+      ],
+      "expected_pairs": 1,
+      "targets": [
+        {
+          "key": "Planetodetic",
+          "values": [
+            8500,
+            -75,
+            -58,
+            7.1,
+            315,
+            -23
+          ],
+          "names": [
+            "PlanetodeticRMAG",
+            "PlanetodeticLON",
+            "PlanetodeticLAT",
+            "PlanetodeticVMAG",
+            "PlanetodeticAZI",
+            "PlanetodeticHFPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/sec",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Southern_Planetodetic",
+      "source": "Planetodetic",
+      "shape": "Southern",
+      "flattening": 0.05,
+      "equatorial_radius": 6378.0,
+      "mu": 398600.4418,
+      "cartesian": [
+        1228.734000631506,
+        -4585.69771934415,
+        -7050.644593403778,
+        -3.8727698218914854,
+        -3.402175059226766,
+        4.882300561520352
+      ],
+      "expected_pairs": 3,
+      "targets": [
+        {
+          "key": "Cartesian",
+          "values": [
+            1228.734000631506,
+            -4585.69771934415,
+            -7050.644593403778,
+            -3.8727698218914854,
+            -3.402175059226766,
+            4.882300561520352
+          ],
+          "names": [
+            "X",
+            "Y",
+            "Z",
+            "VX",
+            "VY",
+            "VZ"
+          ],
+          "units": [
+            "km",
+            "km",
+            "km",
+            "km/s",
+            "km/s",
+            "km/s"
+          ]
+        },
+        {
+          "key": "SphericalAZFPA",
+          "values": [
+            8499.999999999998,
+            285.0,
+            -56.04613798219877,
+            7.1,
+            315.0,
+            113.0
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "AZI",
+            "FPA"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        },
+        {
+          "key": "SphericalRADEC",
+          "values": [
+            8499.999999999998,
+            285.0,
+            -56.04613798219877,
+            7.1,
+            221.29886135465563,
+            43.44421219976933
+          ],
+          "names": [
+            "RMagnitude",
+            "RA",
+            "DEC",
+            "VMagnitude",
+            "RAV",
+            "DECV"
+          ],
+          "units": [
+            "km",
+            "deg",
+            "deg",
+            "km/s",
+            "deg",
+            "deg"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "scope": "Current factory types absent from the former83-type GUI inventory,using the unchanged function-resource driver. Creation/local ownership/whole-object output only;no complete provider/global-eligibility or whole-requirement claim.",
+  "cases": [
+    {
+      "key": "Plate",
+      "type": "Plate",
+      "field": "Area",
+      "kind": "real",
+      "first": "2.5",
+      "second": "7.25",
+      "native_source": "src/base/spacecraft/Plate.cpp",
+      "native_source_sha256": "29632d11e59cd6f8f8769a39fd6f174839f133846bd46297cb733665522b1b58"
+    },
+    {
+      "key": "FirstOrderGaussMarkov",
+      "type": "FirstOrderGaussMarkov",
+      "field": "HalfLife",
+      "kind": "real",
+      "first": "300",
+      "second": "600",
+      "native_source": "plugins/ExtendedKalmanFilterPlugin/src/base/estimatedparam/FirstOrderGaussMarkov.cpp",
+      "native_source_sha256": "f200c1d5a7b404fb4886701016c33d252cee69f5f81d7cabdde54ae255ffc8c5"
+    }
+  ]
+}

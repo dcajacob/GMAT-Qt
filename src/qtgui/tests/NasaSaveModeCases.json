@@ -1,0 +1,259 @@
+{
+  "schema_version": 1,
+  "scope": "Missing hidden/conditional persistence clauses: GroundTrack grid/texture, file-mode region and active STK ephemeris fields. No physical ephemeris/map/science conformance claim.",
+  "cases": [
+    {
+      "key": "GroundGridDisabled",
+      "setup": "Create GroundTrack Subject;\nSubject.Add = {Earth,Luna};\nSubject.ShowPlot = false;\nSubject.UseGrid = false;\nSubject.LatitudeLineCount = 7;\nSubject.LongitudeLineCount = 13;\nSubject.LineWidth = 3;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.GroundTrack.data",
+      "definitions": [
+        "Create GroundTrack Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "UseGrid",
+          "type": "Boolean",
+          "expected": false
+        },
+        {
+          "object": "Subject",
+          "field": "LatitudeLineCount",
+          "type": "Integer",
+          "expected": 7
+        },
+        {
+          "object": "Subject",
+          "field": "LongitudeLineCount",
+          "type": "Integer",
+          "expected": 13
+        },
+        {
+          "object": "Subject",
+          "field": "LineWidth",
+          "type": "Integer",
+          "expected": 3
+        }
+      ]
+    },
+    {
+      "key": "GroundGridEnabled",
+      "setup": "Create GroundTrack Subject;\nSubject.Add = {Earth,Luna};\nSubject.ShowPlot = false;\nSubject.UseGrid = true;\nSubject.LatitudeLineCount = 5;\nSubject.LongitudeLineCount = 9;\nSubject.LineWidth = 4;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.GroundTrack.data",
+      "definitions": [
+        "Create GroundTrack Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "UseGrid",
+          "type": "Boolean",
+          "expected": true
+        },
+        {
+          "object": "Subject",
+          "field": "LatitudeLineCount",
+          "type": "Integer",
+          "expected": 5
+        },
+        {
+          "object": "Subject",
+          "field": "LongitudeLineCount",
+          "type": "Integer",
+          "expected": 9
+        },
+        {
+          "object": "Subject",
+          "field": "LineWidth",
+          "type": "Integer",
+          "expected": 4
+        }
+      ]
+    },
+    {
+      "key": "GroundTexture",
+      "setup": "Create GroundTrack Subject;\nSubject.Add = {Earth,Luna};\nSubject.ShowPlot = false;\nSubject.TextureMap = 'Moon_HermesCelestiaMotherlode.jpg';\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.GroundTrack.data",
+      "definitions": [
+        "Create GroundTrack Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "TextureMap",
+          "type": "Filename",
+          "expected": "Moon_HermesCelestiaMotherlode.jpg"
+        }
+      ]
+    },
+    {
+      "key": "RegionFile",
+      "setup": "Create Variable Marker;\nMarker = 1;\nCreate PlanetographicRegion Subject;\nSubject.CentralBody = Earth;\nSubject.AreaFileName = '@FILES@/region \u03a9.AT';\n",
+      "selected": [
+        "Subject",
+        "Marker"
+      ],
+      "objects": [
+        "Subject",
+        "Marker"
+      ],
+      "filename": "Subject_Marker.data",
+      "definitions": [
+        "Create PlanetographicRegion Subject;",
+        "Create Variable Marker\n"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "AreaFileName",
+          "type": "String",
+          "expected": "@FILES@/region \u03a9.AT"
+        },
+        {
+          "object": "Marker",
+          "field": "Value",
+          "type": "Real",
+          "expected": 1
+        }
+      ],
+      "fixture_files": {
+        "region \u03a9.AT": "PlanetographicRegion\n10 30\n10 40\n20 40\n20 30\n"
+      },
+      "reload_probe": "Marker = 2;\n",
+      "probe_witnesses": [
+        {
+          "object": "Subject",
+          "field": "Latitude",
+          "type": "Rvector",
+          "expected": [
+            10,
+            10,
+            20,
+            20
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Longitude",
+          "type": "Rvector",
+          "expected": [
+            30,
+            40,
+            40,
+            30
+          ]
+        },
+        {
+          "object": "Marker",
+          "field": "Value",
+          "type": "Real",
+          "expected": 2
+        }
+      ]
+    },
+    {
+      "key": "StkMetersNoBoundaries",
+      "setup": "Create Spacecraft Anchor;\nAnchor.NAIFId = -101081;\nAnchor.NAIFIdReferenceFrame = -910081;\nCreate EphemerisFile Subject;\nSubject.Spacecraft = Anchor;\nSubject.Filename = '@FILES@/disabled.e';\nSubject.FileFormat = STK-TimePosVel;\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.DistanceUnit = Meters;\nSubject.IncludeEventBoundaries = false;\nSubject.WriteEphemeris = false;\n",
+      "selected": [
+        "Subject",
+        "Anchor"
+      ],
+      "objects": [
+        "Subject",
+        "Anchor"
+      ],
+      "filename": "Subject_Anchor.data",
+      "definitions": [
+        "Create EphemerisFile Subject;",
+        "Create Spacecraft Anchor;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "DistanceUnit",
+          "type": "Enumeration",
+          "expected": "Meters"
+        },
+        {
+          "object": "Subject",
+          "field": "IncludeEventBoundaries",
+          "type": "Boolean",
+          "expected": false
+        },
+        {
+          "object": "Subject",
+          "field": "FileFormat",
+          "type": "Enumeration",
+          "expected": "STK-TimePosVel"
+        },
+        {
+          "object": "Subject",
+          "field": "WriteEphemeris",
+          "type": "Boolean",
+          "expected": false
+        }
+      ]
+    },
+    {
+      "key": "StkKilometersBoundaries",
+      "setup": "Create Spacecraft Anchor;\nAnchor.NAIFId = -101081;\nAnchor.NAIFIdReferenceFrame = -910081;\nCreate EphemerisFile Subject;\nSubject.Spacecraft = Anchor;\nSubject.Filename = '@FILES@/disabled.e';\nSubject.FileFormat = STK-TimePosVel;\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.DistanceUnit = Kilometers;\nSubject.IncludeEventBoundaries = true;\nSubject.WriteEphemeris = false;\n",
+      "selected": [
+        "Subject",
+        "Anchor"
+      ],
+      "objects": [
+        "Subject",
+        "Anchor"
+      ],
+      "filename": "Subject_Anchor.data",
+      "definitions": [
+        "Create EphemerisFile Subject;",
+        "Create Spacecraft Anchor;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "DistanceUnit",
+          "type": "Enumeration",
+          "expected": "Kilometers"
+        },
+        {
+          "object": "Subject",
+          "field": "IncludeEventBoundaries",
+          "type": "Boolean",
+          "expected": true
+        },
+        {
+          "object": "Subject",
+          "field": "FileFormat",
+          "type": "Enumeration",
+          "expected": "STK-TimePosVel"
+        },
+        {
+          "object": "Subject",
+          "field": "WriteEphemeris",
+          "type": "Boolean",
+          "expected": false
+        }
+      ]
+    }
+  ]
+}

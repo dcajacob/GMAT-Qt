@@ -38,6 +38,8 @@
 class FORMATION_API Formation : public FormationInterface
 {
 public:
+   using FormationInterface::SetField;
+   void SetField(const Integer id, const StringArray &value) override;
    Formation(UnsignedInt typeId, const std::string &typeStr,
              const std::string &instName);
    virtual ~Formation();
@@ -46,6 +48,10 @@ public:
    
    virtual const Rvector6 GetMJ2000State(const A1Mjd &atTime);
    virtual const Rvector6 GetMJ2000State(const GmatTime &atTimeGT);
+   Real GetEpoch() override;
+   GmatTime GetEpochGT() override;
+   Real SetEpoch(const Real epoch) override;
+   GmatTime SetEpochGT(const GmatTime epoch) override;
 
    virtual bool         RenameRefObject(const UnsignedInt type,
                                         const std::string &oldName,
@@ -61,6 +67,9 @@ public:
                         GetParameterType(const Integer id) const;
    virtual std::string  GetParameterTypeString(const Integer id) const;
    virtual bool         IsParameterReadOnly(const Integer id) const;
+   bool IsParameterEqualToDefault(const Integer id) const override;
+   bool IsParameterEqualToDefault(const std::string &label) const override;
+   bool IsParameterCommandModeSettable(const Integer id) const override;
    
    virtual bool         GetBooleanParameter(const Integer id) const;
    virtual bool         GetBooleanParameter(const std::string &label) const;
@@ -78,6 +87,10 @@ public:
    virtual Real         SetRealParameter(const Integer id, const Real value);
    virtual Real         SetRealParameter(const std::string &label, 
                                          const Real value);
+   GmatTime GetGmatTimeParameter(const Integer id) const override;
+   GmatTime GetGmatTimeParameter(const std::string &label) const override;
+   GmatTime SetGmatTimeParameter(const Integer id, const GmatTime value) override;
+   GmatTime SetGmatTimeParameter(const std::string &label, const GmatTime value) override;
    virtual bool         SetStringParameter(const Integer id, 
                                            const std::string &value);
    virtual bool         SetStringParameter(const Integer id, 
@@ -88,10 +101,14 @@ public:
    virtual const StringArray& 
                         GetStringArrayParameter(const std::string &label) const;
 
+   using FormationInterface::GetPropertyObjectType;
+   UnsignedInt GetPropertyObjectType(const Integer id) const override;
    virtual const        ObjectTypeArray& GetRefObjectTypeArray();
 
    virtual const StringArray&
                         GetRefObjectNameArray(const UnsignedInt type);
+   GmatBase* GetRefObject(const UnsignedInt type,
+         const std::string &name = "") override;
    virtual GmatBase*    GetRefObject(const UnsignedInt type,
                                      const std::string &name,
                                      const Integer index);
@@ -103,6 +120,12 @@ public:
    virtual ObjectArray& GetRefObjectArray(const UnsignedInt type);
    virtual ObjectArray& GetRefObjectArray(const std::string& typeString);
    
+   void RebindClonedReferences(const FormationInterface &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve, bool bindMembers = true) override;
+   std::unique_ptr<FormationRestorationPlan> PrepareRestorationLayout(
+         const FormationInterface &snapshot, const ObjectArray &members) override;
+   GmatBase *CloneRestorationProbe() const override;
+
    virtual void         BuildState();
    virtual void         UpdateElements();
    virtual void         UpdateState();
@@ -125,6 +148,7 @@ public:
    DEFAULT_TO_NO_CLONES
 
 protected:
+   Formation(const Formation &source, bool sampleMembers);
    /// List of the object names used in the formation
    StringArray                      componentNames;
    /// Pointers to the formation members
@@ -133,6 +157,8 @@ protected:
    Integer                          dimension;
    /// Number of spacecraft in the state
    UnsignedInt                      satCount;
+   /// Explicit opt-in for overlapping spacecraft references across formations.
+   bool                             allowSharedMembers;
    
    /// Enumerated parameter IDs   
    enum
@@ -141,6 +167,7 @@ protected:
       REMOVED_SPACECRAFT,
       CLEAR_NAMES,
       FORMATION_STM,
+      ALLOW_SHARED_MEMBERS,
       FORMATION_CARTESIAN_STATE,
       FormationParamCount
    };
@@ -154,6 +181,8 @@ protected:
    
    bool                 ClearSpacecraftList();
    bool                 RemoveSpacecraft(const std::string &name);
+   bool                 HasLiveMembers() const;
+   void                 CheckLiveMembers() const;
 };
 
 #endif // Formation_hpp

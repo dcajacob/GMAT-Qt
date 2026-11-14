@@ -37,6 +37,7 @@
 #include "Assignment.hpp"
 #include "CommandUtil.hpp"      // for GetCommandSeqString()
 #include <sstream>              // for stringstream
+#include <exception>            // for deferred RunComplete errors
 
 //#define DEBUG_BRANCHCOMMAND_DEALLOCATION
 //#define DEBUG_BRANCHCOMMAND_APPEND
@@ -110,7 +111,8 @@ BranchCommand::BranchCommand(const BranchCommand& bc) :
    branchToFill      (0),
    nestLevel         (bc.nestLevel),
    current           (NULL),
-   lastFired         (NULL)
+   lastFired         (NULL),
+   nestCountDepth    (bc.nestCountDepth)
 {
    depthChange = 1;
    parameterCount = BranchCommandParamCount;
@@ -136,6 +138,42 @@ BranchCommand& BranchCommand::operator=(const BranchCommand& bc)
    }
 
    return *this;
+}
+
+GmatCommand::DefinitionCommandLinks BranchCommand::GetDefinitionCommandLinks() const
+{
+   auto links = GmatCommand::GetDefinitionCommandLinks();
+   for (auto *child : branch) links.emplace_back(child, true);
+   return links;
+}
+
+void BranchCommand::RebindClonedCommandLinks(const GmatCommand &source,
+      const std::function<GmatCommand*(const GmatCommand*)> &resolve)
+{
+   const auto *original = dynamic_cast<const BranchCommand*>(&source);
+   if (!original) throw CommandException("Incompatible branch definition copy.\n");
+   std::vector<GmatCommand*> children;
+   children.reserve(original->branch.size());
+   for (auto *child : original->branch) children.push_back(resolve(child));
+   GmatCommand::RebindClonedCommandLinks(source, resolve);
+   branch.swap(children);
+   branchToFill = original->branchToFill;
+   branchToExecute = 0;
+   commandComplete = false;
+   commandExecuting = false;
+   branchExecuting = false;
+   current = nullptr;
+   lastFired = nullptr;
+   cmdsWithFunctions.clear();
+}
+
+void BranchCommand::DetachCommandLinks() noexcept
+{
+   GmatCommand::DetachCommandLinks();
+   branch.clear();
+   current = nullptr;
+   lastFired = nullptr;
+   cmdsWithFunctions.clear();
 }
 
 //------------------------------------------------------------------------------
@@ -279,6 +317,7 @@ GmatCommand* BranchCommand::GetChildCommand(Integer whichOne)
 //------------------------------------------------------------------------------
 void BranchCommand::SetTransientForces(std::vector<PhysicalModel*> *tf)
 {
+   GmatCommand::SetTransientForces(tf);
    GmatCommand *currentPtr;
    
    std::vector<GmatCommand*>::iterator node;
@@ -887,6 +926,25 @@ void BranchCommand::SetSolarSystem(SolarSystem *ss)
 }
 
 //------------------------------------------------------------------------------
+// void BranchCommand::SetTriggerManagers(std::vector<TriggerManager*> *trigs)
+//------------------------------------------------------------------------------
+/**
+ * Passes the sandbox's trigger managers to every child, including nested
+ * branches. Estimators and simulators inside control flow need the same event
+ * manager as commands at the top level.
+ */
+void BranchCommand::SetTriggerManagers(std::vector<TriggerManager*> *trigs)
+{
+   GmatCommand::SetTriggerManagers(trigs);
+   for (auto first : branch)
+   {
+      for (auto current = first; current && current != this;
+           current = current->GmatCommand::GetNext())
+         current->SetTriggerManagers(trigs);
+   }
+}
+
+//------------------------------------------------------------------------------
 // void BranchCommand::SetInternalCoordSystem(CoordinateSystem *cs)
 //------------------------------------------------------------------------------
 /**
@@ -1116,7 +1174,7 @@ const std::string& BranchCommand::GetGeneratingString(Gmat::WriteMode mode,
          if (!inTextMode)
          {
             fullString += "\n";
-            if (current->GetNext() != this)
+            if (current->GetNextWhileExecuting() != this)
                fullString += current->GetGeneratingString(mode, newPrefix, useName);
             else // current is the End command for this branch command
                fullString += current->GetGeneratingString(mode, prefix, useName);
@@ -1130,7 +1188,7 @@ const std::string& BranchCommand::GetGeneratingString(Gmat::WriteMode mode,
          
          inTextMode = (scriptEventCount == 0) ? false : true;
          
-         current = current->GetNext();
+         current = current->GetNextWhileExecuting();
       }
    }
    
@@ -1180,7 +1238,7 @@ bool BranchCommand::TakeAction(const std::string &action,
             if ((cmd->GetTypeName() == "Propagate") || 
                 (cmd->IsOfType("BranchCommand")))
                cmd->TakeAction("ResetLoopData");
-            cmd = cmd->GetNext();
+            cmd = cmd->GetNextWhileExecuting();
          }
       }      
 
@@ -1386,6 +1444,8 @@ void BranchCommand::RunComplete()
    
    current = NULL;
    lastFired = NULL;
+
+   std::exception_ptr firstError;
    
    for (std::vector <GmatCommand *>::iterator i = branch.begin(); i != branch.end(); ++i)
    {
@@ -1395,10 +1455,20 @@ void BranchCommand::RunComplete()
          while ((current) && (current != this))
          {
             if (!current->IsOfType("BranchEnd"))
-               current->RunComplete();
+            {
+               try
+               {
+                  current->RunComplete();
+               }
+               catch (...)
+               {
+                  if (!firstError)
+                     firstError = std::current_exception();
+               }
+            }
             else
                break;
-            current = current->GetNext();
+            current = current->GetNextWhileExecuting();
          }
       }
    }
@@ -1408,6 +1478,8 @@ void BranchCommand::RunComplete()
    branchExecuting = false;
 
    GmatCommand::RunComplete();
+   if (firstError)
+      std::rethrow_exception(firstError);
 }
 
 //------------------------------------------------------------------------------
@@ -1531,7 +1603,9 @@ const std::vector<GmatCommand*> BranchCommand::GetCommandsWithGmatFunctions()
          }
          for (unsigned int jj= 0; jj < tmpArray.size(); jj++)
             cmdsWithFunctions.push_back(tmpArray.at(jj));
-         subCmd = subCmd->GetNext();
+         // This is a structural scan during initialization. An active nested
+         // branch's execution link returns itself until it completes.
+         subCmd = subCmd->GetNextWhileExecuting();
       }
    }
    return cmdsWithFunctions;
@@ -1964,4 +2038,17 @@ std::string BranchCommand::AddFileInfoToErrorMessage(std::string msg)
         return msg;
     }
 
+}
+
+void BranchCommand::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   current = nullptr;
+   lastFired = nullptr;
+   cmdsWithFunctions.clear();
+   commandComplete = false;
+   commandExecuting = false;
+   branchExecuting = false;
+   branchToExecute = 0;
+   GmatCommand::RetireFunctionBindings(store);
 }

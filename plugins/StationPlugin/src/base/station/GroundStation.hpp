@@ -51,10 +51,14 @@
 class STATION_API GroundStation : public GroundstationInterface
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = GroundstationInterface::NativeValueProviderDepth + 1;
+
    GroundStation(const std::string &itsName);
    virtual ~GroundStation();
    GroundStation(const GroundStation& gs);
    GroundStation& operator=(const GroundStation& gs);
+   using GroundstationInterface::SetName;
+   virtual bool SetName(const std::string &name, const std::string &oldName = "");
 
    // all leaf classes derived from GmatBase must supply this Clone method
    virtual GmatBase*       Clone() const;
@@ -117,6 +121,11 @@ public:
 
 
    virtual bool         Initialize();
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
+   void RebindClonedReferences(const GroundstationInterface &source,
+         SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve,
+         const std::function<void(const ObjectArray&, const ObjectArray&)> &owned) override;
+   bool InitializeClonedResource() override;
 
 //   virtual Integer      GetEstimationParameterID(const std::string &param);
 //   virtual Integer         SetEstimationParameter(const std::string &param);
@@ -137,6 +146,8 @@ public:
    DEFAULT_TO_NO_CLONES
 
 protected:
+   void RetireGeneratedMaskImagers();
+   void InitializeHorizonMask();
    /// Ground station ID
    std::string          stationId;
 

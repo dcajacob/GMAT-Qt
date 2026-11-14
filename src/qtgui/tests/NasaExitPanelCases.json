@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "ChemicalTank",
+      "control": "resource_FuelMass",
+      "invalid": [
+        "-1",
+        "nan",
+        "not-a-number"
+      ],
+      "page": "FuelTank",
+      "title": "ChemicalTank",
+      "guide": "Resource_FuelTank.xml"
+    },
+    {
+      "key": "ChemicalThruster",
+      "control": "thruster_DutyCycle",
+      "invalid": [
+        "-0.1",
+        "1.1",
+        "nan"
+      ],
+      "page": "Thruster",
+      "title": "ChemicalThruster",
+      "guide": "Resource_Thruster.xml",
+      "before": "Create ChemicalTank SupportFuel;\n",
+      "after": "NasaPanel.Tank = {SupportFuel};\nNasaPanel.CoordinateSystem = EarthMJ2000Eq;\nAnchor.Tanks = {SupportFuel};\nAnchor.Thrusters = {NasaPanel};\n"
+    },
+    {
+      "key": "DifferentialCorrector",
+      "control": "resource_ReportFile",
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "page": "DifferentialCorrector",
+      "title": "DifferentialCorrector",
+      "guide": "Resource_DifferentialCorrector.xml",
+      "field": "ReportFile",
+      "kind": "string",
+      "base": "ExitBase.report",
+      "valid": "ExitPending.report"
+    }
+  ],
+  "scope": "Three new clean/pending MDI title-bar close cases reuse the unchanged lifecycle executable and resource fixture definitions."
+}

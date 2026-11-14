@@ -27,11 +27,14 @@
 //------------------------------------------------------------------------------
 
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <iomanip>
 #include "Attitude.hpp"
 #include "AttitudeException.hpp"
 #include "CCSDSAttitude.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "MessageInterface.hpp"
 #include "AttitudeConversionUtility.hpp"
 
@@ -55,6 +58,23 @@
  * This method creates an object of the CCSDSAttitude class
  * (default Constructor).
  */
+namespace
+{
+std::unique_ptr<CCSDSAEMReader> CopyOwnedAemReader(const CCSDSAEMReader *source)
+{
+   std::unique_ptr<CCSDSEMReader> value(source ? source->Clone() : new CCSDSAEMReader());
+   if (source && value.get() == source)
+   {
+      value.release();
+      throw AttitudeException("AEM reader Clone returned its source.");
+   }
+   auto *typed = dynamic_cast<CCSDSAEMReader*>(value.get());
+   if (!typed) throw AttitudeException("Incompatible copied AEM reader.");
+   value.release();
+   return std::unique_ptr<CCSDSAEMReader>(typed);
+}
+}
+
 //------------------------------------------------------------------------------
 CCSDSAttitude::CCSDSAttitude(const std::string &attName) :
    Attitude("CCSDS-AEM",attName)
@@ -84,10 +104,7 @@ CCSDSAttitude::CCSDSAttitude(const std::string &attName) :
 CCSDSAttitude::CCSDSAttitude(const CCSDSAttitude& att) :
    Attitude(att)
 {
-   if (att.reader)
-      reader = (CCSDSAEMReader*) (att.reader)->Clone();
-   else
-      reader = new CCSDSAEMReader();
+   reader = CopyOwnedAemReader(att.reader).release();
 }
 
 //------------------------------------------------------------------------------
@@ -106,12 +123,17 @@ CCSDSAttitude& CCSDSAttitude::operator=(const CCSDSAttitude& att)
 {
    if (&att == this)
       return *this;
+   if (GmatBase::IsNativeRestorationCopy())
+   {
+      if (aemFileFullPath != att.aemFileFullPath || (reader == nullptr) != (att.reader == nullptr))
+         throw AttitudeException("Prepare the AEM reader before changing an active restoration graph.");
+      Attitude::operator=(att);
+      return *this;
+   }
+   auto prepared = CopyOwnedAemReader(att.reader);
    Attitude::operator=(att);
-   if (reader) delete reader;
-   if (att.reader)
-      reader = (CCSDSAEMReader*) (att.reader)->Clone();
-   else
-      reader = new CCSDSAEMReader();
+   delete reader;
+   reader = prepared.release();
    return *this;
 }
 
@@ -180,7 +202,9 @@ bool CCSDSAttitude::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* CCSDSAttitude::Clone() const
 {
-   return (new CCSDSAttitude(*this));
+   std::unique_ptr<CCSDSAttitude> value(new CCSDSAttitude(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -234,3 +258,17 @@ void CCSDSAttitude::ComputeCosineMatrixAndAngularVelocity(GmatTime &atTime)
 //  private methods
 //------------------------------------------------------------------------------
 // none
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void CCSDSAttitude::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const CCSDSAttitude*>(original);
+   if (!source || typeid(*source) != typeid(CCSDSAttitude) ||
+       typeid(*this) != typeid(CCSDSAttitude))
+      throw GmatBaseException("Cannot copy incompatible object into CCSDSAttitude");
+   if (source == this)
+      return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
+}

@@ -1,0 +1,285 @@
+{
+  "schema_version": 1,
+  "scope": "Current Qt 2D marker geometry, controls, clipping and physical capture; bounded domain, not full NASA legacy raster equivalence.",
+  "size_convention": "Qt logical bounding-box diameter; legacy wx markerSize is radius.",
+  "highlight_extra_radius_logical": 3,
+  "profiles": {
+    "Half": 0.5,
+    "ThreeQuarter": 0.75,
+    "One": 1.0,
+    "OneHalf": 1.5,
+    "Two": 2.0,
+    "Three": 3.0,
+    "Four": 4.0
+  },
+  "sizes": [
+    8,
+    16
+  ],
+  "physical_pixel_phases": [
+    0,
+    0.25,
+    0.5,
+    0.75
+  ],
+  "markers": [
+    {
+      "id": 0,
+      "name": "Cross",
+      "segments": [
+        [
+          -1,
+          -1,
+          1,
+          1
+        ],
+        [
+          -1,
+          1,
+          1,
+          -1
+        ]
+      ],
+      "unit_circle": false
+    },
+    {
+      "id": 1,
+      "name": "Circle",
+      "segments": [],
+      "unit_circle": true
+    },
+    {
+      "id": 2,
+      "name": "Plus",
+      "segments": [
+        [
+          -1,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          -1,
+          0,
+          1
+        ]
+      ],
+      "unit_circle": false
+    },
+    {
+      "id": 3,
+      "name": "Star",
+      "segments": [
+        [
+          -1,
+          -1,
+          1,
+          1
+        ],
+        [
+          -1,
+          1,
+          1,
+          -1
+        ],
+        [
+          -1,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          -1,
+          0,
+          1
+        ]
+      ],
+      "unit_circle": false
+    },
+    {
+      "id": 4,
+      "name": "Square",
+      "segments": [
+        [
+          -1,
+          -1,
+          1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          -1,
+          1
+        ],
+        [
+          -1,
+          1,
+          -1,
+          -1
+        ]
+      ],
+      "unit_circle": false
+    },
+    {
+      "id": 5,
+      "name": "Diamond",
+      "segments": [
+        [
+          0,
+          -1,
+          1,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          -1,
+          0
+        ],
+        [
+          -1,
+          0,
+          0,
+          -1
+        ]
+      ],
+      "unit_circle": false
+    },
+    {
+      "id": 6,
+      "name": "Crossed square",
+      "segments": [
+        [
+          -1,
+          -1,
+          1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          -1,
+          1
+        ],
+        [
+          -1,
+          1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          1,
+          1
+        ],
+        [
+          -1,
+          1,
+          1,
+          -1
+        ]
+      ],
+      "unit_circle": false
+    },
+    {
+      "id": 7,
+      "name": "Triangle up",
+      "segments": [
+        [
+          0,
+          -1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          -1,
+          1
+        ],
+        [
+          -1,
+          1,
+          0,
+          -1
+        ]
+      ],
+      "unit_circle": false
+    },
+    {
+      "id": 8,
+      "name": "Triangle down",
+      "segments": [
+        [
+          0,
+          1,
+          1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          0,
+          1
+        ]
+      ],
+      "unit_circle": false
+    },
+    {
+      "id": 9,
+      "name": "Circled plus",
+      "segments": [
+        [
+          -1,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          -1,
+          0,
+          1
+        ]
+      ],
+      "unit_circle": true
+    }
+  ],
+  "legacy_sources": [
+    "src/gui/subscriber/TsPlotDefs.hpp",
+    "src/gui/subscriber/TsPlotCanvas.cpp"
+  ],
+  "compatibility_gaps": [
+    "Legacy wx size is radius; Qt uses bounding-box diameter.",
+    "Legacy highlight is a thicker expanded cross; Qt uses an additional ring.",
+    "Legacy crossed-square code omits vertical sides; Qt draws a closed crossed square."
+  ]
+}

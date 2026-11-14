@@ -918,7 +918,7 @@ Integer CallPythonFunction::FillInputList()
       }
          
       if (mapObj->IsOfType(Gmat::PARAMETER))
-         mInputList.push_back((Parameter *)mapObj);
+         mInputList.push_back(mapObj);
       else
          throw CommandException("The input field " + (*it) + " was not "
                "recognized as a valid input to the Python interface.");
@@ -960,7 +960,7 @@ Integer CallPythonFunction::FillOutputList()
       }
 
       if (mapObj->IsOfType(Gmat::PARAMETER))
-         mOutputList.push_back((Parameter *)mapObj);
+         mOutputList.push_back(mapObj);
       else
          throw CommandException("The output field " + (*it) + " was not "
                "recognized as a valid output from the Python interface on the "
@@ -988,7 +988,9 @@ void CallPythonFunction::SendInParam()
    dataInput.clear();
    for (unsigned int i = 0; i < mInputList.size(); i++)
    {
-      Parameter *param = mInputList[i];
+      Parameter *param = dynamic_cast<Parameter*>(mInputList[i]);
+      if (!param)
+         throw CommandException("The Python input is not a Parameter.");
       Gmat::ParameterType type = param->GetReturnType();
 
       #ifdef DEBUG_INITIALIZATION
@@ -1118,7 +1120,9 @@ void CallPythonFunction::GetOutParams()
    {
       for (UnsignedInt i = 0; i < dataReturn.size(); ++i)
       {
-         param = mOutputList[i];
+         param = dynamic_cast<Parameter*>(mOutputList[i]);
+         if (!param)
+            throw CommandException("The Python output is not a Parameter.");
 
          switch (dataReturn[i].index())
          {

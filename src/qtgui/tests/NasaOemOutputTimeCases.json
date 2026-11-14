@@ -1,0 +1,1544 @@
+{
+  "cases": [
+    {
+      "key": "A1_J2000",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "time_system": "A1",
+      "epoch_family": "J2000",
+      "epoch_utc": "01 Jan 2000 12:00:00.000",
+      "input_epoch_format": "UTCGregorian",
+      "expected_epochs": [
+        "2000-01-01T12:00:32.034",
+        "2000-01-01T12:00:37.034",
+        "2000-01-01T12:00:42.034",
+        "2000-01-01T12:00:47.034",
+        "2000-01-01T12:00:52.034"
+      ]
+    },
+    {
+      "key": "TAI_J2000",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "time_system": "TAI",
+      "epoch_family": "J2000",
+      "epoch_utc": "01 Jan 2000 12:00:00.000",
+      "input_epoch_format": "UTCGregorian",
+      "expected_epochs": [
+        "2000-01-01T12:00:32.000",
+        "2000-01-01T12:00:37.000",
+        "2000-01-01T12:00:42.000",
+        "2000-01-01T12:00:47.000",
+        "2000-01-01T12:00:52.000"
+      ]
+    },
+    {
+      "key": "UTC_J2000",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "time_system": "UTC",
+      "epoch_family": "J2000",
+      "epoch_utc": "01 Jan 2000 12:00:00.000",
+      "input_epoch_format": "UTCGregorian",
+      "expected_epochs": [
+        "2000-01-01T12:00:00.000",
+        "2000-01-01T12:00:05.000",
+        "2000-01-01T12:00:10.000",
+        "2000-01-01T12:00:15.000",
+        "2000-01-01T12:00:20.000"
+      ]
+    },
+    {
+      "key": "TT_J2000",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "time_system": "TT",
+      "epoch_family": "J2000",
+      "epoch_utc": "01 Jan 2000 12:00:00.000",
+      "input_epoch_format": "UTCGregorian",
+      "expected_epochs": [
+        "2000-01-01T12:01:04.184",
+        "2000-01-01T12:01:09.184",
+        "2000-01-01T12:01:14.184",
+        "2000-01-01T12:01:19.184",
+        "2000-01-01T12:01:24.184"
+      ]
+    },
+    {
+      "key": "TDB_J2000",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "time_system": "TDB",
+      "epoch_family": "J2000",
+      "epoch_utc": "01 Jan 2000 12:00:00.000",
+      "input_epoch_format": "UTCGregorian",
+      "expected_epochs": [
+        "2000-01-01T12:01:04.184",
+        "2000-01-01T12:01:09.184",
+        "2000-01-01T12:01:14.184",
+        "2000-01-01T12:01:19.184",
+        "2000-01-01T12:01:24.184"
+      ]
+    },
+    {
+      "key": "A1_April2000",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "time_system": "A1",
+      "epoch_family": "April2000",
+      "epoch_utc": "01 Apr 2000 12:00:00.000",
+      "input_epoch_format": "UTCGregorian",
+      "expected_epochs": [
+        "2000-04-01T12:00:32.034",
+        "2000-04-01T12:00:37.034",
+        "2000-04-01T12:00:42.034",
+        "2000-04-01T12:00:47.034",
+        "2000-04-01T12:00:52.034"
+      ]
+    },
+    {
+      "key": "TAI_April2000",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "time_system": "TAI",
+      "epoch_family": "April2000",
+      "epoch_utc": "01 Apr 2000 12:00:00.000",
+      "input_epoch_format": "UTCGregorian",
+      "expected_epochs": [
+        "2000-04-01T12:00:32.000",
+        "2000-04-01T12:00:37.000",
+        "2000-04-01T12:00:42.000",
+        "2000-04-01T12:00:47.000",
+        "2000-04-01T12:00:52.000"
+      ]
+    },
+    {
+      "key": "UTC_April2000",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "time_system": "UTC",
+      "epoch_family": "April2000",
+      "epoch_utc": "01 Apr 2000 12:00:00.000",
+      "input_epoch_format": "UTCGregorian",
+      "expected_epochs": [
+        "2000-04-01T12:00:00.000",
+        "2000-04-01T12:00:05.000",
+        "2000-04-01T12:00:10.000",
+        "2000-04-01T12:00:15.000",
+        "2000-04-01T12:00:20.000"
+      ]
+    },
+    {
+      "key": "TT_April2000",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "time_system": "TT",
+      "epoch_family": "April2000",
+      "epoch_utc": "01 Apr 2000 12:00:00.000",
+      "input_epoch_format": "UTCGregorian",
+      "expected_epochs": [
+        "2000-04-01T12:01:04.184",
+        "2000-04-01T12:01:09.184",
+        "2000-04-01T12:01:14.184",
+        "2000-04-01T12:01:19.184",
+        "2000-04-01T12:01:24.184"
+      ]
+    },
+    {
+      "key": "TDB_April2000",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "time_system": "TDB",
+      "epoch_family": "April2000",
+      "epoch_utc": "01 Apr 2000 12:00:00.000",
+      "input_epoch_format": "UTCGregorian",
+      "expected_epochs": [
+        "2000-04-01T12:01:04.186",
+        "2000-04-01T12:01:09.186",
+        "2000-04-01T12:01:14.186",
+        "2000-04-01T12:01:19.186",
+        "2000-04-01T12:01:24.186"
+      ]
+    },
+    {
+      "key": "A1_Leap2016",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "time_system": "A1",
+      "epoch_family": "Leap2016",
+      "epoch_utc": "31 Dec 2016 23:59:55.000",
+      "input_epoch_format": "UTCGregorian",
+      "expected_epochs": [
+        "2017-01-01T00:00:31.034",
+        "2017-01-01T00:00:36.034",
+        "2017-01-01T00:00:41.034",
+        "2017-01-01T00:00:46.034",
+        "2017-01-01T00:00:51.034"
+      ]
+    },
+    {
+      "key": "TAI_Leap2016",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "time_system": "TAI",
+      "epoch_family": "Leap2016",
+      "epoch_utc": "31 Dec 2016 23:59:55.000",
+      "input_epoch_format": "UTCGregorian",
+      "expected_epochs": [
+        "2017-01-01T00:00:31.000",
+        "2017-01-01T00:00:36.000",
+        "2017-01-01T00:00:41.000",
+        "2017-01-01T00:00:46.000",
+        "2017-01-01T00:00:51.000"
+      ]
+    },
+    {
+      "key": "UTC_Leap2016",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "time_system": "UTC",
+      "epoch_family": "Leap2016",
+      "epoch_utc": "31 Dec 2016 23:59:55.000",
+      "input_epoch_format": "UTCGregorian",
+      "expected_epochs": [
+        "2016-12-31T23:59:55.000",
+        "2016-12-31T23:59:60.000",
+        "2017-01-01T00:00:04.000",
+        "2017-01-01T00:00:09.000",
+        "2017-01-01T00:00:14.000"
+      ]
+    },
+    {
+      "key": "TT_Leap2016",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "time_system": "TT",
+      "epoch_family": "Leap2016",
+      "epoch_utc": "31 Dec 2016 23:59:55.000",
+      "input_epoch_format": "UTCGregorian",
+      "expected_epochs": [
+        "2017-01-01T00:01:03.184",
+        "2017-01-01T00:01:08.184",
+        "2017-01-01T00:01:13.184",
+        "2017-01-01T00:01:18.184",
+        "2017-01-01T00:01:23.184"
+      ]
+    },
+    {
+      "key": "TDB_Leap2016",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "time_system": "TDB",
+      "epoch_family": "Leap2016",
+      "epoch_utc": "31 Dec 2016 23:59:55.000",
+      "input_epoch_format": "UTCGregorian",
+      "expected_epochs": [
+        "2017-01-01T00:01:03.184",
+        "2017-01-01T00:01:08.184",
+        "2017-01-01T00:01:13.184",
+        "2017-01-01T00:01:18.184",
+        "2017-01-01T00:01:23.184"
+      ]
+    },
+    {
+      "key": "TAI_TTInputWindow",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": true,
+      "initial_epoch": "01 Jan 2000 12:01:09.184",
+      "final_epoch": "01 Jan 2000 12:01:19.184",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 2,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "UserInterval",
+      "expected_degrees": [
+        2
+      ],
+      "time_system": "TAI",
+      "epoch_family": "J2000",
+      "epoch_utc": "01 Jan 2000 12:00:00.000",
+      "input_epoch_format": "TTGregorian",
+      "expected_epochs": [
+        "2000-01-01T12:00:37.000",
+        "2000-01-01T12:00:42.000",
+        "2000-01-01T12:00:47.000"
+      ]
+    }
+  ],
+  "object_id": "GMAT-OEM-output-time",
+  "test_interface_profile": {
+    "sender": "New NasaOemOutputTimeTests GUI fixture",
+    "receiver": "RunOemOutputTime independent calendar/state checker",
+    "object_id": "GMAT-OEM-output-time",
+    "object_name": "Sat",
+    "originator": "GMAT USER",
+    "version": "1.0",
+    "center": "EARTH",
+    "frame": "EME2000",
+    "time_systems": [
+      "A1",
+      "TAI",
+      "UTC",
+      "TT",
+      "TDB"
+    ],
+    "A1_definition": "TAI+0.0343817SIseconds",
+    "units": [
+      "km",
+      "km/s"
+    ],
+    "filenames": [
+      "Every state \u0394.oem",
+      "mission.oem"
+    ],
+    "exchange": "private local unchanged retained bytes,SHA256-bound;no retroactive agreement"
+  },
+  "reference": {
+    "A1_TAI_seconds": 0.0343817,
+    "TT_TAI_seconds": 32.184,
+    "NAIF_K": 0.001657,
+    "NAIF_EB": 0.01671,
+    "NAIF_M0": 6.239996,
+    "NAIF_M1": 1.99096871e-07,
+    "source": "https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/req/time.html",
+    "leap_reference": "2016-12-31 positive UTC leap;TAI-UTC36before,37after",
+    "calendar_precision_seconds": 0.001
+  },
+  "scope": "All five original FRR2.2 output systems,three epochs including leap and nonzeroTDB-TT,plus independent input-bound format. Original assertions/tolerances and all scientific/specification gaps remain."
+}

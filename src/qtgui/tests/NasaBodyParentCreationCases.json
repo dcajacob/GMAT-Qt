@@ -1,0 +1,210 @@
+{
+  "cases": [
+    {
+      "key": "EarthToMoon",
+      "parent": "Earth",
+      "parent_type": "Planet",
+      "child_type": "Moon",
+      "menu": [
+        "Moon"
+      ],
+      "user_parent": false,
+      "historical_key": "H2012:R498",
+      "fingerprint": "523b5072760da91ae6146779a8ea818172759c435fe4695ea921d94af67ae348"
+    },
+    {
+      "key": "JupiterToMoon",
+      "parent": "Jupiter",
+      "parent_type": "Planet",
+      "child_type": "Moon",
+      "menu": [
+        "Moon"
+      ],
+      "user_parent": false,
+      "historical_key": "H2012:R576",
+      "fingerprint": "c11637d583e5902dd55a6fce72ba715f6bfc70fc7ca80eb8d5d620bba26c1b25"
+    },
+    {
+      "key": "LunaToMoon",
+      "parent": "Luna",
+      "parent_type": "Moon",
+      "child_type": "Moon",
+      "menu": [
+        "Moon"
+      ],
+      "user_parent": false,
+      "historical_key": "H2012:R615",
+      "fingerprint": "c2fd684af96b7b1e78d73b9379b87018dad5fead7e30fdd3d43c2f602cfddcf2"
+    },
+    {
+      "key": "MarsToMoon",
+      "parent": "Mars",
+      "parent_type": "Planet",
+      "child_type": "Moon",
+      "menu": [
+        "Moon"
+      ],
+      "user_parent": false,
+      "historical_key": "H2012:R654",
+      "fingerprint": "98c0a8e6c90ba71dcf4b95b47ecb1bf8a2e661988e7a43044b0f46a4b7ac31da"
+    },
+    {
+      "key": "MercuryToMoon",
+      "parent": "Mercury",
+      "parent_type": "Planet",
+      "child_type": "Moon",
+      "menu": [
+        "Moon"
+      ],
+      "user_parent": false,
+      "historical_key": "H2012:R693",
+      "fingerprint": "3d7da5015d3eb05eea51db601210cbbf857bf5b85a2f971605bf9033709d36ca"
+    },
+    {
+      "key": "NeptuneToMoon",
+      "parent": "Neptune",
+      "parent_type": "Planet",
+      "child_type": "Moon",
+      "menu": [
+        "Moon"
+      ],
+      "user_parent": false,
+      "historical_key": "H2012:R771",
+      "fingerprint": "cc7e1c89fc5714f8ceffe2f318e1875451bb8733bf76a0a38c75f8f5a5a9a337"
+    },
+    {
+      "key": "PlutoToMoon",
+      "parent": "Pluto",
+      "parent_type": "Planet",
+      "child_type": "Moon",
+      "menu": [
+        "Moon"
+      ],
+      "user_parent": false,
+      "historical_key": "H2012:R810",
+      "fingerprint": "a9b8fd91d79c81aec2aab3c0fff0e06194be8d904ddd9849b29c58e517bfe7d7"
+    },
+    {
+      "key": "SaturnToMoon",
+      "parent": "Saturn",
+      "parent_type": "Planet",
+      "child_type": "Moon",
+      "menu": [
+        "Moon"
+      ],
+      "user_parent": false,
+      "historical_key": null
+    },
+    {
+      "key": "UranusToMoon",
+      "parent": "Uranus",
+      "parent_type": "Planet",
+      "child_type": "Moon",
+      "menu": [
+        "Moon"
+      ],
+      "user_parent": false,
+      "historical_key": "H2012:R927",
+      "fingerprint": "f2bab2fe8f78bce0bd41703a9ae2a21d542a5972a089f3005bcd6c75a4c4de99"
+    },
+    {
+      "key": "VenusToMoon",
+      "parent": "Venus",
+      "parent_type": "Planet",
+      "child_type": "Moon",
+      "menu": [
+        "Moon"
+      ],
+      "user_parent": false,
+      "historical_key": "H2012:R966",
+      "fingerprint": "b6bd687622072c061c12f2cfe7cbeaac32b4be98dadceb7fb19abf61e4ae83ef"
+    },
+    {
+      "key": "SunToPlanet",
+      "parent": "Sun",
+      "parent_type": "Star",
+      "child_type": "Planet",
+      "menu": [
+        "Asteroid",
+        "Comet",
+        "Planet"
+      ],
+      "user_parent": false,
+      "historical_key": "H2012:R888",
+      "fingerprint": "90408fa25c386124a780b479cb419813de0eb3b2dc7133ca5a7b620088ae5754"
+    },
+    {
+      "key": "SunToAsteroid",
+      "parent": "Sun",
+      "parent_type": "Star",
+      "child_type": "Asteroid",
+      "menu": [
+        "Asteroid",
+        "Comet",
+        "Planet"
+      ],
+      "user_parent": false,
+      "historical_key": "H2012:R888",
+      "fingerprint": "90408fa25c386124a780b479cb419813de0eb3b2dc7133ca5a7b620088ae5754"
+    },
+    {
+      "key": "SunToComet",
+      "parent": "Sun",
+      "parent_type": "Star",
+      "child_type": "Comet",
+      "menu": [
+        "Asteroid",
+        "Comet",
+        "Planet"
+      ],
+      "user_parent": false,
+      "historical_key": "H2012:R888",
+      "fingerprint": "90408fa25c386124a780b479cb419813de0eb3b2dc7133ca5a7b620088ae5754"
+    },
+    {
+      "key": "UserPlanetToMoon",
+      "parent": "Parent",
+      "parent_type": "Planet",
+      "child_type": "Moon",
+      "menu": [
+        "Moon"
+      ],
+      "user_parent": true,
+      "historical_key": null
+    },
+    {
+      "key": "UserMoonToMoon",
+      "parent": "Parent",
+      "parent_type": "Moon",
+      "child_type": "Moon",
+      "menu": [
+        "Moon"
+      ],
+      "user_parent": true,
+      "historical_key": null
+    },
+    {
+      "key": "UserCometToComet",
+      "parent": "Parent",
+      "parent_type": "Comet",
+      "child_type": "Comet",
+      "menu": [
+        "Comet"
+      ],
+      "user_parent": true,
+      "historical_key": null
+    },
+    {
+      "key": "UserAsteroidToAsteroid",
+      "parent": "Parent",
+      "parent_type": "Asteroid",
+      "child_type": "Asteroid",
+      "menu": [
+        "Asteroid"
+      ],
+      "user_parent": true,
+      "historical_key": null
+    }
+  ],
+  "scope": "All five current native celestial-body context categories,known default identities and four explicit user-parent fixtures. Historical EarthMoon/MercuryMoon/VenusMoon/Sarturn identities remain unresolved;current Saturn is not mapped to Sarturn."
+}

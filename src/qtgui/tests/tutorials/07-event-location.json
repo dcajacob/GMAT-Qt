@@ -1,0 +1,305 @@
+{
+  "id": "07-event-location",
+  "title": "Finding Eclipses and Station Contacts",
+  "guide": "doc/help/src/Tut_EventLocation.xml",
+  "guide_sha256": "45f0bdcbe4694cc5d85272d2789b3d7e621ef1f22cdd72ae8eab2ef77aa63590",
+  "reference": null,
+  "provenance": "Current Help procedures transcribed to native Earth, Event Locator and Ground Station controls. Tutorial 2 prerequisite is rebuilt through GUI input in this case. No completed event mission exists in the installed examples.",
+  "stages": [
+    {
+      "name": "Guide Earth shape, eclipse and Hyderabad contact workflow",
+      "input": "tutorial02-authored.script",
+      "requires_run": true,
+      "actions": [
+        {
+          "action": "window",
+          "state": "maximized"
+        },
+        {
+          "action": "click",
+          "target_text": "Resources",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Earth",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "body_EquatorialRadius"
+        },
+        {
+          "action": "text",
+          "text": "6378.1366",
+          "target_name": "body_EquatorialRadius"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "body_Flattening"
+        },
+        {
+          "action": "text",
+          "text": "0.00335281310845547",
+          "target_name": "body_Flattening"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-earth-shape-configured"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Event Locators",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add EclipseLocator",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "event_Spacecraft",
+          "value": "DefaultSC"
+        },
+        {
+          "action": "check",
+          "checked": true,
+          "target_text": "Earth",
+          "target_role": "list"
+        },
+        {
+          "action": "check",
+          "checked": true,
+          "target_text": "Luna",
+          "target_role": "list"
+        },
+        {
+          "action": "check",
+          "checked": true,
+          "target_name": "event_WriteReport"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-eclipse-locator-created"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Ground Stations",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add GroundStation",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "Hyderabad",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "select",
+          "target_name": "station_StateType",
+          "value": "Spherical"
+        },
+        {
+          "action": "select",
+          "target_name": "station_HorizonReference",
+          "value": "Ellipsoid"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "station_Location1"
+        },
+        {
+          "action": "text",
+          "text": "17.0286",
+          "target_name": "station_Location1"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "station_Location2"
+        },
+        {
+          "action": "text",
+          "text": "78.1883",
+          "target_name": "station_Location2"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "station_Location3"
+        },
+        {
+          "action": "text",
+          "text": "0.541",
+          "target_name": "station_Location3"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-hyderabad-created"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Event Locators",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ContactLocator",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "event_Target",
+          "value": "DefaultSC"
+        },
+        {
+          "action": "check",
+          "checked": true,
+          "target_text": "Hyderabad",
+          "target_role": "list"
+        },
+        {
+          "action": "check",
+          "checked": true,
+          "target_name": "event_WriteReport"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-contact-locator-created"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+SHIFT+S"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial07-authored.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-eclipse-and-contact-run"
+        },
+        {
+          "action": "click",
+          "target_text": "Output",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "EclipseLocator1",
+          "target_role": "tree"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-eclipse-report-view"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "ContactLocator1",
+          "target_role": "tree"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-contact-report-view"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+O"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial07-authored.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "screenshot",
+          "label": "own-event-mission-reopened"
+        }
+      ]
+    }
+  ],
+  "prerequisites": [
+    "02-simple-orbit-transfer"
+  ]
+}

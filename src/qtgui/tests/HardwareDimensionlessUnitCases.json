@@ -1,0 +1,38 @@
+{
+  "cases": [
+    {
+      "key": "ChemicalPrimary",
+      "type": "ChemicalThruster",
+      "object": "Probe",
+      "prefix": "thruster_",
+      "fixture": "Create ChemicalThruster Probe;\nProbe.DecrementMass = false;\n",
+      "units": {
+        "DutyCycle": "dimensionless",
+        "ThrustScaleFactor": "dimensionless",
+        "ThrustDirection1": "dimensionless",
+        "ThrustDirection2": "dimensionless",
+        "ThrustDirection3": "dimensionless"
+      }
+    },
+    {
+      "key": "ElectricPrimary",
+      "type": "ElectricThruster",
+      "object": "Probe",
+      "prefix": "thruster_",
+      "fixture": "Create ElectricThruster Probe;\nProbe.DecrementMass = false;\nProbe.ThrustModel = ConstantThrustAndIsp;\n",
+      "units": {
+        "DutyCycle": "dimensionless",
+        "ThrustScaleFactor": "dimensionless",
+        "ThrustDirection1": "dimensionless",
+        "ThrustDirection2": "dimensionless",
+        "ThrustDirection3": "dimensionless",
+        "FixedEfficiency": "dimensionless"
+      }
+    }
+  ],
+  "guide_sources": [
+    "doc/help/src/Resource_Thruster.xml",
+    "doc/help/src/Resource_ElectricThruster.xml"
+  ],
+  "scope": "Eleven guide-defined dimensionless thruster fields, actual primary controls and conditional labels, source/native/history/file isolation and independent sentinel mission. Original worker and cases unchanged. No all-input units or scientific-domain qualification."
+}

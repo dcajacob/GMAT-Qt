@@ -91,6 +91,9 @@ public:
    virtual Real EstimateError(Real *diffs, Real *answer) const;
    virtual Rvector6 GetDerivativesForSpacecraft(Spacecraft *sc);
 
+   // Evaluate this position-only force at an immutable plotted endpoint.
+   Rvector6 GetDerivativesAtState(const Rvector6 &state, const GmatTime &epoch);
+
    //CelestialBody* GetBody();  // wcs: 2004/06/21 moved to PhysicalModel
    //std::string GetBodyName(); //loj: 5/7/04 added
 
@@ -99,6 +102,7 @@ public:
 
    // inherited from GmatBase
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
 
    // inherited methods from GmatBase
    virtual std::string GetParameterText(const Integer id) const;
@@ -131,6 +135,7 @@ public:
    DEFAULT_TO_NO_REFOBJECTS
 
 protected:
+   Rvector6 EvaluateCartesianAcceleration(Real *state, Real epoch, const GmatTime &epochGT);
    // Parameter IDs
    enum
    {

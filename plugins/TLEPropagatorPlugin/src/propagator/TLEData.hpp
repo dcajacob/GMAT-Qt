@@ -38,6 +38,8 @@ public:
    double secFromJ2k;
    /// Array of the data in CSPICE form
    double elements[10];
+   /// True when the elements were read directly from a CCSDS OMM message.
+   bool isOmm;
 };
 
 #endif

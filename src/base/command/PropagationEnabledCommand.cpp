@@ -31,11 +31,13 @@
 
 
 #include "PropagationEnabledCommand.hpp"
+#include "CoordinateSystem.hpp"
 #include "MessageInterface.hpp"
 
 #include "ODEModel.hpp"
 #include "EphemerisFile.hpp"
 #include "PropagationStateManager.hpp"
+#include <set>
 
 //#define DEBUG_INITIALIZATION
 //#define DEBUG_EXECUTION
@@ -102,6 +104,8 @@ PropagationEnabledCommand::PropagationEnabledCommand(const std::string &typeStr)
 //------------------------------------------------------------------------------
 PropagationEnabledCommand::~PropagationEnabledCommand()
 {
+   EmptyBuffer();
+
    if (!overridePropInit)
    {
       for (std::vector<PropSetup*>::iterator i = propagators.begin();
@@ -189,6 +193,10 @@ PropagationEnabledCommand& PropagationEnabledCommand::operator=(
 {
    if (this != &pec)
    {
+      // Preserve command configuration (including labels and source metadata)
+      // as the copy constructor already does; runtime propagation stays cold.
+      GmatCommand::operator=(pec);
+      EmptyBuffer();
       overridePropInit    = pec.overridePropInit;
       direction           = pec.direction;
       hasFired            = false;
@@ -249,6 +257,8 @@ PropagationEnabledCommand& PropagationEnabledCommand::operator=(
 //------------------------------------------------------------------------------
 void PropagationEnabledCommand::SetTransientForces(std::vector<PhysicalModel*> *tf)
 {
+   GmatCommand::SetTransientForces(tf);
+   if (transientForces != tf) transientBindings.Clear();
    transientForces = tf;
 }
 
@@ -675,6 +685,11 @@ bool PropagationEnabledCommand::PrepareToPropagate(bool preparePublisher)
    #endif
    bool retval = false;
 
+   // Detect reentry after a value/Formation assignment before using cached
+   // PSM/force object pointers. Keep old graph owners alive through Initialize.
+   const auto previousRoots = bufferRoots;
+   if (BufferBindingsChanged()) hasFired = false;
+
    dim = 0;
 
    if (hasFired == true)
@@ -944,7 +959,7 @@ bool PropagationEnabledCommand::PrepareToPropagate(bool preparePublisher)
 
       // Publish
       //publisher->Publish(this, streamID, pubdata, dim+1, direction);
-      publisher->Publish(this, streamID, pubdata, expandedDim, direction);
+      PublishElementData(direction);
    }
 
    #ifdef DEBUG_INITIALIZATION
@@ -952,6 +967,7 @@ bool PropagationEnabledCommand::PrepareToPropagate(bool preparePublisher)
             "PropagationEnabledCommand::PrepareToPropagate() finished\n");
    #endif
 
+   transientBindings.Capture(transientForces);
    return retval;
 }
 
@@ -1251,7 +1267,7 @@ bool PropagationEnabledCommand::Step(Real dt)
 
          // Publish
          //publisher->Publish(this, streamID, pubdata, dim+1, direction);
-         publisher->Publish(this, streamID, pubdata, expandedDim, direction);
+         PublishElementData(direction);
          if (createNewSegmentsNow == true)
          {
             if (HasPrecisionTime())
@@ -1295,46 +1311,270 @@ bool PropagationEnabledCommand::TakeAStep(Real propStep)
  * @param <so> The SpaceObject that is added.
  */
 //------------------------------------------------------------------------------
-void PropagationEnabledCommand::AddToBuffer(SpaceObject *so)
+std::vector<Publisher::CartesianColumns> PropagationEnabledCommand::GetPublicationColumns()
 {
-   #ifdef DEBUG_STOPPING_CONDITIONS
-      MessageInterface::ShowMessage("Buffering states for '%s'\n",
-         so->GetName().c_str());
-   #endif
-
-   if (so->IsOfType(Gmat::SPACECRAFT))
+   if (propagators.size() != psm.size() || pubdataElements.empty() || expandedDim <= 0 ||
+       pubdataElements.size() != static_cast<size_t>(expandedDim))
+      throw CommandException("Propagation publication groups or packet extent are inconsistent.");
+   std::vector<Publisher::CartesianColumns> columns;
+   size_t offset = 1;
+   const char *components[] = {"X", "Y", "Z", "Vx", "Vy", "Vz"};
+   auto check = [&](size_t start, const StringArray &elements)
    {
-      Spacecraft *clonedSat = (Spacecraft *)(so->Clone());
-      satBuffer.push_back(clonedSat);
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (clonedSat, clonedSat->GetName(), "Propagate::AddToBuffer()",
-          "(Spacecraft *)(so->Clone())");
-      #endif
-      //satBuffer.push_back((Spacecraft *)(so->Clone()));
-   }
-   else if (so->IsOfType(Gmat::FORMATION))
+      if (start > pubdataElements.size() || elements.size() > pubdataElements.size() - start ||
+          !std::equal(elements.begin(), elements.end(), pubdataElements.begin() + start))
+         throw CommandException("Propagation publication column registration is stale.");
+   };
+   for (size_t group = 0; group < psm.size(); ++group)
    {
-      FormationInterface *form = (FormationInterface*)so;
-      FormationInterface *clonedForm = (FormationInterface *)(so->Clone());
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (clonedForm, clonedForm->GetName(), "Propagate::AddToBuffer()",
-          "(Formation *)(so->Clone())");
-      #endif
-      //formBuffer.push_back((Formation *)(so->Clone()));
-      formBuffer.push_back(clonedForm);
-      StringArray formSats = form->GetStringArrayParameter("Add");
-
-      for (StringArray::iterator i = formSats.begin(); i != formSats.end(); ++i)
-         AddToBuffer((SpaceObject *)(FindObject(*i)));
+      auto *manager = psm[group];
+      const auto *map = manager->GetStateMap();
+      StringArray owners, elements;
+      manager->PrepareStateInfoToPublish(owners, elements);
+      if (!map || map->size() != static_cast<size_t>(manager->GetState()->GetSize()) ||
+          owners.size() != map->size() || elements.size() != map->size())
+         throw CommandException("Propagation publication differs from the native state map.");
+      check(offset, elements);
+      // Distinguish the definition from per-command runtime clones. Separate
+      // commands using the same declared PropSetup do not imply a new provider.
+      auto *definition = FindObject(propagators[group]->GetName());
+      if (!definition || !definition->IsOfType(Gmat::PROP_SETUP)) definition = propagators[group];
+      const auto providerIdentity = definition->GetLifetimeToken();
+      for (size_t i = 0; i < map->size(); ++i)
+      {
+         const auto *item = (*map)[i];
+         if (!item) throw CommandException("Published state map has a NULL item.");
+         if (item->elementName != "CartesianState" || item->subelement < 1 ||
+             (item->subelement - 1) % 6 != 0) continue;
+         if (!item->object || map->size() - i < 6)
+            throw CommandException("Published Cartesian state is incomplete.");
+         GmatBase *object = item->object;
+         if (object->IsOfType(Gmat::FORMATION))
+         {
+            const ObjectArray members = object->GetRefObjectArray(Gmat::SPACECRAFT);
+            const StringArray roles = object->GetStringArrayParameter("Add");
+            const size_t member = static_cast<size_t>((item->subelement - 1) / 6);
+            if (members.size() != roles.size() || member >= roles.size() || roles[member] != owners[i])
+               throw CommandException("Published Formation member layout is inconsistent.");
+            object = members[member];
+         }
+         if (!object || !object->IsOfType(Gmat::SPACECRAFT))
+            throw CommandException("Published Cartesian object is not a spacecraft.");
+         Publisher::CartesianColumns column;
+         column.object = object;
+         column.propagationGroup = static_cast<Integer>(group);
+         column.propagatorName = definition->GetName();
+         column.propagatorIdentity = providerIdentity;
+         column.hasEpoch = true;
+         auto *state = manager->GetState();
+         column.epoch = state->HasPrecisionTime() ? state->GetEpochGT() : GmatTime(state->GetEpoch());
+         column.frame = static_cast<Spacecraft*>(object)->GetInternalCoordSystem();
+         if (!column.frame) throw CommandException("Published spacecraft has no internal coordinate system.");
+         column.frameIdentity = column.frame->GetLifetimeToken();
+         for (size_t j = 0; j < 6; ++j)
+         {
+            const auto *component = (*map)[i+j];
+            if (!component || component->object != item->object || component->elementName != "CartesianState" ||
+                component->subelement != item->subelement + static_cast<Integer>(j) ||
+                owners[i+j] != owners[i] || elements[i+j] != owners[i] + "." + components[j])
+               throw CommandException("Published Cartesian component layout is inconsistent.");
+            column.indices[j] = static_cast<Integer>(offset+i+j);
+         }
+         columns.push_back(column);
+         i += 5;
+      }
+      offset += map->size();
    }
-   else
-      throw CommandException("Object " + so->GetName() + " is not either a "
-         "Spacecraft or a Formation; cannot buffer the object for propagator "
-         "stopping conditions.");
+   if (offset != static_cast<size_t>(covStartIndex))
+      throw CommandException("Published Cartesian/state blocks differ from the covariance start.");
+   for (size_t group = 0; group < psm.size(); ++group)
+   {
+      const auto spacecraft = psm[group]->GetPublishedSpacecraft();
+      StringArray owners, elements;
+      psm[group]->PrepareCovAndAccelerationInfoToPublish(owners, elements);
+      if (elements.size() != spacecraft.size() * 24)
+         throw CommandException("Published covariance/acceleration group has an invalid shape.");
+      check(offset, elements);
+      for (size_t i = 0; i < spacecraft.size(); ++i)
+         for (auto &column : columns)
+            if (column.object == spacecraft[i].object && column.propagationGroup == static_cast<Integer>(group))
+            {
+               for (size_t j = 0; j < 21; ++j) column.covariance[j] = static_cast<Integer>(offset + 21*i+j);
+               for (size_t j = 0; j < 3; ++j) column.acceleration[j] = static_cast<Integer>(offset + 21*spacecraft.size() + 3*i+j);
+            }
+      offset += elements.size();
+   }
+   if (offset != static_cast<size_t>(attStartIndex))
+      throw CommandException("Published covariance groups differ from the attitude start.");
+   for (size_t group = 0; group < psm.size(); ++group)
+   {
+      const auto spacecraft = psm[group]->GetPublishedSpacecraft();
+      StringArray owners, elements;
+      psm[group]->PrepareAttitudeInfoToPublish(owners, elements);
+      if (elements.size() != spacecraft.size() * 4)
+         throw CommandException("Published attitude group has an invalid shape.");
+      check(offset, elements);
+      for (size_t i = 0; i < spacecraft.size(); ++i)
+         for (auto &column : columns)
+            if (column.object == spacecraft[i].object && column.propagationGroup == static_cast<Integer>(group))
+               for (size_t j = 0; j < 4; ++j) column.quaternion[j] = static_cast<Integer>(offset + 4*i+j);
+      offset += elements.size();
+   }
+   if (offset != pubdataElements.size())
+      throw CommandException("Published spacecraft groups do not cover the registered packet.");
+   return columns;
 }
 
+bool PropagationEnabledCommand::PublishElementData(Real direction)
+{
+   const auto columns = GetPublicationColumns();
+   return publisher->PublishPropagatePacket(this, streamID, pubdata, expandedDim,
+      direction, sats, false, NULL, &columns);
+}
+
+ObjectArray PropagationEnabledCommand::GetPropagatedSpacecraft() const
+{
+   ObjectArray spacecraft;
+   auto add = [&](GmatBase *object)
+   {
+      if (object && object->IsOfType(Gmat::SPACECRAFT) &&
+          std::find(spacecraft.begin(), spacecraft.end(), object) == spacecraft.end())
+         spacecraft.push_back(object);
+   };
+   for (auto *root : sats)
+   {
+      if (!root) throw CommandException("Propagation event has a NULL object.");
+      if (root->IsOfType(Gmat::FORMATION))
+         for (auto *member : root->GetRefObjectArray(Gmat::SPACECRAFT)) add(member);
+      else add(root);
+   }
+   return spacecraft;
+}
+
+std::vector<SpaceObject*> PropagationEnabledCommand::ResolveFormationMembers(
+      FormationInterface *formation)
+{
+   if (!formation) throw CommandException("Cannot resolve members of a NULL Formation.");
+   const StringArray names = formation->GetStringArrayParameter("Add");
+   const ObjectArray bound = formation->GetRefObjectArray(Gmat::SPACECRAFT);
+   std::vector<SpaceObject*> members;
+   for (const auto &name : names)
+   {
+      GmatBase *object = NULL;
+      for (GmatBase *candidate : bound)
+         if (candidate && candidate->GetName() == name)
+         {
+            if (object && object != candidate)
+               throw CommandException("Ambiguous bound member in Formation " + formation->GetName() + ": " + name);
+            object = candidate;
+         }
+      // An unresolved configuration retains the native object-store fallback.
+      // An actual retained binding always takes precedence over equal names.
+      if (!object) object = FindObject(name);
+      auto *member = dynamic_cast<SpaceObject*>(object);
+      if (!member || !member->IsOfType(Gmat::SPACECRAFT))
+         throw CommandException("Cannot resolve spacecraft " + name + " in Formation " + formation->GetName());
+      if (std::find(members.begin(), members.end(), member) != members.end())
+         throw CommandException("Repeated spacecraft in Formation " + formation->GetName());
+      members.push_back(member);
+   }
+   return members;
+}
+
+PropagationEnabledCommand::BufferedRoot PropagationEnabledCommand::CaptureBufferRoot(SpaceObject *object)
+{
+   if (!object) throw CommandException("Cannot buffer a NULL propagation object.");
+   BufferedRoot root;
+   root.object = object;
+   root.context = object->GetFunctionValueContext();
+   root.stateLayout = object->GetState().GetLayoutIdentity();
+   if (auto *formation = dynamic_cast<FormationInterface*>(object))
+      root.members = ResolveFormationMembers(formation);
+   else if (object->IsOfType(Gmat::SPACECRAFT)) root.members.push_back(object);
+   else throw CommandException("Cannot buffer propagation object " + object->GetName());
+   for (SpaceObject *member : root.members)
+   {
+      root.stateSizes.push_back(member->GetState().GetSize());
+      root.memberContexts.push_back(member->GetFunctionValueContext());
+      root.memberStateLayouts.push_back(member->GetState().GetLayoutIdentity());
+   }
+   return root;
+}
+
+bool PropagationEnabledCommand::BufferBindingsChanged()
+{
+   if (!transientBindings.Matches(transientForces)) return true;
+   // RunComplete retires snapshots. The next preparation must capture new
+   // sources before touching models that can still reference the old scope.
+   if (bufferRoots.empty()) return true;
+   for (const auto &entry : bufferRoots)
+   {
+      auto *object = dynamic_cast<SpaceObject*>(FindObject(entry.first));
+      if (!object || object != entry.second.object) return true;
+      const BufferedRoot current = CaptureBufferRoot(object);
+      if (current.context != entry.second.context || current.members != entry.second.members ||
+          current.stateLayout != entry.second.stateLayout ||
+          current.stateSizes != entry.second.stateSizes ||
+          current.memberContexts != entry.second.memberContexts ||
+          current.memberStateLayouts != entry.second.memberStateLayouts) return true;
+   }
+   return false;
+}
+
+void PropagationEnabledCommand::AppendBuffer(SpaceObject *object)
+{
+   for (const auto &entry : bufferSources)
+      if (entry.second == object) return;
+   std::unique_ptr<GmatBase> clone(object->Clone());
+   bool borrowed = clone.get() == object;
+   for (const auto &entry : bufferSources)
+      borrowed = borrowed || clone.get() == entry.first || clone.get() == entry.second;
+   if (borrowed)
+   {
+      clone.release();
+      throw CommandException("Propagation buffer Clone returned an existing value.");
+   }
+   auto *buffer = dynamic_cast<SpaceObject*>(clone.get());
+   if (!buffer || buffer->GetTypeName() != object->GetTypeName())
+      throw CommandException("Incompatible propagation buffer clone for " + object->GetName());
+   bufferSources.emplace(buffer, object);
+   try
+   {
+      if (auto *satellite = dynamic_cast<Spacecraft*>(buffer)) satBuffer.push_back(satellite);
+      else if (auto *formation = dynamic_cast<FormationInterface*>(buffer)) formBuffer.push_back(formation);
+      else throw CommandException("Unsupported propagation buffer type " + object->GetTypeName());
+   }
+   catch (...)
+   {
+      bufferSources.erase(buffer);
+      throw;
+   }
+   clone.release();
+   #ifdef DEBUG_MEMORY
+   MemoryTracker::Instance()->Add(buffer, buffer->GetName(), "PropagationEnabledCommand::AppendBuffer()",
+         "native propagation buffer Clone");
+   #endif
+}
+
+void PropagationEnabledCommand::AddToBuffer(SpaceObject *so)
+{
+   BufferedRoot root = CaptureBufferRoot(so);
+   const auto existing = bufferRoots.find(so->GetName());
+   if (existing != bufferRoots.end() && existing->second.object != so)
+      throw CommandException("Ambiguous propagation root name " + so->GetName());
+   try
+   {
+      bufferRoots[so->GetName()] = root;
+      AppendBuffer(so);
+      if (so->IsOfType(Gmat::FORMATION))
+         for (SpaceObject *member : root.members) AppendBuffer(member);
+   }
+   catch (...)
+   {
+      EmptyBuffer();
+      throw;
+   }
+}
 
 //------------------------------------------------------------------------------
 // void EmptyBuffer()
@@ -1366,6 +1606,17 @@ void PropagationEnabledCommand::EmptyBuffer()
       delete (*i);
    }
    formBuffer.clear();
+   bufferSources.clear();
+   bufferRoots.clear();
+   transientBindings.Clear();
+}
+
+void PropagationEnabledCommand::RunComplete()
+{
+   EmptyBuffer();
+   inProgress = false;
+   hasFired = false;
+   GmatCommand::RunComplete();
 }
 
 //------------------------------------------------------------------------------
@@ -1388,16 +1639,11 @@ void PropagationEnabledCommand::BufferSatelliteStates(bool fillingBuffer)
         i != satBuffer.end(); ++i)
    {
       soName = (*i)->GetName();
-      if (fillingBuffer)
-      {
-         fromSat = (Spacecraft *)FindObject(soName);
-         toSat = *i;
-      }
-      else
-      {
-         fromSat = *i;
-         toSat = (Spacecraft *)FindObject(soName);
-      }
+      const auto origin = bufferSources.find(*i);
+      auto *original = origin == bufferSources.end() ? NULL : dynamic_cast<Spacecraft*>(origin->second);
+      if (!original) throw CommandException("Missing exact spacecraft source for propagation buffer " + soName);
+      fromSat = fillingBuffer ? original : *i;
+      toSat = fillingBuffer ? *i : original;
 
       #ifdef DEBUG_STATE_BUFFERING
          MessageInterface::ShowMessage(
@@ -1416,7 +1662,9 @@ void PropagationEnabledCommand::BufferSatelliteStates(bool fillingBuffer)
             satrv[0], satrv[1], satrv[2], satrv[3], satrv[4], satrv[5]);
       #endif
 
-      (*toSat) = (*fromSat);
+      // Whole native Copy adds destination graph rebinding after operator=,
+      // so retained frames do not keep backlinks to the temporary buffer root.
+      toSat->Copy(fromSat);
 
       #ifdef DEBUG_STATE_BUFFERING
          MessageInterface::ShowMessage(
@@ -1434,16 +1682,11 @@ void PropagationEnabledCommand::BufferSatelliteStates(bool fillingBuffer)
          MessageInterface::ShowMessage("Buffering formation %s, filling = %s\n",
             soName.c_str(), (fillingBuffer?"true":"false"));
       #endif
-      if (fillingBuffer)
-      {
-         fromForm = (FormationInterface *)FindObject(soName);
-         toForm = *i;
-      }
-      else
-      {
-         fromForm = *i;
-         toForm = (FormationInterface *)FindObject(soName);
-      }
+      const auto origin = bufferSources.find(*i);
+      auto *original = origin == bufferSources.end() ? NULL : dynamic_cast<FormationInterface*>(origin->second);
+      if (!original) throw CommandException("Missing exact Formation source for propagation buffer " + soName);
+      fromForm = fillingBuffer ? original : *i;
+      toForm = fillingBuffer ? *i : original;
 
       #ifdef DEBUG_STATE_BUFFERING
          MessageInterface::ShowMessage(
@@ -1520,35 +1763,37 @@ void PropagationEnabledCommand::AddTransientForce(StringArray *satnames,
    for (std::vector<PhysicalModel*>::iterator i = transientForces->begin();
         i != transientForces->end(); ++i)
    {
-      StringArray tfSats = (*i)->GetRefObjectNameArray(Gmat::SPACECRAFT);
+      PhysicalModel *transient = *i;
+
 
       // Loop through the spacecraft that go with the force model, and see if
       // they are in the spacecraft list for the current transient force
       for (StringArray::iterator current = satnames->begin();
            current != satnames->end(); ++current)
       {
-         if (find(tfSats.begin(), tfSats.end(), *current) != tfSats.end())
+         auto *target = dynamic_cast<Spacecraft*>(FindObject(*current));
+         if (target && transient->TargetsSpacecraft(target))
          {
             #ifdef DEBUG_TRANSIENT_FORCES
             MessageInterface::ShowMessage
-               ("   Adding transientForce <%p>'%s' to ODEModel\n", *i,
-                (*i)->GetName().c_str());
+               ("   Adding transientForce <%p>'%s' to ODEModel\n", transient,
+                transient->GetName().c_str());
             #endif
 //            if (find(satsThatManeuver.begin(), satsThatManeuver.end(), *current)
 //                  == satsThatManeuver.end())
-               p->AddForce(*i);
+               p->AddForce(transient);
 //            else
 //               flagMultipleBurns = true;
             if (find(satsThatManeuver.begin(), satsThatManeuver.end(), *current) == satsThatManeuver.end())
                   satsThatManeuver.push_back(*current);
-            if ((*i)->DepletesMass())
+            if (transient->DepletesMass())
             {
                propMan->SetProperty("MassFlow");
 //               propMan->SetProperty("MassFlow",
-//                     (*i)->GetRefObject(Gmat::SPACECRAFT, *current));
+//                     transient->GetRefObject(Gmat::SPACECRAFT, *current));
                #ifdef DEBUG_TRANSIENT_FORCES
                   MessageInterface::ShowMessage("   %s depletes mass\n",
-                        (*i)->GetName().c_str());
+                        transient->GetName().c_str());
                #endif
             }
             break;      // Avoid multiple adds
@@ -1580,18 +1825,19 @@ void PropagationEnabledCommand::AddTransientForce(StringArray *satnames,
                               "with %d maneuvering sats\n", mansats.size());
                      #endif
 
-                     for (UnsignedInt i = 0; i < mansats.size(); ++i)
+                     for (UnsignedInt memberIndex = 0; memberIndex < mansats.size(); ++memberIndex)
                      {
                         #ifdef DEBUG_TRANSIENT_FORCES
                            MessageInterface::ShowMessage("   %d: %s is maneuvering\n",
-                                 i, mansats[i].c_str());
+                                 memberIndex, mansats[memberIndex].c_str());
                         #endif
-                        if (find(tfSats.begin(), tfSats.end(), mansats[i]) != tfSats.end())
+                        auto *member = dynamic_cast<Spacecraft*>(obj->GetRefObject(Gmat::SPACECRAFT, mansats[memberIndex]));
+                        if (transient->TargetsSpacecraft(member))
                         {
                            if (find(formationSatsThatManeuver.begin(),
                                  formationSatsThatManeuver.end(),
-                                 mansats[i]) == formationSatsThatManeuver.end())
-                              formationSatsThatManeuver.push_back(mansats[i]);
+                                 mansats[memberIndex]) == formationSatsThatManeuver.end())
+                              formationSatsThatManeuver.push_back(mansats[memberIndex]);
                            if (find(formsThatManeuver.begin(),
                                  formsThatManeuver.end(), obj->GetName()) ==
                                        formsThatManeuver.end())
@@ -1764,7 +2010,7 @@ void PropagationEnabledCommand::ClearTransientForces()
                #ifdef DEBUG_TRANSIENT_FORCES
                MessageInterface::ShowMessage("   calling fm->DeleteForce() for %p\n", pm);
                #endif
-               fm->DeleteForce(pm->GetName());
+               fm->DeleteForce(pm);
                --i;
             }
          }
@@ -1867,12 +2113,17 @@ bool PropagationEnabledCommand::CreateNewSegments(Real epochNow)
 {
    if (createNewSegmentsNow == false)
    {
+      const ObjectArray eventSpacecraft = GetPropagatedSpacecraft();
       std::list<Subscriber *> subList = publisher->GetSubscriberList();
       std::list<Subscriber *> ::iterator it;
       for (it = subList.begin(); it != subList.end(); it++)
       {
          if ((*it)->GetTypeName() == "EphemerisFile" && (*it)->GetBooleanParameter("WriteEphemeris") == true)
          {
+            auto *subject = (*it)->GetRefObject(Gmat::SPACECRAFT,
+               (*it)->GetStringParameter("Spacecraft"));
+            if (!subject || std::find(eventSpacecraft.begin(), eventSpacecraft.end(), subject) == eventSpacecraft.end())
+               continue;
             bool ephemTypeCorrect = ((*it)->GetStringParameter("FileFormat").substr(0, 3) == "STK" || 
                                      (*it)->GetStringParameter("FileFormat").substr(0, 9) == "CCSDS-OEM" || 
                                      (*it)->GetStringParameter("FileFormat").substr(0, 3) == "SPK");
@@ -1953,7 +2204,7 @@ bool PropagationEnabledCommand::CreateNewSegments(Real epochNow)
          //Integer len = 1;
          PrepareElementDataToPublish(pubdata, pubdataSize, pubdataElements, covStartIndex, attStartIndex);
          // Publish 
-         publisher->Publish(this, streamID, pubdata, expandedDim, direction);
+         PublishElementData(direction);
 
 
          for (ObjectArray::iterator sat = sats.begin(); sat != sats.end(); sat++)
@@ -1966,12 +2217,17 @@ bool PropagationEnabledCommand::CreateNewSegments(Real epochNow)
    }
    else
    {
+      const ObjectArray eventSpacecraft = GetPropagatedSpacecraft();
       std::list<Subscriber *> subList = publisher->GetSubscriberList();
       std::list<Subscriber *> ::iterator it;
       for (it = subList.begin(); it != subList.end(); it++)
       {
          if ((*it)->GetTypeName() == "EphemerisFile" && (*it)->GetBooleanParameter("WriteEphemeris") == true)
          {
+            auto *subject = (*it)->GetRefObject(Gmat::SPACECRAFT,
+               (*it)->GetStringParameter("Spacecraft"));
+            if (!subject || std::find(eventSpacecraft.begin(), eventSpacecraft.end(), subject) == eventSpacecraft.end())
+               continue;
             bool ephemTypeCorrect = ((*it)->GetStringParameter("FileFormat").substr(0, 3) == "STK" || 
                                      (*it)->GetStringParameter("FileFormat").substr(0, 9) == "CCSDS-OEM" || 
                                      (*it)->GetStringParameter("FileFormat").substr(0, 3) == "SPK");
@@ -2002,10 +2258,9 @@ bool PropagationEnabledCommand::CreateNewSegments(Real epochNow)
                else
                {
                   // This makes the cuts for CCSDS type Ephems
-                  for (ObjectArray::iterator sat = sats.begin(); sat != sats.end(); sat++)
-                  {
-                     publisher->SetSpacecraftPropertyChanged(this, epochNow, (*sat)->GetName(), "FiniteBurn");
-                  }
+                  for (auto *satellite : GetPropagatedSpacecraft())
+                     publisher->SetSpacecraftPropertyChanged(this, epochNow,
+                        satellite->GetName(), "FiniteBurn", satellite);
                }
             }
          }
@@ -2077,7 +2332,7 @@ bool PropagationEnabledCommand::CreateNewSegments(Real epochNow)
       //Integer len = 1;
       PrepareElementDataToPublish(pubdata, pubdataSize, pubdataElements, covStartIndex, attStartIndex);
       // Publish
-      publisher->Publish(this, streamID, pubdata, expandedDim, direction);
+      PublishElementData(direction);
 
    }
    return createNewSegmentsNow;
@@ -2127,26 +2382,57 @@ Integer PropagationEnabledCommand::PrepareElementInfoToPublish(StringArray &owne
 
 bool PropagationEnabledCommand::PrepareElementDataToPublish(Real* publishData, Integer publishDataSize, StringArray &elementNames, Integer covStartIndex, Integer attStartIdx)
 {
-   for (Integer i = 0; i < propagators.size(); ++i)
+   // PrepareElementInfoToPublish registers one state block per PSM in this
+   // exact order. Searching for the first matching label merges distinct
+   // retained/function objects which happen to share the same instance name.
+   size_t stateOffset = 1;
+   for (auto *propagator : propagators)
    {
-      // Add elements' data in ListItems for each propagator
-      PropagationStateManager *psm = propagators[i]->GetPropStateManager();
-      psm->PrepareStateDataToPublish(publishData, publishDataSize, elementNames);
+      auto *psm = propagator->GetPropStateManager();
+      auto *state = psm->GetState();
+      const auto *map = psm->GetStateMap();
+      StringArray owners, elements;
+      psm->PrepareStateInfoToPublish(owners, elements);
+      if (!publishData || !state || !map || publishDataSize <= 0 || covStartIndex < 1 ||
+          map->size() != static_cast<size_t>(state->GetSize()) || elements.size() != map->size() ||
+          stateOffset > static_cast<size_t>(publishDataSize) || elements.size() > static_cast<size_t>(publishDataSize) - stateOffset ||
+          stateOffset > elementNames.size() || elements.size() > elementNames.size() - stateOffset ||
+          stateOffset > static_cast<size_t>(covStartIndex) || elements.size() > static_cast<size_t>(covStartIndex) - stateOffset)
+         throw CommandException("Published state storage differs from the registered PSM layout.");
+      for (size_t j = 0; j < elements.size(); ++j)
+      {
+         if (elementNames[stateOffset+j] != elements[j])
+            throw CommandException("Published state column registration is stale.");
+         publishData[stateOffset+j] = state->GetState()[j];
+      }
+      stateOffset += elements.size();
    }
+   if (stateOffset != static_cast<size_t>(covStartIndex))
+      throw CommandException("Published state blocks do not match their registered extent.");
 
-   for (Integer i = 0; i < propagators.size(); ++i)
+   size_t offset = static_cast<size_t>(covStartIndex);
+   auto fillGroup = [&](PropagationStateManager *manager, bool attitude)
    {
-      // Add acceleration and covariance data
-      PropagationStateManager *psm = propagators[i]->GetPropStateManager();
-      psm->PrepareCovAndAccelerationDataToPublish(publishData, publishDataSize, elementNames, covStartIndex, hasPrecisionTime);
-   }
-
-   for (Integer i = 0; i < propagators.size(); ++i)
-   {
-      // Add attitude data
-      PropagationStateManager* psm = propagators[i]->GetPropStateManager();
-      psm->PrepareAttitudeDataToPublish(publishData, publishDataSize, elementNames, attStartIdx, hasPrecisionTime);
-   }
+      StringArray owners, elements;
+      if (attitude) manager->PrepareAttitudeInfoToPublish(owners, elements);
+      else manager->PrepareCovAndAccelerationInfoToPublish(owners, elements);
+      const size_t end = attitude ? elementNames.size() : static_cast<size_t>(attStartIdx);
+      if (offset > end || elements.size() > end - offset || offset > elementNames.size() ||
+          elements.size() > elementNames.size() - offset ||
+          !std::equal(elements.begin(), elements.end(), elementNames.begin() + offset))
+         throw CommandException("Published auxiliary group differs from the registered layout.");
+      if (attitude) manager->PrepareAttitudeDataToPublish(publishData, publishDataSize, elementNames,
+         static_cast<Integer>(offset), hasPrecisionTime);
+      else manager->PrepareCovAndAccelerationDataToPublish(publishData, publishDataSize, elementNames,
+         static_cast<Integer>(offset), hasPrecisionTime);
+      offset += elements.size();
+   };
+   for (auto *propagator : propagators) fillGroup(propagator->GetPropStateManager(), false);
+   if (offset != static_cast<size_t>(attStartIdx))
+      throw CommandException("Published covariance groups do not end at the attitude start.");
+   for (auto *propagator : propagators) fillGroup(propagator->GetPropStateManager(), true);
+   if (offset != elementNames.size() || offset > static_cast<size_t>(publishDataSize))
+      throw CommandException("Published attitude groups do not match the packet extent.");
 
    return true;
 }

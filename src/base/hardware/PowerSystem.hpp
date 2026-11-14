@@ -30,6 +30,7 @@
 #define PowerSystem_hpp
 
 #include "Hardware.hpp"
+#include <functional>
 #include "gmatdefs.hpp"
 #include "SpacePoint.hpp"
 #include "SolarSystem.hpp"
@@ -43,6 +44,7 @@ class Spacecraft;
  */
 class GMAT_API PowerSystem : public Hardware
 {
+   friend class Spacecraft;
 public:
 
    PowerSystem(const std::string &systemType, const std::string &nomme);
@@ -52,6 +54,9 @@ public:
 
    /// Initialize the PowerSystem
    virtual bool         Initialize();
+   virtual bool InitializeClonedResource();
+   virtual void RebindClonedReferences(const PowerSystem &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
    virtual void         Copy(const GmatBase*);
    /// Set reference objects
    virtual void         SetSolarSystem(SolarSystem *ss);

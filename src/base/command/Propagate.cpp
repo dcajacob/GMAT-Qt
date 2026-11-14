@@ -42,8 +42,13 @@
 #include "ColorTypes.hpp"       // for GmatColor::
 #include "MessageInterface.hpp"
 #include "RgbColor.hpp"         // for ToIntColor()
+#include "TimeSystemConverter.hpp"
 #include <sstream>
 #include <cmath>
+#include <set>
+#include <algorithm>
+#include <memory>
+#include <typeinfo>
 
 //#define DEBUG_PROPAGATE_ASSEMBLE
 //#define DEBUG_PARSING
@@ -83,6 +88,41 @@
 //---------------------------------
 // static data
 //---------------------------------
+namespace {
+thread_local const Propagate *accelerationContextInitializer=nullptr;
+const StringArray &ephemerisPolicies()
+{
+   static const StringArray values={"Native","SingleSetup","SingleGroup",
+      "ExactlyOneSetup","ExactlyOneGroup"};
+   return values;
+}
+bool knownEphemerisPolicy(const std::string &value)
+{
+   const auto &values=ephemerisPolicies();
+   return std::find(values.begin(),values.end(),value)!=values.end();
+}
+const char *unknownEphemerisPolicyMessage()
+{
+   return "EphemerisPolicy must be Native, SingleSetup, SingleGroup, ExactlyOneSetup or ExactlyOneGroup.";
+}
+struct SatelliteNameCopies
+{
+   std::vector<std::unique_ptr<StringArray>> owners;
+   std::vector<StringArray*> pointers;
+};
+SatelliteNameCopies copySatelliteNames(const std::vector<StringArray*> &source)
+{
+   SatelliteNameCopies result;
+   result.owners.reserve(source.size());
+   result.pointers.reserve(source.size());
+   for (const auto *names:source)
+   {
+      result.owners.emplace_back(names ? new StringArray(*names) : nullptr);
+      result.pointers.push_back(result.owners.back().get());
+   }
+   return result;
+}
+}
 std::string Propagate::PropModeList[PropModeCount] =
 {
    "", "Synchronized", "BackProp"
@@ -101,7 +141,9 @@ Propagate::PARAMETER_TEXT[PropagateCommandParamCount - GmatCommandParamCount] =
    "PropForward",
    "AllSTMs",
    "AllAMatrices",
-   "AllCovariances"
+   "AllCovariances",
+   "", // Preserve the existing unexposed ORBIT_COLOR parameter slot.
+   "EphemerisPolicy"
 };
 
 const Gmat::ParameterType
@@ -117,7 +159,9 @@ Propagate::PARAMETER_TYPE[PropagateCommandParamCount - GmatCommandParamCount] =
    Gmat::BOOLEAN_TYPE,
    Gmat::BOOLEAN_TYPE,
    Gmat::BOOLEAN_TYPE,
-   Gmat::BOOLEAN_TYPE
+   Gmat::BOOLEAN_TYPE,
+   static_cast<Gmat::ParameterType>(0), // Preserve the legacy reserved slot.
+   Gmat::ENUMERATION_TYPE
 };
 
 #ifdef DUMP_PLANET_DATA
@@ -149,6 +193,8 @@ static bool firstStepFired = false;
 Propagate::Propagate() :
    PropagationEnabledCommand   ("Propagate"),
    currentPropMode             (""),
+   ephemerisPolicy             ("Native"),
+   ephemerisPolicySpecified    (false),
    interruptCheckFrequency     (30),
    inProgress                  (false),
    epochID                     (-1),
@@ -260,8 +306,9 @@ Propagate::~Propagate()
 Propagate::Propagate(const Propagate &prp) :
    PropagationEnabledCommand   (prp),
    propName                    (prp.propName),
-   satName                     (prp.satName),
    currentPropMode             (prp.currentPropMode),
+   ephemerisPolicy             (prp.ephemerisPolicy),
+   ephemerisPolicySpecified    (prp.ephemerisPolicySpecified),
    interruptCheckFrequency     (prp.interruptCheckFrequency),
    inProgress                  (false),
    epochID                     (prp.epochID),
@@ -315,6 +362,12 @@ Propagate::Propagate(const Propagate &prp) :
 
    stepBrackets[0] = stepBrackets[1] = 0.0;
    firstStepTolerance = prp.firstStepTolerance;
+
+   // Each command deletes these arrays. Copies must not borrow the source's
+   // group membership storage, including when the source mission is rebuilt.
+   auto names=copySatelliteNames(prp.satName);
+   satName.swap(names.pointers);
+   for (auto &owner:names.owners) owner.release();
 }
 
 
@@ -334,13 +387,17 @@ Propagate& Propagate::operator=(const Propagate &prp)
    if (&prp == this)
       return *this;
 
+   // Allocate all replacement membership arrays before changing ownership.
+   auto names=copySatelliteNames(prp.satName);
+
    // Call the base assignment operator
    PropagationEnabledCommand::operator=(prp);
 
    propName                = prp.propName;
    direction               = prp.direction;
-   satName                 = prp.satName;
    currentPropMode         = prp.currentPropMode;
+   ephemerisPolicy         = prp.ephemerisPolicy;
+   ephemerisPolicySpecified = prp.ephemerisPolicySpecified;
    interruptCheckFrequency = prp.interruptCheckFrequency;
    inProgress              = false;
    hasFired                = false;
@@ -409,6 +466,10 @@ Propagate& Propagate::operator=(const Propagate &prp)
    psm.clear();
 
    stepBrackets[0] = stepBrackets[1] = 0.0;
+
+   for (auto *oldNames:satName) delete oldNames;
+   satName.swap(names.pointers);
+   for (auto &owner:names.owners) owner.release();
 
    return *this;
 }
@@ -690,6 +751,13 @@ const std::string& Propagate::GetGeneratingString(Gmat::WriteMode mode,
          gen.append("{" + colorStr + "}");
    }
    
+   if (ephemerisPolicySpecified)
+   {
+      const std::string option="EphemerisPolicy = "+ephemerisPolicy;
+      const auto end=gen.find_last_of('}');
+      if (end==std::string::npos) gen+=" {"+option+"}";
+      else gen.insert(end,", "+option);
+   }
    generatingString = gen + ";";
    // Then call the base class method
    return PropagationEnabledCommand::GetGeneratingString(mode, prefix, useName);
@@ -868,14 +936,13 @@ bool Propagate::SetRefObject(GmatBase *obj, const UnsignedInt type,
    {
       case Gmat::STOP_CONDITION:
          {
-            std::string satName = obj->GetName();
-            Integer strt = satName.find("StopOn") + 6;
-            if (strt == (Integer)std::string::npos)
-               strt = 0;
-            Integer ndx = satName.find(".",0);
-            if (ndx != (Integer)std::string::npos)
-               satName = satName.substr(strt, ndx-strt);
             std::string stopStr = obj->GetStringParameter("StopVar");
+            // A StopCondition's display name need not encode its owner.
+            // Bare Variables/Array elements have no spacecraft owner; their
+            // epoch clock is selected from the propagated group at Initialize.
+            std::string satName, stopType, stopFrame;
+            GmatStringUtil::ParseParameter(GmatStringUtil::GetArrayName(stopStr),
+                  stopType, satName, stopFrame);
             std::string goalStr = obj->GetStringParameter("Goal");
             Integer size = stopWhen.size();
 
@@ -1058,6 +1125,46 @@ std::string Propagate::GetParameterTypeString(const Integer id) const
    return GmatBase::PARAM_TYPE_STRING[GetParameterType(id)];
 }
 
+const StringArray& Propagate::GetPropertyEnumStrings(const Integer id) const
+{
+   if (id==EPHEMERIS_POLICY) return ephemerisPolicies();
+   return PropagationEnabledCommand::GetPropertyEnumStrings(id);
+}
+
+bool Propagate::IsParameterCommandModeSettable(const Integer id) const
+{
+   if (id==EPHEMERIS_POLICY) return false;
+   return PropagationEnabledCommand::IsParameterCommandModeSettable(id);
+}
+
+std::string Propagate::EphemerisPolicyError(const std::string &policy,
+      const std::vector<PropSetup*> &setups)
+{
+   if (!knownEphemerisPolicy(policy)) return unknownEphemerisPolicyMessage();
+   if (policy=="Native") return "";
+   size_t groups=0;
+   std::set<const PropSetup*> distinct;
+   for (auto *setup:setups)
+   {
+      if (!setup || !setup->GetPropagator())
+         return "Resolve each Propagate setup and its propagator before applying EphemerisPolicy.";
+      if (setup->GetPropagator()->IsOfType("EphemerisPropagator"))
+      {
+         ++groups;
+         distinct.insert(setup);
+      }
+   }
+   if (policy=="SingleGroup" && groups>1)
+      return "EphemerisPolicy = SingleGroup permits at most one ephemeris propagator group per Propagate command.";
+   if (policy=="SingleSetup" && distinct.size()>1)
+      return "EphemerisPolicy = SingleSetup permits at most one distinct ephemeris PropSetup per Propagate command; repeated groups may use that same setup.";
+   if (policy=="ExactlyOneGroup" && groups!=1)
+      return "EphemerisPolicy = ExactlyOneGroup requires exactly one ephemeris propagator group per Propagate command.";
+   if (policy=="ExactlyOneSetup" && distinct.size()!=1)
+      return "EphemerisPolicy = ExactlyOneSetup requires exactly one distinct ephemeris PropSetup per Propagate command; repeated groups may use that same setup.";
+   return "";
+}
+
 
 //------------------------------------------------------------------------------
 // Integer GetIntegerParameter(const Integer id) const
@@ -1116,6 +1223,7 @@ Integer Propagate::SetIntegerParameter(const Integer id, const Integer value)
 //------------------------------------------------------------------------------
 std::string Propagate::GetStringParameter(const Integer id) const
 {
+   if (id==EPHEMERIS_POLICY) return ephemerisPolicy;
    if (id == PROP_COUPLED)
       return currentPropMode;
 
@@ -1153,6 +1261,17 @@ bool Propagate::SetStringParameter(const Integer id, const char *value)
 //------------------------------------------------------------------------------
 bool Propagate::SetStringParameter(const Integer id, const std::string &value)
 {
+   if (id==EPHEMERIS_POLICY)
+   {
+      // A configured count is not available until setup references resolve.
+      // In particular an exact policy must be settable before initialization.
+      if (!knownEphemerisPolicy(value)) throw CommandException(unknownEphemerisPolicyMessage());
+      if (inProgress) throw CommandException("Cannot change EphemerisPolicy during propagation.");
+      ephemerisPolicy=value;
+      ephemerisPolicySpecified=true;
+      isInitialized=false;
+      return true;
+   }
    if (id == PROP_COUPLED)
    {
       const StringArray pmodes = GetStringArrayParameter(AVAILABLE_PROP_MODES);
@@ -1865,8 +1984,8 @@ const StringArray& Propagate::GetRefObjectNameArray(const UnsignedInt type)
 
    if (type == Gmat::UNKNOWN_OBJECT || type == Gmat::SPACECRAFT)
    {
-      refObjectNames.insert(refObjectNames.end(), stopSatNames.begin(),
-                            stopSatNames.end());
+      for (const auto &name : stopSatNames)
+         if (!name.empty()) refObjectNames.push_back(name);
    }
 
    if (type == Gmat::UNKNOWN_OBJECT || type == Gmat::PARAMETER)
@@ -2006,6 +2125,8 @@ const StringArray& Propagate::GetRefObjectNameArray(const UnsignedInt type)
 //------------------------------------------------------------------------------
 bool Propagate::InterpretAction()
 {
+   ephemerisPolicy="Native";
+   ephemerisPolicySpecified=false;
    #ifdef DEBUG_PROPAGATE_ASSEMBLE
    MessageInterface::ShowMessage
       ("\nPropagate::InterpretAction() entered, genString = \"%s\"\n",
@@ -2134,7 +2255,7 @@ bool Propagate::InterpretAction()
    // so check it (LOJ: 2013.12.16)
    if ((bracketCount[0] > 0) && (stopNames.size() == 0))
    {
-      if (!overrideSegmentColor)
+      if (!overrideSegmentColor && !ephemerisPolicySpecified)
          throw CommandException("Brackets for stopping conditions were found, "
                                 "but no stopping conditions detected");
    }
@@ -2271,8 +2392,13 @@ bool Propagate::SetElementWrapper(ElementWrapper *toWrapper,
             //if (stopWhen[j]->GetName() == ("StopOn" + withName))
             if (stopWhen[j]->GetLhsString() == withName)
             {
-               stopWhen[j]->SetStopParameter((Parameter*)toWrapper->GetRefObject());
+               auto *parameter = dynamic_cast<Parameter*>(toWrapper->GetRefObject());
+               if (!parameter)
+                  throw CommandException("A stopping value requires a scalar Parameter, Variable or Array element.");
+               // Revalidation may already have retired the previous wrapper.
+               // Install the replacement before SetStopParameter rebinds it.
                stopWhen[j]->SetLhsWrapper(toWrapper);
+               stopWhen[j]->SetStopParameter(parameter);
             }
          }
 
@@ -3092,6 +3218,27 @@ void Propagate::ConfigureStoppingCondition(std::string &stopDesc)
          }
          return;
       }
+      if (lhs=="EphemerisPolicy")
+      {
+         if (ephemerisPolicySpecified)
+            throw CommandException("EphemerisPolicy may appear only once in a Propagate command.");
+         // CleanString also strips quotes and whitespace inside their ends.
+         // Parse this enum from its original spelling so an unmatched quote or
+         // a space inside a quoted value cannot become a different valid enum.
+         auto field=GmatStringUtil::Trim(stopDesc.substr(0,loc));
+         if (!field.empty() && field.front()=='{') field=GmatStringUtil::Trim(field.substr(1));
+         if (field!="EphemerisPolicy") throw CommandException("EphemerisPolicy requires an unquoted field name.");
+         auto value=GmatStringUtil::Trim(stopDesc.substr(loc+1));
+         if (!value.empty() && value.back()=='}') value=GmatStringUtil::Trim(value.substr(0,value.size()-1));
+         if (!value.empty() && (value.front()=='\'' || value.back()=='\''))
+         {
+            if (value.size()<2 || value.front()!='\'' || value.back()!='\'')
+               throw CommandException("EphemerisPolicy requires a complete quoted or unquoted enum value.");
+            value=value.substr(1,value.size()-2);
+         }
+         SetStringParameter(EPHEMERIS_POLICY,value);
+         return;
+      }
    }
 
    #ifdef DEBUG_PROPAGATE_ASSEMBLE
@@ -3149,7 +3296,8 @@ void Propagate::ConfigureStoppingCondition(std::string &stopDesc)
    MessageInterface::ShowMessage("lhs paramObj='%s'\n", paramObj.c_str());
    #endif
 
-   if (paramObj != "" && !GmatStringUtil::IsNumber(paramObj))
+   if (GmatStringUtil::GetArrayName(lhs).find('.') != std::string::npos &&
+       paramObj != "" && !GmatStringUtil::IsNumber(paramObj))
       TakeAction("SetStopSpacecraft", paramObj);
 
 
@@ -3286,8 +3434,37 @@ void Propagate::CleanString(std::string &theString, const StringArray *extras)
  * @return true if the GmatCommand is initialized, false if an error occurs.
  */
 //------------------------------------------------------------------------------
+bool Propagate::InitializeForPropagation(bool selectAccelerationContext)
+{
+   const auto *previous=accelerationContextInitializer;
+   accelerationContextInitializer=selectAccelerationContext ? this:nullptr;
+   struct RestoreSelection
+   {
+      const Propagate *previous;
+      ~RestoreSelection(){accelerationContextInitializer=previous;}
+   } restore{previous};
+   // Preserve virtual Initialize dispatch for derived propagation commands.
+   return Initialize();
+}
+
 bool Propagate::Initialize()
 {
+   SetCloneNotificationsEnabled(false);
+   if (ephemerisPolicy!="Native")
+   {
+      isInitialized=false;
+      std::vector<PropSetup*> setups;
+      for (auto name:propName)
+      {
+         if (!name.empty() && name.front()=='-') name.erase(0,1);
+         auto *setup=dynamic_cast<PropSetup*>(FindObject(name));
+         if (!setup) throw CommandException("Propagate command cannot resolve PropSetup '"+name+"'.");
+         setups.push_back(setup);
+      }
+      const auto error=EphemerisPolicyError(ephemerisPolicy,setups);
+      if (!error.empty()) throw CommandException(error);
+   }
+   const bool selectAccelerationContext=accelerationContextInitializer==this;
    #if DEBUG_PROPAGATE_INIT
       MessageInterface::ShowMessage("Propagate::Initialize() <%p> entered\n", this);
       MessageInterface::ShowMessage("  Size of propName is %d\n",
@@ -3331,46 +3508,30 @@ bool Propagate::Initialize()
    //StringArray fullSatList;
    fullSatList.clear();
    
-   // Only do this if the command has a formation -- can't do this here, but
-   // kept in code so that it can be addressed at refactoring
-   // if (hasFormation)
+   // A spacecraft may occur only once in a propagation command. Independent
+   // private values can have the same display name; compare actual identities.
+   std::set<SpaceObject*> propagatedObjects;
+   StringArray repeats;
+   auto includeObject = [&](SpaceObject *object)
    {
-      for (UnsignedInt i = 0; i < satName.size(); ++i)
+      fullSatList.push_back(object->GetName());
+      if (!propagatedObjects.insert(object).second) repeats.push_back(object->GetName());
+   };
+   for (const auto *names : satName)
+      for (const auto &name : *names)
       {
-         for (UnsignedInt j = 0; j < satName[i]->size(); ++j)
-         {
-            std::string scName = satName[i]->at(j);
-            if ((mapObj = FindObject(scName)) != NULL)
-            {
-               if (mapObj->IsOfType(Gmat::SPACECRAFT))
-                  fullSatList.push_back(scName);
-               else  // It's a formation
-               {
-                  // Note: we do not recurse nested formations at this time
-                  StringArray formSats = mapObj->GetStringArrayParameter("Add");
-                  for (UnsignedInt k = 0; k < formSats.size(); ++k)
-                     fullSatList.push_back(formSats[k]);
-               }
-            }
-         }
+         auto *object = dynamic_cast<SpaceObject*>(FindObject(name));
+         if (!object) continue; // the normal setup loop reports missing roots
+         if (auto *formation = dynamic_cast<FormationInterface*>(object))
+            for (SpaceObject *member : ResolveFormationMembers(formation)) includeObject(member);
+         else if (object->IsOfType(Gmat::SPACECRAFT)) includeObject(object);
       }
-      // Now check uniqueness
-      std::string repeats;
-      for (StringArray::iterator i = fullSatList.begin(); i < fullSatList.end(); ++i)
-      {
-         StringArray::iterator j = i+1;
-         if (find(j, fullSatList.end(), *i) != fullSatList.end())
-         {
-            if (repeats.length() > 0)
-               repeats += ", ";
-            repeats += (*i);
-         }
-      }
-      if (repeats.length() > 0)
-         throw CommandException("Duplicate Spacecraft [" + repeats +
-               "] found in the Propagate command:\n   \"" +
-               GetGeneratingString(Gmat::NO_COMMENTS) +
-               "\"\nCheck spacecraft in Formations for repeated members");
+   if (!repeats.empty())
+   {
+      std::string names;
+      for (const auto &name : repeats) names += (names.empty() ? "" : ", ") + name;
+      throw CommandException("Duplicate Spacecraft [" + names + "] found in the Propagate command:\n   \"" +
+            GetGeneratingString(Gmat::NO_COMMENTS) + "\"\nCheck spacecraft in Formations for repeated members");
    }
 
    for (StringArray::iterator i = propName.begin(); i != propName.end(); ++i)
@@ -3400,7 +3561,24 @@ bool Propagate::Initialize()
       else
          singleStepMode = false;
 
-      PropSetup *clonedProp = (PropSetup *)(mapObj->Clone());
+      auto *definition = dynamic_cast<PropSetup*>(mapObj);
+      if (!definition) throw CommandException("Propagation requires a PropSetup resource.\n");
+      std::unique_ptr<GmatBase> pending;
+      {
+         GmatBase::FunctionValueCopyGuard nativeCopy;
+         pending.reset(mapObj->Clone());
+      }
+      if (pending.get() == mapObj ||
+          std::find(propagators.begin(), propagators.end(), pending.get()) != propagators.end())
+      {
+         pending.release();
+         throw CommandException("PropSetup Clone returned a borrowed object.\n");
+      }
+      auto *clonedProp = dynamic_cast<PropSetup*>(pending.get());
+      if (!clonedProp || typeid(*clonedProp) != typeid(*definition) ||
+          clonedProp->GetTypeName() != definition->GetTypeName())
+         throw CommandException("Cannot clone the native PropSetup type.\n");
+      clonedProp->BindCloneDefinition(*definition, this);
       #ifdef DEBUG_MEMORY
       MemoryTracker::Instance()->Add
          (clonedProp, clonedProp->GetName(), "Propagate::Initialize()",
@@ -3416,6 +3594,7 @@ bool Propagate::Initialize()
       #endif
 
       propagators.push_back(clonedProp);
+      pending.release();
       ++cloneCount;
       if (!propagators[index])
          return false;
@@ -3562,6 +3741,7 @@ bool Propagate::Initialize()
 
       if (p->UsesODEModel())
       {
+         odem->SetPropStateManager(psm);
          odem->SetState(psm->GetState());
          // Set solar system to ForceModel for Propagate inside a GmatFunction
          odem->SetSolarSystem(solarSys);
@@ -3594,9 +3774,19 @@ bool Propagate::Initialize()
 
       // Set spacecraft parameters for forces that need them
       if (p->UsesODEModel())
-         if (odem->SetupSpacecraftData(&sats, 0) <= 0)
+      {
+         // sats also contains objects from earlier synchronized propagators.
+         // Bind each model's coefficients and acceleration context to its own
+         // state-manager objects, preserving that manager's ordering.
+         ObjectArray modelObjects;
+         psm->GetStateObjects(modelObjects, Gmat::SPACEOBJECT);
+         if (odem->SetupSpacecraftData(&modelObjects, 0) <= 0)
             throw PropagatorException("Propagate::Initialize -- "
                   "ODE model cannot set spacecraft parameters");
+      }
+
+      if (selectAccelerationContext && p->UsesODEModel())
+         odem->ActivateAccelerationContext();
 
       ++index;
    } // End of loop through PropSetups
@@ -3654,19 +3844,36 @@ bool Propagate::Initialize()
    isInitialized = true;
 
    stopSats.clear();
-   // Setup spacecraft array used for stopping conditions
-   for (StringArray::iterator sc = stopSatNames.begin();
-        sc != stopSatNames.end(); ++sc)
+   // One epoch clock per condition. RHS reference owners remain configuration
+   // dependencies, but must not shift another condition's clock index.
+   for (auto *condition : stopWhen)
    {
-      if ((mapObj = FindObject(*sc)) == NULL)
+      std::string type, owner, frame;
+      const std::string lhs = condition->GetStringParameter("StopVar");
+      GmatStringUtil::ParseParameter(GmatStringUtil::GetArrayName(lhs), type, owner, frame);
+      SpaceObject *clock = NULL;
+      auto *operand = FindObject(GmatStringUtil::GetArrayName(lhs));
+      const bool userScalar = operand &&
+            (operand->IsOfType(Gmat::VARIABLE) || operand->IsOfType(Gmat::ARRAY));
+      if (userScalar)
       {
-         std::string errmsg = "Unknown SpaceObject \"";
-         errmsg += *sc;
-         errmsg += "\" used in stopping conditions";
-         throw CommandException(errmsg);
+         for (auto *object : sats)
+         {
+            if (object->IsOfType(Gmat::SPACECRAFT))
+               clock = dynamic_cast<SpaceObject*>(object);
+            else if (object->IsOfType(Gmat::FORMATION))
+            {
+               const auto members = ResolveFormationMembers(dynamic_cast<FormationInterface*>(object));
+               if (!members.empty()) clock = members.front();
+            }
+            if (clock) break;
+         }
       }
-      so = (SpaceObject*)mapObj;
-      stopSats.push_back(so);
+      else
+         clock = dynamic_cast<SpaceObject*>(FindObject(owner));
+      if (!clock)
+         throw CommandException("Cannot find a propagated epoch clock for stopping value \"" + lhs + "\"");
+      stopSats.push_back(clock);
    }
 
    #if DEBUG_PROPAGATE_INIT
@@ -3688,6 +3895,15 @@ bool Propagate::Initialize()
    if (solarSys != NULL)
    {
       StringArray refNames;
+
+      // Rebind complete scalar expressions to the run's objects. Replacing
+      // only the owning Array leaves index Variables on configured instances.
+      for (auto *wrapper : stopWrappers)
+         if (wrapper && !SetWrapperReferences(*wrapper))
+            throw CommandException("Cannot bind measured stopping-value references.");
+      for (auto *wrapper : goalWrappers)
+         if (wrapper && !SetWrapperReferences(*wrapper))
+            throw CommandException("Cannot bind stopping-goal references.");
 
       for (UnsignedInt i=0; i<stopWhen.size(); i++)
       {
@@ -3734,6 +3950,32 @@ bool Propagate::Initialize()
       isInitialized = false;
       MessageInterface::ShowMessage
          ("Propagate::Initialize() SolarSystem not set in StopCondition");
+   }
+
+   // Real MJD clocks cannot resolve submicrosecond time-stop requests.
+   // Select the existing precision-time path for the complete propagation
+   // group before its models are built by PrepareToPropagate().
+   bool preciseTimeStop = false;
+   if (isInitialized)
+      for (auto *condition : stopWhen)
+         if (condition->IsTimeCondition() &&
+               timeAccuracy * condition->GetTimeMultiplier() < 1.0e-6)
+            preciseTimeStop = true;
+   if (preciseTimeStop)
+   {
+      auto enableClock = [&](auto &&self, GmatBase *object) -> void
+      {
+         object->SetPrecisionTimeFlag(true);
+         if (object->IsOfType(Gmat::FORMATION))
+            for (auto *member : object->GetRefObjectArray("SpaceObject"))
+               self(self, member);
+      };
+      for (auto *object : sats) enableClock(enableClock, object);
+      for (auto *setup : propagators)
+      {
+         setup->SetPrecisionTimeFlag(true);
+         setup->GetPropStateManager()->MapObjectsToVector();
+      }
    }
 
    #if DEBUG_PROPAGATE_INIT
@@ -3789,7 +4031,45 @@ bool Propagate::Initialize()
           isInitialized);
    #endif
 
+   if (isInitialized && retval) SetCloneNotificationsEnabled(true);
    return isInitialized && retval;
+}
+
+void Propagate::UpdateClonedObject(GmatBase *object)
+{
+   UpdateClonedObjectParameter(object, -1);
+}
+
+void Propagate::UpdateClonedObjectParameter(GmatBase *object, Integer parameterId)
+{
+   if (!object) return;
+   for (size_t group = 0; group < propagators.size(); ++group)
+   {
+      auto *setup = propagators[group];
+      if (!setup) continue;
+      // These arrays borrow components from the setup. A whole definition or
+      // propagator replacement can retire those objects, even before throwing.
+      const auto refresh = [&]()
+      {
+         if (group < p.size()) p[group] = setup->GetPropagator();
+         if (group < fm.size()) fm[group] = setup->GetODEModel();
+         if (group < psm.size()) psm[group] = setup->GetPropStateManager();
+      };
+      try
+      {
+         if (setup->ApplyCloneUpdate(object, parameterId, true))
+         {
+            hasFired = false; // Native PrepareToPropagate rebuilds the engine.
+            refresh();
+         }
+      }
+      catch (...)
+      {
+         hasFired = false;
+         refresh();
+         throw;
+      }
+   }
 }
 
 //------------------------------------------------------------------------------
@@ -3812,35 +4092,14 @@ void Propagate::FillFormation(SpaceObject *so, StringArray& owners,
    if (soEpochId == -1)
       soEpochId = so->GetParameterID("A1Epoch");
 
-   StringArray comps = so->GetStringArrayParameter(so->GetParameterID("Add"));
-   SpaceObject *el;
-   Real ep;
-
-   for (StringArray::iterator i = comps.begin(); i != comps.end(); ++i)
+   const auto members = ResolveFormationMembers(dynamic_cast<FormationInterface*>(so));
+   for (auto *member : members)
    {
-      if ((mapObj = FindObject(*i)) == NULL)
-         throw CommandException("Formation " + so->GetName() +
-            " uses unknown object named '" + (*i) + "'");
-
-      el = (SpaceObject*)mapObj;
-      if (i == comps.begin())
-      {
-         ep = el->GetRealParameter(soEpochId);
-         so->SetRealParameter(soEpochId, ep);
-      }
-
-      so->SetRefObject(el, el->GetType(), el->GetName());
-      if (el->GetType() == Gmat::FORMATION)
-         FillFormation(el, owners, elements);
-      else     // Setup spacecraft data descriptions
-      {
-         #ifdef DEBUG_PUBLISH_DATA
-         MessageInterface::ShowMessage
-            ("Propagate::FillFormation() '%s' setting data labels\n",
-             GetGeneratingString(Gmat::NO_COMMENTS).c_str());
-         #endif
-         SetNames(el->GetName(), owners, elements);
-      }
+      if (member == members.front())
+         so->SetRealParameter(soEpochId, member->GetRealParameter(soEpochId));
+      if (!so->SetRefObject(member, Gmat::SPACECRAFT, member->GetName()))
+         throw CommandException("Cannot bind Formation member " + member->GetName());
+      SetNames(member->GetName(), owners, elements);
    }
 
    ((FormationInterface*)(so))->BuildState();
@@ -3877,6 +4136,39 @@ GmatCommand* Propagate::GetNext()
 //------------------------------------------------------------------------------
 void Propagate::PrepareToPropagate()
 {
+   // A preceding whole-value assignment can replace private members, frames
+   // or state layouts after mission initialization. Rebuild before activating
+   // or reading the old acceleration/PSM context.
+   if (BufferBindingsChanged())
+   {
+      const auto previousRoots = bufferRoots;
+      if (!Initialize()) throw CommandException("Cannot rebuild changed Propagate bindings.");
+   }
+
+   for (auto *setup:propagators)
+   {
+      if (setup->GetPropagator()->UsesODEModel())
+      {
+         if (auto *model=setup->GetODEModel())
+         {
+            model->SetPropStateManager(setup->GetPropStateManager());
+            model->ActivateAccelerationContext();
+         }
+      }
+      else
+      {
+         ObjectArray objects;
+         setup->GetPropStateManager()->GetStateObjects(objects,Gmat::SPACEOBJECT);
+         auto suspend=[&](auto &&self,GmatBase *object)->void
+         {
+            if (auto *spacecraft=dynamic_cast<Spacecraft *>(object))
+               ODEModel::SuspendAccelerationContext(spacecraft);
+            else if (object && object->IsOfType(Gmat::FORMATION))
+               for (auto *member:object->GetRefObjectArray("SpaceObject")) self(self,member);
+         };
+         for (auto *object:objects) suspend(suspend,object);
+      }
+   }
    #ifdef DEBUG_PROPAGATE_INIT
       MessageInterface::ShowMessage
          ("Propagate::PrepareToPropagate() <%p> entered\n", this);
@@ -4006,6 +4298,8 @@ void Propagate::PrepareToPropagate()
       // Set the prop state managers for the PropSetup ODEModels
       for (std::vector<PropSetup*>::iterator i=propagators.begin(); i != propagators.end(); ++i)
       {
+         if (!(*i)->Initialize())
+            throw CommandException("Cannot prepare the updated propagation setup.\n");
          ODEModel *ode = (*i)->GetODEModel();
          if (ode != NULL)    // Only do this for the PropSetups that integrate
             ode->SetPropStateManager((*i)->GetPropStateManager());
@@ -4058,7 +4352,7 @@ void Propagate::PrepareToPropagate()
       #ifdef DEBUG_PROPAGATE_INIT
          MessageInterface::ShowMessage("Initializing Propagate command\n");
       #endif
-      Initialize();
+      InitializeForPropagation(true);
 
       // Loop through the PropSetups and build the models
       for (std::vector<PropSetup*>::iterator i=propagators.begin(); i != propagators.end(); ++i)
@@ -4234,6 +4528,34 @@ void Propagate::PrepareToPropagate()
    }
 
 
+   // Compare effective runtime epochs after ephemeris initialization and any
+   // preceding assignments, before publishing or taking an integration step.
+   // Mixed numerical/ephemeris propagators can accumulate sub-millisecond
+   // epoch roundoff over a long synchronized segment.
+   const Real epochTolerance = 1.0e-3;
+   for (size_t group = 1; group < currEpochGT.size(); ++group)
+   {
+      const Real difference =
+         (currEpochGT[group] - currEpochGT.front()).GetTimeInSec();
+      if (!(std::abs(difference) <= epochTolerance))
+      {
+         const auto utc = [](const GmatTime &epoch)
+         {
+            Real converted;
+            std::string text;
+            TimeSystemConverter::Instance()->Convert("A1ModJulian", epoch.GetMjd(),
+               "", "UTCGregorian", converted, text);
+            return text;
+         };
+         throw CommandException("Spacecraft " + satName.front()->front() +
+            " is at " + utc(currEpochGT.front()) + " UTC and " +
+            satName[group]->front() + " is at " + utc(currEpochGT[group]) +
+            " UTC. Spacecraft in a shared Propagate command must be at the same "
+            "simulation time. Propagate them separately to a common time before "
+            "combining them.");
+      }
+   }
+
    // It needs to register to publish data right before the first publishing data 
    #ifdef DEBUG_PUBLISH_DATA
       MessageInterface::ShowMessage
@@ -4348,7 +4670,7 @@ void Propagate::PrepareToPropagate()
       
    // Publish
    //publisher->Publish(this, streamID, pubdata, dim + 1, direction);
-   publisher->Publish(this, streamID, pubdata, expandedDim, direction);
+   PublishIntegrationSteps({}, direction, true);
    
 
 //   }
@@ -4364,6 +4686,7 @@ void Propagate::PrepareToPropagate()
       MessageInterface::ShowMessage
          ("Propagate::PrepareToPropagate() <%p> leaving\n", this);
    #endif
+   transientBindings.Capture(transientForces);
 }
 
 
@@ -4485,7 +4808,7 @@ bool Propagate::Execute()
    if (isInitialized == false)
       throw CommandException("Propagate Command was not Initialized\n");
 
-   if (transientForces->size() != transientCount)
+   if (!transientBindings.Matches(transientForces))
    {
       #ifdef DEBUG_TRANSIENT_FORCES
          MessageInterface::ShowMessage("Count changed from %d to %d\n", transientCount, transientForces->size());
@@ -4591,7 +4914,8 @@ bool Propagate::Execute()
             else
                p[i]->BufferState();
 
-         if (!TakeAStep())
+         std::vector<AcceptedStepHistory::Step> iterationSteps;
+         if (!TakeAStepWithJournal(0.0, iterationSteps))
             throw CommandException(
                "Propagate::Execute() Propagator Failed to Step\n");
 
@@ -4711,10 +5035,10 @@ bool Propagate::Execute()
             // Remove the "2.0 * " piece to implement GMT-6110.
 
             //publisher->Publish(this, streamID, pubdata, dim+1, 2.0 * direction);
-            publisher->Publish(this, streamID, pubdata, expandedDim, 2.0 * direction);
+            PublishIntegrationSteps(iterationSteps, 2.0 * direction);
 
             // Set segment orbit color (LOJ: 2013.12.16 Added for propagation segment color)
-            publisher->SetSegmentOrbitColor(this, overrideSegmentColor, segmentOrbitColor, fullSatList);
+            publisher->SetSegmentOrbitColor(this, overrideSegmentColor, segmentOrbitColor, fullSatList, GetPropagatedSpacecraft());
             
             break;
          }
@@ -4762,10 +5086,10 @@ bool Propagate::Execute()
             #endif
 
             // Set segment orbit color (LOJ: 2013.11.29 Added for propagation segment color)
-            publisher->SetSegmentOrbitColor(this, overrideSegmentColor, segmentOrbitColor, fullSatList);
+            publisher->SetSegmentOrbitColor(this, overrideSegmentColor, segmentOrbitColor, fullSatList, GetPropagatedSpacecraft());
             // Publish
             //publisher->Publish(this, streamID, pubdata, dim+1, direction);
-            publisher->Publish(this, streamID, pubdata, expandedDim, direction);
+            PublishIntegrationSteps(iterationSteps, direction);
             if (createNewSegmentsNow == true)
             {
                CreateNewSegments(currEpoch[0]);
@@ -4934,6 +5258,136 @@ bool Propagate::Execute()
    return true;
 }
 
+
+// Capture the native endpoints of one candidate only. The caller chooses whether
+// that candidate survives the stopping-condition search before publishing it.
+// An ambient raw diagnostic journal retains native trials, including probes;
+// the separate publication vector alone represents a committed trajectory.
+bool Propagate::TakeAStepWithJournal(Real propStep,
+   std::vector<AcceptedStepHistory::Step> &records)
+{
+   records.clear();
+   if (!publisher->HasIntegrationStepConsumers())
+      return TakeAStep(propStep);
+   // Ephemeris providers have no numerical primitives. Capture one distinct
+   // provider advance, in J2000 coordinates, after a successful command step.
+   // Keep it in the same private candidate vector so crossed-stop trials are
+   // discarded together with numerical trials. Never synthesize intermediates.
+   RealArray starts;
+   for (auto *propagator : p) starts.push_back(propagator->GetTime());
+   auto appendEphemeris = [&]()
+   {
+      for (size_t group = 0; group < p.size(); ++group)
+      {
+         if (p[group]->UsesODEModel() || starts[group] == p[group]->GetTime())
+            continue;
+         const Integer size = psm[group]->GetState()->GetSize();
+         const Real *state = p[group]->GetJ2KState();
+         if (!state || size <= 0 || p[group]->GetDimension() != size)
+            throw CommandException("Ephemeris endpoint layout differs from native state.");
+         // A null model explicitly denotes an ephemeris advance, not an
+         // accepted numerical integration primitive. Identity is the provider.
+         records.push_back({NULL, p[group], p[group]->GetTypeName(),
+            starts[group], p[group]->GetTime(), RealArray(state, state + size)});
+      }
+   };
+   if (AcceptedStepHistory::IsCapturing())
+   {
+      AcceptedStepHistory::Transaction candidate;
+      if (!TakeAStep(propStep)) return false;
+      records = candidate.Steps();
+      candidate.Commit();
+      appendEphemeris();
+      return true;
+   }
+   AcceptedStepHistory::Transaction candidate(records);
+   if (!TakeAStep(propStep)) return false;
+   candidate.Commit();
+   appendEphemeris();
+   return true;
+}
+
+bool Propagate::PublishIntegrationSteps(
+   const std::vector<AcceptedStepHistory::Step> &records, Real propDir, bool initial)
+{
+   const auto columns = GetPublicationColumns();
+   if (!publisher->HasIntegrationStepConsumers())
+      return publisher->PublishPropagatePacket(this, streamID, pubdata, expandedDim,
+         propDir, sats, initial, NULL, &columns);
+
+   std::vector<Publisher::IntegrationStep> steps;
+   auto bind = [&](size_t group, Publisher::IntegrationStep &step,
+                   const RealArray &state, bool restart = false)
+   {
+      if (state.size() != psm.at(group)->GetStateMap()->size())
+         throw CommandException("Integration-step publication differs from native state.");
+      size_t offset = 1;
+      for (size_t i = 0; i < group; ++i) offset += psm[i]->GetStateMap()->size();
+      for (const auto &column : columns)
+         if (column.propagationGroup == static_cast<Integer>(group))
+         {
+            Rvector6 cartesian;
+            for (size_t j = 0; j < 6; ++j)
+            {
+               const size_t index = static_cast<size_t>(column.indices[j]);
+               if (index < offset || index - offset >= state.size())
+                  throw CommandException("Integration-step Cartesian column is outside its native group.");
+               cartesian[j] = state[index-offset];
+            }
+            auto &samples = restart ? step.restartStates : step.states;
+            samples.push_back({column.object, step.epoch, cartesian});
+         }
+   };
+
+   if (initial)
+   {
+      for (size_t group = 0; group < psm.size(); ++group)
+      {
+         auto *state = psm[group]->GetState();
+         Publisher::IntegrationStep step;
+         step.initial = true;
+         step.ephemeris = !p[group]->UsesODEModel();
+         step.startSeconds = step.endSeconds = fm[group] ? fm[group]->GetTime() : p[group]->GetTime();
+         step.epoch = state->HasPrecisionTime() ? state->GetEpochGT() : GmatTime(state->GetEpoch());
+         step.method = p[group]->GetTypeName();
+         const RealArray raw(state->GetState(), state->GetState() + state->GetSize());
+         bind(group, step, raw); // PSM raw state is already J2000-body MJ2000Eq.
+         if (!step.ephemeris && !state->HasPrecisionTime())
+            bind(group, step, raw, true);
+         steps.push_back(std::move(step));
+      }
+   }
+   else for (const auto &record : records)
+   {
+      size_t group = 0;
+      if (record.model)
+         while (group < fm.size() && fm[group] != record.model) ++group;
+      else
+         while (group < p.size() && p[group] != record.integrator) ++group;
+      if (group == p.size() || (!record.model && p[group]->UsesODEModel()))
+         throw CommandException("Committed endpoint has no active propagation provider.");
+      Publisher::IntegrationStep step;
+      step.ephemeris = !record.model;
+      step.startSeconds = record.startSeconds;
+      step.endSeconds = record.endSeconds;
+      step.method = record.method;
+      step.epoch = baseEpochGT.at(group);
+      step.epoch.AddSeconds(record.endSeconds);
+      bind(group, step, step.ephemeris ? record.state :
+         fm[group]->GetJ2KStateSnapshot(record.state, step.epoch));
+      if (!step.ephemeris && !psm[group]->GetState()->HasPrecisionTime())
+      {
+         // Preserve the precise display snapshot. Compare restarts using the
+         // same origin ephemeris clock as the native UpdateSpaceObject path.
+         const Real nativeEpoch = baseEpoch.at(group) +
+            record.endSeconds / GmatTimeConstants::SECS_PER_DAY;
+         bind(group, step, fm[group]->GetJ2KStateSnapshot(record.state, nativeEpoch), true);
+      }
+      steps.push_back(std::move(step));
+   }
+   return publisher->PublishPropagatePacket(this, streamID, pubdata, expandedDim,
+      propDir, sats, initial, &steps, &columns);
+}
 
 //------------------------------------------------------------------------------
 // bool TakeAStep(Real propStep)
@@ -5286,7 +5740,7 @@ bool Propagate::CheckFirstStepStop(Integer i)
       // Only report as triggered if outside of the stop accuracy
       Real min, max, goal, temp;
       min = stopWhen[i]->GetStopValue();
-      max = stopWhen[i]->GetStopParameter()->EvaluateReal();
+      max = stopWhen[i]->EvaluateStopValue();
       if (min > max)
       {
          temp = min;
@@ -5495,8 +5949,13 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
    //
    // Note that this code makes the final propagated state match the granularity
    // given by other software (aka STK)
-   if (TIME_ROUNDOFF != 0.0)
-      secsToStep = std::floor(secsToStep / TIME_ROUNDOFF + 0.5) * TIME_ROUNDOFF;
+   Real roundingPrecision = TIME_ROUNDOFF;
+   if (stopper->IsTimeCondition())
+      roundingPrecision = (std::min)(roundingPrecision,
+            timeAccuracy * stopper->GetTimeMultiplier());
+   if (roundingPrecision > 0.0)
+      secsToStep = std::floor(secsToStep / roundingPrecision + 0.5) *
+            roundingPrecision;
 
    #if defined DEBUG_PROPAGATE_STEPSIZE | defined DEBUG_PROPAGATE_DIRECTION
       MessageInterface::ShowMessage
@@ -5509,6 +5968,7 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
           stopEpoch, currEpoch[trigger]);
    #endif
 
+   std::vector<AcceptedStepHistory::Step> finalSteps;
    Real accuracy = (stopper->IsTimeCondition() ? timeAccuracy : stopAccuracy);
 
    // If we are not at the final state, move to it
@@ -5530,7 +5990,7 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
          MessageInterface::ShowMessage("   step by time %.11lf\n", secsToStep);
       #endif
 
-      if (!TakeAStep(secsToStep))
+      if (!TakeAStepWithJournal(secsToStep, finalSteps))
          throw CommandException("Propagator Failed to Step fixed interval\n");
 
       #ifdef DEBUG_EPOCH_SYNC
@@ -5586,7 +6046,7 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
                stopper->GetStopDifference());
             MessageInterface::ShowMessage(
                "   When stepping %15.10lf secs, parameter has value %.9le\n",
-               secsToStep, stopper->GetStopParameter()->EvaluateReal());
+               secsToStep, stopper->EvaluateStopValue());
          #endif
 
          if (stopper->IsTimeCondition())
@@ -5600,6 +6060,7 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
          }
          else
          {
+            finalSteps.clear(); // The first candidate is not the committed trajectory.
             // The interpolated step was not close enough, so back it out
             BufferSatelliteStates(false);
             for (UnsignedInt i = 0; i < fm.size(); ++i)
@@ -5627,6 +6088,7 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
 
             // Generate a better time step
             secsToStep = RefineFinalStep(secsToStep, stopper);
+            const Real unroundedRefinedStep = secsToStep;
 
             // Perform stepsize rounding.  Note that the rounding precision can be
             // set by redefining the macro TIME_ROUNDOFF at the top of
@@ -5640,7 +6102,7 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
 
             // If a refined step was needed, we still need to take it;
             // RefineFinalStep returns with the interpolated step backed out
-            if (!TakeAStep(secsToStep))
+            if (!TakeAStepWithJournal(secsToStep, finalSteps))
                throw CommandException(
                   "Propagator Failed to Step fixed interval\n");
 
@@ -5675,8 +6137,61 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
             #ifdef DEBUG_STOPPING_CONDITIONS
                MessageInterface::ShowMessage(
                   "   Refined timestep of %15.10lf secs gives %.9le\n",
-                  secsToStep, stopper->GetStopParameter()->EvaluateReal());
+                  secsToStep, stopper->EvaluateStopValue());
             #endif
+
+            // Keep the historical microsecond grid when it satisfies the
+            // requested stop. Rounding a converged nonlinear root can otherwise
+            // undo the refinement, so retry its original duration from the same
+            // saved state. The rounded candidate must not enter the committed
+            // integration-step publication journal.
+            if (secsToStep != unroundedRefinedStep &&
+                  fabs(stopper->GetStopDifference()) > accuracy)
+            {
+               finalSteps.clear();
+               BufferSatelliteStates(false);
+               for (UnsignedInt i = 0; i < fm.size(); ++i)
+               {
+                  if (fm[i])
+                  {
+                     fm[i]->UpdateFromSpaceObject();
+                     fm[i]->SetTime(fm[i]->GetTime() - secsToStep);
+                  }
+                  else
+                  {
+                     p[i]->UpdateFromSpaceObject();
+                     p[i]->SetTime(p[i]->GetTime() - secsToStep);
+                  }
+               }
+               secsToStep = unroundedRefinedStep;
+               if (!TakeAStepWithJournal(secsToStep, finalSteps))
+                  throw CommandException("Propagator failed to step to the unrounded stopping condition\n");
+               for (UnsignedInt i = 0; i < psm.size(); ++i)
+               {
+                  if (fm[i])
+                  {
+                     if (fm[i]->HasPrecisionTime())
+                     {
+                        GmatTime gt = baseEpochGT[i]; gt.AddSeconds(fm[i]->GetTime());
+                        fm[i]->UpdateSpaceObjectGT(gt);
+                     }
+                     else
+                        fm[i]->UpdateSpaceObject(baseEpoch[i] + fm[i]->GetTime() /
+                              GmatTimeConstants::SECS_PER_DAY);
+                  }
+                  else
+                  {
+                     if (p[i]->HasPrecisionTime())
+                     {
+                        GmatTime gt = baseEpochGT[i]; gt.AddSeconds(p[i]->GetTime());
+                        p[i]->UpdateSpaceObjectGT(gt);
+                     }
+                     else
+                        p[i]->UpdateSpaceObject(baseEpoch[i] + p[i]->GetTime() /
+                              GmatTimeConstants::SECS_PER_DAY);
+                  }
+               }
+            }
 
             if (fabs(stopper->GetStopDifference()) > accuracy)
                MessageInterface::ShowMessage("**** WARNING **** For the line "
@@ -5737,11 +6252,11 @@ void Propagate::TakeFinalStep(Integer EpochID, Integer trigger)
       //}
       
       // Set segment orbit color (LOJ: 2013.11.29 Added for propagation segment color)
-      publisher->SetSegmentOrbitColor(this, overrideSegmentColor, segmentOrbitColor, fullSatList);
+      publisher->SetSegmentOrbitColor(this, overrideSegmentColor, segmentOrbitColor, fullSatList, GetPropagatedSpacecraft());
 
       // Publish
       //publisher->Publish(this, streamID, pubdata, dim+1, direction);
-      publisher->Publish(this, streamID, pubdata, expandedDim, direction);
+      PublishIntegrationSteps(finalSteps, direction);
 
       #if DEBUG_PROPAGATE_EXE
          MessageInterface::ShowMessage

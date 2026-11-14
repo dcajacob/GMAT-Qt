@@ -535,8 +535,8 @@ bool ManageObject::InsertIntoGOS(GmatBase *obj, const std::string &withName)
                   ("   Inserting <%p>'%s' into globalObjectMap and setting global flag to true\n",
                    obj, obj->GetName().c_str());
                #endif
-               // Put it into the GOS
-               globalObjectMap->insert(std::make_pair(withName,obj));
+               // Keep the parameter's full name; withName is its global owner.
+               globalObjectMap->insert(std::make_pair(objName,obj));
                // Set global flag to true
                obj->SetIsGlobal(true);
                // Add it to movedObjects

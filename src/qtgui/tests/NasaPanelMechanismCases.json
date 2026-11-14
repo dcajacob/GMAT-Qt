@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "ChemicalTank",
+      "control": "resource_FuelMass",
+      "invalid": [
+        "-1",
+        "nan",
+        "not-a-number"
+      ],
+      "page": "FuelTank",
+      "title": "ChemicalTank",
+      "guide": "Resource_FuelTank.xml"
+    },
+    {
+      "key": "ChemicalThruster",
+      "control": "thruster_DutyCycle",
+      "invalid": [
+        "-0.1",
+        "1.1",
+        "nan"
+      ],
+      "page": "Thruster",
+      "title": "ChemicalThruster",
+      "guide": "Resource_Thruster.xml",
+      "before": "Create ChemicalTank SupportFuel;\n",
+      "after": "NasaPanel.Tank = {SupportFuel};\nNasaPanel.CoordinateSystem = EarthMJ2000Eq;\nAnchor.Tanks = {SupportFuel};\nAnchor.Thrusters = {NasaPanel};\n"
+    },
+    {
+      "key": "GroundStation",
+      "control": "station_MinimumElevationAngle",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "page": "GroundStation",
+      "title": "GroundStation",
+      "guide": "Resource_GroundStation.xml"
+    },
+    {
+      "key": "ImpulsiveBurn",
+      "control": "burn_Element1",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "page": "ImpulsiveBurn",
+      "title": "ImpulsiveBurn",
+      "guide": "Resource_ImpulsiveBurn.xml"
+    },
+    {
+      "key": "Barycenter",
+      "control": "resource_BodyNames",
+      "invalid": [
+        "",
+        "MissingBody",
+        "Keep"
+      ],
+      "page": "Barycenter",
+      "title": "Barycenter",
+      "guide": "Resource_Barycenter.xml",
+      "base": "Earth",
+      "valid": "Earth,Mars"
+    },
+    {
+      "key": "Propagator",
+      "control": "resource_InitialStepSize",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "page": "Propagator",
+      "title": "Propagator",
+      "guide": "Resource_Propagator.xml",
+      "script_type": "Propagator",
+      "before": "Create ForceModel SupportForces;\n",
+      "after": "NasaPanel.FM = SupportForces;\nNasaPanel.MinStep = 0;\nNasaPanel.MaxStep = 300;\n"
+    },
+    {
+      "key": "DifferentialCorrector",
+      "control": "resource_MaximumIterations",
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "page": "DifferentialCorrector",
+      "title": "DifferentialCorrector",
+      "guide": "Resource_DifferentialCorrector.xml"
+    },
+    {
+      "key": "XYPlot",
+      "field": "XVariable",
+      "kind": "string",
+      "base": "Keep",
+      "valid": "OtherValue",
+      "control": "xyXVariable",
+      "invalid": [
+        "MissingParameter",
+        "OtherValue(1,2)",
+        "Keep.MissingField"
+      ],
+      "page": "XYPlot",
+      "title": "XYPlot",
+      "guide": "Resource_XYPlot.xml",
+      "after": "NasaPanel.YVariables = {Keep};\nNasaPanel.ShowPlot = false;\n"
+    },
+    {
+      "key": "ReportFile",
+      "control": "resource_Precision",
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "page": "ReportFile",
+      "title": "ReportFile",
+      "guide": "Resource_ReportFile.xml"
+    },
+    {
+      "key": "SpacecraftEpoch",
+      "resource_key": "Spacecraft",
+      "field": "Epoch",
+      "kind": "epoch",
+      "base": "21545",
+      "valid": "21546",
+      "control": "resource_Epoch",
+      "invalid": [
+        "0",
+        "60000",
+        "not-a-date"
+      ],
+      "setup": "NasaPanel.DateFormat = 'TAIModJulian';\n",
+      "tabs": [
+        "Orbit and hardware"
+      ],
+      "legacy_groups": [
+        "Spacecraft_OrbitEpoch"
+      ],
+      "guide": "Resource_SpacecraftEpoch.xml",
+      "page": "Spacecraft",
+      "title": "Spacecraft"
+    },
+    {
+      "key": "SpacecraftAttitude",
+      "resource_key": "Spacecraft",
+      "field": "AngularVelocityX",
+      "kind": "real",
+      "base": "0.1",
+      "valid": "0.2",
+      "control": "attitude_AngularVelocityX",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "setup": "NasaPanel.Attitude = 'Spinner';\nNasaPanel.AttitudeDisplayStateType = 'EulerAngles';\nNasaPanel.AttitudeRateDisplayStateType = 'AngularVelocity';\n",
+      "tabs": [
+        "Setup",
+        "Attitude"
+      ],
+      "legacy_groups": [
+        "SpacecraftAttitude"
+      ],
+      "guide": "Resource_SpacecraftAttitude.xml",
+      "page": "Spacecraft",
+      "title": "Spacecraft",
+      "f1_page": "SpacecraftAttitude",
+      "f1_title": "Spacecraft Attitude"
+    },
+    {
+      "key": "SpacecraftMass",
+      "resource_key": "Spacecraft",
+      "field": "DryMass",
+      "kind": "real",
+      "base": "910.25",
+      "valid": "975.5",
+      "control": "ballistics_DryMass",
+      "invalid": [
+        "-1",
+        "nan",
+        "not-a-number"
+      ],
+      "tabs": [
+        "Setup",
+        "Ballistics and mass"
+      ],
+      "legacy_groups": [
+        "SpacecraftBallisticMass"
+      ],
+      "guide": "Resource_SpacecraftBallisticMass.xml",
+      "page": "Spacecraft",
+      "title": "Spacecraft",
+      "f1_page": "SpacecraftBallisticMass",
+      "f1_title": "Spacecraft Ballistic/Mass Properties"
+    },
+    {
+      "key": "SpacecraftVisual",
+      "resource_key": "Spacecraft",
+      "field": "ModelScale",
+      "kind": "real",
+      "base": "3",
+      "valid": "5",
+      "control": "visual_ModelScale",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "tabs": [
+        "Setup",
+        "Visual model"
+      ],
+      "legacy_groups": [
+        "SpacecraftVisualization"
+      ],
+      "guide": "Resource_SpacecraftVisualizationProperties.xml",
+      "page": "Spacecraft",
+      "title": "Spacecraft",
+      "visual_controls": [
+        "slider-Home",
+        "slider-End",
+        "typed-focus-out-clamp",
+        "typed-focus-out-clamp"
+      ],
+      "f1_page": "SpacecraftVisualizationProperties",
+      "f1_title": "Spacecraft Visualization Properties"
+    }
+  ]
+}

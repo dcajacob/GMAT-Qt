@@ -28,20 +28,1330 @@
  * Class implementation for the FunctionManager command
  */
 //------------------------------------------------------------------------------
+#include "ScriptStringLiteral.hpp"
 #include <stack>
+#include <exception>
 
 #include "FunctionManager.hpp"
+#include "ObjectStoreLifetime.hpp"
+#include "CommandUtil.hpp"
+#include "ExpressionBinding.hpp"
+#include "MathTree.hpp"
+#include "MathNode.hpp"
 #include "FunctionException.hpp"
+#include "EventLocator.hpp"
+#include "PlanetographicRegion.hpp"
 #include "GmatCommand.hpp"
 #include "StringUtil.hpp"
 #include "Array.hpp"
 #include "ElementWrapper.hpp"
 #include "NumberWrapper.hpp"
+#include "RvectorWrapper.hpp"
+#include "ObjectWrapper.hpp"
+#include "VariableWrapper.hpp"
+#include "ArrayWrapper.hpp"
+#include "StringObjectWrapper.hpp"
 #include "RealUtilities.hpp"
 #include "Variable.hpp"
+#include "RvectorVar.hpp"
 #include "StringVar.hpp"
 #include "UserDefinedFunction.hpp"
+#include "Subscriber.hpp"
 #include "MessageInterface.hpp"
+#include "GmatGlobal.hpp"
+#include "EphemerisFile.hpp"
+#include "CalculatedPoint.hpp"
+#include "FormationInterface.hpp"
+#include "GroundstationInterface.hpp"
+#include "DragForce.hpp"
+#include "Burn.hpp"
+#include "FiniteThrust.hpp"
+#include "PropSetup.hpp"
+#include "Propagator.hpp"
+#include "Thruster.hpp"
+#include "PowerSystem.hpp"
+#include "Attitude.hpp"
+#include "Plate.hpp"
+#include "StopCondition.hpp"
+#include "Solver.hpp"
+#include "FunctionValueContext.hpp"
+#include "NativeValueProvider.hpp"
+#include <exception>
+#include <set>
+#include <mutex>
+#include <typeinfo>
+#include <limits>
+
+
+// Displaced outputs stay with the actual owner of their store. Multiple
+// managers can use one callee/store, so the replacing manager need not own it.
+struct FunctionBuiltinOutputResources
+{
+   struct Retired
+   {
+      GmatBase *object;
+      std::weak_ptr<const void> identity;
+   };
+   std::vector<Retired> retired;
+
+   void Retain(GmatBase *object)
+   {
+      if (!object || (object->IsGlobal() && !object->IsLocal())) return;
+      for (const auto &entry : retired)
+         if (entry.object == object && !entry.identity.expired()) return;
+      retired.push_back({object, object->GetLifetimeToken()});
+   }
+
+   ObjectArray LiveObjects() const
+   {
+      ObjectArray result;
+      result.reserve(retired.size());
+      for (const auto &entry : retired)
+         if (!entry.identity.expired()) result.push_back(entry.object);
+      return result;
+   }
+
+   ~FunctionBuiltinOutputResources()
+   {
+      // Normal Cleanup deduplicates these with all active/recursive stores.
+      // The identity also makes fallback destruction safe if another owning
+      // map has already deleted an alias, including on exceptional cleanup.
+      for (const auto &entry : retired)
+         if (!entry.identity.expired() &&
+               (!entry.object->IsGlobal() || entry.object->IsLocal()))
+            delete entry.object;
+   }
+};
+
+namespace
+{
+thread_local size_t activeManagerExecutions = 0;
+
+struct BuiltinOutputStoreRegistry
+{
+   struct Registration
+   {
+      std::weak_ptr<FunctionBuiltinOutputResources> owner;
+      std::shared_ptr<const void> identity;
+   };
+   std::mutex mutex;
+   std::map<ObjectMap*, Registration> stores;
+};
+
+BuiltinOutputStoreRegistry& BuiltinOutputStores()
+{
+   // Managers can be destroyed during process shutdown after ordinary statics.
+   static auto *registry = new BuiltinOutputStoreRegistry;
+   return *registry;
+}
+
+void RegisterBuiltinOutputStore(ObjectMap *store,
+      const std::shared_ptr<FunctionBuiltinOutputResources> &owner)
+{
+   auto identity = std::make_shared<const int>(0);
+   auto &registry = BuiltinOutputStores();
+   std::lock_guard<std::mutex> lock(registry.mutex);
+   registry.stores[store] = {owner, std::move(identity)};
+}
+
+using BuiltinOutputStore = std::pair<std::shared_ptr<FunctionBuiltinOutputResources>,
+      std::weak_ptr<const void>>;
+
+BuiltinOutputStore FindBuiltinOutputStore(ObjectMap *store)
+{
+   auto &registry = BuiltinOutputStores();
+   std::lock_guard<std::mutex> lock(registry.mutex);
+   const auto found = registry.stores.find(store);
+   if (found == registry.stores.end()) return {};
+   auto owner = found->second.owner.lock();
+   if (!owner)
+   {
+      registry.stores.erase(found);
+      return {};
+   }
+   return {std::move(owner), found->second.identity};
+}
+
+std::shared_ptr<FunctionBuiltinOutputResources> FindBuiltinOutputStoreOwner(ObjectMap *store)
+{
+   return FindBuiltinOutputStore(store).first;
+}
+
+void UnregisterBuiltinOutputStore(ObjectMap *store,
+      const std::shared_ptr<FunctionBuiltinOutputResources> &owner)
+{
+   auto &registry = BuiltinOutputStores();
+   std::shared_ptr<FunctionBuiltinOutputResources> current;
+   {
+      std::lock_guard<std::mutex> lock(registry.mutex);
+      const auto found = registry.stores.find(store);
+      if (found == registry.stores.end()) return;
+      current = found->second.owner.lock();
+      if (current == owner) registry.stores.erase(found);
+   }
+}
+
+bool MatchesBuiltinOutput(GmatBase *object, Gmat::WrapperDataType type,
+      Integer rows, Integer columns)
+{
+   if (!object) return false;
+   if (type == Gmat::VARIABLE_WT) return typeid(*object) == typeid(Variable);
+   if (type == Gmat::STRING_OBJECT_WT) return typeid(*object) == typeid(StringVar);
+   if (type == Gmat::ARRAY_WT)
+   {
+      auto *array = dynamic_cast<Array*>(object);
+      return array && typeid(*object) == typeid(Array) &&
+            array->GetRowCount() == rows && array->GetColCount() == columns;
+   }
+   if (type == Gmat::VECTOR_WT)
+   {
+      auto *vector = dynamic_cast<RvectorVar*>(object);
+      return vector && typeid(*object) == typeid(RvectorVar) &&
+            vector->GetIntegerParameter("VectorSize") == (rows == 1 ? columns : rows);
+   }
+   return false;
+}
+}
+
+namespace
+{
+thread_local const GmatBase *functionValueSnapshotSource = NULL;
+GmatBase *CloneFunctionValue(const GmatBase *source)
+{
+   struct SnapshotScope
+   {
+      const GmatBase *previous;
+      explicit SnapshotScope(const GmatBase *source) : previous(functionValueSnapshotSource)
+      { functionValueSnapshotSource = source; }
+      ~SnapshotScope() { functionValueSnapshotSource = previous; }
+   } scope(source);
+   return source ? source->Clone() : NULL;
+}
+
+thread_local unsigned int functionValueCopyDepth = 0;
+struct FunctionValueCopyScope
+{
+   FunctionValueCopyScope() { ++functionValueCopyDepth; }
+   ~FunctionValueCopyScope() { --functionValueCopyDepth; }
+};
+
+Rmatrix ReadFunctionArray(ElementWrapper &wrapper)
+{
+   if (wrapper.GetDataType() == Gmat::RMATRIX_TYPE)
+      return wrapper.EvaluateArray();
+   if (wrapper.GetDataType() == Gmat::RVECTOR_TYPE)
+   {
+      // Native Rvectors have no row/column orientation. GMAT function formals
+      // use Arrays, so materialize a column without borrowing the wrapper's
+      // evaluation buffer across invocation cleanup or recursive restoration.
+      const Rvector &value = wrapper.EvaluateRvector();
+      Rmatrix column;
+      column.MakeOneColumnMatrix(value);
+      return column;
+   }
+   throw FunctionException("Function Array input or output must be a matrix or vector.\n");
+}
+
+bool SupportsAuxiliaryFunctionValue(GmatBase *object)
+{
+   return object && (dynamic_cast<EphemerisFile*>(object) ||
+         object->IsOfType(Gmat::FIELD_OF_VIEW) ||
+         object->IsOfType(Gmat::ERROR_MODEL) || object->IsOfType(Gmat::DATA_FILTER) ||
+         object->IsOfType(Gmat::PARAMETER) || object->IsOfType(Gmat::STOP_CONDITION) ||
+         object->IsOfType("ProcessNoiseModel") || object->IsOfType("ProcessNoise") ||
+         object->IsOfType("EstimatedParameter") || object->IsOfType("EstimatedParameterModel") ||
+         object->IsOfType(Gmat::HARDWARE) || object->IsOfType(Gmat::ATTITUDE) ||
+         object->IsOfType(Gmat::PLATE) || object->IsOfType("TrackingFileSet") ||
+         typeid(*object) == typeid(PlanetographicRegion) ||
+         (dynamic_cast<EventLocator*>(object) &&
+          static_cast<EventLocator*>(object)->HasEventLocatorValueReferenceProvider()) ||
+         (dynamic_cast<Subscriber*>(object) &&
+          static_cast<Subscriber*>(object)->HasSubscriberValueReferenceProvider()) ||
+         (dynamic_cast<Function*>(object) &&
+          static_cast<Function*>(object)->HasFunctionValueReferenceProvider()) ||
+         (dynamic_cast<Solver*>(object) &&
+          static_cast<Solver*>(object)->HasSolverValueReferenceProvider()));
+}
+
+bool SupportsRetainedFunctionRoot(GmatBase *object)
+{
+   return object && (dynamic_cast<CoordinateSystem*>(object) ||
+         dynamic_cast<CalculatedPoint*>(object) ||
+         dynamic_cast<Spacecraft*>(object) || dynamic_cast<ODEModel*>(object) ||
+         dynamic_cast<FormationInterface*>(object) || dynamic_cast<Burn*>(object) ||
+         dynamic_cast<PropSetup*>(object) || dynamic_cast<GroundstationInterface*>(object) ||
+         SupportsAuxiliaryFunctionValue(object));
+}
+
+bool OwnsFunctionObject(const GmatBase *object)
+{
+   return object && (!object->IsGlobal() || object->IsLocal());
+}
+
+// A retained function value and its dependencies form one resource graph.
+// The source store remains authoritative for ownership, and caller mappings
+// use exact source identities. Unrelated equal-name caller objects are ignored.
+struct ReturnedEphemerisFrames : public FunctionValueContext,
+      public std::enable_shared_from_this<ReturnedEphemerisFrames>
+{
+   SolarSystem *solarSystem;
+   std::set<GmatBase*> privateObjects;
+   std::map<GmatBase*, GmatBase*> callerObjects;
+   std::map<GmatBase*, GmatBase*> copies;
+   std::set<GmatBase*> visiting;
+   ObjectArray resolutionPath;
+   std::set<GmatBase*> nativeOwned;
+   std::set<GmatBase*> reboundOwned;
+   ObjectArray objects;
+   ObjectArray initializationOrder;
+   std::vector<std::unique_ptr<GmatBase>> owned;
+   std::vector<std::shared_ptr<const ObjectArray>> inheritedEphemerisOwners;
+   std::vector<std::shared_ptr<const FunctionValueContext>> inheritedValues;
+   std::set<GmatBase*> externalReferences;
+   std::map<const GmatBase*, GmatBase*> origins;
+   std::shared_ptr<const void> bindingEpoch;
+   const GmatBase *rootIdentity = NULL;
+   GmatBase *publicRootValue = NULL;
+   std::weak_ptr<const void> publicRootLifetime;
+   std::vector<PhysicalModel*> *runtimeForces = NULL;
+   bool reportingContext = false;
+
+   const ObjectArray& GetPrivateObjects() const override { return objects; }
+
+   bool RetainsReference(const GmatBase *object) const override
+   {
+      if (externalReferences.count(const_cast<GmatBase*>(object))) return true;
+      for (const auto &entry : copies)
+         if (entry.second == object) return true;
+      return false;
+   }
+
+   void IncludeContext(GmatBase *source)
+   {
+      const auto context = source->GetFunctionValueContext();
+      if (!context) return;
+      const ObjectArray &dependencies = context->GetPrivateObjects();
+      privateObjects.insert(dependencies.begin(), dependencies.end());
+      const auto *owner = dynamic_cast<const ReturnedEphemerisFrames*>(context.get());
+      if (owner && owner->publicRootValue && owner->publicRootValue != source)
+      {
+         // A detached interior value can refer back to the original public
+         // root. Snapshot that root too rather than leaving a borrowed pointer
+         // into the enclosing value. Contexts never own their public root.
+         if (owner->publicRootLifetime.expired())
+            throw FunctionException("Cannot detach a function dependency after its public root has expired.\n");
+         privateObjects.insert(owner->publicRootValue);
+      }
+      inheritedValues.push_back(context);
+   }
+
+   void RebindCopy(const GmatBase &source, GmatBase &target) const override
+   {
+      // Native Clone completes the derived object before reconnecting a public
+      // root. Dependency clones are instead bound by this enclosing builder.
+      if (functionValueCopyDepth) return;
+      auto next = std::make_shared<ReturnedEphemerisFrames>();
+      next->solarSystem = solarSystem;
+      next->bindingEpoch = bindingEpoch;
+      next->rootIdentity = rootIdentity;
+      next->runtimeForces = runtimeForces;
+      next->reportingContext = reportingContext;
+      // Native buffer assignment can retain members from an older context
+      // while copying a new body. Import the actual source's combined leases.
+      next->IncludeContext(const_cast<GmatBase*>(&source));
+      const auto previous = target.GetFunctionValueContext();
+      if (previous) next->inheritedValues.push_back(previous);
+      target.SetFunctionValueContext(next);
+      const bool dormantFormation = functionValueSnapshotSource != &source &&
+            source.IsOfType(Gmat::FORMATION) &&
+            target.GetRefObjectArray(Gmat::SPACECRAFT).empty();
+      bool dormantPropSetup = false;
+      if (functionValueSnapshotSource != &source && source.IsOfType(Gmat::PROP_SETUP))
+      {
+         auto *setup = dynamic_cast<PropSetup*>(&target);
+         ObjectArray registered;
+         if (setup) setup->GetPropStateManager()->GetStateObjects(registered, Gmat::UNKNOWN_OBJECT);
+         dormantPropSetup = registered.empty();
+      }
+      next->BindCopy(const_cast<GmatBase*>(&source), &target, true, dormantFormation, dormantPropSetup);
+      next->ForwardOrigins(*this);
+      next->Initialize();
+      next->inheritedValues.clear();
+   }
+
+   void ForwardOrigins(const ReturnedEphemerisFrames &previous)
+   {
+      for (const auto &entry : previous.origins)
+      {
+         const auto copy = copies.find(entry.second);
+         if (copy != copies.end()) origins[entry.first] = copy->second;
+         else if (previous.externalReferences.count(entry.second))
+         {
+            origins[entry.first] = entry.second;
+            externalReferences.insert(entry.second);
+         }
+      }
+   }
+
+   std::shared_ptr<ExpressionScopeCopies> expressionBindings = std::make_shared<ExpressionScopeCopies>();
+
+   ObjectArray NativeChildren(GmatBase *parent)
+   {
+      const bool hasOwnershipProvider = FindNativeValueProvider(
+            *parent, NativeValueOperation::OwnedObjects).ownedObjects != nullptr;
+      ObjectArray disclosed = parent->GetFunctionValueOwnedObjects();
+      if (reportingContext && dynamic_cast<ODEModel*>(parent))
+         disclosed.erase(std::remove_if(disclosed.begin(), disclosed.end(), [](GmatBase *object)
+         {
+            auto *force = dynamic_cast<PhysicalModel*>(object);
+            return force && force->IsTransient();
+         }), disclosed.end());
+      // An explicitly empty ownership list is authoritative. Falling through
+      // would turn borrowed FOV/error-model references into owned components.
+      if (hasOwnershipProvider || !disclosed.empty()) return disclosed;
+      ObjectArray result;
+      if (auto *function = dynamic_cast<Function*>(parent))
+         return function->GetFunctionValueOwnedObjects();
+      else if (auto *subscriber = dynamic_cast<Subscriber*>(parent))
+         return subscriber->GetFunctionValueOwnedObjects();
+      else if (auto *setup = dynamic_cast<PropSetup*>(parent))
+      {
+         result.push_back(setup->GetPropagator());
+         result.push_back(setup->GetODEModel());
+      }
+      else if (auto *station = dynamic_cast<GroundstationInterface*>(parent))
+         return station->GetFunctionValueOwnedObjects();
+      else if (auto *condition = dynamic_cast<StopCondition*>(parent))
+         return condition->GetFunctionValueOwnedObjects();
+      else if (auto *model = dynamic_cast<ODEModel*>(parent))
+      {
+         for (Integer i = 0; i < model->GetOwnedObjectCount(); ++i)
+         {
+            auto *force = dynamic_cast<PhysicalModel*>(model->GetOwnedObject(i));
+            if (force && (!reportingContext || !force->IsTransient())) result.push_back(force);
+         }
+      }
+      else if (auto *spacecraft = dynamic_cast<Spacecraft*>(parent))
+      {
+         result.push_back(spacecraft->GetOwnedObject(0));
+         const ObjectArray power = spacecraft->GetRefObjectArray(Gmat::POWER_SYSTEM);
+         result.push_back(power.empty() ? NULL : power.front());
+         for (UnsignedInt type : {Gmat::FUEL_TANK, Gmat::THRUSTER,
+               Gmat::HARDWARE, Gmat::PLATE})
+         {
+            const ObjectArray children = spacecraft->GetRefObjectArray(type);
+            result.insert(result.end(), children.begin(), children.end());
+         }
+      }
+      else if (auto *frame = dynamic_cast<CoordinateSystem*>(parent))
+         result.push_back(frame->GetAxisSystem());
+      else if (parent->IsOfType("ProcessNoiseModel") || parent->IsOfType("EstimatedParameter"))
+      {
+         const UnsignedInt type = GmatType::GetTypeId(parent->IsOfType("ProcessNoiseModel") ?
+               "ProcessNoise" : "EstimatedParameterModel");
+         result.push_back(parent->GetRefObject(type, ""));
+      }
+      if (parent->HasRefObjectTypeArray())
+      {
+         const ObjectTypeArray types = parent->GetRefObjectTypeArray();
+         for (UnsignedInt type : types)
+            if (type == Gmat::FIELD_OF_VIEW || type == Gmat::ERROR_MODEL)
+            {
+               const StringArray names = parent->GetRefObjectNameArray(type);
+               for (const std::string &name : names)
+                  result.push_back(parent->GetRefObject(type, name));
+            }
+      }
+      return result;
+   }
+
+   void BindCallerTree(GmatBase *source, GmatBase *target)
+   {
+      if (!source && !target) return;
+      if (!source || !target || source->GetTypeName() != target->GetTypeName())
+         throw FunctionException("Incompatible caller resource in function output binding.\n");
+      const auto previous = callerObjects.find(source);
+      if (previous != callerObjects.end())
+      {
+         if (previous->second != target)
+            throw FunctionException("Conflicting caller component bindings in function outputs.\n");
+         return;
+      }
+      callerObjects[source] = target;
+      externalReferences.insert(target);
+      const ObjectArray from = NativeChildren(source);
+      const ObjectArray to = NativeChildren(target);
+      if (from.size() != to.size())
+         throw FunctionException("Caller resource changed its owned component collection during function return.\n");
+      for (UnsignedInt i = 0; i < from.size(); ++i)
+      {
+         auto *force = dynamic_cast<PhysicalModel*>(from[i]);
+         auto *callerForce = dynamic_cast<PhysicalModel*>(to[i]);
+         if (force && callerForce && force->GetBodyName() != callerForce->GetBodyName())
+            throw FunctionException("Caller force components have incompatible body roles.\n");
+         BindCallerTree(from[i], to[i]);
+      }
+   }
+
+   void RebindCaller(GmatBase &target, const std::shared_ptr<const void> &epoch,
+         const std::map<const GmatBase*, GmatBase*> &bindings) const override
+   {
+      // Origin addresses are meaningful only within one captured invocation.
+      // The shared marker prevents older retained values from matching a reused
+      // address in a later function frame.
+      if (!epoch || bindingEpoch != epoch) return;
+      std::unique_ptr<GmatBase> source(CloneFunctionValue(&target));
+      if (source.get() == &target)
+      {
+         source.release();
+         throw FunctionException("Function output rebinding Clone returned its source.\n");
+      }
+      if (!source) throw FunctionException("Cannot capture a function output for caller binding.\n");
+      const auto sourceOwner = source->GetFunctionValueContext();
+      const auto *reader = dynamic_cast<const ReturnedEphemerisFrames*>(sourceOwner.get());
+      if (!reader || reader->bindingEpoch != epoch)
+         throw FunctionException("Missing captured function output binding context.\n");
+      auto next = std::make_shared<ReturnedEphemerisFrames>();
+      next->solarSystem = solarSystem;
+      next->runtimeForces = runtimeForces;
+      next->reportingContext = reader->reportingContext;
+      next->bindingEpoch = epoch;
+      next->rootIdentity = reader->rootIdentity;
+      next->privateObjects.insert(reader->objects.begin(), reader->objects.end());
+      for (const auto &entry : bindings)
+      {
+         if (entry.first == reader->rootIdentity) continue;
+         const auto origin = reader->origins.find(entry.first);
+         if (origin != reader->origins.end()) next->BindCallerTree(origin->second, entry.second);
+      }
+      const auto previous = target.GetFunctionValueContext();
+      if (previous) next->inheritedValues.push_back(previous);
+      next->inheritedValues.push_back(sourceOwner);
+      target.SetFunctionValueContext(next);
+      // Bind against an independent reader. Replacing only references leaves
+      // the caller's already-copied owned component addresses stable.
+      next->BindCopy(source.get(), &target, true);
+      next->ForwardOrigins(*reader);
+      next->Initialize();
+      next->inheritedValues.clear();
+   }
+
+   ~ReturnedEphemerisFrames()
+   {
+      // Resource roots precede their newly discovered dependencies here.
+      // Retire borrowers while their attached objects and other refs are live.
+      for (auto &object : owned) object.reset();
+   }
+
+   GmatBase *FindNativeOwner(GmatBase *component)
+   {
+      std::set<GmatBase*> seen;
+      ObjectArray candidates(privateObjects.begin(), privateObjects.end());
+      for (size_t i = 0; i < candidates.size(); ++i)
+      {
+         GmatBase *owner = candidates[i];
+         if (!owner || !seen.insert(owner).second) continue;
+         const ObjectArray children = NativeChildren(owner);
+         for (auto *child : children)
+         {
+            if (child == component) return owner;
+            if (child && !seen.count(child)) candidates.push_back(child);
+         }
+      }
+      return NULL;
+   }
+
+   GmatBase *Resolve(GmatBase *source)
+   {
+      const bool scopeReference = ExpressionScopeCopies::ConsumeScopeReference();
+      if (!source) return NULL;
+      if (nativeOwned.find(source) != nativeOwned.end()) return copies.at(source);
+      const auto caller = callerObjects.find(source);
+      if (caller != callerObjects.end())
+      {
+         if (!caller->second || !caller->second->IsOfType(source->GetType()))
+            throw FunctionException("Incompatible caller resource for returned ephemeris frame.\n");
+         origins[source] = caller->second;
+         externalReferences.insert(caller->second);
+         return caller->second;
+      }
+      if (visiting.find(source) != visiting.end())
+      {
+         if (scopeReference)
+         {
+            const auto bound = copies.find(source);
+            if (bound != copies.end()) return bound->second;
+         }
+         // Hardware/attitude and axes can refer back to the spacecraft whose
+         // detached value is being assembled. It already has a stable identity.
+         if (source->IsOfType(Gmat::SPACECRAFT) || source->IsOfType(Gmat::ODE_MODEL) ||
+             source->IsOfType(Gmat::GROUND_STATION) || dynamic_cast<Function*>(source) ||
+             dynamic_cast<EphemerisFile*>(source) ||
+             (dynamic_cast<EventLocator*>(source) &&
+              static_cast<EventLocator*>(source)->HasEventLocatorValueReferenceProvider()) ||
+             (dynamic_cast<Subscriber*>(source) &&
+              static_cast<Subscriber*>(source)->HasSubscriberValueReferenceProvider()))
+            return copies.at(source);
+         if (source->IsOfType(Gmat::COORDINATE_SYSTEM) ||
+             source->IsOfType(Gmat::FORMATION))
+         {
+            bool afterSource = false;
+            for (GmatBase *object : resolutionPath)
+            {
+               if (object == source) afterSource = true;
+               // A frame -> spacecraft -> frame reference loop can depend
+               // only on Cartesian position. It need not be a cyclic frame
+               // computation. All its pointers are bound before initialization.
+               if (afterSource && (object->IsOfType(Gmat::SPACECRAFT) ||
+                     object->IsOfType(Gmat::GROUND_STATION)))
+                  return copies.at(source);
+            }
+         }
+         throw FunctionException("Circular private dependency in returned ephemeris frame '" +
+               source->GetName() + "'.\n");
+      }
+      const auto existing = copies.find(source);
+      if (existing != copies.end()) return existing->second;
+      if (privateObjects.find(source) == privateObjects.end())
+      {
+         if (GmatBase *parent = FindNativeOwner(source))
+         {
+            // A caller's Copy can replace these addresses. Do not manufacture
+            // a borrowed source-component lifetime from a root-name mapping.
+            if (callerObjects.find(parent) != callerObjects.end())
+               throw FunctionException("Returned function value needs owned-component "
+                     "binding after caller resource assignment.\n");
+            Resolve(parent);
+            const auto component = copies.find(source);
+            if (component != copies.end()) return component->second;
+            throw FunctionException("Native owner did not expose its copied component.\n");
+         }
+         origins[source] = source;
+         externalReferences.insert(source);
+         return source;
+      }
+
+      IncludeContext(source);
+      auto *frame = dynamic_cast<CoordinateSystem*>(source);
+      auto *point = dynamic_cast<CalculatedPoint*>(source);
+      auto *spacecraft = dynamic_cast<Spacecraft*>(source);
+      auto *formation = dynamic_cast<FormationInterface*>(source);
+      auto *physical = dynamic_cast<PhysicalModel*>(source);
+      auto *burn = dynamic_cast<Burn*>(source);
+      auto *setup = dynamic_cast<PropSetup*>(source);
+      auto *station = dynamic_cast<GroundstationInterface*>(source);
+      auto *propagator = dynamic_cast<Propagator*>(source);
+      const bool auxiliary = SupportsAuxiliaryFunctionValue(source);
+      if (!frame && !point && !spacecraft && !formation && !physical && !burn && !setup && !station && !propagator && !auxiliary)
+         throw FunctionException("Returned ephemeris frame references local " +
+               source->GetTypeName() + " '" + source->GetName() +
+               "'. Return that resource with the ephemeris or pass it as an input.\n");
+      FunctionValueCopyScope copying;
+      std::unique_ptr<GmatBase> value(CloneFunctionValue(source));
+      bool borrowedClone = value.get() == source || privateObjects.count(value.get());
+      for (const auto &entry : copies)
+         borrowedClone = borrowedClone || value.get() == entry.second;
+      for (const auto &entry : callerObjects)
+         borrowedClone = borrowedClone || value.get() == entry.second;
+      if (borrowedClone)
+      {
+         value.release();
+         throw FunctionException("A returned ephemeris frame dependency Clone returned its source.\n");
+      }
+      if (!value || value->GetTypeName() != source->GetTypeName())
+         throw FunctionException("Cannot clone returned ephemeris frame dependency '" +
+               source->GetName() + "'.\n");
+      GmatBase *target = value.get();
+      owned.push_back(std::move(value));
+      objects.push_back(target);
+      BindCopy(source, target, false);
+      return target;
+   }
+
+   void RebindCloneSource(GmatBase *source, GmatBase *target, bool existingRoot = false)
+   {
+      // Construction inherits snapshot roles; assignment to an ordinary public
+      // resource keeps that resource ordinary. Snapshot destinations are value
+      // references, not live definition-notification edges.
+      if (source->HasRestorationTarget() && target->HasRestorationTarget())
+      {
+         auto *destination = source->GetRestorationTarget();
+         if (!destination) throw FunctionException("A retained restoration destination has expired.\n");
+         if (!copies.count(destination) && !callerObjects.count(destination) &&
+             !nativeOwned.count(destination) && (!destination->IsGlobal() || destination->IsLocal()))
+            privateObjects.insert(destination);
+         auto *mapped = Resolve(destination);
+         if (!mapped) throw FunctionException("Cannot bind a retained restoration destination.\n");
+         target->SetRestorationTarget(mapped);
+      }
+      // Assignment to an existing owned component keeps its declaration edge.
+      // Fresh native child/value construction registers its new edge below.
+      if (existingRoot && target->GetCloneOwner()) return;
+      auto *definition = const_cast<GmatBase*>(source->GetCloneSource());
+      if (!definition) { target->SetCloneSource(nullptr); return; }
+      // A value copy follows the same actual-identity graph as its ordinary
+      // references. Unlisted non-global definitions are private snapshots;
+      // explicit caller mappings and shared globals retain their native role.
+      if (!copies.count(definition) && !callerObjects.count(definition) &&
+          !nativeOwned.count(definition) &&
+          (!definition->IsGlobal() || definition->IsLocal()))
+         privateObjects.insert(definition);
+      target->SetCloneSource(Resolve(definition));
+   }
+
+   void BindCopy(GmatBase *source, GmatBase *target, bool publicRoot,
+         bool dormantFormation = false, bool dormantPropSetup = false)
+   {
+      ExpressionBindingScope expressionScope(expressionBindings);
+      if (!source || !target || source == target ||
+          source->GetTypeName() != target->GetTypeName())
+         throw FunctionException("Incompatible retained function resource copy.\n");
+      auto *ephemeris = dynamic_cast<EphemerisFile*>(source);
+      if (publicRoot) reportingContext = ephemeris != NULL;
+      auto *frame = dynamic_cast<CoordinateSystem*>(source);
+      auto *point = dynamic_cast<CalculatedPoint*>(source);
+      auto *spacecraft = dynamic_cast<Spacecraft*>(source);
+      auto *formation = dynamic_cast<FormationInterface*>(source);
+      auto *model = dynamic_cast<ODEModel*>(source);
+      auto *physical = dynamic_cast<PhysicalModel*>(source);
+      auto *burn = dynamic_cast<Burn*>(source);
+      auto *setup = dynamic_cast<PropSetup*>(source);
+      auto *station = dynamic_cast<GroundstationInterface*>(source);
+      auto *propagator = dynamic_cast<Propagator*>(source);
+      const bool auxiliary = SupportsAuxiliaryFunctionValue(source);
+      if (!ephemeris && !frame && !point && !spacecraft && !formation && !physical && !burn && !setup && !station && !propagator && !auxiliary)
+         throw FunctionException("Returned ephemeris frame references local " +
+               source->GetTypeName() + " '" + source->GetName() +
+               "'. Return that resource with the ephemeris or pass it as an input.\n");
+      IncludeContext(source);
+      // Cached callable references can point into its manager-owned FOS. Those
+      // objects are private dependencies even though the FOS itself is not an
+      // owned definition component and is never resumed/checkpointed here.
+      if (auto *function = dynamic_cast<ObjectManagedFunction*>(source))
+         if (auto *store = function->GetFunctionObjectStore())
+            for (const auto &entry : *store)
+               if (OwnsFunctionObject(entry.second)) privateObjects.insert(entry.second);
+      copies[source] = target;
+      origins[source] = target;
+      if (publicRoot && !rootIdentity) rootIdentity = source;
+      if (publicRoot)
+      {
+         publicRootValue = target;
+         publicRootLifetime = target->GetLifetimeToken();
+      }
+      callerObjects.erase(source);
+      visiting.insert(source);
+      resolutionPath.push_back(source);
+      if (!burn && !dynamic_cast<Thruster*>(source) && !dynamic_cast<PowerSystem*>(source) &&
+            !source->IsOfType(Gmat::PARAMETER) && !dynamic_cast<Function*>(source) &&
+            !dynamic_cast<Solver*>(source))
+         target->SetSolarSystem(solarSystem);
+      if (ephemeris)
+      {
+         auto *copy = dynamic_cast<EphemerisFile*>(target);
+         if (!copy) throw FunctionException("Incompatible ephemeris native copy.\n");
+         RegisterSubscriberWrappers(*ephemeris, *copy);
+         copy->RebindSubscriberEnvironment(*ephemeris,
+               [this](GmatBase *object) {return Resolve(object);});
+         const auto retained = ephemeris->GetFunctionCoordinateSystemOwners();
+         if (retained)
+         {
+            inheritedEphemerisOwners.push_back(retained);
+            privateObjects.insert(retained->begin(), retained->end());
+         }
+         // A private ephemeris belongs to this graph already. Its back edge
+         // must be weak; a public root retains the ordinary owning alias.
+         const std::shared_ptr<const ObjectArray> owners = publicRoot ?
+               std::shared_ptr<const ObjectArray>(shared_from_this(), &objects) :
+               std::shared_ptr<const ObjectArray>();
+         copy->RetainFunctionDynamics(
+               [this](GmatBase *object) { return Resolve(object); }, runtimeForces, owners);
+         copy->RetainFunctionCoordinateSystems(
+               [this](CoordinateSystem *frame) { return dynamic_cast<CoordinateSystem*>(Resolve(frame)); }, owners);
+         copy->RetainFunctionSpacecraft(
+               [this](GmatBase *object) { return Resolve(object); }, owners);
+      }
+      else if (station)
+      {
+         auto *copy = dynamic_cast<GroundstationInterface*>(target);
+         if (!copy) throw FunctionException("Incompatible GroundStation native copy.\n");
+         copy->RebindClonedReferences(*station, solarSystem,
+               [this](GmatBase *object) {return Resolve(object);},
+               [this](const ObjectArray &from, const ObjectArray &to)
+               {
+                  for (UnsignedInt i = 0; i < from.size(); ++i) RegisterOwned(from[i], to.at(i));
+                  for (UnsignedInt i = 0; i < from.size(); ++i) RebindOwned(from[i], to.at(i));
+               });
+      }
+      else if (setup)
+      {
+         auto *copy = dynamic_cast<PropSetup*>(target);
+         if (!copy) throw FunctionException("PropSetup Clone has an incompatible native type.\n");
+         copy->RebindClonedReferences(*setup, solarSystem,
+               [this](GmatBase *object) {return Resolve(object);},
+               [this, dormantPropSetup](const ObjectArray &from, const ObjectArray &to)
+               {
+                  for (UnsignedInt i = 0; i < from.size(); ++i) RegisterOwned(from[i], to.at(i));
+                  for (UnsignedInt i = 0; i < from.size(); ++i) RebindOwned(from[i], to.at(i), !dormantPropSetup);
+               }, !dormantPropSetup);
+      }
+      else if (model)
+      {
+         RebindModelReferences(model, dynamic_cast<ODEModel*>(target));
+      }
+      else if (propagator)
+      {
+         RebindPropagatorReferences(propagator, dynamic_cast<Propagator*>(target), false);
+      }
+      else if (frame)
+      {
+         auto *copy = dynamic_cast<CoordinateSystem*>(target);
+         if (!copy)
+            throw FunctionException("CoordinateSystem Clone has an incompatible native type.\n");
+         AxisSystem *axes = frame->GetAxisSystem();
+         AxisSystem *copiedAxes = copy->GetAxisSystem();
+         if (!axes || !copiedAxes)
+            throw FunctionException("Returned ephemeris frame has no axes.\n");
+         RegisterOwned(axes, copiedAxes);
+         copiedAxes->SetSolarSystem(solarSystem);
+         Bind(copy, Gmat::SPACE_POINT, frame->GetJ2000BodyName(), frame->GetJ2000Body());
+         Bind(copy, Gmat::SPACE_POINT, frame->GetOriginName(), frame->GetOrigin());
+         // Native axes reference space points and, for aligned/constrained
+         // axes, another coordinate system. Copy static name arrays before
+         // recursing into another resource's reference accessors.
+         const StringArray names = axes->GetRefObjectNameArray(Gmat::UNKNOWN_OBJECT);
+         for (const std::string &name : names)
+         {
+            if (name.empty()) continue;
+            bool bound = false;
+            for (UnsignedInt type : {Gmat::COORDINATE_SYSTEM, Gmat::SPACE_POINT})
+            {
+               GmatBase *reference = NULL;
+               try {reference = axes->GetRefObject(type, name);}
+               catch (BaseException &) {continue;} // This getter does not expose this type.
+               // Axes getters check the declared field name. Its bound
+               // object's own name can differ after formal/caller aliasing.
+               if (!reference || !reference->IsOfType(type)) continue;
+               Bind(copiedAxes, type, name, reference);
+               bound = true;
+               break;
+            }
+            if (!bound)
+               for (GmatBase *object : privateObjects)
+                  if (object->GetName() == name)
+                     throw FunctionException("Axes do not expose private reference '" + name +
+                           "' needed by a returned ephemeris frame.\n");
+         }
+      }
+      else if (point)
+      {
+         auto *copy = dynamic_cast<CalculatedPoint*>(target);
+         if (!copy)
+            throw FunctionException("CalculatedPoint Clone has an incompatible native type.\n");
+         const StringArray names = point->GetRefObjectNameArray(Gmat::SPACE_POINT);
+         for (const std::string &name : names)
+         {
+            GmatBase *reference = point->GetRefObject(Gmat::SPACE_POINT, name);
+            if (!reference || reference->GetName() != name)
+               throw FunctionException("Cannot resolve returned frame point dependency '" + name + "'.\n");
+            Bind(copy, Gmat::SPACE_POINT, name, reference);
+         }
+         SpacePoint *j2000 = dynamic_cast<SpacePoint*>(Resolve(point->GetJ2000Body()));
+         copy->SetJ2000Body(j2000);
+      }
+      else if (spacecraft)
+      {
+         auto *copy = dynamic_cast<Spacecraft*>(target);
+         if (!copy) throw FunctionException("Spacecraft Clone has an incompatible native type.\n");
+         copy->RebindClonedReferences(*spacecraft,
+               [this](GmatBase *object) {return Resolve(object);},
+               [this](const ObjectArray &from, const ObjectArray &to)
+               {
+                  for (UnsignedInt i = 0; i < from.size(); ++i)
+                     RegisterOwned(from[i], to.at(i));
+                  for (UnsignedInt i = 0; i < from.size(); ++i)
+                     RebindOwned(from[i], to.at(i));
+               });
+      }
+      else if (formation)
+      {
+         auto *copy = dynamic_cast<FormationInterface*>(target);
+         if (!copy) throw FunctionException("Formation Clone has an incompatible native type.\n");
+         copy->RebindClonedReferences(*formation,
+               [this](GmatBase *object) {return Resolve(object);}, !dormantFormation);
+      }
+      else if (burn)
+      {
+         auto *copy = dynamic_cast<Burn*>(target);
+         if (!copy) throw FunctionException("Burn Clone has an incompatible native type.\n");
+         copy->RebindClonedReferences(*burn, solarSystem,
+               [this](GmatBase *object) {return Resolve(object);});
+      }
+      else if (physical)
+      {
+         RebindPhysicalReferences(physical, dynamic_cast<PhysicalModel*>(target));
+      }
+      else
+      {
+         RegisterEmbedded(source, target);
+         RebindReferences(source, target);
+      }
+      RebindCloneSource(source, target, publicRoot);
+      // Complete all bindings before native initialization can query another
+      // cloned resource. Dependencies enter this order before their borrowers.
+      if (!ephemeris) initializationOrder.push_back(target);
+      visiting.erase(source);
+      resolutionPath.pop_back();
+      if (!publicRoot)
+      {
+         if (ephemeris) target->SetBorrowedFunctionValueContext(shared_from_this());
+         else target->SetFunctionValueContext({});
+      }
+   }
+
+   void Initialize()
+   {
+      // Station-origin frames can query body-fixed state during initialization.
+      // Prepare geometry before those frames, then initialize station hardware
+      // after all frame bindings are ready. This does not associate hardware.
+      for (GmatBase *object : initializationOrder)
+         if (auto *station = dynamic_cast<GroundstationInterface*>(object))
+            if (!station->BodyFixedPoint::Initialize())
+               throw FunctionException("Cannot initialize retained station body frames.\n");
+      // Match native object initialization: calculated points and coordinate
+      // systems are ready before spacecraft/hardware can query their matrices.
+      for (Integer phase = 0; phase < 5; ++phase)
+      for (GmatBase *object : initializationOrder)
+      {
+         // Preserve a cold standalone RF value as configuration data. The
+         // eventual operational owner must supply its antenna and initialize
+         // it, just as for a main-script hardware declaration.
+         if (object->IsOfType("RFHardware") &&
+               object->GetStringParameter("PrimaryAntenna").empty())
+            continue;
+         const Integer objectPhase = dynamic_cast<PropSetup*>(object) ? 4 :
+               dynamic_cast<CalculatedPoint*>(object) ? 0 :
+               dynamic_cast<CoordinateSystem*>(object) ? 1 :
+               (dynamic_cast<PhysicalModel*>(object) || dynamic_cast<Burn*>(object)) ? 3 : 2;
+         if (phase != objectPhase) continue;
+         // Owned engine definitions remain dormant until native preparation;
+         // value binding must not open ephemerides or resume integration.
+         if (dynamic_cast<Propagator*>(object) || object->IsOfType("ProcessNoise") ||
+               object->IsOfType(Gmat::PARAMETER) || object->IsOfType(Gmat::STOP_CONDITION) ||
+               dynamic_cast<Function*>(object) || dynamic_cast<Solver*>(object) ||
+               dynamic_cast<Subscriber*>(object) || dynamic_cast<EventLocator*>(object) ||
+               object->IsOfType("TrackingFileSet")) continue;
+         auto *station = dynamic_cast<GroundstationInterface*>(object);
+         auto *setup = dynamic_cast<PropSetup*>(object);
+         auto *spacecraft = dynamic_cast<Spacecraft*>(object);
+         auto *model = dynamic_cast<ODEModel*>(object);
+         auto *burn = dynamic_cast<Burn*>(object);
+         auto *thruster = dynamic_cast<Thruster*>(object);
+         auto *power = dynamic_cast<PowerSystem*>(object);
+         auto *attitude = dynamic_cast<Attitude*>(object);
+         auto *plate = dynamic_cast<Plate*>(object);
+         const bool ready = station ? station->InitializeClonedResource() :
+               setup ? setup->InitializeClonedResource() :
+               model ? model->InitializeForParameters() :
+               spacecraft ? spacecraft->InitializeClonedResource() :
+               burn ? burn->InitializeClonedResource() :
+               thruster ? thruster->InitializeClonedResource() :
+               power ? power->InitializeClonedResource() :
+               attitude ? attitude->InitializeClonedResource() :
+               plate ? plate->InitializeClonedResource() : object->Initialize();
+         if (!ready)
+            throw FunctionException("Cannot initialize returned ephemeris dependency '" +
+                  object->GetName() + "'.\n");
+      }
+      // Every private dependency has now been rebound into this graph. Source
+      // leases were needed during construction, not for the completed value.
+      inheritedEphemerisOwners.clear();
+   }
+
+   void RegisterOwned(GmatBase *source, GmatBase *target)
+   {
+      if (!source && !target) return;
+      if (!source || !target || source == target ||
+          source->GetTypeName() != target->GetTypeName())
+         throw FunctionException("Spacecraft Clone did not copy an owned component.\n");
+      const auto previous = copies.find(source);
+      if (previous != copies.end() && previous->second != target)
+         throw FunctionException("Conflicting owned component copies in returned ephemeris.\n");
+      if (!nativeOwned.insert(source).second) return;
+      copies[source] = target;
+      origins[source] = target;
+      RegisterEmbedded(source, target);
+   }
+
+   void RegisterSubscriberWrappers(Subscriber &source, Subscriber &target)
+   {
+      target.PrepareClonedSubscriberValue(source);
+      ObjectArray from, to;
+      source.GetClonedOwnedObjects(target, from, to);
+      for (size_t i = 0; i < from.size(); ++i) RegisterOwned(from[i], to.at(i));
+      for (size_t i = 0; i < from.size(); ++i)
+      {
+         if (SupportsRetainedFunctionRoot(from[i]))
+         {
+            if (reboundOwned.insert(from[i]).second) BindCopy(from[i], to[i], false);
+         }
+         else RebindOwned(from[i], to[i]);
+      }
+   }
+
+   void RegisterValueChildren(GmatBase *source, GmatBase *target)
+   {
+      const ObjectArray from = source->GetFunctionValueOwnedObjects();
+      const ObjectArray to = target->GetFunctionValueOwnedObjects();
+      if (from.size() != to.size())
+         throw FunctionException("Incompatible native function-value component collection.\n");
+      for (size_t i = 0; i < from.size(); ++i) RegisterOwned(from[i], to[i]);
+      for (size_t i = 0; i < from.size(); ++i) RebindOwned(from[i], to[i]);
+   }
+
+   void RegisterEmbedded(GmatBase *source, GmatBase *target)
+   {
+      if (auto *subscriber = dynamic_cast<Subscriber*>(source))
+      {
+         auto *copy = dynamic_cast<Subscriber*>(target);
+         if (!copy) throw FunctionException("Incompatible retained subscriber value.\n");
+         RegisterSubscriberWrappers(*subscriber, *copy);
+         return;
+      }
+      if (auto *solver = dynamic_cast<Solver*>(source))
+      {
+         auto *copy = dynamic_cast<Solver*>(target);
+         if (!copy) throw FunctionException("Incompatible retained Solver value.\n");
+         copy->PrepareClonedSolverValue(*solver);
+         RegisterValueChildren(source, target);
+         return;
+      }
+      if (auto *function = dynamic_cast<Function*>(source))
+      {
+         auto *copy = dynamic_cast<Function*>(target);
+         if (!copy) throw FunctionException("Incompatible Function resource copy.\n");
+         copy->PrepareClonedFunctionValue(*function);
+         ObjectArray from, to;
+         function->GetClonedOwnedObjects(*copy, from, to);
+         if (from.size() != to.size())
+            throw FunctionException("Incompatible owned Function resource collection.\n");
+         for (UnsignedInt i = 0; i < from.size(); ++i) RegisterOwned(from[i], to[i]);
+         for (UnsignedInt i = 0; i < from.size(); ++i)
+         {
+            // Native file frames own axes and need the complete frame binder,
+            // rather than only the generic embedded-reference pass.
+            if (dynamic_cast<CoordinateSystem*>(from[i]))
+            {
+               if (reboundOwned.insert(from[i]).second) BindCopy(from[i], to[i], false);
+            }
+            else RebindOwned(from[i], to[i]);
+         }
+         return;
+      }
+      if (auto *condition = dynamic_cast<StopCondition*>(source))
+      {
+         auto *copy = dynamic_cast<StopCondition*>(target);
+         if (!copy) throw FunctionException("Incompatible stopping-condition copy.\n");
+         copy->PrepareClonedFunctionValue(*condition);
+         ObjectArray from, to;
+         condition->GetClonedOwnedObjects(*copy, from, to);
+         for (UnsignedInt i = 0; i < from.size(); ++i) RegisterOwned(from[i], to.at(i));
+         for (UnsignedInt i = 0; i < from.size(); ++i) RebindOwned(from[i], to.at(i));
+         return;
+      }
+      if (auto *frame = dynamic_cast<CoordinateSystem*>(source))
+      {
+         auto *copy = dynamic_cast<CoordinateSystem*>(target);
+         if (!copy) throw FunctionException("Incompatible owned coordinate-system copy.\n");
+         RegisterOwned(frame->GetAxisSystem(), copy->GetAxisSystem());
+         return;
+      }
+      if (source->IsOfType("ProcessNoiseModel") || source->IsOfType("EstimatedParameter"))
+      {
+         const UnsignedInt type = GmatType::GetTypeId(source->IsOfType("ProcessNoiseModel") ?
+               "ProcessNoise" : "EstimatedParameterModel");
+         RegisterOwned(source->GetRefObject(type, ""), target->GetRefObject(type, ""));
+         return;
+      }
+      RegisterValueChildren(source, target);
+      if (!source->HasRefObjectTypeArray()) return;
+      const ObjectTypeArray types = source->GetRefObjectTypeArray();
+      for (UnsignedInt type : types)
+      {
+         // These native components clone their configured FOV/error models.
+         // Other references (frames, antennas, tanks) remain borrowed bindings.
+         if (type != Gmat::FIELD_OF_VIEW && type != Gmat::ERROR_MODEL) continue;
+         const StringArray names = source->GetRefObjectNameArray(type);
+         for (const std::string &name : names)
+         {
+            GmatBase *original = source->GetRefObject(type, name);
+            GmatBase *copy = target->GetRefObject(type, name);
+            if (copy && copy != original) RegisterOwned(original, copy);
+         }
+      }
+   }
+
+   void RebindOwned(GmatBase *source, GmatBase *target, bool bindPropagationObjects = true)
+   {
+      if (!source || !reboundOwned.insert(source).second) return;
+      if (dynamic_cast<PropSetup*>(source) || dynamic_cast<Spacecraft*>(source) ||
+          dynamic_cast<GroundstationInterface*>(source) || dynamic_cast<CoordinateSystem*>(source) ||
+          dynamic_cast<CalculatedPoint*>(source) || dynamic_cast<FormationInterface*>(source) ||
+          dynamic_cast<EphemerisFile*>(source))
+      {
+         BindCopy(source, target, false, false, !bindPropagationObjects);
+         return;
+      }
+      if (auto *model = dynamic_cast<ODEModel*>(source))
+      {
+         RebindModelReferences(model, dynamic_cast<ODEModel*>(target), true);
+         RebindCloneSource(source, target);
+         return;
+      }
+      if (auto *propagator = dynamic_cast<Propagator*>(source))
+      {
+         RebindPropagatorReferences(propagator, dynamic_cast<Propagator*>(target), true, bindPropagationObjects);
+         RebindCloneSource(source, target);
+         return;
+      }
+      if (!target) throw FunctionException("Missing copied native component.\n");
+      IncludeContext(source);
+      const auto previous = target->GetFunctionValueContext();
+      if (previous && previous.get() != this) inheritedValues.push_back(previous);
+      // Their owning EquationWrapper binds all node/map roles after every
+      // copied owned identity has been registered by the surrounding owner.
+      if (dynamic_cast<MathTree*>(source) || dynamic_cast<MathNode*>(source))
+      {
+         RebindCloneSource(source, target);
+         target->SetFunctionValueContext({});
+         return;
+      }
+      if (auto *force = dynamic_cast<PhysicalModel*>(source))
+         RebindPhysicalReferences(force, dynamic_cast<PhysicalModel*>(target));
+      else RebindReferences(source, target);
+      RebindCloneSource(source, target);
+      // The containing native owner retains this scene. An embedded child
+      // must not keep its old public-root lease or own that parent through it.
+      target->SetFunctionValueContext({});
+   }
+
+   void RebindModelReferences(ODEModel *source, ODEModel *target, bool ownedComponent = false)
+   {
+      if (!target) throw FunctionException("ODEModel Clone has an incompatible native type.\n");
+      IncludeContext(source);
+      const auto previous = target->GetFunctionValueContext();
+      if (previous && previous.get() != this) inheritedValues.push_back(previous);
+      target->SetSolarSystem(solarSystem);
+      for (CoordinateSystem *internal : source->GetInternalCoordinateSystems())
+         if (internal) privateObjects.insert(internal);
+      auto resolve = [this](GmatBase *object) {return Resolve(object);};
+      auto bindOwned = [this](const ObjectArray &from, const ObjectArray &to)
+      {
+         for (UnsignedInt i = 0; i < from.size(); ++i) RegisterOwned(from[i], to.at(i));
+         for (UnsignedInt i = 0; i < from.size(); ++i) RebindOwned(from[i], to.at(i));
+      };
+      if (reportingContext) target->RebindClonedReportingReferences(*source, resolve, bindOwned);
+      else target->RebindClonedReferences(*source, resolve, bindOwned);
+      if (ownedComponent) target->SetFunctionValueContext({});
+   }
+
+   void RebindPropagatorReferences(Propagator *source, Propagator *target, bool ownedComponent, bool bindObjects = true)
+   {
+      if (!target) throw FunctionException("Propagator Clone has an incompatible native type.\n");
+      IncludeContext(source);
+      const auto previous = target->GetFunctionValueContext();
+      if (previous && previous.get() != this) inheritedValues.push_back(previous);
+      target->RebindClonedReferences(*source, solarSystem,
+            [this](GmatBase *object) {return Resolve(object);}, bindObjects);
+      if (ownedComponent) target->SetFunctionValueContext({});
+   }
+
+   void RebindPhysicalReferences(PhysicalModel *source, PhysicalModel *target)
+   {
+      if (!target) throw FunctionException("Incompatible native force copy.\n");
+      target->SetSolarSystem(solarSystem);
+      target->RebindClonedBodyReferences(*source,
+            [this](GmatBase *object) {return Resolve(object);});
+      if (auto *drag = dynamic_cast<DragForce*>(source))
+      {
+         auto *value = dynamic_cast<DragForce*>(target);
+         if (!value) throw FunctionException("Incompatible native drag force copy.\n");
+         value->RebindClonedCoordinateSystems(*drag,
+               [this](GmatBase *object) {return Resolve(object);});
+      }
+      if (auto *thrust = dynamic_cast<FiniteThrust*>(source))
+      {
+         auto *value = dynamic_cast<FiniteThrust*>(target);
+         if (!value) throw FunctionException("Incompatible retained finite-thrust value.\n");
+         value->RebindClonedReferences(*thrust,
+               [this](GmatBase *object) {return Resolve(object);});
+      }
+      // UNKNOWN_OBJECT exposes harmonic frame roles without the mutating
+      // typed name accessor that recomputes its FixedCoordinateSystem name.
+      StringArray names = source->GetRefObjectNameArray(Gmat::UNKNOWN_OBJECT);
+      if (source->IsOfType("DragForce")) names.push_back(source->GetBodyName() + "Fixed");
+      for (const std::string &name : names)
+      {
+         if (name.empty()) continue;
+         for (UnsignedInt type : {Gmat::COORDINATE_SYSTEM, Gmat::SPACE_POINT, Gmat::CELESTIAL_BODY})
+         {
+            GmatBase *reference = NULL;
+            try {reference = source->GetRefObject(type, name);}
+            catch (BaseException &) {continue;}
+            if (!reference || !reference->IsOfType(type)) continue;
+            GmatBase *value = Resolve(reference);
+            if (!target->SetRefObject(value, type, name))
+               throw FunctionException("Cannot bind copied force reference '" + name + "'.\n");
+            // Force accessors use declared role labels (e.g. EarthFixed),
+            // which need not be the bound caller frame's own resource name.
+            break;
+         }
+      }
+   }
+
+   void RebindReferences(GmatBase *source, GmatBase *target)
+   {
+      if (target->RebindFunctionValueReferences(*source, solarSystem,
+            [this](GmatBase *object) {return Resolve(object);}))
+      {
+         // Ephemeris reporting observes the caller's live force table. Ordinary
+         // function values keep the provider's independently mapped snapshot.
+         auto *parameter = dynamic_cast<Parameter*>(target);
+         if (reportingContext && parameter && parameter->NeedsForces())
+            parameter->SetTransientForces(runtimeForces);
+         return;
+      }
+      // Unlike a value-only fallback, a callable definition must explicitly
+      // disclose its reference policy. Unimplemented providers stay open.
+      if (dynamic_cast<Function*>(source) || dynamic_cast<Solver*>(source) ||
+            dynamic_cast<Subscriber*>(source) || dynamic_cast<EventLocator*>(source))
+         throw FunctionException("Retained reference binding is unavailable for callable, Solver, Subscriber or EventLocator type '" +
+               source->GetTypeName() + "'.\n");
+      if (auto *attitude = dynamic_cast<Attitude*>(source))
+      {
+         auto *value = dynamic_cast<Attitude*>(target);
+         if (!value) throw FunctionException("Incompatible retained Attitude.\n");
+         value->RebindClonedReferences(*attitude,
+               [this](GmatBase *object) {return Resolve(object);});
+         return;
+      }
+      if (auto *plate = dynamic_cast<Plate*>(source))
+      {
+         auto *value = dynamic_cast<Plate*>(target);
+         if (!value) throw FunctionException("Incompatible retained Plate.\n");
+         value->RebindClonedReferences(*plate,
+               [this](GmatBase *object) {return Resolve(object);},
+               [this, plate](const std::string &name)
+               {
+                  CoordinateSystem *frame = NULL;
+                  for (GmatBase *object : privateObjects)
+                     if (object->GetName() == name && object->IsOfType(Gmat::COORDINATE_SYSTEM))
+                     {
+                        if (frame && frame != object) throw FunctionException("Ambiguous private Plate history frame.\n");
+                        frame = dynamic_cast<CoordinateSystem*>(object);
+                     }
+                  if (!frame) frame = dynamic_cast<CoordinateSystem*>(plate->GetConfiguredObject(name));
+                  return dynamic_cast<CoordinateSystem*>(Resolve(frame));
+               });
+         return;
+      }
+      if (auto *thruster = dynamic_cast<Thruster*>(source))
+      {
+         auto *value = dynamic_cast<Thruster*>(target);
+         if (!value) throw FunctionException("Incompatible retained Thruster.\n");
+         value->RebindClonedReferences(*thruster, solarSystem,
+               [this](GmatBase *object) {return Resolve(object);});
+         return;
+      }
+      if (auto *power = dynamic_cast<PowerSystem*>(source))
+      {
+         auto *value = dynamic_cast<PowerSystem*>(target);
+         if (!value) throw FunctionException("Incompatible retained PowerSystem.\n");
+         value->RebindClonedReferences(*power, solarSystem,
+               [this](GmatBase *object) {return Resolve(object);});
+         return;
+      }
+      if (source->IsOfType("ProcessNoiseModel") || source->IsOfType("EstimatedParameter"))
+      {
+         const UnsignedInt type = GmatType::GetTypeId(source->IsOfType("ProcessNoiseModel") ?
+               "ProcessNoise" : "EstimatedParameterModel");
+         RebindOwned(source->GetRefObject(type, ""), target->GetRefObject(type, ""));
+         return;
+      }
+      if (!source->HasRefObjectTypeArray()) return;
+      const ObjectTypeArray types = source->GetRefObjectTypeArray();
+      for (UnsignedInt type : types)
+      {
+         // A standalone RF value can be declared/returned before it is attached
+         // to an antenna. Its required-reference accessor throws for that cold
+         // state; there is no antenna edge to copy yet. Operational hardware
+         // initialization still enforces the required antenna association.
+         if (type == Gmat::HARDWARE && source->IsOfType("RFHardware") &&
+               source->GetStringParameter("PrimaryAntenna").empty())
+            continue;
+         const StringArray names = source->GetRefObjectNameArray(type);
+         for (const std::string &name : names)
+         {
+            if (name.empty()) continue;
+            GmatBase *original = source->GetRefObject(type, name);
+            if (!original) continue; // an unused optional reference
+            GmatBase *copy = Resolve(original);
+            GmatBase *current = target->GetRefObject(type, name);
+            // An owned FOV/error/model is already cloned. Passing it through a
+            // setter that clones again would discard the registered identity.
+            if (current != copy && !target->SetRefObject(copy, type, name))
+               throw FunctionException("Cannot rebind returned spacecraft component reference '" + name + "'.\n");
+            if (original->GetName() != copy->GetName() &&
+                !target->RenameRefObject(type, name, copy->GetName()))
+               throw FunctionException("Cannot rename returned spacecraft component reference '" + name + "'.\n");
+            if (nativeOwned.find(original) != nativeOwned.end()) RebindOwned(original, copy);
+         }
+      }
+   }
+
+   void Bind(GmatBase *target, UnsignedInt type, const std::string &name,
+         GmatBase *source)
+   {
+      if (!source)
+         throw FunctionException("Uninitialized reference '" + name + "' in returned ephemeris frame.\n");
+      GmatBase *value = Resolve(source);
+      // Bind using the existing field name first. CalculatedPoint also uses
+      // that name to replace its existing borrowed body-list entry.
+      if (!target->SetRefObject(value, type, name))
+         throw FunctionException("Cannot bind returned ephemeris frame reference '" + name + "'.\n");
+      if (value->GetName() != name &&
+          !target->RenameRefObject(type, name, value->GetName()))
+         throw FunctionException("Cannot rename returned ephemeris frame reference '" + name + "'.\n");
+   }
+};
+
+std::exception_ptr FinalizeFunctionSubscriber(Subscriber *subscriber,Publisher *publisher)
+{
+   std::exception_ptr failure;
+   try
+   {
+      subscriber->ConfigureRuntimeOutput(true);
+      if (!subscriber->TakeAction("Finalize") && subscriber->IsOfType("EphemerisFile"))
+         throw FunctionException("Cannot finalize local ephemeris '"+subscriber->GetName()+"'");
+   }
+   catch (BaseException &error)
+   {
+      // An output failure must fail the call even when the historical plot
+      // finalization policy permits a nonfatal diagnostic and continuation.
+      if (error.IsFatal() || subscriber->IsOfType("EphemerisFile"))
+         failure=std::current_exception();
+      else
+      {
+         try {MessageInterface::ShowMessage("%s\n",error.GetFullMessage().c_str());}
+         catch (...) {failure=std::current_exception();}
+      }
+   }
+   catch (...) {failure=std::current_exception();}
+   try {if (publisher) publisher->Unsubscribe(subscriber);}
+   catch (...) {if (!failure) failure=std::current_exception();}
+   return failure;
+}
+}
 
 //#define DO_NOT_EXECUTE_NESTED_GMAT_FUNCTIONS
 
@@ -94,12 +1404,178 @@
  * Constructor
  */
 //------------------------------------------------------------------------------
+void FunctionManager::RebindSubscriberCopy(const Subscriber &source, Subscriber &target,
+      SolarSystem *system)
+{
+   if (&source == &target || typeid(source) != typeid(target) ||
+         !source.HasSubscriberValueReferenceProvider() || !target.HasSubscriberValueReferenceProvider())
+      throw FunctionException("Incompatible completed subscriber copy.\n");
+   auto context = std::make_shared<ReturnedEphemerisFrames>();
+   context->solarSystem = system;
+   context->runtimeForces = nullptr;
+   context->privateObjects.insert(const_cast<Subscriber*>(&source));
+   const auto children = source.GetFunctionValueOwnedObjects();
+   context->privateObjects.insert(children.begin(), children.end());
+   target.SetFunctionValueContext(context);
+   context->BindCopy(const_cast<Subscriber*>(&source), &target, true);
+   context->Initialize();
+   context->inheritedValues.clear();
+}
+
+std::function<bool()> ObjectManagedFunction::CaptureObjectStoreLifetime(ObjectMap *store)
+{
+   auto nativeOwner = ObjectStoreLifetime::Capture(store);
+   if (nativeOwner) return nativeOwner;
+   const auto registration = FindBuiltinOutputStore(store);
+   if (!registration.first) return {};
+   std::weak_ptr<FunctionBuiltinOutputResources> owner(registration.first);
+   const auto identity = registration.second;
+   return [store, owner, identity]()
+   {
+      const auto expectedOwner = owner.lock();
+      const auto expectedIdentity = identity.lock();
+      if (!expectedOwner || !expectedIdentity) return false;
+      const auto current = FindBuiltinOutputStore(store);
+      return current.first == expectedOwner && current.second.lock() == expectedIdentity;
+   };
+}
+
+FunctionManager& FunctionManager::ReentrantInvocation()
+{
+   if (!reentrantInvocation)
+   {
+      auto frame = std::move(completedInvocation);
+      if (frame)
+      {
+         frame->RetireCompletedInvocation();
+         frame->PrepareCallSetup();
+         frame->SetExpressionEnvironment(HasLiveFunction() ? currentFunction : nullptr,
+               localObjectStore, globalObjectStore);
+         frame->expressionBindings = expressionBindings;
+         frame->publisher = publisher;
+         frame->solarSys = solarSys;
+         frame->internalCS = internalCS;
+         frame->forces = forces;
+         frame->functionName = functionName;
+         frame->SetInputs(passedIns);
+         frame->SetOutputs(passedOuts);
+         frame->deferredFunctionName = deferredFunctionName;
+      }
+      else frame = std::make_unique<FunctionManager>(*this);
+      frame->localObjectStore = localObjectStore;
+      reentrantInvocation = std::move(frame);
+   }
+   reentrantPrepared = true;
+   return *reentrantInvocation;
+}
+
+void FunctionManager::PrepareCallSetup()
+{
+   if (!executing && finalizationRequested) Finalize();
+}
+
+void FunctionManager::RetireCompletedInvocation()
+{
+   if (executing) return;
+   struct Result
+   {
+      FunctionManager &manager;
+      Real real;
+      Rmatrix matrix;
+      GmatBase *view;
+      std::unique_ptr<GmatBase> object;
+      std::string type;
+      bool blank;
+      bool completed = false;
+      explicit Result(FunctionManager &value) : manager(value), real(value.realResult),
+         view(value.objectResult), object(std::move(value.ownedObjectResult)), blank(value.blankResult)
+      {
+         matrix.Swap(manager.matResult);
+         type.swap(manager.outputType);
+         manager.objectResult = nullptr;
+      }
+      ~Result()
+      {
+         manager.realResult = real;
+         matrix.Swap(manager.matResult);
+         manager.ownedObjectResult = std::move(object);
+         manager.blankResult = blank;
+         if (completed)
+         {
+            manager.objectResult = view;
+            type.swap(manager.outputType);
+         }
+      }
+   } result(*this);
+   // Keep completed value storage alive for a following aliased input, while
+   // freeing prior stores/initializers/wrappers before a recursive frame reuses
+   // its manager. Completed store histories do not grow with call count.
+   Finalize();
+   result.completed = true;
+}
+
+bool FunctionManager::HasInstalledInvocation() const
+{
+   if (!HasLiveFunction() || (currentFunction->HasActiveInvocation() && !executing)) return false;
+   const auto *store = currentFunction->GetFunctionObjectStore();
+   return store && (store == functionObjectStore ||
+         std::find(clonedObjectStores.begin(), clonedObjectStores.end(), store) != clonedObjectStores.end());
+}
+
+bool FunctionManager::IsActiveCallerStore(const ObjectMap *store) const
+{
+   if (!store) return false;
+   std::set<const FunctionManager*> visited;
+   for (const FunctionManager *caller = callingFunction; caller; caller = caller->callingFunction)
+   {
+      if (!visited.insert(caller).second)
+         throw FunctionException("Cyclic function manager caller chain.\n");
+      if (caller->executing && caller->functionObjectStore == store) return true;
+   }
+   return false;
+}
+
+void FunctionManager::BindFunctionServices()
+{
+   if (!HasLiveFunction())
+      throw FunctionException("Cannot bind services to a retired Function.\n");
+   currentFunction->SetGlobalObjectMap(globalObjectStore);
+   currentFunction->SetSolarSystem(solarSys);
+   currentFunction->SetInternalCoordSystem(internalCS);
+   currentFunction->SetTransientForces(forces);
+   if (auto *function = dynamic_cast<UserDefinedFunction*>(currentFunction))
+   {
+      fcs = function->GetFunctionControlSequence();
+      for (auto *command : GmatCommandUtil::GetCommandSequenceNodes(fcs))
+      {
+         command->SetPublisher(publisher);
+         command->SetCallingFunction(this);
+         command->SetInternalCoordSystem(internalCS);
+      }
+   }
+}
+
+void FunctionManager::ReleaseStagedWrappers() noexcept
+{
+   for (auto *wrapper : stagedWrapperDeletions)
+   {
+      if (!wrapper) continue;
+      for (auto &entry : stagedWrapperDeletions) if (entry == wrapper) entry = nullptr;
+      bool borrowed = false;
+      for (const auto &entry : inputWrapperMap) if (entry.second == wrapper) borrowed = true;
+      for (auto *entry : outputWrappers) if (entry == wrapper) borrowed = true;
+      if (!borrowed) ElementWrapper::ReleaseOwnedWrapper(wrapper);
+   }
+   stagedWrapperDeletions.clear();
+}
+
 FunctionManager::FunctionManager() :
    publisher           (NULL),
    functionObjectStore (NULL),
    localObjectStore    (NULL),
    globalObjectStore   (NULL),
    solarSys            (NULL),
+   forces              (NULL),
    functionName        (""),
    currentFunction     (NULL),
    firstExecution      (true),
@@ -110,6 +1586,7 @@ FunctionManager::FunctionManager() :
    validator           (NULL),
    realResult          (-999.99),
    objectResult        (NULL),
+   ownedObjectResult   (),
    blankResult         (false),
    outputType          (""),
    objInit             (NULL),
@@ -132,6 +1609,54 @@ FunctionManager::FunctionManager() :
 //------------------------------------------------------------------------------
 FunctionManager::~FunctionManager()
 {
+   const auto retiringBindings = expressionBindings;
+   const bool previouslyFinalized = isFinalized;
+   isFinalized = true;
+   finalizationRequested = false;
+   auto pending = std::move(reentrantInvocation);
+   auto completed = std::move(completedInvocation);
+   executing = true;
+   pending.reset();
+   completed.reset();
+   executing = false;
+   finalizationRequested = false;
+   isFinalized = previouslyFinalized;
+   if (!isFinalized && (functionObjectStore || !clonedObjectStores.empty() ||
+         !createdLiterals.empty() || !createdOthers.empty() ||
+         !inputWrapperMap.empty() || !outputWrappers.empty() || builtinOutputResources))
+   {
+      try { Finalize(); }
+      catch (...)
+      {
+         // Cleanup retains the first callback error while retiring stores.
+         // A destructor cannot propagate it or discard the original exception.
+         try
+         {
+            try { throw; }
+            catch (BaseException &error)
+            {
+               MessageInterface::ShowMessage("Function cleanup during destruction: %s\n",
+                     error.GetFullMessage().c_str());
+            }
+            catch (const std::exception &error)
+            {
+               MessageInterface::ShowMessage("Function cleanup during destruction: %s\n", error.what());
+            }
+            catch (...)
+            {
+               MessageInterface::ShowMessage("Unknown function cleanup error during destruction.\n");
+            }
+         }
+         catch (...) {} // Diagnostics must not replace an exception already unwinding.
+      }
+   }
+
+   // Destroy a cached local value before its borrowed scope dependencies.
+   objectResult = NULL;
+   ReleaseStagedWrappers();
+   ownedObjectResult.reset();
+   pendingInputValues.clear();
+   while (!savedLocalObjectStates.empty()) savedLocalObjectStates.pop();
    #ifdef DEBUG_FUNCTION_MANAGER
    MessageInterface::ShowMessage("FM destructor entered, this=<%p>\n", this);
    #endif
@@ -146,7 +1671,10 @@ FunctionManager::~FunctionManager()
       objInit = NULL;
    }
    
-   DeleteObjectMap(functionObjectStore, "FOS in Destructor");
+   if (isObjStoreOwner)
+   {
+      DeleteObjectMap(functionObjectStore, "FOS in Destructor");
+   }
    functionObjectStore = NULL;
    ClearInOutWrappers();
 }
@@ -169,27 +1697,29 @@ FunctionManager::FunctionManager(const FunctionManager &fm) :
    solarSys            (fm.solarSys),
    forces              (fm.forces),
    functionName        (fm.functionName),
-   currentFunction     (fm.currentFunction), // copy the pointer here
+   currentFunction     (fm.HasLiveFunction() ? fm.currentFunction : nullptr),
+   currentFunctionIdentity(fm.currentFunctionIdentity),
    passedIns           (fm.passedIns),
    passedOuts          (fm.passedOuts),
    //inputWrapperMap       (fm.inputWrapperMap),
-   outputWrappers      (fm.outputWrappers), // is that right?
    firstExecution      (true),
    isFinalized         (false),
    reinitializeFunc    (false),
    isObjStoreOwner     (false),
-   numVarsCreated      (fm.numVarsCreated),
+   numVarsCreated      (0),
    validator           (NULL),
-   realResult          (fm.realResult),
-   matResult           (fm.matResult),
-   objectResult        (fm.objectResult),
-   blankResult         (fm.blankResult),
-   outputType          (fm.outputType),
+   realResult          (-999.99),
+   objectResult        (NULL),
+   ownedObjectResult   (),
+   blankResult         (false),
+   outputType          (""),
    objInit             (NULL),
    internalCS          (fm.internalCS), 
    fcs                 (NULL),
    callingFunction     (NULL)
 {
+   expressionBindings = fm.expressionBindings;
+   deferredFunctionName = fm.deferredFunctionName;
    #ifdef DEBUG_FUNCTION_MANAGER
    MessageInterface::ShowMessage("FM copy constructor entered, this=<%p>\n", this);
    #endif
@@ -211,32 +1741,61 @@ FunctionManager& FunctionManager::operator=(const FunctionManager &fm)
 {
    if (&fm != this)
    {
+      if (executing || !callers.empty())
+         throw FunctionException("Cannot assign to an executing FunctionManager\n");
+
+      // Wrappers and cached results belong to one invocation. The copy will
+      // rebuild its arguments during Initialize(), just as a new manager does.
+      if (reentrantInvocation || completedInvocation || functionObjectStore || !createdLiterals.empty() || !createdOthers.empty() || builtinOutputResources)
+         Finalize();
+      ReleaseStagedWrappers();
+      ClearInOutWrappers();
+      #ifdef DEBUG_MEMORY
+      if (objInit)
+         MemoryTracker::Instance()->Remove
+            (objInit, "objInit", "FunctionManager::operator=()");
+      #endif
+      delete objInit;
+      objInit = NULL;
+
+      expressionBindings = fm.expressionBindings;
       publisher           = fm.publisher;
       functionObjectStore = NULL;
+      functionStoreOwner.reset();
+      functionStoreIdentity.reset();
+      functionStoreIsManaged = false;
+      localObjectStore    = NULL;
+      combinedObjectStore.clear();
       globalObjectStore   = fm.globalObjectStore; // is that right?
       solarSys            = fm.solarSys;
       forces              = fm.forces;
       functionName        = fm.functionName;
-      currentFunction     = fm.currentFunction;  // copy the pointer here
+      currentFunction     = fm.HasLiveFunction() ? fm.currentFunction : nullptr;
+      currentFunctionIdentity = fm.currentFunctionIdentity;
       passedIns           = fm.passedIns;
       passedOuts          = fm.passedOuts;
       firstExecution      = true;
       isFinalized         = false;
       reinitializeFunc    = false;
       isObjStoreOwner     = false;
-      numVarsCreated      = fm.numVarsCreated;
+      numVarsCreated      = 0;
       validator           = NULL;
-      //inputWrapperMap       = fm.inputWrapperMap; // is that right?
-      outputWrappers      = fm.outputWrappers; // is that right?
-      realResult          = fm.realResult;
-      matResult           = fm.matResult;
-      objectResult        = fm.objectResult;
-      blankResult         = fm.blankResult;
-      outputType          = fm.outputType;
+      realResult          = -999.99;
+      objectResult        = NULL;
+      ownedObjectResult.reset();
+      pendingInputValues.clear();
+      blankResult         = false;
+      outputType.clear();
       objInit             = NULL;  
       internalCS          = fm.internalCS;  // right?
       fcs                 = NULL;
       callingFunction     = NULL;
+      finalizationRequested = false;
+      contextRetirementRequested = false;
+      reentrantPrepared = false;
+      deferredFunctionName = fm.deferredFunctionName;
+      while (!savedLocalObjectStates.empty())
+         savedLocalObjectStates.pop();
    }
    return *this;
 }
@@ -247,6 +1806,8 @@ FunctionManager& FunctionManager::operator=(const FunctionManager &fm)
 //------------------------------------------------------------------------------
 void FunctionManager::SetPublisher(Publisher *pub)
 {
+   if (executing) { ReentrantInvocation().SetPublisher(pub); return; }
+   PrepareCallSetup();
    #ifdef DEBUG_PUBLISHER
    MessageInterface::ShowMessage
       ("FunctionManager::SetPublisher() '%s' setting publisher <%p>\n",
@@ -261,6 +1822,7 @@ void FunctionManager::SetPublisher(Publisher *pub)
 //------------------------------------------------------------------------------
 Publisher* FunctionManager::GetPublisher()
 {
+   if (executing && reentrantPrepared && reentrantInvocation) return reentrantInvocation->GetPublisher();
    return publisher;
 }
 
@@ -270,6 +1832,8 @@ Publisher* FunctionManager::GetPublisher()
 //------------------------------------------------------------------------------
 void FunctionManager::SetObjectMap(std::map<std::string, GmatBase *> *map)
 {
+   if (executing) { ReentrantInvocation().SetObjectMap(map); return; }
+   PrepareCallSetup();
    localObjectStore = map;
    #ifdef DEBUG_OBJECT_MAP
    MessageInterface::ShowMessage
@@ -283,6 +1847,8 @@ void FunctionManager::SetObjectMap(std::map<std::string, GmatBase *> *map)
 //------------------------------------------------------------------------------
 void FunctionManager::SetGlobalObjectMap(std::map<std::string, GmatBase *> *map)
 {
+   if (executing) { ReentrantInvocation().SetGlobalObjectMap(map); return; }
+   PrepareCallSetup();
    globalObjectStore = map;
 }
 
@@ -291,11 +1857,13 @@ void FunctionManager::SetGlobalObjectMap(std::map<std::string, GmatBase *> *map)
 //------------------------------------------------------------------------------
 void FunctionManager::SetSolarSystem(SolarSystem *ss)
 {
+   if (executing) { ReentrantInvocation().SetSolarSystem(ss); return; }
+   PrepareCallSetup();
    #ifdef DEBUG_FM_SET
    MessageInterface::ShowMessage("FunctionManager::SetSolarSystem() ss=<%p>\n", ss);
    #endif
    solarSys = ss;
-   if ((currentFunction) && (currentFunction->GetTypeName() == "GmatFunction"))
+   if (HasLiveFunction() && !currentFunction->HasActiveInvocation() && currentFunction->GetTypeName() == "GmatFunction")
       currentFunction->SetSolarSystem(ss);
 }
 
@@ -304,8 +1872,10 @@ void FunctionManager::SetSolarSystem(SolarSystem *ss)
 //------------------------------------------------------------------------------
 void FunctionManager::SetTransientForces(std::vector<PhysicalModel*> *tf)
 {
+   if (executing) { ReentrantInvocation().SetTransientForces(tf); return; }
+   PrepareCallSetup();
    forces = tf;
-   if ((currentFunction) && (currentFunction->GetTypeName() == "GmatFunction"))
+   if (HasLiveFunction() && !currentFunction->HasActiveInvocation() && currentFunction->GetTypeName() == "GmatFunction")
       currentFunction->SetTransientForces(tf);
 }
 
@@ -314,18 +1884,21 @@ void FunctionManager::SetTransientForces(std::vector<PhysicalModel*> *tf)
 //------------------------------------------------------------------------------
 void FunctionManager::SetFunctionName(const std::string &itsName)
 {
+   if (executing) { ReentrantInvocation().SetFunctionName(itsName); return; }
+   PrepareCallSetup();
    #ifdef DEBUG_FM_SET
       MessageInterface::ShowMessage("Entering FM::SetFunctionName with name = %s\n",
                                     itsName.c_str());
    #endif
    functionName = itsName;
-   if ((currentFunction) && (currentFunction->GetTypeName() == "GmatFunction"))  
+   if (HasLiveFunction() && currentFunction->GetTypeName() == "GmatFunction")
    {
       #ifdef DEBUG_FM_SET
          MessageInterface::ShowMessage("   and setting name to %s on the function\n",
                                        itsName.c_str());
       #endif
-      currentFunction->SetStringParameter("FunctionName", itsName);
+      if (currentFunction->HasActiveInvocation()) deferredFunctionName = true;
+      else currentFunction->SetStringParameter("FunctionName", itsName);
    }
 }
 
@@ -334,17 +1907,12 @@ void FunctionManager::SetFunctionName(const std::string &itsName)
 //------------------------------------------------------------------------------
 std::string FunctionManager::GetFunctionName() const
 {
-   if (currentFunction)
-   {
-      std::string theFunctionName = currentFunction->GetStringParameter("FunctionName");
-      #ifdef DEBUG_FM_GET
-      MessageInterface::ShowMessage
-         ("in FM::GetFunctionName, <%p> function name = '%s', "
-          "functionName = '%s'\n", f, theFunctionName.c_str(), functionName.c_str());
-      #endif
-      //return currentFunction->GetStringParameter("FunctionName");
-   }
-   return functionName; // why not return theFunctionName here?
+   if (executing && reentrantPrepared && reentrantInvocation) return reentrantInvocation->GetFunctionName();
+   // The call-site name remains useful after an external callee retires.
+   #ifdef DEBUG_FM_GET
+   MessageInterface::ShowMessage("FunctionManager call-site name = '%s'\n", functionName.c_str());
+   #endif
+   return functionName;
 }
 
 //------------------------------------------------------------------------------
@@ -352,49 +1920,35 @@ std::string FunctionManager::GetFunctionName() const
 //------------------------------------------------------------------------------
 void FunctionManager::SetFunction(Function *theFunction)
 {
-   #ifdef DEBUG_FM_SET
-   MessageInterface::ShowMessage
-      ("FunctionManager::SetFunction() functionName='%s', theFunction=<%p><%s>\n",
-       functionName.c_str(), theFunction,
-       theFunction ? theFunction->GetTypeName().c_str() : "NULL");
-   #endif
-   
-   if (theFunction == NULL)
-      return;
-   
-   // This FunctionManger manages ObjectManagedFunction so check it
-   if (!theFunction->IsOfType("ObjectManagedFunction"))
-      return;
-   
-   currentFunction = (ObjectManagedFunction*)theFunction;
-   currentFunction->SetStringParameter("FunctionName", functionName);
-   
-   // // Now BuiltinGmatFunction should be also allowed (LOJ: 2016.05.04)
-   // if (currentFunction->IsOfType("GmatFunction") ||
-   //     currentFunction->IsOfType("BuiltinGmatFunction"))
-   // Now only UserDefinedFunction should be allowed to set FCS
-   // after refactoring of Function (LOJ: 2016.10.25)
-   if (currentFunction->IsOfType("UserDefinedFunction"))
+   if (executing) { ReentrantInvocation().SetFunction(theFunction); return; }
+   PrepareCallSetup();
+   if (!theFunction) return; // Legacy null input leaves the binding unchanged.
+   auto *function = dynamic_cast<ObjectManagedFunction*>(theFunction);
+   if (!function)
    {
-      UserDefinedFunction *udf = (UserDefinedFunction*)currentFunction;
-      ////fcs = currentFunction->GetFunctionControlSequence();
-      fcs = udf->GetFunctionControlSequence();
+      if (theFunction->IsOfType("ObjectManagedFunction"))
+         throw FunctionException("Function manager requires an ObjectManagedFunction.\n");
+      return;
    }
-   ////new commented out
-   // else
-   // {
-   //    std::string errMsg = "Function passed to FunctionManager \"";
-   //    errMsg += functionName + "\" is of wrong type; must be a GmatFunction\n"; // other types in the future?
-   //    throw FunctionException(errMsg);
-   // }
+   SetExpressionEnvironment(function, localObjectStore, globalObjectStore);
+   // Keep this legacy API's explicit naming behavior. Expression/native call
+   // sites use SetExpressionEnvironment directly and do not rename the callee.
+   if (currentFunction->HasActiveInvocation()) deferredFunctionName = true;
+   else currentFunction->SetStringParameter("FunctionName", functionName);
 }
 
 //------------------------------------------------------------------------------
 // Function* GetFunction() const
 //------------------------------------------------------------------------------
+bool FunctionManager::HasLiveFunction() const
+{
+   return GmatBase::IsLiveReference(currentFunction, currentFunctionIdentity);
+}
+
 Function* FunctionManager::GetFunction() const
 {
-   return currentFunction;
+   if (executing && reentrantPrepared && reentrantInvocation) return reentrantInvocation->GetFunction();
+   return HasLiveFunction() ? currentFunction : nullptr;
 }
 
 //------------------------------------------------------------------------------
@@ -402,6 +1956,8 @@ Function* FunctionManager::GetFunction() const
 //------------------------------------------------------------------------------
 void FunctionManager::AddInput(const std::string &withName, Integer atIndex)
 {
+   if (executing) { ReentrantInvocation().AddInput(withName, atIndex); return; }
+   PrepareCallSetup();
    #ifdef DEBUG_INPUT
    MessageInterface::ShowMessage
       ("FunctionManager::AddInput() entered, name='%s', index=%d\n", withName.c_str(),
@@ -419,6 +1975,7 @@ void FunctionManager::AddInput(const std::string &withName, Integer atIndex)
       throw FunctionException("FunctionManager:: input index out of range - unable to set.\n");
    
    // replace an entry
+   if (passedIns.at(atIndex) != withName) pendingInputValues.erase(atIndex);
    passedIns.at(atIndex) = withName;
    
    #ifdef DEBUG_INPUT
@@ -435,6 +1992,8 @@ void FunctionManager::AddInput(const std::string &withName, Integer atIndex)
 //------------------------------------------------------------------------------
 void FunctionManager::AddOutput(const std::string &withName, Integer atIndex)
 {
+   if (executing) { ReentrantInvocation().AddOutput(withName, atIndex); return; }
+   PrepareCallSetup();
    // -999 means to put it at the end of the list (default value/behavior)
    if ((atIndex == -999) || (atIndex == (Integer) passedOuts.size()))
    {
@@ -453,6 +2012,9 @@ void FunctionManager::AddOutput(const std::string &withName, Integer atIndex)
 //------------------------------------------------------------------------------
 void FunctionManager::SetInputs(const StringArray &inputs)
 {
+   if (executing) { ReentrantInvocation().SetInputs(inputs); return; }
+   PrepareCallSetup();
+   if (passedIns != inputs) pendingInputValues.clear();
    passedIns = inputs;
 }
 
@@ -461,6 +2023,8 @@ void FunctionManager::SetInputs(const StringArray &inputs)
 //------------------------------------------------------------------------------
 void FunctionManager::SetOutputs(const StringArray &outputs)
 {
+   if (executing) { ReentrantInvocation().SetOutputs(outputs); return; }
+   PrepareCallSetup();
    passedOuts = outputs;
 }
 
@@ -469,6 +2033,7 @@ void FunctionManager::SetOutputs(const StringArray &outputs)
 //------------------------------------------------------------------------------
 StringArray  FunctionManager::GetOutputs()
 {
+   if (executing && reentrantPrepared && reentrantInvocation) return reentrantInvocation->GetOutputs();
    return passedOuts;
 }
 
@@ -477,18 +2042,16 @@ StringArray  FunctionManager::GetOutputs()
 //------------------------------------------------------------------------------
 void FunctionManager::SetInternalCoordinateSystem(CoordinateSystem *intCS)
 {
+   if (executing) { ReentrantInvocation().SetInternalCoordinateSystem(intCS); return; }
+   PrepareCallSetup();
    #ifdef DEBUG_FM_SET
    MessageInterface::ShowMessage
       ("in FM:SetInternalCoordinateSystem(), intCS=<%p>\n", intCS);
    #endif
    
-   // if cs is NULL, just return (loj: 2008.10.07)
-   if (intCS == NULL)
-      return;
-   
    internalCS = intCS;
-   //if ((currentFunction) && (currentFunction->GetTypeName() == "GmatFunction"))
-   if (currentFunction)
+   //if (HasLiveFunction() && currentFunction->GetTypeName() == "GmatFunction")
+   if (HasLiveFunction() && !currentFunction->HasActiveInvocation())
       if (currentFunction->GetTypeName() == "GmatFunction") 
          currentFunction->SetInternalCoordSystem(internalCS);
 }
@@ -499,31 +2062,28 @@ void FunctionManager::SetInternalCoordinateSystem(CoordinateSystem *intCS)
 //------------------------------------------------------------------------------
 bool FunctionManager::SetInputWrapper(Integer index, ElementWrapper *ew)
 {
+   if (executing) return ReentrantInvocation().SetInputWrapper(index, ew);
+   PrepareCallSetup();
    #ifdef DEBUG_INPUT
    MessageInterface::ShowMessage
       ("FunctionManager::SetInputWrapper() entered, index=%d, ew=<%p>\n", index, ew);
    #endif
    
-   if (ew == NULL)
+   if (ew == NULL || !HasLiveFunction() || index < 0 ||
+       index >= (Integer)passedIns.size())
       return false;
-   
-   Integer numWrappers = inputWrapperMap.size();
-   std::string formalInput = currentFunction->GetStringParameter("Input", index);
+
+   const StringArray &formalInputs = currentFunction->GetStringArrayParameter(
+      currentFunction->GetParameterID("Input"));
+   if (index >= (Integer)formalInputs.size())
+      return false;
+   std::string formalInput = formalInputs[index];
    
    #ifdef DEBUG_INPUT
+   Integer numWrappers = inputWrapperMap.size();
    MessageInterface::ShowMessage
       ("   numWrappers=%d, formalInput='%s'\n", numWrappers, formalInput.c_str());
    #endif
-   
-   if (index < 0 && index >= numWrappers)
-   {
-      #ifdef DEBUG_INPUT
-      MessageInterface::ShowMessage
-         ("FunctionManager::SetInputWrapper() returning false, "
-          "index is out-of-bounds of inputWrapper size\n");
-      #endif
-      return false;
-   }
    
    #ifdef DEBUG_INPUT
    MessageInterface::ShowMessage
@@ -533,13 +2093,12 @@ bool FunctionManager::SetInputWrapper(Integer index, ElementWrapper *ew)
    
    ElementWrapper *oldEw = inputWrapperMap[formalInput];
    inputWrapperMap[formalInput] = ew;
-   if (oldEw)
+   if (oldEw && oldEw != ew)
    {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (oldEw, oldEw->GetDescription(), "FunctionManager::SetInputWrapper()");
-      #endif
-      delete oldEw;
+      bool retained = false;
+      for (const auto &entry : inputWrapperMap) if (entry.second == oldEw) retained = true;
+      for (auto *entry : outputWrappers) if (entry == oldEw) retained = true;
+      if (!retained) ElementWrapper::ReleaseOwnedWrapper(oldEw);
       oldEw = NULL;
    }
    
@@ -556,24 +2115,22 @@ bool FunctionManager::SetInputWrapper(Integer index, ElementWrapper *ew)
 //------------------------------------------------------------------------------
 ElementWrapper* FunctionManager::GetInputWrapper(Integer index)
 {
-   Integer numWrappers = inputWrapperMap.size();
-   std::string formalInput = currentFunction->GetStringParameter("Input", index);
+   if (executing && reentrantPrepared && reentrantInvocation) return reentrantInvocation->GetInputWrapper(index);
+   if (!HasLiveFunction() || index < 0 ||
+       index >= (Integer)passedIns.size())
+      return NULL;
+   const StringArray &formalInputs = currentFunction->GetStringArrayParameter(
+      currentFunction->GetParameterID("Input"));
+   if (index >= (Integer)formalInputs.size())
+      return NULL;
+   std::string formalInput = formalInputs[index];
 
    #ifdef DEBUG_INPUT
+   Integer numWrappers = inputWrapperMap.size();
    MessageInterface::ShowMessage
       ("FunctionManager::GetInputWrapper() entered, index=%d, numWrappers=%d, "
        "formalInput='%s'\n", index, numWrappers, formalInput.c_str());
    #endif
-   
-   if (index < 0 && index >= numWrappers)
-   {
-      #ifdef DEBUG_INPUT
-      MessageInterface::ShowMessage
-         ("FunctionManager::GetInputWrapper() returning NULL, "
-          "index is out-of-bounds\n");
-      #endif
-      return NULL;
-   }
    
    #ifdef DEBUG_INPUT
    MessageInterface::ShowMessage
@@ -596,10 +2153,10 @@ ElementWrapper* FunctionManager::GetInputWrapper(Integer index)
    #ifdef DEBUG_INPUT
    MessageInterface::ShowMessage
       ("FunctionManager::GetInputWrapper() returning <%p><%s>, wrapperType=%d\n",
-       ew, ew ? ew->GetDescription().c_str() : "NULL", ew->GetWrapperType());
+       ew, ew ? ew->GetDescription().c_str() : "NULL", ew ? ew->GetWrapperType() : -1);
    #endif
-   
-   if (ew->GetWrapperType() == Gmat::NUMBER_WT)
+
+   if (ew && ew->GetWrapperType() == Gmat::NUMBER_WT)
    {      
       #ifdef DEBUG_INPUT
       NumberWrapper *nw = (NumberWrapper*)ew;
@@ -617,146 +2174,21 @@ ElementWrapper* FunctionManager::GetInputWrapper(Integer index)
 //------------------------------------------------------------------------------
 bool FunctionManager::SetPassedInput(Integer index, GmatBase *obj, bool &inputAdded)
 {
-   #ifdef DEBUG_INPUT
-   MessageInterface::ShowMessage
-      ("FunctionManager::SetPassedInput() entered, index=%d, obj=<%p><%s>'%s'\n",
-       index, obj, obj->GetTypeName().c_str(), obj->GetName().c_str());
-   #endif
-   
+   if (executing) return ReentrantInvocation().SetPassedInput(index, obj, inputAdded);
+   PrepareCallSetup();
    inputAdded = false;
-   
-   if (obj == NULL)
-   {
-      #ifdef DEBUG_INPUT
-      MessageInterface::ShowMessage
-         ("FunctionManager::SetPassedInput() returning false, obj is NULL\n");
-      #endif
+   if (!obj || !HasLiveFunction() || index < 0 || index >= (Integer)passedIns.size())
       return false;
-   }
-      
-   if (obj->GetTypeName() == "Variable")
-   {
-      #ifdef DEBUG_INPUT
-      MessageInterface::ShowMessage("   value=%f\n", ((Variable*)obj)->GetReal());
-      #endif
-   }
-   
-   std::string formalInput = currentFunction->GetStringParameter("Input", index);
-   
-   #ifdef DEBUG_INPUT
-   Integer numOthers = createdOthers.size();
-   MessageInterface::ShowMessage
-      ("   numOthers=%d, formalInput='%s'\n", numOthers, formalInput.c_str());
-   #endif
-   
-   Integer numInput = passedIns.size();
-   
-   if (index < 0 && index >= numInput)
-   {
-      #ifdef DEBUG_INPUT
-      MessageInterface::ShowMessage
-         ("FunctionManager::SetPassedInput() returning false, "
-          "index is out-of-bounds of input list\n");
-      #endif
-      return false;
-   }
-   
-   std::string passedInput = passedIns[index];
-   obj->SetName(passedInput);
-   
-   #ifdef DEBUG_INPUT
-   MessageInterface::ShowMessage
-      ("   passed input string='%s'\n", passedInput.c_str());
-   #endif
-   
-   // if passed input string is in createdLiterals, set new object
-   if (createdLiterals.find(passedInput) != createdLiterals.end())
-   {
-      #ifdef DEBUG_INPUT
-      MessageInterface::ShowMessage
-         ("      '%s' found, so set new object to createdLiterals\n", passedInput.c_str());
-      #endif
-      
-      GmatBase *oldObj = createdLiterals[passedInput];
-      createdOthers[passedInput] = obj;
-      if (oldObj)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (oldObj, oldObj->GetName(), "FunctionManager::SetPassedInput()",
-             "deleting oldObj passedInput");
-         #endif
-         delete oldObj;
-         oldObj = NULL;
-      }
-      inputAdded = false;
-      
-      #ifdef DEBUG_INPUT
-      MessageInterface::ShowMessage
-         ("FunctionManager::SetPassedInput() returning true\n");
-      #endif
-      return true;
-   }
-   
-   // if passed input string is in createdOthers, set new object
-   // else add new object
-   if (createdOthers.find(passedInput) != createdOthers.end())
-   {
-      #ifdef DEBUG_INPUT
-      MessageInterface::ShowMessage
-         ("      '%s' found, so set new object to createdOthers\n", passedInput.c_str());
-      #endif
-      GmatBase *oldObj = createdOthers[passedInput];
-      createdOthers[passedInput] = obj;
-      if (oldObj)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (oldObj, oldObj->GetName(), "FunctionManager::SetPassedInput()",
-             "deleting oldObj passedInput");
-         #endif
-         delete oldObj;
-         oldObj = NULL;
-      }
-   }
-   else
-   {
-      #ifdef DEBUG_INPUT
-      MessageInterface::ShowMessage
-         ("      '%s' not found, so added to createdOthers\n", passedInput.c_str());
-      #endif
-      createdOthers.insert(std::make_pair(passedInput, obj));
-      inputAdded = true;
-      
-      #ifdef DEBUG_INPUT
-      std::map<std::string, GmatBase *>::iterator omi;
-      for (omi = createdOthers.begin(); omi != createdOthers.end(); ++omi)
-         MessageInterface::ShowMessage
-            ("   '%s', <%p>'%s'\n", (omi->first).c_str(), (omi->second),
-             (omi->second)->GetName().c_str());
-      #endif
-   }
-   
-   #ifdef DEBUG_INPUT
-   MessageInterface::ShowMessage
-      ("   adding formal input '%s' to function object store\n", formalInput.c_str());
-   #endif
-   
-   // Add formalInput to function object store
-   GmatBase *objFOS = obj->Clone();   
-   objFOS->SetName(formalInput);
-   #ifdef DEBUG_MEMORY
-   MemoryTracker::Instance()->Add
-      (objFOS, formalInput, "FunctionManager::SetPassedInput()",
-       "objFOS = obj->Clone()");
-   #endif
-   
-   objFOS->SetIsLocal(true);
-   functionObjectStore->insert(std::make_pair(formalInput, objFOS));
-   
-   #ifdef DEBUG_INPUT
-   MessageInterface::ShowMessage("FunctionManager::SetPassedInput() returning true\n");
-   #endif
+   const StringArray &formalInputs = currentFunction->GetStringArrayParameter(
+      currentFunction->GetParameterID("Input"));
+   if (index >= (Integer)formalInputs.size()) return false;
+
+   // Do not alter a formal object before Execute saves the caller frame and
+   // captures every argument. A recursive call can share that very store.
+   obj->SetName(passedIns[index]);
+   auto &slot = pendingInputValues[index];
+   if (slot.get() != obj) slot.reset(obj);
+   inputAdded = true;
    return true;
 }
 
@@ -765,6 +2197,12 @@ bool FunctionManager::SetPassedInput(Integer index, GmatBase *obj, bool &inputAd
 //------------------------------------------------------------------------------
 WrapperArray& FunctionManager::GetWrappersToDelete()
 {
+   if (executing && reentrantPrepared && reentrantInvocation)
+      return reentrantInvocation->GetWrappersToDelete();
+   if (!HasLiveFunction())
+      throw FunctionException("Cannot access wrappers for an unbound or retired Function.\n");
+   if (HasLiveFunction() && !executing && currentFunction->HasActiveInvocation())
+      return stagedWrapperDeletions;
    return currentFunction->GetWrappersToDelete();
 }
 
@@ -775,56 +2213,40 @@ WrapperArray& FunctionManager::GetWrappersToDelete()
 //------------------------------------------------------------------------------
 bool FunctionManager::PrepareObjectMap()
 {
+   if (executing) return ReentrantInvocation().PrepareObjectMap();
+   auto context = Validator::Instance()->CaptureContext(activeManagerExecutions != 0);
+   PrepareCallSetup();
+   return PrepareObjectMapCore();
+}
+
+bool FunctionManager::PrepareObjectMapCore()
+{
    #ifdef DEBUG_FM_EXECUTE
    MessageInterface::ShowMessage
       ("FunctionManager::PrepareObjectMap() <%p>'%s' entered, validator=<%p>\n",
        this, functionName.c_str(), validator);
    #endif
-   if (currentFunction == NULL)
+   if (!HasLiveFunction())
    {
       std::string errMsg = "FunctionManager:: Unable to execute Function """;
       errMsg += functionName + """ - pointer is NULL\n";
       throw FunctionException(errMsg);
    }
    
-   std::string objName;
-   
    // Initialize the Validator - I think I need to do this each time - or do I?
    //validator.SetSolarSystem(solarSys);
    if (validator == NULL)
       validator = Validator::Instance();
    
-   // Build combinedObjectStore for the first execution
-   if (firstExecution == false)
-   {
-      #ifdef DEBUG_FM_EXECUTE
-      MessageInterface::ShowMessage
-         ("in FM::PrepareObjectMap(), It is not first execution so skipping "
-          "building combinedObjectStore\n");
-      #endif
-   }
-   else
-   {
-      combinedObjectStore.clear();
-      std::map<std::string, GmatBase *>::iterator omi;
-      for (omi = localObjectStore->begin(); omi != localObjectStore->end(); ++omi)
-         combinedObjectStore.insert(std::make_pair(omi->first, omi->second));
-      for (omi = globalObjectStore->begin(); omi != globalObjectStore->end(); ++omi)
-         combinedObjectStore.insert(std::make_pair(omi->first, omi->second));
-      
-      // Set conbined (local and global) object store to Validator
-      validator->SetObjectMap(&combinedObjectStore);
-      
-      #ifdef DEBUG_FM_EXECUTE
-      MessageInterface::ShowMessage
-         ("in FM::PrepareObjectMap(), Validator's object map was just set to "
-          "combinedObjectStore\n");
-      #ifdef DEBUG_OBJECT_MAP
-      ShowObjectMap(&combinedObjectStore, "CombinedObjectStore");
-      #endif
-      #endif
-   }
-   
+   // A prior invocation can replace local/formal roots. Rebuild the borrowed
+   // lookup on every entry before evaluating properties or Array expressions.
+   combinedObjectStore.clear();
+   if (localObjectStore)
+      combinedObjectStore.insert(localObjectStore->begin(), localObjectStore->end());
+   if (globalObjectStore)
+      combinedObjectStore.insert(globalObjectStore->begin(), globalObjectStore->end());
+   validator->SetObjectMap(&combinedObjectStore);
+
    #ifdef DEBUG_FM_EXECUTE
    MessageInterface::ShowMessage
       ("FunctionManager::PrepareObjectMap() <%p>'%s' returning true\n",
@@ -839,6 +2261,24 @@ bool FunctionManager::PrepareObjectMap()
 //------------------------------------------------------------------------------
 bool FunctionManager::Initialize()
 {
+   if (executing) return ReentrantInvocation().Initialize();
+   auto context = Validator::Instance()->CaptureContext(activeManagerExecutions != 0);
+   PrepareCallSetup();
+   std::unique_ptr<FunctionInvocationState> enclosing;
+   if (HasLiveFunction() && currentFunction->HasActiveInvocation())
+      enclosing = currentFunction->EnterInvocation();
+   return InitializeCore();
+}
+
+bool FunctionManager::InitializeCore()
+{
+   if (!HasLiveFunction())
+      throw FunctionException("Cannot initialize an unbound or retired Function.\n");
+   ForgetRetiredFunctionStore();
+   // Direct API initialization can fail before Execute's completion guard.
+   // Its partially prepared stores and wrappers still require cleanup.
+   isFinalized = false;
+
    #ifdef DEBUG_TRACE
    static Integer callCount = 0;
    callCount++;
@@ -861,15 +2301,34 @@ bool FunctionManager::Initialize()
    // clonedObjectStores should not be cleared for recursive call to work
    //clonedObjectStores.clear();
    bool funcInitialized = currentFunction->IsInitialized();
-   if (!funcInitialized)
+   ObjectMap *previousStore = functionObjectStore;
+   const bool previousOwned = isObjStoreOwner;
+   auto retainPreviousStore = [&](ObjectMap *replacement)
    {
-      functionObjectStore = new ObjectMap;
+      const bool retain = previousStore && previousOwned && previousStore != replacement &&
+            std::find(clonedObjectStores.begin(), clonedObjectStores.end(), previousStore) == clonedObjectStores.end();
+      if (retain) clonedObjectStores.reserve(clonedObjectStores.size() + 1);
+      return retain;
+   };
+   if (!funcInitialized || !currentFunction->GetFunctionObjectStore())
+   {
+      std::unique_ptr<ObjectMap> store(new ObjectMap);
+      auto resources = builtinOutputResources ? builtinOutputResources :
+            std::make_shared<FunctionBuiltinOutputResources>();
+      const bool retain = retainPreviousStore(store.get());
+      RegisterBuiltinOutputStore(store.get(), resources);
+      if (retain) clonedObjectStores.push_back(previousStore);
+      builtinOutputResources = resources;
+      BindFunctionStore(store.release());
       reinitializeFunc = true;
       isObjStoreOwner = true;
    }
    else
    {
-      functionObjectStore = currentFunction->GetFunctionObjectStore();
+      ObjectMap *store = currentFunction->GetFunctionObjectStore();
+      const bool retain = retainPreviousStore(store);
+      if (retain) clonedObjectStores.push_back(previousStore);
+      BindFunctionStore(store);
       reinitializeFunc = false;
    }
 
@@ -884,6 +2343,11 @@ bool FunctionManager::Initialize()
       ("   new functionObjectStore <%p> created\n", functionObjectStore);
    #endif
    
+   if (callingFunction && !callingFunction->savedLocalObjectStates.empty() &&
+         callingFunction->savedLocalObjectStates.top().preserveLiveCaller &&
+         IsActiveCallerStore(functionObjectStore))
+      throw FunctionException("A function cannot initialize arguments in its active caller's object store.\n");
+
    if (!ValidateFunctionArguments())
       return false;
    
@@ -912,7 +2376,34 @@ bool FunctionManager::Initialize()
 //------------------------------------------------------------------------------
 bool FunctionManager::Execute(FunctionManager *callingFM)
 {
-   if (currentFunction == NULL)
+   if (executing)
+      return InvokeReentrant([callingFM](FunctionManager &frame)
+            { return frame.Execute(callingFM); });
+   auto validation = Validator::Instance()->CaptureContext(activeManagerExecutions != 0);
+   PrepareCallSetup();
+   if (activeManagerExecutions == std::numeric_limits<size_t>::max())
+      throw FunctionException("Function manager activation depth cannot be represented.\n");
+   struct ExecutionScope
+   {
+      FunctionManager &manager;
+      explicit ExecutionScope(FunctionManager &value) : manager(value)
+      {
+         manager.executing = true;
+         ++activeManagerExecutions;
+      }
+      ~ExecutionScope()
+      {
+         manager.executing = false;
+         --activeManagerExecutions;
+         if (manager.contextRetirementRequested) manager.RetireExpressionContext();
+      }
+   } execution(*this);
+   // A failed invocation must never expose a preceding call's typed result.
+   // Retain its owned storage until argument binding/output replacement or
+   // cleanup: a C++ caller may pass the preceding result as the next input.
+   outputType.clear();
+   objectResult = NULL;
+   if (!HasLiveFunction())
       throw FunctionException("FunctionManager::Execute() Function pointer is NULL");
    
    #ifdef DEBUG_TRACE
@@ -933,15 +2424,206 @@ bool FunctionManager::Execute(FunctionManager *callingFM)
    MessageInterface::ShowMessage("   === firstExecution=%d\n", firstExecution);
    #endif
    
-   PrepareObjectMap();
-   PrepareExecution(callingFM);
+   // Solver Parameters read the most recently used clone through a name cache.
+   // A private solver declared by this function can shadow a caller solver of
+   // the same name. Keep that private result inside this call, including when
+   // initialization, execution or result assignment throws. Explicitly Global
+   // solvers keep the shared cache and their completed status.
+   struct CallerSolverStatuses
+   {
+      std::map<std::string, Integer> saved;
+      ~CallerSolverStatuses()
+      {
+         for (const auto &entry : saved)
+            GmatGlobal::Instance()->SetSolverStatus(entry.first, entry.second);
+      }
+   } callerSolverStatuses;
+   if (currentFunction->IsOfType("UserDefinedFunction") && localObjectStore)
+   {
+      for (const auto &entry : *localObjectStore)
+      {
+         auto *object = entry.second;
+         if (object && object->IsOfType(Gmat::SOLVER) && !object->IsGlobal())
+            callerSolverStatuses.saved[object->GetName()] =
+               GmatGlobal::Instance()->GetSolverStatus(object->GetName());
+      }
+   }
+
+   SharedSubscriberBindings subscriberBindings(localObjectStore, globalObjectStore);
+
+   struct CallerFrame
+   {
+      FunctionManager *caller;
+      size_t maps = 0, values = 0;
+      std::shared_ptr<const void> marker;
+      std::weak_ptr<const void> storeIdentity;
+      bool managed = false;
+      explicit CallerFrame(FunctionManager *value) : caller(value)
+      {
+         if (!caller) return;
+         maps = caller->callStack.size();
+         values = caller->savedLocalObjectStates.size();
+         managed = caller->functionStoreIsManaged;
+         storeIdentity = caller->functionStoreIdentity;
+      }
+      void Remember()
+      {
+         if (caller && caller->callStack.size() == maps + 1 &&
+               caller->savedLocalObjectStates.size() == values + 1)
+            marker = caller->savedLocalObjectStates.top().epoch;
+      }
+      ~CallerFrame() noexcept
+      {
+         if (!caller || !marker || caller->callStack.size() != maps + 1 ||
+               caller->savedLocalObjectStates.size() != values + 1 ||
+               caller->savedLocalObjectStates.top().epoch != marker) return;
+         try
+         {
+            if (managed && storeIdentity.expired())
+            {
+               // Discard only this retired frame, without opening its map.
+               caller->callStack.pop();
+               caller->savedLocalObjectStates.pop();
+               caller->ForgetRetiredFunctionStore();
+               return;
+            }
+            if (!caller->HasLiveFunction()) return;
+            caller->validator = Validator::Instance();
+            caller->validator->SetSolarSystem(caller->solarSys);
+            caller->validator->SetFunction(caller->currentFunction);
+            if (!caller->PopFromStack(nullptr, {}, {}, nullptr))
+               throw FunctionException("Unable to restore a failed call's caller frame.\n");
+         }
+         catch (...)
+         {
+            try { MessageInterface::ShowMessage("Additional error restoring a failed function caller.\n"); }
+            catch (...) {}
+         }
+      }
+   } callerFrame(callingFM);
+
+   struct OutputInitializationScope
+   {
+      Function *function;
+      std::weak_ptr<const void> identity;
+      std::unique_ptr<FunctionInvocationState> invocation;
+      Function::OutputObjectInitializer previous;
+      bool restored = false;
+      bool restoredSuccessfully = true;
+      explicit OutputInitializationScope(Function *callee) :
+         function(callee), identity(callee->GetLifetimeToken()),
+         invocation(callee->EnterInvocation()),
+         previous(callee->ExchangeOutputObjectInitializer({}))
+      {
+      }
+      void Bind(Function::OutputObjectInitializer initialize)
+      {
+         function->ExchangeOutputObjectInitializer(std::move(initialize));
+      }
+      bool Restore() noexcept
+      {
+         if (restored) return restoredSuccessfully;
+         restored = true;
+         if (GmatBase::IsLiveReference(function, identity))
+            function->ExchangeOutputObjectInitializer(std::move(previous));
+         if (invocation) restoredSuccessfully = invocation->Restore();
+         invocation.reset();
+         return restoredSuccessfully;
+      }
+      ~OutputInitializationScope() noexcept
+      {
+         Restore();
+      }
+   } outputInitialization(currentFunction);
+   if (deferredFunctionName)
+   {
+      currentFunction->SetStringParameter("FunctionName", functionName);
+      deferredFunctionName = false;
+   }
+
+   // Keep failure cleanup inside the caller-solver-status scope so private
+   // solver finalization cannot overwrite the restored caller status. Setup,
+   // result assignment and stack restoration can fail as well as Execute.
+   struct InvocationCompletion
+   {
+      FunctionManager &manager;
+      bool completed = false;
+
+      static void ReportFailure(const char *phase) noexcept
+      {
+         try
+         {
+            try
+            {
+               throw;
+            }
+            catch (BaseException &error)
+            {
+               MessageInterface::ShowMessage("Additional function cleanup error (%s): %s\n",
+                     phase, error.GetFullMessage().c_str());
+            }
+            catch (const std::exception &error)
+            {
+               MessageInterface::ShowMessage("Additional function cleanup error (%s): %s\n",
+                     phase, error.what());
+            }
+            catch (...)
+            {
+               MessageInterface::ShowMessage("Additional unknown function cleanup error (%s).\n", phase);
+            }
+         }
+         catch (...) {} // Cleanup diagnostics must not replace the original error.
+      }
+
+      ~InvocationCompletion()
+      {
+         if (completed || manager.isFinalized)
+            return;
+         // Finalizing the FCS can recursively revisit this manager through
+         // RunComplete. Retire it during that walk without deleting its object
+         // store until finalization and publication cleanup have finished.
+         manager.isFinalized = true;
+         const bool installed = manager.HasInstalledInvocation();
+         if (installed) manager.currentFunction->ClearOutputWrappers();
+         try
+         {
+            if (installed) manager.currentFunction->Finalize(true);
+         }
+         catch (...) { ReportFailure("function finalization"); }
+         manager.isFinalized = false;
+         try
+         {
+            if (manager.publisher && activeManagerExecutions == 1)
+               manager.publisher->ClearPublishedData();
+         }
+         catch (...) { ReportFailure("published data"); }
+         try
+         {
+            manager.Cleanup();
+         }
+         catch (...) { ReportFailure("invocation state"); }
+      }
+   } invocation{*this};
+   // A prior finalized call must not suppress cleanup of a partially built
+   // replacement invocation when argument creation or validation fails.
+   isFinalized = false;
+
+   ForgetRetiredFunctionStore();
+   PrepareObjectMapCore();
+   try { PrepareExecution(callingFM); }
+   catch (...) { callerFrame.Remember(); throw; }
+   callerFrame.Remember();
    
-   if (firstExecution || currentFunction->HasChangingInputType())
+   if (firstExecution || currentFunction->HasChangingInputType() ||
+         !currentFunction->IsInitialized() ||
+         currentFunction->GetFunctionObjectStore() != functionObjectStore)
    {
       #ifdef DEBUG_FM_EXECUTE
       MessageInterface::ShowMessage("   First execution, so calling Initialize()\n");
       #endif
-      Initialize();
+      if (!InitializeCore())
+         throw FunctionException("Unable to initialize arguments for function \"" +
+                                 functionName + "\"\n");
    }
    else
    {
@@ -964,9 +2646,7 @@ bool FunctionManager::Execute(FunctionManager *callingFM)
    #endif
    
    // pass the FOS/GOS and other objects into the function
-   currentFunction->SetGlobalObjectMap(globalObjectStore);
-   currentFunction->SetSolarSystem(solarSys);
-   currentFunction->SetTransientForces(forces);
+   BindFunctionServices();
    
    // send all input element wrappers to the function
    std::map<std::string, ElementWrapper *>::iterator ewi;
@@ -980,6 +2660,19 @@ bool FunctionManager::Execute(FunctionManager *callingFM)
       currentFunction->SetInputElementWrapper(ewi->first, ewi->second);
    }
    
+   outputInitialization.Bind([this, callee = currentFunction]()
+   {
+      if (currentFunction != callee)
+         throw FunctionException("Function binding changed during output preparation.\n");
+      const bool hadStore = functionObjectStore != nullptr;
+      ForgetRetiredFunctionStore();
+      if (hadStore && !functionObjectStore)
+         throw FunctionException("Function output store retired during declaration.\n");
+      if (functionObjectStore) RefreshBuiltinOutputObjects();
+   });
+
+   RefreshBuiltinOutputObjects();
+
    // create new ObjectInitializer   
    #ifdef DEBUG_FM_EXECUTE
    MessageInterface::ShowMessage
@@ -995,6 +2688,7 @@ bool FunctionManager::Execute(FunctionManager *callingFM)
          (objInit, "objInit", "FunctionManager::Execute()");
       #endif
       delete objInit;
+      objInit = NULL;
    }
 
    #ifdef DUMP_OBJECT_STORES
@@ -1043,36 +2737,21 @@ bool FunctionManager::Execute(FunctionManager *callingFM)
       throw FunctionException(errMsg);
    }
 
+   RefreshBuiltinOutputObjects();
+
    reinitializeFunc = false;
-   
-   // tell the fcs that this is the calling function
-   #ifdef DEBUG_FM_EXECUTE
-   MessageInterface::ShowMessage("   new objInit=<%p> created\n", objInit);
-   MessageInterface::ShowMessage(
-      "in FM::Execute (%s), calling function is <%p>'%s'\n",
-      functionName.c_str(), callingFunction, callingFunction ?
-      callingFunction->GetFunctionName().c_str() : "NULL");
-   #endif
-   
-   if (currentFunction->IsOfType("UserDefinedFunction"))
+   if (!stagedWrapperDeletions.empty())
    {
-      UserDefinedFunction *udf = (UserDefinedFunction*)currentFunction;
-      ////GmatCommand *cmd = currentFunction->GetFunctionControlSequence();
-      GmatCommand *cmd = udf->GetFunctionControlSequence();
-      while (cmd) 
-      {
-         #ifdef DEBUG_FM_EXECUTE
-         MessageInterface::ShowMessage(
-            "in FM::Execute, about to set calling function manager <%p> on command '%s'\n",
-            this, (cmd->GetTypeName()).c_str());
-         #endif
-         cmd->SetCallingFunction(this);
-         cmd->SetInternalCoordSystem(internalCS);
-         cmd = cmd->GetNext();
-      }
+      auto &wrappers = currentFunction->GetWrappersToDelete();
+      wrappers.reserve(wrappers.size() + stagedWrapperDeletions.size());
+      wrappers.insert(wrappers.end(), stagedWrapperDeletions.begin(), stagedWrapperDeletions.end());
+      stagedWrapperDeletions.clear();
    }
-   
-   
+
+   // Native initialization can rebind nested commands. Restore the complete
+   // structural command graph, including branch children, before execution.
+   BindFunctionServices();
+
    #ifdef DEBUG_FM_EXECUTE
    MessageInterface::ShowMessage
       ("in FM::Execute, Now calling currentFunction<%p>'%s'->Execute()\n", currentFunction,
@@ -1086,35 +2765,12 @@ bool FunctionManager::Execute(FunctionManager *callingFM)
       ("======================================================= Calling currentFunction->Execute()\n");
    #endif
    
-   // Now, execute the function
-   // If function sequence failed or threw an exception, finalize the function
-   try
+   // The invocation guard also handles false returns without assigning results.
+   if (!currentFunction->Execute(objInit, reinitializeFunc))
    {
-      if (!currentFunction->Execute(objInit, reinitializeFunc))
-      {
-         MessageInterface::ShowMessage
-            ("*** ERROR *** FunctionManager \"%s\" finalizing... due to false returned "
-             "from currentFunction->Execute()\n", functionName.c_str());
-         currentFunction->Finalize(true);
-         if (publisher)
-            publisher->ClearPublishedData();
-         
-         Cleanup();
-         return false;
-      }
-   }
-   catch (BaseException &e)
-   {
-      //MessageInterface::ShowMessage
-      //   ("*** ERROR *** FunctionManager \"%s\" finalizing... due to \n%s\n", functionName.c_str(),
-      //    e.GetFullMessage().c_str());
-      currentFunction->Finalize(true);
-      if (publisher)
-         publisher->ClearPublishedData();
-      
-      Cleanup();
-
-      throw;
+      MessageInterface::ShowMessage
+         ("*** ERROR *** FunctionManager \"%s\" finalizing... due to false returned "
+          "from currentFunction->Execute()\n", functionName.c_str());
       return false;
    }
    
@@ -1123,20 +2779,37 @@ bool FunctionManager::Execute(FunctionManager *callingFM)
       ("======================================================= currentFunction->Execute() DONE\n");
    #endif
    
-   // Now assign result
-   AssignResult();
+   // Prepare related object results before any caller assignment can overwrite
+   // a source value in an aliased recursive object store.
+   OutputObjectValues completedObjects;
+   PrepareOutputObjects(completedObjects);
+   AssignResult(&completedObjects);
    
    // Now deal with the calling function here
-   if (!HandleCallStack())
-   {
-      Cleanup();
+   if (!HandleCallStack(&completedObjects))
       return false;
-   }
+   if (blankResult && ownedObjectResult)
+      if (const auto context = ownedObjectResult->GetFunctionValueContext())
+      {
+         auto bindings = completedObjects.bindings;
+         for (const auto &entry : completedObjects.bindingNames)
+         {
+            GmatBase *caller = FindObject(entry.second);
+            if (!caller) throw FunctionException("Missing caller resource after function return: " + entry.second);
+            bindings[entry.first] = caller;
+         }
+         context->RebindCaller(*ownedObjectResult, completedObjects.epoch, bindings);
+      }
    
    #ifdef DEBUG_TRACE
    ShowTrace(callCount, t1, "FunctionManager::Execute() exiting", true);
    #endif
    
+   if (!outputInitialization.Restore())
+      throw FunctionException("Unable to restore the enclosing function invocation.\n");
+   if (!subscriberBindings.Restore())
+      throw FunctionException("Unable to restore enclosing subscriber bindings.\n");
+   invocation.completed = true;
    return true;
 }
 
@@ -1145,7 +2818,10 @@ bool FunctionManager::Execute(FunctionManager *callingFM)
 //------------------------------------------------------------------------------
 Real FunctionManager::Evaluate(FunctionManager *callingFM)
 {
-   if (currentFunction == NULL)
+   if (executing)
+      return InvokeReentrant([callingFM](FunctionManager &frame)
+            { return frame.Evaluate(callingFM); });
+   if (!HasLiveFunction())
    {
       std::string errMsg = "FunctionManager:: Unable to return Real value from Function """;
       errMsg += functionName + """ - pointer is NULL\n";
@@ -1158,7 +2834,8 @@ Real FunctionManager::Evaluate(FunctionManager *callingFM)
        currentFunction->GetName().c_str());
    #endif
    
-   Execute(callingFM);
+   if (!Execute(callingFM))
+      throw FunctionException("FunctionManager: cannot evaluate a failed function call\n");
    
    if (outputType != "Real")
       throw FunctionException("FunctionManager: invalid output type - should be real\n");
@@ -1176,7 +2853,10 @@ Real FunctionManager::Evaluate(FunctionManager *callingFM)
 //------------------------------------------------------------------------------
 Rmatrix FunctionManager::MatrixEvaluate(FunctionManager *callingFM)
 {
-   if (currentFunction == NULL)
+   if (executing)
+      return InvokeReentrant([callingFM](FunctionManager &frame)
+            { return frame.MatrixEvaluate(callingFM); });
+   if (!HasLiveFunction())
    {
       std::string errMsg = "FunctionManager:: Unable to return Rmatrix value from Function """;
       errMsg += functionName + """ - pointer is NULL\n";
@@ -1189,9 +2869,10 @@ Rmatrix FunctionManager::MatrixEvaluate(FunctionManager *callingFM)
        currentFunction->GetName().c_str());
    #endif
    
-   Execute(callingFM);
+   if (!Execute(callingFM))
+      throw FunctionException("FunctionManager: cannot evaluate a failed function call\n");
    
-   if (outputType != "Rmatrix")
+   if (outputType != "Rmatrix" && outputType != "Rvector")
       throw FunctionException("FunctionManager: invalid output type - should be Rmatrix\n");
    
    #ifdef DEBUG_FM_EVAL
@@ -1200,6 +2881,20 @@ Rmatrix FunctionManager::MatrixEvaluate(FunctionManager *callingFM)
    #endif
    
    return matResult;
+}
+
+Rvector FunctionManager::VectorEvaluate(FunctionManager *callingFM)
+{
+   if (executing)
+      return InvokeReentrant([callingFM](FunctionManager &frame)
+            { return frame.VectorEvaluate(callingFM); });
+   if (!HasLiveFunction())
+      throw FunctionException("Cannot evaluate a vector from a retired function.\n");
+   if (!Execute(callingFM))
+      throw FunctionException("FunctionManager: cannot evaluate a failed function call\n");
+   if (outputType != "Rvector")
+      throw FunctionException("FunctionManager: invalid output type - should be Rvector\n");
+   return matResult.GetRowOrColumn();
 }
 
 //------------------------------------------------------------------------------
@@ -1214,7 +2909,10 @@ Rmatrix FunctionManager::MatrixEvaluate(FunctionManager *callingFM)
 //------------------------------------------------------------------------------
 GmatBase* FunctionManager::EvaluateObject(FunctionManager *callingFM)
 {
-   if (currentFunction == NULL)
+   if (executing)
+      return InvokeReentrant([callingFM](FunctionManager &frame)
+            { return frame.EvaluateObject(callingFM); });
+   if (!HasLiveFunction())
    {
       std::string errMsg = "FunctionManager:: Unable to return object from Function """;
       errMsg += functionName + """ - pointer is NULL\n";
@@ -1227,7 +2925,8 @@ GmatBase* FunctionManager::EvaluateObject(FunctionManager *callingFM)
        currentFunction->GetName().c_str());
    #endif
    
-   Execute(callingFM);
+   if (!Execute(callingFM))
+      throw FunctionException("FunctionManager: cannot evaluate a failed function call\n");
    
    if (outputType != "Object")
       throw FunctionException("FunctionManager: invalid output type - should be Object\n");
@@ -1246,6 +2945,14 @@ GmatBase* FunctionManager::EvaluateObject(FunctionManager *callingFM)
 //------------------------------------------------------------------------------
 void FunctionManager::Finalize()
 {
+   if (executing)
+   {
+      finalizationRequested = true;
+      return;
+   }
+   auto context = Validator::Instance()->CaptureContext(activeManagerExecutions != 0);
+   finalizationRequested = false;
+   ForgetRetiredFunctionStore();
    #ifdef DEBUG_TRACE
    static Integer callCount = 0;
    callCount++;      
@@ -1269,7 +2976,7 @@ void FunctionManager::Finalize()
    #endif
    #endif
    
-   if (!isFinalized)
+   if (!isFinalized || reentrantInvocation || completedInvocation || !stagedWrapperDeletions.empty())
    {
       Cleanup();
    
@@ -1287,7 +2994,9 @@ void FunctionManager::Finalize()
 //------------------------------------------------------------------------------
 bool FunctionManager::IsFinalized()
 {
-   return isFinalized;
+   return isFinalized && !finalizationRequested &&
+         (!reentrantInvocation || reentrantInvocation->IsFinalized()) &&
+         (!completedInvocation || completedInvocation->IsFinalized());
 //    if (currentFunction)
 //       return currentFunction->IsFcsFinalized();
 //    return true;
@@ -1329,7 +3038,10 @@ void FunctionManager::PrepareExecution(FunctionManager *callingFM)
          ShowObjectMap(localObjectStore, "=====> LOS in FM::PrepareExecution() before push");
          #endif
          losStack.push(localObjectStore);
-         callingFunction->PushToStack();
+         const bool privateStore = !currentFunction->IsInitialized() ||
+               !currentFunction->GetFunctionObjectStore() ||
+               !IsActiveCallerStore(currentFunction->GetFunctionObjectStore());
+         callingFunction->PushToStack(callingFunction->executing && privateStore);
          #ifdef DEBUG_FM_EXECUTE
          ShowObjectMap(localObjectStore, "=====> LOS in FM::PrepareExecution() after  push");
          #endif
@@ -1433,6 +3145,96 @@ bool FunctionManager::ValidateFunctionArguments()
 }
 
 //------------------------------------------------------------------------------
+// CaptureInputObjects / BindCapturedValue / RebindCapturedObjects
+//------------------------------------------------------------------------------
+FunctionManager::LocalObjectState FunctionManager::CaptureInputObjects()
+{
+   LocalObjectState captured;
+   captured.epoch = std::make_shared<const int>(0);
+   const StringArray formalNames = currentFunction->GetStringArrayParameter(
+         currentFunction->GetParameterID("Input"));
+   if (formalNames.size() != passedIns.size())
+      throw FunctionException("Function input count changed during argument capture.\n");
+   std::map<Integer, std::unique_ptr<GmatBase>> pending;
+   pending.swap(pendingInputValues);
+   std::map<const GmatBase*, size_t> occurrences;
+   for (UnsignedInt i = 0; i < passedIns.size(); ++i)
+   {
+      const auto evaluated = pending.find(i);
+      GmatBase *source = evaluated == pending.end() ? FindObject(passedIns[i]) : evaluated->second.get();
+      const GmatBase *identity = NULL;
+      if (source && !source->IsOfType(Gmat::PARAMETER) &&
+          !source->IsOfType(Gmat::FUNCTION) && OwnsFunctionObject(source) &&
+          evaluated == pending.end())
+         identity = source;
+
+      // A system Parameter is an evaluated scalar/matrix/String argument, not
+      // a handle back to the caller spacecraft or other parameter owner.
+      if (!source || (evaluated == pending.end() && source->IsOfType(Gmat::PARAMETER)))
+         source = CreateObject(passedIns[i]);
+      if (!source)
+         throw FunctionException("Cannot capture function input " + passedIns[i] + ".\n");
+      std::unique_ptr<GmatBase> value(CloneFunctionValue(source));
+      if (value.get() == source)
+      {
+         value.release();
+         throw FunctionException("Function input capture Clone returned its source.\n");
+      }
+      if (!value || value->GetTypeName() != source->GetTypeName())
+         throw FunctionException("Cannot clone captured function input " + passedIns[i] + ".\n");
+      BindCapturedValue(value.get(), source, localObjectStore, captured.epoch);
+      if (identity)
+      {
+         ++occurrences[identity];
+         captured.bindingNames[identity] = formalNames[i];
+      }
+      captured.objects.emplace(formalNames[i], std::move(value));
+   }
+   // Repeated actual arguments produce independent formal values. A reference
+   // from another argument has no unique formal target in that case; retain
+   // its independent captured dependency instead of guessing a last binding.
+   for (const auto &entry : occurrences)
+      if (entry.second != 1) captured.bindingNames.erase(entry.first);
+   return captured;
+}
+
+void FunctionManager::BindCapturedValue(GmatBase *value, GmatBase *source,
+      ObjectMap *scene, const std::shared_ptr<const void> &epoch)
+{
+   if (!value || !source ||
+       (!SupportsRetainedFunctionRoot(source) && !source->IsOfType("EphemerisFile"))) return;
+   auto context = std::make_shared<ReturnedEphemerisFrames>();
+   context->solarSystem = solarSys;
+   context->runtimeForces = forces;
+   context->bindingEpoch = epoch;
+   for (ObjectMap *store : {scene, globalObjectStore})
+      if (store)
+         for (const auto &entry : *store)
+            if (OwnsFunctionObject(entry.second)) context->privateObjects.insert(entry.second);
+   const auto previous = value->GetFunctionValueContext();
+   if (previous) context->inheritedValues.push_back(previous);
+   value->SetFunctionValueContext(context);
+   context->BindCopy(source, value, true);
+   context->Initialize();
+   context->inheritedValues.clear();
+}
+
+void FunctionManager::RebindCapturedObjects(const LocalObjectState &captured,
+      const ObjectMap &targets)
+{
+   std::map<const GmatBase*, GmatBase*> bindings;
+   for (const auto &entry : captured.bindingNames)
+   {
+      const auto target = targets.find(entry.second);
+      if (target != targets.end() && target->second) bindings[entry.first] = target->second;
+   }
+   for (const auto &entry : targets)
+      if (entry.second)
+         if (const auto context = entry.second->GetFunctionValueContext())
+            context->RebindCaller(*entry.second, captured.epoch, bindings);
+}
+
+//------------------------------------------------------------------------------
 // bool CreatePassingArgWrappers()
 //------------------------------------------------------------------------------
 /**
@@ -1445,7 +3247,7 @@ bool FunctionManager::ValidateFunctionArguments()
  * they must be found in the object store; and we do not need to clone them.
  */
 //------------------------------------------------------------------------------
-bool FunctionManager::CreatePassingArgWrappers()
+bool FunctionManager::CreatePassingArgWrappers(LocalObjectState *captured)
 {
    #ifdef DEBUG_FM_INIT
    MessageInterface::ShowMessage("\n==================================================\n");
@@ -1468,91 +3270,68 @@ bool FunctionManager::CreatePassingArgWrappers()
    validator->SetObjectMap(&combinedObjectStore);
    validator->SetSolarSystem(solarSys);
    
+   LocalObjectState ownedCapture;
+   if (!captured)
+   {
+      ownedCapture = CaptureInputObjects();
+      captured = &ownedCapture;
+   }
+   ObjectMap argumentTargets;
+
    // clear input and out wrappers first
    ClearInOutWrappers();
    numVarsCreated = 0;
+   blankResult = false;
    
    #ifdef DEBUG_FM_INIT
    MessageInterface::ShowMessage
       ("   There are %d passed inputs\n", passedIns.size());
    #endif
    // set up the FOS with the input objects
+   bool hasChangingInputType = false;
    for (unsigned int ii=0; ii<passedIns.size(); ii++)
    {
-      // if the passing input string does not refer to an object that can be
-      // located in the LOS or GOS, we must try to create an object for it,
-      // if it makes sense (e.g. numeric literal, string literal, array element)
       formalName = inFormalNames.at(ii);
       passedName = passedIns.at(ii);
-      #ifdef DEBUG_FM_INIT
-      MessageInterface::ShowMessage
-         ("   Checking if '%s' exists in the map\n", passedName.c_str());
-      #endif
-      
-      if (!(obj = FindObject(passedName)))
-      {
-         #ifdef DEBUG_FM_INIT
-         MessageInterface::ShowMessage
-            ("==========> '%s' not found so creating...\n", passedName.c_str());
-         #endif
-         obj = CreateObject(passedName);
-         if (!obj)
-         {
-            std::string errMsg = "FunctionManager: Object not found or created for input string \"";
-            errMsg += passedIns.at(ii) + "\" for function \"";
-            errMsg += functionName + "\"\n";
-            throw FunctionException(errMsg);
-         }
-         objFOS = obj->Clone();      
-         objFOS->SetName(formalName);
-      }
-      // if object found clone it (loj: 2008.12.10)
-      else
-      {
-         #ifdef DEBUG_FM_INIT
-         MessageInterface::ShowMessage(
-            "   passed input object <%p>\"%s\" of type \"%s\" found in LOS/GOS \n",
-            obj, (passedIns.at(ii)).c_str(), (obj->GetTypeName()).c_str());
-         #endif
+      obj = captured->objects.at(formalName).get();
+      objFOS = CloneFunctionValue(obj);
 
-         if (obj->IsOfType(Gmat::GROUND_STATION))
-         {
-            objFOS = obj;
-         }
-         else
-         {
-            objFOS = obj->Clone();
-            objFOS->SetName(formalName);
-            // Flag it as local object
-            objFOS->SetIsLocal(true);
-            objFOS->SetIsGlobal(false);
-         }
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Add
-            (objFOS, formalName, "FunctionManager::CreatePassingArgWrappers()",
-             "objFOS = obj->Clone()");
-         #endif
-      }
+      if (objFOS == obj)
+         throw FunctionException("Function input Clone returned its source: " + passedName);
+      std::unique_ptr<GmatBase> ownedArgument(objFOS);
+      if (!objFOS)
+         throw FunctionException("Cannot clone function input \"" + passedName + "\"\n");
+      objFOS->SetName(formalName);
+      objFOS->SetIsLocal(true);
+      objFOS->SetIsGlobal(false);
       
       // If object already exists and is the same type, we can keep the object
       // and just copy the data
       ObjectMap::iterator it = functionObjectStore->find(formalName);
-      bool hasChangingInputType = false;
       if (it == functionObjectStore->end())
+      {
          functionObjectStore->insert(std::make_pair(formalName, objFOS));
-      else if (it->second->GetTypeName() == objFOS->GetTypeName())
+         ownedArgument.release();
+      }
+      else if (it->second &&
+               it->second->GetTypeName() == objFOS->GetTypeName())
       {
          it->second->Copy(objFOS);
          it->second->SetFullName(passedName);
+         objFOS = it->second;
       }
       else
       {
-         hasChangingInputType = true;
-         DeleteObject(it->second);
+         hasChangingInputType = hasChangingInputType || !it->second ||
+            it->second->GetTypeName() != objFOS->GetTypeName();
+         if (it->second != objFOS)
+            DeleteObject(it->second);
          it->second = objFOS;
+         ownedArgument.release();
       }
-      currentFunction->SetChangingInputType(hasChangingInputType);
       
+      argumentTargets[formalName] = objFOS;
+
       #ifdef DEBUG_FM_INIT // ------------------------------------------------- debug ---
          MessageInterface::ShowMessage("   Adding object '%s' to the FOS\n", formalName.c_str());
       #endif // -------------------------------------------------------------- end debug ---
@@ -1560,31 +3339,58 @@ bool FunctionManager::CreatePassingArgWrappers()
       // Do we neet to set this inside the loop? commented out (loj: 2008.11.21)
       //validator->SetObjectMap(&combinedObjectStore);
       //validator->SetSolarSystem(solarSys);
-      std::string inName = passedIns.at(ii);      
+      // Owned inputs are evaluated through their formal local object. A
+      // caller-side array/property wrapper would otherwise remain live on the
+      // caller, or point to a temporary clone discarded during object reuse.
+      std::string inName = formalName;
       #ifdef DEBUG_WRAPPERS
       MessageInterface::ShowMessage
          ("==========> FM:CreatePassingArgWrappers() '%s' Creating "
           "ElementWrapper for '%s'\n", functionName.c_str(), inName.c_str());
       #endif
       
-      ElementWrapper *inWrapper = validator->CreateElementWrapper(inName, false, false);
+      std::unique_ptr<ElementWrapper> inWrapper;
+      validator->SetObjectMap(functionObjectStore);
+      try
+      {
+         inWrapper.reset(validator->CreateElementWrapper(inName, false, 0));
+      }
+      catch (...)
+      {
+         validator->SetObjectMap(&combinedObjectStore);
+         throw;
+      }
+      validator->SetObjectMap(&combinedObjectStore);
+      if (!inWrapper)
+         throw FunctionException("Cannot create function input wrapper \"" + inName + "\"\n");
       
       #ifdef DEBUG_MORE_MEMORY
       MessageInterface::ShowMessage
          ("+++ FunctionManager::CreatePassingArgWrappers() *inWrapper = validator->"
-          "CreateElementWrapper(%s), <%p> '%s'\n", inName.c_str(), inWrapper,
+          "CreateElementWrapper(%s), <%p> '%s'\n", inName.c_str(), inWrapper.get(),
           inWrapper->GetDescription().c_str());
       #endif
-      inWrapper->SetRefObject(objFOS);
-      inputWrapperMap.insert(std::make_pair(formalName, inWrapper));
+      if (!inWrapper->SetRefObject(objFOS))
+         throw FunctionException("Cannot bind function input \"" + inName + "\"\n");
       #ifdef DEBUG_FM_INIT // ------------------------------------------------- debug ---
          MessageInterface::ShowMessage("   Created element wrapper of type %d for \"%s\"\n",
                inWrapper->GetWrapperType(), inName.c_str());
       #endif // -------------------------------------------------------------- end debug ---
+      inputWrapperMap.insert(std::make_pair(formalName, inWrapper.get()));
+      inWrapper.release();
    }
+   RebindCapturedObjects(*captured, argumentTargets);
+   currentFunction->SetChangingInputType(hasChangingInputType);
    
-   // Outputs cannot be numeric or string literals or array elements, etc.
-   // They must be found in the object store; and we do not need to clone them
+   // Built-ins write through their formal output objects even when the caller
+   // consumes an unnamed result in a math expression. Allocate those objects
+   // before choosing whether a caller output wrapper is needed.
+   RefreshBuiltinOutputObjects();
+   
+
+   // Outputs must refer to caller objects or writable array elements, not
+   // numeric/string literals. Resolve the owner; the wrapper validates indices.
+   // We do not need to clone these caller objects.
    // Handle the case with one blank output (called from FunctionRunner) first   
    if ((passedOuts.size() == 1) && (passedOuts.at(0) == ""))
    {
@@ -1595,54 +3401,9 @@ bool FunctionManager::CreatePassingArgWrappers()
    }
    else
    {
-      // If function is BuiltinGmatFunction, create objects with formal output names
-      // and add to FOS
-      if (currentFunction->IsOfType("BuiltinGmatFunction"))
-      {
-         IntegerArray rowCounts, colCounts;
-         WrapperTypeArray outWrapperTypes = currentFunction->GetOutputTypes(rowCounts, colCounts);
-         #ifdef DEBUG_FM_INIT
-         MessageInterface::ShowMessage
-            ("   Current function is BuiltinGmatFunction, outWrapperTypes.size() = %d\n",
-             outWrapperTypes.size());
-         #endif
-         for (unsigned int ii=0; ii<outFormalNames.size(); ii++)
-         {
-            GmatBase *obj = NULL;
-            std::string outName = outFormalNames[ii];
-            Gmat::WrapperDataType wType = outWrapperTypes[ii];
-            Integer numRows = rowCounts[ii];
-            Integer numCols = colCounts[ii];
-            #ifdef DEBUG_FM_INIT
-            MessageInterface::ShowMessage
-               ("   wType=%d, numRos=%d, numCols=%d\n", wType, numRows, numCols);
-            #endif
-            
-            obj = CreateObjectForBuiltinGmatFunction(outName, wType, numRows, numCols);
-            
-            if (obj)
-            {
-               #ifdef DEBUG_FM_INIT
-               MessageInterface::ShowMessage
-                  ("   Adding object '%s' to the FOS\n", outName.c_str());
-               #endif
-               functionObjectStore->insert(std::make_pair(outName,obj));
-            }
-            else
-            {
-               std::string errMsg = "FunctionManager: error creating output object \"";
-               errMsg += outName + "\"\n";
-               #ifdef DEBUG_FM_INIT
-               MessageInterface::ShowMessage(errMsg + " so throwing an exception\n");
-               #endif
-               throw FunctionException(errMsg);
-            }
-         }
-      }
-      
       for (unsigned int jj = 0; jj < passedOuts.size(); jj++)
       {
-         if (!(obj = FindObject(passedOuts.at(jj))))
+         if (!(obj = FindObject(passedOuts.at(jj), true)))
          {
             std::string errMsg = "Output \"" + passedOuts.at(jj);
             errMsg += " not found for function \"" + functionName + "\"";
@@ -1655,19 +3416,21 @@ bool FunctionManager::CreatePassingArgWrappers()
              "ElementWrapper for '%s'\n", functionName.c_str(), outName.c_str());
          #endif
          
-         ElementWrapper *outWrapper = validator->CreateElementWrapper(outName);
+         std::unique_ptr<ElementWrapper> outWrapper(
+            validator->CreateElementWrapper(outName));
+         if (!outWrapper || !outWrapper->SetRefObject(obj))
+            throw FunctionException("Cannot bind function output \"" + outName + "\"\n");
          
          #ifdef DEBUG_MORE_MEMORY
          MessageInterface::ShowMessage
             ("+++ FunctionManager::CreatePassingArgWrappers() *outWrapper = validator->"
-             "CreateElementWrapper(%s), <%p> '%s'\n", outName.c_str(), outWrapper,
+             "CreateElementWrapper(%s), <%p> '%s'\n", outName.c_str(), outWrapper.get(),
              outWrapper->GetDescription().c_str());
          #endif
-         outWrapper->SetRefObject(obj); 
-         outputWrappers.push_back(outWrapper);
+         outputWrappers.push_back(outWrapper.release());
          #ifdef DEBUG_FM_INIT // ------------------------------------------------- debug ---
          MessageInterface::ShowMessage
-            ("   Output wrapper created <%p> for %s\n", outWrapper, outName.c_str());
+            ("   Output wrapper created <%p> for %s\n", outputWrappers.back(), outName.c_str());
          #endif // -------------------------------------------------------------- end debug ---
       }
    }
@@ -1777,171 +3540,45 @@ void FunctionManager::RefreshFOS()
 //------------------------------------------------------------------------------
 void FunctionManager::RefreshFormalInputObjects()
 {
-   #ifdef DEBUG_FM_EXECUTE
-   MessageInterface::ShowMessage("FM:RefreshFormalInputObjects() entered\n");
-   ShowObjectMap(functionObjectStore, "FunctionObjectStore");
-   ShowObjectMap(globalObjectStore, "GlobalObjectStore");
-   #endif
-   
-   std::string formalName, passedName;
-   // Get function formal input argument names (parameters)
-   StringArray inFormalNames = currentFunction->GetStringArrayParameter(currentFunction->GetParameterID("Input"));
-   
-   // Find and/or evaluate the input objects
-   for (unsigned int ii=0; ii<passedIns.size(); ii++)
+   LocalObjectState captured = CaptureInputObjects();
+   // A changed value type needs a matching formal object and typed wrapper.
+   // Reuse this capture: reevaluating expressions could change their values.
+   for (const auto &entry : captured.objects)
    {
-      // Get the object from the object store first 
-      formalName = inFormalNames.at(ii);
-      passedName = passedIns.at(ii);
-      
-      #ifdef DEBUG_FM_EXECUTE
-      MessageInterface::ShowMessage
-         ("   passedIns[%d]='%s', formalName='%s'\n", ii, passedName.c_str(),
-          formalName.c_str());
-      #endif
-      
-      GmatBase *objPassed = NULL;
-      GmatBase *fosObjFormal = NULL;
-      GmatBase *gosObjFormal = NULL;
-      if (functionObjectStore->find(formalName) == functionObjectStore->end())
+      const auto formal = functionObjectStore->find(entry.first);
+      if (formal != functionObjectStore->end() &&
+          (!formal->second || formal->second->GetTypeName() != entry.second->GetTypeName()))
       {
-         // Try globalObjectStore (LOJ: 2015.10.19 GMT-5336)
-         if (globalObjectStore->find(formalName) == globalObjectStore->end())
-         {
-            std::string errMsg = "FunctionManager error: input object \"" + formalName;
-            errMsg += "\"not found in Function Object Store or Global Object Store.\n";
-            throw FunctionException(errMsg);
-         }
-         else
-         {
-            #ifdef DEBUG_FM_EXECUTE
-            MessageInterface::ShowMessage
-               ("   formalName='%s' found from the global object store\n", formalName.c_str());
-            #endif
-            
-            gosObjFormal = (*globalObjectStore)[formalName];
-         }
-      }
-      else
-      {
-         #ifdef DEBUG_FM_EXECUTE
-         MessageInterface::ShowMessage
-            ("   formalName='%s' found from the function object store\n", formalName.c_str());
-         #endif
-         
-         fosObjFormal = (*functionObjectStore)[formalName];
-      }
-      
-      #ifdef DEBUG_FM_EXECUTE
-      MessageInterface::ShowMessage("   fosObjFormal=<%p>\n", fosObjFormal);
-      MessageInterface::ShowMessage("   gosObjFormal=<%p>\n", gosObjFormal);
-      #endif
-      
-      // Now find the corresponding input object
-      // if passed name not found in LOS or GOS, it may be a number, string literal,
-      // array element, or automatic object such as sat.X
-      if (!(objPassed = FindObject(passedName)))
-      {
-         #ifdef DEBUG_FM_EXECUTE
-         ShowObjectMap(&createdLiterals, "createdLiterals map in RefreshFormalInputObjects");
-         #endif
-         
-         // if passed name not found in created literals
-         if (createdLiterals.find(passedName) == createdLiterals.end())
-         {
-            #ifdef DEBUG_FM_EXECUTE
-            ShowObjectMap(&createdOthers, "createdOthers map in RefreshFormalInputObjects");
-            #endif            
-            
-            if (createdOthers.find(passedName) == createdOthers.end())
-            {
-               std::string errMsg = "Input \"" + passedName;
-               errMsg += " not found for function \"" + functionName + "\"";
-               throw FunctionException(errMsg);
-            }
-            
-            #ifdef DEBUG_FM_EXECUTE
-            MessageInterface::ShowMessage
-               ("   '%s' found from the createdOthers\n", passedName.c_str());
-            #endif
-            
-            GmatBase *oldObjPassed = createdOthers[passedName];
-            objPassed = CreateObject(passedName);
-            #ifdef DEBUG_FM_EXECUTE
-            MessageInterface::ShowMessage("   oldObjPassed=<%p>\n", oldObjPassed);
-            MessageInterface::ShowMessage("   objPassed=<%p>\n", objPassed);
-            #endif
-            if (!objPassed)
-            {
-               std::string errMsg2 =
-                  "FunctionManager: Object not found or created for input string \"";
-               errMsg2 += passedName + "\" for function \"";
-               errMsg2 += functionName + "\"\n";
-               throw FunctionException(errMsg2);
-            }
-            createdOthers[passedName] = objPassed;
-            
-            // Do not delete fosObjFormal here. when GmatFunction is called within
-            // a loop, fosObjFormal and oldObjPassed points to the same object,
-            // it will do double delete which causes a crash. (Fix for GMT-5717)
-            // if (fosObjFormal)
-            // {
-            //    MessageInterface::ShowMessage("==> Deleting fosObjFormal=<%p>\n", fosObjFormal);
-            //    #ifdef DEBUG_MEMORY
-            //    MemoryTracker::Instance()->Remove
-            //       (fosObjFormal, osObjFormal->GetName(),
-            //        "FunctionManager::RefreshFormalInputObjects()", "deleting fosObjFormal");
-            //    #endif
-            //    delete fosObjFormal;
-            //    fosObjFormal = NULL;
-            // }
-            
-            // Delete oldObjPassed if not the same as fosObjFormal
-            if (oldObjPassed && (fosObjFormal != oldObjPassed))
-            {
-               #ifdef DEBUG_FM_EXECUTE
-               MessageInterface::ShowMessage("   Deleting oldObjPassed=<%p>\n", oldObjPassed);
-               #endif
-               #ifdef DEBUG_MEMORY
-               MemoryTracker::Instance()->Remove
-                  (oldObjPassed, oldObjPassed->GetName(), "FunctionManager::RefreshFormalInputObjects()",
-                   "deleting oldObjPassed");
-               #endif
-               delete oldObjPassed;
-               oldObjPassed = NULL;
-            }
-         }
-         else
-         {
-            #ifdef DEBUG_FM_EXECUTE
-            MessageInterface::ShowMessage
-               ("   '%s' found from the createdLiterals\n", passedName.c_str());
-            #endif
-            objPassed = createdLiterals[passedName];
-         }
-      }
-      
-      #ifdef DEBUG_FM_EXECUTE
-      MessageInterface::ShowMessage
-         ("   Update the object in the object store with the current object\n");
-      #endif
-      
-      // Update the object in the function or global object store with the current/reset data
-      // If global object use global object store (LOJ: 2015.10.19 for GMT-5336 fix)
-      if (fosObjFormal)
-      {
-         fosObjFormal->Copy(objPassed);
-         (inputWrapperMap[formalName])->SetRefObject(fosObjFormal);  // is this necessary? I think so
-      }
-      else if (gosObjFormal)
-      {
-         (inputWrapperMap[formalName])->SetRefObject(gosObjFormal);
+         if (!CreatePassingArgWrappers(&captured))
+            throw FunctionException("Cannot rebuild changed function input types.\n");
+         return;
       }
    }
-   
-   #ifdef DEBUG_FM_EXECUTE
-   MessageInterface::ShowMessage("FM:RefreshFormalInputObjects() leaving\n");
-   #endif
+
+   ObjectMap argumentTargets;
+   for (const auto &entry : captured.objects)
+   {
+      GmatBase *target = NULL;
+      const auto local = functionObjectStore->find(entry.first);
+      if (local != functionObjectStore->end())
+      {
+         target = local->second;
+         target->Copy(entry.second.get());
+         argumentTargets[entry.first] = target;
+      }
+      else if (globalObjectStore)
+      {
+         const auto global = globalObjectStore->find(entry.first);
+         if (global != globalObjectStore->end()) target = global->second;
+      }
+      const auto wrapper = inputWrapperMap.find(entry.first);
+      if (!target || wrapper == inputWrapperMap.end() || !wrapper->second ||
+          !wrapper->second->SetRefObject(target))
+         throw FunctionException("Cannot refresh function input " + entry.first + ".\n");
+   }
+   // No root Copy occurs after this point. Native component addresses in each
+   // formal are now stable for references from the other captured arguments.
+   RebindCapturedObjects(captured, argumentTargets);
 }
 
 
@@ -1950,340 +3587,315 @@ void FunctionManager::RefreshFormalInputObjects()
 //------------------------------------------------------------------------------
 GmatBase* FunctionManager::FindObject(const std::string &name, bool arrayElementsAllowed)
 {
-   #ifdef DEBUG_FIND_OBJ
-   MessageInterface::ShowMessage
-      ("FunctionManager::FindObject() entered, name=%s', arrayElementsAllowed=%d\n",
-       name.c_str(), arrayElementsAllowed);
-   #endif
-   
-   std::string newName = name;
-   
-   // Ignore array indexing of Array
-   std::string::size_type index = name.find('(');
-   if (index != name.npos)
+   std::string key = name;
+   const auto index = name.find('(');
+   if (index != std::string::npos)
    {
-      if (!arrayElementsAllowed)
-      {
-         #ifdef DEBUG_FIND_OBJ
-         MessageInterface::ShowMessage
-            ("FunctionManager::FindObject() returning NULL, '%s' is array "
-             "element and array element is not allowed in this call\n", name.c_str());
-         #endif
-         return NULL; // we deal with array elements separately
-      }
-      else
-         newName = name.substr(0, index);
+      if (!arrayElementsAllowed) return nullptr;
+      key = name.substr(0, index);
    }
-   
-   #ifdef DEBUG_FIND_OBJ
-   MessageInterface::ShowMessage
-      ("   After removing array index, newName='%s'\n", newName.c_str());
-   MessageInterface::ShowMessage
-      ("   Checking if '%s' in the LOS\n", newName.c_str());
-   #endif
-   
-   // Check for the object in the Local Object Store (LOS) first
-   if (localObjectStore->find(newName) == localObjectStore->end())
+   if (localObjectStore)
    {
-      #ifdef DEBUG_FIND_OBJ
-      MessageInterface::ShowMessage
-         ("   Checking if '%s' in the GOS\n", newName.c_str());
-      #endif
-      // It is not found in the LOS, check the Global Object Store (GOS)
-      if (globalObjectStore->find(newName) == globalObjectStore->end())
-      {
-         // Check to see if the object is a solar system member
-         if (solarSys)
-         {
-            GmatBase *objFound = solarSys->GetBody(newName);
-
-            if (objFound == NULL)
-               objFound = solarSys->GetSpecialPoint(newName);
-
-            if (objFound)
-            {
-               #ifdef DEBUG_FIND_OBJ
-               MessageInterface::ShowMessage
-                  ("FunctionManager::FindObject() returning <%p>, '%s' found in Solar System\n",
-                   objFound, newName.c_str());
-               #endif
-               return objFound;
-            }
-         }
-
-         #ifdef DEBUG_FIND_OBJ
-         MessageInterface::ShowMessage
-            ("FunctionManager::FindObject() returning NULL, '%s' not in LOS nor GOS\n",
-             name.c_str());
-         #endif
-         return NULL;
-      }
-      else
-      {
-         GmatBase *objFound = (*globalObjectStore)[newName];
-         #ifdef DEBUG_FIND_OBJ
-         MessageInterface::ShowMessage
-            ("FunctionManager::FindObject() returning <%p>, '%s' found in GOS\n",
-             objFound, newName.c_str());
-         #endif
-         return objFound; //(*globalObjectStore)[newName];
-      }
+      const auto found = localObjectStore->find(key);
+      if (found != localObjectStore->end()) return found->second;
    }
-   else
+   if (globalObjectStore)
    {
-      GmatBase *objFound = (*localObjectStore)[newName];
-      #ifdef DEBUG_FIND_OBJ
-      MessageInterface::ShowMessage
-         ("FunctionManager::FindObject() returning <%p>, '%s' found in LOS\n",
-          objFound, newName.c_str());
-      #endif
-      return objFound; //(*localObjectStore)[newName];
+      const auto found = globalObjectStore->find(key);
+      if (found != globalObjectStore->end()) return found->second;
    }
-   
-   return NULL; // should never get to this point
+   if (solarSys)
+   {
+      GmatBase *object = solarSys->GetBody(key);
+      if (!object) object = solarSys->GetSpecialPoint(key);
+      return object;
+   }
+   return nullptr;
 }
 
 //------------------------------------------------------------------------------
 // GmatBase* CreateObject(const std::string &fromString)
 //------------------------------------------------------------------------------
 /*
- * Creates an object from the input string name. If input string is numeric string
- * it creates a Variable, and StringVar if it is string literal. All other string
- * values are handled by first creating an element wrapper and create a proper object
- * based on the wrapper type. The local element wrapper is deleted at last.
+ * Materializes a manager-owned input value. Numeric and String literals reuse
+ * their snapshots. Other expressions are evaluated by reported value type;
+ * dynamic snapshots replace the previous cache only after evaluation succeeds.
  *
  * @param fromString input name of the object to be created
  *
- * @return newly created object
+ * @return manager-owned snapshot (possibly an existing literal)
  */
 //------------------------------------------------------------------------------
 GmatBase* FunctionManager::CreateObject(const std::string &fromString)
 {
-   #ifdef DEBUG_CREATE_OBJ
-   MessageInterface::ShowMessage
-      ("FunctionManager::CreateObject() entered, fromString='%s'\n", fromString.c_str());
-   #endif
-   
-   GmatBase    *obj = NULL, *refObj;
-   Real        rval;
-   std::string sval;
-   Variable    *v = NULL;
-   if (GmatStringUtil::IsBlank(fromString)) return obj;
-   // determine the name of the next object to be created (if needed)
-   //std::string newName = "FMvar" + numVarsCreated;
-   std::string str     = GmatStringUtil::Trim(fromString, GmatStringUtil::BOTH);
-   Integer     sz      = (Integer) str.size();
-   
-   // Check first to see if the string is a numeric literal (and assume we want a real)
-   if (GmatStringUtil::ToReal(fromString, &rval))
+   if (GmatStringUtil::IsBlank(fromString))
+      return NULL;
+   const std::string name = GmatStringUtil::Trim(fromString, GmatStringUtil::BOTH);
+   std::unique_ptr<GmatBase> value;
+   Real number;
+   ObjectMap *cache = &createdOthers;
+
+   // Literal snapshots can be reused by multiple formal inputs. Each formal
+   // receives its own clone; allocating another uncached literal leaks it.
+   const bool numericLiteral = GmatStringUtil::ToReal(name, &number);
+   const bool stringLiteral = GmatScriptString::IsLiteral(name);
+   if (numericLiteral || stringLiteral)
    {
-      v = new Variable(str);      
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (v, str, "FunctionManager::CreateObject()", "v = new Variable()");
-      #endif
-      
-      v->SetReal(rval);
-      obj = (GmatBase*) v;
-      createdLiterals.insert(std::make_pair(str,obj));
-   }
-   // Now check to see if it is a string literal, enclosed with single quotes
-   else if ((str[0] == '\'') && (str[sz-1] == '\''))
-   {
-      sval = str.substr(1, sz-2);
-      StringVar *sv = new StringVar(str);      
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (v, str, "FunctionManager::CreateObject()", "sv = new StringVar()");
-      #endif
-      
-      sv->SetStringParameter("Value", sval);
-      obj = (GmatBase*) sv;
-      createdLiterals.insert(std::make_pair(str,obj));
+      cache = &createdLiterals;
+      auto existing = cache->find(name);
+      if (existing != cache->end() && existing->second)
+         return existing->second;
+      if (numericLiteral)
+      {
+         std::unique_ptr<Variable> variable(new Variable(name));
+         variable->SetReal(number);
+         value = std::move(variable);
+      }
+      else
+      {
+         std::unique_ptr<StringVar> text(new StringVar(name));
+         text->SetStringParameter("Value", GmatScriptString::Decode(name));
+         value = std::move(text);
+      }
    }
    else
    {
-      // otherwise, we assume it is something else, like array element.
-      // NOTE that we are only allowing Real and Array here 
       validator->SetObjectMap(&combinedObjectStore);
       validator->SetSolarSystem(solarSys);
-      
-      // We should pass manage=2 as Function here so that new objects created
-      // can be stored in the function object store(LOJ: 2009.05.14)
-      ElementWrapper *ew = validator->CreateElementWrapper(fromString, false, 2);
-      if (ew)
+      auto deleteWrapper = [](ElementWrapper *wrapper)
       {
-         #ifdef DEBUG_MORE_MEMORY
-         MessageInterface::ShowMessage
-            ("+++ FunctionManager::CreateObject() *ew = validator->"
-             "CreateElementWrapper(%s), <%p> '%s'\n", fromString.c_str(), ew,
-             ew->GetDescription().c_str());
-         #endif
-         
-         Gmat::WrapperDataType wType = ew->GetWrapperType();
-         switch (wType)
-         {
-            case Gmat::ARRAY_WT :
-            {
-               Array *array   = new Array(str);               
-               #ifdef DEBUG_MEMORY
-               MemoryTracker::Instance()->Add
-                  (array, str, "FunctionManager::CreateObject()", "array = new Array()");
-               #endif
-               
-               Rmatrix matVal = ew->EvaluateArray();
-               array->SetRmatrix(matVal);
-               obj = (GmatBase*) array;
-               break;
-            }
-            case Gmat::ARRAY_ELEMENT_WT :
-            {
-               // get the reference object first ...
-               refObj = FindObject(fromString, true);
-               if (!refObj)
-               {
-                  std::string errMsg = "FunctionManager: Error getting reference"
-                     " object for array element ";
-                  errMsg += fromString + "\n";
-                  throw FunctionException(errMsg);
-               }
-               ew->SetRefObject(refObj);
-               rval = ew->EvaluateReal(); 
-               v = new Variable(str);               
-               #ifdef DEBUG_MEMORY
-               MemoryTracker::Instance()->Add
-                  (v, str, "FunctionManager::CreateObject()", "v = new Variable()");
-               #endif
-               
-               v->SetReal(rval);
-               obj = (GmatBase*) v;
-               break;
-            }
-            case Gmat::NUMBER_WT :
-            case Gmat::VARIABLE_WT :
-            case Gmat::INTEGER_WT :       // what is this anyway?
-            {
-               rval = ew->EvaluateReal(); 
-               v = new Variable(str);
-               #ifdef DEBUG_MEMORY
-               MemoryTracker::Instance()->Add
-                  (v, str, "FunctionManager::CreateObject()", "v = new Variable()");
-               #endif
-               
-               v->SetReal(rval);
-               obj = (GmatBase*) v;
-               break;
-            }
-            default:
-            {
-               // If unknown create variable (loj: 2008.09.12)
-               v = new Variable(str);
-               obj = (GmatBase*) v;               
-               #ifdef DEBUG_MEMORY
-               MemoryTracker::Instance()->Add
-                  (v, str, "FunctionManager::CreateObject()", "v = new Variable()");
-               #endif
-               
-               std::string errMsg = "FunctionManager: error using string \"";
-               errMsg += fromString + "\" to determine an object\n";
-               MessageInterface::ShowMessage(errMsg + " so ignoring\n");
-               ////throw FunctionException(errMsg);
-               break;
-            }
-         }
-         
-         // We need to delete newly created element wrapper here
          #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (ew, ew->GetDescription(), "FunctionManager::CreateObject()",
-             "deleting unused wrapper");
+         if (wrapper)
+            MemoryTracker::Instance()->Remove(wrapper, wrapper->GetDescription(),
+                                             "FunctionManager::CreateObject()");
          #endif
-         delete ew;
-         ew = NULL;
+         delete wrapper;
+      };
+      std::unique_ptr<ElementWrapper, decltype(deleteWrapper)> wrapper(
+         validator->CreateElementWrapper(name, false, 2), deleteWrapper);
+      if (!wrapper)
+         throw FunctionException("Cannot evaluate input \"" + name +
+                                 "\" for function \"" + functionName + "\"\n");
+      if (wrapper->GetWrapperType() == Gmat::ARRAY_ELEMENT_WT)
+      {
+         GmatBase *owner = FindObject(name, true);
+         if (!owner || !wrapper->SetRefObject(owner))
+            throw FunctionException("Cannot bind Array input \"" + name + "\"\n");
       }
-      if (obj) createdOthers.insert(std::make_pair(str, obj));
-   }
-   if (obj) numVarsCreated++;
-   
-   #ifdef DEBUG_CREATE_OBJ
-   MessageInterface::ShowMessage
-      ("FunctionManager::CreateObject() returning <%p><%s>'%s'\n", obj,
-       obj ? obj->GetTypeName().c_str() : "NULL",
-       obj ? obj->GetName().c_str() : "NULL");
-   #endif
-   return obj;
-} // CreateObject()
 
+      // A property/Parameter wrapper can hold real, String or matrix data.
+      // Its class alone does not determine the value supplied to the function.
+      switch (wrapper->GetDataType())
+      {
+         case Gmat::REAL_TYPE:
+         case Gmat::INTEGER_TYPE:
+         {
+            const Real scalar = wrapper->GetDataType() == Gmat::INTEGER_TYPE ?
+               static_cast<Real>(wrapper->EvaluateInteger()) : wrapper->EvaluateReal();
+            std::unique_ptr<Variable> variable(new Variable(name));
+            variable->SetReal(scalar);
+            value = std::move(variable);
+            break;
+         }
+         case Gmat::STRING_TYPE:
+         case Gmat::ENUMERATION_TYPE:
+         case Gmat::FILENAME_TYPE:
+         case Gmat::COLOR_TYPE:
+         {
+            const std::string scalar = wrapper->EvaluateString();
+            std::unique_ptr<StringVar> text(new StringVar(name));
+            text->SetStringParameter("Value", scalar);
+            value = std::move(text);
+            break;
+         }
+         case Gmat::RVECTOR_TYPE:
+         case Gmat::RMATRIX_TYPE:
+         {
+            const Rmatrix matrix = ReadFunctionArray(*wrapper);
+            std::unique_ptr<Array> array(new Array(name));
+            if (!array->SetSize(matrix.GetNumRows(), matrix.GetNumColumns()))
+               throw FunctionException("Cannot size materialized function Array input.\n");
+            array->SetRmatrix(matrix);
+            value = std::move(array);
+            break;
+         }
+         default:
+            throw FunctionException("Input \"" + name + "\" for function \"" +
+               functionName + "\" must evaluate to a real number, String or Array\n");
+      }
+   }
+
+   GmatBase *result = value.get();
+   auto slot = cache->find(name);
+   GmatBase *previous = NULL;
+   if (slot == cache->end())
+      cache->insert(std::make_pair(name, result));
+   else
+   {
+      previous = slot->second;
+      slot->second = result;
+   }
+   value.release();
+   ++numVarsCreated;
+   #ifdef DEBUG_MEMORY
+   MemoryTracker::Instance()->Add(result, name, "FunctionManager::CreateObject()",
+                                 "materialized input snapshot");
+   #endif
+
+   // Replace dynamic snapshots only after evaluation succeeds. Legacy frames
+   // can still own an aliased snapshot (GMT-5717); leave those identities with
+   // their live store rather than deleting a caller/formal or shared cache.
+   if (previous && previous != result)
+   {
+      bool retained = false;
+      const ObjectMap *stores[] = {functionObjectStore, localObjectStore,
+         globalObjectStore, &createdLiterals, &createdOthers};
+      for (const auto *store : stores)
+         if (store)
+            for (const auto &entry : *store)
+               if (entry.second == previous)
+                  retained = true;
+      if (!retained)
+      {
+         #ifdef DEBUG_MEMORY
+         MemoryTracker::Instance()->Remove(previous, previous->GetName(),
+                                          "FunctionManager::CreateObject()");
+         #endif
+         delete previous;
+      }
+   }
+   return result;
+} // CreateObject()
 
 //------------------------------------------------------------------------------
 // GmatBase* CreateObjectForBuiltinGmatFunction(const std::string outName,
 //           Gmat::WrapperDataType wType, Integer numRows, Integer numCols)
 //------------------------------------------------------------------------------
+void FunctionManager::BindFunctionStore(ObjectMap *store)
+{
+   const auto registration = FindBuiltinOutputStore(store);
+   const auto &owner = registration.first;
+   functionObjectStore = store;
+   functionStoreOwner = owner;
+   functionStoreIdentity = registration.second;
+   functionStoreIsManaged = owner != nullptr;
+   isObjStoreOwner = owner && owner == builtinOutputResources;
+}
+
+void FunctionManager::ForgetRetiredFunctionStore()
+{
+   if (!functionStoreIsManaged) return;
+   const auto owner = functionStoreOwner.lock();
+   const auto identity = functionStoreIdentity.lock();
+   const auto current = FindBuiltinOutputStore(functionObjectStore);
+   if (owner && identity && current.first == owner && current.second.lock() == identity) return;
+   // A borrowing manager must not inspect a map whose actual owner retired.
+   auto *retired = functionObjectStore;
+   functionObjectStore = nullptr;
+   functionStoreOwner.reset();
+   functionStoreIdentity.reset();
+   functionStoreIsManaged = false;
+   isObjStoreOwner = false;
+   firstExecution = true;
+   ClearInOutWrappers();
+   if (HasLiveFunction()) currentFunction->RetireFunctionObjectStore(retired);
+}
+
+bool FunctionManager::RefreshBuiltinOutputObjects()
+{
+   if (!HasLiveFunction() || !currentFunction->IsOfType("BuiltinGmatFunction")) return false;
+   ForgetRetiredFunctionStore();
+   if (!functionObjectStore) throw FunctionException("Built-in outputs require a live function store.\n");
+   const StringArray names = currentFunction->GetStringArrayParameter("Output");
+   IntegerArray rows, columns;
+   const WrapperTypeArray types = currentFunction->GetOutputTypes(rows, columns);
+   if (names.size() != types.size() || names.size() != rows.size() || names.size() != columns.size())
+      throw FunctionException("Built-in function output metadata does not match its formal outputs.\n");
+   struct Replacement
+   {
+      std::string name;
+      std::unique_ptr<GmatBase> value;
+      GmatBase *previous;
+   };
+   std::vector<Replacement> pending;
+   std::set<std::string> declared;
+   for (size_t i = 0; i < names.size(); ++i)
+   {
+      if (names[i].empty() || !declared.insert(names[i]).second)
+         throw FunctionException("Built-in output formal names must be nonempty and distinct.\n");
+      if (rows[i] <= 0 || columns[i] <= 0 ||
+            ((types[i] == Gmat::VARIABLE_WT || types[i] == Gmat::STRING_OBJECT_WT) &&
+             (rows[i] != 1 || columns[i] != 1)) ||
+            (types[i] == Gmat::VECTOR_WT && rows[i] != 1 && columns[i] != 1))
+         throw FunctionException("Invalid dimensions for a built-in output formal.\n");
+      const auto existing = functionObjectStore->find(names[i]);
+      GmatBase *previous = existing == functionObjectStore->end() ? NULL : existing->second;
+      if (MatchesBuiltinOutput(previous, types[i], rows[i], columns[i])) continue;
+      std::unique_ptr<GmatBase> value(CreateObjectForBuiltinGmatFunction(names[i], types[i], rows[i], columns[i]));
+      if (!value) throw FunctionException("Cannot create a typed built-in formal output.\n");
+      pending.push_back({names[i], std::move(value), previous});
+   }
+   if (pending.empty()) return false;
+
+   // Allocate the complete replacement dictionary before publishing any slot.
+   // Its address stays stable, and aliases outside the replaced slots retain
+   // their actual objects. Inputs can still borrow a displaced output.
+   ObjectMap staged(*functionObjectStore);
+   for (const auto &entry : pending) staged[entry.name] = entry.value.get();
+   const auto owner = FindBuiltinOutputStoreOwner(functionObjectStore);
+   if (owner)
+      for (const auto &entry : pending) owner->Retain(entry.previous);
+   // Unregistered external stores and their displaced objects remain under
+   // their caller's ownership; this manager does not adopt that authority.
+   functionObjectStore->swap(staged);
+   for (auto &entry : pending) entry.value.release();
+   currentFunction->ClearOutputWrappers();
+   return true;
+}
+
 GmatBase* FunctionManager::
 CreateObjectForBuiltinGmatFunction(const std::string &outName,
-                                   Gmat::WrapperDataType wType, 
+                                   Gmat::WrapperDataType wType,
                                    Integer numRows, Integer numCols)
 {
-   #ifdef DEBUG_CREATE_OBJ
-   MessageInterface::ShowMessage
-      ("FunctionManager::CreateObjectForBuiltinGmatFunction() entered\n   "
-       "wType=%d, numRos=%d, numCols=%d\n", wType, numRows, numCols);
-   #endif
-   
-   GmatBase *obj = NULL;
-   
-   //@todo Need to handle more wrapper types here (LOJ: 2016.08.31)
+   std::unique_ptr<GmatBase> output;
    switch (wType)
    {
-   case Gmat::VARIABLE_WT :
-   {
-      Variable *variable   = new Variable(outName);               
-      obj = (GmatBase*) variable;
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (variable, outName, "FunctionManager::CreateObject()", "variable = new Variable()");
-      #endif
-      break;
+      case Gmat::VARIABLE_WT:
+         output.reset(new Variable(outName));
+         break;
+      case Gmat::ARRAY_WT:
+      {
+         std::unique_ptr<Array> array(new Array(outName));
+         if (!array->SetSize(numRows, numCols))
+            throw FunctionException("Cannot size built-in function Array output.\n");
+         output = std::move(array);
+         break;
+      }
+      case Gmat::VECTOR_WT:
+      {
+         if (numRows <= 0 || numCols <= 0 || (numRows != 1 && numCols != 1))
+            throw FunctionException("Built-in vector output must have one row or column.\n");
+         const Integer count = numRows == 1 ? numCols : numRows;
+         output.reset(new RvectorVar(outName, count));
+         break;
+      }
+      case Gmat::STRING_OBJECT_WT:
+         output.reset(new StringVar(outName));
+         break;
+      default:
+         break;
    }
-   case Gmat::ARRAY_WT :
-   {
-      Array *array   = new Array(outName);               
-      array->SetSize(numRows, numCols);
-      obj = (GmatBase*) array;
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (array, outName, "FunctionManager::CreateObject()", "array = new Array()");
-      #endif
-      break;
-   }
-   case Gmat::STRING_OBJECT_WT :
-   {
-      StringVar *string = new StringVar(outName);
-      obj = (GmatBase*) string;
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (string, outName, "FunctionManager::CreateObject()", "string = new String()");
-      #endif
-      break;
-   }
-   default:
-   {
-      // Do nothing here. Caller should handle NULL object pointer
-      #ifdef DEBUG_CREATE_OBJ
-      MessageInterface::ShowMessage
-         ("FunctionManager::CreateObjectForBuiltinGmatFunction() cannot create an "
-          "object named '%s' of wrappter type %d\n", outName.c_str(), wType);
-      #endif
-   }
-   }
-   
-   #ifdef DEBUG_CREATE_OBJ
-   MessageInterface::ShowMessage
-      ("FunctionManager::CreateObjectForBuiltinGmatFunction() returning new object "
-       "<%p><%s>'%s'\n", obj, obj ? obj->GetTypeName().c_str() : "NULL",
-       obj ? obj->GetTypeName().c_str() : "NULL");
+   #ifdef DEBUG_MEMORY
+   if (output)
+      MemoryTracker::Instance()->Add(output.get(), outName,
+            "FunctionManager::CreateObjectForBuiltinGmatFunction()", "native formal output");
    #endif
-   return obj;
+   #ifdef DEBUG_CREATE_OBJ
+   MessageInterface::ShowMessage("Created native built-in output <%p> '%s'\n",
+         output.get(), outName.c_str());
+   #endif
+   return output.release();
 }
 
 //------------------------------------------------------------------------------
@@ -2293,66 +3905,252 @@ CreateObjectForBuiltinGmatFunction(const std::string &outName,
  * Sets result to output wrapper
  */
 //------------------------------------------------------------------------------
-void FunctionManager::AssignResult()
+void FunctionManager::PrepareOutputObjects(OutputObjectValues &values)
 {
-   if (blankResult)
+   values.epoch = std::make_shared<const int>(0);
+   const StringArray inputs = currentFunction->GetStringArrayParameter("Input");
+   const StringArray names = currentFunction->GetStringArrayParameter("Output");
+   auto formal = [this](const std::string &name) -> GmatBase*
    {
-      #ifdef DEBUG_FM_RESULT
-      MessageInterface::ShowMessage
-         ("in FM::AssignResult, It has a blank result, so saving the last result\n");
-      #endif
-      SaveLastResult();
-   }
-   else
+      for (ObjectMap *store : {functionObjectStore, globalObjectStore})
+         if (store)
+         {
+            const auto found = store->find(name);
+            if (found != store->end()) return found->second;
+         }
+      return NULL;
+   };
+   for (UnsignedInt i = 0; i < inputs.size() && i < passedIns.size(); ++i)
+      if (GmatBase *object = formal(inputs[i]))
+         if (OwnsFunctionObject(object) && !object->IsOfType(Gmat::PARAMETER) &&
+             !object->IsOfType(Gmat::FUNCTION))
+            if (GmatBase *caller = FindObject(passedIns[i]))
+            {
+               values.bindings[object] = caller;
+               values.bindingNames[object] = passedIns[i];
+            }
+   // Explicit whole-resource outputs take precedence over input aliases.
+   for (UnsignedInt i = 0; i < outputWrappers.size(); ++i)
    {
-      #ifdef DEBUG_FM_RESULT
-      MessageInterface::ShowMessage
-         ("in FM::AssignResult, It has NO blank result, so assigning the result\n");
-      MessageInterface::ShowMessage
-         ("It has %d output wrapper(s)\n", outputWrappers.size());
-      #endif
-      
-      for (unsigned int jj = 0; jj < outputWrappers.size(); jj++)
+      ElementWrapper *source = currentFunction->GetOutputArgument(i);
+      if (!source || source->GetDataType() != Gmat::OBJECT_TYPE ||
+          outputWrappers[i]->GetWrapperType() != Gmat::OBJECT_WT) continue;
+      GmatBase *object = source->GetRefObject();
+      GmatBase *caller = outputWrappers[i]->GetRefObject();
+      if (OwnsFunctionObject(object) && caller)
       {
-         bool retval = false;
-         ElementWrapper *ew = NULL;
-         ew = currentFunction->GetOutputArgument(jj);
-         
-         if (ew == NULL)
-            throw FunctionException
-               ("FunctionManager::AssignResult() failed to assign results to function output");
-         
-         #ifdef DEBUG_FM_RESULT
-         MessageInterface::ShowMessage
-            ("Now setting result to output argment wrapper <%p>'%s'\n", ew,
-             ew->GetDescription().c_str());
-         #endif
-         
-         retval = ElementWrapper::SetValue(outputWrappers.at(jj), ew, solarSys,
-                                           functionObjectStore, globalObjectStore);
-         if (!retval)
-            throw FunctionException
-               ("FunctionManager::AssignResult() failed to assign results to function output");
-         
-         #ifdef DEBUG_FM_RESULT
-         MessageInterface::ShowMessage
-            ("   outputWrapper(%d) = <%p>'%s'\n", jj, outputWrappers.at(jj),
-             outputWrappers.at(jj)->ToString().c_str());
-         #endif
-         
-         // Delete output wrappers here (loj: 2008.11.12)
-         // Do we need to delete it here? (loj: 2008.11.21)
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (ew, ew->GetDescription(), "FunctionManager::AssignResult()",
-             "deleting output wrapper");
-         #endif
-         delete ew;
-         ew = NULL;
+         values.bindings[object] = caller;
+         values.bindingNames[object] = i < passedOuts.size() ? passedOuts[i] : caller->GetName();
       }
+   }
+   if (blankResult) return;
+   for (UnsignedInt i = 0; i < outputWrappers.size(); ++i)
+   {
+      ElementWrapper *wrapper = currentFunction->GetOutputArgument(i);
+      if (!wrapper) throw FunctionException("Missing function output during capture.\n");
+      const std::string &name = names.at(i);
+      std::unique_ptr<GmatBase> scalar;
+      std::unique_ptr<ElementWrapper> frozen;
+      if (wrapper->GetDataType() == Gmat::REAL_TYPE)
+      {
+         auto number = std::make_unique<Variable>(name);
+         number->SetReal(wrapper->EvaluateReal());
+         scalar = std::move(number);
+         frozen.reset(new VariableWrapper);
+      }
+      else if (wrapper->GetDataType() == Gmat::RVECTOR_TYPE)
+      {
+         // Preserve the native type so assignment retains its normal vector
+         // sizing/orientation rules, including row Array destinations.
+         auto vector = std::make_unique<RvectorWrapper>(wrapper->EvaluateRvector());
+         vector->SetDescription(name);
+         vector->AllowOneDimArraySetting(outputWrappers[i]->IsOneDimArraySettingAllowed());
+         values.wrappers[name] = std::move(vector);
+         continue;
+      }
+      else if (wrapper->GetDataType() == Gmat::RMATRIX_TYPE)
+      {
+         const Rmatrix data = ReadFunctionArray(*wrapper);
+         auto array = std::make_unique<Array>(name);
+         if (!array->SetSize(data.GetNumRows(), data.GetNumColumns()))
+            throw FunctionException("Cannot size captured function Array output.\n");
+         array->SetRmatrix(data);
+         scalar = std::move(array);
+         frozen.reset(new ArrayWrapper);
+      }
+      else if (wrapper->GetDataType() == Gmat::STRING_TYPE)
+      {
+         auto string = std::make_unique<StringVar>(name);
+         string->SetString(wrapper->EvaluateString());
+         scalar = std::move(string);
+         frozen.reset(new StringObjectWrapper);
+      }
+      if (scalar)
+      {
+         scalar->SetIsLocal(true);
+         frozen->AllowOneDimArraySetting(outputWrappers[i]->IsOneDimArraySettingAllowed());
+         frozen->SetDescription(name);
+         if (!frozen->SetRefObject(scalar.get()))
+            throw FunctionException("Cannot bind captured function output wrapper.\n");
+         values.objects[name] = std::move(scalar);
+         values.wrappers[name] = std::move(frozen);
+         continue;
+      }
+      if (wrapper->GetDataType() != Gmat::OBJECT_TYPE) continue;
+      GmatBase *source = wrapper->GetRefObject();
+      if (!source || (!source->IsOfType("EphemerisFile") &&
+          !SupportsRetainedFunctionRoot(source))) continue;
+      if (!OwnsFunctionObject(source) && outputWrappers[i]->GetRefObject() == source)
+         continue; // True-global identity operations preserve live writers.
+      std::unique_ptr<GmatBase> value(CloneFunctionValue(source));
+      if (value.get() == source)
+      {
+         value.release();
+         throw FunctionException("FunctionManager: output Clone returned its source\n");
+      }
+      if (!value) throw FunctionException("Cannot capture a function object output.\n");
+      BindReturnedValue(value.get(), source, &values);
+      values.objects[name] = std::move(value);
    }
 }
 
+void FunctionManager::BindReturnedValue(GmatBase *value, GmatBase *source,
+      const OutputObjectValues *bindings)
+{
+   if (!value || !source) return;
+   if (source->IsOfType("EphemerisFile"))
+   {
+      BindReturnedEphemeris(value, source, bindings);
+      return;
+   }
+   if (!SupportsRetainedFunctionRoot(source)) return;
+   auto context = std::make_shared<ReturnedEphemerisFrames>();
+   context->solarSystem = solarSys;
+   context->runtimeForces = forces;
+   if (bindings) context->bindingEpoch = bindings->epoch;
+   for (ObjectMap *store : {functionObjectStore, globalObjectStore})
+      if (store)
+         for (const auto &entry : *store)
+            if (OwnsFunctionObject(entry.second)) context->privateObjects.insert(entry.second);
+   const auto previous = value->GetFunctionValueContext();
+   if (previous) context->inheritedValues.push_back(previous);
+   value->SetFunctionValueContext(context);
+   context->BindCopy(source, value, true);
+   context->Initialize();
+   context->inheritedValues.clear();
+}
+
+void FunctionManager::BindReturnedEphemeris(GmatBase *value, GmatBase *source,
+      const OutputObjectValues *bindings)
+{
+   if (!value || !source) return;
+   auto *ephemeris = dynamic_cast<EphemerisFile*>(value);
+   auto *sourceEphemeris = dynamic_cast<EphemerisFile*>(source);
+   if (!ephemeris || !sourceEphemeris)
+      throw FunctionException("Incompatible native ephemeris result type.\n");
+   auto context = std::make_shared<ReturnedEphemerisFrames>();
+   context->solarSystem = solarSys;
+   context->runtimeForces = forces;
+   if (bindings) context->bindingEpoch = bindings->epoch;
+   for (ObjectMap *store : {functionObjectStore, globalObjectStore})
+      if (store)
+         for (const auto &entry : *store)
+            if (OwnsFunctionObject(entry.second)) context->privateObjects.insert(entry.second);
+   const auto previous = value->GetFunctionValueContext();
+   if (previous) context->inheritedValues.push_back(previous);
+   value->SetFunctionValueContext(context);
+   context->BindCopy(source, value, true);
+   context->Initialize();
+   context->inheritedValues.clear();
+}
+
+void FunctionManager::AssignResult(const OutputObjectValues *values)
+{
+   struct OutputCompletion
+   {
+      ObjectManagedFunction &function;
+      ~OutputCompletion() { function.ClearOutputWrappers(); }
+   } outputs{*currentFunction};
+   if (blankResult)
+   {
+      SaveLastResult(values);
+      return;
+   }
+   const StringArray names = currentFunction->GetStringArrayParameter("Output");
+   auto captured = [&](UnsignedInt i) -> GmatBase*
+   {
+      if (!values) return NULL;
+      const auto found = values->objects.find(names.at(i));
+      return found == values->objects.end() ? NULL : found->second.get();
+   };
+   auto assign = [&](UnsignedInt i, GmatBase *overrideValue = NULL)
+   {
+      ElementWrapper *source = currentFunction->GetOutputArgument(i);
+      ObjectWrapper object;
+      if (overrideValue)
+      {
+         object.SetDescription(overrideValue->GetName());
+         if (!object.SetRefObject(overrideValue))
+            throw FunctionException("Cannot wrap rebound function ephemeris output.\n");
+         source = &object;
+      }
+      else if (values)
+      {
+         const auto frozen = values->wrappers.find(names.at(i));
+         if (frozen != values->wrappers.end()) source = frozen->second.get();
+         else if (GmatBase *value = captured(i))
+         {
+            object.SetDescription(value->GetName());
+            if (!object.SetRefObject(value))
+               throw FunctionException("Cannot wrap captured function object output.\n");
+            source = &object;
+         }
+      }
+      if (!source || !ElementWrapper::SetValue(outputWrappers.at(i), source,
+            solarSys, functionObjectStore, globalObjectStore))
+         throw FunctionException("FunctionManager::AssignResult() failed to assign function output\n");
+   };
+   std::vector<UnsignedInt> ephemerides;
+   for (UnsignedInt i = 0; i < outputWrappers.size(); ++i)
+   {
+      GmatBase *value = captured(i);
+      ElementWrapper *source = currentFunction->GetOutputArgument(i);
+      if (!value && source && source->GetDataType() == Gmat::OBJECT_TYPE)
+         value = source->GetRefObject();
+      if (value && value->IsOfType("EphemerisFile")) ephemerides.push_back(i);
+      else assign(i);
+   }
+   if (values)
+      for (UnsignedInt i = 0; i < outputWrappers.size(); ++i)
+         if (captured(i) && !captured(i)->IsOfType("EphemerisFile") &&
+             outputWrappers[i]->GetWrapperType() == Gmat::OBJECT_WT)
+         {
+            GmatBase *target = outputWrappers[i]->GetRefObject();
+            if (target)
+               if (const auto context = target->GetFunctionValueContext())
+                  context->RebindCaller(*target, values->epoch, values->bindings);
+         }
+   for (UnsignedInt i : ephemerides)
+   {
+      std::unique_ptr<GmatBase> rebound;
+      if (GmatBase *value = captured(i))
+      {
+         rebound.reset(CloneFunctionValue(value));
+         if (rebound.get() == value)
+         {
+            rebound.release();
+            throw FunctionException("Ephemeris result Clone returned its source.\n");
+         }
+         if (!rebound) throw FunctionException("Cannot stage ephemeris caller binding.\n");
+         if (const auto context = rebound->GetFunctionValueContext())
+            context->RebindCaller(*rebound, values->epoch, values->bindings);
+      }
+      // Keep the original captured graph private for PopFromStack: restoring
+      // the caller can replace the components used by this first assignment.
+      // Native ephemeris Copy still controls accepted/trial writers.
+      assign(i, rebound.get());
+   }
+}
 
 //------------------------------------------------------------------------------
 // bool HandleCallStack()
@@ -2361,7 +4159,7 @@ void FunctionManager::AssignResult()
  * Handles callstack.
  */
 //------------------------------------------------------------------------------
-bool FunctionManager::HandleCallStack()
+bool FunctionManager::HandleCallStack(const OutputObjectValues *values)
 {
    #ifdef DEBUG_FM_EXECUTE
    MessageInterface::ShowMessage
@@ -2378,13 +4176,26 @@ bool FunctionManager::HandleCallStack()
           functionObjectStore);
       #endif
       
-      StringArray outFormalNames = currentFunction->GetStringArrayParameter(currentFunction->GetParameterID("Output"));
-      
-      // call the caller to pop its FOS back of the stack
-      // if (!callingFunction->PopFromStack(functionObjectStore, outFormalNames, passedOuts))
-      ObjectMap* currentFOS = functionObjectStore;
-      if (!callingFunction->PopFromStack(currentFOS, outFormalNames, passedOuts))
-         return false;
+      if (!callingFunction->savedLocalObjectStates.empty() &&
+            callingFunction->savedLocalObjectStates.top().preserveLiveCaller)
+      {
+         if (!callingFunction->PopFromStack(nullptr, {}, {}, nullptr)) return false;
+      }
+      else
+      {
+         const StringArray outFormalNames = currentFunction->GetStringArrayParameter("Output");
+         ObjectMap *currentFOS = functionObjectStore;
+         ObjectMap returnStore;
+         if (values && !values->objects.empty())
+         {
+            returnStore = *functionObjectStore;
+            for (const auto &entry : values->objects)
+               returnStore[entry.first] = entry.second.get();
+            currentFOS = &returnStore;
+         }
+         if (!callingFunction->PopFromStack(currentFOS, outFormalNames, passedOuts, values))
+            return false;
+      }
       
       // Pop up local object store from stack
       if (losStack.empty())
@@ -2449,7 +4260,7 @@ bool FunctionManager::HandleCallStack()
 //------------------------------------------------------------------------------
 // void SaveLastResult()
 //------------------------------------------------------------------------------
-void FunctionManager::SaveLastResult()
+void FunctionManager::SaveLastResult(const OutputObjectValues *values)
 {
    ElementWrapper *ew = currentFunction->GetOutputArgument(0);
    if (!ew) 
@@ -2480,16 +4291,48 @@ void FunctionManager::SaveLastResult()
       MessageInterface::ShowMessage("   saved realResult=%f\n", realResult);
       #endif
       break;
+   case Gmat::RVECTOR_TYPE:
    case Gmat::RMATRIX_TYPE:
-      matResult = ew->EvaluateArray();
-      outputType = "Rmatrix";
+   {
+      const Rmatrix value = ReadFunctionArray(*ew);
+      matResult.SetSize(value.GetNumRows(), value.GetNumColumns());
+      matResult = value;
+      outputType = outType == Gmat::RVECTOR_TYPE ? "Rvector" : "Rmatrix";
       #ifdef DEBUG_FM_RESULT
       MessageInterface::ShowMessage
          ("   saved matResult=%s\n", matResult.ToString().c_str());
       #endif
       break;
+   }
    case Gmat::OBJECT_TYPE:
-      objectResult = ew->GetRefObject();
+   {
+      GmatBase *result = ew->GetRefObject();
+      if (!result)
+         throw FunctionException("FunctionManager: missing object result from function \"" +
+               functionName + "\"\n");
+      if (OwnsFunctionObject(result))
+      {
+         // PopFromStack restores/reuses local objects after AssignResult.
+         // Keep the returned value before that restoration can overwrite it.
+         std::unique_ptr<GmatBase> value(CloneFunctionValue(result));
+         if (value.get() == result)
+         {
+            value.release(); // A broken Clone must not delete its source.
+            throw FunctionException("FunctionManager: object result Clone returned its source\n");
+         }
+         if (!value)
+            throw FunctionException("FunctionManager: cannot clone object result from function \"" +
+                  functionName + "\"\n");
+         BindReturnedValue(value.get(), result, values);
+         ownedObjectResult = std::move(value);
+         objectResult = ownedObjectResult.get();
+      }
+      else
+      {
+         // True globals retain their borrowed identity.
+         ownedObjectResult.reset();
+         objectResult = result;
+      }
       outputType = "Object";
       #ifdef DEBUG_FM_RESULT
       MessageInterface::ShowMessage
@@ -2497,6 +4340,7 @@ void FunctionManager::SaveLastResult()
           objectResult ? objectResult->GetName().c_str() : "NULL");
       #endif
       break;
+   }
    default:
       throw FunctionException("FunctionManager: Unknown or invalid output data type");
    }
@@ -2513,6 +4357,11 @@ void FunctionManager::SaveLastResult()
 //------------------------------------------------------------------------------
 void FunctionManager::PushToStack()
 {
+   PushToStack(false);
+}
+
+void FunctionManager::PushToStack(bool preserveLiveCaller)
+{
    #ifdef DEBUG_FM_STACK
    MessageInterface::ShowMessage
       ("Entering FM::PushToStack for function '%s'\n", functionName.c_str());
@@ -2520,8 +4369,35 @@ void FunctionManager::PushToStack()
    ShowObjectMap(functionObjectStore, "FOS at beg. of PushToStack");
    #endif
    
-   // Put the FOS onto the stack
+   // A private child leaves the actual caller graph installed. Preserve its
+   // identity and execution state; legacy shared stores still need values.
+   LocalObjectState saved;
+   saved.epoch = std::make_shared<const int>(0);
+   saved.preserveLiveCaller = preserveLiveCaller;
+   saved.managedStore = functionStoreIsManaged;
+   saved.storeIdentity = functionStoreIdentity;
+   if (functionObjectStore && !preserveLiveCaller)
+   {
+      for (const auto &entry : *functionObjectStore)
+      {
+         GmatBase *object = entry.second;
+         if (!object || object->IsGlobal() || object->IsOfType(Gmat::FUNCTION) ||
+             object->IsOfType(Gmat::SUBSCRIBER)) continue;
+         std::unique_ptr<GmatBase> value(CloneFunctionValue(object));
+         if (value.get() == object)
+         {
+            value.release();
+            throw FunctionException("Caller frame Clone returned its source.\n");
+         }
+         if (!value) throw FunctionException("Cannot capture caller frame value.\n");
+         BindCapturedValue(value.get(), object, functionObjectStore, saved.epoch);
+         saved.bindingNames[object] = entry.first;
+         saved.objects.emplace(entry.first, std::move(value));
+      }
+   }
    callStack.push(functionObjectStore);
+   try { savedLocalObjectStates.push(std::move(saved)); }
+   catch (...) { callStack.pop(); throw; }
 }
 
 //------------------------------------------------------------------------------
@@ -2534,6 +4410,12 @@ void FunctionManager::PushToStack()
 bool FunctionManager::PopFromStack(ObjectMap* cloned, const StringArray &outNames,
                                    const StringArray &callingNames)
 {
+   return PopFromStack(cloned, outNames, callingNames, NULL);
+}
+
+bool FunctionManager::PopFromStack(ObjectMap* cloned, const StringArray &outNames,
+      const StringArray &callingNames, const OutputObjectValues *values)
+{
    #ifdef DEBUG_FM_STACK
    MessageInterface::ShowMessage
       ("Entering FM::PopFromStack for function '%s', cloned=<%p>\n", functionName.c_str(), cloned);
@@ -2542,10 +4424,99 @@ bool FunctionManager::PopFromStack(ObjectMap* cloned, const StringArray &outName
    if (callStack.empty())
       throw FunctionException(
             "ERROR popping object store from call stack - stack is empty\n");
+   if (savedLocalObjectStates.empty())
+      throw FunctionException("Missing caller value frame on function return\n");
+
+   const auto &frame = savedLocalObjectStates.top();
+   if (frame.preserveLiveCaller)
+   {
+      // The child has a separate FOS and has already assigned its explicit
+      // outputs. Do not Copy untouched caller resources, repeat output writes,
+      // replace the installed callee, or reinitialize the caller's live FCS.
+      if (callStack.top() != functionObjectStore)
+         throw FunctionException("The active caller object store changed during a nested call.\n");
+      if (frame.managedStore)
+      {
+         const auto savedIdentity = frame.storeIdentity.lock();
+         const auto registration = FindBuiltinOutputStore(functionObjectStore);
+         if (!savedIdentity || registration.second.lock() != savedIdentity ||
+               !functionStoreIsManaged || functionStoreIdentity.lock() != savedIdentity)
+            throw FunctionException("The active caller object store was retired during a nested call.\n");
+      }
+      callStack.pop();
+      savedLocalObjectStates.pop();
+      return true;
+   }
+
+   // Preserve callee outputs before restoring an aliased caller map: otherwise
+   // restoring 'out' can erase the value that must be copied to 'child'.
+   auto findScoped = [this](ObjectMap *local, const std::string &name) -> GmatBase*
+   {
+      if (local)
+      {
+         auto found = local->find(name);
+         if (found != local->end() && found->second)
+            return found->second;
+      }
+      if (globalObjectStore)
+      {
+         auto found = globalObjectStore->find(name);
+         if (found != globalObjectStore->end())
+            return found->second;
+      }
+      return NULL;
+   };
+   std::vector<std::shared_ptr<GmatBase> > returnValues;
+   std::vector<bool> borrowedReturns;
+   for (UnsignedInt i = 0; i < callingNames.size(); ++i)
+   {
+      GmatBase *value = findScoped(cloned, outNames.at(i));
+      if (!value)
+         throw FunctionException("Missing function output on stack return\n");
+      const bool isGlobalValue = globalObjectStore &&
+         globalObjectStore->find(outNames.at(i)) != globalObjectStore->end() &&
+         globalObjectStore->at(outNames.at(i)) == value;
+      borrowedReturns.push_back(isGlobalValue);
+      if (isGlobalValue)
+         // Global values are not restored with the local frame; keep their
+         // borrowed identity and leave ownership with the global store.
+         returnValues.emplace_back(value, [](GmatBase*) {});
+      else
+         returnValues.push_back(std::shared_ptr<GmatBase>(CloneFunctionValue(value)));
+   }
+
    ObjectMap *topMap = callStack.top();
-   callStack.pop();   
-   functionObjectStore = topMap;
-   
+   callStack.pop();
+   LocalObjectState saved = std::move(savedLocalObjectStates.top());
+   savedLocalObjectStates.pop();
+   BindFunctionStore(topMap);
+   ObjectMap restoredTargets;
+   for (const auto &entry : saved.objects)
+   {
+      auto found = functionObjectStore->find(entry.first);
+      if (found != functionObjectStore->end() && found->second &&
+          found->second->GetTypeName() == entry.second->GetTypeName())
+         found->second->Copy(entry.second.get());
+      else
+      {
+         std::unique_ptr<GmatBase> replacement(CloneFunctionValue(entry.second.get()));
+         if (replacement.get() == entry.second.get())
+         {
+            replacement.release();
+            throw FunctionException("Caller frame restoration Clone returned its source.\n");
+         }
+         if (!replacement) throw FunctionException("Cannot restore caller frame value.\n");
+         if (found == functionObjectStore->end())
+            functionObjectStore->emplace(entry.first, replacement.release());
+         else
+         {
+            DeleteObject(found->second);
+            found->second = replacement.release();
+         }
+      }
+      restoredTargets[entry.first] = functionObjectStore->at(entry.first);
+   }
+
    #ifdef DEBUG_FM_STACK
       MessageInterface::ShowMessage("PopFromStack::outNames are: \n");
       for (unsigned int ii=0; ii<outNames.size(); ii++)
@@ -2559,22 +4530,41 @@ bool FunctionManager::PopFromStack(ObjectMap* cloned, const StringArray &outName
       ShowObjectMap(functionObjectStore, "FOS");
    #endif
    
-   // Assign output
-   for (unsigned int jj = 0; jj < callingNames.size(); jj++)
+   auto assign = [&](UnsignedInt jj)
    {
+      if (values)
+      {
+         const auto frozen = values->wrappers.find(outNames.at(jj));
+         if (frozen != values->wrappers.end())
+         {
+            // Recreate the caller's typed LHS after restoration. Copying a
+            // Variable proxy into a system Parameter is not a value setter.
+            combinedObjectStore = *globalObjectStore;
+            for (const auto &entry : *functionObjectStore)
+               combinedObjectStore[entry.first] = entry.second;
+            validator->SetFunction(currentFunction);
+            validator->SetObjectMap(&combinedObjectStore);
+            validator->SetSolarSystem(solarSys);
+            std::unique_ptr<ElementWrapper> target(
+                  validator->CreateElementWrapper(callingNames.at(jj)));
+            if (target) target->AllowOneDimArraySetting(frozen->second->IsOneDimArraySettingAllowed());
+            if (!target || !ElementWrapper::SetValue(target.get(), frozen->second.get(),
+                  solarSys, functionObjectStore, globalObjectStore))
+               throw FunctionException("Cannot assign captured caller output " + callingNames.at(jj));
+            return;
+         }
+      }
+
       // Find output name from cloned object store
       // If name found then assign to object pointer since [] operator
       // inserts the item if it doesn't exist (LOJ: 2010.05.19)
       GmatBase *clonedObj = NULL;
-      if (cloned->find(outNames.at(jj)) != cloned->end())
-          clonedObj = (*cloned)[outNames.at(jj)];
+      clonedObj = returnValues.at(jj).get();
       
       // Find output name from popped object store
       // If name found then assign to object pointer since [] operator
       // inserts the item if it doesn't exist (LOJ: 2010.05.19)
-      GmatBase *fosObj = NULL;
-      if (functionObjectStore->find(callingNames.at(jj)) != functionObjectStore->end())
-         fosObj = (*functionObjectStore)[callingNames.at(jj)];
+      GmatBase *fosObj = findScoped(functionObjectStore, callingNames.at(jj));
       
       if (clonedObj == NULL)
       {
@@ -2583,7 +4573,37 @@ bool FunctionManager::PopFromStack(ObjectMap* cloned, const StringArray &outName
          errMsg += functionName + "\"\n";
          throw FunctionException(errMsg);
       }
-      if (fosObj == NULL)
+      if (fosObj == NULL && callingNames.at(jj).find('(') != std::string::npos)
+      {
+         // AssignResult wrote through the caller's element wrapper before
+         // restoring its saved frame. Reapply the scalar after restoration,
+         // rather than silently dropping an indexed name absent from the map.
+         const std::string targetName = callingNames.at(jj);
+         const std::string ownerName = targetName.substr(0, targetName.find('('));
+         GmatBase *owner = findScoped(functionObjectStore, ownerName);
+         if (!owner || !owner->IsOfType(Gmat::ARRAY))
+            throw FunctionException("Missing caller Array for output " + targetName);
+         Real result;
+         if (clonedObj->IsOfType(Gmat::VARIABLE))
+            result = clonedObj->GetRealParameter("Value");
+         else if (clonedObj->IsOfType(Gmat::ARRAY) &&
+                  clonedObj->GetIntegerParameter("NumRows") == 1 &&
+                  clonedObj->GetIntegerParameter("NumCols") == 1)
+            result = clonedObj->GetRealParameter("SingleValue", 0, 0);
+         else
+            throw FunctionException("Array-element output requires a scalar: " + targetName);
+         combinedObjectStore = *globalObjectStore;
+         for (const auto &entry : *functionObjectStore)
+            combinedObjectStore[entry.first] = entry.second;
+         validator->SetFunction(currentFunction);
+         validator->SetObjectMap(&combinedObjectStore);
+         validator->SetSolarSystem(solarSys);
+         std::unique_ptr<ElementWrapper> target(validator->CreateElementWrapper(targetName));
+         if (!target || target->GetWrapperType() != Gmat::ARRAY_ELEMENT_WT ||
+             !target->SetRefObject(owner) || !target->SetReal(result))
+            throw FunctionException("Cannot assign caller Array-element output " + targetName);
+      }
+      else if (fosObj == NULL)
       {
          // We don't want to throw exception here (loj: 2008.09.12)
          //std::string errMsg = "PopFromStack::Error setting output named \"";
@@ -2602,10 +4622,53 @@ bool FunctionManager::PopFromStack(ObjectMap* cloned, const StringArray &outName
                "PopFromStack::Copying value of %s into popped stack element %s\n",
                (outNames.at(jj)).c_str(), (callingNames.at(jj)).c_str());
          #endif
-         fosObj->Copy(clonedObj);
+         if (fosObj != clonedObj)
+            fosObj->Copy(clonedObj);
       }
+   };
+   std::vector<UnsignedInt> ephemerides;
+   for (UnsignedInt i = 0; i < callingNames.size(); ++i)
+      if (returnValues[i] && returnValues[i]->IsOfType("EphemerisFile"))
+         ephemerides.push_back(i);
+      else assign(i);
+
+   // Returning an ODEModel/spacecraft can replace native components after
+   // the saved values were copied. Connect untouched saved roots only after
+   // those output Copies, so they cannot borrow the just-retired components.
+   RebindCapturedObjects(saved, restoredTargets);
+
+   std::map<const GmatBase*, GmatBase*> bindings;
+   if (values)
+   {
+      bindings = values->bindings;
+      for (const auto &entry : values->bindingNames)
+      {
+         GmatBase *caller = findScoped(functionObjectStore, entry.second);
+         if (!caller && solarSys)
+         {
+            caller = solarSys->GetBody(entry.second);
+            if (!caller) caller = solarSys->GetSpecialPoint(entry.second);
+         }
+         if (!caller) throw FunctionException("Missing caller resource after stack restoration: " + entry.second);
+         bindings[entry.first] = caller;
+      }
+      for (UnsignedInt i = 0; i < callingNames.size(); ++i)
+         if (returnValues[i] && !returnValues[i]->IsOfType("EphemerisFile") && !borrowedReturns[i])
+         {
+            GmatBase *caller = findScoped(functionObjectStore, callingNames[i]);
+            if (caller)
+               if (const auto context = caller->GetFunctionValueContext())
+                  context->RebindCaller(*caller, values->epoch, bindings);
+         }
    }
-   
+   for (UnsignedInt i : ephemerides)
+   {
+      if (values && !borrowedReturns[i])
+         if (const auto context = returnValues[i]->GetFunctionValueContext())
+            context->RebindCaller(*returnValues[i], values->epoch, bindings);
+      assign(i);
+   }
+
    #ifdef DEBUG_FM_STACK
       MessageInterface::ShowMessage(
             "PopFromStack::reset object map to the one popped from the stack\n");
@@ -2616,6 +4679,9 @@ bool FunctionManager::PopFromStack(ObjectMap* cloned, const StringArray &outName
    
    // Set popped FOS to function and re-initialize fcs
    currentFunction->SetFunctionObjectMap(functionObjectStore);
+   BindFunctionServices();
+   for (const auto &entry : inputWrapperMap)
+      currentFunction->SetInputElementWrapper(entry.first, entry.second);
    bool retval = currentFunction->Initialize(objInit, false, false);
    
    #ifdef DEBUG_FM_STACK
@@ -2633,15 +4699,65 @@ bool FunctionManager::PopFromStack(ObjectMap* cloned, const StringArray &outName
 //------------------------------------------------------------------------------
 void FunctionManager::Cleanup()
 {
+   auto context = Validator::Instance()->CaptureContext(activeManagerExecutions != 0);
+   ForgetRetiredFunctionStore();
+   if (reentrantInvocation && reentrantInvocation->executing)
+   {
+      finalizationRequested = true;
+      return;
+   }
+   if (isFinalized && !reentrantInvocation && !completedInvocation && stagedWrapperDeletions.empty())
+      return;
+   // RunComplete on the FCS can revisit this manager through recursive calls.
+   // Retire the invocation before finalizing commands, not after they return.
+   isFinalized = true;
+   finalizationRequested = false;
+   firstExecution = true;
+   struct CleanupState
+   {
+      bool &finalized;
+      bool completed = false;
+      ~CleanupState() { if (!completed) finalized = false; }
+   } cleanupState{isFinalized};
+   // Executing calls already own an enclosing subscriber frame. An inactive
+   // cached manager can also finalize while another function is running.
+   std::unique_ptr<SharedSubscriberBindings> subscriberBindings;
+   if (!executing)
+      subscriberBindings = std::make_unique<SharedSubscriberBindings>(localObjectStore, globalObjectStore);
+   // Reentrant command retirement can detach this manager's copied tables.
+   // The callee and its wrappers may still borrow their storage until the
+   // remainder of this Cleanup has retired the FOS and argument interface.
+   const auto retiringBindings = expressionBindings;
+   // Result destruction can itself release function/command resources. Keep
+   // the re-entry guard in place and retire snapshots while dependencies live.
+   objectResult = NULL;
+   outputType.clear();
+   auto retiringResult = std::move(ownedObjectResult);
+   ReleaseStagedWrappers();
+   std::exception_ptr cleanupFailure;
+   if (reentrantInvocation)
+   {
+      auto nested = std::move(reentrantInvocation);
+      reentrantPrepared = false;
+      try { nested->Finalize(); }
+      catch (...) { cleanupFailure = std::current_exception(); }
+   }
+   if (completedInvocation)
+   {
+      auto completed = std::move(completedInvocation);
+      try { completed->Finalize(); }
+      catch (...) { if (!cleanupFailure) cleanupFailure = std::current_exception(); }
+   }
+
    #ifdef DEBUG_CLEANUP
    MessageInterface::ShowMessage
       ("==> FunctionManager::Cleanup() entered, currentFunction=<%p>'%s'\n",
-       currentFunction, currentFunction ? currentFunction->GetName().c_str() : "NULL");
+       currentFunction, HasLiveFunction() ? currentFunction->GetName().c_str() : "NULL");
    #endif
-   
-   if (currentFunction != NULL)
+
+   if (HasInstalledInvocation())
    {
-      if (currentFunction->IsOfType("GmatFunction"))
+      if (functionObjectStore || !clonedObjectStores.empty())
       {
          ////Edwin's MMS script failed, so commented out (loj: 2008.12.03)
          ////We need to delete this somewhere though.
@@ -2652,7 +4768,8 @@ void FunctionManager::Cleanup()
          #endif
          
          // Set true for cleanup
-         currentFunction->Finalize(true);
+         try {currentFunction->Finalize(true);}
+         catch (...) {if (!cleanupFailure) cleanupFailure=std::current_exception();}
       }
    }
    
@@ -2681,15 +4798,51 @@ void FunctionManager::Cleanup()
    //clonedObjectStores.clear();
    
 
-   ObjectArray toDeleteObjects;
+   // RunComplete resets execution state, but compiled definitions must also
+   // stop borrowing scopes before their objects are deleted. Do this even if
+   // Finalize reported an error, and include owned recursive store snapshots.
+   auto retireDefinition = [&](ObjectMap *store)
+   {
+      if (!store || !HasLiveFunction()) return;
+      if (auto *function = dynamic_cast<UserDefinedFunction*>(currentFunction))
+      {
+         try { function->RetireFunctionBindings(store); }
+         catch (...) { if (!cleanupFailure) cleanupFailure = std::current_exception(); }
+         try { function->RetireAutomaticReferences(store); }
+         catch (...) { if (!cleanupFailure) cleanupFailure = std::current_exception(); }
+      }
+   };
+   if (isObjStoreOwner) retireDefinition(functionObjectStore);
+   for (auto *store : clonedObjectStores) retireDefinition(store);
+
+   // Drop value-only snapshots on exceptional unwinding as well as normal
+   // PopFromStack. Their ownership is separate from the live object maps.
+   while (!savedLocalObjectStates.empty())
+      savedLocalObjectStates.pop();
+   while (!callStack.empty())
+      callStack.pop();
+   while (!losStack.empty())
+      losStack.pop();
+   while (!callers.empty())
+      callers.pop();
+   callingFunction = NULL;
+
+   ObjectArray toDeleteObjects = builtinOutputResources ? builtinOutputResources->LiveObjects() : ObjectArray{};
+   ClearInOutWrappers();
+   pendingInputValues.clear();
+   retiringResult.reset();
    if (functionObjectStore && isObjStoreOwner)
    {
+      if (HasLiveFunction() &&
+          currentFunction->GetFunctionObjectStore() == functionObjectStore)
+         currentFunction->RetireFunctionObjectStore(functionObjectStore);
       for (ObjectMap::iterator i = (*functionObjectStore).begin(); i != (*functionObjectStore).end(); ++i)
       {
          if (find(toDeleteObjects.begin(), toDeleteObjects.end(), (*i).second) ==
             toDeleteObjects.end())
             toDeleteObjects.push_back((*i).second);
       }
+      UnregisterBuiltinOutputStore(functionObjectStore, builtinOutputResources);
       functionObjectStore->clear();
       delete functionObjectStore;
       functionObjectStore = NULL;
@@ -2709,6 +4862,9 @@ void FunctionManager::Cleanup()
                toDeleteObjects.push_back((*k).second);
          }
 
+         if (HasLiveFunction() && currentFunction->GetFunctionObjectStore() == clonedObjectStores[i])
+            currentFunction->RetireFunctionObjectStore(clonedObjectStores[i]);
+         UnregisterBuiltinOutputStore(clonedObjectStores[i], builtinOutputResources);
          clonedObjectStores[i]->clear();
          delete clonedObjectStores[i];
          clonedObjectStores[i] = NULL;
@@ -2732,13 +4888,38 @@ void FunctionManager::Cleanup()
    }
    createdOthers.clear();
 
-   // Now delete all local and non global objects, except gournd station
-   for (Integer i = 0; i < toDeleteObjects.size(); ++i)
+   // Final metadata can access spacecraft/frame resources. Retire every
+   // owned subscriber before deleting those resources, including on error.
+   for (auto &obj : toDeleteObjects)
    {
-      GmatBase* obj = toDeleteObjects[i];
-      DeleteObject(obj);
+      if (OwnsFunctionObject(obj) && obj->IsOfType(Gmat::SUBSCRIBER))
+      {
+         const auto failure=FinalizeFunctionSubscriber(static_cast<Subscriber *>(obj),publisher);
+         if (!cleanupFailure) cleanupFailure=failure;
+         delete obj;
+         obj=NULL;
+      }
    }
+   for (auto *obj : toDeleteObjects) DeleteObject(obj);
    toDeleteObjects.clear();
+   if (builtinOutputResources) builtinOutputResources->retired.clear();
+   builtinOutputResources.reset();
+   functionStoreOwner.reset();
+   functionStoreIdentity.reset();
+   functionStoreIsManaged = false;
+   isObjStoreOwner = false;
+   combinedObjectStore.clear();
+   ClearInOutWrappers();
+   objectResult = NULL;
+   outputType.clear();
+   blankResult = false;
+   // Retiring a value can finalize cached functions. Complete that work before
+   // releasing the surrounding shared-subscriber binding frame.
+   retiringResult.reset();
+   cleanupState.completed = true;
+   if (subscriberBindings && !subscriberBindings->Restore() && !cleanupFailure)
+      cleanupFailure = std::make_exception_ptr(FunctionException("Unable to restore subscriber bindings after cleanup.\n"));
+   if (cleanupFailure) std::rethrow_exception(cleanupFailure);
 
    #ifdef DEBUG_CLEANUP
    MessageInterface::ShowMessage("==> FunctionManager::Cleanup() exiting\n");
@@ -2757,61 +4938,17 @@ void FunctionManager::Cleanup()
  //------------------------------------------------------------------------------
 void FunctionManager::DeleteObject(GmatBase *obj)
 {
-   if (obj)
+   if (!OwnsFunctionObject(obj)) return;
+   if (obj->IsOfType(Gmat::SUBSCRIBER))
    {
-      if (obj->IsOfType(Gmat::GROUND_STATION))
-         return;
-
-      if (!(obj->IsGlobal()) || (obj->IsLocal()))
-      {
-         // Finalize and unsubscribe a subscriber before delete it
-         if (obj->IsOfType(Gmat::SUBSCRIBER))
-         {
-            Subscriber *sub = (Subscriber*)obj;
-            // Catch any error encountered during subscriber finalization and
-            // rethrow if it is fatal else just write error message (Fix for GMT-5204)
-            try
-            {
-               // Instead of deleting OpenGL plot from the OpenGlPlot destructor
-               // call TakeAction() to delete it (LOJ:2009.04.22)
-               sub->TakeAction("Finalize");
-               //@todo This causes Func_AssigningWholeObjects crash
-               // in Subscriber::ClearWrappers() due to stale wrapper pointers
-               //sub->ClearWrappers();
-            }
-            catch (BaseException &be)
-            {
-               if (be.IsFatal())
-                  throw;
-               else
-                  MessageInterface::ShowMessage("%s\n", be.GetFullMessage().c_str());
-            }
-
-            #ifdef DEBUG_CLEANUP
-               MessageInterface::ShowMessage
-               ("   '%s' Unsubscribe <%p>'%s' from the publisher <%p>\n",
-                  functionName.c_str(), sub, sub->GetName().c_str(), publisher);
-            #endif
-
-            if (publisher)
-            {
-               publisher->Unsubscribe(sub);
-            }
-            else
-            {
-               #ifdef DEBUG_CLEANUP
-                  MessageInterface::ShowMessage
-                  ("   '%s' Cannot unsubscribe, the publisher is NULL\n", functionName.c_str());
-               #endif
-            }
-
-         }
-
-         // delete the object which we want to delete
-         delete obj;
-      }
+      const auto failure=FinalizeFunctionSubscriber(static_cast<Subscriber *>(obj),publisher);
+      // This single-object route may still have an owning map entry. On
+      // failure retain the object for its owner's cleanup, already unsubscribed.
+      if (failure) std::rethrow_exception(failure);
    }
+   delete obj;
 }
+
 
 //------------------------------------------------------------------------------
 // void UnsubscribeSubscribers(ObjectMap *om)
@@ -2823,82 +4960,38 @@ void FunctionManager::DeleteObject(GmatBase *obj)
 //------------------------------------------------------------------------------
 void FunctionManager::UnsubscribeSubscribers(ObjectMap *om)
 {
-   #ifdef DEBUG_SUBSCRIBER
-   MessageInterface::ShowMessage("FunctionManager::UnsubscribeSubscribers() entered\n");
-   #endif
-   bool write2ndPlotWarning = false;
-   std::map<std::string, GmatBase *>::iterator omi;
-   for (omi = om->begin(); omi != om->end(); ++omi)
+   if (!om) return;
+   std::exception_ptr firstFailure;
+   bool localPlotClosed=false;
+   std::set<Subscriber *> visited;
+   for (const auto &entry:*om)
    {
-      if (omi->second != NULL)
+      auto *object=entry.second;
+      // True globals can be visible in a function without belonging to it.
+      if (!OwnsFunctionObject(object) || !object->IsOfType(Gmat::SUBSCRIBER)) continue;
+      auto *subscriber=static_cast<Subscriber *>(object);
+      if (!visited.insert(subscriber).second) continue;
+      const auto failure=FinalizeFunctionSubscriber(subscriber,publisher);
+      if (!firstFailure) firstFailure=failure;
+      if (subscriber->IsOfType("Plot"))
       {
-         GmatBase *obj = omi->second;
-         if (obj->IsOfType(Gmat::SUBSCRIBER))
+         try
          {
-            // Finalize local subscriber
-            Subscriber *sub = (Subscriber*)obj;
-            
-            #ifdef DEBUG_SUBSCRIBER
-            MessageInterface::ShowMessage
-               ("   Calling <%p>'%s'->TakeAction('Finalize')\n", sub, sub->GetName().c_str());
-            #endif
-            
-            // Catch any error encountered during subscriber finalization and
-            // rethrow if it is fatal else just write error message (Fix for GMT-5204)
-            try
-            {
-               sub->TakeAction("Finalize");
-            }
-            catch (BaseException &be)
-            {
-               if (be.IsFatal())
-                  throw;
-               else
-                  MessageInterface::ShowMessage("%s\n", be.GetFullMessage().c_str());
-            }
-            
-            #ifdef DEBUG_SUBSCRIBER
-            MessageInterface::ShowMessage
-               ("   '%s' Unsubscribe <%p>'%s' from the publisher <%p>\n",
-                functionName.c_str(), sub, sub->GetName().c_str(), publisher);
-            #endif
-            
-            if (sub->IsOfType("Plot"))
-            {
-               // Write warning about local plots are deleted
-               MessageInterface::ShowMessage
-                  ("*** WARNING *** The local %s named '%s' was closed "
-                   "upon exit of the function '%s'.\n", sub->GetTypeName().c_str(),
-                   sub->GetName().c_str(), functionName.c_str());
-               write2ndPlotWarning = true;
-            }
-            
-            // Unsubscribe subscriber
-            if (publisher)
-            {
-               publisher->Unsubscribe(sub);
-            }
-            else
-            {
-               #ifdef DEBUG_SUBSCRIBER
-               MessageInterface::ShowMessage
-                  ("   '%s' Cannot unsubscribe, the publisher is NULL\n", functionName.c_str());
-               #endif
-            }
+            MessageInterface::ShowMessage("*** WARNING *** The local %s named '%s' was closed "
+                  "upon exit of the function '%s'.\n",subscriber->GetTypeName().c_str(),
+                  subscriber->GetName().c_str(),functionName.c_str());
+            localPlotClosed=true;
          }
+         catch (...) {if (!firstFailure) firstFailure=std::current_exception();}
       }
    }
-   
-   if (write2ndPlotWarning)
+   if (localPlotClosed)
    {
-      MessageInterface::ShowMessage
-         ("*** Please make plots and drawing objects Global in the main script and "
-          "in the function to make plots remain open during the mission run.\n");
+      try {MessageInterface::ShowMessage("*** Please make plots and drawing objects Global in the main script and "
+            "in the function to make plots remain open during the mission run.\n");}
+      catch (...) {if (!firstFailure) firstFailure=std::current_exception();}
    }
-   
-   #ifdef DEBUG_SUBSCRIBER
-   MessageInterface::ShowMessage("FunctionManager::UnsubscribeSubscribers() leaving\n");
-   #endif
+   if (firstFailure) std::rethrow_exception(firstFailure);
 }
 
 
@@ -2940,10 +5033,6 @@ bool FunctionManager::EmptyObjectMap(ObjectMap *om, const std::string &mapID)
       GmatBase* obj = omi->second;
       if (obj != NULL)
       {
-         // Skip delete for GroundStation
-         if (obj->IsOfType(Gmat::GROUND_STATION))
-            continue;
-
          // Only delete object when it is not global and it is local
          if (!(obj->IsGlobal()) || obj->IsLocal())
          {
@@ -3137,6 +5226,20 @@ bool FunctionManager::DeleteObjectMap(ObjectMap *om, const std::string &mapID)
        om, om->size());
    #endif
 
+   // Contents can alias another invocation. Keep the actual owned objects in
+   // their registered owner's retirement pool instead of deleting them here
+   // or losing the last record when this old dictionary is discarded.
+   const auto owner = FindBuiltinOutputStoreOwner(om);
+   if (owner && owner == builtinOutputResources)
+      for (const auto &entry : *om) owner->Retain(entry.second);
+   if (HasLiveFunction())
+   {
+      if (auto *function = dynamic_cast<UserDefinedFunction*>(currentFunction))
+         function->RetireFunctionBindings(om);
+      currentFunction->RetireFunctionObjectStore(om);
+   }
+   UnregisterBuiltinOutputStore(om, builtinOutputResources);
+
    // Crash source for GMT-7836 / GMT-7792
 //   EmptyObjectMap(om, mapID);
    
@@ -3154,36 +5257,18 @@ bool FunctionManager::DeleteObjectMap(ObjectMap *om, const std::string &mapID)
 //------------------------------------------------------------------------------
 bool FunctionManager::ClearInOutWrappers()
 {
-   // input wrappers map
-   std::map<std::string, ElementWrapper *>::iterator ewi;
-   for (ewi = inputWrapperMap.begin(); ewi != inputWrapperMap.end(); ++ewi)
+   if (HasInstalledInvocation()) currentFunction->RetireArgumentWrappers(inputWrapperMap, outputWrappers);
+   auto release = [&](ElementWrapper *wrapper)
    {
-      if (ewi->second)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (ewi->second, (ewi->second)->GetDescription(),
-             "FunctionManager::ClearInOutWrappers()", "deleting inputWrapper");
-         #endif
-         delete ewi->second;
-         ewi->second = NULL;
-      }
-   }
+      if (!wrapper) return;
+      for (auto &entry : inputWrapperMap) if (entry.second == wrapper) entry.second = NULL;
+      for (auto &entry : outputWrappers) if (entry == wrapper) entry = NULL;
+      ElementWrapper::ReleaseOwnedWrapper(wrapper);
+   };
+   for (auto &entry : inputWrapperMap) release(entry.second);
+   for (auto *entry : outputWrappers) release(entry);
    inputWrapperMap.clear();
-   
-   // output wrappers
-   for (UnsignedInt i=0; i<outputWrappers.size(); i++)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (outputWrappers[i], outputWrappers[i]->GetDescription(),
-          "FunctionManager::ClearInOutWrappers()", "deleting outputWrapper");
-      #endif
-      delete outputWrappers[i];
-      outputWrappers[i] = NULL;
-   }
    outputWrappers.clear();
-   
    return true;
 }
 
@@ -3236,7 +5321,7 @@ bool FunctionManager::CloneObjectMap(ObjectMap *orig, ObjectMap *cloned)
             strInMap.c_str());
       #endif
       
-      GmatBase *clonedObj = objInMap->Clone();
+      GmatBase *clonedObj = CloneFunctionValue(objInMap);
       #ifdef DEBUG_MEMORY
       MemoryTracker::Instance()->Add
          (clonedObj, strInMap, "FunctionManager::CloneObjectMap()",
@@ -3443,3 +5528,115 @@ void FunctionManager::ShowTrace(Integer count, Integer t1, const std::string &la
    }
 }
 
+
+void FunctionManager::SetExpressionFunctionName(const std::string &name)
+{
+   if (executing) { ReentrantInvocation().SetExpressionFunctionName(name); return; }
+   PrepareCallSetup();
+   if (name == functionName) return;
+   std::string replacement(name);
+   SetExpressionEnvironment(nullptr, localObjectStore, globalObjectStore);
+   functionName.swap(replacement);
+}
+
+void FunctionManager::SetExpressionEnvironment(Function *function,
+      ObjectMap *local, ObjectMap *global)
+{
+   if (executing) { ReentrantInvocation().SetExpressionEnvironment(function, local, global); return; }
+   auto context = Validator::Instance()->CaptureContext(activeManagerExecutions != 0);
+   PrepareCallSetup();
+   auto *callee = dynamic_cast<ObjectManagedFunction*>(function);
+   if (function && !callee)
+      throw FunctionException("Expression calls require an ObjectManagedFunction.\n");
+
+   auto *userFunction = dynamic_cast<UserDefinedFunction*>(callee);
+   GmatCommand *sequence = userFunction ? userFunction->GetFunctionControlSequence() : nullptr;
+   if (callee != currentFunction || (callee && !HasLiveFunction()))
+   {
+      if (!callers.empty() || !callStack.empty() || !losStack.empty())
+         throw FunctionException("Cannot replace the callee of an executing expression.\n");
+      // Incoming caller tables must survive retirement of this manager's FOS.
+      if (isObjStoreOwner && functionObjectStore &&
+            (local == functionObjectStore || global == functionObjectStore))
+         throw FunctionException("Cannot retire an expression's caller scope while rebinding it.\n");
+      for (auto *store : clonedObjectStores)
+         if (store && (local == store || global == store))
+            throw FunctionException("Cannot retire an expression's stacked caller scope while rebinding it.\n");
+
+      // Use the native definition assignment to retire wrappers/results/FOS
+      // while the old callee is still installed. Keep retained table storage
+      // alive across that assignment, including aliases in the new environment.
+      const auto previousBindings = expressionBindings;
+      FunctionManager definition(*this);
+      definition.currentFunction = callee;
+      definition.currentFunctionIdentity = callee ? callee->GetLifetimeToken() : std::weak_ptr<const void>();
+      operator=(definition);
+      expressionBindings = previousBindings;
+   }
+   // Reentry into the same callee keeps its native invocation stack. Recursive
+   // calls may supply another local table; they must not be reset as a new call.
+   currentFunction = callee;
+   currentFunctionIdentity = callee ? callee->GetLifetimeToken() : std::weak_ptr<const void>();
+   localObjectStore = local;
+   globalObjectStore = global;
+   fcs = sequence;
+}
+
+void FunctionManager::RebindExpressionContext(const FunctionManager &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve,
+      ObjectMap *local, ObjectMap *global)
+{
+   if (executing || !callers.empty() || functionObjectStore || !inputWrapperMap.empty() || !outputWrappers.empty())
+      throw FunctionException("Expression definition binding requires a fresh FunctionManager.\n");
+   ExpressionBindingScope binding;
+   auto *function = BindExpressionReference(source.HasLiveFunction() ? source.currentFunction : nullptr, resolve);
+   auto *system = BindExpressionReference(source.solarSys, resolve);
+   auto *coordinateSystem = BindExpressionReference(source.internalCS, resolve);
+   // Native runtime forces are an engine service: Begin/EndFiniteBurn must
+   // update the caller's table. Only an already value-owned environment copies.
+   auto *transients = source.expressionBindings && source.expressionBindings->OwnsForces(source.forces) ?
+         binding.scopes->CopyForces(source.forces, resolve) : source.forces;
+   // Assign fields directly. Native setters may mutate the callee definition.
+   expressionBindings = binding.scopes;
+   currentFunction = function;
+   currentFunctionIdentity = function ? function->GetLifetimeToken() : std::weak_ptr<const void>();
+   solarSys = system;
+   internalCS = coordinateSystem;
+   forces = transients;
+   localObjectStore = local;
+   globalObjectStore = global;
+   publisher = source.publisher; // engine service, never owned by this manager
+   callingFunction = nullptr;
+   fcs = nullptr;
+   firstExecution = true;
+   isFinalized = false;
+}
+
+bool FunctionManager::OwnsExpressionMap(const ObjectMap *map) const
+{
+   return expressionBindings && expressionBindings->OwnsMap(map);
+}
+
+void FunctionManager::RetireExpressionContext()
+{
+   if (executing)
+   {
+      contextRetirementRequested = true;
+      return;
+   }
+   contextRetirementRequested = false;
+   if (reentrantInvocation) reentrantInvocation->RetireExpressionContext();
+   if (completedInvocation) completedInvocation->RetireExpressionContext();
+   localObjectStore = nullptr;
+   globalObjectStore = nullptr;
+   combinedObjectStore.clear();
+   solarSys = nullptr;
+   forces = nullptr;
+   internalCS = nullptr;
+   callingFunction = nullptr;
+   fcs = nullptr;
+   expressionBindings.reset();
+   // Keep currentFunction/currentFunctionIdentity: reentrant Cleanup still
+   // needs the actual callee to detach its own FOS. Do not alter the owned
+   // stores, wrappers, stacks, results or Cleanup's finalized guard here.
+}

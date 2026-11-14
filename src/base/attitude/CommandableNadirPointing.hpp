@@ -55,6 +55,7 @@ public:
 
    /// inherited from GmatBase
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
    
    //------------------------------------------------------------------------------
    // *** Functions overridden to allow parameter setting

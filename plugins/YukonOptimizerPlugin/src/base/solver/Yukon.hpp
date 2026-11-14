@@ -42,6 +42,7 @@
 #include "YukonOptions.hpp"
 #include "YukonOutput.hpp"
 #include "MessageInterface.hpp"
+#include <memory>
 
 class YUKON_API Yukon
 {
@@ -53,6 +54,8 @@ public:
    Yukon(const Yukon& obj);
    Yukon& operator=(const Yukon& obj);
    ~Yukon();
+   YukonUserProblem* GetUserProblem() const;
+   void RebindUserProblem(YukonUserProblem *original, YukonUserProblem *replacement);
    void PrepareToOptimize();
    void PrepareFailedRunOutput(Rvector &decVector, Real &costOut,
       Integer &exitFlag, OutputData &output);
@@ -71,6 +74,7 @@ public:
    void SetNLPAndBoundsInfo();
 
 private:
+   void SwapValueState(Yukon &other);
    void ComputeSearchDirection(Rvector &px, Real &f, Rvector &plam,
       Integer &exitFlag, Rvector &activeSet,
       Integer &qpIter);
@@ -98,13 +102,13 @@ private:
    /// Struct object containing the options for the optimizer to use
    OptionsList options;
    /// Pointer to NLPFunctionGenerator
-   NLPFunctionGenerator *userFuncManager;
+   std::unique_ptr<NLPFunctionGenerator> userFuncManager;
    /// Total number of constraints
-   Integer totalNumCon;
+   Integer totalNumCon = 0;
    /// Number of user function evaluations
-   Integer numFuncEvals;
+   Integer numFuncEvals = 0;
    /// Number of decision variables
-   Integer numDecisionVars;
+   Integer numDecisionVars = 0;
    /// The decision vector
    Rvector decVec;
    /// Lower bounds on decision variables
@@ -116,9 +120,9 @@ private:
    /// Upper bounds on constraints
    Rvector conUpperBounds;
    /// Pointer to user problem
-   YukonUserProblem *userProblem;
+   YukonUserProblem *userProblem = NULL;
    /// The cost function value
-   Real costFunction;
+   Real costFunction = 0.0;
    /// The user constraint functions
    Rvector conFunctions;
    /// The cost function Jacobian
@@ -143,51 +147,51 @@ private:
    /// 1 = equality, 3 = inequality
    Rvector constraintTypes;
    /// Boolean represnting whether optimizer is in elastic mode
-   bool isModeElastic;
-   bool firstElasticStep;
+   bool isModeElastic = false;
+   bool firstElasticStep = false;
    /// The weight used in elastic mode if elastic mode is required
-   Real elasticWeight;
+   Real elasticWeight = 0.0;
 
    /// From refactoring for reverse communication
    std::string method;
    /// Integer representing whether optimizer converged and how convergence 
    /// was achieved
-   Integer isConverged;
+   Integer isConverged = 0;
    /// Number of iterations taken through the optimizer
-   Integer numNLPIterations;
+   Integer numNLPIterations = 0;
    /// Scaling factor used to increase mu elements
-   Real sigma;
+   Real sigma = 0.0;
    /// Minimum reduction factor applied to alpha in a step iteration
-   Real tau;
+   Real tau = 0.0;
    /// Scaling factor used when applying the decrese condition to the merit
    /// function
-   Real eta;
+   Real eta = 0.0;
    /// Scaling vector for the merit function
    Rvector mu;
    /// Iterations since header was written when printing iteration data
-   Integer iterSinceHeaderWrite;
+   Integer iterSinceHeaderWrite = 0;
 
    /// From prepare line search
-   Real alpha;
+   Real alpha = 0.0;
    /// Value of merit function from previous decision vector
-   Real meritF;
+   Real meritF = 0.0;
    /// Boolean showing whether current calculated step has converged
-   bool foundStep;
+   bool foundStep = false;
    /// Parameter dictating whether nonmonotone line search can be used
-   bool usePreviousMerits;
+   bool usePreviousMerits = false;
    /// Counter of how many attempts have been made to converge the current step
-   Integer stepAttempts;
+   Integer stepAttempts = 0;
    /// Boolean determining whether relaxed step can be used
-   bool allowSkippedReduction;
+   bool allowSkippedReduction = false;
    /// Number of relaxed steps taken without reducing the merit function
-   Integer skipsTaken;
+   Integer skipsTaken = 0;
    /// Number of steps taken with the normal step requirements being forced
-   Integer forceReductionSteps;
+   Integer forceReductionSteps = 0;
    /// Boolean determining whether a test if a relaxed step has pushed the
    /// optimizer to reduce the merit function is required
-   bool testSkippedReduction;
+   bool testSkippedReduction = false;
    /// The value of the cost function from the previous iteration
-   Real fold;
+   Real fold = 0.0;
    /// The value of the decision vector from the previous iteration
    Rvector xold;
    /// The constraint Jacobian from the previous iteration
@@ -199,21 +203,21 @@ private:
    Rvector cViolOld;
    /// The number of times a step direction is attempted to produce a
    /// successful step
-   Integer srchCount;
+   Integer srchCount = 0;
    /// The number of successive step directions that have failed to converge
-   Integer failedSrchCount;
+   Integer failedSrchCount = 0;
    /// Placeholder for the current decision vector, used to modify the decision
    /// vector when attemping to converge a step
    Rvector xk;
    /// Integer from the quadratic programming code representing whether 
    /// convergence was successful or if an error occured
-   Integer qpExitFlag;
+   Integer qpExitFlag = 0;
    /// The step direction calculated from MinQP
    Rvector px;
    /// Lagrange multipliers calculated from the MinQP subproblem
    Rvector plam;
    /// The number of iterations MinQP required for the current step calculation
-   Integer qpIter;
+   Integer qpIter = 0;
    /// The current active constraints
    Rvector activeSet;
    /// Vector storing which constraints must be removed when taking fresh data
@@ -224,27 +228,27 @@ private:
    Rmatrix modifiedConIdxs;
 
    /// From line search
-   Real meritFalpha;
+   Real meritFalpha = 0.0;
    /// Maximum constraint violation achieved
-   Real maxConViolation;
+   Real maxConViolation = 0.0;
    /// A variable scaling factor to keep step size below specified maximum
-   Real stepScalingFactor;
+   Real stepScalingFactor = 0.0;
 
    /// Minimum merit function data
    /// Minimum merit function value
-   Real minMeritFAlpha;
+   Real minMeritFAlpha = 0.0;
    /// Minimum meritf function with decrease condition included
-   Real minDecreaseCond;
+   Real minDecreaseCond = 0.0;
    /// Corresponding decision vector to minimum merit function
    Rvector minDecVec;
    /// Corresponding cost value to minimum merit function
-   Real minCost;
+   Real minCost = 0.0;
    /// Corresponding constraint values to minimum merit function
    Rvector minConFuncs;
    /// Corresponding constraint violations to minimum merit function
    Rvector minConViol;
    /// Corresponding alpha value to minimum merit function
-   Real minAlpha;
+   Real minAlpha = 0.0;
    /// Corresponding cost Jacobian to minimum merit function
    Rvector minCostJac;
    /// Corresponding constraint Jacobian to minimum merit function
@@ -254,7 +258,7 @@ private:
 
    /// From CheckIfFinished
    /// Boolean representing whether optimizer has converged and is finished
-   bool isFinished;
+   bool isFinished = false;
 
    /// For state machine
    /// The current state the optimizer is in

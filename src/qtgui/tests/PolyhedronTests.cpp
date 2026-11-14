@@ -36,7 +36,18 @@ static void require(bool ok,const char *message) { if (!ok) throw std::runtime_e
 static void write(const QString &path,const QString &text) { QFile file(path); require(file.open(QIODevice::WriteOnly),"Fixture write failed"); require(file.write(text.toUtf8())==text.toUtf8().size(),"Fixture write incomplete"); }
 static QString read(const QString &path) { QFile file(path); require(file.open(QIODevice::ReadOnly),"Report unavailable"); return QString::fromUtf8(file.readAll()); }
 static QVector<double> numbers(const QString &path) { QVector<double> result; for (const auto &word:read(path).split(QRegularExpression("\\s+"),Qt::SkipEmptyParts)) { bool ok; const double number=word.toDouble(&ok); require(ok && std::isfinite(number),"Nonnumeric polyhedron report"); result.append(number); } return result; }
-static void run(MainWindow &window) { if (window.runMission()!=MainWindow::RunResult::Completed) { QApplication::processEvents(); throw std::runtime_error((window.statusBar()->currentMessage()+"\n"+window.findChild<QPlainTextEdit *>("messageWindow")->toPlainText()).toStdString()); } }
+static void run(MainWindow &window) {
+   static int phase=0; ++phase; std::cout<<"Polyhedron run phase "<<phase<<std::endl;
+   if (window.runMission()!=MainWindow::RunResult::Completed) {
+      QApplication::processEvents(); const auto message=window.statusBar()->currentMessage()+"\n"+window.findChild<QPlainTextEdit *>("messageWindow")->toPlainText();
+      const auto evidence=qEnvironmentVariable("GMAT_QT_ACCEPTANCE_DIR");
+      if (!evidence.isEmpty()) {
+         write(QDir(evidence).filePath("failed-phase-"+QString::number(phase)+".script"),window.findChild<QPlainTextEdit *>("scriptEditor")->toPlainText());
+         write(QDir(evidence).filePath("failed-phase-"+QString::number(phase)+".txt"),message);
+      }
+      throw std::runtime_error(("Polyhedron phase "+QString::number(phase)+": "+message).toStdString());
+   }
+}
 static void equivalent(const QVector<double> &a,const QVector<double> &b) { require(a.size()==b.size(),"Polyhedron report dimensions changed"); for (int i=0;i<a.size();++i) require(std::abs(a[i]-b[i])<1e-11*std::max(1.0,std::abs(b[i])),"GUI polyhedron result differs from script reference"); }
 static QTableWidgetItem *field(ResourceEditor &panel,const QString &name) { auto *table=panel.findChild<QTableWidget *>(); require(table,"Properties table missing"); for (int i=0;i<table->rowCount();++i) if (table->item(i,0)->text()==name) return table->item(i,1); throw std::runtime_error(("Missing property "+name).toStdString()); }
 static void bodySourceCases(MainWindow &window,QPlainTextEdit &editor,QTemporaryDir &files,const QString &shape,const QString &report,const QString &reference)
@@ -241,6 +252,9 @@ int main(int argc,char **argv)
          openForces(*panel,[&](PolyhedronDialog *dialog) { dialog->findChild<QTableWidget *>("polyhedronTable")->item(0,1)->setText(bad); accept(dialog); });
          panel->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click(); require(child->widget()==panel && panel->hasChanges() && editor->toPlainText()==created,"Malformed creation edit did not roll back"); require(polyhedronSettings(*Moderator::Instance()->GetConfiguredObject("FM"))[0].toObject().value("shape").toString()==shapeFile,"Rejected mesh changed the configured force");
          openForces(*panel,[&](PolyhedronDialog *dialog) { dialog->findChild<QTableWidget *>("polyhedronTable")->item(0,1)->setText(shapeFile); accept(dialog); }); require(!panel->hasChanges(),"Restoring identical polyhedron settings left pending changes");
+         // Reverted values retain the dirty-input latch until normal Apply.
+         panel->requestApply();
+         require(!panel->hasUnappliedInput()&&editor->toPlainText()==created,"Polyhedron no-op Apply failed to accept the reverted draft without source changes");
       }
       auto twoReference=creationReference; twoReference.replace("FM.PolyhedralBodies = {Earth};","FM.PolyhedralBodies = {Earth, Mars};");
       // Qualify source ownership after adding a second body to legacy root

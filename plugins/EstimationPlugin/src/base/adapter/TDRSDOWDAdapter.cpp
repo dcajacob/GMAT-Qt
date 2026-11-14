@@ -1100,6 +1100,8 @@ const MeasurementData& TDRSDOWDAdapter::CalculateMeasurement(bool withEvents,
       ObservationData* forObservation, std::vector<RampTableData>* rampTable,
       bool forSimulation)
 {
+   ObservationEpochGuard observationEpoch(cMeasurement, forObservation);
+
    #ifdef DEBUG_DOPPLER_CALCULATION
       MessageInterface::ShowMessage("TDRSDOWDAdapter::CalculateMeasurement(%s, "
             "<%p>, <%p>) called\n", (withEvents ? "true" : "false"), forObservation,
@@ -1110,7 +1112,7 @@ const MeasurementData& TDRSDOWDAdapter::CalculateMeasurement(bool withEvents,
 
    GmatTime computeEpoch;
    if (forObservation)
-      computeEpoch = forObservation->epochGT;
+      computeEpoch = forObservation->GetEpochInA1();
    else
    {
       for (UnsignedInt i = 0; i < refObjects.size(); ++i)
@@ -1394,7 +1396,7 @@ const MeasurementData& TDRSDOWDAdapter::CalculateMeasurement(bool withEvents,
                   {
                      // add pass bias
                      // specify pass number associate to the current observation
-                     Real passBias = measErrorModel->GetPassBias(cMeasurement.epochGT);
+                     Real passBias = measErrorModel->GetPassBias(observationEpoch.GetEpoch(cMeasurement.epochGT));
                      cMeasurement.value[i] = cMeasurement.value[i] + passBias;                       // pass bias unit: Km/s
                      cMeasurement.correction[i] = cMeasurement.correction[i] + passBias;             // pass bias unit: Km/s
                   }

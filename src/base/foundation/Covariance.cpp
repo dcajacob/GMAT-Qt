@@ -33,6 +33,7 @@
 #include "Covariance.hpp"
 #include "GmatBase.hpp"
 #include "MessageInterface.hpp"
+#include <utility>
 
 //#define DEBUG_CONSTRUCTION
 //#define DEBUG_ACCESS
@@ -40,9 +41,10 @@
 
 Covariance::Covariance(GmatBase *owner) :
    covarianceOwner   (owner),
-   subCovariance     (NULL),
    theCovariance     (NULL),
-   dimension         (0)
+   subCovariance     (NULL),
+   dimension         (0),
+   subCovarianceIndex   (-1)
 {
    theCovariance = new Rmatrix();
 }
@@ -58,19 +60,19 @@ Covariance::~Covariance()
 
 Covariance::Covariance(const Covariance &cov) :
    covarianceOwner   (cov.covarianceOwner),
+   theCovariance     (NULL),
    subCovariance     (NULL),
    elementNames      (cov.elementNames),
    elementIDs        (cov.elementIDs),
    elementSizes      (cov.elementSizes),
    elementOwners     (cov.elementOwners),
-   dimension         (cov.dimension)
+   dimension         (cov.dimension),
+   subCovarianceIndex   (-1)
 {
-   //if (cov.theCovariance.IsSized())
-   //   theCovariance = cov.theCovariance;
-
-   theCovariance = new Rmatrix();
-   if (cov.theCovariance->IsSized())
-      *theCovariance     = *(cov.theCovariance);
+   // Allocate after all metadata copies succeed. Rmatrix cannot copy an
+   // unsized source, so preserve that state with its default constructor.
+   theCovariance = cov.theCovariance->IsSized() ?
+         new Rmatrix(*cov.theCovariance) : new Rmatrix();
 }
 
 
@@ -78,28 +80,49 @@ Covariance& Covariance::operator=(const Covariance &cov)
 {
    if (&cov != this)
    {
-      covarianceOwner   = cov.covarianceOwner;
-
-      //if (cov.theCovariance.IsSized())
-      //   theCovariance     = cov.theCovariance;
-
-      if (cov.theCovariance->IsSized())
+      if (GmatBase::IsNativeRestorationCopy())
       {
-         if (theCovariance != NULL)
-            delete theCovariance;
-         theCovariance = new Rmatrix();
-         *theCovariance = *(cov.theCovariance);
+         RestoreValues(cov);
+         return *this;
       }
-
-      elementNames      = cov.elementNames;
-      elementIDs        = cov.elementIDs;
-      elementSizes      = cov.elementSizes;
-      elementOwners     = cov.elementOwners;
-
-      dimension         = cov.dimension;
+      // Build the complete replacement before releasing the destination.
+      // Empty sources must clear an old matrix, and submatrix caches must
+      // never survive assignment to a different covariance.
+      Covariance replacement(cov);
+      using std::swap;
+      swap(covarianceOwner, replacement.covarianceOwner);
+      swap(theCovariance, replacement.theCovariance);
+      swap(subCovariance, replacement.subCovariance);
+      swap(subCovarianceIndex, replacement.subCovarianceIndex);
+      elementNames.swap(replacement.elementNames);
+      elementIDs.swap(replacement.elementIDs);
+      elementSizes.swap(replacement.elementSizes);
+      elementOwners.swap(replacement.elementOwners);
+      swap(dimension, replacement.dimension);
    }
 
    return *this;
+}
+
+
+bool Covariance::HasOwner(const GmatBase *object) const noexcept
+{
+   if (!object) return false;
+   if (covarianceOwner == object) return true;
+   for (const auto *owner : elementOwners) if (owner == object) return true;
+   return false;
+}
+
+void Covariance::RebindOwner(const GmatBase *previous,
+      GmatBase *replacement) noexcept
+{
+   if (!previous)
+      return;
+   if (covarianceOwner == previous)
+      covarianceOwner = replacement;
+   for (auto &owner : elementOwners)
+      if (owner == previous)
+         owner = replacement;
 }
 
 
@@ -376,6 +399,12 @@ Integer Covariance::GetDimension()
 Rmatrix *Covariance::GetCovariance()
 {
    //return &theCovariance;
+   return theCovariance;
+}
+
+
+const Rmatrix *Covariance::GetCovariance() const
+{
    return theCovariance;
 }
 
@@ -965,6 +994,7 @@ Rmatrix *Covariance::GetCovariance(const Integer forParameterID)
 {
    // Find the covariance elements that match up with the input ID
    Integer locationStart = 0;
+   subCovarianceIndex = -1;
    if (subCovariance != NULL)
    {
       delete subCovariance;
@@ -983,6 +1013,7 @@ Rmatrix *Covariance::GetCovariance(const Integer forParameterID)
          // Found it!
          Integer parmSize = elementSizes[i];
          subCovariance = new Rmatrix(parmSize, parmSize);
+         subCovarianceIndex = i;
 
          for (Integer j = 0; j < parmSize; ++j)
          {
@@ -1043,4 +1074,57 @@ void Covariance::ShowContent()
    }
    MessageInterface::ShowMessage("]\n");
 
+}
+void Covariance::ValidateRestorationLayout(const Covariance &source) const
+{
+   if (dimension < 0 || dimension != source.dimension || !theCovariance || !source.theCovariance ||
+       elementNames != source.elementNames || elementIDs != source.elementIDs || elementSizes != source.elementSizes ||
+       elementOwners.size() != source.elementOwners.size() || elementNames.size() != elementIDs.size() ||
+       elementIDs.size() != elementSizes.size() || elementSizes.size() != elementOwners.size() ||
+       theCovariance->IsSized() != source.theCovariance->IsSized())
+      throw GmatBaseException("Prepare covariance declarations before restoring a changed layout.");
+   if (theCovariance->IsSized())
+   {
+      if (theCovariance->GetNumRows() != dimension || theCovariance->GetNumColumns() != dimension ||
+          source.theCovariance->GetNumRows() != dimension || source.theCovariance->GetNumColumns() != dimension)
+         throw GmatBaseException("Covariance restoration requires matching square matrix storage.");
+   }
+   else if (dimension != 0)
+      throw GmatBaseException("Cannot restore a nonempty covariance into unsized storage.");
+   Integer covered = 0;
+   for (Integer size : elementSizes)
+   {
+      if (size < 0 || size > dimension - covered)
+         throw GmatBaseException("Invalid covariance element layout for restoration.");
+      covered += size;
+   }
+   if (subCovariance)
+   {
+      const Integer index = subCovarianceIndex;
+      if (index < 0 || static_cast<size_t>(index) >= elementSizes.size() ||
+          (!subCovariance->IsSized() && elementSizes[index] != 0) ||
+          (subCovariance->IsSized() && (subCovariance->GetNumRows() != elementSizes[index] ||
+           subCovariance->GetNumColumns() != elementSizes[index])))
+         throw GmatBaseException("Refresh the covariance parameter block after changing its layout.");
+   }
+}
+
+void Covariance::RestoreValues(const Covariance &source)
+{
+   if (&source == this) return;
+   ValidateRestorationLayout(source);
+   for (Integer row = 0; row < dimension; ++row)
+      for (Integer column = 0; column < dimension; ++column)
+         (*theCovariance)(row, column) = (*source.theCovariance)(row, column);
+   if (subCovariance)
+   {
+      const Integer size = elementSizes[subCovarianceIndex];
+      Integer start = 0;
+      for (Integer i = 0; i < subCovarianceIndex; ++i) start += elementSizes[i];
+      for (Integer row = 0; row < size; ++row)
+         for (Integer column = 0; column < size; ++column)
+            (*subCovariance)(row, column) = (*theCovariance)(start + row, start + column);
+   }
+   // Destination owner associations, matrix objects and backing arrays stay
+   // selected. A parameter-block cache remains ephemeral across getter calls.
 }

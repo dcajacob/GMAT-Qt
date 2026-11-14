@@ -1,0 +1,1651 @@
+{
+  "cases": [
+    {
+      "key": "FixedLeft",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "true",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "Off",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E364",
+        "FRR!E366",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.345679            -0.003125            \n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "FixedRight",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "true",
+        "Delimiter": ",",
+        "LeftJustify": "Off",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E364",
+        "FRR!E365",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "            12.345679            -0.003125\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "WidthEight",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "8",
+        "WriteHeaders": "false",
+        "FixedWidth": "true",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "23",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E361",
+        "FRR!E360",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.345679  -0.003125  \n",
+      "invalid_field": "ColumnWidth"
+    },
+    {
+      "key": "WidthOne",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "1",
+        "WriteHeaders": "false",
+        "FixedWidth": "true",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "23",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E361",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.345679-0.003125\n",
+      "invalid_field": "ColumnWidth"
+    },
+    {
+      "key": "PrecisionThree",
+      "mode": "explicit",
+      "config": {
+        "Precision": "3",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "16",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E362",
+        "FRR!E360",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.3,-0.00313\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "PrecisionFourteen",
+      "mode": "explicit",
+      "config": {
+        "Precision": "14",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "16",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E362",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.34567890125,-0.003125\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "PrecisionOne",
+      "mode": "explicit",
+      "config": {
+        "Precision": "1",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "16",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E362",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "1e+01,-0.003\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "ZeroFillOn",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "On",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.5,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E363",
+        "FRR!E360",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.500000,-0.0031250000\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "ZeroFillOff",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "On",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.5,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E363",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.5,-0.003125\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "HeadersOn",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "true",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E367",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "V,W\n12.345679,-0.003125\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "HeadersOff",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "true",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E367",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.345679,-0.003125\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "DelimiterComma",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "true",
+        "Delimiter": ";",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E354",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.345679,-0.003125\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "DelimiterSemicolon",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ";",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "true",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E354",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.345679;-0.003125\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "DelimiterTab",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": "\t",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "true",
+        "Delimiter": ";",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E354",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.345679\t-0.003125\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "DelimiterSpace",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": " ",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "true",
+        "Delimiter": ";",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E354",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.345679 -0.003125\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "DelimiterPipe",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": "|",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "true",
+        "Delimiter": ";",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E354",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.345679|-0.003125\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "AppendFalse",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "true",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 2,
+      "seed": "NASA preserved seed\n",
+      "requirements": [
+        "FRR!E372",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.345679,-0.003125\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "AppendTrue",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "true",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 2,
+      "seed": "NASA preserved seed\n",
+      "requirements": [
+        "FRR!E372",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.345679,-0.003125\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "CommandVariable",
+      "mode": "explicit",
+      "config": {
+        "Precision": "17",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "16",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V"
+      ],
+      "values": [
+        12.5
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E357",
+        "FRC!E126",
+        "FRR!E355",
+        "FRC!E127",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.5\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "CommandArray",
+      "mode": "explicit",
+      "config": {
+        "Precision": "17",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "16",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "A"
+      ],
+      "values": [],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E358",
+        "FRC!E129",
+        "FRC!E126",
+        "FRR!E355",
+        "FRC!E127",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "CommandElement",
+      "mode": "explicit",
+      "config": {
+        "Precision": "17",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "16",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "A(2,1)"
+      ],
+      "values": [
+        3.75
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E358",
+        "FRC!E130",
+        "FRC!E126",
+        "FRR!E355",
+        "FRC!E127",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "3.75\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "CommandString",
+      "mode": "explicit",
+      "config": {
+        "Precision": "17",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "16",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "S"
+      ],
+      "values": [
+        "NASA text"
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E359",
+        "FRC!E126",
+        "FRR!E355",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "NASA text\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "CommandProperty",
+      "mode": "explicit",
+      "config": {
+        "Precision": "17",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "16",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "Sat.DryMass"
+      ],
+      "values": [
+        850
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E356",
+        "FRC!E131",
+        "FRC!E126",
+        "FRR!E355",
+        "FRC!E127",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "850\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "SubscriberAdd",
+      "mode": "subscriber",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": "Sat.ElapsedSecs, V"
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": "Keep"
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.5
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E356",
+        "FRR!E357",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "SubscriberWriteOff",
+      "mode": "subscriber-off",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "false",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": "Sat.ElapsedSecs, V"
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": "Keep"
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.5
+      ],
+      "runs": 1,
+      "seed": "NASA preserved seed\n",
+      "requirements": [
+        "FRR!E372",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "CommandWriteOff",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "false",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "12.345679,-0.003125\n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "SubscriberToggle",
+      "mode": "toggle",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": "Sat.ElapsedSecs, V"
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": "Keep"
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.5
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRC!E154",
+        "FRC!E158",
+        "FRC!E159",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "SolverAll",
+      "mode": "solver",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": "Alpha, Sat.ElapsedSecs"
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "None",
+        "AppendToExistingFile": "false",
+        "Add": "Keep"
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E368",
+        "FRR!E369",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "SolverCurrent",
+      "mode": "solver",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "Current",
+        "AppendToExistingFile": "false",
+        "Add": "Alpha, Sat.ElapsedSecs"
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "None",
+        "AppendToExistingFile": "false",
+        "Add": "Keep"
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E368",
+        "FRR!E371",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "SolverNone",
+      "mode": "solver",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "None",
+        "AppendToExistingFile": "false",
+        "Add": "Alpha, Sat.ElapsedSecs"
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "18",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": "Keep"
+      },
+      "params": [
+        "V",
+        "W"
+      ],
+      "values": [
+        12.34567890125,
+        -0.003125
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E368",
+        "FRR!E370",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "HeadersFixedLeft",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "1",
+        "WriteHeaders": "true",
+        "FixedWidth": "true",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "23",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "Off",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "Sat.DryMass"
+      ],
+      "values": [
+        12.5,
+        850
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E361",
+        "FRR!E364",
+        "FRR!E367",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "V   Sat.DryMass   \n12.5850           \n",
+      "invalid_field": "Precision"
+    },
+    {
+      "key": "HeadersFixedRight",
+      "mode": "explicit",
+      "config": {
+        "Precision": "8",
+        "ColumnWidth": "1",
+        "WriteHeaders": "true",
+        "FixedWidth": "true",
+        "Delimiter": ",",
+        "LeftJustify": "Off",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "base": {
+        "Precision": "8",
+        "ColumnWidth": "23",
+        "WriteHeaders": "false",
+        "FixedWidth": "false",
+        "Delimiter": ",",
+        "LeftJustify": "On",
+        "ZeroFill": "Off",
+        "WriteReport": "true",
+        "SolverIterations": "All",
+        "AppendToExistingFile": "false",
+        "Add": ""
+      },
+      "params": [
+        "V",
+        "Sat.DryMass"
+      ],
+      "values": [
+        12.5,
+        850
+      ],
+      "runs": 1,
+      "seed": "",
+      "requirements": [
+        "FRR!E361",
+        "FRR!E364",
+        "FRR!E367",
+        "FRR!E354"
+      ],
+      "invalid": [
+        "0",
+        "-1",
+        "not-an-integer"
+      ],
+      "expected_data": "   V   Sat.DryMass\n12.5           850\n",
+      "invalid_field": "Precision"
+    }
+  ],
+  "reference_sources": {
+    "doc/help/src/Resource_ReportFile.xml": "aade22c63756a00b62cf0c75c9fb07fc3842578a4d00d72bc59c4a5e30cd9526",
+    "doc/help/src/Command_Report.xml": "d23caeefd8a4630104b944098535591033131a43fd2b803e057dcb3c0e540b3b",
+    "doc/help/src/Command_Toggle.xml": "921e235aecc6caa485185e7ee62fcf74044e8a25659112858a96137f44823b96"
+  },
+  "scope": "Selected report GUI formatting/types, append/write controls, subscriber Toggle and linear-target iteration filtering. Exact ASCII bytes for scalar/string formatting and independent numeric/matrix/step invariants. Not all formats/locales/types/solvers/platforms or full-current-build qualification."
+}

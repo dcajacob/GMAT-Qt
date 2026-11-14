@@ -43,6 +43,7 @@ public:
    Optimize(const Optimize& o);
    Optimize& operator=(const Optimize& o);
    virtual ~Optimize();
+   void RetireFunctionBindings(ObjectMap *store) override;
     
    // Inherited methods that need some enhancement from the base class
    virtual bool        Append(GmatCommand *cmd);
@@ -58,6 +59,8 @@ public:
    // inherited from GmatBase
    // Method to execute a callback from an external function
    virtual bool        ExecuteCallback();
+   virtual bool        TakeAction(const std::string &action,
+                                 const std::string &actionData = "");
    virtual bool        PutCallbackData(std::string &data);
    virtual bool        PutCallbackRealData(RealArray &data);
    virtual std::string GetCallbackResults();

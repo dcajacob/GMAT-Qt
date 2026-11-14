@@ -30,6 +30,8 @@
 //------------------------------------------------------------------------------
 #include <iomanip>
 #include "MessageWindow.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "MessageInterface.hpp" // for ShowMessage()
 
 //---------------------------------
@@ -58,6 +60,7 @@ MessageWindow::MessageWindow(const MessageWindow &mw)
    //parameterCount = MessageWindowParamCount;
    dstream.precision(precision);
    dstream.setf(std::ios::fixed);
+   if (typeid(mw) == typeid(MessageWindow)) ReconnectSubscriberCopy(mw);
 }
 
 //------------------------------------------------------------------------------
@@ -139,7 +142,15 @@ bool MessageWindow::Distribute(const Real * dat, Integer len)
 //------------------------------------------------------------------------------
 GmatBase* MessageWindow::Clone() const
 {
-   return (new MessageWindow(*this));
+   if (typeid(*this) != typeid(MessageWindow))
+      throw GmatBaseException("A derived MessageWindow must provide its complete Clone.\n");
+   std::unique_ptr<MessageWindow> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new MessageWindow(*this));
+   }
+   value->ReconnectSubscriberCopy(*this);
+   return value.release();
 }
 
 
@@ -149,7 +160,7 @@ GmatBase* MessageWindow::Clone() const
 std::string MessageWindow::GetParameterText(const Integer id) const
 {
    if (id >= SubscriberParamCount && id < MessageWindowParamCount)
-      return PARAMETER_TEXT[id - MessageWindowParamCount];
+      return PARAMETER_TEXT[id - SubscriberParamCount];
    else
       return Subscriber::GetParameterText(id);
 }
@@ -188,7 +199,7 @@ Gmat::ParameterType MessageWindow::GetParameterType(const Integer id) const
 std::string MessageWindow::GetParameterTypeString(const Integer id) const
 {
    if (id >= SubscriberParamCount && id < MessageWindowParamCount)
-      return GmatBase::PARAM_TYPE_STRING[GetParameterType(id - SubscriberParamCount)];
+      return GmatBase::PARAM_TYPE_STRING[GetParameterType(id)];
    else
       return Subscriber::GetParameterTypeString(id);
 }
@@ -246,4 +257,35 @@ Integer MessageWindow::SetIntegerParameter(const Integer id, const Integer value
     default:
         return Subscriber::GetIntegerParameter(id);
     }
+}
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void MessageWindow::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const MessageWindow*>(original);
+   if (!source || typeid(*source) != typeid(MessageWindow) ||
+       typeid(*this) != typeid(MessageWindow))
+      throw GmatBaseException("Cannot copy incompatible object into MessageWindow");
+   if (source == this)
+      return;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = BeginSubscriberValueCopy(*source);
+   {
+      FunctionValueCopyGuard nativeCopy;
+      Subscriber::operator=(*source);
+      precision = source->precision;
+      // Like the copy constructor, start with an empty transient output buffer.
+      dstream.str("");
+      dstream.clear();
+      dstream.precision(precision);
+      dstream.setf(std::ios::fixed);
+   }
+   CompleteSubscriberValueCopy(*source, transaction);
+}
+
+
+
+bool MessageWindow::HasSubscriberValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(MessageWindow);
 }

@@ -1,4 +1,9 @@
 #include "MainWindow.hpp"
+#include "McpBridge.hpp"
+#include <QStandardPaths>
+#include <memory>
+#include "FunctionValidation.hpp"
+#include <cstring>
 #include <QApplication>
 #include <QScreen>
 #include <QCommandLineParser>
@@ -12,12 +17,15 @@
 #include <QSettings>
 int main(int argc, char **argv)
 {
+   if (argc>1 && std::strcmp(argv[1],"--validate-functions")==0) return qtFunctionValidationWorker(argc,argv);
    QApplication app(argc, argv);
    QApplication::setOrganizationName("GMAT");
    QApplication::setApplicationName("GMAT Qt 6");
    QCommandLineParser parser;
    parser.setApplicationDescription("GMAT Qt 6 desktop interface");
    parser.addHelpOption();
+   parser.addOption({"mcp-bridge", "Enable authenticated local MCP desktop control"});
+   parser.addOption({"mcp-discovery-dir", "Private bridge discovery directory", "directory"});
    parser.addOption({"startup", "GMAT startup file", "file"});
    parser.addOption({"screenshot", "Save a startup screenshot and exit", "file"});
    parser.addOption({"run", "Run the loaded mission after opening the window"});
@@ -53,6 +61,11 @@ int main(int argc, char **argv)
    bool loaded = true;
    if (initialized && !script.isEmpty()) loaded = window.loadScript(script) &&
       (!parser.isSet("convert-views") || window.convertOpenFramesScript()) && window.buildScript();
+   std::unique_ptr<McpBridge> mcp;
+   if (parser.isSet("mcp-bridge") && initialized && loaded) {
+      const auto directory=parser.isSet("mcp-discovery-dir") ? parser.value("mcp-discovery-dir") : QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/gmat-mcp/desktops";
+      try { mcp=std::make_unique<McpBridge>(window,directory); } catch (std::exception &error) { std::fprintf(stderr,"MCP bridge unavailable: %s\n",error.what()); return 2; }
+   }
    QTimer::singleShot(0, &window, [&] {
       bool succeeded = initialized && loaded;
       if (succeeded && script.isEmpty() && !parser.isSet("run") && screenshot.isEmpty()) window.showWelcome(true);

@@ -21,7 +21,7 @@ inline osg::Vec3d orbitObjectGuidePosition(const PlotPoint &pose,const osg::Vec3
       pose.y+r[3]*local.x()+r[4]*local.y()+r[5]*local.z(),
       pose.z+r[6]*local.x()+r[7]*local.y()+r[8]*local.z()};
 }
-inline OrbitObjectGuides orbitObjectGuides(const PlotCurve &curve,const PlotPoint &pose,double radius)
+inline OrbitObjectGuides orbitObjectGuides(const PlotCurve &curve,const PlotPoint &pose,double radius,bool celestialGrid=false)
 {
    OrbitObjectGuides guides;
    constexpr double pi=3.14159265358979323846;
@@ -31,7 +31,9 @@ inline OrbitObjectGuides orbitObjectGuides(const PlotCurve &curve,const PlotPoin
    auto line=[&](const osg::Vec3d &a,const osg::Vec3d &b,QColor color,double width=1) {
       guides.lines.push_back({orbitObjectGuidePosition(pose,a),orbitObjectGuidePosition(pose,b),color,width});
    };
-   if (curve.objectGrid) {
+   // The OrbitView Grid option is a body-fixed latitude/longitude overlay.
+   // Per-object OpenFrames guides retain their independent selection.
+   if (curve.objectGrid || (celestialGrid && curve.showObject && curve.radius>0)) {
       const QColor black=QColor::fromRgbF(0,0,0,.9);
       // Spherical latitudes/longitudes spaced pi/8, independent of the mesh's
       // own model rotation/offset and the planet's flattening.

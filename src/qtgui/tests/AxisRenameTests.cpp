@@ -1,3 +1,4 @@
+#include "AcceptanceView.hpp"
 #include "MainWindow.hpp"
 #include "TestSettings.hpp"
 #include "Moderator.hpp"
@@ -17,6 +18,7 @@ int main(int argc,char **argv)
       auto *editor=window.findChild<QPlainTextEdit *>("scriptEditor");
       const QString source="% Preserve R N and Craft in this comment Δ\nCreate Spacecraft Craft;\nCreate CoordinateSystem Rot;\nRot.Origin = Earth;\nRot.Axes = ObjectReferenced;\nRot.XAxis = R;\nRot.YAxis = '';\nRot.ZAxis = N;\nRot.Primary = Earth;\nRot.Secondary = Craft;\nCreate CoordinateSystem Fixed;\nFixed.Origin = Luna;\nFixed.Axes = BodyFixed;\nCreate OrbitView Orb;\nOrb.Add = {Earth, Craft};\nOrb.CoordinateSystem = Rot;\nBeginMissionSequence;\nStop;\n";
       editor->setPlainText(source); const bool built=window.buildScript(); app.processEvents(); require(built,qPrintable("Forwarded-axis fixture failed to build:\n"+window.findChild<QPlainTextEdit *>("messageWindow")->toPlainText()));
+      acceptanceView(window);
       const auto rename=[&](const QString &old,const QString &name,const QString &expected) {
          const auto before=editor->toPlainText(); const auto error=window.renameResource(old,name,before);
          require(error.isEmpty(),qPrintable(error)); require(editor->toPlainText()==expected,"Rename changed literal axes or unrelated source");

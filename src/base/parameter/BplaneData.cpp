@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 #include "gmatdefs.hpp"
 #include "BplaneData.hpp"
+#include "Publisher.hpp"
 #include "ParameterException.hpp"
 #include "Rvector3.hpp"
 #include "RealUtilities.hpp"
@@ -144,6 +145,25 @@ BplaneData& BplaneData::operator= (const BplaneData &right)
    
    return *this;
 }
+
+
+// Map cached identities without evaluating or initializing a Parameter.
+void BplaneData::RebindClonedParameterCaches(const RefData &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &data = ClonedParameterData<BplaneData>(source);
+   auto *bound_mSpacecraft = BindClonedParameterReference(data.mSpacecraft, resolve);
+   auto *bound_mSolarSystem = BindClonedParameterReference(data.mSolarSystem, resolve);
+   auto *bound_mOrigin = BindClonedParameterReference(data.mOrigin, resolve);
+   auto *bound_mInternalCoordSystem = BindClonedParameterReference(data.mInternalCoordSystem, resolve);
+   auto *bound_mOutCoordSystem = BindClonedParameterReference(data.mOutCoordSystem, resolve);
+   mSpacecraft = bound_mSpacecraft;
+   mSolarSystem = bound_mSolarSystem;
+   mOrigin = bound_mOrigin;
+   mInternalCoordSystem = bound_mInternalCoordSystem;
+   mOutCoordSystem = bound_mOutCoordSystem;
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -371,8 +391,15 @@ void BplaneData::SetInternalCoordSys(CoordinateSystem *cs)
 //------------------------------------------------------------------------------
 Rvector6 BplaneData::GetCartState()
 {   
-   mCartEpoch = mSpacecraft->GetEpoch();
-   mCartState.Set(mSpacecraft->GetState().GetState());
+   GmatTime sampleEpoch;
+   const bool published = Publisher::GetParameterCartesianState(mSpacecraft, sampleEpoch, mCartState);
+   const bool precise = published || mSpacecraft->HasPrecisionTime();
+   if (!published)
+   {
+      mCartState.Set(mSpacecraft->GetState().GetState());
+      if (precise) sampleEpoch = mSpacecraft->GetEpochGT();
+   }
+   mCartEpoch = precise ? sampleEpoch.GetMjd() : mSpacecraft->GetEpoch();
    
    #if DBGLVL_BPLANEDATA_RUN
    MessageInterface::ShowMessage
@@ -393,6 +420,11 @@ Rvector6 BplaneData::GetCartState()
          ("BplaneData::GetCartState() internal or output CoordinateSystem "
           "is NULL.\n");
    }
+
+   const bool localState = !published &&
+      mInternalCoordSystem == mSpacecraft->GetInternalCoordSystem() &&
+      mSpacecraft->GetOriginRelativeState(mOutCoordSystem->GetOrigin(),
+         mSpacecraft->GetEpochGT(), mCartState);
    
    // convert to output CoordinateSystem
    if (mInternalCoordSystem->GetName() != mOutCoordSystem->GetName())
@@ -409,9 +441,12 @@ Rvector6 BplaneData::GetCartState()
       
       try
       {
-         mCoordConverter.Convert(A1Mjd(mCartEpoch), mCartState,
-                                 mInternalCoordSystem,
-                                 mCartState, mOutCoordSystem);
+         if (precise)
+            mCoordConverter.Convert(sampleEpoch, mCartState, mInternalCoordSystem,
+                                    mCartState, mOutCoordSystem, false, localState);
+         else
+            mCoordConverter.Convert(A1Mjd(mCartEpoch), mCartState, mInternalCoordSystem,
+                                    mCartState, mOutCoordSystem, false, localState);
          
          #if DBGLVL_BPLANEDATA_CONVERT
          MessageInterface::ShowMessage
@@ -422,6 +457,7 @@ Rvector6 BplaneData::GetCartState()
       catch (BaseException &e)
       {
          MessageInterface::ShowMessage(e.GetFullMessage());
+         throw;
       }
    }
    

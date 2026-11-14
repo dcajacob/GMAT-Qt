@@ -104,7 +104,7 @@ DataReader& DataReader::operator=(const DataReader& dr)
       selectedFields         = dr.selectedFields;
       supportedFields        = dr.supportedFields;
       readAllSupportedFields = dr.readAllSupportedFields;
-      dataReady              = false;
+      ClearData();
       clearOnRead            = dr.clearOnRead;
       fileStringMap          = dr.fileStringMap;
       objectStringMap        = dr.objectStringMap;

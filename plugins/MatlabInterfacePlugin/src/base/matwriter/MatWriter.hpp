@@ -76,6 +76,17 @@ private:
 
    void UnsetMxArray();
 
+   // Declared in every build so plugin consumers see the same class layout.
+   bool qtFileOpen = false, qtStructureReady = false, qtOperationActive = false;
+   mwSize qtStructureSize = 0;
+   StringArray qtStructureFields;
+   bool OpenQtFile();
+   bool WriteQtData(const std::string &name);
+   void DescribeQtData(const StringArray &fields, mwSize size);
+   void ClearQtData();
+   void CopyQtData(const MatWriter &source);
+
+
 }; 
 
 #endif

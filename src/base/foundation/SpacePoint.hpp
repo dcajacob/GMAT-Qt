@@ -58,6 +58,8 @@ class SolarSystem;
 class GMAT_API SpacePoint : public GmatBase
 {
 public:
+   using GmatBase::SetField;
+   void SetField(const Integer id, const StringArray &value) override;
 
    // default constructor
    SpacePoint(UnsignedInt ofType, const std::string &itsType,

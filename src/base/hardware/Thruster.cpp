@@ -30,11 +30,15 @@
 //------------------------------------------------------------------------------
 
 
+#include <algorithm>
 #include "Thruster.hpp"
+#include <limits>
 #include "ObjectReferencedAxes.hpp"
 #include "Spacecraft.hpp"
 #include "StringUtil.hpp"
 #include "HardwareException.hpp"
+#include "CoordinateConverter.hpp"
+#include "ObjectReferencedAxes.hpp"
 #include "MessageInterface.hpp"
 #include <sstream>
 #include <math.h>          // for pow(real, real)
@@ -81,6 +85,7 @@ Thruster::PARAMETER_TEXT[ThrusterParamCount - HardwareParamCount] =
    "MixRatio",
    "GravitationalAccel",
    "Thrust",
+   "ThrustMagnitude",
    "Isp",
    "MassFlowRate",
 };
@@ -100,6 +105,7 @@ Thruster::PARAMETER_TYPE[ThrusterParamCount - HardwareParamCount] =
    Gmat::RVECTOR_TYPE,     // "MixRatio"
    Gmat::REAL_TYPE,        // "GravitationalAccel"
    Gmat::REAL_TYPE,        // "Thrust"
+   Gmat::REAL_TYPE,        // "ThrustMagnitude"
    Gmat::REAL_TYPE,        // "Isp"
    Gmat::REAL_TYPE,        // "MassFlowRate"
 };
@@ -206,17 +212,7 @@ Thruster::Thruster(const std::string &typeStr, const std::string &nomme) :
 //------------------------------------------------------------------------------
 Thruster::~Thruster()
 {
-   // delete local coordinate system
-   if (usingLocalCoordSys && localCoordSystem)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (localCoordSystem, "localCS", "Thruster::~Thruster()",
-          "deleting localCoordSystem");
-      #endif
-      delete localCoordSystem;
-      localCoordSystem = NULL;
-   }
+   RetireLocalCoordinateSystem();
 }
 
 
@@ -293,6 +289,8 @@ Thruster::Thruster(const Thruster& th) :
    
    // copy tanks
    tanks = th.tanks;
+   for (Integer i = 0; i < 3; ++i)
+      thrustDirection[i] = th.thrustDirection[i];
    
    isInitialized = false;
 
@@ -349,19 +347,29 @@ Thruster& Thruster::operator=(const Thruster& th)
    MessageInterface::ShowMessage("Thruster::operator= entered\n");
    #endif
    
+   const bool restoring = GmatBase::IsNativeRestorationCopy();
+   const bool ready = isInitialized;
+   if (restoring && (coordSystemName != th.coordSystemName || localOriginName != th.localOriginName ||
+       localAxesName != th.localAxesName || j2000BodyName != th.j2000BodyName ||
+       tankNames != th.tankNames || mixRatio.GetSize() != th.mixRatio.GetSize()))
+      throw HardwareException("Prepare the burn before restoring changed active thruster bindings.");
+   if (!restoring) RetireLocalCoordinateSystem();
    Hardware::operator=(th);
    
-   solarSystem         = th.solarSystem; // copy
-   localCoordSystem    = NULL;
-   coordSystem         = th.coordSystem; // copy
-   localOrigin         = th.localOrigin; // copy
-   j2000Body           = th.j2000Body;   // copy
-   spacecraft          = NULL;
+   if (!restoring)
+   {
+      solarSystem         = th.solarSystem; // copy
+      localCoordSystem    = NULL;
+      coordSystem         = th.coordSystem; // copy
+      localOrigin         = th.localOrigin; // copy
+      j2000Body           = th.j2000Body;   // copy
+      spacecraft          = NULL;
+   }
    coordSystemName     = th.coordSystemName;
    localOriginName     = th.localOriginName;
    localAxesName       = th.localAxesName;
    j2000BodyName       = th.j2000BodyName;
-   satName             = th.satName;
+   if (!restoring) satName = th.satName;
    power               = th.power;
    
    gravityAccel        = th.gravityAccel;
@@ -377,6 +385,8 @@ Thruster& Thruster::operator=(const Thruster& th)
    inertialDirection[0]  = th.inertialDirection[0];
    inertialDirection[1]  = th.inertialDirection[1];
    inertialDirection[2]  = th.inertialDirection[2];
+   for (Integer i = 0; i < 3; ++i)
+      thrustDirection[i] = th.thrustDirection[i];
    
    thrusterFiring      = th.thrusterFiring;
    decrementMass       = th.decrementMass;
@@ -385,19 +395,18 @@ Thruster& Thruster::operator=(const Thruster& th)
    usingLocalCoordSys  = th.usingLocalCoordSys;
    usingLocalCoordSys  = th.usingLocalCoordSys;
    localAxesLabels     = th.localAxesLabels;
-   isInitialized       = false;
+   isInitialized       = restoring ? ready : false;
    
    localAxesLabels     = th.localAxesLabels;
    tankNames           = th.tankNames;
 
-   mixRatio.SetSize(th.mixRatio.GetSize());
+   if (!restoring) mixRatio.SetSize(th.mixRatio.GetSize());
    mixRatio            = th.mixRatio;
    inertialEpoch       = th.inertialEpoch;
-   derivState          = nullptr;
-   derivOrigin         = nullptr;
+   if (!restoring) { derivState = nullptr; derivOrigin = nullptr; }
 
    // copy tanks
-   tanks               = th.tanks;
+   if (!restoring) tanks = th.tanks;
    
    #ifdef DEBUG_THRUSTER_CONSTRUCTOR
    MessageInterface::ShowMessage("Thruster::operator= exiting\n");
@@ -642,10 +651,19 @@ bool Thruster::IsParameterCommandModeSettable(const Integer id) const
  * @return The parameter's value.
  */
 //------------------------------------------------------------------------------
+Rvector3 Thruster::GetDirection() const
+{
+   return Rvector3(thrustDirection[0], thrustDirection[1], thrustDirection[2]);
+}
+
 Real Thruster::GetRealParameter(const Integer id) const
 {
    switch (id)
    {
+      case DIRECTION_X:
+      case DIRECTION_Y:
+      case DIRECTION_Z:
+         return thrustDirection[id - DIRECTION_X];
       case DUTY_CYCLE:
          return dutyCycle;
       case THRUST_SCALE_FACTOR:
@@ -692,6 +710,10 @@ Real Thruster::SetRealParameter(const Integer id, const Real value)
    
    switch (id) 
    {
+      case DIRECTION_X:
+      case DIRECTION_Y:
+      case DIRECTION_Z:
+         return thrustDirection[id - DIRECTION_X] = value;
       // Other parameters
       case DUTY_CYCLE:
          if ((value >= 0.0) && (value <= 1.0))
@@ -1319,6 +1341,7 @@ const ObjectTypeArray& Thruster::GetRefObjectTypeArray()
    refObjectTypes.push_back(Gmat::COORDINATE_SYSTEM);
    refObjectTypes.push_back(Gmat::CELESTIAL_BODY);
    refObjectTypes.push_back(Gmat::SPACECRAFT);
+   refObjectTypes.push_back(Gmat::FUEL_TANK);
    return refObjectTypes;
 }
 
@@ -1356,6 +1379,9 @@ const StringArray& Thruster::GetRefObjectNameArray(const UnsignedInt type)
       if (satName != "")
          refObjectNames.push_back(satName);
    }
+
+   if (type == Gmat::UNKNOWN_OBJECT || type == Gmat::FUEL_TANK || type == Gmat::HARDWARE)
+      refObjectNames.insert(refObjectNames.end(), tankNames.begin(), tankNames.end());
    
    #ifdef DEBUG_THRUSTER_REF_OBJ
    MessageInterface::ShowMessage
@@ -1383,7 +1409,9 @@ bool Thruster::RenameRefObject(const UnsignedInt type,
        GetObjectTypeString(type).c_str(), oldName.c_str(), newName.c_str());
    #endif
    
-   if (type != Gmat::HARDWARE && type != Gmat::COORDINATE_SYSTEM)
+   if (type != Gmat::HARDWARE && type != Gmat::FUEL_TANK &&
+       type != Gmat::COORDINATE_SYSTEM && type != Gmat::SPACECRAFT &&
+       type != Gmat::CELESTIAL_BODY)
       return true;
    
    if (type == Gmat::COORDINATE_SYSTEM)
@@ -1392,7 +1420,13 @@ bool Thruster::RenameRefObject(const UnsignedInt type,
          coordSystemName = newName;
    }
 
-   if (type == Gmat::HARDWARE)
+   if (type == Gmat::SPACECRAFT && satName == oldName) satName = newName;
+   if (type == Gmat::CELESTIAL_BODY)
+   {
+      if (localOriginName == oldName) localOriginName = newName;
+      if (j2000BodyName == oldName) j2000BodyName = newName;
+   }
+   if (type == Gmat::HARDWARE || type == Gmat::FUEL_TANK)
    {
       for (UnsignedInt i=0; i<tankNames.size(); i++)
       {
@@ -1422,6 +1456,104 @@ bool Thruster::RenameRefObject(const UnsignedInt type,
  * @return true if the ref object was set, false if not.
  */
 //------------------------------------------------------------------------------
+void Thruster::SetField(const Integer id, const StringArray &value)
+{
+   if (id != TANK) { Hardware::SetField(id, value); return; }
+   if (value == tankNames) return;
+   if (value.size() > static_cast<size_t>(std::numeric_limits<Integer>::max()))
+      throw HardwareException("Thruster tank count exceeds native capacity.");
+   StringArray names(value);
+   for (const auto &name : names)
+      if (!GmatStringUtil::IsValidIdentity(name)) throw HardwareException("Invalid thruster tank name: " + name);
+   const ObjectArray available = spacecraft ? spacecraft->GetRefObjectArray(Gmat::FUEL_TANK) :
+      ObjectArray(tanks.begin(), tanks.end());
+   auto resolved = ResolveTankReferences(names, available, !spacecraft || !spacecraft->IsInitialized());
+   const char *family = IsOfType("ChemicalThruster") ? "ChemicalTank" :
+      (IsOfType("ElectricThruster") ? "ElectricTank" : nullptr);
+   for (const auto *tank : resolved)
+      if (family && !tank->IsOfType(family)) throw HardwareException("Incompatible tank family for " + instanceName);
+   Rvector ratios(static_cast<Integer>(names.size()));
+   for (Integer i = 0; i < ratios.GetSize(); ++i)
+      ratios[i] = mixRatio.IsSized() && i < mixRatio.GetSize() ? mixRatio[i] : RATIO_DEFAULT;
+   mixRatio = ratios;
+   tankNames.swap(names);
+   tanks.swap(resolved);
+   isInitialized = false;
+}
+
+void Thruster::BindTankReferences(const ObjectArray &availableTanks)
+{
+   auto resolved = ResolveTankReferences(availableTanks);
+   tanks.swap(resolved);
+}
+
+std::vector<FuelTank*> Thruster::ResolveTankReferences(const ObjectArray &availableTanks, bool allowUnbound) const
+{
+   return ResolveTankReferences(tankNames, availableTanks, allowUnbound);
+}
+
+std::vector<FuelTank*> Thruster::ResolveTankReferences(const StringArray &names,
+   const ObjectArray &availableTanks, bool allowUnbound) const
+{
+   std::vector<FuelTank*> resolved;
+   StringArray seen;
+   bool pending = false;
+   for (const std::string &name : names)
+   {
+      if (std::find(seen.begin(), seen.end(), name) != seen.end())
+         throw HardwareException("Repeated tank " + name + " for thruster " + instanceName);
+      seen.push_back(name);
+      FuelTank *tank = NULL;
+      for (GmatBase *candidate : availableTanks)
+         if (candidate && candidate->GetName() == name)
+         {
+            auto *current = dynamic_cast<FuelTank*>(candidate);
+            if (!current || (tank && tank != current))
+               throw HardwareException("Ambiguous or incompatible tank " + name + " for thruster " + instanceName);
+            tank = current;
+         }
+      if (!tank)
+      {
+         if (!allowUnbound)
+            throw HardwareException("Cannot find tank " + name + " for thruster " + instanceName);
+         pending = true;
+         continue;
+      }
+      if (std::find(resolved.begin(), resolved.end(), tank) != resolved.end())
+         throw HardwareException("Repeated tank " + name + " for thruster " + instanceName);
+      resolved.push_back(tank);
+   }
+   // A pending definition must not retain source or displaced tank pointers.
+   // Strict binding during initialization will require the complete list.
+   if (pending) resolved.clear();
+   return resolved;
+}
+
+GmatBase* Thruster::GetRefObject(const UnsignedInt type, const std::string &name)
+{
+   if (type == Gmat::COORDINATE_SYSTEM && name == coordSystemName)
+      return coordSystem;
+   if (type == Gmat::SPACECRAFT && (name.empty() || name == satName))
+      return spacecraft;
+   if (type == Gmat::CELESTIAL_BODY)
+   {
+      if (name == localOriginName) return localOrigin;
+      if (name == j2000BodyName) return j2000Body;
+   }
+   if (type == Gmat::FUEL_TANK || type == Gmat::HARDWARE)
+   {
+      if (spacecraft)
+      {
+         if (std::find(tankNames.begin(), tankNames.end(), name) != tankNames.end())
+            return spacecraft->GetRefObject(Gmat::FUEL_TANK, name);
+      }
+      else
+         for (FuelTank *tank : tanks)
+            if (tank && tank->GetName() == name) return tank;
+   }
+   return Hardware::GetRefObject(type, name);
+}
+
 bool Thruster::SetRefObject(GmatBase *obj, const UnsignedInt type,
                             const std::string &name)
 {
@@ -1544,8 +1676,9 @@ bool Thruster::SetRefObject(GmatBase *obj, const UnsignedInt type,
 //---------------------------------------------------------------------------
 ObjectArray& Thruster::GetRefObjectArray(const UnsignedInt type)
 {
-   if (type == Gmat::HARDWARE)
+   if (type == Gmat::HARDWARE || type == Gmat::FUEL_TANK)
    {
+      if (spacecraft) BindTankReferences(spacecraft->GetRefObjectArray(Gmat::FUEL_TANK));
       tempArray.clear();
       for (UnsignedInt i = 0; i < tanks.size(); ++i)
          tempArray.push_back(tanks[i]);
@@ -1569,6 +1702,8 @@ ObjectArray& Thruster::GetRefObjectArray(const UnsignedInt type)
 //---------------------------------------------------------------------------
 ObjectArray& Thruster::GetRefObjectArray(const std::string& typeString)
 {
+   if (typeString == "FuelTank") return GetRefObjectArray(Gmat::FUEL_TANK);
+   if (typeString == "Hardware") return GetRefObjectArray(Gmat::HARDWARE);
    return Hardware::GetRefObjectArray(typeString);
 }
 
@@ -1670,6 +1805,18 @@ void Thruster::SetSolarSystem(SolarSystem *ss)
  * Sets up the bodies used in the thrust calculations.
  */
 //------------------------------------------------------------------------------
+bool Thruster::InitializeClonedResource()
+{
+   // A prototype's direction cannot be evaluated until a spacecraft is bound.
+   // Preserve the definition; owner initialization performs native validation.
+   if (!spacecraft)
+   {
+      isInitialized = false;
+      return true;
+   }
+   return Initialize();
+}
+
 bool Thruster::Initialize()
 {
    #ifdef DEBUG_THRUSTER_INIT
@@ -1767,7 +1914,7 @@ bool Thruster::Initialize()
    
    // Convert direction to inertial coord system
    Real epoch = spacecraft->GetRealParameter("A1Epoch");
-   ConvertDirectionToInertial(direction, inertialDirection, epoch);
+   ConvertDirectionToInertial(thrustDirection, inertialDirection, epoch);
    
    #ifdef DEBUG_THRUSTER_INIT
    MessageInterface::ShowMessage
@@ -2010,6 +2157,23 @@ void Thruster::ConvertDirectionToInertial(Real *dir, Real *dirInertial, Real epo
    for (Integer i=3; i<6; i++)
       inDir[i] = 0.0;
    
+   // A force vector needs the frame orientation, not its angular rate.
+   // Requesting ObjectReferenced rates here evaluates the active force model,
+   // which re-enters this finite thruster while its direction is being rotated.
+   auto rotateDirectionToBase = [&](CoordinateSystem *frame)
+   {
+      auto *axes = dynamic_cast<ObjectReferencedAxes *>(frame->GetAxisSystem());
+      if (axes && axes->GetTypeName() == "ObjectReferenced")
+      {
+         const Rvector3 rotated = axes->GetRotationMatrixOnly(A1Mjd(epoch)) *
+            Rvector3(inDir[0], inDir[1], inDir[2]);
+         for (Integer i = 0; i < 3; ++i)
+            outDir[i] = rotated[i];
+      }
+      else
+         frame->ToBaseSystem(A1Mjd(epoch), inDir, outDir, true);
+   };
+
    // if not using local CS, use ref CoordinateSystem
    if (!usingLocalCoordSys)
    {     
@@ -2018,7 +2182,17 @@ void Thruster::ConvertDirectionToInertial(Real *dir, Real *dirInertial, Real epo
 //      coordSystem->ToMJ2000Eq(epoch, inDir, outDir, true);
       // Now rotate to base system axes, we don't want to translate so
       // set coincident to true
-      coordSystem->ToBaseSystem(A1Mjd(epoch), inDir, outDir, true); // @todo - need ToMJ2000Eq here?
+      rotateDirectionToBase(coordSystem);
+      // FiniteThrust contributes derivatives in the internal FK5/MJ2000Eq
+      // axes. ToBaseSystem alone leaves ICRF-based directions in ICRF.
+      if (coordSystem->GetBaseSystem() == "ICRF")
+      {
+         CoordinateConverter converter;
+         const Rvector3 direction = converter.GetRotationMatrixFromICRFToFK5(A1Mjd(epoch)) *
+            Rvector3(outDir[0], outDir[1], outDir[2]);
+         for (Integer i = 0; i < 3; ++i)
+            outDir[i] = direction[i];
+      }
       
       #ifdef DEBUG_BURN_CONVERT_ROTMAT
       Rmatrix33 rotMat = coordSystem->GetLastRotationMatrix();
@@ -2065,7 +2239,7 @@ void Thruster::ConvertDirectionToInertial(Real *dir, Real *dirInertial, Real epo
          #endif
 
 
-         localCoordSystem->ToBaseSystem(A1Mjd(epoch), inDir, outDir, true);  // @todo - do we need ToMJ2000Eq here?
+         rotateDirectionToBase(localCoordSystem);
          
          dirInertial[0] = outDir[0];
          dirInertial[1] = outDir[1];
@@ -2078,7 +2252,7 @@ void Thruster::ConvertDirectionToInertial(Real *dir, Real *dirInertial, Real epo
       ("Thruster::ConvertDirectionToInertial() returning\n   "
        "  direction = %.15f %.15f %.15f\n   "
        "dirInertial = %.15f %.15f %.15f\n",
-       direction[0], direction[1], direction[2],
+       thrustDirection[0], thrustDirection[1], thrustDirection[2],
        dirInertial[0], dirInertial[1], dirInertial[2]);
    #endif
 }
@@ -2090,7 +2264,7 @@ void Thruster::ConvertDirectionToInertial(Real *dir, Real *dirInertial, Real epo
 void Thruster::ComputeInertialDirection(Real epoch)
 {
    inertialEpoch = epoch;
-   ConvertDirectionToInertial(direction, inertialDirection, epoch);
+   ConvertDirectionToInertial(thrustDirection, inertialDirection, epoch);
 }
 
 
@@ -2137,3 +2311,86 @@ void Thruster::WriteDeprecatedMessage(const std::string &oldProp,
    
 }
 
+
+void Thruster::RetireLocalCoordinateSystem()
+{
+   if (localCoordSystem && localCoordSystem != coordSystem)
+   {
+      #ifdef DEBUG_MEMORY
+      MemoryTracker::Instance()->Remove(localCoordSystem, "localCS",
+            "Thruster::RetireLocalCoordinateSystem()", "deleting localCoordSystem");
+      #endif
+      delete localCoordSystem;
+   }
+   localCoordSystem = NULL;
+}
+
+void Thruster::RebindClonedReferences(const Thruster &source, SolarSystem *system,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   if (&source == this) return;
+   auto map = [&resolve](auto *from)
+   {
+      if (!from) return from;
+      auto *to = dynamic_cast<decltype(from)>(resolve(from));
+      if (!to || to->GetTypeName() != from->GetTypeName())
+         throw HardwareException("Incompatible retained thruster dependency.");
+      return to;
+   };
+   auto *owner = map(source.spacecraft);
+   auto *frame = map(source.coordSystem);
+   auto *origin = map(source.localOrigin);
+   auto *reference = map(source.j2000Body);
+   if (system && source.usingLocalCoordSys)
+   {
+      if (!origin) origin = system->GetBody(source.localOriginName);
+      if (!reference) reference = system->GetBody(source.j2000BodyName);
+   }
+   std::vector<FuelTank*> selected;
+   StringArray names = source.tankNames;
+   for (UnsignedInt i = 0; i < names.size(); ++i)
+   {
+      FuelTank *from = NULL;
+      if (source.spacecraft)
+         from = dynamic_cast<FuelTank*>(source.spacecraft->GetRefObject(Gmat::FUEL_TANK, names[i]));
+      else
+         for (FuelTank *candidate : source.tanks)
+            if (candidate && candidate->GetName() == names[i])
+            {
+               if (from && from != candidate) throw HardwareException("Ambiguous retained thruster tank.");
+               from = candidate;
+            }
+      // An unbound prototype can declare tanks without bound tank pointers.
+      if (!from)
+      {
+         if (source.spacecraft)
+            throw HardwareException("Retained thruster tank is missing from its current owner: " + names[i]);
+         continue;
+      }
+      FuelTank *to = map(from);
+      if (std::find(selected.begin(), selected.end(), to) != selected.end())
+         throw HardwareException("Repeated retained thruster tank identity.");
+      selected.push_back(to);
+      names[i] = to->GetName();
+   }
+   std::string ownerName = owner ? owner->GetName() : source.satName;
+   std::string frameName = frame ? frame->GetName() : source.coordSystemName;
+   std::string originName = origin ? origin->GetName() : source.localOriginName;
+   std::string referenceName = reference ? reference->GetName() : source.j2000BodyName;
+   RetireLocalCoordinateSystem();
+   solarSystem = system;
+   spacecraft = owner;
+   coordSystem = frame;
+   localOrigin = origin;
+   j2000Body = reference;
+   satName.swap(ownerName);
+   coordSystemName.swap(frameName);
+   localOriginName.swap(originName);
+   j2000BodyName.swap(referenceName);
+   tankNames.swap(names);
+   tanks.swap(selected);
+   tempArray.clear();
+   derivState = NULL;
+   derivOrigin = NULL;
+   isInitialized = false;
+}

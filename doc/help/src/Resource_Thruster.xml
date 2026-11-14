@@ -580,7 +580,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Dimensionless exponent</para>
                   </listitem>
                 </varlistentry>
 
@@ -688,7 +688,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Dimensionless exponent</para>
                   </listitem>
                 </varlistentry>
 
@@ -796,7 +796,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Dimensionless exponent</para>
                   </listitem>
                 </varlistentry>
 
@@ -904,7 +904,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Dimensionless exponent</para>
                   </listitem>
                 </varlistentry>
 
@@ -1012,7 +1012,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Dimensionless exponent</para>
                   </listitem>
                 </varlistentry>
 
@@ -1180,7 +1180,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless duty fraction (0 to 1)</para>
                   </listitem>
                 </varlistentry>
 
@@ -1726,7 +1726,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>s/kPa<superscript>C7</superscript></para>
+                    <para>s/kPa<superscript>K7</superscript></para>
                   </listitem>
                 </varlistentry>
 
@@ -1780,7 +1780,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Dimensionless exponent</para>
                   </listitem>
                 </varlistentry>
 
@@ -1834,7 +1834,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>s/kPa<superscript>C9</superscript></para>
+                    <para>s/kPa<superscript>K9</superscript></para>
                   </listitem>
                 </varlistentry>
 
@@ -1888,7 +1888,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Dimensionless exponent</para>
                   </listitem>
                 </varlistentry>
 
@@ -1942,7 +1942,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>s/kPa<superscript>C11</superscript></para>
+                    <para>s/kPa<superscript>K11</superscript></para>
                   </listitem>
                 </varlistentry>
 
@@ -1996,7 +1996,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Dimensionless exponent</para>
                   </listitem>
                 </varlistentry>
 
@@ -2104,7 +2104,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Dimensionless exponent</para>
                   </listitem>
                 </varlistentry>
 
@@ -2212,7 +2212,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>None</para>
+                    <para>Dimensionless exponent</para>
                   </listitem>
                 </varlistentry>
 
@@ -2329,7 +2329,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless relative mixture weights</para>
                   </listitem>
                 </varlistentry>
 
@@ -2513,7 +2513,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -2570,7 +2570,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -2625,7 +2625,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -2683,7 +2683,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless multiplicative factor</para>
                   </listitem>
                 </varlistentry>
 

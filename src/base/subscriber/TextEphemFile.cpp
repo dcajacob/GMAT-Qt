@@ -30,12 +30,31 @@
 //------------------------------------------------------------------------------
 
 #include "TextEphemFile.hpp"
+#include <memory>
+#include <typeinfo>
 #include "CubicSplineInterpolator.hpp"
 #include "Moderator.hpp"
 #include "MessageInterface.hpp"
 #include "TimeTypes.hpp"
 #include <iomanip>
 #include <cstdlib>
+
+namespace
+{
+std::unique_ptr<Interpolator> CloneTextInterpolator(const Interpolator *source)
+{
+   if (!source) throw GmatBaseException("TextEphemFile has no interpolator.\n");
+   std::unique_ptr<Interpolator> value(source->Clone());
+   if (value.get() == source)
+   {
+      value.release();
+      throw GmatBaseException("TextEphemFile interpolator Clone returned its source.\n");
+   }
+   if (!value || typeid(*value) != typeid(*source))
+      throw GmatBaseException("TextEphemFile interpolator Clone changed its native type.\n");
+   return value;
+}
+}
 
 //#define DEBUG_EPHEMFILE 1
 //#define DEBUG_EPHEMFILE_DATA 1
@@ -73,12 +92,18 @@ TextEphemFile::TextEphemFile(const std::string &type, const std::string &name,
                              const std::string &fname, Parameter *firstVarParam) :
    ReportFile(type, name, fname, firstVarParam)
 {
+   parameterCount = TextEphemFileParamCount;
    // create Interpolator
    mInterpolator = new CubicSplineInterpolator("InternalInterpolator", 6);
    
    // rename data file name
    //fileName = fname + ".tempdata$$$";
    fileName = fname + ".data";
+   // ReportFile cached its own default path before this subclass changed the
+   // filename. Resolve the new name through the same path as a script setter.
+   const bool defaultFileName = usingDefaultFileName;
+   ReportFile::SetStringParameter(FILENAME, fileName);
+   usingDefaultFileName = defaultFileName;
    mHeaderFileName = fname;
    mEpochFormat = "";
    mCoordSysName = "";
@@ -115,8 +140,11 @@ TextEphemFile::~TextEphemFile(void)
 // TextEphemFile(const TextEphemFile &copy)
 //------------------------------------------------------------------------------
 TextEphemFile::TextEphemFile(const TextEphemFile &copy) :
-   ReportFile(copy)
+   ReportFile(copy),
+   mInterpolator(nullptr)
 {
+   // ReportFile's copy constructor restores its own shorter count.
+   parameterCount = TextEphemFileParamCount;
    mHeaderFileName = copy.mHeaderFileName;
    mEpochFormat = copy.mEpochFormat;
    mCoordSysName = copy.mCoordSysName;
@@ -127,7 +155,8 @@ TextEphemFile::TextEphemFile(const TextEphemFile &copy) :
    mStopA1Mjd = copy.mStopA1Mjd;
    
    // create Interpolator
-   mInterpolator = (Interpolator*)(copy.mInterpolator->Clone());
+   auto interpolator = CloneTextInterpolator(copy.mInterpolator);
+   mInterpolator = interpolator.get();
    
    mNumValidPoints = 0;
    mBufferSize = mInterpolator->GetBufferSize();
@@ -156,6 +185,9 @@ TextEphemFile::TextEphemFile(const TextEphemFile &copy) :
    MessageInterface::ShowMessage
       ("TextEphemFile() Copy Constructor: mBufferSize=%d\n", mBufferSize);
    #endif
+   if (typeid(copy) == typeid(TextEphemFile)) ReconnectSubscriberCopy(copy);
+   interpolator.release();
+
 }
 
 
@@ -168,51 +200,56 @@ TextEphemFile::TextEphemFile(const TextEphemFile &copy) :
 //------------------------------------------------------------------------------
 TextEphemFile& TextEphemFile::operator=(const TextEphemFile& right)
 {
-   if (this == &right)
-      return *this;
-
-   ReportFile::operator=(right);
-   
-   mHeaderFileName = right.mHeaderFileName;
-   mEpochFormat = right.mEpochFormat;
-   mCoordSysName = right.mCoordSysName;
-   mIntervalInSec = right.mIntervalInSec;
-   mCurrA1Mjd = right.mCurrA1Mjd;
-   mOutputA1Mjd = right.mOutputA1Mjd;
-   mStartA1Mjd = right.mStartA1Mjd;
-   mStopA1Mjd = right.mStopA1Mjd;
-   
-   // create Interpolator
-   mInterpolator = (Interpolator*)(right.mInterpolator->Clone());
-   
-   mNumValidPoints = 0;
-   mBufferSize = mInterpolator->GetBufferSize();
-   mEpochSysId = right.mEpochSysId;
-   mIsGregorian = right.mIsGregorian;
-   
-   Integer i;
-   for (i = 0; i < 7; i++)
-      mColWidth[i] = right.mColWidth[i];
-      
-   for (i = 0; i < 6; i++)
-      mOutputVals[i] = right.mOutputVals[i];
-      
-   for (i = 0; i < BUFFER_SIZE; i++)
+   if (this == &right) return *this;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = typeid(*this) == typeid(TextEphemFile) ? BeginSubscriberValueCopy(right) : SubscriberValueCopyToken{};
    {
-           mTimeBuffer[i] = right.mTimeBuffer[i];
-      mXposBuffer[i] = right.mXposBuffer[i];
-      mYposBuffer[i] = right.mYposBuffer[i];
-      mZposBuffer[i] = right.mZposBuffer[i];
-      mXvelBuffer[i] = right.mXvelBuffer[i];
-      mYvelBuffer[i] = right.mYvelBuffer[i];
-      mZvelBuffer[i] = right.mZvelBuffer[i];
-   }
+      FunctionValueCopyGuard nativeCopy;
+      auto interpolator = CloneTextInterpolator(right.mInterpolator);
+      ReportFile::operator=(right);
 
-   #if DEBUG_EPHEM_FILE
-   MessageInterface::ShowMessage
-      ("TextEphemFile() = operator: mBufferSize=%d\n", mBufferSize);
-   #endif
-   
+      mHeaderFileName = right.mHeaderFileName;
+      mEpochFormat = right.mEpochFormat;
+      mCoordSysName = right.mCoordSysName;
+      mIntervalInSec = right.mIntervalInSec;
+      mCurrA1Mjd = right.mCurrA1Mjd;
+      mOutputA1Mjd = right.mOutputA1Mjd;
+      mStartA1Mjd = right.mStartA1Mjd;
+      mStopA1Mjd = right.mStopA1Mjd;
+
+      // create Interpolator
+      delete mInterpolator;
+      mInterpolator = interpolator.release();
+
+      mNumValidPoints = 0;
+      mBufferSize = mInterpolator->GetBufferSize();
+      mEpochSysId = right.mEpochSysId;
+      mIsGregorian = right.mIsGregorian;
+
+      Integer i;
+      for (i = 0; i < 7; i++)
+         mColWidth[i] = right.mColWidth[i];
+
+      for (i = 0; i < 6; i++)
+         mOutputVals[i] = right.mOutputVals[i];
+
+      for (i = 0; i < BUFFER_SIZE; i++)
+      {
+              mTimeBuffer[i] = right.mTimeBuffer[i];
+         mXposBuffer[i] = right.mXposBuffer[i];
+         mYposBuffer[i] = right.mYposBuffer[i];
+         mZposBuffer[i] = right.mZposBuffer[i];
+         mXvelBuffer[i] = right.mXvelBuffer[i];
+         mYvelBuffer[i] = right.mYvelBuffer[i];
+         mZvelBuffer[i] = right.mZvelBuffer[i];
+      }
+
+      #if DEBUG_EPHEM_FILE
+      MessageInterface::ShowMessage
+         ("TextEphemFile() = operator: mBufferSize=%d\n", mBufferSize);
+      #endif
+   }
+   if (typeid(*this) == typeid(TextEphemFile)) CompleteSubscriberValueCopy(right, transaction);
    return *this;
 }
 
@@ -227,9 +264,17 @@ TextEphemFile& TextEphemFile::operator=(const TextEphemFile& right)
  *
  */
 //------------------------------------------------------------------------------
-GmatBase* TextEphemFile::Clone(void) const
+GmatBase* TextEphemFile::Clone() const
 {
-   return (new TextEphemFile(*this));
+   if (typeid(*this) != typeid(TextEphemFile))
+      throw GmatBaseException("A derived TextEphemFile must provide its complete Clone.\n");
+   std::unique_ptr<TextEphemFile> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new TextEphemFile(*this));
+   }
+   value->ReconnectSubscriberCopy(*this);
+   return value.release();
 }
 
 
@@ -345,7 +390,7 @@ std::string TextEphemFile::GetStringParameter(const Integer id) const
    case EPOCH_FORMAT:
       return mEpochFormat;
    case COORD_SYSTEM:
-      return mEpochFormat;
+      return mCoordSysName;
    default:
       return ReportFile::GetStringParameter(id);
    }
@@ -938,3 +983,25 @@ void TextEphemFile::SaveEpochType()
 }
 
 
+
+
+void TextEphemFile::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const TextEphemFile*>(original);
+   if (!source || typeid(*source) != typeid(*this) || !HasSubscriberValueReferenceProvider())
+      throw GmatBaseException("Cannot copy an incompatible TextEphemFile value.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = BeginSubscriberValueCopy(*source);
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   CompleteSubscriberValueCopy(*source, transaction);
+}
+
+
+bool TextEphemFile::HasSubscriberValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(TextEphemFile);
+}

@@ -37,12 +37,14 @@
 class GMAT_API MessageWindow : public Subscriber
 {
 public:
+   bool HasSubscriberValueReferenceProvider() const override;
    MessageWindow(const std::string &name);
    MessageWindow(const MessageWindow &mw);
    virtual ~MessageWindow(void);
    
    // inherited from GmatBase
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
    
    virtual std::string GetParameterText(const Integer id) const;
    virtual Integer     GetParameterID(const std::string &str) const;

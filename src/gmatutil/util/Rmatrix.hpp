@@ -64,6 +64,7 @@ public:
    Rmatrix(int r, int c);
    Rmatrix(int r, int c, Real a1, ...);
    Rmatrix(const Rmatrix &m);
+   void Swap(Rmatrix &other);
    virtual ~Rmatrix();
    
 // ekf mod 12/16

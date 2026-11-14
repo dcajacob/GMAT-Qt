@@ -54,6 +54,11 @@ public:
    // destructor
    virtual ~ObjectReferencedAxes();
 
+   // Position/velocity geometry only. Returns a value without querying forces
+   // or changing this object's cached rotation or rotation derivative.
+   Rmatrix33 GetRotationMatrixOnly(const A1Mjd &atEpoch) const;
+   Rmatrix33 GetRotationMatrixOnly(const GmatTime &atEpoch) const;
+
    // methods to set parameters for the AxisSystems
    // (inherited from CoordinateBase)
    virtual void SetPrimaryObject(SpacePoint *prim);
@@ -103,6 +108,8 @@ public:
    virtual bool            SetRefObject(GmatBase *obj, const UnsignedInt type,
                                         const std::string &name = "");
 protected:
+
+   void CalculateFrame(const A1Mjd &atEpoch, bool calculateRate);
 
    // types and data
    enum

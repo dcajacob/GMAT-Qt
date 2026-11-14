@@ -71,6 +71,8 @@ public:
    virtual ~HermiteInterpolator();
    HermiteInterpolator(const HermiteInterpolator &hi);
    HermiteInterpolator&    operator=(const HermiteInterpolator &hi);
+   void ValidateRestorationLayout(const HermiteInterpolator &source) const;
+   void RestoreValues(const HermiteInterpolator &source);
 
    virtual Interpolator*   Clone() const;
    virtual void            Clear();

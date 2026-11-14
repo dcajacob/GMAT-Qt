@@ -134,6 +134,16 @@ ElementWrapper* ParameterWrapper::Clone() const
    return new ParameterWrapper(*this);
 }
 
+void ParameterWrapper::RebindClonedReferences(const ElementWrapper &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   CheckCloneType(source);
+   const auto &original = static_cast<const ParameterWrapper&>(source);
+   auto *value = BindClonedReference(original.param, resolve);
+   param = value;
+}
+
+
 //------------------------------------------------------------------------------
 // std::string ToString()
 //------------------------------------------------------------------------------
@@ -208,24 +218,14 @@ bool ParameterWrapper::SetRefObject(GmatBase *obj)
        obj ? obj->GetName().c_str() : "NULL");
    #endif
    
-//   if ( (obj->GetName() != refObjectNames[0]) ||
-//        (!obj->IsOfType("Parameter")) )
-//   {
-//      std::string errmsg = "Referenced object \"";
-//      errmsg += obj->GetName();
-//      errmsg += "\" was passed into the parameter wrapper \"";
-//      errmsg += description;
-//      errmsg += "\", but an object named \"";
-//      errmsg += refObjectNames[0];
-//      errmsg += "\" was expected.\n";
-//      throw ParameterException(errmsg);
-//   }
-   if ( (obj->GetName() == refObjectNames[0]) || (obj->IsOfType("Parameter")) )
-   {
-      param = (Parameter*) obj;
-      return true;
-   }
-   else return false;
+   // Parameter aliases are valid when binding function arguments. Preserve
+   // that name flexibility, but a matching name cannot turn another resource
+   // type into a Parameter. An unbound wrapper may also have no name entries.
+   Parameter *bound = dynamic_cast<Parameter*>(obj);
+   if (!bound)
+      return false;
+   param = bound;
+   return true;
 }
 
 //---------------------------------------------------------------------------

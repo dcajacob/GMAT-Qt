@@ -42,6 +42,8 @@
 class GMAT_API PlanetographicRegion : public BodyFixedPoint
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = BodyFixedPoint::NativeValueProviderDepth + 1;
+
 
 
    // Constructors.
@@ -62,6 +64,8 @@ public:
    // Inherited from GmatBase
    virtual const Rvector & GetRvectorParameter(const std::string & label) const;
    virtual const Rvector & GetRvectorParameter(const Integer id) const;
+   const Rvector &SetRvectorParameter(const std::string &label, const Rvector &value) override;
+   const Rvector &SetRvectorParameter(const Integer id, const Rvector &value) override;
    virtual bool SetStringParameter(const Integer id, const std::string& value);
    virtual bool SetStringParameter(const std::string& field, const std::string& value);
    virtual std::string GetStringParameter(const std::string& field) const;
@@ -92,6 +96,10 @@ public:
    virtual bool Initialize();
    virtual bool HasLocalClones();
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *source) override;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source,
+         SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
    virtual bool RenameRefObject(const UnsignedInt type,
       const std::string &oldName, const std::string &newName);
 
@@ -120,6 +128,9 @@ protected:
 
 
 private:
+   void InvalidatePolygon();
+   void WriteParameters(Gmat::WriteMode mode, std::string &prefix,
+         std::stringstream &stream) override;
    void AddExtraPointIfMovingAlongSegmentPoleToPole(Integer currentIndex);
    void CheckLatitudeAndLongitudeList() const;
    void DuplicateDefinitionError() const;

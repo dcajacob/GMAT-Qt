@@ -43,6 +43,8 @@
 class GMAT_API DynamicDataDisplay : public Subscriber
 {
 public:
+   bool HasSubscriberValueReferenceProvider() const override;
+   std::unique_ptr<FunctionInvocationState> SuspendFunctionBindings() override;
    DynamicDataDisplay(const std::string &name);
    DynamicDataDisplay(const DynamicDataDisplay &orig);
    DynamicDataDisplay& operator=(const DynamicDataDisplay& orig);
@@ -105,12 +107,15 @@ public:
                         GetWrapperObjectNameArray(bool completeSet = false);
 
 protected:
+   void RebindSubscriberValueReferences(const Subscriber &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
    virtual void         WriteStringArrayValue(Gmat::WriteMode mode,
                                               std::string &prefix,
                                               Integer id, bool writeQuotes,
                                               std::stringstream &stream);
 
 private:
+   bool UpdateDataValues(const StringArray &paramsToUpdate);
    bool AddParameter(const std::string &paramName, Integer index);
    bool SetParameterTextColor(const std::string &scriptString, Integer index);
    bool SetRowTextColors(const std::string &scriptString, Integer index);
@@ -118,6 +123,7 @@ private:
                                     Integer index);
    bool SetParameterWarnBounds(const std::string &scriptString, Integer index);
    bool SetParameterCritBounds(const std::string &scriptString, Integer index);
+   bool SetRowAppearance(Integer id, const std::string &scriptString, Integer index);
    //bool RemoveParameter(const std::string &paramName);
 
    /// Matrix of structs holding the parameter data for the display
@@ -160,6 +166,10 @@ public:
       CRIT_BOUNDS,
       WARN_COLOR,
       CRIT_COLOR,
+      ROW_BACKGROUND_COLORS,
+      ROW_TEXT_COLOR_MODES,
+      ROW_WARN_BOUNDS,
+      ROW_CRIT_BOUNDS,
       DynamicDataDisplayParamCount
    };
 

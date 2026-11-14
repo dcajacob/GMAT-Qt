@@ -34,6 +34,8 @@
 #include "StringUtil.hpp"          // for ParseParameter()
 #include "MessageInterface.hpp"
 
+thread_local const RefData *RefData::retiringPrototype = nullptr;
+
 //#define DEBUG_REFDATA_CREATE
 //#define DEBUG_REFDATA_OBJECT 2
 //#define DEBUG_REF_OBJECT 2
@@ -169,6 +171,57 @@ void RefData::SetParameter(Parameter *param)
        mActualParamName.c_str(), param, param ? param->GetName().c_str() : "NULL");
    #endif
    mParameter = param;
+}
+
+void RefData::RebindClonedParameterReferences(const RefData &source,
+      Parameter &target, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   if (source.mNumRefObjects < 0 ||
+         static_cast<size_t>(source.mNumRefObjects) > source.mRefObjList.size())
+      throw ParameterException("Invalid retained Parameter reference inventory.\n");
+   auto references = source.mRefObjList;
+   for (auto &reference : references)
+   {
+      if (!reference.obj) continue; // preserve unresolved declarations
+      reference.obj = resolve(reference.obj);
+      if (!reference.obj && IsRetiringPrototypeReferences()) continue;
+      if (!reference.obj || (reference.objType != Gmat::UNKNOWN_OBJECT &&
+            !reference.obj->IsOfType(reference.objType)))
+         throw ParameterException("Invalid retained Parameter reference '" + reference.objName + "'.\n");
+   }
+   // Native FindObject uses these role strings rather than the resource's name.
+   // Retaining a caller alias must not rewrite a role into an unrelated lookup.
+   mRefObjList.swap(references);
+   mNumRefObjects = source.mNumRefObjects;
+   mParameter = &target;
+   RebindClonedParameterCaches(source, resolve);
+}
+
+bool RefData::IsRetiringPrototypeReferences() const
+{
+   return retiringPrototype == this;
+}
+
+void RefData::RetireParameterPrototype(Parameter &target)
+{
+   const RefData *previous = retiringPrototype;
+   retiringPrototype = this;
+   struct RetirementGuard
+   {
+      const RefData *&slot;
+      const RefData *previous;
+      ~RetirementGuard() { slot = previous; }
+   } guard{retiringPrototype, previous};
+   // Only this exact RefData is allowed to accept unbound references. Nested
+   // ordinary copies keep the strict complete-reference binding contract.
+   RebindClonedParameterReferences(*this, target,
+         [](GmatBase*) -> GmatBase* { return nullptr; });
+}
+
+void RefData::RebindClonedParameterCaches(const RefData &,
+      const std::function<GmatBase*(GmatBase*)> &)
+{
+   throw ParameterException("Parameter data provider must implement retained cache binding.\n");
 }
 
 

@@ -1,3 +1,4 @@
+#include "ScriptStatements.hpp"
 #include "ScriptCompatibility.hpp"
 #include "RgbColor.hpp"
 #include "BaseException.hpp"
@@ -20,7 +21,7 @@ QString codePart(const QString &line)
    for (int i=0;i<line.size();++i) {
       if (line[i]=='\'') {
          if (quoted && i+1<line.size() && line[i+1]=='\'') { ++i; continue; }
-         quoted=!quoted;
+         if (quoted || !scriptTransposeQuote(line,i)) quoted=!quoted;
       } else if (line[i]=='%' && !quoted) { end=i; break; }
    }
    auto code=line.left(end).trimmed();

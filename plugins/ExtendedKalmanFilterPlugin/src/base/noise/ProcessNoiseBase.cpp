@@ -29,6 +29,20 @@
 //------------------------------------------------------------------------------
 
 #include "ProcessNoiseBase.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration processNoiseBaseValueProvider({
+   ProcessNoiseBase::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const ProcessNoiseBase*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<ProcessNoiseBase*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "NoiseException.hpp"
 #include "CoordinateConverter.hpp"
 #include "MessageInterface.hpp"
@@ -139,6 +153,7 @@ ProcessNoiseBase& ProcessNoiseBase::operator=(
       needsReinit      = false;
       coordSysName     = pnm.coordSysName;
       coordinateSystem = pnm.coordinateSystem;
+      delete j2k;
       j2k              = NULL;
    }
    return *this;
@@ -167,7 +182,29 @@ std::string ProcessNoiseBase::GetShortName()
 //------------------------------------------------------------------------------
 void ProcessNoiseBase::SetSolarSystem(SolarSystem *ss)
 {
+   if (solarSystem != ss) { isInitialized = false; needsReinit = true; }
    solarSystem = ss;
+}
+
+bool ProcessNoiseBase::RebindFunctionValueReferencesImpl(const GmatBase &source,
+      SolarSystem *ss, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *noise = dynamic_cast<const ProcessNoiseBase*>(&source);
+   if (!noise || noise->GetTypeName() != GetTypeName())
+      throw NoiseException("Incompatible ProcessNoise function value.\n");
+   auto *frame = noise->coordinateSystem ?
+         dynamic_cast<CoordinateSystem*>(resolve(noise->coordinateSystem)) : NULL;
+   if (noise->coordinateSystem && !frame)
+      throw NoiseException("Invalid coordinate system in retained ProcessNoise.\n");
+   const std::string name = frame ? frame->GetName() : noise->coordSysName;
+   coordSysName = name;
+   coordinateSystem = frame;
+   solarSystem = ss;
+   delete j2k;
+   j2k = NULL;
+   isInitialized = false;
+   needsReinit = true;
+   return true;
 }
 
 
@@ -181,18 +218,20 @@ void ProcessNoiseBase::SetSolarSystem(SolarSystem *ss)
 bool ProcessNoiseBase::Initialize()
 {
    if (isInitialized && !needsReinit) return true;
-   GmatBase::Initialize();
-
-   // Remove any old coordinate systems
-   if (j2k)
-      delete j2k;
-
    if (!coordinateSystem)
       throw NoiseException("CoordinateSystem not defined for process noise.");
+   if (!solarSystem)
+      throw NoiseException("SolarSystem not defined for process noise.");
 
    SpacePoint *j2kBody = coordinateSystem->GetJ2000Body();
+   if (!j2kBody)
+      throw NoiseException("J2000 body not defined for process noise coordinate system.");
 
-   j2k = CoordinateSystem::CreateLocalCoordinateSystem("j2k", "MJ2000Eq", j2kBody, NULL, NULL, j2kBody, solarSystem);
+   std::unique_ptr<CoordinateSystem> prepared(CoordinateSystem::CreateLocalCoordinateSystem(
+         "j2k", "MJ2000Eq", j2kBody, NULL, NULL, j2kBody, solarSystem));
+   if (!prepared) throw NoiseException("Cannot construct process noise inertial frame.");
+   delete j2k;
+   j2k = prepared.release();
 
    isInitialized = true;
    needsReinit = false;
@@ -237,10 +276,8 @@ void ProcessNoiseBase::ConvertMatrix(Rmatrix &mat, const GmatTime &epoch)
    Integer stateSize = mat.GetNumRows();
 
    CoordinateConverter cc;
-   Rvector inState(stateSize); // At origin of local coordinate system
-   Rvector outState(stateSize); // Placeholder, only the rotation matrix is needed
-   cc.Convert(epoch, inState, coordinateSystem, outState, j2k, true, false);
-   Rmatrix33 vnbRot = cc.GetLastRotationMatrix();
+   // Process-noise components use orientation, not a state/frame-rate conversion.
+   Rmatrix33 vnbRot = cc.GetRotationMatrixOnly(epoch, coordinateSystem, j2k);
 
    Rmatrix transform = Rmatrix::Identity(stateSize);
 
@@ -309,10 +346,8 @@ void ProcessNoiseBase::ConvertMatrix(Rmatrix &mat, const Real &epoch)
    Integer stateSize = mat.GetNumRows();
 
    CoordinateConverter cc;
-   Rvector inState(stateSize); // At origin of local coordinate system
-   Rvector outState(stateSize); // Placeholder, only the rotation matrix is needed
-   cc.Convert(epoch, inState, coordinateSystem, outState, j2k, true, false);
-   Rmatrix33 vnbRot = cc.GetLastRotationMatrix();
+   // Process-noise components use orientation, not a state/frame-rate conversion.
+   Rmatrix33 vnbRot = cc.GetRotationMatrixOnly(epoch, coordinateSystem, j2k);
 
    Rmatrix transform = Rmatrix::Identity(stateSize);
 
@@ -451,6 +486,12 @@ bool ProcessNoiseBase::SetStringParameter(const Integer id, const std::string &v
    switch (id)
    {
    case COORD_SYS:
+      if (coordSysName != value)
+      {
+         coordinateSystem = NULL;
+         isInitialized = false;
+         needsReinit = true;
+      }
       coordSysName = value;
       return true;
 
@@ -591,9 +632,10 @@ bool ProcessNoiseBase::SetRefObject(GmatBase *obj, const UnsignedInt type,
    {
    case Gmat::COORDINATE_SYSTEM:
       {
-         if (coordSysName == name)
-            coordinateSystem = (CoordinateSystem*)obj;
-
+         auto *frame = dynamic_cast<CoordinateSystem*>(obj);
+         if (!frame || (!name.empty() && coordSysName != name)) return false;
+         if (coordinateSystem != frame) { isInitialized = false; needsReinit = true; }
+         coordinateSystem = frame;
          return true;
       }
    default:

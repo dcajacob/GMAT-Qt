@@ -48,6 +48,7 @@ public:
    virtual bool         Validate(bool checkData = true);
    virtual Rvector6     GetState(Real atEpoch);
    virtual std::string  GetMetaDataForWriting();
+   std::string          GetDataComments() override;
    
    virtual bool         SetMetaData(const std::string &fieldName,
                                     const std::string &value);
@@ -56,6 +57,7 @@ public:
                                               const std::string &value);
    virtual bool         AddData(Real epoch, Rvector data,
                                 bool justCheckDataSize = false);
+   bool AddData(const GmatTime &epoch, Rvector data, bool justCheckDataSize = false);
    virtual bool         AddDataForWriting(Real epoch, Rvector &data);
    
    virtual void         ClearMetaData();

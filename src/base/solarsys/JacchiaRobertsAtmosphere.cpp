@@ -31,6 +31,8 @@
 //------------------------------------------------------------------------------
 
 #include "JacchiaRobertsAtmosphere.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "AtmosphereException.hpp"
 #include "SolarSystem.hpp"
 #include "MessageInterface.hpp"
@@ -1507,3 +1509,15 @@ Real JacchiaRobertsAtmosphere::dot_product(Real a[3] , Real b[3])
     return(a[0]*b[0] + a[1]*b[1] + a[2]*b[2]);
 }
 
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void JacchiaRobertsAtmosphere::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const JacchiaRobertsAtmosphere*>(original);
+   if (!source || typeid(*source) != typeid(JacchiaRobertsAtmosphere) ||
+       typeid(*this) != typeid(JacchiaRobertsAtmosphere))
+      throw GmatBaseException("Cannot copy incompatible object into JacchiaRobertsAtmosphere");
+   if (source == this)
+      return;
+   operator=(*source);
+}

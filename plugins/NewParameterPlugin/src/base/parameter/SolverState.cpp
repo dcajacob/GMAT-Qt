@@ -125,5 +125,10 @@ bool SolverState::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SolverState::Clone() const
 {
-   return new SolverState(*this);
+   return CompleteParameterClone(new SolverState(*this));
+}
+
+void SolverState::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SolverState>(source);
 }

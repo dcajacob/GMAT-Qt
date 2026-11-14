@@ -1,0 +1,221 @@
+{
+  "cases": [
+    {
+      "key": "OptimizeOptimizeAppend",
+      "parent_type": "Optimize",
+      "child_type": "Optimize",
+      "position": "Append",
+      "historical_key": "H2012:R1242",
+      "fingerprint": "d96b63be9e1a884b49afea95c81040664397e66f857f4ad8b230153b4de49b76",
+      "source_labels_agree": true
+    },
+    {
+      "key": "TargetOptimizeAppend",
+      "parent_type": "Target",
+      "child_type": "Optimize",
+      "position": "Append",
+      "historical_key": "H2012:R1243",
+      "fingerprint": "b37e05474b80679258c6dcf9533340bc86a3131af8439fde0389a5d13394ac0b",
+      "source_labels_agree": true
+    },
+    {
+      "key": "OptimizeOptimizeEndBefore",
+      "parent_type": "Optimize",
+      "child_type": "Optimize",
+      "position": "EndBefore",
+      "historical_key": "H2012:R1250",
+      "fingerprint": "5084eae2feb7257a3967e2dceca2a00c88780c6be888b3684298ccf7883f9d27",
+      "source_labels_agree": true
+    },
+    {
+      "key": "TargetOptimizeEndBefore",
+      "parent_type": "Target",
+      "child_type": "Optimize",
+      "position": "EndBefore",
+      "historical_key": "H2012:R1251",
+      "fingerprint": "5e2ebed91f02d6eea8f4ec50f5d8357478190e5edd4aebb8a9cd8ee1bdd0d3b4",
+      "source_labels_agree": true
+    },
+    {
+      "key": "OptimizeTargetAppend",
+      "parent_type": "Optimize",
+      "child_type": "Target",
+      "position": "Append",
+      "historical_key": "H2012:R1374",
+      "fingerprint": "213fd39e7ed46d2a19c12f24b133e2934b02f57a554bd6c23dbe616d22b8c4f1",
+      "source_labels_agree": false
+    },
+    {
+      "key": "TargetTargetAppend",
+      "parent_type": "Target",
+      "child_type": "Target",
+      "position": "Append",
+      "historical_key": "H2012:R1375",
+      "fingerprint": "c143648c6c4171713b735e754d9601e70065379be8a78d06772b14b0965d13e9",
+      "source_labels_agree": true
+    },
+    {
+      "key": "OptimizeTargetEndBefore",
+      "parent_type": "Optimize",
+      "child_type": "Target",
+      "position": "EndBefore",
+      "historical_key": "H2012:R1382",
+      "fingerprint": "2f1b33e05aecf5d9d2d7fbe9e8ea4abbcd26e6b9bbaffaa06304cd04a25b4251",
+      "source_labels_agree": false
+    },
+    {
+      "key": "TargetTargetEndBefore",
+      "parent_type": "Target",
+      "child_type": "Target",
+      "position": "EndBefore",
+      "historical_key": "H2012:R1383",
+      "fingerprint": "26fc88aa94c4fc627f35fa1bd726788716813a9aa5706d6f80fd65d84ad921dd",
+      "source_labels_agree": true
+    },
+    {
+      "key": "OptimizeForAppend",
+      "parent_type": "Optimize",
+      "child_type": "For",
+      "position": "Append",
+      "historical_key": "H2012:R1433",
+      "fingerprint": "02f5f8df25c656affc20e7125944044868e3ad11c278bb7d0c13ab31f980e59a",
+      "source_labels_agree": false
+    },
+    {
+      "key": "TargetForAppend",
+      "parent_type": "Target",
+      "child_type": "For",
+      "position": "Append",
+      "historical_key": "H2012:R1434",
+      "fingerprint": "a98d937d76a5590361a21786b29d4647a34bbda8853f62e74d87b7d5bb0c714e",
+      "source_labels_agree": false
+    },
+    {
+      "key": "OptimizeForEndBefore",
+      "parent_type": "Optimize",
+      "child_type": "For",
+      "position": "EndBefore",
+      "historical_key": "H2012:R1441",
+      "fingerprint": "8ba0395d0c16dcb981ff4a8b45a4dc5d9d9db7d409b2109843e7f4b82755c4c3",
+      "source_labels_agree": false
+    },
+    {
+      "key": "TargetForEndBefore",
+      "parent_type": "Target",
+      "child_type": "For",
+      "position": "EndBefore",
+      "historical_key": "H2012:R1442",
+      "fingerprint": "23637b5700cd4a96a686baeb3449ca11ddf8ae3d2bc3ebce93ef741ec2943906",
+      "source_labels_agree": false
+    },
+    {
+      "key": "OptimizeIfAppend",
+      "parent_type": "Optimize",
+      "child_type": "If",
+      "position": "Append",
+      "historical_key": "H2012:R1499",
+      "fingerprint": "7d694d961f9e1765fe414fee84ffb7d9cd0cf1c2f580c99a20e79059904600f3",
+      "source_labels_agree": false
+    },
+    {
+      "key": "TargetIfAppend",
+      "parent_type": "Target",
+      "child_type": "If",
+      "position": "Append",
+      "historical_key": "H2012:R1500",
+      "fingerprint": "3a1d2cf395bd0464d5ff0eda596c0b11415e040da49c5836bbc4b3b8da3c3644",
+      "source_labels_agree": false
+    },
+    {
+      "key": "OptimizeIfEndBefore",
+      "parent_type": "Optimize",
+      "child_type": "If",
+      "position": "EndBefore",
+      "historical_key": "H2012:R1507",
+      "fingerprint": "a4d470694bcccb2a1a398288a67d2999e7b092e2f0c70ffdcdb67d4ac4018835",
+      "source_labels_agree": false
+    },
+    {
+      "key": "TargetIfEndBefore",
+      "parent_type": "Target",
+      "child_type": "If",
+      "position": "EndBefore",
+      "historical_key": "H2012:R1508",
+      "fingerprint": "411a3dbc014ff4c80a8a62e8f8c323707f03d2e26b9875a5dea9142944bae6aa",
+      "source_labels_agree": false
+    },
+    {
+      "key": "OptimizeIfElseAppend",
+      "parent_type": "Optimize",
+      "child_type": "IfElse",
+      "position": "Append",
+      "historical_key": "H2012:R1568",
+      "fingerprint": "889a80bbf7c65a91f03315d6e250a3e943e477f1cbf8a2a398b107a650007b3c",
+      "source_labels_agree": false
+    },
+    {
+      "key": "TargetIfElseAppend",
+      "parent_type": "Target",
+      "child_type": "IfElse",
+      "position": "Append",
+      "historical_key": "H2012:R1569",
+      "fingerprint": "d39fdad3f36473114a3f7417b122504646b781f1cfbb3e507c2b75f6e791d25b",
+      "source_labels_agree": false
+    },
+    {
+      "key": "OptimizeIfElseEndBefore",
+      "parent_type": "Optimize",
+      "child_type": "IfElse",
+      "position": "EndBefore",
+      "historical_key": "H2012:R1576",
+      "fingerprint": "7940dbb7634b80ff5d8658bade826910977475ab31593b34a5df86f04f4aeec9",
+      "source_labels_agree": false
+    },
+    {
+      "key": "TargetIfElseEndBefore",
+      "parent_type": "Target",
+      "child_type": "IfElse",
+      "position": "EndBefore",
+      "historical_key": "H2012:R1577",
+      "fingerprint": "554f7faccdf8534a1caa4b21b818661aa7739c21a809568d25e920a0b84d3069",
+      "source_labels_agree": false
+    },
+    {
+      "key": "OptimizeWhileAppend",
+      "parent_type": "Optimize",
+      "child_type": "While",
+      "position": "Append",
+      "historical_key": "H2012:R1639",
+      "fingerprint": "df5a0c244f0bb3406be22bcb4b87ced482828785707f2173e989ff56e88681d7",
+      "source_labels_agree": false
+    },
+    {
+      "key": "TargetWhileAppend",
+      "parent_type": "Target",
+      "child_type": "While",
+      "position": "Append",
+      "historical_key": "H2012:R1640",
+      "fingerprint": "2bb742c19f2239a7afc53f8caf2aad037b8659c73c7d0a57d33ea12255ce19d8",
+      "source_labels_agree": false
+    },
+    {
+      "key": "OptimizeWhileEndBefore",
+      "parent_type": "Optimize",
+      "child_type": "While",
+      "position": "EndBefore",
+      "historical_key": "H2012:R1647",
+      "fingerprint": "70797f5dc9b6ebc36b24c033ede314b5719a5856b6a83c19790f3ba814b14776",
+      "source_labels_agree": false
+    },
+    {
+      "key": "TargetWhileEndBefore",
+      "parent_type": "Target",
+      "child_type": "While",
+      "position": "EndBefore",
+      "historical_key": "H2012:R1648",
+      "fingerprint": "9ebe868c473205ef3cfba619865d98e16e5d9e55044ba435beb4c6826a280967",
+      "source_labels_agree": false
+    }
+  ],
+  "scope": "Current keyword-parent interpretation of24solver/control insertion combinations;only six consistent historical labels can receive bounded credit.18ambiguous rows remain held."
+}

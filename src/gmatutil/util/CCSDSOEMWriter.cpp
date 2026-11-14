@@ -33,8 +33,33 @@
 #include "StringUtil.hpp"
 
 #include "CCSDSOEMWriter.hpp"
+#include "CcsdsOemB1Text.hpp"
+#include "CcsdsOemB1Chronology.hpp"
 #include "UtilityException.hpp"
 #include "MessageInterface.hpp"
+#include <algorithm>
+#include <iomanip>
+#include <locale>
+
+namespace
+{
+std::string OemNumericFields(const Real *values, Integer count)
+{
+   // CCSDS numbers use a decimal point regardless of the host's LC_NUMERIC
+   // or global C++ locale. Retain the existing precision and sign spacing.
+   std::ostringstream fields;
+   fields.imbue(std::locale::classic());
+   fields << std::scientific << std::setprecision(15);
+   for (Integer i = 0; i < count; ++i)
+   {
+      fields << "  ";
+      if (!std::signbit(values[i]))
+         fields << ' ';
+      fields << values[i];
+   }
+   return fields.str();
+}
+}
 
 //#define DEBUG_META_COMMENT
 //#define DEBUG_META_DATA
@@ -53,7 +78,7 @@
 // default constructor
 // -----------------------------------------------------------------------------
 CCSDSOEMWriter::CCSDSOEMWriter(const std::string &versionNumber) :
-   CCSDSEMWriter(versionNumber), currentOemSegment(versionNumber)
+   CCSDSEMWriter(versionNumber), currentOemSegment(versionNumber), timeSystem("UTC")
 {
 }
 
@@ -61,7 +86,7 @@ CCSDSOEMWriter::CCSDSOEMWriter(const std::string &versionNumber) :
 // copy constructor
 // -----------------------------------------------------------------------------
 CCSDSOEMWriter::CCSDSOEMWriter(const CCSDSOEMWriter &copy) :
-   CCSDSEMWriter(copy)
+   CCSDSEMWriter(copy), timeSystem(copy.timeSystem)
 {
 }
 
@@ -72,8 +97,12 @@ CCSDSOEMWriter& CCSDSOEMWriter::operator=(const CCSDSOEMWriter &copy)
 {
    if (&copy == this)
       return *this;
+
+   if (emOutStream.is_open() && timeSystem != copy.timeSystem)
+      throw UtilityException("Cannot change CCSDS OEM time system while its file is open");
    
    CCSDSEMWriter::operator=(copy);
+   timeSystem = copy.timeSystem;
    
    return *this;
 }
@@ -83,6 +112,34 @@ CCSDSOEMWriter& CCSDSOEMWriter::operator=(const CCSDSOEMWriter &copy)
 // -----------------------------------------------------------------------------
 CCSDSOEMWriter::~CCSDSOEMWriter()
 {
+}
+
+void CCSDSOEMWriter::SetTimeSystem(const std::string &system)
+{
+   const std::string selected = GmatStringUtil::ToUpper(system);
+   const StringArray allowed = {"A1", "TAI", "UTC", "TT", "TDB"};
+   if (std::find(allowed.begin(), allowed.end(), selected) == allowed.end())
+      throw UtilityException("Unsupported CCSDS OEM output time system: " + system);
+   if (emOutStream.is_open() && selected != timeSystem)
+      throw UtilityException("Select CCSDS OEM output time system before opening its file");
+   timeSystem = selected;
+}
+
+std::string CCSDSOEMWriter::FormatEpoch(Real epochInDays)
+{
+   // Keep the existing default conversion byte-for-byte. The selected formatter
+   // is also used by metadata and record counting,including duplicate epochs.
+   if (timeSystem == "UTC")
+      return A1ModJulianToUtcGregorian(epochInDays, 2);
+   if (epochInDays == -999.999)
+      return "-999.999";
+   Real converted;
+   std::string result;
+   theTimeConverter->Convert("A1ModJulian", epochInDays, "", timeSystem + "Gregorian",
+                            converted, result, 2);
+   if (result.empty())
+      throw UtilityException("Unable to format CCSDS OEM epoch in " + timeSystem);
+   return result;
 }
 
 //------------------------------------------------------------------------------
@@ -110,8 +167,17 @@ bool CCSDSOEMWriter::WriteMetaData()
    if (!emOutStream.is_open())
       return false;
    
-   emOutStream << currentOemSegment.GetMetaDataForWriting();
+   currentOemSegment.SetFormatVersion(versionNumber);
+   const std::string metadata = currentOemSegment.GetMetaDataForWriting();
+   const auto metadataPosition = emOutStream.tellp();
+   CcsdsOemB1Chronology::State chronology;
+   if (versionNumber == "1.0")
+      chronology = CcsdsOemB1Chronology::PreviewMetadata(this, metadataPosition,
+            currentOemSegment.GetStringMetaData("OBJECT_ID"));
+   emOutStream << metadata;
    emOutStream.flush();
+   if (versionNumber == "1.0" && emOutStream.good())
+      CcsdsOemB1Chronology::Commit(this, chronology);
    
    // Note that: only clear meta data when data segment is completed because some
    // information in meta data is still needed in writing data segment.
@@ -141,7 +207,9 @@ bool CCSDSOEMWriter::WriteDataComments()
    if (!emOutStream.is_open())
       return false;
    
-   emOutStream << currentOemSegment.GetDataComments();
+   currentOemSegment.SetFormatVersion(versionNumber);
+   const std::string comments = currentOemSegment.GetDataComments();
+   emOutStream << comments;
    emOutStream.flush();
    
    ClearDataComments();
@@ -167,6 +235,13 @@ bool CCSDSOEMWriter::WriteDataSegment()
    
    if (!emOutStream.is_open())
       return false;
+
+   // B-1 contains exactly epoch and six Cartesian fields. OEM2 extensions
+   // must not escape into a file declaring version1.0. Reject before writing
+   // any bytes or consuming the buffered records so callers can recover.
+   if (versionNumber == "1.0" && (useAcceleration || useCovariance))
+      throw UtilityException("CCSDS OEM 1.0 does not support acceleration or covariance output; "
+            "select OEM 2.0 for these extensions");
    
    bool retval = true;
    
@@ -178,12 +253,22 @@ bool CCSDSOEMWriter::WriteDataSegment()
    for (Integer i = 0; i < numPoints; i++)
    {
       if (currentOemSegment.GetEpochAndData(i, epoch, data))
-         epochStrs[i] = A1ModJulianToUtcGregorian(epoch, 2);
+         epochStrs[i] = FormatEpoch(epoch);
       else
          return false;
    }
 
    std::string covRefFrame = currentOemSegment.GetRefFrame();
+
+   CcsdsOemB1Chronology::State chronology;
+   if (versionNumber == "1.0")
+   {
+      std::vector<std::string> serializedEpochs;
+      for (Integer i = 0; i < numPoints; ++i)
+         if (i == numPoints - 1 || epochStrs[i] != epochStrs[i + 1])
+            serializedEpochs.push_back(epochStrs[i]);
+      chronology = CcsdsOemB1Chronology::Preview(this, serializedEpochs);
+   }
    
    for (Integer i = 0; i < numPoints; i++)
    {
@@ -194,22 +279,10 @@ bool CCSDSOEMWriter::WriteDataSegment()
       {
          const Real *outState = data.GetDataVector();
          std::string epochStr = epochStrs[i];
-         char strBuff[300];
-
+         emOutStream << epochStr << OemNumericFields(outState, 6);
          if (useAcceleration)
-         {
-            sprintf(strBuff, "%s  % 1.15e  % 1.15e  % 1.15e  % 1.15e  % 1.15e  % 1.15e  % 1.15e  % 1.15e  % 1.15e\n",
-               epochStr.c_str(), outState[0], outState[1], outState[2], outState[3],
-               outState[4], outState[5], outState[27], outState[28], outState[29]);
-         }
-         else
-         {
-            sprintf(strBuff, "%s  % 1.15e  % 1.15e  % 1.15e  % 1.15e  % 1.15e  % 1.15e\n",
-               epochStr.c_str(), outState[0], outState[1], outState[2], outState[3],
-               outState[4], outState[5]);
-         }
-
-         emOutStream << strBuff;
+            emOutStream << OemNumericFields(outState + 27, 3);
+         emOutStream << '\n';
       }
       else
       {
@@ -234,34 +307,13 @@ bool CCSDSOEMWriter::WriteDataSegment()
          {
             const Real* outState = data.GetDataVector();
             std::string epochStr = epochStrs[i];
-            char strBuff[300];
-
-            sprintf(strBuff, "EPOCH = %s\n", epochStr.c_str());
-            emOutStream << strBuff;
-
-            sprintf(strBuff, "  % 1.15e\n",
-               outState[6]);
-            emOutStream << strBuff;
-
-            sprintf(strBuff, "  % 1.15e  % 1.15e\n",
-               outState[7], outState[8]);
-            emOutStream << strBuff;
-
-            sprintf(strBuff, "  % 1.15e  % 1.15e  % 1.15e\n",
-               outState[9], outState[10], outState[11]);
-            emOutStream << strBuff;
-
-            sprintf(strBuff, "  % 1.15e  % 1.15e  % 1.15e  % 1.15e\n",
-               outState[12], outState[13], outState[14], outState[15]);
-            emOutStream << strBuff;
-
-            sprintf(strBuff, "  % 1.15e  % 1.15e  % 1.15e  % 1.15e  % 1.15e\n",
-               outState[16], outState[17], outState[18], outState[19], outState[20]);
-            emOutStream << strBuff;
-
-            sprintf(strBuff, "  % 1.15e  % 1.15e  % 1.15e  % 1.15e  % 1.15e  % 1.15e\n",
-               outState[21], outState[22], outState[23], outState[24], outState[25], outState[26]);
-            emOutStream << strBuff;
+            emOutStream << "EPOCH = " << epochStr << '\n';
+            Integer offset = 6;
+            for (Integer row = 1; row <= 6; ++row)
+            {
+               emOutStream << OemNumericFields(outState + offset, row) << '\n';
+               offset += row;
+            }
          }
          else
          {
@@ -276,6 +328,8 @@ bool CCSDSOEMWriter::WriteDataSegment()
    }
    
    emOutStream.flush();      
+   if (versionNumber == "1.0" && retval && emOutStream.good())
+      CcsdsOemB1Chronology::Commit(this, chronology);
    
    // Clears data store
    ClearDataStore();
@@ -303,6 +357,8 @@ bool CCSDSOEMWriter::WriteDataSegment()
 bool CCSDSOEMWriter::SetMetaDataForWriting(const std::string &fieldName,
                                            const std::string &value)
 {
+   if (fieldName == "TIME_SYSTEM" && GmatStringUtil::ToUpper(value) != timeSystem)
+      throw UtilityException("CCSDS OEM TIME_SYSTEM must match its selected output time system " + timeSystem);
    #ifdef DEBUG_META_DATA
    MessageInterface::ShowMessage("CCSDSOEMWriter::SetMetaDataForWriting() entered\n");
    #endif
@@ -364,6 +420,33 @@ bool CCSDSOEMWriter::AddDataComment(const std::string& comment)
 }
 
 //------------------------------------------------------------------------------
+// Integer GetNumberOfSerializedDataPoints()
+//------------------------------------------------------------------------------
+/**
+ * Counts records in the complete pending segment using the same epoch format
+ * and adjacent-duplicate suppression as WriteDataSegment(). The store includes
+ * all subscriber buffer flushes and is cleared after the segment is written.
+ */
+//------------------------------------------------------------------------------
+Integer CCSDSOEMWriter::GetNumberOfSerializedDataPoints()
+{
+   Integer count = 0;
+   std::string previousEpoch;
+   Real epoch;
+   Rvector data;
+   for (Integer i = 0; i < currentOemSegment.GetNumberOfDataPoints(); ++i)
+   {
+      if (!currentOemSegment.GetEpochAndData(i, epoch, data))
+         throw UtilityException("Unable to read pending CCSDS OEM data point");
+      const std::string epochString = FormatEpoch(epoch);
+      if (i == 0 || epochString != previousEpoch)
+         ++count;
+      previousEpoch = epochString;
+   }
+   return count;
+}
+
+//------------------------------------------------------------------------------
 // bool AddDataForWriting(Real epoch, Rvector data)
 //------------------------------------------------------------------------------
 /**
@@ -377,6 +460,9 @@ bool CCSDSOEMWriter::AddDataComment(const std::string& comment)
  //------------------------------------------------------------------------------
 bool CCSDSOEMWriter::AddDataForWriting(Real epoch, Rvector& data)
 {
+   if (versionNumber == "1.0")
+      CcsdsOemB1Text::RequireState(epoch, data.GetDataVector(), data.GetSize());
+
    #ifdef DEBUG_DATA_SEGMENT
    MessageInterface::ShowMessage("CCSDSOEMWriter::AddDataForWriting() entered\n");
    #endif

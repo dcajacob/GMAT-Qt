@@ -1,0 +1,41 @@
+{
+  "units": {
+    "DSN_SeqRange": "RU",
+    "DSN_PNRange": "RU",
+    "DSN_TCP": "Hz",
+    "SN_Doppler": "Hz",
+    "SN_Doppler_Rtn": "Hz",
+    "SN_DOWD": "Hz",
+    "BRTS_Doppler": "Hz",
+    "GPS_PosVec": "km",
+    "Range": "km",
+    "Range_Skin": "km",
+    "SN_Range": "km",
+    "BRTS_Range": "km",
+    "RangeRate": "km/s",
+    "Azimuth": "deg",
+    "Elevation": "deg",
+    "XEast": "deg",
+    "YNorth": "deg",
+    "XSouth": "deg",
+    "YEast": "deg",
+    "RightAscension": "deg",
+    "Declination": "deg"
+  },
+  "static_types": [
+    "Range",
+    "DSN_SeqRange",
+    "DSN_TCP",
+    "RangeRate",
+    "Azimuth"
+  ],
+  "testing_only": [
+    "RightAscension",
+    "Declination"
+  ],
+  "fields": [
+    "Bias",
+    "BiasSigma",
+    "NoiseSigma"
+  ]
+}

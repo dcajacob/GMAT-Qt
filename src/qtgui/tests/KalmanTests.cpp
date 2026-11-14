@@ -29,6 +29,8 @@
 #include <QListWidget>
 #include <QElapsedTimer>
 #include <QEventLoop>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <cmath>
 #include <functional>
 #include <iostream>
@@ -51,12 +53,37 @@ static void capturePanel(ResourceEditor &panel,const QString &path,const QString
    if (!property.isEmpty()) { auto *table=panel.findChild<QTableWidget *>(); table->scrollToItem(table->item(row(panel,property),0)); }
    QApplication::processEvents(); require(panel.grab().save(path),"Kalman panel capture failed");
 }
+// Forward each original Apply exactly once; capture invalid-input outcomes
+// before an unchanged compound assertion can terminate the fixture.
+class DiagnosticWindow final : public MainWindow
+{
+public:
+   bool recordInvalidEdits=false;
+   int invalidEdit=0;
+   QString applyResourceChanges(const QString &name,const QMap<QString,QString> &changes,const QString &source)
+   {
+      const auto error=MainWindow::applyResourceChanges(name,changes,source);
+      if (recordInvalidEdits) {
+         ++invalidEdit; const auto actual=findChild<QPlainTextEdit *>("scriptEditor")->toPlainText();
+         QJsonObject inputs; for (auto it=changes.cbegin();it!=changes.cend();++it) inputs[it.key()]=it.value();
+         const QJsonObject result{{"resource",name},{"input",inputs},{"error",error},{"source_unchanged",actual==source}};
+         std::cerr<<"Invalid Kalman input "<<invalidEdit<<' '<<QJsonDocument(result).toJson(QJsonDocument::Compact).constData()<<'\n';
+         const auto evidence=qEnvironmentVariable("GMAT_QT_ACCEPTANCE_DIR");
+         if (!evidence.isEmpty()) {
+            const QString prefix=QDir(evidence).filePath("invalid-"+QString::number(invalidEdit));
+            const QMap<QString,QByteArray> files{{".json",QJsonDocument(result).toJson()},{"-before.script",source.toUtf8()},{"-after.script",actual.toUtf8()}};
+            for (auto it=files.cbegin();it!=files.cend();++it) { QFile file(prefix+it.key()); if (file.open(QIODevice::WriteOnly)) file.write(it.value()); }
+         }
+      }
+      return error;
+   }
+};
 int main(int argc,char **argv)
 {
    QApplication app(argc,argv); app.setAttribute(Qt::AA_DontUseNativeDialogs); QApplication::setOrganizationName("GMATTests"); QApplication::setApplicationName("QtKalman"); if (argc!=2 && argc!=3) return 2;
    const auto startup=QFileInfo(argv[1]).absoluteFilePath(),capture=argc==3 ? QFileInfo(argv[2]).absoluteFilePath() : QString(); QDir::setCurrent(QFileInfo(startup).absolutePath());
    try {
-      TestSettings settings; QTemporaryDir files; require(files.isValid(),"Kalman fixtures unavailable"); MainWindow window; window.show(); require(window.initialize(startup),"Kalman runtime unavailable"); auto *editor=window.findChild<QPlainTextEdit *>("scriptEditor");
+      TestSettings settings; QTemporaryDir files; require(files.isValid(),"Kalman fixtures unavailable"); DiagnosticWindow window; window.show(); require(window.initialize(startup),"Kalman runtime unavailable"); auto *editor=window.findChild<QPlainTextEdit *>("scriptEditor");
       auto fixture=read(QDir::current().absoluteFilePath("../samples/Navigation/Ex_FilterSmoother_GpsPosVec.script"));
       auto replace=[&](const QString &key,const QString &value) { const QRegularExpression assignment("^"+QRegularExpression::escape(key)+"[ \\t]*=[^;\\n]*(?:;)?",QRegularExpression::MultilineOption); require(assignment.match(fixture).hasMatch(),"Shipped Kalman setting missing"); fixture.replace(assignment,key+" = "+value+";"); };
       const auto measurements=files.filePath("gps ü.gmd"),filterReport=files.filePath("filter.txt"),smoothReport=files.filePath("smoother.txt"),warm=files.filePath("warm.csv"),states=files.filePath("states.txt");
@@ -153,8 +180,20 @@ int main(int argc,char **argv)
          require(window.loadScript(warmSaved) && window.buildScript(),"Boundary fixture restore failed"); applyPanel("EKF",[&](ResourceEditor &panel) { auto *choose=panel.findChild<QPushButton *>("chooseProperty_WarmStartEpoch"); require(choose,"Warm-start boundary selector missing"); later(&panel,failure,[&] { auto *dialog=panel.findChild<QInputDialog *>(); require(dialog && dialog->comboBoxItems().contains("FirstMeasurement") && dialog->comboBoxItems().contains("LastWarmStartRecord"),"Warm-start boundaries missing"); dialog->setTextValue(boundary); dialog->accept(); }); choose->click(); if (failure) std::rethrow_exception(failure); }); run(window); same(values(states),boundaryExpected);
       }
       require(window.loadScript(saved),"Final cold-start restore failed"); run(window); same(values(states),expected); require(read(measurements)==observations,"Cold-start rerun did not recover all observations");
+      // Unicode filenames are supported by the repaired filename contract.
+      // Exercise real estimator output rather than labeling a valid path bad.
+      const auto unicodeOutput=files.filePath("supported ü.csv");
+      require(window.applyResourceChanges("EKF",{{"OutputWarmStartFile",unicodeOutput}},editor->toPlainText()).isEmpty(),"Unicode warm-start output path was rejected");
+      run(window); same(values(states),expected);
+      require(read(unicodeOutput)==warmReference&&read(measurements)==observations,"Unicode warm-start output changed covariance/state bytes or observations");
+      const auto evidence=qEnvironmentVariable("GMAT_QT_ACCEPTANCE_DIR");
+      if (!evidence.isEmpty()) {
+         QFile csv(QDir(evidence).filePath("unicode-warm.csv")); require(csv.open(QIODevice::WriteOnly),"Unicode covariance evidence unavailable"); csv.write(read(unicodeOutput).toUtf8());
+         QFile reference(QDir(evidence).filePath("reference-warm.csv")); require(reference.open(QIODevice::WriteOnly),"Reference covariance evidence unavailable"); reference.write(warmReference.toUtf8());
+      }
       require(window.loadScript(saved) && window.buildScript(),"Cold-start fixture restore failed");
-      for (const auto &bad:QList<QPair<QString,QMap<QString,QString>>>{{"SNC",{{"AccelNoiseSigma","0 1e-8 1e-8"}}},{"SNC",{{"AccelNoiseSigma","1e-9 1e-8"}}},{"SNC",{{"CoordinateSystem","EKF"}}},{"SNC",{{"Type","Bogus"}}},{"SNC",{{"UpdateTimeStep","-1"}}},{"FogmCd",{{"HalfLife","0"}}},{"FogmCd",{{"SteadyStateSigma","-1"}}},{"FogmCd",{{"SolveFor","Cr"}}},{"FPS",{{"Filter","Sim"}}},{"EKF",{{"WarmStartEpochFormat","Bogus"}}},{"EKF",{{"WarmStartEpoch","bad epoch"}}},{"EKF",{{"OutputWarmStartFile",files.filePath("unsupported ü.csv")}}}}) {
+      window.recordInvalidEdits=true;
+      for (const auto &bad:QList<QPair<QString,QMap<QString,QString>>>{{"SNC",{{"AccelNoiseSigma","0 1e-8 1e-8"}}},{"SNC",{{"AccelNoiseSigma","1e-9 1e-8"}}},{"SNC",{{"CoordinateSystem","EKF"}}},{"SNC",{{"Type","Bogus"}}},{"SNC",{{"UpdateTimeStep","-1"}}},{"FogmCd",{{"HalfLife","0"}}},{"FogmCd",{{"SteadyStateSigma","-1"}}},{"FogmCd",{{"SolveFor","Cr"}}},{"FPS",{{"Filter","Sim"}}},{"EKF",{{"WarmStartEpochFormat","Bogus"}}},{"EKF",{{"WarmStartEpoch","bad epoch"}}},{"EKF",{{"OutputWarmStartFile",files.filePath("invalid\nfile.csv")}}}}) {
          const auto source=editor->toPlainText(); require(!window.applyResourceChanges(bad.first,bad.second,source).isEmpty() && editor->toPlainText()==source,"Invalid Kalman edit changed source");
       }
       run(window); same(values(states),expected);

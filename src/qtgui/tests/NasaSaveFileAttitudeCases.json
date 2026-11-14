@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "scope": "File-backed attitude configuration Save/reload only. Literal native-reader AEM inputs and existing MarsExpress CK/SCLK file identities; no scientific attitude, full CCSDS, SPK-as-attitude or portable embedded-dependency qualification.",
+  "cases": [
+    {
+      "key": "AEMQuaternion",
+      "setup": "Create Spacecraft Subject;\nSubject.NAIFId = -101111;\nSubject.NAIFIdReferenceFrame = -910111;\nSubject.DateFormat = UTCGregorian;\nSubject.Epoch = '01 Jan 2000 12:30:00.000';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = CCSDS-AEM;\nSubject.AttitudeFileName = '@FILES@/AEMQuaternion.aem';\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Spacecraft.data",
+      "definitions": [
+        "Create Spacecraft Subject;"
+      ],
+      "fixture_files": {
+        "AEMQuaternion.aem": "CCSDS_AEM_VERS = 1.0\nCREATION_DATE = 2000-01-01T00:00:00\nORIGINATOR = NativeSaveAcceptance\nMETA_START\nOBJECT_NAME = Subject\nOBJECT_ID = 2000-001A\nCENTER_NAME = EARTH\nREF_FRAME_A = EME2000\nREF_FRAME_B = SC_BODY_1\nATTITUDE_DIR = A2B\nTIME_SYSTEM = UTC\nSTART_TIME = 2000-01-01T12:00:00\nSTOP_TIME = 2000-01-01T13:00:00\nATTITUDE_TYPE = QUATERNION\nQUATERNION_TYPE = LAST\nINTERPOLATION_METHOD = LINEAR\nINTERPOLATION_DEGREE = 1\nMETA_STOP\nDATA_START\n2000-01-01T12:00:00 0 0 0 1\n2000-01-01T13:00:00 0 0 0 1\nDATA_STOP\n"
+      },
+      "expected_attitude_model": "CCSDS-AEM",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CCSDS-AEM"
+          ],
+          "field": "AttitudeFileName",
+          "type": "String",
+          "expected": "@FILES@/AEMQuaternion.aem"
+        }
+      ]
+    },
+    {
+      "key": "AEMEuler",
+      "setup": "Create Spacecraft Subject;\nSubject.NAIFId = -101111;\nSubject.NAIFIdReferenceFrame = -910111;\nSubject.DateFormat = UTCGregorian;\nSubject.Epoch = '01 Jan 2000 12:30:00.000';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = CCSDS-AEM;\nSubject.AttitudeFileName = '@FILES@/AEMEuler.aem';\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Spacecraft.data",
+      "definitions": [
+        "Create Spacecraft Subject;"
+      ],
+      "fixture_files": {
+        "AEMEuler.aem": "CCSDS_AEM_VERS = 1.0\nCREATION_DATE = 2000-01-01T00:00:00\nORIGINATOR = NativeSaveAcceptance\nMETA_START\nOBJECT_NAME = Subject\nOBJECT_ID = 2000-001A\nCENTER_NAME = EARTH\nREF_FRAME_A = EME2000\nREF_FRAME_B = SC_BODY_1\nATTITUDE_DIR = A2B\nTIME_SYSTEM = UTC\nSTART_TIME = 2000-01-01T12:00:00\nSTOP_TIME = 2000-01-01T13:00:00\nATTITUDE_TYPE = EULER_ANGLE\nEULER_ROT_SEQ = 321\nINTERPOLATION_METHOD = LAGRANGE\nINTERPOLATION_DEGREE = 1\nMETA_STOP\nDATA_START\n2000-01-01T12:00:00 0 0 0\n2000-01-01T13:00:00 0 0 0\nDATA_STOP\n"
+      },
+      "expected_attitude_model": "CCSDS-AEM",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CCSDS-AEM"
+          ],
+          "field": "AttitudeFileName",
+          "type": "String",
+          "expected": "@FILES@/AEMEuler.aem"
+        }
+      ]
+    },
+    {
+      "key": "SpiceCKSCLK",
+      "setup": "Create Spacecraft Subject;\nSubject.NAIFId = -41;\nSubject.NAIFIdReferenceFrame = -41001;\nSubject.DateFormat = UTCGregorian;\nSubject.Epoch = '01 Jun 2010 16:00:00.000';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = SpiceAttitude;\nSubject.AttitudeSpiceKernelName = {'MarsExpress_ATNM_PTR00012_100531_002.BC'};\nSubject.SCClockSpiceKernelName = {'MarsExpress_MEX_100921_STEP.TSC'};\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Spacecraft.data",
+      "definitions": [
+        "Create Spacecraft Subject;"
+      ],
+      "expected_attitude_model": "SpiceAttitude",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "SpiceAttitude"
+          ],
+          "field": "AttitudeKernelName",
+          "type": "StringArray",
+          "expected": [
+            "MarsExpress_ATNM_PTR00012_100531_002.BC"
+          ]
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "SpiceAttitude"
+          ],
+          "field": "SCClockKernelName",
+          "type": "StringArray",
+          "expected": [
+            "MarsExpress_MEX_100921_STEP.TSC"
+          ]
+        }
+      ]
+    }
+  ]
+}

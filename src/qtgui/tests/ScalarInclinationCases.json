@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "scope": "Four distinct prograde/retrograde near/exact-equatorial scalar calculation inputs using the unchanged Assignment driver",
+  "cases": [
+    {
+      "key": "NearPrograde",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        1e-07,
+        112.0,
+        38.0,
+        143.0
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 4464.0483377095115;\nSat.Y = -10516.638837544537;\nSat.Z = -3.4800346082454554e-07;\nSat.VX = 5.2870622705484482;\nSat.VY = 1.4016660047631055;\nSat.VZ = -9.4721673195034538e-09;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.EarthMJ2000Eq.INC",
+      "report": "R Sat.EarthMJ2000Eq.INC Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        1e-07,
+        1e-07,
+        4464.0483377095115,
+        -10516.638837544537,
+        -3.4800346082454554e-07,
+        5.287062270548448,
+        1.4016660047631055,
+        -9.472167319503454e-09
+      ],
+      "scope": "Scalar INC in Assignment expression and direct Report parameter,unchanged Cartesian witness,selected EarthMJ2000Eq boundary orbit;not all calculation parameters or all domains."
+    },
+    {
+      "key": "NearRetrograde",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        179.9999999,
+        112.0,
+        38.0,
+        143.0
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 4094.3035576444445;\nSat.Y = -10666.025425556476;\nSat.Z = -3.480034777641916e-07;\nSat.VX = -4.7768733408708473;\nSat.VY = -2.6644279173666634;\nSat.VZ = -9.4721677805769118e-09;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.EarthMJ2000Eq.INC",
+      "report": "R Sat.EarthMJ2000Eq.INC Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        179.9999999,
+        179.9999999,
+        4094.3035576444445,
+        -10666.025425556476,
+        -3.480034777641916e-07,
+        -4.776873340870847,
+        -2.6644279173666634,
+        -9.472167780576912e-09
+      ],
+      "scope": "Scalar INC in Assignment expression and direct Report parameter,unchanged Cartesian witness,selected EarthMJ2000Eq boundary orbit;not all calculation parameters or all domains."
+    },
+    {
+      "key": "Equatorial",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        0.0,
+        112.0,
+        38.0,
+        143.0
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 4464.0483377095115;\nSat.Y = -10516.638837544537;\nSat.Z = 0;\nSat.VX = 5.2870622705484482;\nSat.VY = 1.4016660047631055;\nSat.VZ = -0;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.EarthMJ2000Eq.INC",
+      "report": "R Sat.EarthMJ2000Eq.INC Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        0.0,
+        0.0,
+        4464.0483377095115,
+        -10516.638837544537,
+        0.0,
+        5.287062270548448,
+        1.4016660047631055,
+        -0.0
+      ],
+      "scope": "Scalar INC in Assignment expression and direct Report parameter,unchanged Cartesian witness,selected EarthMJ2000Eq boundary orbit;not all calculation parameters or all domains."
+    },
+    {
+      "key": "Retrograde",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        180.0,
+        112.0,
+        38.0,
+        143.0
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 4094.3035576444445;\nSat.Y = -10666.025425556476;\nSat.Z = -2.4418391194899157e-14;\nSat.VX = -4.7768733408708473;\nSat.VY = -2.6644279173666634;\nSat.VZ = -6.6463444508038059e-16;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.EarthMJ2000Eq.INC",
+      "report": "R Sat.EarthMJ2000Eq.INC Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        180.0,
+        180.0,
+        4094.3035576444445,
+        -10666.025425556476,
+        -2.4418391194899157e-14,
+        -4.776873340870847,
+        -2.6644279173666634,
+        -6.646344450803806e-16
+      ],
+      "scope": "Scalar INC in Assignment expression and direct Report parameter,unchanged Cartesian witness,selected EarthMJ2000Eq boundary orbit;not all calculation parameters or all domains."
+    }
+  ]
+}

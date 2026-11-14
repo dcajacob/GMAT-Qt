@@ -276,6 +276,79 @@
             <para><guilabel>Propagator</guilabel> resource objects</para>
           </listitem>
         </itemizedlist></para>
+
+      <para>Qt also provides an explicit <guimenuitem>Clone propagator</guimenuitem>
+      command in the Edit menu and on a named propagator's context menu. This
+      additional command supports copying propagators while retaining the
+      standard Clone restrictions above. Choose the copy's name and settings in
+      the same resource-copy editor, then select Clone to commit them together.
+      Cancel discards the pending copy.</para>
+
+      <para><guimenuitem>Copy coordinate system</guimenuitem> in the Edit menu
+      and a default coordinate system's context menu creates an editable,
+      user-defined coordinate system from that frame. The copy starts with
+      the original's origin, axes type and writable axes settings. Choose a
+      new name and apply any desired changes in the copy editor. The original
+      default frame remains protected. This additional command also accepts
+      user-defined coordinate systems; the standard Clone command retains
+      the restrictions above.</para>
+
+      <para><guimenuitem>Copy celestial body</guimenuitem> in the Edit menu
+      and a default body's context menu creates a named copy of a default
+      planet, moon or the Sun. The copy retains its PhysicalBody identity,
+      native ephemeris and orientation model, physical values and appearance.
+      The copy editor offers the body's supported settings and shows its
+      physical model. Copy commits the name and settings together; Cancel
+      discards the draft. The original default body remains protected.</para>
+
+      <para>The body copy writes its physical identity before dependent
+      settings. It retains un-authored effective values and uses full native
+      numeric precision. Authored scalar expressions keep their source form.
+      Kernel and directory lists copy their effective contents in their
+      existing order. This preserves the configured list when the original
+      source used additive or indexed assignments. The same command accepts
+      user-defined bodies, including another physical-body copy.</para>
+
+      <para>The built-in <guilabel>SolarSystemBarycenter</guilabel> can be
+      cloned into a named, user-defined barycenter. The copy retains
+      <literal>EphemerisSource = SolarSystemBarycenter</literal>, so its state,
+      velocity, acceleration and mass use the original native ephemeris point.
+      It does not become a mass-weighted approximation using a list of planets.
+      <guimenuitem>Copy calculated point</guimenuitem> in the Edit menu and
+      the built-in point's context menu opens the same copy editor. This
+      command also accepts user-defined calculated points. The original
+      built-in point remains protected.</para>
+
+      <para>The copy keeps the original's output filenames and function paths,
+      including values supplied by defaults rather than written explicitly in
+      the script. Authored settings and expressions retain their source form.
+      Choose another output filename in the copy's settings when separate
+      output files are wanted. Cloning a resource copies its configuration;
+      it does not copy the external data or function files.</para>
+
+      <para>When an array's formula grid refers to that same array, the clone's
+      formulas use the new array's name. References to other arrays and resource
+      properties retain their original names.</para>
+
+      <para>The copy retains authored integrator or ephemeris settings and
+      references to other resources. A numerical propagator's effective
+      force-model reference is retained even when the original source used an
+      implicit model. The command copies the propagator setup; it does not
+      create a separate Resource Tree object for its owned integrator or duplicate
+      its configured force-model resource.</para>
+
+      <para>Resources declared or configured in included files can be cloned
+      after a successful Build. The copy's declaration and settings are added
+      to the current script; the included files remain unchanged. The copy
+      uses the settings read by that Build, including nested includes and
+      subsequent configuration assignments in the current script. Rebuild
+      after editing an included file to use its updated settings.</para>
+
+      <para>If the mission starts in an included file that also configures
+      resources, move the mission boundary into the current script before
+      cloning. This preserves the order in which configuration expressions
+      use other resources. Arrays whose marked mission initializer is in an
+      included file must still be cloned in their defining script.</para>
     </section>
   </section>
 </section>

@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "doc/SystemDocs/Requirements/GMAT Requirements.xlsx": "736847e909ca550731386261073e46a9fa3ac8d78f53f0c37dd5d93b11a85c23",
+    "doc/SystemDocs/Test/Requirements-To-Test Matrix, 2012-05-11 (GMAT Build 2012-05-04).csv": "4693e097b183af76bc7c8dfcc0f62d7696b2e1417c90cb10d0ed4f9577160a97"
+  },
+  "reviews": [
+    {
+      "key": "All Others!E327",
+      "fingerprint": "47dda163bed2613d861cb6f423f9744aa43a39d685d15a4b8f6fb3b6035cdf0a",
+      "applicability": "harness",
+      "rationale": "Original acceptance-test-system report-format contract. New actual CLI exports of recorded catalogue and numeric comparison support genuine Excel97 binary .xls, standalone LuaLaTeX .tex and existing HTML. All mixed statuses, exact summary counts, requirements, metadata, arbitrary-precision decimal text, failed/error details and source identities survive native Excel97 readback and TeX compilation. Formula/TeX text remains literal; input/alias isolation and explicit no-truncation limits are mandatory. No GUI/engine replay, scope promotion or numerical/scientific/full-current-build/NASA qualification.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.ReportExportContracts",
+          "source": "src/qtgui/tests/AcceptanceReportExportTests.py",
+          "source_sha256": "bcb6f7983ae48e57d282ad0b466a70a3811e44920c741e9aee83886a2eaf878b",
+          "anchor": "class ExportContracts(unittest.TestCase):",
+          "checkpoint": "report-formats-327",
+          "expected": {
+            "formats": [
+              "html",
+              "tex",
+              "xls"
+            ],
+            "contracts": 5,
+            "source_key": "All Others!E327"
+          },
+          "facets": [
+            "genuine-excel97-biff8-native-readback",
+            "standalone-tex-compile-and-text",
+            "existing-html-export-actual-cli",
+            "literal-mixed-outcomes-unicode-and-injection-escaping",
+            "exact-counts-identities-input-isolation-and-format-limits"
+          ],
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceReportExports.py": "584caec6303083cfa01cf98959f315be432004f12fadc4cedaacd3554604b9cb",
+            "src/qtgui/tests/AcceptanceCatalogTests.py": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3",
+            "src/qtgui/tests/AcceptanceCompare.py": "bbfc3792caec8914bf248f9b1833d28f543f38abf674082dfccd8d700833fb79"
+          },
+          "scope": "The system shall support the following file formats"
+        }
+      ],
+      "constituent_requirements": [
+        "All Others!E328",
+        "All Others!E329",
+        "All Others!E330"
+      ]
+    },
+    {
+      "key": "All Others!E328",
+      "fingerprint": "241afb4d6560481c91697b322bf5633497c1b7e6db0e0d79c766bed6ee8eb784",
+      "applicability": "harness",
+      "rationale": "Original acceptance-test-system report-format contract. New actual CLI exports of recorded catalogue and numeric comparison support genuine Excel97 binary .xls, standalone LuaLaTeX .tex and existing HTML. All mixed statuses, exact summary counts, requirements, metadata, arbitrary-precision decimal text, failed/error details and source identities survive native Excel97 readback and TeX compilation. Formula/TeX text remains literal; input/alias isolation and explicit no-truncation limits are mandatory. No GUI/engine replay, scope promotion or numerical/scientific/full-current-build/NASA qualification.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.ReportExportContracts",
+          "source": "src/qtgui/tests/AcceptanceReportExportTests.py",
+          "source_sha256": "bcb6f7983ae48e57d282ad0b466a70a3811e44920c741e9aee83886a2eaf878b",
+          "anchor": "class ExportContracts(unittest.TestCase):",
+          "checkpoint": "report-formats-328",
+          "expected": {
+            "formats": [
+              "html",
+              "tex",
+              "xls"
+            ],
+            "contracts": 5,
+            "source_key": "All Others!E328"
+          },
+          "facets": [
+            "genuine-excel97-biff8-native-readback",
+            "standalone-tex-compile-and-text",
+            "existing-html-export-actual-cli",
+            "literal-mixed-outcomes-unicode-and-injection-escaping",
+            "exact-counts-identities-input-isolation-and-format-limits"
+          ],
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceReportExports.py": "584caec6303083cfa01cf98959f315be432004f12fadc4cedaacd3554604b9cb",
+            "src/qtgui/tests/AcceptanceCatalogTests.py": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3",
+            "src/qtgui/tests/AcceptanceCompare.py": "bbfc3792caec8914bf248f9b1833d28f543f38abf674082dfccd8d700833fb79"
+          },
+          "scope": "1)\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0 Xls file"
+        }
+      ]
+    },
+    {
+      "key": "All Others!E329",
+      "fingerprint": "1c209cbcfcccb4becafa3fc643da7a38c4abc2486a02dd038da0b8c232797741",
+      "applicability": "harness",
+      "rationale": "Original acceptance-test-system report-format contract. New actual CLI exports of recorded catalogue and numeric comparison support genuine Excel97 binary .xls, standalone LuaLaTeX .tex and existing HTML. All mixed statuses, exact summary counts, requirements, metadata, arbitrary-precision decimal text, failed/error details and source identities survive native Excel97 readback and TeX compilation. Formula/TeX text remains literal; input/alias isolation and explicit no-truncation limits are mandatory. No GUI/engine replay, scope promotion or numerical/scientific/full-current-build/NASA qualification.",
+      "evidence": [
+        {
+          "test": "QtAcceptance.ReportExportContracts",
+          "source": "src/qtgui/tests/AcceptanceReportExportTests.py",
+          "source_sha256": "bcb6f7983ae48e57d282ad0b466a70a3811e44920c741e9aee83886a2eaf878b",
+          "anchor": "class ExportContracts(unittest.TestCase):",
+          "checkpoint": "report-formats-329",
+          "expected": {
+            "formats": [
+              "html",
+              "tex",
+              "xls"
+            ],
+            "contracts": 5,
+            "source_key": "All Others!E329"
+          },
+          "facets": [
+            "genuine-excel97-biff8-native-readback",
+            "standalone-tex-compile-and-text",
+            "existing-html-export-actual-cli",
+            "literal-mixed-outcomes-unicode-and-injection-escaping",
+            "exact-counts-identities-input-isolation-and-format-limits"
+          ],
+          "reference_sources": {
+            "src/qtgui/tests/AcceptanceReportExports.py": "584caec6303083cfa01cf98959f315be432004f12fadc4cedaacd3554604b9cb",
+            "src/qtgui/tests/AcceptanceCatalogTests.py": "6233da7cd6345e2e48d109f07b0c1779b2bfea1bb764b57cfc07539597fb852a",
+            "src/qtgui/tests/AcceptanceCatalog.py": "490870fd4e18d5e2e42d0f3383ebf76b161d457b221528b0e31d39ced60fbdd3",
+            "src/qtgui/tests/AcceptanceCompare.py": "bbfc3792caec8914bf248f9b1833d28f543f38abf674082dfccd8d700833fb79"
+          },
+          "scope": "2)\u00a0\u00a0\u00a0\u00a0\u00a0 .tex file"
+        }
+      ]
+    }
+  ]
+}

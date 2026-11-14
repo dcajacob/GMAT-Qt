@@ -1,0 +1,388 @@
+{
+  "common_fixture": "% preserve resource preview fixture \u03a9\nCreate ChemicalTank ChemTank;\nChemTank.FuelMass = 12.25;\nCreate ElectricTank ElecTank;\nElecTank.FuelMass = 12.25;\nCreate ChemicalThruster ChemThr;\nChemThr.Tank = {ChemTank};\nChemThr.DutyCycle = 0.5;\nCreate ElectricThruster ElecThr;\nElecThr.Tank = {ElecTank};\nElecThr.DutyCycle = 0.5;\nCreate SolarPowerSystem Power;\nCreate Spacecraft Ref;\nRef.CoordinateSystem = EarthMJ2000Eq;\nRef.DisplayStateType = Cartesian;\nRef.DateFormat = A1ModJulian;\nRef.Epoch = '21545';\nRef.X = 7100;\nRef.Y = 20;\nRef.Z = 30;\nRef.VX = -0.1;\nRef.VY = 7.4;\nRef.VZ = 0.2;\nRef.DryMass = 910.25;\nRef.Cd = 2.1;\nRef.Cr = 1.7;\nRef.DragArea = 12.5;\nRef.SRPArea = 18.5;\nRef.Attitude = CoordinateSystemFixed;\nRef.AttitudeCoordinateSystem = EarthMJ2000Eq;\nRef.ModelScale = 2.25;\nRef.ModelOffsetX = 1;\nRef.ModelRotationZ = 20;\nRef.Tanks = {ChemTank, ElecTank};\nRef.Thrusters = {ChemThr, ElecThr};\nRef.PowerSystem = Power;\nCreate ImpulsiveBurn Burn;\nBurn.Element1 = 0.1;\nCreate Barycenter Bary;\nBary.BodyNames = {Earth, Mars};\nCreate XYPlot Plot;\nPlot.XVariable = Ref.A1ModJulian;\nPlot.YVariables = {Ref.X};\nPlot.ShowPlot = false;\nPlot.SolverIterations = All;\nCreate ForceModel ProbeFM;\nProbeFM.PrimaryBodies = {};\nProbeFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = ProbeFM;\nProp.Type = @METHOD@;\nProp.InitialStepSize = 20;\nCreate Variable Keep;\nKeep = 41;\nBeginMissionSequence;\nKeep = Keep + 1;\n% preserve resource preview tail\n",
+  "numerical_methods": [
+    "RungeKutta89",
+    "RungeKutta68",
+    "RungeKutta56",
+    "PrinceDormand45",
+    "PrinceDormand78",
+    "AdamsBashforthMoulton",
+    "BulirschStoer",
+    "RungeKutta4",
+    "PrinceDormand853"
+  ],
+  "cases": [
+    {
+      "key": "ChemicalTank",
+      "name": "ChemTank",
+      "type": "ChemicalTank",
+      "declaration": "ChemicalTank",
+      "field": "FuelMass",
+      "kind": "real",
+      "first": "12.25",
+      "second": "24.5",
+      "control": "resource_FuelMass",
+      "historical_keys": [
+        "H2012:R203"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "ChemTank"
+      ]
+    },
+    {
+      "key": "ElectricTank",
+      "name": "ElecTank",
+      "type": "ElectricTank",
+      "declaration": "ElectricTank",
+      "field": "FuelMass",
+      "kind": "real",
+      "first": "12.25",
+      "second": "24.5",
+      "control": "resource_FuelMass",
+      "historical_keys": [
+        "H2012:R203"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "ElecTank"
+      ]
+    },
+    {
+      "key": "ChemicalThruster",
+      "name": "ChemThr",
+      "type": "ChemicalThruster",
+      "declaration": "ChemicalThruster",
+      "field": "DutyCycle",
+      "kind": "real",
+      "first": "0.5",
+      "second": "0.75",
+      "control": "thruster_DutyCycle",
+      "historical_keys": [
+        "H2012:R205",
+        "H2012:R243"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "ChemThr"
+      ]
+    },
+    {
+      "key": "ElectricThruster",
+      "name": "ElecThr",
+      "type": "ElectricThruster",
+      "declaration": "ElectricThruster",
+      "field": "DutyCycle",
+      "kind": "real",
+      "first": "0.5",
+      "second": "0.75",
+      "control": "thruster_DutyCycle",
+      "historical_keys": [
+        "H2012:R205",
+        "H2012:R243"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "ElecThr"
+      ]
+    },
+    {
+      "key": "ImpulsiveBurn",
+      "name": "Burn",
+      "type": "ImpulsiveBurn",
+      "declaration": "ImpulsiveBurn",
+      "field": "Element1",
+      "kind": "real",
+      "first": "0.1",
+      "second": "0.2",
+      "control": "burn_Element1",
+      "historical_keys": [
+        "H2012:R283"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "Burn"
+      ]
+    },
+    {
+      "key": "Barycenter",
+      "name": "Bary",
+      "type": "Barycenter",
+      "declaration": "Barycenter",
+      "field": "BodyNames",
+      "kind": "list",
+      "first": "Earth, Mars",
+      "second": "Earth, Luna",
+      "control": "resource_BodyNames",
+      "historical_keys": [
+        "H2012:R1084"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "Bary"
+      ]
+    },
+    {
+      "key": "XYPlot",
+      "name": "Plot",
+      "type": "XYPlot",
+      "declaration": "XYPlot",
+      "field": "SolverIterations",
+      "kind": "string",
+      "first": "All",
+      "second": "None",
+      "control": "xySolverIterations",
+      "historical_keys": [
+        "H2012:R1175"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "Plot"
+      ]
+    },
+    {
+      "key": "PropRungeKutta89",
+      "name": "Prop",
+      "type": "PropSetup",
+      "declaration": "Propagator",
+      "field": "InitialStepSize",
+      "kind": "real",
+      "first": "20",
+      "second": "45",
+      "control": "resource_InitialStepSize",
+      "historical_keys": [
+        "H2012:R364"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "Prop",
+        "ProbeFM"
+      ],
+      "method": "RungeKutta89"
+    },
+    {
+      "key": "PropRungeKutta68",
+      "name": "Prop",
+      "type": "PropSetup",
+      "declaration": "Propagator",
+      "field": "InitialStepSize",
+      "kind": "real",
+      "first": "20",
+      "second": "45",
+      "control": "resource_InitialStepSize",
+      "historical_keys": [
+        "H2012:R364"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "Prop",
+        "ProbeFM"
+      ],
+      "method": "RungeKutta68"
+    },
+    {
+      "key": "PropRungeKutta56",
+      "name": "Prop",
+      "type": "PropSetup",
+      "declaration": "Propagator",
+      "field": "InitialStepSize",
+      "kind": "real",
+      "first": "20",
+      "second": "45",
+      "control": "resource_InitialStepSize",
+      "historical_keys": [
+        "H2012:R364"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "Prop",
+        "ProbeFM"
+      ],
+      "method": "RungeKutta56"
+    },
+    {
+      "key": "PropPrinceDormand45",
+      "name": "Prop",
+      "type": "PropSetup",
+      "declaration": "Propagator",
+      "field": "InitialStepSize",
+      "kind": "real",
+      "first": "20",
+      "second": "45",
+      "control": "resource_InitialStepSize",
+      "historical_keys": [
+        "H2012:R364"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "Prop",
+        "ProbeFM"
+      ],
+      "method": "PrinceDormand45"
+    },
+    {
+      "key": "PropPrinceDormand78",
+      "name": "Prop",
+      "type": "PropSetup",
+      "declaration": "Propagator",
+      "field": "InitialStepSize",
+      "kind": "real",
+      "first": "20",
+      "second": "45",
+      "control": "resource_InitialStepSize",
+      "historical_keys": [
+        "H2012:R364"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "Prop",
+        "ProbeFM"
+      ],
+      "method": "PrinceDormand78"
+    },
+    {
+      "key": "PropAdamsBashforthMoulton",
+      "name": "Prop",
+      "type": "PropSetup",
+      "declaration": "Propagator",
+      "field": "InitialStepSize",
+      "kind": "real",
+      "first": "20",
+      "second": "45",
+      "control": "resource_InitialStepSize",
+      "historical_keys": [
+        "H2012:R364"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "Prop",
+        "ProbeFM"
+      ],
+      "method": "AdamsBashforthMoulton"
+    },
+    {
+      "key": "PropBulirschStoer",
+      "name": "Prop",
+      "type": "PropSetup",
+      "declaration": "Propagator",
+      "field": "InitialStepSize",
+      "kind": "real",
+      "first": "20",
+      "second": "45",
+      "control": "resource_InitialStepSize",
+      "historical_keys": [
+        "H2012:R364"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "Prop",
+        "ProbeFM"
+      ],
+      "method": "BulirschStoer"
+    },
+    {
+      "key": "PropRungeKutta4",
+      "name": "Prop",
+      "type": "PropSetup",
+      "declaration": "Propagator",
+      "field": "InitialStepSize",
+      "kind": "real",
+      "first": "20",
+      "second": "45",
+      "control": "resource_InitialStepSize",
+      "historical_keys": [
+        "H2012:R364"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "Prop",
+        "ProbeFM"
+      ],
+      "method": "RungeKutta4"
+    },
+    {
+      "key": "PropPrinceDormand853",
+      "name": "Prop",
+      "type": "PropSetup",
+      "declaration": "Propagator",
+      "field": "InitialStepSize",
+      "kind": "real",
+      "first": "20",
+      "second": "45",
+      "control": "resource_InitialStepSize",
+      "historical_keys": [
+        "H2012:R364"
+      ],
+      "contexts": [
+        "resource"
+      ],
+      "allowed_owners": [
+        "Prop",
+        "ProbeFM"
+      ],
+      "method": "PrinceDormand853"
+    },
+    {
+      "key": "Spacecraft",
+      "name": "Ref",
+      "type": "Spacecraft",
+      "declaration": "Spacecraft",
+      "field": "DryMass",
+      "kind": "real",
+      "first": "910.25",
+      "second": "975.5",
+      "control": "ballistics_DryMass",
+      "historical_keys": [
+        "H2012:R40",
+        "H2012:R81",
+        "H2012:R121",
+        "H2012:R161"
+      ],
+      "contexts": [
+        "OrbitEpoch",
+        "Attitude",
+        "Ballistics",
+        "Visualization",
+        "Hardware"
+      ],
+      "allowed_owners": [
+        "Ref",
+        "ChemTank",
+        "ElecTank",
+        "ChemThr",
+        "ElecThr",
+        "Power"
+      ]
+    }
+  ]
+}

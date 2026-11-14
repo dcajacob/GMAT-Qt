@@ -50,6 +50,8 @@ public:
    CoordinateConverter(const CoordinateConverter &coordCvt);
    // operator = 
    const CoordinateConverter& operator=(const CoordinateConverter &coordCvt);
+   // Exchange a complete cache value without allocating or recomputing it.
+   void Swap(CoordinateConverter &other) noexcept;
    // destructor
    virtual ~CoordinateConverter();
    
@@ -98,6 +100,18 @@ public:
       CoordinateSystem *inCoord, Real *outState,
       CoordinateSystem *outCoord,
       bool forceNutationComputation = false, bool omitTranslation = false);
+
+   // Orientation for covariance/vector components, without translating a state
+   // or requesting an object-frame rate. Does not replace last-conversion data.
+   Rmatrix33 GetRotationMatrixOnly(const A1Mjd &epoch,
+                                  CoordinateSystem *inCoord, CoordinateSystem *outCoord);
+   Rmatrix33 GetRotationMatrixOnly(const GmatTime &epoch,
+                                  CoordinateSystem *inCoord, CoordinateSystem *outCoord);
+   Rmatrix33 GetRotationMatrixOnly(Real epoch,
+                                  CoordinateSystem *inCoord, CoordinateSystem *outCoord)
+   {
+      return GetRotationMatrixOnly(A1Mjd(epoch), inCoord, outCoord);
+   }
 
    // method to return the rotation matrix used to do the last conversion
    Rmatrix33    GetLastRotationMatrix() const;

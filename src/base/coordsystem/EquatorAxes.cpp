@@ -142,7 +142,7 @@ EquatorAxes::~EquatorAxes()
 //---------------------------------------------------------------------------
 GmatCoordinate::ParameterUsage EquatorAxes::UsesEopFile(const std::string &forBaseSystem) const
 {
-   if ((originName == GmatSolarSystemDefaults::EARTH_NAME) && (forBaseSystem == baseSystem)) return GmatCoordinate::REQUIRED;
+   if ((GetOriginPhysicalName() == GmatSolarSystemDefaults::EARTH_NAME) && (forBaseSystem == baseSystem)) return GmatCoordinate::REQUIRED;
    return GmatCoordinate::NOT_USED;
 }
 
@@ -155,7 +155,7 @@ GmatCoordinate::ParameterUsage EquatorAxes::UsesEopFile(const std::string &forBa
 //---------------------------------------------------------------------------
 GmatCoordinate::ParameterUsage EquatorAxes::UsesItrfFile() const
 {
-   if (originName == GmatSolarSystemDefaults::EARTH_NAME) return GmatCoordinate::REQUIRED;
+   if (GetOriginPhysicalName() == GmatSolarSystemDefaults::EARTH_NAME) return GmatCoordinate::REQUIRED;
    return GmatCoordinate::NOT_USED;
 }
 
@@ -168,7 +168,7 @@ GmatCoordinate::ParameterUsage EquatorAxes::UsesItrfFile() const
 //---------------------------------------------------------------------------
 GmatCoordinate::ParameterUsage EquatorAxes::UsesNutationUpdateInterval() const
 {
-   if (originName == GmatSolarSystemDefaults::EARTH_NAME) 
+   if (GetOriginPhysicalName() == GmatSolarSystemDefaults::EARTH_NAME)
       return GmatCoordinate::REQUIRED;
    return DynamicAxes::UsesNutationUpdateInterval();
 }
@@ -184,7 +184,7 @@ GmatCoordinate::ParameterUsage EquatorAxes::UsesNutationUpdateInterval() const
 bool EquatorAxes::Initialize()
 {
    DynamicAxes::Initialize();
-   if (originName == GmatSolarSystemDefaults::EARTH_NAME) InitializeFK5();
+   if (GetOriginPhysicalName() == GmatSolarSystemDefaults::EARTH_NAME) InitializeFK5();
    return true;
 }
 
@@ -230,7 +230,7 @@ void EquatorAxes::CalculateRotationMatrix(const A1Mjd &atEpoch,
       MessageInterface::ShowMessage("Entering Equator::Calculate with epoch = %.12f\n",
          (Real) atEpoch.Get());
    #endif
-   if (originName == GmatSolarSystemDefaults::EARTH_NAME)
+   if (GetOriginPhysicalName() == GmatSolarSystemDefaults::EARTH_NAME)
    {
       Real dPsi             = 0.0;
       Real longAscNodeLunar = 0.0;
@@ -301,7 +301,7 @@ void EquatorAxes::CalculateRotationMatrix(const A1Mjd &atEpoch,
       // (assume it is negligibly small)
       
    }
-   else if ((originName == GmatSolarSystemDefaults::MOON_NAME) && 
+   else if ((GetOriginPhysicalName() == GmatSolarSystemDefaults::MOON_NAME) &&
            (((CelestialBody*)origin)->GetRotationDataSource() == Gmat::DE_FILE))
    {
       #ifdef DEBUG_EQ_LUNA // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ debug ~~~~

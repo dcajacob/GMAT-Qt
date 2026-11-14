@@ -59,6 +59,8 @@
 class KALMAN_API ExtendedKalmanFilter : public SeqEstimator
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = SeqEstimator::NativeValueProviderDepth + 1;
+
    ExtendedKalmanFilter(const std::string name);
    virtual ~ExtendedKalmanFilter();
    ExtendedKalmanFilter(const ExtendedKalmanFilter &ekf);
@@ -66,6 +68,9 @@ public:
 
    GmatBase*               Clone() const;
    virtual void            Copy(const GmatBase*);
+
+   bool HasSolverValueReferenceProviderImpl() const;
+   void PrepareClonedSolverValueImpl(const Solver &source);
 
 protected:
    /// The measurement Residuals (O-C)

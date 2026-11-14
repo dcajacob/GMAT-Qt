@@ -28,7 +28,24 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ExpressionBinding.hpp"
+#include <memory>
+#include <typeinfo>
 #include "ConvertTime.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration convertTimeValueProvider({
+   ConvertTime::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const ConvertTime*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<ConvertTime*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "FunctionException.hpp"
 #include "RealUtilities.hpp"       // for ConvertTime()
 #include "MessageInterface.hpp"
@@ -62,7 +79,8 @@
  */
 //------------------------------------------------------------------------------
 ConvertTime::ConvertTime(const std::string &typeStr, const std::string &name) :
-   BuiltinGmatFunction(typeStr, name)
+   BuiltinGmatFunction(typeStr, name),
+   timeNum (0.0)
 {
    objectTypeNames.push_back(typeStr);
    objectTypeNames.push_back("ConvertTime");
@@ -110,9 +128,13 @@ ConvertTime::~ConvertTime()
  */
 //------------------------------------------------------------------------------
 ConvertTime::ConvertTime(const ConvertTime &f) :
-   BuiltinGmatFunction(f)
+   BuiltinGmatFunction(f),
+   startFormat (f.startFormat),
+   endFormat (f.endFormat),
+   timeNum (f.timeNum),
+   timeString (f.timeString),
+   theTimeConverter (f.theTimeConverter)
 {
-   theTimeConverter = f.theTimeConverter;
 }
 
 
@@ -129,11 +151,13 @@ ConvertTime::ConvertTime(const ConvertTime &f) :
 //------------------------------------------------------------------------------
 ConvertTime& ConvertTime::operator=(const ConvertTime &f)
 {
-   if (this == &f)
-      return *this;
-
+   if (this == &f) return *this;
    BuiltinGmatFunction::operator=(f);
-
+   startFormat = f.startFormat;
+   endFormat = f.endFormat;
+   timeNum = f.timeNum;
+   timeString = f.timeString;
+   theTimeConverter = f.theTimeConverter;
    return *this;
 }
 
@@ -168,9 +192,7 @@ void ConvertTime::SetOutputTypes(WrapperTypeArray &outputTypes,
    #endif
 
    // Set output wrapper type for ConvertTime
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;
+   Function::SetOutputTypes(outputTypes, rowCounts, colCounts);
 }
 
 //------------------------------------------------------------------------------
@@ -489,7 +511,15 @@ void ConvertTime::Finalize(bool cleanUp)
 //------------------------------------------------------------------------------
 GmatBase* ConvertTime::Clone() const
 {
-   return (new ConvertTime(*this));
+   std::unique_ptr<ConvertTime> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new ConvertTime(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived ConvertTime must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -504,5 +534,38 @@ GmatBase* ConvertTime::Clone() const
 //---------------------------------------------------------------------------
 void ConvertTime::Copy(const GmatBase* orig)
 {
-   operator=(*((ConvertTime *)(orig)));
+   const auto *source = dynamic_cast<const ConvertTime*>(orig);
+   if (!source || typeid(*this) != typeid(ConvertTime) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible ConvertTime value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   const auto previousObjectBindings = objectBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
+}
+
+
+bool ConvertTime::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const ConvertTime*>(&original);
+   if (!source || typeid(*this) != typeid(ConvertTime) || typeid(original) != typeid(ConvertTime))
+      throw FunctionException("Derived ConvertTime references need their own passive provider.\n");
+   RebindObjectManagedFunctionValue(*source, resolve);
+   return true;
+}
+
+bool ConvertTime::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(ConvertTime);
+}
+
+std::unique_ptr<FunctionInvocationState> ConvertTime::SuspendInvocationState()
+{
+   return CaptureInvocationFields(BuiltinGmatFunction::SuspendInvocationState(),
+         startFormat, endFormat, timeNum, timeString, theTimeConverter);
 }

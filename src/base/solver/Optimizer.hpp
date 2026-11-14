@@ -141,6 +141,7 @@ public:
    virtual bool        Optimize() = 0;
 
 protected:
+   void CopyOptimizerValueData(const Optimizer &source);
    // Parameter IDs
    enum
    {
@@ -163,7 +164,7 @@ protected:
    /// latest value obtained for the objective function
    Real              cost;
    /// Previous value obtained for the objective function
-   Real              oldCost;
+   Real              oldCost = 0.0;
    /// tolerance for determining convergence - the optimizer has converged 
    /// on a solution when the magnitude of the gradient of the cost function 
    /// is smaller than this tolerance

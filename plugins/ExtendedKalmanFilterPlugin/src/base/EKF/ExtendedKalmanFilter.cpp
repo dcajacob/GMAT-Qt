@@ -34,6 +34,22 @@
 //------------------------------------------------------------------------------
 
 #include "ExtendedKalmanFilter.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration extendedKalmanFilterValueProvider({
+   ExtendedKalmanFilter::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const ExtendedKalmanFilter*>(object) != nullptr; },
+   nullptr,
+   nullptr,
+   nullptr,
+   [](const GmatBase *object) { return dynamic_cast<const ExtendedKalmanFilter*>(object)->HasSolverValueReferenceProviderImpl(); },
+   [](GmatBase *object, const Solver &source) { dynamic_cast<ExtendedKalmanFilter*>(object)->PrepareClonedSolverValueImpl(source); }
+});
+}
+#include "NavigationMeasurementCopies.hpp"
+#include "SolverException.hpp"
 #include "EstimatorException.hpp"
 #include "MessageInterface.hpp"
 #include "StringUtil.hpp"
@@ -114,6 +130,7 @@ ExtendedKalmanFilter& ExtendedKalmanFilter::operator=(const ExtendedKalmanFilter
    {
       SeqEstimator::operator=(ekf);
       measSize = ekf.measSize;
+      calculatedMeas = nullptr; currentObs = nullptr;
    }
 
    return *this;
@@ -131,7 +148,9 @@ ExtendedKalmanFilter& ExtendedKalmanFilter::operator=(const ExtendedKalmanFilter
 //------------------------------------------------------------------------------
 GmatBase* ExtendedKalmanFilter::Clone() const
 {
-   return new ExtendedKalmanFilter(*this);
+   std::unique_ptr<ExtendedKalmanFilter> value(new ExtendedKalmanFilter(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //---------------------------------------------------------------------------
@@ -145,7 +164,13 @@ GmatBase* ExtendedKalmanFilter::Clone() const
 //---------------------------------------------------------------------------
 void  ExtendedKalmanFilter::Copy(const GmatBase* orig)
 {
-   operator=(*((ExtendedKalmanFilter*)(orig)));
+   const auto *source = dynamic_cast<const ExtendedKalmanFilter*>(orig);
+   if (!source || typeid(*source) != typeid(ExtendedKalmanFilter) || typeid(*this) != typeid(ExtendedKalmanFilter))
+      throw SolverException("Incompatible native ExtendedKalmanFilter copy.\n");
+   if (source == this) return;
+   const auto previous = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -1392,3 +1417,14 @@ void ExtendedKalmanFilter::UpdateCov()
 }
 
 
+
+bool ExtendedKalmanFilter::HasSolverValueReferenceProviderImpl() const
+{
+   return typeid(*this) == typeid(ExtendedKalmanFilter);
+}
+
+void ExtendedKalmanFilter::PrepareClonedSolverValueImpl(const Solver &source)
+{
+   SeqEstimator::PrepareClonedSolverValueImpl(source);
+   calculatedMeas = nullptr; currentObs = nullptr;
+}

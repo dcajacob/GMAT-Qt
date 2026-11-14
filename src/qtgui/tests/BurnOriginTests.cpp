@@ -1,3 +1,5 @@
+#include "AcceptanceView.hpp"
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "ResourceEditor.hpp"
 #include "ResourceProperties.hpp"
@@ -51,6 +53,7 @@ static void checkOriginReferences(GmatBase &object)
 
 static void selectMars(ResourceEditor &panel)
 {
+   acceptanceView(panel);
    auto *frame=panel.findChild<QComboBox *>("burn_CoordinateSystem");
    auto *axes=panel.findChild<QComboBox *>("burn_Axes");
    auto *origin=panel.findChild<QComboBox *>("burn_Origin");
@@ -70,7 +73,7 @@ int main(int argc,char **argv)
 {
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
    QApplication app(argc,argv);
-   if (QGuiApplication::platformName()!="offscreen" || argc!=2) return 2;
+   if (!acceptanceWidgetPlatform() || argc!=2) return 2;
    QApplication::setOrganizationName("GMATTests");
    QApplication::setApplicationName("BurnOrigin");
    try {
@@ -87,11 +90,13 @@ int main(int argc,char **argv)
          "Create ChemicalThruster Engine;\nCreate ImpulsiveBurn MOI;\n"
          "MOI.CoordinateSystem = EarthMJ2000Eq;\nMOI.Element1 = -0.02;\n"+mission;
       editor->setPlainText(source); require(window.buildScript(),"Origin fixture did not build");
+      acceptanceView(window);
       checkOriginReferences(configured("MOI"));
       checkOriginReferences(configured("Engine"));
       {
          BurnDialog dialog(configured("MOI"),{{"CoordinateSystem","Local"},{"Axes","VNB"}});
          dialog.show();
+      acceptanceView(dialog);
          dialog.findChild<QComboBox *>("burn_Origin")->setCurrentText("Mars");
          require(dialog.settings().value("Origin")=="Mars","Detached dialog cannot select Mars");
          dialog.findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Cancel)->click();
@@ -131,6 +136,7 @@ int main(int argc,char **argv)
       {
          BurnDialog dialog(configured("MOI"),{{"Origin","Luna"}});
          dialog.show();
+      acceptanceView(dialog);
          auto *origin=dialog.findChild<QComboBox *>("burn_Origin");
          require(origin && origin->currentText()=="Luna" && origin->findText("Mars")>=0,
             "Reopened dialog lost the pending origin or other celestial-body choices");
@@ -138,7 +144,7 @@ int main(int argc,char **argv)
          require(!dialog.isVisible() && configured("MOI").GetStringParameter("Origin")=="Mars" && editor->toPlainText()==changed,
             "Pending-origin Cancel failed to close or changed the reopened mission");
       }
-      std::cout<<"PASS: celestial-body Origin metadata for burn/thruster, inline Local Mars selection, pending discard and dialog Cancel, Apply/source preservation, Unicode save/reopen. Offscreen only; no numerical mission.\n";
+      std::cout<<"PASS: celestial-body Origin metadata for burn/thruster, inline Local Mars selection, pending discard and dialog Cancel, Apply/source preservation, Unicode save/reopen. No numerical mission or OS input qualification.\n";
       return 0;
    } catch (BaseException &error) { std::cerr<<error.GetFullMessage()<<'\n'; return 1; }
    catch (const std::exception &error) { std::cerr<<error.what()<<'\n'; return 1; }

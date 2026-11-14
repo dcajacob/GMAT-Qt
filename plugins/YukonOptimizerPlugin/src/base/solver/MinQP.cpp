@@ -330,8 +330,11 @@ void MinQP::Optimize(Rvector &dV, Real &costVal, Rvector &lagMult,
          Rvector b_U;
          SetUpPhaseI(decVec, initialGuess_I, A_I, G_I, d_I, b_L, b_U);
 
+         // Phase I expands each finite inequality bound into its own row.
+         // Original working-set indices do not refer to those expanded rows.
+         Rvector phase1WorkingSet(0);
          MinQP phase1QP(initialGuess_I, G_I, d_I, A_I, b_L, b_U,
-                        activeIneqSet, 1, false);
+                        phase1WorkingSet, 1, false);
 
          //phase1QP.WriteOutput = false;
          #ifdef WRITE_DEBUG
@@ -1679,54 +1682,55 @@ void MinQP::SetUpPhaseI(Rvector initialGuess, Rvector &initialGuess_I,
          initialGuess_I[i] = maxViol;
    }
 
-   b_L.SetSize(conLowerBounds.GetSize() + 1);
-   for (Integer i = 0; i < b_L.GetSize(); ++i) // Ref. [2], Eqs. 7.9.6
+   // A positive common slack relaxes lower bounds, but would tighten upper
+   // bounds. Canonicalize each finite inequality as a lower-bound row before
+   // adding slack; two-sided constraints require both rows. Equality rows
+   // remain exact after the initial projection above.
+   Integer phaseRows = 1; // nonnegative slack
+   for (Integer i = 0; i < numCons; ++i)
    {
-      if (i != b_L.GetSize() - 1)
-         b_L[i] = conLowerBounds[i];
+      if (conType[i] == 2) ++phaseRows;
       else
-         b_L[i] = 0;
-   }
-   
-   b_U.SetSize(conUpperBounds.GetSize() + 1);
-   for (Integer i = 0; i < b_U.GetSize(); ++i)
-   {
-      if (i != b_U.GetSize() - 1)
-         b_U[i] = conUpperBounds[i];
-      else
-         b_U[i] = inf;
-   }
-
-   if (numEqCons > 0)
-   {
-      // Ref. [2], Eq. 7.9.6 modified to handle equality constraints
-      A_I.SetSize(A.GetNumRows() + 1, numDecisionVars + 1);
-      for (Integer i = 0; i < A_I.GetNumRows(); ++i)
       {
-         for (Integer j = 0; j < A_I.GetNumColumns(); ++j)
+         if (conLowerBounds[i] > ninf) ++phaseRows;
+         if (conUpperBounds[i] < inf) ++phaseRows;
+      }
+   }
+   A_I.SetSize(phaseRows, numDecisionVars + 1);
+   b_L.SetSize(phaseRows);
+   b_U.SetSize(phaseRows);
+   for (Integer i = 0; i < phaseRows; ++i)
+   {
+      b_L[i] = 0;
+      b_U[i] = inf;
+      for (Integer j = 0; j <= numDecisionVars; ++j) A_I(i,j) = 0;
+   }
+   Integer row = 0;
+   for (Integer i = 0; i < numCons; ++i)
+   {
+      if (conType[i] == 2)
+      {
+         for (Integer j = 0; j < numDecisionVars; ++j) A_I(row,j) = A(i,j);
+         b_L[row] = conLowerBounds[i];
+         b_U[row++] = conUpperBounds[i];
+      }
+      else
+      {
+         if (conLowerBounds[i] > ninf)
          {
-            if (i < A.GetNumRows() && j < A.GetNumColumns())
-               A_I(i, j) = A(i, j);
-            if (i >= numEqCons && j >= A.GetNumColumns())
-               A_I(i, j) = 1;
+            for (Integer j = 0; j < numDecisionVars; ++j) A_I(row,j) = A(i,j);
+            A_I(row,numDecisionVars) = 1;
+            b_L[row++] = conLowerBounds[i];
+         }
+         if (conUpperBounds[i] < inf)
+         {
+            for (Integer j = 0; j < numDecisionVars; ++j) A_I(row,j) = -A(i,j);
+            A_I(row,numDecisionVars) = 1;
+            b_L[row++] = -conUpperBounds[i];
          }
       }
    }
-   else
-   {
-      // Ref. [2], Eq. 7.9.6
-      A_I.SetSize(A.GetNumRows() + 1, A.GetNumColumns() + 1);
-      for (Integer i = 0; i < A_I.GetNumRows(); ++i)
-      {
-         for (Integer j = 0; j < A_I.GetNumColumns(); ++j)
-         {
-            if (i < A.GetNumRows() && j < A.GetNumColumns())
-               A_I(i, j) = A(i, j);
-            if (j >= A.GetNumColumns())
-               A_I(i, j) = 1;
-         }
-      }
-   }
+   A_I(row,numDecisionVars) = 1;
 }
 
 //------------------------------------------------------------------------------

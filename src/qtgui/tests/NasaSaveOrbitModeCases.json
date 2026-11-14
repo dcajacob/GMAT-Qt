@@ -1,0 +1,444 @@
+{
+  "schema_version": 1,
+  "scope": "Remaining Planetodetic and Brouwer display representations via selected Save/rebuild graphs. Reuse spheroid-normal Cartesian truth or NASA prototype parity plus conic truth. Independent averaging, orientation, broader frame/domain and any-Resource obligations remain open.",
+  "cases": [
+    {
+      "key": "BrouwerMeanShort",
+      "oracle_kind": "prototype-parity-conic",
+      "oracle_source": "src/qtgui/tests/NasaBrouwerDefinitionCases.json",
+      "oracle_case": "BrouwerMeanShort",
+      "setup": "Earth.Mu = 398600.4418;\nCreate Spacecraft Subject;\nSubject.NAIFId = -101131;\nSubject.NAIFIdReferenceFrame = -910131;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.DisplayStateType = BrouwerMeanShort;\nSubject.BrouwerShortSMA = 10800;\nSubject.BrouwerShortECC = 0.17000000000000001;\nSubject.BrouwerShortINC = 47;\nSubject.BrouwerShortRAAN = 112;\nSubject.BrouwerShortAOP = 38;\nSubject.BrouwerShortMA = 143;\n",
+      "selected": [
+        "Earth",
+        "Subject"
+      ],
+      "objects": [
+        "Earth",
+        "Subject"
+      ],
+      "filename": "Earth_Subject.data",
+      "definitions": [
+        "Create Spacecraft Subject;"
+      ],
+      "runtime_solar_system_probe": "Subject",
+      "witnesses": [
+        {
+          "object": "Earth",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 398600.4418
+        },
+        {
+          "object": "Subject",
+          "field": "DisplayStateType",
+          "type": "Enumeration",
+          "expected": "BrouwerMeanShort"
+        },
+        {
+          "object": "Subject",
+          "field": "CoordinateSystem",
+          "type": "Object",
+          "expected": "EarthMJ2000Eq"
+        }
+      ],
+      "cartesian_witnesses": [
+        {
+          "object": "Subject",
+          "expected": [
+            6031.350943417012,
+            -10648.877811827599,
+            -1720.1046956530838,
+            3.1072976657840257,
+            1.8248726086642784,
+            -3.8234571597216025
+          ],
+          "position_bound_km": 1e-06,
+          "velocity_bound_km_s": 1e-09
+        }
+      ]
+    },
+    {
+      "key": "BrouwerMeanLong",
+      "oracle_kind": "prototype-parity-conic",
+      "oracle_source": "src/qtgui/tests/NasaBrouwerDefinitionCases.json",
+      "oracle_case": "BrouwerMeanLong",
+      "setup": "Earth.Mu = 398600.4418;\nCreate Spacecraft Subject;\nSubject.NAIFId = -101131;\nSubject.NAIFIdReferenceFrame = -910131;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.DisplayStateType = BrouwerMeanLong;\nSubject.BrouwerLongSMA = 10800;\nSubject.BrouwerLongECC = 0.17000000000000001;\nSubject.BrouwerLongINC = 47;\nSubject.BrouwerLongRAAN = 112;\nSubject.BrouwerLongAOP = 38;\nSubject.BrouwerLongMA = 143;\n",
+      "selected": [
+        "Earth",
+        "Subject"
+      ],
+      "objects": [
+        "Earth",
+        "Subject"
+      ],
+      "filename": "Earth_Subject.data",
+      "definitions": [
+        "Create Spacecraft Subject;"
+      ],
+      "runtime_solar_system_probe": "Subject",
+      "witnesses": [
+        {
+          "object": "Earth",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 398600.4418
+        },
+        {
+          "object": "Subject",
+          "field": "DisplayStateType",
+          "type": "Enumeration",
+          "expected": "BrouwerMeanLong"
+        },
+        {
+          "object": "Subject",
+          "field": "CoordinateSystem",
+          "type": "Object",
+          "expected": "EarthMJ2000Eq"
+        }
+      ],
+      "cartesian_witnesses": [
+        {
+          "object": "Subject",
+          "expected": [
+            6039.479131737587,
+            -10644.042341273873,
+            -1728.3444294068195,
+            3.105927475434816,
+            1.8273186136823907,
+            -3.822751445418319
+          ],
+          "position_bound_km": 1e-06,
+          "velocity_bound_km_s": 1e-09
+        }
+      ]
+    },
+    {
+      "key": "PlanetodeticSphere",
+      "oracle_kind": "spheroid-normal",
+      "oracle_source": "src/qtgui/tests/NasaPlanetodeticCases.json",
+      "oracle_case": "Sphere",
+      "setup": "Earth.Mu = 398600.4418;\nEarth.EquatorialRadius = 6378;\nEarth.Flattening = 0;\nCreate CoordinateSystem PlanetodeticFixed;\nPlanetodeticFixed.Origin = Earth;\nPlanetodeticFixed.Axes = BodyFixed;\nCreate Spacecraft Subject;\nSubject.NAIFId = -101131;\nSubject.NAIFIdReferenceFrame = -910131;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = PlanetodeticFixed;\nSubject.DisplayStateType = Planetodetic;\nSubject.PlanetodeticRMAG = 7300;\nSubject.PlanetodeticLON = 35;\nSubject.PlanetodeticLAT = 42;\nSubject.PlanetodeticVMAG = 7.2000000000000002;\nSubject.PlanetodeticAZI = 63;\nSubject.PlanetodeticHFPA = 12;\n",
+      "selected": [
+        "Earth",
+        "PlanetodeticFixed",
+        "Subject"
+      ],
+      "objects": [
+        "Earth",
+        "PlanetodeticFixed",
+        "Subject"
+      ],
+      "filename": "Earth_PlanetodeticFixed_Subject.data",
+      "definitions": [
+        "Create CoordinateSystem PlanetodeticFixed;",
+        "Create Spacecraft Subject;"
+      ],
+      "runtime_solar_system_probe": "Subject",
+      "witnesses": [
+        {
+          "object": "Earth",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 398600.4418
+        },
+        {
+          "object": "Earth",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 6378.0
+        },
+        {
+          "object": "Earth",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.0
+        },
+        {
+          "object": "PlanetodeticFixed",
+          "field": "Origin",
+          "type": "Object",
+          "expected": "Earth"
+        },
+        {
+          "object": "PlanetodeticFixed",
+          "field": "Axes",
+          "type": "Object",
+          "expected": "BodyFixed"
+        },
+        {
+          "object": "Subject",
+          "field": "DisplayStateType",
+          "type": "Enumeration",
+          "expected": "Planetodetic"
+        },
+        {
+          "object": "Subject",
+          "field": "CoordinateSystem",
+          "type": "Object",
+          "expected": "PlanetodeticFixed"
+        }
+      ],
+      "cartesian_witnesses": [
+        {
+          "object": "Subject",
+          "expected": [
+            4443.8648018459335,
+            3111.6276330373203,
+            4884.653426419665,
+            -4.440455015746474,
+            4.551191806415724,
+            3.3777229599756042
+          ],
+          "position_bound_km": 1e-06,
+          "velocity_bound_km_s": 1e-09
+        }
+      ]
+    },
+    {
+      "key": "PlanetodeticEarthlike",
+      "oracle_kind": "spheroid-normal",
+      "oracle_source": "src/qtgui/tests/NasaPlanetodeticCases.json",
+      "oracle_case": "Earthlike",
+      "setup": "Earth.Mu = 398600.4418;\nEarth.EquatorialRadius = 6378;\nEarth.Flattening = 0.0033333333333333335;\nCreate CoordinateSystem PlanetodeticFixed;\nPlanetodeticFixed.Origin = Earth;\nPlanetodeticFixed.Axes = BodyFixed;\nCreate Spacecraft Subject;\nSubject.NAIFId = -101131;\nSubject.NAIFIdReferenceFrame = -910131;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = PlanetodeticFixed;\nSubject.DisplayStateType = Planetodetic;\nSubject.PlanetodeticRMAG = 7300;\nSubject.PlanetodeticLON = 125;\nSubject.PlanetodeticLAT = 47;\nSubject.PlanetodeticVMAG = 7.5;\nSubject.PlanetodeticAZI = 122;\nSubject.PlanetodeticHFPA = -8;\n",
+      "selected": [
+        "Earth",
+        "PlanetodeticFixed",
+        "Subject"
+      ],
+      "objects": [
+        "Earth",
+        "PlanetodeticFixed",
+        "Subject"
+      ],
+      "filename": "Earth_PlanetodeticFixed_Subject.data",
+      "definitions": [
+        "Create CoordinateSystem PlanetodeticFixed;",
+        "Create Spacecraft Subject;"
+      ],
+      "runtime_solar_system_probe": "Subject",
+      "witnesses": [
+        {
+          "object": "Earth",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 398600.4418
+        },
+        {
+          "object": "Earth",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 6378.0
+        },
+        {
+          "object": "Earth",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.0033333333333333335
+        },
+        {
+          "object": "PlanetodeticFixed",
+          "field": "Origin",
+          "type": "Object",
+          "expected": "Earth"
+        },
+        {
+          "object": "PlanetodeticFixed",
+          "field": "Axes",
+          "type": "Object",
+          "expected": "BodyFixed"
+        },
+        {
+          "object": "Subject",
+          "field": "DisplayStateType",
+          "type": "Enumeration",
+          "expected": "Planetodetic"
+        },
+        {
+          "object": "Subject",
+          "field": "CoordinateSystem",
+          "type": "Object",
+          "expected": "PlanetodeticFixed"
+        }
+      ],
+      "cartesian_witnesses": [
+        {
+          "object": "Subject",
+          "expected": [
+            -2864.4863236673823,
+            4090.910433485619,
+            5324.3938553342405,
+            -6.396318881597252,
+            -1.846143552911182,
+            -3.4538179956342443
+          ],
+          "position_bound_km": 1e-06,
+          "velocity_bound_km_s": 1e-09
+        }
+      ]
+    },
+    {
+      "key": "PlanetodeticOblate",
+      "oracle_kind": "spheroid-normal",
+      "oracle_source": "src/qtgui/tests/NasaPlanetodeticCases.json",
+      "oracle_case": "Oblate",
+      "setup": "Earth.Mu = 398600.4418;\nEarth.EquatorialRadius = 6378;\nEarth.Flattening = 0.10000000000000001;\nCreate CoordinateSystem PlanetodeticFixed;\nPlanetodeticFixed.Origin = Earth;\nPlanetodeticFixed.Axes = BodyFixed;\nCreate Spacecraft Subject;\nSubject.NAIFId = -101131;\nSubject.NAIFIdReferenceFrame = -910131;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = PlanetodeticFixed;\nSubject.DisplayStateType = Planetodetic;\nSubject.PlanetodeticRMAG = 9000;\nSubject.PlanetodeticLON = 215;\nSubject.PlanetodeticLAT = 61;\nSubject.PlanetodeticVMAG = 6.7999999999999998;\nSubject.PlanetodeticAZI = 238;\nSubject.PlanetodeticHFPA = 17;\n",
+      "selected": [
+        "Earth",
+        "PlanetodeticFixed",
+        "Subject"
+      ],
+      "objects": [
+        "Earth",
+        "PlanetodeticFixed",
+        "Subject"
+      ],
+      "filename": "Earth_PlanetodeticFixed_Subject.data",
+      "definitions": [
+        "Create CoordinateSystem PlanetodeticFixed;",
+        "Create Spacecraft Subject;"
+      ],
+      "runtime_solar_system_probe": "Subject",
+      "witnesses": [
+        {
+          "object": "Earth",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 398600.4418
+        },
+        {
+          "object": "Earth",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 6378.0
+        },
+        {
+          "object": "Earth",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.1
+        },
+        {
+          "object": "PlanetodeticFixed",
+          "field": "Origin",
+          "type": "Object",
+          "expected": "Earth"
+        },
+        {
+          "object": "PlanetodeticFixed",
+          "field": "Axes",
+          "type": "Object",
+          "expected": "BodyFixed"
+        },
+        {
+          "object": "Subject",
+          "field": "DisplayStateType",
+          "type": "Enumeration",
+          "expected": "Planetodetic"
+        },
+        {
+          "object": "Subject",
+          "field": "CoordinateSystem",
+          "type": "Object",
+          "expected": "PlanetodeticFixed"
+        }
+      ],
+      "cartesian_witnesses": [
+        {
+          "object": "Subject",
+          "expected": [
+            -3965.5864131301896,
+            -2776.7334998957635,
+            7587.086098796682,
+            -6.418783818118773,
+            2.2377840263309263,
+            -0.17758645149541966
+          ],
+          "position_bound_km": 1e-06,
+          "velocity_bound_km_s": 1e-09
+        }
+      ]
+    },
+    {
+      "key": "PlanetodeticSouthern",
+      "oracle_kind": "spheroid-normal",
+      "oracle_source": "src/qtgui/tests/NasaPlanetodeticCases.json",
+      "oracle_case": "Southern",
+      "setup": "Earth.Mu = 398600.4418;\nEarth.EquatorialRadius = 6378;\nEarth.Flattening = 0.050000000000000003;\nCreate CoordinateSystem PlanetodeticFixed;\nPlanetodeticFixed.Origin = Earth;\nPlanetodeticFixed.Axes = BodyFixed;\nCreate Spacecraft Subject;\nSubject.NAIFId = -101131;\nSubject.NAIFIdReferenceFrame = -910131;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = PlanetodeticFixed;\nSubject.DisplayStateType = Planetodetic;\nSubject.PlanetodeticRMAG = 8500;\nSubject.PlanetodeticLON = -75;\nSubject.PlanetodeticLAT = -58;\nSubject.PlanetodeticVMAG = 7.0999999999999996;\nSubject.PlanetodeticAZI = 315;\nSubject.PlanetodeticHFPA = -23;\n",
+      "selected": [
+        "Earth",
+        "PlanetodeticFixed",
+        "Subject"
+      ],
+      "objects": [
+        "Earth",
+        "PlanetodeticFixed",
+        "Subject"
+      ],
+      "filename": "Earth_PlanetodeticFixed_Subject.data",
+      "definitions": [
+        "Create CoordinateSystem PlanetodeticFixed;",
+        "Create Spacecraft Subject;"
+      ],
+      "runtime_solar_system_probe": "Subject",
+      "witnesses": [
+        {
+          "object": "Earth",
+          "field": "Mu",
+          "type": "Real",
+          "expected": 398600.4418
+        },
+        {
+          "object": "Earth",
+          "field": "EquatorialRadius",
+          "type": "Real",
+          "expected": 6378.0
+        },
+        {
+          "object": "Earth",
+          "field": "Flattening",
+          "type": "Real",
+          "expected": 0.05
+        },
+        {
+          "object": "PlanetodeticFixed",
+          "field": "Origin",
+          "type": "Object",
+          "expected": "Earth"
+        },
+        {
+          "object": "PlanetodeticFixed",
+          "field": "Axes",
+          "type": "Object",
+          "expected": "BodyFixed"
+        },
+        {
+          "object": "Subject",
+          "field": "DisplayStateType",
+          "type": "Enumeration",
+          "expected": "Planetodetic"
+        },
+        {
+          "object": "Subject",
+          "field": "CoordinateSystem",
+          "type": "Object",
+          "expected": "PlanetodeticFixed"
+        }
+      ],
+      "cartesian_witnesses": [
+        {
+          "object": "Subject",
+          "expected": [
+            1228.734000631506,
+            -4585.69771934415,
+            -7050.644593403778,
+            -3.8727698218914854,
+            -3.402175059226766,
+            4.882300561520352
+          ],
+          "position_bound_km": 1e-06,
+          "velocity_bound_km_s": 1e-09
+        }
+      ]
+    }
+  ]
+}

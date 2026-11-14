@@ -50,6 +50,7 @@
 #include "Event.hpp"
 
 #include "SignalDataCache.hpp"
+#include <memory>
 
 class PropSetup;
 
@@ -62,6 +63,14 @@ public:
    virtual void CleanUp();
    MeasurementManager(const MeasurementManager &mm);
    MeasurementManager& operator=(const MeasurementManager &mm);
+   void SetOwner(GmatBase *owner);
+   bool HasDefinitionSource(const GmatBase *source) const;
+   bool ApplyDefinitionUpdate(GmatBase *source, Integer parameterId = -1);
+   void ReleaseRetiredDefinitions();
+   Integer BindMeasurement(TrackingFileSet *source, const std::string &referenceName);
+   // Retire the selected definitions after their owner's state borrowers have
+   // been detached, retaining this manager's service/container configuration.
+   void ClearMeasurements();
 
    bool                    SetPropagators(std::vector<PropSetup*> *props,
                                  std::map<std::string, StringArray> *satPropMap);
@@ -113,6 +122,7 @@ public:
    void                    LoadRampTables();
 
    const std::vector<TrackingFileSet*>&  GetAllTrackingFileSets();
+   const std::vector<TrackingFileSet*>&  GetAllTrackingFileSets() const;
    const std::vector<TrackingDataAdapter*>& GetAllTrackingDataAdapters();
    virtual void            SetTransientForces(std::vector<PhysicalModel*> *tf);
 
@@ -152,6 +162,17 @@ protected:
    StringArray                      participants;
    /// Pointers to the measurements
    std::vector<TrackingFileSet*>    trackingSets;
+   std::vector<std::unique_ptr<TrackingFileSet>> ownedTrackingSets;
+   std::vector<std::unique_ptr<TrackingFileSet>> retiredTrackingSets;
+   StringArray trackingReferenceNames;
+   GmatBase *definitionOwner = nullptr;
+   std::weak_ptr<const void> definitionOwnerIdentity;
+   using DefinitionOrigins = std::map<const GmatBase*,
+      std::pair<std::weak_ptr<const void>, GmatBase*>>;
+   DefinitionOrigins definitionOrigins;
+   GmatBase *GetLiveOwner() const;
+   void ResetRuntimeProducts();
+   void ReplaceDefinition(size_t index, std::unique_ptr<TrackingFileSet> value);
    /// Mapping from TrackingFileSets to Adapter names
    std::map<TrackingFileSet*,StringArray> adapterFromTFSMap;
    /// Pointers to the measurements

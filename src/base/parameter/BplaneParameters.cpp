@@ -159,7 +159,12 @@ bool BdotT::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BdotT::Clone(void) const
 {
-   return new BdotT(*this);
+   return CompleteParameterClone(new BdotT(*this));
+}
+
+void BdotT::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BdotT>(source);
 }
 
 
@@ -287,7 +292,12 @@ bool BdotR::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BdotR::Clone(void) const
 {
-   return new BdotR(*this);
+   return CompleteParameterClone(new BdotR(*this));
+}
+
+void BdotR::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BdotR>(source);
 }
 
 
@@ -415,7 +425,12 @@ bool BVectorMag::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BVectorMag::Clone(void) const
 {
-   return new BVectorMag(*this);
+   return CompleteParameterClone(new BVectorMag(*this));
+}
+
+void BVectorMag::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BVectorMag>(source);
 }
 
 
@@ -543,6 +558,11 @@ bool BVectorAngle::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BVectorAngle::Clone(void) const
 {
-   return new BVectorAngle(*this);
+   return CompleteParameterClone(new BVectorAngle(*this));
+}
+
+void BVectorAngle::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BVectorAngle>(source);
 }
 

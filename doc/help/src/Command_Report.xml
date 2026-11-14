@@ -118,6 +118,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>ReportFile object name; no physical units.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -173,6 +177,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Parameter selection; each selected parameter retains its documented output units.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>

@@ -56,8 +56,11 @@
 //                               - BULIRSCHSTOER_MINIMUMTOLERANCE
 // **************************************************************************
 
+#include "AcceptedStepHistory.hpp"
 #include "BulirschStoer.hpp"
 #include "MessageInterface.hpp"
+#include <algorithm>
+#include <cmath>
 
 //---------------------------------
 // static data
@@ -105,7 +108,8 @@ BulirschStoer::BulirschStoer(const std::string &nomme) :
    nstate                          (NULL),
    estimatedState                  (NULL),
    subinterval                     (NULL),
-//   mintolerance                    (1.0e-12),
+   mintolerance                    (0.0),
+   requestedTolerance              (tolerance),
    bs_safety1                      (0.25),
    bs_safety2                      (0.70),
    minimumReduction                (0.7),
@@ -184,7 +188,8 @@ BulirschStoer::BulirschStoer(const BulirschStoer& bs) :
    nstate                          (NULL),
    estimatedState                  (NULL),
    subinterval                     (NULL),
-//   mintolerance                    (bs.mintolerance),
+   mintolerance                    (bs.mintolerance),
+   requestedTolerance              (bs.requestedTolerance),
    bs_safety1                      (0.25),
    bs_safety2                      (0.70),
    minimumReduction                (bs.minimumReduction),
@@ -226,7 +231,8 @@ BulirschStoer& BulirschStoer::operator=(const BulirschStoer& bs)
    nstate             = NULL;
    estimatedState     = NULL;
    subinterval        = NULL;
-//   mintolerance       = bs.mintolerance;
+   mintolerance       = bs.mintolerance;
+   requestedTolerance = bs.requestedTolerance;
    bs_safety1         = bs.bs_safety1;
    bs_safety2         = bs.bs_safety2;
    minimumReduction   = bs.minimumReduction;
@@ -278,6 +284,7 @@ GmatBase* BulirschStoer::Clone(void) const
 //------------------------------------------------------------------------------
 bool BulirschStoer::Initialize()
 {
+   tolerance=(std::max)(requestedTolerance,mintolerance);
    Integer i, j;
 
    Real stepSign = (stepSizeBuffer >= 0.0 ? 1.0 : -1.0);
@@ -457,7 +464,6 @@ bool BulirschStoer::Initialize()
       ddt = physicalModel->GetDerivativeArray();
    }
 
-//   tolerance = (tolerance > mintolerance ? tolerance : mintolerance);
    accuracyWarningTriggered = false;
 
    first = true;
@@ -672,6 +678,16 @@ bool BulirschStoer::SetMaximumDepth(Integer d)
    for (i = 0; i < depth; ++i)
       ai[i+1] = ai[i] + subinterval[i+1];
 
+   UpdateToleranceControl();
+
+   isInitialized = false;
+   depthInitialized = true;
+   return true;
+}
+
+void BulirschStoer::UpdateToleranceControl()
+{
+   Integer i,j;
    for (i = 1; i < depth; ++i)
       for (j = 0; j <= i; ++j)
       {
@@ -688,10 +704,12 @@ bool BulirschStoer::SetMaximumDepth(Integer d)
          break;
 
    kmax = kopt;
+   // Step() requires at least three extrapolation levels before accepting an
+   // error estimate. A loose tolerance can choose kopt < 3; leaving kmax that
+   // small makes an otherwise converged step repeat forever.
+   if (kmax < 3 && depth >= 3)
+      kmax = 3;
 
-   isInitialized = false;
-   depthInitialized = true;
-   return true;
 }
 
 //------------------------------------------------------------------------------
@@ -709,16 +727,25 @@ bool BulirschStoer::Step(Real dt)
    if (!isInitialized)
       return false;
 
+   struct MinimumScope
+   {
+      Real &value;
+      Real original;
+      ~MinimumScope() { value = original; }
+   } minimumScope{minimumStep, minimumStep};
    Real stepleft = dt;
+   const Real direction = dt < 0.0 ? -1.0 : 1.0;
    bool retval = true;
 
    do
    {
       stepSize = stepleft;
+      minimumStep = finalStep && fabs(stepleft) < minimumScope.original ?
+            fabs(stepleft) : minimumScope.original;
       if (!Step())
          return false;
       stepleft -= stepTaken;
-   } while (stepleft > 0.0);
+   } while (direction * stepleft > smallestTime);
 
    return retval;
 }
@@ -760,6 +787,11 @@ bool BulirschStoer::Step(void)
 {
     if (!isInitialized)
         return false;
+    // Fixed-interval callers set stepSize to their entire remaining interval.
+    // Bound the primitive trial before extrapolation, as the RK family does.
+    if (fabs(stepSize) > maximumStep)
+       stepSize = stepSize < 0.0 ? -maximumStep : maximumStep;
+
         
     //  waw: 06/28/04 Unused variable    
     // Real nextstep = stepSize;
@@ -793,8 +825,15 @@ bool BulirschStoer::Step(void)
 
         if (!converged)
                 {
+            const bool acceptMinimumStep = eEstimate > tolerance &&
+                  !stopIfAccuracyViolated &&
+                  GmatMathUtil::Abs(tnew) == minimumStep;
             if (!AdaptStep(eEstimate))
                 return false;
+            // The user permits this minimum-step estimate despite its error.
+            // Accept the already computed extrapolated state exactly once.
+            if (acceptMinimumStep)
+                converged = true;
         }
 
         if (stepAttempts >= maxStepAttempts)
@@ -804,6 +843,10 @@ bool BulirschStoer::Step(void)
 
     memcpy(outState, estimatedState, dimension * sizeof(Real));
     physicalModel->IncrementTime(stepTaken);
+    if (AcceptedStepHistory::IsCapturing())
+       AcceptedStepHistory::Record(this, physicalModel,
+          physicalModel->GetTime() - stepTaken, physicalModel->GetTime(),
+          outState, dimension);
 
     return true;
 }
@@ -1073,7 +1116,10 @@ bool BulirschStoer::AdaptStep(Real maxerror)
                 MessageInterface::PopupMessage(Gmat::WARNING_,
                    "BulirschStoer: Accuracy settings will be violated with current step size values.\n");
              }
-             return false;
+             first = false;
+             stepTaken = stepSize;
+             stepAttempts = 0;
+             return true;
           }
        }
         // Step is too large: reduce it 
@@ -1091,7 +1137,10 @@ bool BulirschStoer::AdaptStep(Real maxerror)
         factor = (factor > minimumReduction ? minimumReduction : factor);
         factor = (factor < maximumReduction ? maximumReduction : factor);
 
+        const Real sign = stepSize < 0.0 ? -1.0 : 1.0;
         stepSize *= factor;
+        if (GmatMathUtil::Abs(stepSize) < minimumStep)
+            stepSize = sign * minimumStep;
         ++stepAttempts;
     }
     else
@@ -1227,9 +1276,7 @@ std::string BulirschStoer::GetParameterTypeString(const Integer id) const
 //------------------------------------------------------------------------------
 bool BulirschStoer::IsParameterReadOnly(const Integer id) const
 {
-   if (id == MIN_TOLERANCE)
-      return true;
-
+   if (id == MIN_TOLERANCE) return false;
    return Integrator::IsParameterReadOnly(id);
 }
 
@@ -1263,8 +1310,8 @@ Real BulirschStoer::GetRealParameter(const Integer id) const
 {
    if      (id == MINIMUM_REDUCTION)       return minimumReduction;
    else if (id == MAXIMUM_REDUCTION)       return maximumReduction;
-   else if (id == MIN_TOLERANCE)          // Deprecated
-      return tolerance;
+   else if (id == MIN_TOLERANCE) return mintolerance;
+   else if (id == ACCURACY) return requestedTolerance;
 
    return Integrator::GetRealParameter(id);
 }
@@ -1284,11 +1331,9 @@ Real BulirschStoer::GetRealParameter(const std::string &label) const
 //------------------------------------------------------------------------------
 /**
  * Method used to Set parameters for the BS Integrator.
- * This method sets the tolerance and tolerance limit for the Bulirsch-Stoer 
- * integrator, and calls Integrator::SetParameter() for other parameters.  The
- * implementation here prevents setting tolerances of more than 100%.  If the
- * minimum tolerance is set to a value larger than the current tolerance, the
- * current value is raised to the minimum value.
+ * Accuracy remains the requested tolerance. MinimumTolerance optionally
+ * floors the operational tolerance; zero keeps the ordinary accuracy policy.
+ * Changing either setting refreshes the extrapolation control coefficients.
  * 
  * @param <id>  ID for the parameter being set
  * @param <value>  New value for the parameter
@@ -1307,21 +1352,18 @@ Real BulirschStoer::SetRealParameter(const Integer id, const Real value)
       maximumReduction = value;
       return maximumReduction;
    }
-   else if (id == MIN_TOLERANCE)
+   else if (id == MIN_TOLERANCE || id == ACCURACY)
    {
-      MessageInterface::ShowMessage
-            ("*** WARNING *** The MinimumTolerance field of Bulirsch-Stoer "
-             "integrators is deprecated, has no effect, and will be removed "
-             "from a future build.\n");
-
-      return tolerance;
-
-//      if (fabs(value) <= 1.0)
-//      {
-//         mintolerance = fabs(value);
-//         tolerance = (tolerance > mintolerance ? tolerance : mintolerance);
-//         return mintolerance;
-//      }
+      if (!std::isfinite(value) ||
+            (id==MIN_TOLERANCE ? (value<0.0 || value>1.0) : value<=0.0))
+         throw PropagatorException(id==MIN_TOLERANCE ?
+               "MinimumTolerance must be finite and between zero and one; zero disables the floor" :
+               "Accuracy must be finite and greater than zero");
+      if (id==MIN_TOLERANCE) mintolerance=value;
+      else requestedTolerance=value;
+      tolerance=(std::max)(requestedTolerance,mintolerance);
+      if (depthInitialized) UpdateToleranceControl();
+      return id==MIN_TOLERANCE ? mintolerance : requestedTolerance;
    }
 
    return Integrator::SetRealParameter(id, value);

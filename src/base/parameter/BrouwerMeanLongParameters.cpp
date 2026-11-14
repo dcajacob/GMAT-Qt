@@ -94,7 +94,12 @@ bool BLlongSMADP::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BLlongSMADP::Clone(void) const
 {
-   return new BLlongSMADP(*this);
+   return CompleteParameterClone(new BLlongSMADP(*this));
+}
+
+void BLlongSMADP::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BLlongSMADP>(source);
 }
 
 //==============================================================================
@@ -157,7 +162,12 @@ bool BLlongECCDP::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BLlongECCDP::Clone(void) const
 {
-   return new BLlongECCDP(*this);
+   return CompleteParameterClone(new BLlongECCDP(*this));
+}
+
+void BLlongECCDP::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BLlongECCDP>(source);
 }
 
 //==============================================================================
@@ -254,7 +264,12 @@ bool BLlongINCDP::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BLlongINCDP::Clone(void) const
 {
-   return new BLlongINCDP(*this);
+   return CompleteParameterClone(new BLlongINCDP(*this));
+}
+
+void BLlongINCDP::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BLlongINCDP>(source);
 }
 
 
@@ -359,7 +374,12 @@ bool BLlongRAANDP::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BLlongRAANDP::Clone(void) const
 {
-   return new BLlongRAANDP(*this);
+   return CompleteParameterClone(new BLlongRAANDP(*this));
+}
+
+void BLlongRAANDP::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BLlongRAANDP>(source);
 }
 
 
@@ -463,7 +483,12 @@ bool BLlongAOPDP::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BLlongAOPDP::Clone(void) const
 {
-   return new BLlongAOPDP(*this);
+   return CompleteParameterClone(new BLlongAOPDP(*this));
+}
+
+void BLlongAOPDP::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BLlongAOPDP>(source);
 }
 
 
@@ -567,7 +592,12 @@ bool BLlongMADP::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BLlongMADP::Clone(void) const
 {
-   return new BLlongMADP(*this);
+   return CompleteParameterClone(new BLlongMADP(*this));
+}
+
+void BLlongMADP::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BLlongMADP>(source);
 }
 
 
@@ -635,6 +665,11 @@ bool BLlongState::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BLlongState::Clone(void) const
 {
-   return new BLlongState(*this);
+   return CompleteParameterClone(new BLlongState(*this));
+}
+
+void BLlongState::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BLlongState>(source);
 }
 

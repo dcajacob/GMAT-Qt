@@ -24,6 +24,14 @@ struct ResourceProperty
    int rows = 0, columns = 0;
 };
 QVector<ResourceProperty> resourceProperties(GmatBase &object);
+// Display fallback for quantities whose definitions have no physical unit.
+// An empty result means the quantity has not been classified here.
+QString dimensionlessResourceUnit(GmatBase &object,const QString &name);
+// Display units for the native five-term electric-thruster polynomials.
+QString electricThrusterCoefficientUnit(const QString &name);
+// Read-only display metadata for numerical dates stored as strings.
+QString epochInputUnit(const QString &format);
+QString resourceEpochFormatField(GmatBase &object,const QString &name);
 QStringList pythonModuleNames();
 QStringList dataInterfaceFields(GmatBase &object);
 void validateResourceProperties(GmatBase &object,bool replacingPolyhedron=false);

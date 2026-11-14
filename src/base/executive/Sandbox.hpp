@@ -49,6 +49,7 @@
 #include "Burn.hpp"
 #include "Function.hpp"
 #include "ObjectInitializer.hpp"
+#include "ObjectStoreLifetime.hpp"
 #include "EventLocator.hpp"
 
 //#define DEBUG_SANDBOX_CLONING
@@ -180,6 +181,10 @@ private:
                                            Integer updatedParameterIndex);
 
    bool      ReportError(BaseException &be);
+
+   // Function views borrow these stores only for the current run's lifetime.
+   ObjectStoreLifetime objectStoreLifetime;
+   ObjectStoreLifetime globalStoreLifetime;
 
    #ifdef DEBUG_SANDBOX_CLONING
       std::vector<UnsignedInt>  clonable;

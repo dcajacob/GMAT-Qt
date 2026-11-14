@@ -46,6 +46,7 @@
 #include "Transmitter.hpp"
 
 #include <sstream>
+#include <cmath>
 
 //#define DEBUG_CONSTRUCTION
 //#define DEBUG_SET_PARAMETER
@@ -105,7 +106,9 @@ MeasureModel::MeasureModel(const std::string &name, const bool usesPassiveSignal
    navLog            (NULL),
    logLevel          (0),              // Default to everything
    epochIsAtEnd      (true),
+   configuredEpochIsAtEnd (true),
    countInterval     (0.0),
+   integrationInterval (0.0),
    isPhysical        (true),
    isPassive         (usesPassiveSignal),
    solarsys          (NULL),
@@ -233,7 +236,9 @@ MeasureModel::MeasureModel(const MeasureModel& mm) :
    solarsys          (mm.solarsys),
    transientForces   (NULL),
    epochIsAtEnd      (mm.epochIsAtEnd),
+   configuredEpochIsAtEnd (mm.configuredEpochIsAtEnd),
    countInterval     (mm.countInterval),
+   integrationInterval (mm.integrationInterval),
    correctionTypeList(mm.correctionTypeList),
    correctionModelList(mm.correctionModelList),
    measParticipantIndex (mm.measParticipantIndex)
@@ -241,7 +246,20 @@ MeasureModel::MeasureModel(const MeasureModel& mm) :
 #ifdef DEBUG_CONSTRUCTION
    MessageInterface::ShowMessage("MeasureModel copy constructor  from <%p> to <%p>\n", &mm, this);
 #endif
-
+   // Participant names are configuration; runtime signal and propagator
+   // objects are rebuilt after the copied model is rebound and initialized.
+   participantLists.reserve(mm.participantLists.size());
+   try
+   {
+      for (const auto *path : mm.participantLists)
+         participantLists.push_back(path ? new StringArray(*path) : NULL);
+   }
+   catch (...)
+   {
+      for (auto *path : participantLists)
+         delete path;
+      throw;
+   }
 }
 
 
@@ -266,6 +284,22 @@ MeasureModel& MeasureModel::operator=(const MeasureModel& mm)
    {
       GmatBase::operator=(mm);
 
+      std::vector<StringArray*> copiedParticipants;
+      copiedParticipants.reserve(mm.participantLists.size());
+      try
+      {
+         for (const auto *path : mm.participantLists)
+            copiedParticipants.push_back(path ? new StringArray(*path) : NULL);
+      }
+      catch (...)
+      {
+         for (auto *path : copiedParticipants)
+            delete path;
+         throw;
+      }
+      CleanUp();
+      participantLists.swap(copiedParticipants);
+
       // all SignalData objects in theData are declared in SignalBase objects. When SignalBase objects are deleted, SignalData objects will be deleted automatically as well.
       theData.clear();
 
@@ -277,7 +311,9 @@ MeasureModel& MeasureModel::operator=(const MeasureModel& mm)
       isPassive           = mm.isPassive;
       solarsys            = mm.solarsys;
       epochIsAtEnd        = mm.epochIsAtEnd;
+      configuredEpochIsAtEnd = mm.configuredEpochIsAtEnd;
       countInterval       = mm.countInterval;
+      integrationInterval = mm.integrationInterval;
       correctionTypeList  = mm.correctionTypeList;
       correctionModelList = mm.correctionModelList;
       transientForces     = NULL;
@@ -1449,16 +1485,12 @@ bool MeasureModel::CalculateMeasurement(bool withEvents, bool withMediaCorrectio
    //   PrepareToPropagate();
    PrepareToPropagate();
 
-   // 1.1. Save the states of the objects being propagated, as they can be changed during calculation of the measurement values
-   std::vector<bool> precTimeVec;
-   std::vector<GmatEpoch> epochVec;
-   std::vector<GmatTime> epochGTVec;
-   std::vector<Real> valsVec;
-   
-   SaveState(precTimeVec, epochVec, epochGTVec, valsVec);
-   
-   ///// Clean up the assumption that epoch is at the end
-   //bool epochIsAtEnd = true;
+   epochIsAtEnd = forObservation ?
+      forObservation->IsEpochAtReceive(configuredEpochIsAtEnd) :
+      configuredEpochIsAtEnd;
+   if (forStrand < -1 || (forStrand >= 0 &&
+         static_cast<UnsignedInt>(forStrand) >= signalPaths.size()))
+      throw MeasurementException("Measurement strand index is out of range");
 
    // 2. Find the measurement epoch needed for the computation
    #ifdef DEBUG_TIMING
@@ -1475,7 +1507,7 @@ bool MeasureModel::CalculateMeasurement(bool withEvents, bool withMediaCorrectio
    GmatTime forEpoch;
    if (forObservation)
    {
-      forEpoch = forObservation->epochGT;
+      forEpoch = forObservation->GetEpochInA1();
    }
    else // Grab epoch from the first SpaceObject in the participant data
    {
@@ -1501,6 +1533,86 @@ bool MeasureModel::CalculateMeasurement(bool withEvents, bool withMediaCorrectio
       //forEpoch += atTimeOffset * GmatTimeConstants::DAYS_PER_SEC;
       forEpoch.AddSeconds(atTimeOffset);
    }
+
+   if (!epochIsAtEnd && integrationInterval > 0.0)
+   {
+      // Doppler formulas count receiver-clock seconds. First solve the signal
+      // at the supplied transmit marker, then locate the integration window in
+      // the receiver clock. Each strand has its own light-time mapping.
+      ObservationData marker;
+      if (forObservation)
+         marker = *forObservation;
+      marker.epochGT = forEpoch;
+      marker.epoch = forEpoch.GetMjd();
+      marker.epochSystem = TimeSystemConverter::A1MJD;
+      marker.epochReference = ObservationData::EpochReference::Transmit;
+      marker.integrationReference = ObservationData::IntegrationReference::End;
+      marker.epochAtIntegrationEnd = true;
+
+      const Real savedIntegrationInterval = integrationInterval;
+      const Real savedCountInterval = countInterval;
+      bool allFeasible = true;
+      const UnsignedInt first = forStrand < 0 ? 0 : forStrand;
+      const UnsignedInt end = forStrand < 0 ? signalPaths.size() : first + 1;
+      for (UnsignedInt i = first; i < end; ++i)
+      {
+         integrationInterval = countInterval = 0.0;
+         bool modeled;
+         try
+         {
+            modeled = CalculateMeasurement(withEvents, withMediaCorrection,
+                  &marker, rampTB, forSimulation, 0.0, i);
+         }
+         catch (...)
+         {
+            integrationInterval = savedIntegrationInterval;
+            countInterval = savedCountInterval;
+            throw;
+         }
+         integrationInterval = savedIntegrationInterval;
+         countInterval = savedCountInterval;
+         if (!modeled)
+            return false;
+
+         SignalBase *receiver = signalPaths[i];
+         while (receiver->GetNext())
+            receiver = receiver->GetNext();
+         SignalData *receivedData = receiver->GetSignalDataObject();
+         GmatTime receivedEpoch = receivedData->rPrecTime;
+         receivedEpoch.AddSeconds(receivedData->rDelay);
+
+         ObservationData received;
+         if (forObservation)
+            received = *forObservation;
+         received.SetReceiverEpochInA1(receivedEpoch);
+         if (forObservation)
+         {
+            received.integrationReference = forObservation->integrationReference;
+            received.epochAtIntegrationEnd = forObservation->epochAtIntegrationEnd;
+         }
+         if (!CalculateMeasurement(withEvents, withMediaCorrection, &received,
+               rampTB, forSimulation, 0.0, i))
+            return false;
+         allFeasible = allFeasible && feasible;
+      }
+      feasible = allFeasible;
+      epochIsAtEnd = true;
+      return true;
+   }
+
+   if (forObservation && integrationInterval > 0.0)
+      forEpoch.AddSeconds(forObservation->GetIntegrationEndOffset(integrationInterval));
+
+   // Save only after resolving the input tag; the mapping above saves/restores
+   // state independently for each point and receiver-end calculation.
+   std::vector<bool> precTimeVec;
+   std::vector<GmatEpoch> epochVec;
+   std::vector<GmatTime> epochGTVec;
+   std::vector<Real> valsVec;
+   SaveState(precTimeVec, epochVec, epochGTVec, valsVec);
+
+   try
+   {
 
    #ifdef DEBUG_OFFSET
       MessageInterface::ShowMessage("%s\n", forEpoch.ToString().c_str());
@@ -1927,6 +2039,12 @@ bool MeasureModel::CalculateMeasurement(bool withEvents, bool withMediaCorrectio
    }
    
    // 5. Save the states of the objects being propagated, as they can be changed during calculation of the measurement values
+   }
+   catch (...)
+   {
+      RestoreState(precTimeVec, epochVec, epochGTVec, valsVec);
+      throw;
+   }
    RestoreState(precTimeVec, epochVec, epochGTVec, valsVec);
    
    retval = true;
@@ -2440,7 +2558,7 @@ void MeasureModel::AddCorrection(const std::string& correctionName,
 
 void MeasureModel::SetTimeTagFlag(const bool flag)
 {
-   epochIsAtEnd = flag;
+   configuredEpochIsAtEnd = epochIsAtEnd = flag;
 }
 
 
@@ -2452,7 +2570,16 @@ bool MeasureModel::GetTimeTagFlag()
 
 void MeasureModel::SetCountInterval(Real timeInterval)
 {
+   if (!std::isfinite(timeInterval) || timeInterval < 0.0)
+      throw MeasurementException("Doppler count interval must be finite and nonnegative");
    countInterval = timeInterval;
+}
+
+void MeasureModel::SetIntegrationInterval(Real timeInterval)
+{
+   if (!std::isfinite(timeInterval) || timeInterval <= 0.0)
+      throw MeasurementException("Measurement integration interval must be finite and positive");
+   integrationInterval = timeInterval;
 }
 
 

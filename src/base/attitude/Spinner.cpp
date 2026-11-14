@@ -30,11 +30,14 @@
 //------------------------------------------------------------------------------
 
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <iomanip>
 #include "Attitude.hpp"
 #include "AttitudeException.hpp"
 #include "Spinner.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "TimeTypes.hpp"
 #include "MessageInterface.hpp"
 #include "AttitudeConversionUtility.hpp"
@@ -192,7 +195,9 @@ bool Spinner::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* Spinner::Clone() const
 {
-   return (new Spinner(*this));
+   std::unique_ptr<Spinner> value(new Spinner(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -273,3 +278,17 @@ void Spinner::ComputeCosineMatrixAndAngularVelocity(GmatTime &atTime)
 //  private methods
 //------------------------------------------------------------------------------
 // none 
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void Spinner::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const Spinner*>(original);
+   if (!source || typeid(*source) != typeid(Spinner) ||
+       typeid(*this) != typeid(Spinner))
+      throw GmatBaseException("Cannot copy incompatible object into Spinner");
+   if (source == this)
+      return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
+}

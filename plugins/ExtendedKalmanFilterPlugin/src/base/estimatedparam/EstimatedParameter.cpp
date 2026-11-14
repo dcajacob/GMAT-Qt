@@ -32,6 +32,29 @@
 #include "EstimatedParameterException.hpp"
 #include "FirstOrderGaussMarkov.hpp"
 #include "StringUtil.hpp"
+#include <memory>
+
+namespace
+{
+std::unique_ptr<EstimatedParameterModel> CopyEstimatedModel(
+      const EstimatedParameterModel *source,
+      const EstimatedParameterModel *previous = NULL)
+{
+   if (!source) return std::unique_ptr<EstimatedParameterModel>();
+   GmatBase::FunctionValueCopyGuard copying;
+   std::unique_ptr<GmatBase> value(source->Clone());
+   if (value.get() == source || (previous && value.get() == previous))
+   {
+      value.release();
+      throw EstimatedParameterException("Estimated parameter model Clone returned an existing native component.\n");
+   }
+   auto *model = dynamic_cast<EstimatedParameterModel*>(value.get());
+   if (!model || model->GetTypeName() != source->GetTypeName())
+      throw EstimatedParameterException("Cannot clone estimated parameter model with its native type.\n");
+   value.release();
+   return std::unique_ptr<EstimatedParameterModel>(model);
+}
+}
 
 //---------------------------------
 // static data
@@ -107,13 +130,10 @@ EstimatedParameter::~EstimatedParameter()
 EstimatedParameter::EstimatedParameter(
       const EstimatedParameter& ep) :
    GmatBase (ep),
-   estimatedParameterModelName(ep.estimatedParameterModelName)
+   estimatedParameterModelName(ep.estimatedParameterModelName),
+   estimatedParameterModel(NULL)
 {
-   if (ep.estimatedParameterModel)
-   {
-      estimatedParameterModelName = ep.estimatedParameterModel->GetTypeName();
-      estimatedParameterModel = (EstimatedParameterModel*) ep.estimatedParameterModel->Clone();
-   }
+   estimatedParameterModel = CopyEstimatedModel(ep.estimatedParameterModel).release();
 }
 
 
@@ -130,6 +150,7 @@ EstimatedParameter& EstimatedParameter::operator=(
 {
    if (this != &ep)
    {
+      auto copiedModel = CopyEstimatedModel(ep.estimatedParameterModel, estimatedParameterModel);
       GmatBase::operator=(ep);
 
       estimatedParameterModelName = ep.estimatedParameterModelName;
@@ -137,13 +158,7 @@ EstimatedParameter& EstimatedParameter::operator=(
       if (estimatedParameterModel)
          delete estimatedParameterModel;
    
-      if (ep.estimatedParameterModel)
-      {
-         estimatedParameterModelName = ep.estimatedParameterModel->GetTypeName();
-         estimatedParameterModel = (EstimatedParameterModel*) ep.estimatedParameterModel->Clone();
-      }
-      else
-         estimatedParameterModel = NULL;
+      estimatedParameterModel = copiedModel.release();
    }
    return *this;
 }
@@ -207,9 +222,9 @@ void EstimatedParameter::SetEstimatedParameterModel(EstimatedParameterModel *par
    if (param == NULL)
       throw EstimatedParameterException("SetEstimatedParameterModel() failed: param is NULL");
    
+   auto copiedModel = CopyEstimatedModel(param, estimatedParameterModel);
    delete estimatedParameterModel;
-
-   estimatedParameterModel = (EstimatedParameterModel *)param->Clone();
+   estimatedParameterModel = copiedModel.release();
 
    #ifdef DEBUG_SET
    MessageInterface::ShowMessage
@@ -421,7 +436,9 @@ bool EstimatedParameter::IsOwnedObject(Integer id) const
 //------------------------------------------------------------------------------
 GmatBase* EstimatedParameter::Clone(void) const
 {
-   return (new EstimatedParameter(*this));
+   std::unique_ptr<EstimatedParameter> value(new EstimatedParameter(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -755,4 +772,17 @@ Integer EstimatedParameter::GetOwnedObjectId(Integer id, UnsignedInt objType) co
    }
    
    return actualId;
+}
+
+// Whole-object script assignment and GmatFunction outputs use this virtual API.
+// Retain the existing class assignment logic and the destination's identity.
+void EstimatedParameter::Copy(const GmatBase* source)
+{
+   const auto* typed = dynamic_cast<const EstimatedParameter*>(source);
+   if (!typed || typed->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Cannot copy into " + GetTypeName() +
+                             " from a null or incompatible object");
+   const auto previous = GetFunctionValueContext();
+   operator=(*typed);
+   RebindFunctionValueContext(*typed);
 }

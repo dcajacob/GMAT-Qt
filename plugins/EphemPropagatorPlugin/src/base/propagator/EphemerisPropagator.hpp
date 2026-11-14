@@ -178,6 +178,9 @@ public:
       FROM_SPACECRAFT
    };
 
+   void RebindClonedReferences(const Propagator &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve, bool bindObjects = true) override;
+
 protected:
    /// The ephemeris used for propagation  (Note: Refactoring needed for some types)
    Ephemeris                  *theEphem;
@@ -198,6 +201,8 @@ protected:
 
    /// Start time on the ephem
    GmatEpoch                  ephemStart;
+   /// Encoded file boundary; Real-only providers keep the rounded fallback.
+   GmatTime                   ephemStartGT;
    /// End time on the ephem
    GmatEpoch                  ephemEnd;
    /// Flag used to stop a run if the epoch is outside of the ephem span
@@ -258,6 +263,9 @@ protected:
 
    GmatEpoch ConvertToRealEpoch(const std::string &theEpoch,
          const std::string &theFormat);
+   GmatTime ConvertToGmatTimeEpoch(const std::string &theEpoch,
+         const std::string &theFormat);
+   GmatTime GetEphemStartEpochGT() const;
    virtual void UpdateState() = 0;
    virtual Real* GetAnalyticState();
 

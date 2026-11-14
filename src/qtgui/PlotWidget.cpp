@@ -1,4 +1,5 @@
 #include <QDialog>
+#include "PlotIcons.hpp"
 #include <QLabel>
 #include <QDialogButtonBox>
 #include <QFormLayout>
@@ -14,8 +15,12 @@
 #include <QColorDialog>
 #include <functional>
 #include "PlotWidget.hpp"
+#include "PlotReplaySpeeds.hpp"
 #include "PlotInterpolation.hpp"
 #include "PlotEpochPlayback.hpp"
+#include "PlotPresentation.hpp"
+#include "GroundTrackLayout.hpp"
+#include <QToolTip>
 #include <QSignalBlocker>
 #include "OrbitRenderer.hpp"
 #include "OrbitLabels.hpp"
@@ -31,10 +36,14 @@
 #include <QGuiApplication>
 #include <QResizeEvent>
 #include <QAction>
+#include <QActionGroup>
+#include <QMenu>
 #include <QShortcut>
 #include <QFileDialog>
 #include <QLabel>
 #include <QMouseEvent>
+#include <QKeyEvent>
+#include <QRubberBand>
 #include <QPainter>
 #include <QPainterPath>
 #include <QSaveFile>
@@ -56,7 +65,13 @@
 namespace {
 void drawMarker(QPainter &painter,QPointF p,int type,double size,const QColor &color,bool highlight)
 {
-   painter.save(); painter.setPen(QPen(color,1)); painter.setBrush(Qt::NoBrush);
+   painter.save();
+   // Keep a one-pixel stroke visible when a logical pixel is smaller than a
+   // physical display pixel. Normal and high-DPI marker widths are unchanged.
+   QPen pen(color,1);
+   const auto ratio=painter.device()->devicePixelRatioF();
+   if (ratio>0 && ratio<1) pen.setWidthF(1/ratio);
+   painter.setPen(pen); painter.setBrush(Qt::NoBrush);
    const double r=size/2;
    auto cross=[&] { painter.drawLine(p+QPointF(-r,-r),p+QPointF(r,r)); painter.drawLine(p+QPointF(-r,r),p+QPointF(r,-r)); };
    auto plus=[&] { painter.drawLine(p+QPointF(-r,0),p+QPointF(r,0)); painter.drawLine(p+QPointF(0,-r),p+QPointF(0,r)); };
@@ -96,8 +111,16 @@ PlotCanvas::PlotCanvas(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
 {
    setMinimumSize(200, 140);
    setMouseTracking(true);
-   if (data->kind==PlotModel::Kind::Orbit) setFocusPolicy(Qt::StrongFocus);
-   setToolTip("Wheel: zoom · Drag: rotate orbit or pan chart · Shift-drag: pan orbit · Double-click: fit");
+   const bool regionZoom=data->kind==PlotModel::Kind::XY || data->kind==PlotModel::Kind::GroundTrack;
+   if (regionZoom || data->kind==PlotModel::Kind::Orbit) setFocusPolicy(Qt::StrongFocus);
+   if (regionZoom) {
+      selectionBand=new QRubberBand(QRubberBand::Rectangle,this);
+      selectionBand->setObjectName(data->kind==PlotModel::Kind::XY ? "xyZoomSelection" : "groundZoomSelection");
+   }
+   standardTooltip=regionZoom ?
+      "Drag: zoom to region · Shift-drag: pan · Wheel: zoom · Escape: cancel selection · Double-click: fit" :
+      "Wheel: zoom · Drag: rotate orbit or pan chart · Shift-drag: pan orbit · Double-click: fit";
+   setToolTip(standardTooltip);
    if (data->kind==PlotModel::Kind::Orbit && QGuiApplication::platformName()!="offscreen" && QGuiApplication::platformName()!="minimal")
       renderer=new OrbitRenderer(data,this);
    if (data->userView) restoreView(*data->userView);
@@ -105,25 +128,33 @@ PlotCanvas::PlotCanvas(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
 }
 void PlotCanvas::refresh()
 {
+   cancelSelection(); xyTransformValid=false;
    if (data->kind==PlotModel::Kind::Orbit) data->userView=PlotViewState{zoom,yaw,pitch,pan,data->fitCamera,data->perspective,data->fieldOfView,
-      data->cameraViews.isEmpty() ? QString() : data->cameraViews[data->selectedCamera].name,data->resetCamera};
+      data->cameraViews.isEmpty() ? QString() : data->cameraViews[data->selectedCamera].name,data->resetCamera,orbitRotation};
    QStringList details{data->title};
    if (!data->xLabel.isEmpty()) details << "X: "+data->xLabel;
    if (!data->yLabel.isEmpty()) details << "Y: "+data->yLabel;
    if (data->legend) for (const auto &curve:data->curves) if (curve.visible && (data->kind!=PlotModel::Kind::Orbit || curve.drawsContent())) details << curve.name;
-   details << "Wheel: zoom · Drag: rotate orbit or pan chart · Shift-drag: pan orbit · Double-click: fit";
-   setToolTip(details.join('\n').toHtmlEscaped().replace("\n","<br>"));
-   if (renderer) renderer->setView(zoom,yaw,pitch,pan,visibleFrame); else update();
+   details << (selectionBand ?
+      "Drag: zoom to region · Shift-drag: pan · Wheel: zoom · Escape: cancel selection · Double-click: fit" :
+      "Wheel: zoom · Drag: rotate orbit or pan chart · Shift-drag: pan orbit · Double-click: fit");
+   standardTooltip=details.join('\n').toHtmlEscaped().replace("\n","<br>");
+   groundTransformValid=false;
+   if (data->kind==PlotModel::Kind::GroundTrack && !groundCoordinates.isEmpty())
+      setAccessibleDescription(plotUtcCaption(*data,visibleFrame)+"\n"+groundCoordinates);
+   else clearGroundReadout();
+   if (renderer) renderer->setView(zoom,yaw,pitch,pan,visibleFrame,orbitRotation); else update();
 }
 QImage PlotCanvas::captureImage() { return renderer ? renderer->captureImage() : grab().toImage(); }
-void PlotCanvas::resizeEvent(QResizeEvent *event) { QWidget::resizeEvent(event); if (renderer) renderer->setGeometry(rect()); }
-void PlotCanvas::fit() { zoom = 1; pan = {}; data->fitCamera=true; refresh(); }
+void PlotCanvas::resizeEvent(QResizeEvent *event) { cancelSelection(); xyTransformValid=false; groundTransformValid=false; clearGroundReadout(); QWidget::resizeEvent(event); if (renderer) renderer->setGeometry(rect()); }
+void PlotCanvas::fit() { selectionView.reset(); zoom = 1; pan = {}; data->fitCamera=true; refresh(); }
 void PlotCanvas::scriptView() {
    if (!data->scriptedCamera) return;
-   zoom=1; pan={}; yaw=0; pitch=0; data->fitCamera=false; data->resetCamera=false; refresh();
+   zoom=1; pan={}; yaw=0; pitch=0; orbitRotation.reset(); data->fitCamera=false; data->resetCamera=false; refresh();
 }
 void PlotCanvas::resetView()
 {
+   orbitRotation.reset();
    if (!data->scriptedCamera) { yaw=.55; pitch=.45; fit(); return; }
    const bool named=data->selectedCamera>0 && data->selectedCamera<data->cameraViews.size();
    data->resetCamera=named ? data->cameraViews[data->selectedCamera].reset.has_value() : data->resetView.has_value();
@@ -133,7 +164,7 @@ void PlotCanvas::restoreView(const PlotViewState &state)
 {
    // Copy because refresh replaces data->userView, which can own the argument.
    const auto saved=state;
-   zoom=saved.zoom; yaw=saved.yaw; pitch=saved.pitch; pan=saved.pan; data->fitCamera=saved.fit; data->resetCamera=saved.reset;
+   zoom=saved.zoom; yaw=saved.yaw; pitch=saved.pitch; pan=saved.pan; orbitRotation=saved.orbitRotation; data->fitCamera=saved.fit; data->resetCamera=saved.reset;
    for (int i=0;i<data->cameraViews.size();++i) if (data->cameraViews[i].name==saved.camera) { data->selectedCamera=i; break; }
    data->perspective=saved.perspective; data->fieldOfView=saved.fieldOfView;
    if (!data->cameraViews.isEmpty()) { data->cameraViews[data->selectedCamera].perspective=saved.perspective; data->cameraViews[data->selectedCamera].fieldOfView=saved.fieldOfView; }
@@ -150,23 +181,126 @@ void PlotCanvas::setReplayCursor(const PlotReplayCursor &cursor) {
    plotSetSimulationEpoch(*data,std::nullopt,PlotReplayMode::InterpolatedSteps); plotSetReplayCursor(*data,cursor); visibleFrame=cursor.before; refresh();
 }
 void PlotCanvas::zoomBy(double steps) { zoom = std::clamp(zoom * std::pow(1.15, steps), 0.02, 200.0); refresh(); }
-void PlotCanvas::setViewAngles(double azimuth, double elevation) { yaw = azimuth; pitch = elevation; refresh(); }
-void PlotCanvas::mousePressEvent(QMouseEvent *event) { lastMouse = event->position(); if (data->kind==PlotModel::Kind::Orbit) setFocus(Qt::MouseFocusReason); }
+void PlotCanvas::setViewAngles(double azimuth, double elevation) { yaw = azimuth; pitch = elevation; orbitRotation.reset(); refresh(); }
+void PlotCanvas::cancelSelection()
+{
+   selectionStart.reset();
+   if (selectionBand) selectionBand->hide();
+}
+bool PlotCanvas::event(QEvent *event)
+{
+   if (event->type()==QEvent::Hide || event->type()==QEvent::WindowDeactivate || event->type()==QEvent::UngrabMouse) cancelSelection();
+   return QWidget::event(event);
+}
+void PlotCanvas::keyPressEvent(QKeyEvent *event)
+{
+   if (event->key()==Qt::Key_Escape && selectionStart) { cancelSelection(); event->accept(); return; }
+   QWidget::keyPressEvent(event);
+}
+void PlotCanvas::mousePressEvent(QMouseEvent *event)
+{
+   cancelSelection(); lastMouse=event->position();
+   if (selectionBand || data->kind==PlotModel::Kind::Orbit) setFocus(Qt::MouseFocusReason);
+   if (selectionBand && event->button()==Qt::LeftButton && !(event->modifiers() & Qt::ShiftModifier)) {
+      // Use the mapping actually painted, including local ranges, wheel zoom,
+      // pan, dynamic label gutters and logical pixels at the current DPR.
+      repaint();
+      const bool ground=data->kind==PlotModel::Kind::GroundTrack;
+      const auto &transform=ground ? groundToCanvas : xyToCanvas;
+      const auto viewport=ground ? groundViewport.intersected(transform.mapRect(QRectF(-180,-90,360,180))) : xyViewport;
+      bool invertible=false; const auto inverse=transform.inverted(&invertible);
+      if ((ground ? groundTransformValid : xyTransformValid) && invertible && viewport.contains(lastMouse)) {
+         if (ground) clearGroundReadout();
+         selectionStart=lastMouse; selectionViewport=viewport; selectionToData=inverse;
+         selectionBand->setGeometry(QRect(lastMouse.toPoint(),QSize())); selectionBand->show();
+      }
+      event->accept(); return;
+   }
+}
 void PlotCanvas::mouseMoveEvent(QMouseEvent *event)
 {
+   if (selectionStart) {
+      if (!(event->buttons() & Qt::LeftButton)) { cancelSelection(); return; }
+      const QPointF end(std::clamp(event->position().x(),selectionViewport.left(),selectionViewport.right()),
+         std::clamp(event->position().y(),selectionViewport.top(),selectionViewport.bottom()));
+      selectionBand->setGeometry(QRectF(*selectionStart,end).normalized().toAlignedRect());
+      event->accept(); return;
+   }
    const auto delta = event->position() - lastMouse; lastMouse = event->position();
-   if (!(event->buttons() & Qt::LeftButton)) return;
+   if (!(event->buttons() & Qt::LeftButton)) {
+      if (data->kind==PlotModel::Kind::GroundTrack) groundReadout(event->position(),event->globalPosition().toPoint());
+      return;
+   }
+   if (selectionBand && !(event->modifiers() & Qt::ShiftModifier)) return;
    if (data->kind == PlotModel::Kind::Orbit && !(event->modifiers() & Qt::ShiftModifier)) {
+      const auto base=orbitCamera(*data,visibleFrame,0,0,1);
+      const auto current=orbitCamera(*data,visibleFrame,yaw,pitch,1,1,nullptr,nullptr,
+         orbitRotation ? &*orbitRotation : nullptr);
+      const osg::Quat horizontal(-delta.x()*0.008,current.up);
+      auto right=horizontal*current.right;
+      auto up=horizontal*current.up;
+      auto outward=horizontal*current.outward;
+      const osg::Quat vertical(-delta.y()*0.008,right);
+      up=vertical*up; outward=vertical*outward;
+      outward.normalize(); right=up^outward; right.normalize(); up=outward^right;
+      orbitRotation=std::array<double,9>{right*base.right,right*base.up,right*base.outward,
+         up*base.right,up*base.up,up*base.outward,
+         outward*base.right,outward*base.up,outward*base.outward};
       yaw = std::remainder(yaw + delta.x() * 0.008, 6.283185307179586);
       pitch = std::remainder(pitch + delta.y() * 0.008, 6.283185307179586);
    } else pan += delta;
    refresh();
 }
+void PlotCanvas::clearGroundReadout()
+{
+   if (!groundCoordinates.isEmpty() && QToolTip::text()==groundCoordinates) QToolTip::hideText();
+   groundCoordinates.clear();
+   setToolTip(standardTooltip);
+   setAccessibleDescription(plotUtcCaption(*data,visibleFrame));
+}
+void PlotCanvas::groundReadout(const QPointF &position,const QPoint &globalPosition)
+{
+   bool invertible=false;
+   const auto inverse=groundToCanvas.inverted(&invertible);
+   const auto coordinates=inverse.map(position);
+   if (!groundTransformValid || !invertible || !groundViewport.contains(position) ||
+       !std::isfinite(coordinates.x()) || !std::isfinite(coordinates.y()) ||
+       coordinates.x() < -180 || coordinates.x() > 180 || coordinates.y() < -90 || coordinates.y() > 90) {
+      clearGroundReadout(); return;
+   }
+   const auto text=QString("Longitude: %1 deg · Latitude: %2 deg")
+      .arg(coordinates.x(),0,'f',6).arg(coordinates.y(),0,'f',6);
+   groundCoordinates=text;
+   setToolTip(text); setAccessibleDescription(plotUtcCaption(*data,visibleFrame)+"\n"+text);
+   QToolTip::showText(globalPosition,text,this);
+}
+void PlotCanvas::mouseReleaseEvent(QMouseEvent *event)
+{
+   if (selectionStart && event->button()==Qt::LeftButton) {
+      const auto region=QRectF(*selectionStart,event->position()).normalized().intersected(selectionViewport);
+      const auto selected=selectionToData.mapRect(region).normalized(); cancelSelection();
+      // Clicks and near-horizontal/vertical drags must not create unstable
+      // ranges. A reversed drag uses the same normalized data rectangle.
+      if (region.width()>6 && region.height()>6 && selected.width()>0 && selected.height()>0 &&
+          std::isfinite(selected.left()) && std::isfinite(selected.right()) &&
+          std::isfinite(selected.top()) && std::isfinite(selected.bottom())) {
+         selectionView=selected; zoom=1; pan={}; refresh();
+      }
+      event->accept(); return;
+   }
+   if (data->kind==PlotModel::Kind::GroundTrack) {
+      lastMouse=event->position();
+      repaint(); groundReadout(event->position(),event->globalPosition().toPoint());
+   } else QWidget::mouseReleaseEvent(event);
+}
+void PlotCanvas::leaveEvent(QEvent *event) { clearGroundReadout(); QWidget::leaveEvent(event); }
 void PlotCanvas::mouseDoubleClickEvent(QMouseEvent *) { fit(); }
 void PlotCanvas::wheelEvent(QWheelEvent *event) { zoomBy(event->angleDelta().y() / 120.0); event->accept(); }
 void PlotCanvas::paintEvent(QPaintEvent *)
 {
    if (renderer) return;
+   groundTransformValid=false;
+   xyTransformValid=false;
    QPainter painter(this);
    painter.setRenderHint(QPainter::Antialiasing);
    const bool orbit = data->kind == PlotModel::Kind::Orbit;
@@ -176,23 +310,32 @@ void PlotCanvas::paintEvent(QPaintEvent *)
    painter.fillRect(rect(), background);
    painter.setPen(foreground);
    const auto metrics=painter.fontMetrics();
-   painter.drawText(QRectF(10,4,width()-20,22),Qt::AlignCenter,metrics.elidedText(data->title,Qt::ElideRight,width()-20));
+   const bool compactGround=ground && height()<16*metrics.height();
+   if (!compactGround)
+      painter.drawText(QRectF(10,4,width()-20,22),Qt::AlignCenter,metrics.elidedText(data->title,Qt::ElideRight,width()-20));
    // Wrap legend entries before reserving chart space. Keep enough height for
    // the plot itself; the tooltip retains full labels when space is exhausted.
    QList<const PlotCurve *> legendCurves;
+   const int legendSampleWidth=data->kind==PlotModel::Kind::XY ? 30 : 15;
    int preferredWidth=1;
    if (data->legend) for (const auto &curve:data->curves) if (curve.visible && (!orbit || curve.drawsContent())) {
       legendCurves << &curve;
-      preferredWidth=std::max(preferredWidth,metrics.horizontalAdvance(curve.name)+34);
+      preferredWidth=std::max(preferredWidth,metrics.horizontalAdvance(curve.name)+legendSampleWidth+19);
    }
-   const int legendWidth=width()-24, lineHeight=std::max(20,metrics.height()+4);
+   const int legendWidth=width()-24, lineHeight=compactGround ? metrics.height() : std::max(20,metrics.height()+4);
    const int columns=std::max(1,legendWidth/preferredWidth);
    const int maxRows=std::max(1,std::min(4,(height()-130)/lineHeight));
    const int rows=std::min(maxRows,(static_cast<int>(legendCurves.size())+columns-1)/columns);
-   const int top=32+rows*lineHeight;
-   QRectF area(orbit ? 35 : 74,top,width()-(orbit ? 70 : 100),height()-top-56);
-   if (ground && area.width() > 2 * area.height()) { const double w = area.height()*2; area.setLeft(area.center().x()-w/2); area.setWidth(w); }
-   if (ground && area.height() > area.width()/2) { const double h = area.width()/2; area.setTop(area.center().y()-h/2); area.setHeight(h); }
+   const int legendTop=compactGround ? 0 : 28;
+   const int top=(compactGround ? 0 : 32)+rows*lineHeight;
+   const int epochRow=ground ? metrics.height()+(compactGround ? 0 : 2) : orbit ? 22 : 0;
+   QRectF area(orbit ? 35 : 74,top,width()-(orbit ? 70 : 100),height()-top-56-epochRow);
+   const int groundTitleSpace=compactGround ? 0 : metrics.height()+4;
+   if (ground) {
+      const int left=metrics.horizontalAdvance("-9000")+12+groundTitleSpace;
+      const int bottom=metrics.height()+(compactGround ? 4 : 6)+groundTitleSpace+epochRow;
+      area=QRectF(left,top,width()-left-12,height()-top-bottom);
+   }
    if (area.width() <= 0 || area.height() <= 0) return;
    double xmin = ground ? -180 : std::numeric_limits<double>::infinity();
    double xmax = ground ? 180 : -std::numeric_limits<double>::infinity();
@@ -222,7 +365,8 @@ void PlotCanvas::paintEvent(QPaintEvent *)
          extent=std::max(extent,std::hypot(pose.x,pose.y,pose.z)+radius); bounds.include(pose.x,pose.y,pose.z,radius);
       }
    }
-   const auto camera=orbitCamera(*data,visibleFrame,yaw,pitch,extent,area.width()/area.height(),&bounds);
+   const auto camera=orbitCamera(*data,visibleFrame,yaw,pitch,extent,area.width()/area.height(),&bounds,nullptr,
+      orbitRotation ? &*orbitRotation : nullptr);
    auto perspectiveScale=[&](const PlotPoint &point) {
       const auto relative=osg::Vec3d(point.x,point.y,point.z)-camera.target;
       const double depth=camera.distance-relative*camera.outward;
@@ -247,6 +391,11 @@ void PlotCanvas::paintEvent(QPaintEvent *)
          extent = std::max(extent, std::hypot(std::hypot(point.x, point.y), point.z)+curve.radius);
       }
    }
+   const bool xyHasData=!orbit && !ground && std::isfinite(xmin) && std::isfinite(xmax) && std::isfinite(ymin) && std::isfinite(ymax);
+   if (ground && selectionView) {
+      xmin=selectionView->left(); xmax=selectionView->right();
+      ymin=selectionView->top(); ymax=selectionView->bottom();
+   }
    if (orbit) {
       const auto extent=data->perspective ? camera.distance*std::tan(std::clamp(data->fieldOfView,1.0,150.0)*3.14159265358979323846/360) : camera.extent;
       xmin = -extent; xmax = extent; ymin = xmin; ymax = xmax;
@@ -268,6 +417,10 @@ void PlotCanvas::paintEvent(QPaintEvent *)
          }
       };
       limits(data->xAxis,xmin,xmax); limits(data->yAxis,ymin,ymax);
+      if (selectionView) {
+         xmin=selectionView->left(); xmax=selectionView->right();
+         ymin=selectionView->top(); ymax=selectionView->bottom();
+      }
       int yWidth=0,xWidth=0;
       for (int i=0;i<=data->yAxis.ticks;++i) yWidth=std::max(yWidth,metrics.horizontalAdvance(QString::number(ymin+(ymax-ymin)*i/data->yAxis.ticks,'g',data->yAxis.precision)));
       for (int i=0;i<=data->xAxis.ticks;++i) xWidth=std::max(xWidth,metrics.horizontalAdvance(QString::number(xmin+(xmax-xmin)*i/data->xAxis.ticks,'g',data->xAxis.precision)));
@@ -279,9 +432,32 @@ void PlotCanvas::paintEvent(QPaintEvent *)
    const double cx = (xmin+xmax)/2, cy = (ymin+ymax)/2;
    const double dx = (xmax-xmin)/zoom, dy = (ymax-ymin)/zoom;
    const QPointF offset=orbit && data->perspective ? QPointF() : pan;
+   if (ground) {
+      const double low=cy-dy/2+offset.y()*dy/area.height();
+      int labelWidth=0;
+      for (const auto &tick:groundTrackAxisTicks(low,low+dy,6))
+         labelWidth=std::max(labelWidth,metrics.horizontalAdvance(tick.text));
+      const int gutterLeft=compactGround ? 4 : metrics.height()+8;
+      area.setLeft(std::max(area.left(),std::min(width()*.45,double(gutterLeft+8+labelWidth))));
+   }
    xmin = cx-dx/2 - offset.x()*dx/area.width(); xmax = xmin+dx;
    ymin = cy-dy/2 + offset.y()*dy/area.height(); ymax = ymin+dy;
    auto screen = [&](const QPointF &p) { return QPointF(area.left()+(p.x()-xmin)/(xmax-xmin)*area.width(), area.bottom()-(p.y()-ymin)/(ymax-ymin)*area.height()); };
+   if (!orbit && !ground && xyHasData && xmax>xmin && ymax>ymin) {
+      const double sx=area.width()/(xmax-xmin),sy=area.height()/(ymax-ymin);
+      xyToCanvas=QTransform(sx,0,0,-sy,area.left()-xmin*sx,area.bottom()+ymin*sy);
+      xyViewport=area; xyTransformValid=true;
+   }
+   if (ground) {
+      const double sx=area.width()/(xmax-xmin),sy=area.height()/(ymax-ymin);
+      const QTransform transform(sx,0,0,-sy,area.left()-xmin*sx,area.bottom()+ymin*sy);
+      const bool changed=transform!=groundToCanvas;
+      groundViewport=area; groundToCanvas=transform;
+      groundTransformValid=true;
+      if (changed && !groundCoordinates.isEmpty()) QTimer::singleShot(0,this,[this] {
+         if (!groundCoordinates.isEmpty()) groundReadout(lastMouse,mapToGlobal(lastMouse.toPoint()));
+      });
+   }
    painter.save(); painter.setClipRect(area);
    if (orbit && data->starsEnabled) {
       const auto rotation=orbitSkyFrame(*data,visibleFrame);
@@ -303,7 +479,15 @@ void PlotCanvas::paintEvent(QPaintEvent *)
       const QPointF a = screen({-180,90}), b = screen({180,-90});
       painter.drawImage(QRectF(a,b), data->map);
    }
-   if (data->grid) {
+   if (!orbit) {
+      // Keep boundary data visible: the native plotter paints axes before data.
+      // Draw the complete frame without the data clip, then restore that clip
+      // for curves/markers. A later frame pass would erase valid edge markers.
+      painter.save(); painter.setClipping(false);
+      painter.setPen(foreground); painter.setBrush(Qt::NoBrush);
+      painter.drawRect(area); painter.restore();
+   }
+   if (data->grid && !orbit) {
       painter.setPen(QPen(ground ? QColor(255,255,255,100) : orbit ? QColor(90,110,140,75) : QColor(215,222,231), 1));
       const int nx = ground ? data->longitudeLines : orbit ? 5 : data->xAxis.ticks, ny = ground ? data->latitudeLines : orbit ? 5 : data->yAxis.ticks;
       for (int i=0;i<=nx;++i) {
@@ -315,6 +499,8 @@ void PlotCanvas::paintEvent(QPaintEvent *)
          painter.drawLine(screen({xmin,y}), screen({xmax,y}));
       }
    }
+   if (ground && data->groundBody=="Earth")
+      drawGroundMapOverlays(painter,data->mapOverlays,groundToCanvas,area);
    if (orbit && data->axes) {
       const QColor colors[] = {QColor(235,90,80),QColor(100,215,135),QColor(105,150,255)};
       for (int i=0;i<3;++i) {
@@ -339,9 +525,9 @@ void PlotCanvas::paintEvent(QPaintEvent *)
             if (curve.lines && previous && point.connect) {
                const PlotPoint *a=previous,*b=&point;
                if (data->perspective) {
-                  const double near=std::max(1e-6,std::min(extent*.01,camera.distance*.001));
-                  const double da=camera.distance-(osg::Vec3d(a->x,a->y,a->z)-camera.target)*camera.outward-near;
-                  const double db=camera.distance-(osg::Vec3d(b->x,b->y,b->z)-camera.target)*camera.outward-near;
+                  const double nearDistance=std::max(1e-6,std::min(extent*.01,camera.distance*.001));
+                  const double da=camera.distance-(osg::Vec3d(a->x,a->y,a->z)-camera.target)*camera.outward-nearDistance;
+                  const double db=camera.distance-(osg::Vec3d(b->x,b->y,b->z)-camera.target)*camera.outward-nearDistance;
                   if (da<0 && db<0) a=nullptr;
                   else if (da<0 || db<0) {
                      const double t=da/(da-db); PlotPoint clipped=*a;
@@ -356,9 +542,9 @@ void PlotCanvas::paintEvent(QPaintEvent *)
             if (curve.objectVelocity) if (const auto velocity=orbitVelocitySegment(point)) {
                auto from=velocity->start,to=velocity->end; bool visible=true;
                if (data->perspective) {
-                  const double near=1e-6;
-                  const double da=camera.distance-(from-camera.target)*camera.outward-near;
-                  const double db=camera.distance-(to-camera.target)*camera.outward-near;
+                  const double nearDistance=1e-6;
+                  const double da=camera.distance-(from-camera.target)*camera.outward-nearDistance;
+                  const double db=camera.distance-(to-camera.target)*camera.outward-nearDistance;
                   if (da<0 && db<0) visible=false;
                   else if (da<0 || db<0) { const auto clipped=from+(to-from)*(da/(da-db)); if (da<0) from=clipped; else to=clipped; }
                }
@@ -375,9 +561,9 @@ void PlotCanvas::paintEvent(QPaintEvent *)
             auto line=[&](const osg::Vec3d &from,const osg::Vec3d &to) {
                PlotPoint a=*last,b=*last; a.x=from.x(); a.y=from.y(); a.z=from.z(); b.x=to.x(); b.y=to.y(); b.z=to.z();
                if (data->perspective) {
-                  const double near=1e-6;
-                  const double da=camera.distance-(from-camera.target)*camera.outward-near;
-                  const double db=camera.distance-(to-camera.target)*camera.outward-near;
+                  const double nearDistance=1e-6;
+                  const double da=camera.distance-(from-camera.target)*camera.outward-nearDistance;
+                  const double db=camera.distance-(to-camera.target)*camera.outward-nearDistance;
                   if (da<0 && db<0) return;
                   if (da<0 || db<0) { const auto clipped=from+(to-from)*(da/(da-db)); auto &point=da<0 ? a : b; point.x=clipped.x(); point.y=clipped.y(); point.z=clipped.z(); }
                }
@@ -386,8 +572,9 @@ void PlotCanvas::paintEvent(QPaintEvent *)
             };
             for (const auto &axis:axes) { line(axis.start,axis.end); for (const auto &wing:axis.arrow) line(axis.end,wing); }
          }
-         if (last && (curve.objectGrid || curve.objectXYPlane)) {
-            const auto geometry=orbitObjectGuides(curve,*last,orbitObjectGuideRadius(curve));
+         const bool celestialGrid=data->grid && curve.showObject && curve.radius>0;
+         if (last && (curve.objectGrid || curve.objectXYPlane || celestialGrid)) {
+            const auto geometry=orbitObjectGuides(curve,*last,orbitObjectGuideRadius(curve),celestialGrid);
             auto point=[&](const osg::Vec3d &position,QColor color) -> const PlotPoint * {
                PlotPoint p; p.x=position.x(); p.y=position.y(); p.z=position.z(); p.color=color; clippedPoints.push_back(p); return &clippedPoints.back();
             };
@@ -436,7 +623,7 @@ void PlotCanvas::paintEvent(QPaintEvent *)
                const auto delta=origin-osg::Vec3d(center->x,center->y,center->z);
                const double a=direction*direction,b=delta*direction,c=delta*delta-body.radius*body.radius;
                const double discriminant=b*b-a*c;
-               if (a>0 && discriminant>=0) { const double near=(-b-std::sqrt(discriminant))/a; if (near>=0 && near<reach-1e-9) { occluded=true; break; } }
+               if (a>0 && discriminant>=0) { const double nearDistance=(-b-std::sqrt(discriminant))/a; if (nearDistance>=0 && nearDistance<reach-1e-9) { occluded=true; break; } }
             }
             if (!occluded) objects.append({depth(point),&curve,&point,nullptr,marker.endpoint ? 2 : 1});
          }
@@ -447,9 +634,9 @@ void PlotCanvas::paintEvent(QPaintEvent *)
             PlotPoint a,b; a.color=b.color=vector.color;
             a.x=from.x(); a.y=from.y(); a.z=from.z(); b.x=to.x(); b.y=to.y(); b.z=to.z();
             if (data->perspective) {
-               const double near=1e-6;
-               const double da=camera.distance-(from-camera.target)*camera.outward-near;
-               const double db=camera.distance-(to-camera.target)*camera.outward-near;
+               const double nearDistance=1e-6;
+               const double da=camera.distance-(from-camera.target)*camera.outward-nearDistance;
+               const double db=camera.distance-(to-camera.target)*camera.outward-nearDistance;
                if (da<0 && db<0) return;
                if (da<0 || db<0) { const auto clipped=from+(to-from)*(da/(da-db)); auto &point=da<0 ? a : b; point.x=clipped.x(); point.y=clipped.y(); point.z=clipped.z(); }
             }
@@ -582,24 +769,45 @@ void PlotCanvas::paintEvent(QPaintEvent *)
       painter.drawRect(QRectF(p-QPointF(3,3),QSizeF(6,6))); if (data->labels) painter.drawText(p+QPointF(6,-6),station.name);
    }
    painter.restore(); painter.setPen(foreground);
-   if (!orbit) {
-      painter.drawRect(area);
-      const int nx=ground ? 5 : data->xAxis.ticks,ny=ground ? 5 : data->yAxis.ticks;
+   if (ground) {
+      for (const auto &label:groundTrackAxisLabels(area,xmin,xmax,metrics,Qt::Horizontal,0))
+         painter.drawText(label.bounds,Qt::AlignCenter,label.text);
+      const int gutterLeft=compactGround ? 4 : metrics.height()+8;
+      for (const auto &label:groundTrackAxisLabels(area,ymin,ymax,metrics,Qt::Vertical,gutterLeft))
+         painter.drawText(label.bounds,Qt::AlignRight|Qt::AlignVCenter,label.text);
+      if (!compactGround) {
+         painter.drawText(QRectF(area.left(),height()-epochRow-metrics.height()-4,area.width(),metrics.height()),
+            Qt::AlignCenter,metrics.elidedText(data->xLabel,Qt::ElideMiddle,static_cast<int>(area.width())));
+         painter.save(); painter.translate(2,area.center().y()); painter.rotate(-90);
+         painter.drawText(QRectF(-area.height()/2,0,area.height(),metrics.height()),Qt::AlignCenter,
+            metrics.elidedText(data->yLabel,Qt::ElideRight,static_cast<int>(area.height())));
+         painter.restore();
+      }
+   } else if (!orbit) {
+      const int nx=data->xAxis.ticks,ny=data->yAxis.ticks;
       for (int i=0;i<=nx;++i) {
          const double x=xmin+(xmax-xmin)*i/nx,xp=area.left()+area.width()*i/nx;
-         const auto label=QString::number(x,'g',ground ? 5 : data->xAxis.precision); const int labelWidth=std::max(76,metrics.horizontalAdvance(label)+8);
+         const auto label=QString::number(x,'g',data->xAxis.precision); const int labelWidth=std::max(76,metrics.horizontalAdvance(label)+8);
          painter.drawText(QRectF(xp-labelWidth/2.,area.bottom()+4,labelWidth,20),Qt::AlignCenter,label);
       }
       for (int i=0;i<=ny;++i) {
          const double y=ymin+(ymax-ymin)*i/ny,yp=area.bottom()-area.height()*i/ny;
-         painter.drawText(QRectF(24,yp-10,area.left()-31,20),Qt::AlignRight|Qt::AlignVCenter,QString::number(y,'g',ground ? 5 : data->yAxis.precision));
+         painter.drawText(QRectF(24,yp-10,area.left()-31,20),Qt::AlignRight|Qt::AlignVCenter,QString::number(y,'g',data->yAxis.precision));
       }
-      painter.drawText(QRectF(area.left(),height()-28,area.width(),22),Qt::AlignCenter,metrics.elidedText(data->xLabel,Qt::ElideMiddle,static_cast<int>(area.width())));
+      painter.drawText(QRectF(area.left(),height()-28-epochRow,area.width(),22),Qt::AlignCenter,metrics.elidedText(data->xLabel,Qt::ElideMiddle,static_cast<int>(area.width())));
       painter.save(); painter.translate(1,area.center().y()); painter.rotate(-90); painter.drawText(QRectF(-area.height()/2,0,area.height(),20),Qt::AlignCenter,painter.fontMetrics().elidedText(data->yLabel,Qt::ElideRight,static_cast<int>(area.height()))); painter.restore();
-   } else painter.drawText(QRectF(10,height()-28,width()-20,22),Qt::AlignCenter,data->coordinates + " · km");
+   } else painter.drawText(QRectF(10,height()-28-epochRow,width()-20,22),Qt::AlignCenter,data->coordinates + " · km");
+   if (epochRow) {
+      const auto caption=plotUtcCaption(*data,visibleFrame);
+      setAccessibleDescription(caption+(groundCoordinates.isEmpty() ? QString() : "\n"+groundCoordinates));
+      if (ground) {
+         const QRectF captionArea(8,height()-epochRow,width()-16,metrics.height());
+         painter.drawText(captionArea,Qt::AlignCenter,metrics.elidedText(caption,Qt::ElideRight,static_cast<int>(captionArea.width())));
+      } else painter.drawText(QRectF(10,height()-28,width()-20,22),Qt::AlignCenter,caption);
+   }
    const int cells=rows*columns, cellWidth=legendWidth/columns;
    for (int i=0;i<std::min(cells,static_cast<int>(legendCurves.size()));++i) {
-      const int x=12+(i%columns)*cellWidth, y=28+(i/columns)*lineHeight;
+      const int x=12+(i%columns)*cellWidth, y=legendTop+(i/columns)*lineHeight;
       const bool overflow=i==cells-1 && legendCurves.size()>cells;
       if (overflow) {
          painter.setPen(foreground);
@@ -607,10 +815,11 @@ void PlotCanvas::paintEvent(QPaintEvent *)
             metrics.elidedText(QString("+ %1 more (hover for names)").arg(legendCurves.size()-i),Qt::ElideRight,cellWidth));
       } else {
          const auto &curve=*legendCurves[i];
-         painter.setPen(QPen(curve.color,2)); painter.drawLine(x,y+lineHeight/2,x+15,y+lineHeight/2);
+         painter.setPen(data->kind==PlotModel::Kind::XY ? curvePen(curve,curve.color) : QPen(curve.color,2));
+         painter.drawLine(x,y+lineHeight/2,x+legendSampleWidth,y+lineHeight/2);
          painter.setPen(foreground);
-         painter.drawText(QRect(x+20,y,cellWidth-28,lineHeight),Qt::AlignVCenter,
-            metrics.elidedText(curve.name,Qt::ElideMiddle,cellWidth-28));
+         painter.drawText(QRect(x+legendSampleWidth+5,y,cellWidth-legendSampleWidth-13,lineHeight),Qt::AlignVCenter,
+            metrics.elidedText(curve.name,Qt::ElideMiddle,cellWidth-legendSampleWidth-13));
       }
    }
 }
@@ -622,19 +831,18 @@ class PlotPlaybackPanel final : public QWidget
 public:
    explicit PlotPlaybackPanel(QWidget *parent) : QWidget(parent), grid(new QGridLayout(this))
    {
-      grid->setContentsMargins(6,2,6,4); grid->setHorizontalSpacing(10); grid->setVerticalSpacing(4);
+      grid->setContentsMargins(4,2,4,2); grid->setHorizontalSpacing(4); grid->setVerticalSpacing(2);
       grid->setSizeConstraint(QLayout::SetNoConstraint);
-      grid->setColumnStretch(4,1);
+      setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
    }
-   void configure(QWidget *buttons,QWidget *mode,QWidget *speed,QWidget *rate,QWidget *timeline)
+   void configure(QToolBar *views,QWidget *buttons,QWidget *mode,QWidget *speed,
+                  QWidget *rate,QWidget *timeline,QWidget *menu)
    {
-      groups={buttons,mode,speed,rate}; position=timeline; arrange();
+      viewBar=views; groups={buttons,mode,speed,rate}; position=timeline; more=menu; arrange();
    }
    QSize minimumSizeHint() const override
    {
-      int width=0;
-      for (auto *group:groups) if (!group->isHidden()) width=std::max(width,group->minimumSizeHint().width());
-      return {width+12,grid->minimumSize().height()};
+      return {std::max(200,position ? position->minimumSizeHint().width()+8 : 0),grid->minimumSize().height()};
    }
 protected:
    void resizeEvent(QResizeEvent *event) override { QWidget::resizeEvent(event); arrange(); }
@@ -646,29 +854,58 @@ protected:
    }
 private:
    QGridLayout *grid;
+   QToolBar *viewBar=nullptr;
    QVector<QWidget *> groups;
-   QWidget *position=nullptr;
-   int rows=0;
+   QWidget *position=nullptr,*more=nullptr;
+   int rows=0,viewWidth=0;
    void arrange()
    {
-      if (!position) return;
-      const auto hint=[this](int index) { return groups[index]->isHidden() ? 0 : groups[index]->sizeHint().width(); };
-      const int available=width()-12;
-      const int wanted=available>=hint(0)+hint(1)+hint(2)+hint(3)+30 ? 1 :
-         available>=std::max(hint(0)+hint(2),hint(1)+hint(3))+10 ? 2 : 3;
-      if (wanted==rows) return;
-      rows=wanted;
-      for (auto *group:groups) grid->removeWidget(group);
-      grid->removeWidget(position);
-      if (rows==1) {
-         for (int i=0;i<groups.size();++i) grid->addWidget(groups[i],0,i,Qt::AlignLeft);
-      } else {
-         grid->addWidget(groups[0],0,0,1,2,Qt::AlignLeft);
-         grid->addWidget(groups[2],0,2,1,2,Qt::AlignLeft);
-         grid->addWidget(groups[1],1,0,1,rows==2 ? 2 : 4,Qt::AlignLeft);
-         grid->addWidget(groups[3],rows==2 ? 1 : 2,rows==2 ? 2 : 0,1,rows==2 ? 2 : 4,Qt::AlignLeft);
+      if (!viewBar || !more) return;
+      const auto hint=[this](int index) {
+         return !groups[index] || groups[index]->isHidden() ? 0 : groups[index]->sizeHint().width();
+      };
+      const int available=width()-8;
+      const int minimumViews=std::min(viewBar->sizeHint().width(),2*viewBar->sizeHint().height());
+      const int playback=hint(0)+hint(1)+hint(2)+more->sizeHint().width()+20;
+      if (position) {
+         auto *label=position->findChild<QLabel *>("plotReplayPosition");
+         auto *scope=position->findChild<QLabel *>("plotPlaybackScope");
+         auto *slider=position->findChild<QSlider *>();
+         if (label && slider) {
+            const int labeledWidth=slider->minimumWidth()+std::max(label->minimumWidth(),label->sizeHint().width())+
+               (scope ? scope->sizeHint().width()+8 : 0)+8;
+            label->setVisible(available>=minimumViews+playback+hint(3)+labeledWidth+4);
+         }
       }
-      grid->addWidget(position,rows,0,1,5);
+      const int positionWidth=position ? position->minimumSizeHint().width() : 0;
+      int wanted=1;
+      if (position && available<minimumViews+playback+hint(3)+positionWidth+4)
+         wanted=available>=minimumViews+playback && available>=positionWidth+hint(3)+4 ? 2 : 3;
+      const int fixed=playback+(wanted==1 ? hint(3)+positionWidth+4 : 0);
+      const int nextViewWidth=std::clamp(available-fixed,minimumViews,viewBar->sizeHint().width());
+      if (wanted==rows && nextViewWidth==viewWidth) return;
+      rows=wanted; viewWidth=nextViewWidth;
+      viewBar->setMaximumWidth(viewWidth);
+      while (auto *item=grid->takeAt(0)) delete item;
+      for (int column=0;column<7;++column) grid->setColumnStretch(column,0);
+      const auto add=[this](QWidget *widget,int row,int column,int span=1) {
+         if (widget) grid->addWidget(widget,row,column,1,span);
+      };
+      add(viewBar,0,0);
+      if (rows==1) {
+         add(groups[0],0,1); add(position,0,2); add(groups[2],0,3);
+         add(groups[1],0,4); add(groups[3],0,5); add(more,0,6);
+         grid->setColumnStretch(2,1);
+      } else if (rows==2) {
+         add(groups[0],0,1); add(groups[2],0,3); add(groups[1],0,4); add(more,0,6);
+         add(position,1,0,4); add(groups[3],1,4,3);
+         grid->setColumnStretch(2,1);
+      } else {
+         add(more,0,6); add(groups[0],1,0,3); add(groups[2],1,3,2); add(groups[1],1,5,2);
+         add(position,2,0,7); add(groups[3],3,0,7);
+         grid->setColumnStretch(2,1);
+      }
+      setProperty("controlRows",rows);
       updateGeometry();
    }
 };
@@ -677,17 +914,31 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
 {
    historyGeneration=data->historyGeneration;
    auto *layout = new QVBoxLayout(this); layout->setContentsMargins(0,0,0,0);
-   auto *bar = new QToolBar(this); plotToolbar=bar;
+   layout->setSpacing(0);
+   auto *transport=new PlotPlaybackPanel(this); transportControls=transport;
+   transport->setObjectName(data->kind==PlotModel::Kind::XY ? "plotControlBar" : "plotPlaybackControls");
+   auto *bar = new QToolBar(transport); plotToolbar=bar;
+   bar->setObjectName("plotViewToolbar"); bar->setIconSize(QSize(20,20));
+   bar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+   bar->setMovable(false); bar->setFloatable(false);
+   bar->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
+   using GmatQtIcons::PlotIcon;
+   const auto icon=[this](PlotIcon symbol) { return plotActionIcon(symbol,this); };
    restoreToolbar=new QToolButton(this); restoreToolbar->setObjectName("plotRestoreToolbar");
    restoreToolbar->setText("Show plot toolbar"); restoreToolbar->setAccessibleName("Show plot toolbar");
+   restoreToolbar->setIcon(icon(PlotIcon::More));
+   restoreToolbar->setToolTip("Show plot toolbar"); restoreToolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
    restoreToolbar->hide(); layout->addWidget(restoreToolbar,0,Qt::AlignLeft);
    connect(restoreToolbar,&QToolButton::clicked,this,[this] { setPlotToolbarVisible(true); if (toolbarVisibilityChanged) toolbarVisibilityChanged(true); });
    auto *toggleToolbar=new QAction("Show plot toolbar",this); toggleToolbar->setObjectName("plotToggleToolbar");
+   toggleToolbar->setCheckable(true); toggleToolbar->setChecked(true);
    toggleToolbar->setShortcut(QKeySequence("Ctrl+Shift+T")); toggleToolbar->setShortcutContext(Qt::WidgetWithChildrenShortcut); addAction(toggleToolbar);
    connect(toggleToolbar,&QAction::triggered,this,[this] { const bool show=plotToolbar->isHidden(); setPlotToolbarVisible(show); if (toolbarVisibilityChanged) toolbarVisibilityChanged(show); });
- layout->addWidget(bar);
+   layout->addWidget(transport);
    drawing = new PlotCanvas(data,this);
-   auto *fit = bar->addAction("Fit"); connect(fit,&QAction::triggered,drawing,&PlotCanvas::fit);
+   auto *fit = bar->addAction(icon(PlotIcon::Fit),"Fit");
+   fit->setObjectName("plotFitAction"); fit->setToolTip("Fit the plot to the window");
+   connect(fit,&QAction::triggered,drawing,&PlotCanvas::fit);
    if (data->kind==PlotModel::Kind::Orbit) {
       auto *cameraDialog=new QDialog(this); cameraDialog->setObjectName("orbitCameraDialog");
       cameraDialog->setWindowTitle(data->title+" — Camera");
@@ -695,7 +946,8 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
       auto *help=new QLabel("Changes preview immediately in this viewer. Keep projection writes the selected camera's projection and field of view to the script; save the script to retain them on disk.",cameraDialog);
       help->setWordWrap(true); cameraLayout->addWidget(help);
       auto *cameraForm=new QFormLayout; cameraLayout->addLayout(cameraForm);
-      auto *cameraAction=bar->addAction("Camera…"); cameraAction->setObjectName("orbitCameraAction");
+      auto *cameraAction=bar->addAction(icon(PlotIcon::Camera),"Camera…"); cameraAction->setObjectName("orbitCameraAction");
+      cameraAction->setToolTip("Camera settings");
       connect(cameraAction,&QAction::triggered,this,[cameraDialog] { cameraDialog->show(); cameraDialog->raise(); cameraDialog->activateWindow(); });
       auto *projection=new QComboBox(cameraDialog); projection->setObjectName("orbitProjection");
       projection->addItems({"Orthographic","Perspective"}); projection->setCurrentIndex(data->perspective ? 1 : 0);
@@ -767,31 +1019,70 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
             drawing->refresh();
          });
       }
+      auto *starDisplay=displayDialog->findChild<QCheckBox *>("orbitDisplay_stars");
+      auto *constellationDisplay=displayDialog->findChild<QCheckBox *>("orbitDisplay_constellations");
+      connect(starDisplay,&QCheckBox::toggled,constellationDisplay,&QCheckBox::setEnabled);
+      constellationDisplay->setEnabled(starDisplay->isChecked());
       auto *displayClose=new QDialogButtonBox(QDialogButtonBox::Close,displayDialog); displayLayout->addWidget(displayClose);
       connect(displayClose,&QDialogButtonBox::rejected,displayDialog,&QDialog::reject);
-      auto *displayAction=bar->addAction("Display…"); displayAction->setObjectName("orbitDisplayAction");
-      connect(displayAction,&QAction::triggered,this,[this,displayDialog,displayControls] {
+      auto *displayAction=bar->addAction(icon(PlotIcon::Display),"Display…"); displayAction->setObjectName("orbitDisplayAction");
+      displayAction->setToolTip("Display settings");
+      connect(displayAction,&QAction::triggered,this,[this,displayDialog,displayControls,constellationDisplay] {
          for (const auto &control:displayControls) { const QSignalBlocker block(control.first); control.first->setChecked(data.get()->*control.second); }
+         constellationDisplay->setEnabled(data->starsEnabled);
          displayDialog->show(); displayDialog->raise(); displayDialog->activateWindow();
       });
       displayDialog->resize(410,240);
-      auto *scriptView=bar->addAction("Script view");
+      auto *scriptView=bar->addAction(icon(PlotIcon::ScriptView),"Script view"); scriptView->setObjectName("orbitScriptView");
       scriptView->setToolTip("Restore the scripted camera, tracking and scale");
       connect(scriptView,&QAction::triggered,drawing,&PlotCanvas::scriptView);
-      auto *resetView=bar->addAction("Reset view"); resetView->setObjectName("orbitResetView");
+      auto *resetView=bar->addAction(icon(PlotIcon::ResetView),"Reset view"); resetView->setObjectName("orbitResetView");
       resetView->setToolTip("Reset the selected camera to its default pose (Space in the plot)");
       auto *resetShortcut=new QShortcut(QKeySequence(Qt::Key_Space),drawing); resetShortcut->setObjectName("orbitResetShortcut");
       resetShortcut->setContext(Qt::WidgetWithChildrenShortcut);
       connect(resetShortcut,&QShortcut::activated,resetView,&QAction::trigger);
       connect(resetView,&QAction::triggered,drawing,&PlotCanvas::resetView);
-      auto *sunlight=bar->addAction("Sunlight"); sunlight->setCheckable(true); sunlight->setChecked(data->sunlight);
+      auto *sunlight=bar->addAction(icon(PlotIcon::Sunlight),"Sunlight");
+      sunlight->setObjectName("orbitSunlight"); sunlight->setCheckable(true); sunlight->setChecked(data->sunlight);
       sunlight->setToolTip("Use the mission's Sun position; turn off for lighting from the camera");
       connect(sunlight,&QAction::toggled,this,[this](bool checked) { data->sunlight=checked; drawing->refresh(); });
    }
+   if (data->kind==PlotModel::Kind::GroundTrack) {
+      auto *layers=new QMenu("Map overlays",bar); layers->setObjectName("groundMapOverlays");
+      layers->setIcon(icon(PlotIcon::Layers));
+      auto *layerAction=layers->menuAction(); layerAction->setObjectName("groundMapOverlaysAction");
+      layerAction->setToolTip("Map overlays, with detail increasing as you zoom in");
+      layerAction->setEnabled(data->groundBody=="Earth");
+      for (const auto &item:QList<QPair<QString,bool GroundMapOverlayOptions::*>>{
+              {"Country boundaries",&GroundMapOverlayOptions::countries},
+              {"US counties",&GroundMapOverlayOptions::counties},
+              {"Cities and towns",&GroundMapOverlayOptions::cities}}) {
+         auto *action=layers->addAction(item.first); action->setCheckable(true);
+         action->setChecked(data->mapOverlays.*item.second);
+         action->setObjectName(item.second==&GroundMapOverlayOptions::countries ? "groundCountries" :
+                               item.second==&GroundMapOverlayOptions::counties ? "groundCounties" : "groundCities");
+         connect(action,&QAction::toggled,this,[this,field=item.second](bool checked) {
+            data->mapOverlays.*field=checked; drawing->refresh();
+         });
+      }
+      layers->addSeparator();
+      auto *credits=layers->addAction("Map data…");
+      connect(credits,&QAction::triggered,this,[this] {
+         QMessageBox::information(this,"Map data",
+            "Countries and 7,342 cities/towns: Natural Earth 5.1.1/5.1.2 (public domain).\n"
+            "US county boundaries: US Census Bureau 2025, 1:5 million.\n\n"
+            "County boundaries and smaller places appear as you zoom in. Labels adapt to available space.\n"
+            "naturalearthdata.com · census.gov");
+      });
+      bar->addAction(layerAction);
+      if (auto *button=qobject_cast<QToolButton *>(bar->widgetForAction(layerAction)))
+         button->setPopupMode(QToolButton::InstantPopup);
+   }
    if (data->kind==PlotModel::Kind::XY) {
-      auto *style=bar->addAction("Style…"); style->setObjectName("plotStyleAction");
+      auto *style=bar->addAction(icon(PlotIcon::Style),"Style…"); style->setObjectName("plotStyleAction");
+      style->setToolTip("Plot style");
       connect(style,&QAction::triggered,this,&PlotWidget::editPlotStyle);
-      auto *exportAction=bar->addAction("Export data…"); exportAction->setObjectName("plotExportData");
+      auto *exportAction=bar->addAction(icon(PlotIcon::ExportData),"Export data…"); exportAction->setObjectName("plotExportData");
       exportAction->setToolTip("Save all retained curves, including points outside the visible range");
       connect(exportAction,&QAction::triggered,this,[this] {
          const auto path=QFileDialog::getSaveFileName(this,"Export plot data",QFileInfo(data->title).fileName()+".txt","Text files (*.txt);;All files (*)");
@@ -799,13 +1090,22 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
          const auto error=exportData(path); if (!error.isEmpty()) QMessageBox::warning(this,"Could not export plot data",error);
       });
    }
-   auto *save = bar->addAction("Save image…"); save->setObjectName("plotSaveImage");
+   auto *save = bar->addAction(icon(PlotIcon::SaveImage),"Save image…"); save->setObjectName("plotSaveImage");
+   save->setToolTip("Save plot image");
    connect(save,&QAction::triggered,this,[this] {
       const auto path=QFileDialog::getSaveFileName(this,"Save plot image",data->title+".png","PNG image (*.png)");
       if (path.isEmpty()) return;
       const auto error=exportImage(path);
       if (!error.isEmpty()) QMessageBox::warning(this,"Could not save plot",error);
    });
+   auto *contextMenu=new QMenu(this); contextMenu->setObjectName("plotContextMenu");
+   contextMenu->addActions(bar->actions());
+   auto *more=new QToolButton(transport); more->setObjectName("plotActionsButton");
+   more->setIcon(icon(PlotIcon::More));
+   more->setToolTip("Plot actions"); more->setAccessibleName("Plot actions");
+   more->setPopupMode(QToolButton::InstantPopup); more->setMenu(contextMenu);
+   QWidget *buttonGroup=nullptr,*positionRow=nullptr,*speedGroup=nullptr;
+   QToolButton *modeButton=nullptr;
    timeline = new QSlider(Qt::Horizontal,this); timeline->setObjectName("plotTimeline"); timeline->setRange(0,1000); timeline->setValue(1000);
    timeline->hide();
    timer = new QTimer(this); timer->setObjectName("plotReplayTimer"); timer->setInterval(30);
@@ -821,16 +1121,19 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
       if (simulationClock && simulationRequested) simulationRequested(SimulationCommand::Mode,replayMode->currentData().toInt()); else updateReplayFrame();
    });
    if (data->kind != PlotModel::Kind::XY) {
-      auto *transport=new PlotPlaybackPanel(this); transportControls=transport; transport->setObjectName("plotPlaybackControls");
-      auto *buttonGroup=new QWidget(transport);
+      buttonGroup=new QWidget(transport);
       auto *buttons=new QHBoxLayout(buttonGroup); buttons->setContentsMargins(0,0,0,0); buttons->setSpacing(2);
-      auto *positionRow=new QWidget(transport);
+      positionRow=new QWidget(transport);
       auto *position=new QHBoxLayout(positionRow); position->setContentsMargins(0,0,0,0); position->setSpacing(8);
-      layout->addWidget(transport);
+      replayScope=new QLabel("This view",positionRow); replayScope->setObjectName("plotPlaybackScope");
+      replayScope->setToolTip("These controls affect this view and release linked all-plot playback");
+      position->addWidget(replayScope);
       auto addPlaybackAction=[&](QStyle::StandardPixmap icon,const QString &text,QHBoxLayout *row=nullptr) {
-         auto *action=new QAction(style()->standardIcon(icon),text,transport);
+         auto *action=new QAction(standardActionIcon(icon,this),text,transport);
          auto *button=new QToolButton(transport); button->setDefaultAction(action);
-         button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon); button->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed);
+         button->setToolButtonStyle(Qt::ToolButtonIconOnly); button->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed);
+         button->setAccessibleName(text);
+         connect(action,&QAction::changed,button,[button,action] { button->setAccessibleName(action->text()); });
          (row ? row : buttons)->addWidget(button);
          return action;
       };
@@ -845,30 +1148,25 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
       connect(replay,&QAction::triggered,this,[this] { if (replayRequested) replayRequested(); });
       connect(replay,&QAction::toggled,this,[this](bool checked) {
          replay->setText(checked ? "Pause" : "Play");
-         replay->setIcon(style()->standardIcon(checked ? QStyle::SP_MediaPause : QStyle::SP_MediaPlay));
+         replay->setIcon(standardActionIcon(checked ? QStyle::SP_MediaPause : QStyle::SP_MediaPlay,this));
          if (simulationClock && simulationRequested) { timer->stop(); simulationRequested(SimulationCommand::Play,checked); }
-         else if (checked) { if (timeline->value()==1000) timeline->setValue(0); timer->start(); } else timer->stop();
+         else if (checked) { if (replayProgress>=1000) timeline->setValue(0); timer->start(); } else timer->stop();
       });
       timeline->setToolTip("Position within retained mission history"); timeline->setAccessibleName("Playback position");
       timeline->setMinimumWidth(100); timeline->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Preferred);
       position->addWidget(timeline,1); timeline->show();
       replayPosition=new QLabel("Latest",transport); replayPosition->setObjectName("plotReplayPosition");
       replayPosition->setMinimumWidth(replayPosition->fontMetrics().horizontalAdvance("Latest")+8); position->addWidget(replayPosition);
-      auto *speedGroup=new QWidget(transport);
+      speedGroup=new QWidget(transport);
       auto *speedLayout=new QHBoxLayout(speedGroup); speedLayout->setContentsMargins(0,0,0,0); speedLayout->setSpacing(2);
       auto *speed=new QComboBox(transport); speed->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed); playbackSpeed=speed; speed->setObjectName("plotReplaySpeed"); speed->setAccessibleName("Playback speed");
-      speed->setToolTip("Playback speed relative to a three-second sweep of recorded history");
-      for (double rate:{0.25,0.5,1.,2.,4.}) speed->addItem(QString::number(rate)+QString::fromUtf8("×"),rate);
-      speed->setCurrentIndex(2);
-      auto *slower=addPlaybackAction(QStyle::SP_ArrowLeft,"Slower",speedLayout); slower->setObjectName("plotReplaySlower");
+      speed->setToolTip("Animation speed: 1× sweeps recorded history in about 3 seconds; this is not a real-time multiplier");
+      for (double rate:plotReplaySpeeds) speed->addItem(QString::number(rate)+QString::fromUtf8("×"),rate);
+      speed->setCurrentIndex(speed->findData(1.));
+      auto *slower=new QAction("Slower",transport); slower->setObjectName("plotReplaySlower");
       speedLayout->addWidget(speed);
-      auto *faster=addPlaybackAction(QStyle::SP_ArrowRight,"Faster",speedLayout); faster->setObjectName("plotReplayFaster");
+      auto *faster=new QAction("Faster",transport); faster->setObjectName("plotReplayFaster");
       slower->setToolTip("Decrease playback speed"); faster->setToolTip("Increase playback speed");
-      for (auto *button:transport->findChildren<QToolButton *>())
-         if (button->defaultAction()==slower || button->defaultAction()==faster) {
-            button->setToolButtonStyle(Qt::ToolButtonIconOnly);
-            button->setAccessibleName(button->defaultAction()->text());
-         }
       connect(slower,&QAction::triggered,this,[speed] { speed->setCurrentIndex(std::max(0,speed->currentIndex()-1)); });
       connect(faster,&QAction::triggered,this,[speed] { speed->setCurrentIndex(std::min(speed->count()-1,speed->currentIndex()+1)); });
       auto syncSpeed=[speed,slower,faster] {
@@ -876,29 +1174,61 @@ PlotWidget::PlotWidget(std::shared_ptr<PlotModel> model, QWidget *parent) : QWid
       };
       connect(speed,&QComboBox::currentIndexChanged,this,syncSpeed); syncSpeed();
       connect(speed,&QComboBox::currentIndexChanged,this,[this,speed] { if (simulationClock && simulationRequested) simulationRequested(SimulationCommand::Multiplier,speed->currentData().toDouble()); });
-      replayMode->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed); replayMode->show();
+      contextMenu->addSeparator();
+      auto *playbackMenu=contextMenu->addMenu("Playback"); playbackMenu->setObjectName("plotPlaybackMenu");
+      playbackMenu->addAction(start); playbackMenu->addAction(replay); playbackMenu->addAction(latest);
+      auto *modeMenu=playbackMenu->addMenu("Playback mode"); modeMenu->setObjectName("plotReplayModeMenu");
+      auto *modes=new QActionGroup(modeMenu); modes->setExclusive(true);
+      for (int index=0;index<replayMode->count();++index) {
+         auto *action=modeMenu->addAction(replayMode->itemText(index));
+         action->setCheckable(true); action->setChecked(index==replayMode->currentIndex()); modes->addAction(action);
+         connect(action,&QAction::triggered,replayMode,[this,index] { replayMode->setCurrentIndex(index); });
+      }
+      modeButton=new QToolButton(transport); modeButton->setObjectName("plotReplayModeButton");
+      modeButton->setIcon(icon(PlotIcon::ReplayMode));
+      modeButton->setAccessibleName("Playback mode"); modeButton->setPopupMode(QToolButton::InstantPopup); modeButton->setMenu(modeMenu);
+      connect(replayMode,&QComboBox::currentIndexChanged,this,&PlotWidget::updateReplayModeUi);
+      connect(modeMenu,&QMenu::aboutToShow,this,&PlotWidget::updateReplayModeUi);
+      updateReplayModeUi();
+      auto *speedMenu=playbackMenu->addMenu("Playback speed"); auto *speeds=new QActionGroup(speedMenu); speeds->setExclusive(true);
+      for (int index=0;index<speed->count();++index) {
+         auto *action=speedMenu->addAction(speed->itemText(index)); action->setCheckable(true);
+         action->setChecked(index==speed->currentIndex()); speeds->addAction(action);
+         connect(action,&QAction::triggered,speed,[speed,index] { speed->setCurrentIndex(index); });
+      }
+      connect(speedMenu,&QMenu::aboutToShow,speedMenu,[speed,speeds] {
+         const auto actions=speeds->actions();
+         for (int index=0;index<actions.size();++index) actions[index]->setChecked(index==speed->currentIndex());
+      });
+      speedMenu->addSeparator(); speedMenu->addAction(slower); speedMenu->addAction(faster);
       simulationRateRow=new QWidget(transport); auto *rateLayout=new QHBoxLayout(simulationRateRow); rateLayout->setContentsMargins(0,0,0,0); rateLayout->setSpacing(6);
       auto *rateLabel=new QLabel("Simulation s/s",simulationRateRow); rateLayout->addWidget(rateLabel);
       simulationRate=new QLineEdit(simulationRateRow); simulationRate->setObjectName("plotSimulationRate");
       simulationRate->setFixedWidth(simulationRate->fontMetrics().horizontalAdvance("-123456.789")+20);
       simulationRate->setAccessibleName("Simulation seconds per wall second"); rateLabel->setBuddy(simulationRate);
       rateLayout->addWidget(simulationRate); simulationRateRow->hide();
-      transport->configure(buttonGroup,replayMode,speedGroup,simulationRateRow,positionRow);
       connect(simulationRate,&QLineEdit::editingFinished,this,[this] {
          bool ok=false; const double rate=simulationRate->text().toDouble(&ok);
          if (ok && std::isfinite(rate) && simulationRequested) simulationRequested(SimulationCommand::Rate,rate);
          else if (simulationClock) { simulationRate->setText(QString::number(simulationClock->rate,'g',17)); simulationRate->setToolTip("Enter a finite signed rate; zero holds the clock."); }
       });
-      connect(timer,&QTimer::timeout,this,[this,speed,remainder=0.]() mutable {
-         const double advance=10*speed->currentData().toDouble()+remainder;
-         const int steps=static_cast<int>(advance); remainder=advance-steps;
-         timeline->setValue(std::min(1000,timeline->value()+steps));
-         if (timeline->value()==1000) replay->setChecked(false);
+      connect(timer,&QTimer::timeout,this,[this,speed] {
+         replayProgress=std::min(1000.,replayProgress+10*speed->currentData().toDouble());
+         { const QSignalBlocker block(timeline); timeline->setValue(qRound(replayProgress)); }
+         updateReplayFrame();
+         if (replayProgress>=1000) replay->setChecked(false);
       });
       connect(timeline,&QSlider::sliderPressed,this,[this] { if (replayRequested) replayRequested(); if (simulationClock && simulationRequested) simulationRequested(SimulationCommand::Play,0); else replay->setChecked(false); });
 
    }
-   connect(timeline,&QSlider::valueChanged,this,[this] { if (replayRequested) replayRequested(); if (simulationClock && simulationRequested) simulationRequested(SimulationCommand::Seek,timeline->value()/1000.); else updateReplayFrame(); });
+   contextMenu->addSeparator(); contextMenu->addAction(toggleToolbar);
+   const auto showContext=[contextMenu](QWidget *widget,const QPoint &position) { contextMenu->popup(widget->mapToGlobal(position)); };
+   drawing->setContextMenuPolicy(Qt::CustomContextMenu);
+   connect(drawing,&QWidget::customContextMenuRequested,this,[this,showContext](const QPoint &position) { showContext(drawing,position); });
+   setContextMenuPolicy(Qt::CustomContextMenu);
+   connect(this,&QWidget::customContextMenuRequested,this,[this,showContext](const QPoint &position) { showContext(this,position); });
+   transport->configure(bar,buttonGroup,modeButton,speedGroup,simulationRateRow,positionRow,more);
+   connect(timeline,&QSlider::valueChanged,this,[this] { replayProgress=timeline->value(); if (replayRequested) replayRequested(); if (simulationClock && simulationRequested) simulationRequested(SimulationCommand::Seek,timeline->value()/1000.); else updateReplayFrame(); });
    layout->addWidget(drawing,1);
 }
 void PlotWidget::setPlotToolbarVisible(bool visible)
@@ -906,14 +1236,21 @@ void PlotWidget::setPlotToolbarVisible(bool visible)
    plotToolbar->setVisible(visible);
    if (transportControls) transportControls->setVisible(visible);
    restoreToolbar->setVisible(!visible);
+   if (auto *action=findChild<QAction *>("plotToggleToolbar")) { const QSignalBlocker block(action); action->setChecked(visible); }
 }
 void PlotWidget::setSimulationClock(const std::optional<PlotSimulationClocks::State> &state,const QString &root)
 {
    simulationClock=state;
+   replayClockRoot=root;
+   setReplayLinked(replayLinked);
    if (simulationRateRow) simulationRateRow->setVisible(state.has_value());
    if (!state) return;
    timer->stop();
-   if (replay) { const QSignalBlocker block(replay); replay->setChecked(state->playing); replay->setText(state->playing ? "Pause" : "Play"); replay->setIcon(style()->standardIcon(state->playing ? QStyle::SP_MediaPause : QStyle::SP_MediaPlay)); }
+   if (replay) {
+      { const QSignalBlocker block(replay); replay->setChecked(state->playing); }
+      replay->setText(state->playing ? "Pause" : "Play");
+      replay->setIcon(standardActionIcon(state->playing ? QStyle::SP_MediaPause : QStyle::SP_MediaPlay,this));
+   }
    if (playbackSpeed) { const QSignalBlocker block(playbackSpeed); playbackSpeed->setCurrentIndex(playbackSpeed->findData(state->multiplier)); playbackSpeed->setToolTip("Multiplier of the shared simulation clock rate");
       if (auto *slower=findChild<QAction *>("plotReplaySlower")) slower->setEnabled(playbackSpeed->currentIndex()>0);
       if (auto *faster=findChild<QAction *>("plotReplayFaster")) faster->setEnabled(playbackSpeed->currentIndex()+1<playbackSpeed->count()); }
@@ -921,7 +1258,8 @@ void PlotWidget::setSimulationClock(const std::optional<PlotSimulationClocks::St
    if (simulationRate) simulationRate->setToolTip("Shared clock: "+root+". Negative runs backward; zero holds. Editing resumes with multiplier 1×.");
    setSharedReplayMode(static_cast<PlotReplayMode>(state->mode));
    const QSignalBlocker block(timeline);
-   timeline->setValue(state->hasRange && state->maximum>state->minimum ? qRound(1000*(state->epoch-state->minimum)/(state->maximum-state->minimum)) : 0);
+   replayProgress=state->hasRange && state->maximum>state->minimum ? 1000*(state->epoch-state->minimum)/(state->maximum-state->minimum) : 0;
+   timeline->setValue(qRound(replayProgress));
    timeline->setToolTip("Absolute A1MJD interval of clock "+root);
    if (replayPosition) replayPosition->setText(state->hasRange ? QString::number(state->epoch,'f',6) : "No epoch");
    drawing->setSimulationEpoch(state->hasRange ? std::optional(state->epoch) : std::nullopt,static_cast<PlotReplayMode>(state->mode));
@@ -930,20 +1268,44 @@ void PlotWidget::setSharedReplayMode(PlotReplayMode mode)
 {
    const QSignalBlocker block(replayMode);
    replayMode->setCurrentIndex(replayMode->findData(static_cast<int>(mode)));
+   updateReplayModeUi();
 }
-void PlotWidget::setSharedReplayPosition(int value)
+void PlotWidget::updateReplayModeUi()
 {
+   if (auto *button=findChild<QToolButton *>("plotReplayModeButton"))
+      button->setToolTip(replayMode->currentText()+"\nChoose playback mode");
+   if (auto *menu=findChild<QMenu *>("plotReplayModeMenu")) {
+      const auto actions=menu->actions();
+      for (int index=0;index<actions.size();++index) actions[index]->setChecked(index==replayMode->currentIndex());
+   }
+}
+void PlotWidget::setSharedReplayPosition(double value)
+{
+   setReplayLinked(true);
    timer->stop();
-   if (replay) { const QSignalBlocker stop(replay); replay->setChecked(false); replay->setText("Play"); replay->setIcon(style()->standardIcon(QStyle::SP_MediaPlay)); }
+   if (replay) {
+      { const QSignalBlocker stop(replay); replay->setChecked(false); }
+      replay->setText("Play"); replay->setIcon(standardActionIcon(QStyle::SP_MediaPlay,this));
+   }
    drawing->setSimulationEpoch(std::nullopt,static_cast<PlotReplayMode>(replayMode->currentData().toInt()));
    const QSignalBlocker block(timeline);
-   timeline->setValue(std::clamp(value,0,1000));
+   replayProgress=std::clamp(value,0.,1000.);
+   timeline->setValue(qRound(replayProgress));
    updateReplayFrame();
+}
+void PlotWidget::setReplayLinked(bool linked)
+{
+   replayLinked=linked;
+   if (!replayScope) return;
+   replayScope->setText(linked ? "All plots" : simulationClock ? "Clock "+replayClockRoot : "This view");
+   replayScope->setToolTip(linked ? "This view follows all-plot playback. Use its controls for independent playback."
+      : simulationClock ? "These controls affect views linked to clock "+replayClockRoot
+      : "These controls affect this view and release linked all-plot playback");
 }
 void PlotWidget::updateReplayFrame()
 {
    if (simulationClock && data->simulationEpoch) { drawing->setSimulationEpoch(*data->simulationEpoch,static_cast<PlotReplayMode>(replayMode->currentData().toInt())); return; }
-   const int value=timeline->value();
+   const double value=replayProgress;
    if (replayPosition) replayPosition->setText(value==1000 ? "Latest" : QString::number(value/10.)+"%");
    if (value==1000) { drawing->setFrame(std::numeric_limits<quint64>::max()); return; }
    size_t pointCount=0;
@@ -994,16 +1356,24 @@ void PlotWidget::restoreView(const PlotViewState &state)
 
 void PlotWidget::refresh()
 {
+   if (auto *layers=findChild<QAction *>("groundMapOverlaysAction")) layers->setEnabled(data->groundBody=="Earth");
    if (historyGeneration!=data->historyGeneration) {
       historyGeneration=data->historyGeneration;
       timer->stop();
       if (replay) replay->setChecked(false);
       const QSignalBlocker block(timeline);
-      timeline->setValue(1000);
+      timeline->setValue(1000); replayProgress=1000;
    }
    // The retained interval moves as MaxPlotPoints evicts old samples. Resolve
    // the slider against that interval on every update, not only mouse movement.
    updateReplayFrame();
+   // Opt-in, read-only observation of this completed render-update request.
+   // It neither schedules refreshes nor changes data collection or replay.
+   // Dynamic properties avoid a new member, signal, or public widget API.
+   if (property("gmatObserveRefresh").toBool()) {
+      setProperty("gmatLastRefreshFrame",QVariant::fromValue<qulonglong>(data->frame));
+      setProperty("gmatRefreshSerial",property("gmatRefreshSerial").toULongLong()+1);
+   }
 }
 
 void PlotWidget::editPlotStyle()
@@ -1026,7 +1396,8 @@ void PlotWidget::editPlotStyle()
       const auto &axis=index==0 ? data->xAxis : data->yAxis; const QString id=index==0 ? "plotXAxis" : "plotYAxis";
       auto *page=new QWidget(tabs); auto *form=new QFormLayout(page); tabs->addTab(page,index==0 ? "X axis" : "Y axis");
       auto limit=[&](const QString &name,const std::optional<double> &value,double fallback) {
-         auto *enabled=new QCheckBox(name,page); enabled->setObjectName(id+name+"Enabled"); enabled->setChecked(value.has_value());
+         const QString unit=index==0 ? "X-axis data units" : "Y-axis data units";
+         auto *enabled=new QCheckBox(name+" ("+unit+")",page); enabled->setObjectName(id+name+"Enabled"); enabled->setChecked(value.has_value());
          auto *field=new QLineEdit(QString::number(value.value_or(fallback),'g',17),page); field->setObjectName(id+name); field->setEnabled(enabled->isChecked()); form->addRow(enabled,field);
          connect(enabled,&QCheckBox::toggled,field,&QLineEdit::setEnabled); return qMakePair(enabled,field);
       };
@@ -1048,7 +1419,9 @@ void PlotWidget::editPlotStyle()
       };
       auto *visible=check("Visible",curve.visible),*lines=check("Lines",curve.lines),*markers=check("Markers",curve.markers),*errors=check("Error bars",curve.errorBars);
       auto spin=[&](const QString &name,int value,int maximum) {
-         auto *box=new QSpinBox(page); box->setObjectName(name); box->setRange(1,maximum); box->setValue(value); form->addRow(name,box); return box;
+         auto *box=new QSpinBox(page); box->setObjectName(name); box->setRange(1,maximum); box->setValue(value);
+         box->setToolTip("Qt logical pixels on the display; independent of the plotted data units.");
+         form->addRow(name+" (pixels)",box); return box;
       };
       auto *width=spin("Line width",curve.width,20),*size=spin("Marker size",curve.markerSize,30);
       auto *style=new QComboBox(page); style->setObjectName("Line style");
@@ -1065,7 +1438,7 @@ void PlotWidget::editPlotStyle()
          const auto chosen=QColorDialog::getColor(color->property("selectedColor").value<QColor>(),&dialog,"Curve color");
          if (chosen.isValid()) { color->setProperty("selectedColor",chosen); color->setText(chosen.name()); }
       });
-      apply.append([=,this] {
+      apply.append([=] {
          auto found=data->curves.find(key); if (found==data->curves.end()) return;
          auto &curve=found.value(); const auto chosen=color->property("selectedColor").value<QColor>();
          for (auto &point:curve.points) {
@@ -1154,9 +1527,11 @@ QString PlotWidget::exportPathError(const QString &path) const
 QString PlotWidget::exportImage(const QString &path)
 {
    const auto error=exportPathError(path); if (!error.isEmpty()) return error;
+   const auto image=drawing->captureImage();
+   if (image.isNull()) return "The plot image is not ready. Let any model loading finish and try again.";
    QSaveFile file(path);
    if (!file.open(QIODevice::WriteOnly)) return "Cannot save plot image: "+file.errorString();
-   if (!drawing->captureImage().save(&file,"PNG")) { file.cancelWriting(); return "Cannot save plot image: "+file.errorString(); }
+   if (!image.save(&file,"PNG")) { file.cancelWriting(); return "Cannot save plot image: "+file.errorString(); }
    if (!file.commit()) return "Cannot save plot image: "+file.errorString();
    return {};
 }

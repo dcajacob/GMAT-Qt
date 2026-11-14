@@ -101,7 +101,12 @@ bool PldRMAG::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* PldRMAG::Clone(void) const
 {
-   return new PldRMAG(*this);
+   return CompleteParameterClone(new PldRMAG(*this));
+}
+
+void PldRMAG::Copy(const GmatBase *source)
+{
+   CopyParameterValue<PldRMAG>(source);
 }
 
 
@@ -167,7 +172,12 @@ bool PldLON::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* PldLON::Clone(void) const
 {
-   return new PldLON(*this);
+   return CompleteParameterClone(new PldLON(*this));
+}
+
+void PldLON::Copy(const GmatBase *source)
+{
+   CopyParameterValue<PldLON>(source);
 }
 
 
@@ -233,7 +243,12 @@ bool PldLAT::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* PldLAT::Clone(void) const
 {
-   return new PldLAT(*this);
+   return CompleteParameterClone(new PldLAT(*this));
+}
+
+void PldLAT::Copy(const GmatBase *source)
+{
+   CopyParameterValue<PldLAT>(source);
 }
 
 
@@ -299,7 +314,12 @@ bool PldVMAG::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* PldVMAG::Clone(void) const
 {
-   return new PldVMAG(*this);
+   return CompleteParameterClone(new PldVMAG(*this));
+}
+
+void PldVMAG::Copy(const GmatBase *source)
+{
+   CopyParameterValue<PldVMAG>(source);
 }
 
 
@@ -365,7 +385,12 @@ bool PldAZI::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* PldAZI::Clone(void) const
 {
-   return new PldAZI(*this);
+   return CompleteParameterClone(new PldAZI(*this));
+}
+
+void PldAZI::Copy(const GmatBase *source)
+{
+   CopyParameterValue<PldAZI>(source);
 }
 
 
@@ -432,7 +457,12 @@ bool PldHFPA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* PldHFPA::Clone(void) const
 {
-   return new PldHFPA(*this);
+   return CompleteParameterClone(new PldHFPA(*this));
+}
+
+void PldHFPA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<PldHFPA>(source);
 }
 
 
@@ -499,6 +529,11 @@ bool PldState::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* PldState::Clone(void) const
 {
-   return new PldState(*this);
+   return CompleteParameterClone(new PldState(*this));
+}
+
+void PldState::Copy(const GmatBase *source)
+{
+   CopyParameterValue<PldState>(source);
 }
 

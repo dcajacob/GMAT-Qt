@@ -31,8 +31,12 @@
 //------------------------------------------------------------------------------
 
 #include "StringMatData.hpp"
+#ifdef GMAT_MATLAB_QT_ENGINE
+#include "MatlabLibraryExecutor.hpp"
+#endif
 #include "UtilityException.hpp"
 #include "MessageInterface.hpp"
+#include "MatWriterValue.hpp"
 
 
 //------------------------------------------------------------------------------
@@ -75,6 +79,8 @@ StringMatData::~StringMatData()
 //------------------------------------------------------------------------------
 StringMatData::StringMatData(const StringMatData &sd) :
    MatData           (sd),
+   stringData        (sd.stringData),
+   stringData3D      (sd.stringData3D),
    pa_string         (NULL)
 {
 }
@@ -95,6 +101,8 @@ StringMatData& StringMatData::operator=(const StringMatData &sd)
    if (this !=&sd)
    {
       MatData::operator=(sd);
+      stringData = sd.stringData;
+      stringData3D = sd.stringData3D;
 
       pa_string  = NULL;
    }
@@ -172,6 +180,9 @@ bool StringMatData::AddData(const std::vector< StringMatrix> &data)
 void StringMatData::WriteData(MATFile *matfile, const std::string &objectName,
       mxArray *mx_struct, mwIndex index)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{WriteData(matfile,objectName,mx_struct,index);});
+#endif
    pmat      = matfile;
    obj_name  = objectName;
    mat_struct = mx_struct;
@@ -307,4 +318,29 @@ void StringMatData::WriteData(MATFile *matfile, const std::string &objectName,
 bool StringMatData::WriteData()
 {
    return false;
+}
+
+MatlabValue StringMatData::ToMatlabValue() const
+{
+   using namespace MatWriterValue;
+   if (numDim == 2U)
+   {
+      if (!isJagged) return Strings(stringData);
+      auto value = Cell(1, stringData.size());
+      for (size_t i = 0; i < stringData.size(); ++i)
+      {
+         auto column = Cell(stringData[i].size(), 1);
+         for (size_t j = 0; j < stringData[i].size(); ++j) column.children[j] = Character(stringData[i][j]);
+         value.children[i] = std::move(column);
+      }
+      return value;
+   }
+   if (numDim == 3U)
+   {
+      auto value = Cell(1, stringData3D.size());
+      for (size_t i = 0; i < stringData3D.size(); ++i)
+         value.children[i] = Strings(stringData3D[i]);
+      return value;
+   }
+   throw UtilityException("MATLAB writer data has no supported buffered dimensions");
 }

@@ -618,8 +618,8 @@
           <row>
             <entry><guilabel>AttitudeSpiceKernelName</guilabel></entry>
 
-            <entry><para>SPK Kernels for <guilabel>Spacecraft</guilabel>
-            attitude. SPK atttitude kernels have extension ".BC". This field
+            <entry><para>SPICE CK pointing kernels for <guilabel>Spacecraft</guilabel>
+            attitude. Binary CK files conventionally have extension ".BC". This field
             cannot be set in the Mission Sequence. An empty list unloads all
             kernels of this type on the
             <guilabel>Spacecraft</guilabel>.</para> <variablelist>
@@ -719,7 +719,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -779,7 +779,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -839,7 +839,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -899,7 +899,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -959,7 +959,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -1019,7 +1019,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -1076,7 +1076,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -1133,7 +1133,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -1190,7 +1190,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -1246,7 +1246,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction cosine</para>
                   </listitem>
                 </varlistentry>
 
@@ -1302,7 +1302,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction cosine</para>
                   </listitem>
                 </varlistentry>
 
@@ -1358,7 +1358,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction cosine</para>
                   </listitem>
                 </varlistentry>
 
@@ -1414,7 +1414,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction cosine</para>
                   </listitem>
                 </varlistentry>
 
@@ -1470,7 +1470,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction cosine</para>
                   </listitem>
                 </varlistentry>
 
@@ -1526,7 +1526,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction cosine</para>
                   </listitem>
                 </varlistentry>
 
@@ -1582,7 +1582,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction cosine</para>
                   </listitem>
                 </varlistentry>
 
@@ -1638,7 +1638,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction cosine</para>
                   </listitem>
                 </varlistentry>
 
@@ -1694,7 +1694,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction cosine</para>
                   </listitem>
                 </varlistentry>
 
@@ -2109,8 +2109,8 @@
           <row>
             <entry><guilabel>FrameSpiceKernelName</guilabel></entry>
 
-            <entry><para>SPK Kernels for <guilabel>Spacecraft</guilabel> body
-            frame. SPK Frame kernels have extension ".TF". This field cannot
+            <entry><para>SPICE frame kernels (FK) for the <guilabel>Spacecraft</guilabel> body
+            frame. Text frame kernels conventionally have extension ".TF". This field cannot
             be set in the Mission Sequence. An empty list unloads all kernels
             of this type on the <guilabel>Spacecraft</guilabel>.</para>
             <variablelist>
@@ -2319,7 +2319,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Integer identifier or type code; no physical quantity</para>
                   </listitem>
                 </varlistentry>
 
@@ -2434,7 +2434,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -2492,7 +2492,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -2550,7 +2550,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless direction-vector component</para>
                   </listitem>
                 </varlistentry>
 
@@ -3087,8 +3087,8 @@
           <row>
             <entry><guilabel>SCClockSpiceKernelName</guilabel></entry>
 
-            <entry><para>SPK Kernels for spacecraft clock. SPK clock kernels
-            have extension ".TSC". This field cannot be set in the Mission
+            <entry><para>SPICE spacecraft clock kernels (SCLK), conventionally
+            using extension ".TSC". This field cannot be set in the Mission
             Sequence. An empty list unloads all kernels of this type on the
             <guilabel>Spacecraft</guilabel>. An empty list unloads all kernels
             of this type on the <guilabel>Spacecraft</guilabel>.</para>
@@ -3346,21 +3346,36 @@ aSpacecraft.AngularVelocityZ = 5;</code></programlisting>
 
       <para>The <guilabel>CoordinateSystemFixed</guilabel> model allows you to
       use any existing <guilabel>CoordinateSystem</guilabel> to define the
-      attitude of a <guilabel>Spacecraft</guilabel>. The attitude uses the
-      axes defined on the <guilabel>CoordinateSystem</guilabel> to compute the
-      body fixed to inertial matrix and attitude rate parameters such as the
-      angular velocity. To configure this attitude mode, select<guilabel>
+      attitude of a <guilabel>Spacecraft</guilabel>. The attitude follows the
+      selected coordinate system axes, with an optional constant frame-to-body
+      rotation specified by <guilabel>OffsetQuaternion</guilabel>. The model
+      computes the spacecraft orientation and body angular velocity from those
+      axes and the fixed offset. To configure this attitude mode, select<guilabel>
       CoordinateSystemFixed</guilabel>, for <guilabel>Attitude</guilabel>. You
       can define the <guilabel>EulerAngleSequence</guilabel> used when
       outputting <guilabel>EulerAngles</guilabel> and <guilabel>EulerAngle
       rates</guilabel>.</para>
 
+      <para><guilabel>OffsetQuaternion</guilabel> has four scalar-last
+      components in the order <code>[x y z w]</code>. It rotates vector
+      components from the selected reference frame into the spacecraft body
+      frame. The default <code>[0 0 0 1]</code> aligns the body axes with the
+      reference axes. Finite inputs with magnitude at least
+      <code>1e-10</code> are normalized; invalid dimensions, nonfinite values,
+      and smaller magnitudes are rejected. In the Attitude dialog, edit the
+      <guilabel>Frame-to-body offset (x y z w)</guilabel> field. For example,
+      the following script specifies a constant offset about the reference
+      Z axis:</para>
+
+      <programlisting><code>aSpacecraft.OffsetQuaternion = [0 0 0.7071067811865475 0.7071067811865476];</code></programlisting>
+
       <warning>
         <para>For the <guilabel>CoordinateSystemFixed</guilabel> attitude
         model, the attitude is completely described by the selected coordinate
-        system. If you are working in the script, setting attitude parameters
-        (Euler Angles, Quaternion etc.) or setting attitude rate parameters
-        such as (Euler Angle Rates etc.) has no effect.</para>
+        system and <guilabel>OffsetQuaternion</guilabel>. The other initial
+        attitude parameters, including <guilabel>EulerAngles</guilabel> and
+        <guilabel>Quaternion</guilabel>, and initial attitude rate parameters
+        such as Euler Angle Rates have no effect for this model.</para>
       </warning>
 
       <screenshot>
@@ -3472,13 +3487,19 @@ Propagate Propagator1(aSat) {aSat.ElapsedSecs = 12000.0}</code></programlisting>
     </refsection>
 
     <refsection>
-      <title>SPK Attitude Model</title>
+      <title>SPICE Attitude Model</title>
 
       <para>The <guilabel>SpiceAttitude</guilabel> model propagates the
       attitude using attitude SPICE kernels. To configure a
       <guilabel>Spacecraft</guilabel> to use SPICE kernels select
       <guilabel>SpiceAttitude</guilabel> for the <guilabel>Attitude</guilabel>
       field as shown below.</para>
+
+      <para>Older GMAT descriptions use the label "SPK attitude kernel" for
+      this model. Its pointing data uses SPICE C-kernels (CK). Use
+      <guilabel>AttitudeSpiceKernelName</guilabel> for CK pointing files and
+      <guilabel>OrbitSpiceKernelName</guilabel> for SPK position and velocity
+      ephemeris files. The script field names remain the same.</para>
 
       <warning>
         <para>Caution: For the <guilabel>SpiceAttitude</guilabel> model, the
@@ -3499,10 +3520,10 @@ Propagate Propagator1(aSat) {aSat.ElapsedSecs = 12000.0}</code></programlisting>
         </mediaobject>
       </screenshot>
 
-      <para>You must provide three SPICE kernel types for the
-      <guilabel>SpiceAttitude</guilabel> model: the attitude kernel (.bc
-      file), the frame kernel (.tf file) and the spacecraft clock kernel (.tsc
-      file). These files are defined on the <guilabel>Spacecraft</guilabel>
+      <para>Provide a CK attitude kernel (.bc file) and a spacecraft clock
+      kernel (.tsc file) for the <guilabel>SpiceAttitude</guilabel> model.
+      Also provide a frame kernel (.tf file) when its frame definitions are
+      needed. These files are defined on the <guilabel>Spacecraft</guilabel>
       SPICE tab as shown below. In addition to the kernels, you must also
       provide the <guilabel>Spacecraft </guilabel><guilabel>NAIFId</guilabel>
       and the <guilabel>NAIFIdReferenceFrame</guilabel>. Below is an
@@ -3520,8 +3541,10 @@ Propagate Propagator1(aSat) {aSat.ElapsedSecs = 12000.0}</code></programlisting>
       </screenshot>
 
       <para>The example below configures a <guilabel>Spacecraft</guilabel> to
-      use SPK kernels to propagator the attitude for Mars Express. The SPK
-      kernels are distributed with GMAT.</para>
+      use SPICE kernels to propagate the attitude for Mars Express. The example
+      uses a CK pointing kernel, an SCLK clock kernel and an FK frame kernel,
+      together with an SPK orbit ephemeris. These kernels are distributed with
+      GMAT.</para>
 
       <programlisting><code>Create Spacecraft MarsExpress
 MarsExpress.NAIFId = -41

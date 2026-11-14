@@ -34,6 +34,20 @@
 #include "GmatConstants.hpp"
 #include "RealUtilities.hpp"
 #include "EclipseLocator.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration eclipseLocatorValueProvider({
+   EclipseLocator::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const EclipseLocator*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<EclipseLocator*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "SolarSystem.hpp"
 #include "CelestialBody.hpp"
 #include "Star.hpp"
@@ -42,6 +56,11 @@
 #include "EphemManager.hpp"
 #include "EclipseEvent.hpp"
 #include "StringUtil.hpp"
+#include <set>
+#include <algorithm>
+#include <cmath>
+#include <memory>
+#include <typeinfo>
 
 
 //#define DEBUG_TYPELIST
@@ -68,12 +87,16 @@ const std::string EclipseLocator::PARAMETER_TEXT[
       EclipseLocatorParamCount - EventLocatorParamCount] =
 {
       "EclipseTypes",           // ECLIPSE_TYPES
+      "RootFindingMethod",
+      "RootTolerance"
 };
 
 const Gmat::ParameterType EclipseLocator::PARAMETER_TYPE[
       EclipseLocatorParamCount - EventLocatorParamCount] =
 {
-   Gmat::STRINGARRAY_TYPE     // OCCULTERS
+   Gmat::STRINGARRAY_TYPE,    // ECLIPSE_TYPES
+   Gmat::ENUMERATION_TYPE,
+   Gmat::REAL_TYPE
 };
 
 //------------------------------------------------------------------------------
@@ -143,7 +166,9 @@ EclipseLocator::EclipseLocator(const EclipseLocator & el) :
 //   eclipseTypes         (el.eclipseTypes),
    sun                  (NULL),
    maxIndex             (el.maxIndex),
-   maxDuration          (el.maxDuration)
+   maxDuration          (el.maxDuration),
+   rootFindingMethod    (el.rootFindingMethod),
+   rootTolerance        (el.rootTolerance)
 {
    #ifdef DEBUG_ECLIPSE_EVENTS
       MessageInterface::ShowMessage("Creating Eclipse locator %s at <%p> "
@@ -193,6 +218,8 @@ EclipseLocator& EclipseLocator::operator=(const EclipseLocator & el)
       sun          = NULL;
       maxIndex     = el.maxIndex;
       maxDuration  = el.maxDuration;
+      rootFindingMethod = el.rootFindingMethod;
+      rootTolerance = el.rootTolerance;
 
       defaultEclipseTypes.clear();
       // copy the list of default eclipse types
@@ -318,6 +345,9 @@ const StringArray& EclipseLocator::GetPropertyEnumStrings(
    static StringArray enumStrings;
    switch (id)
    {
+   case ROOT_FINDING_METHOD:
+      enumStrings = {"SPICE", "Brent"};
+      return enumStrings;
    case ECLIPSE_TYPES:
       enumStrings.clear();
       enumStrings.push_back("Umbra");
@@ -327,6 +357,42 @@ const StringArray& EclipseLocator::GetPropertyEnumStrings(
    default:
       return EventLocator::GetPropertyEnumStrings(id);
    }
+}
+
+bool EclipseLocator::IsParameterCloaked(const Integer id) const
+{
+   if (id == ROOT_FINDING_METHOD) return rootFindingMethod == "SPICE";
+   if (id == ROOT_TOLERANCE) return rootFindingMethod == "SPICE" && rootTolerance == 1.0e-6;
+   return EventLocator::IsParameterCloaked(id);
+}
+
+Real EclipseLocator::GetRealParameter(const Integer id) const
+{
+   if (id == ROOT_TOLERANCE) return rootTolerance;
+   return EventLocator::GetRealParameter(id);
+}
+
+Real EclipseLocator::SetRealParameter(const Integer id, const Real value)
+{
+   if (id == ROOT_TOLERANCE)
+   {
+      if (!std::isfinite(value) || value <= 0)
+         throw EventException("RootTolerance must be finite and positive in seconds");
+      rootTolerance = value;
+      isInitialized = false;
+      return rootTolerance;
+   }
+   return EventLocator::SetRealParameter(id,value);
+}
+
+Real EclipseLocator::GetRealParameter(const std::string &label) const
+{
+   return GetRealParameter(GetParameterID(label));
+}
+
+Real EclipseLocator::SetRealParameter(const std::string &label, const Real value)
+{
+   return SetRealParameter(GetParameterID(label),value);
 }
 
 //------------------------------------------------------------------------------
@@ -342,6 +408,7 @@ const StringArray& EclipseLocator::GetPropertyEnumStrings(
 //------------------------------------------------------------------------------
 std::string EclipseLocator::GetStringParameter(const Integer id) const
 {
+   if (id == ROOT_FINDING_METHOD) return rootFindingMethod;
    return EventLocator::GetStringParameter(id);
 }
 
@@ -361,6 +428,14 @@ std::string EclipseLocator::GetStringParameter(const Integer id) const
 bool EclipseLocator::SetStringParameter(const Integer id,
                                         const std::string &value)
 {
+   if (id == ROOT_FINDING_METHOD)
+   {
+      if (value != "SPICE" && value != "Brent")
+         throw EventException("RootFindingMethod must be SPICE or Brent");
+      rootFindingMethod = value;
+      isInitialized = false;
+      return true;
+   }
    if (id == ECLIPSE_TYPES)
    {
       if ((value != "Umbra") && (value != "Penumbra") && (value != "Antumbra"))
@@ -728,7 +803,9 @@ const ObjectTypeArray& EclipseLocator::GetTypesForList(const std::string &label)
 //------------------------------------------------------------------------------
 GmatBase *EclipseLocator::Clone() const
 {
-   return new EclipseLocator(*this);
+   auto value = std::make_unique<EclipseLocator>(*this);
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //---------------------------------------------------------------------------
@@ -742,7 +819,32 @@ GmatBase *EclipseLocator::Clone() const
 //---------------------------------------------------------------------------
 void EclipseLocator::Copy(const GmatBase* orig)
 {
-   operator=(*((EclipseLocator *)(orig)));
+   const auto *locator = dynamic_cast<const EclipseLocator*>(orig);
+   if (!locator || typeid(*locator) != typeid(EclipseLocator) ||
+         typeid(*this) != typeid(EclipseLocator))
+      throw EventException("Cannot copy incompatible EclipseLocator.\n");
+   if (locator == this) return;
+   const auto previous = GetFunctionValueContext();
+   operator=(*locator);
+   RebindFunctionValueContext(*locator);
+}
+
+bool EclipseLocator::HasEventLocatorValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(EclipseLocator);
+}
+
+bool EclipseLocator::RebindFunctionValueReferencesImpl(const GmatBase &source,
+      SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *locator = dynamic_cast<const EclipseLocator*>(&source);
+   if (!locator || typeid(*locator) != typeid(EclipseLocator) ||
+         !HasEventLocatorValueReferenceProvider())
+      throw EventException("Incompatible EclipseLocator function value.\n");
+   auto *boundSun = dynamic_cast<Star*>(MapFunctionValueReference(locator->sun, resolve));
+   EventLocator::RebindFunctionValueReferencesImpl(source, system, resolve);
+   sun = boundSun;
+   return true;
 }
 
 //------------------------------------------------------------------------------
@@ -832,6 +934,44 @@ bool EclipseLocator::ReportEventData(const std::string &reportNotice)
       theReport << "Maximum duration at the "         <<
                    GmatStringUtil::ToOrdinal(maxIndex + 1) << " eclipse.\n\n\n";
    }
+   // Keep the existing individual-event table and total-event statistics.
+   // Per-type statistics describe individual intervals, including overlapping
+   // occultations from different bodies, rather than their combined union.
+   theReport << "\nEclipse type summary (individual intervals)\n";
+   theReport << "Type          Count    Maximum duration (s)    Participants (spacecraft/body)\n";
+   for (const auto &type : eclipseTypes)
+   {
+      Integer count = 0;
+      Real maximum = 0.0;
+      for (auto *total : theEvents)
+         for (Integer jj = 0; jj < total->NumberOfEvents(); ++jj)
+         {
+            auto *event = total->GetEvent(jj);
+            if (event->GetEclipseType() != type) continue;
+            ++count;
+            maximum = (std::max)(maximum, event->GetDuration());
+         }
+      std::set<std::string> participants;
+      for (auto *total : theEvents)
+         for (Integer jj = 0; jj < total->NumberOfEvents(); ++jj)
+         {
+            auto *event = total->GetEvent(jj);
+            // The GF search resolves boundaries to approximately a microsecond;
+            // report all participants tied within that resolution.
+            if (event->GetEclipseType() == type &&
+                GmatMathUtil::Abs(event->GetDuration() - maximum) <= 1.0e-6)
+               participants.insert(itsName + "/" + event->GetBodyName());
+         }
+      theReport << GmatStringUtil::PadWithBlanks(type, 12) << "  " << count
+                << "    " << GmatStringUtil::BuildNumber(maximum, false, 14) << "    ";
+      if (participants.empty()) theReport << "-";
+      for (auto item = participants.begin(); item != participants.end(); ++item)
+      {
+         if (item != participants.begin()) theReport << ",";
+         theReport << *item;
+      }
+      theReport << "\n";
+   }
    theReport.close();
    return true;
 }
@@ -916,7 +1056,8 @@ void EclipseLocator::FindEvents()
                                      theFFrame, theBack, theBShape, theBFrame,
                                      theAbCorr, initialEp, finalEp,
                                      useEntireInterval, stepSize,
-                                     numEclipse, starts, ends);
+                                     numEclipse, starts, ends,
+                                     rootFindingMethod, rootTolerance);
 
          #ifdef DEBUG_ECLIPSE_FIND_EVENTS
 //            MessageInterface::ShowMessage("After gfoclt_c:\n");

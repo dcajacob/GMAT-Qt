@@ -1,0 +1,475 @@
+{
+  "schema": 1,
+  "cases": [
+    {
+      "key": "ConstantHistoryCssiPredict",
+      "history": "ConstantFluxAndGeoMag",
+      "predicted": "CSSISpaceWeatherFile",
+      "error": "Nominal",
+      "timing": "NominalCycle",
+      "schatten_flux": 130.0,
+      "schatten_ap": 2.0
+    },
+    {
+      "key": "ConstantHistoryConstantPredict",
+      "history": "ConstantFluxAndGeoMag",
+      "predicted": "ConstantFluxAndGeoMag",
+      "error": "Nominal",
+      "timing": "NominalCycle",
+      "schatten_flux": 130.0,
+      "schatten_ap": 2.0
+    },
+    {
+      "key": "ConstantHistorySchatten00",
+      "history": "ConstantFluxAndGeoMag",
+      "predicted": "SchattenFile",
+      "error": "Nominal",
+      "timing": "NominalCycle",
+      "schatten_flux": 130.0,
+      "schatten_ap": 2.0
+    },
+    {
+      "key": "ConstantHistorySchatten01",
+      "history": "ConstantFluxAndGeoMag",
+      "predicted": "SchattenFile",
+      "error": "PlusTwoSigma",
+      "timing": "NominalCycle",
+      "schatten_flux": 140.0,
+      "schatten_ap": 2.0
+    },
+    {
+      "key": "ConstantHistorySchatten02",
+      "history": "ConstantFluxAndGeoMag",
+      "predicted": "SchattenFile",
+      "error": "MinusTwoSigma",
+      "timing": "NominalCycle",
+      "schatten_flux": 120.0,
+      "schatten_ap": 2.0
+    },
+    {
+      "key": "ConstantHistorySchatten10",
+      "history": "ConstantFluxAndGeoMag",
+      "predicted": "SchattenFile",
+      "error": "Nominal",
+      "timing": "EarlyCycle",
+      "schatten_flux": 160.0,
+      "schatten_ap": 4.0
+    },
+    {
+      "key": "ConstantHistorySchatten11",
+      "history": "ConstantFluxAndGeoMag",
+      "predicted": "SchattenFile",
+      "error": "PlusTwoSigma",
+      "timing": "EarlyCycle",
+      "schatten_flux": 170.0,
+      "schatten_ap": 4.0
+    },
+    {
+      "key": "ConstantHistorySchatten12",
+      "history": "ConstantFluxAndGeoMag",
+      "predicted": "SchattenFile",
+      "error": "MinusTwoSigma",
+      "timing": "EarlyCycle",
+      "schatten_flux": 150.0,
+      "schatten_ap": 4.0
+    },
+    {
+      "key": "ConstantHistorySchatten20",
+      "history": "ConstantFluxAndGeoMag",
+      "predicted": "SchattenFile",
+      "error": "Nominal",
+      "timing": "LateCycle",
+      "schatten_flux": 190.0,
+      "schatten_ap": 6.0
+    },
+    {
+      "key": "ConstantHistorySchatten21",
+      "history": "ConstantFluxAndGeoMag",
+      "predicted": "SchattenFile",
+      "error": "PlusTwoSigma",
+      "timing": "LateCycle",
+      "schatten_flux": 200.0,
+      "schatten_ap": 6.0
+    },
+    {
+      "key": "ConstantHistorySchatten22",
+      "history": "ConstantFluxAndGeoMag",
+      "predicted": "SchattenFile",
+      "error": "MinusTwoSigma",
+      "timing": "LateCycle",
+      "schatten_flux": 180.0,
+      "schatten_ap": 6.0
+    },
+    {
+      "key": "CssiHistoryCssiPredict",
+      "history": "CSSISpaceWeatherFile",
+      "predicted": "CSSISpaceWeatherFile",
+      "error": "Nominal",
+      "timing": "NominalCycle",
+      "schatten_flux": 130.0,
+      "schatten_ap": 2.0
+    },
+    {
+      "key": "CssiHistoryConstantPredict",
+      "history": "CSSISpaceWeatherFile",
+      "predicted": "ConstantFluxAndGeoMag",
+      "error": "Nominal",
+      "timing": "NominalCycle",
+      "schatten_flux": 130.0,
+      "schatten_ap": 2.0
+    },
+    {
+      "key": "CssiHistorySchatten00",
+      "history": "CSSISpaceWeatherFile",
+      "predicted": "SchattenFile",
+      "error": "Nominal",
+      "timing": "NominalCycle",
+      "schatten_flux": 130.0,
+      "schatten_ap": 2.0
+    },
+    {
+      "key": "CssiHistorySchatten01",
+      "history": "CSSISpaceWeatherFile",
+      "predicted": "SchattenFile",
+      "error": "PlusTwoSigma",
+      "timing": "NominalCycle",
+      "schatten_flux": 140.0,
+      "schatten_ap": 2.0
+    },
+    {
+      "key": "CssiHistorySchatten02",
+      "history": "CSSISpaceWeatherFile",
+      "predicted": "SchattenFile",
+      "error": "MinusTwoSigma",
+      "timing": "NominalCycle",
+      "schatten_flux": 120.0,
+      "schatten_ap": 2.0
+    },
+    {
+      "key": "CssiHistorySchatten10",
+      "history": "CSSISpaceWeatherFile",
+      "predicted": "SchattenFile",
+      "error": "Nominal",
+      "timing": "EarlyCycle",
+      "schatten_flux": 160.0,
+      "schatten_ap": 4.0
+    },
+    {
+      "key": "CssiHistorySchatten11",
+      "history": "CSSISpaceWeatherFile",
+      "predicted": "SchattenFile",
+      "error": "PlusTwoSigma",
+      "timing": "EarlyCycle",
+      "schatten_flux": 170.0,
+      "schatten_ap": 4.0
+    },
+    {
+      "key": "CssiHistorySchatten12",
+      "history": "CSSISpaceWeatherFile",
+      "predicted": "SchattenFile",
+      "error": "MinusTwoSigma",
+      "timing": "EarlyCycle",
+      "schatten_flux": 150.0,
+      "schatten_ap": 4.0
+    },
+    {
+      "key": "CssiHistorySchatten20",
+      "history": "CSSISpaceWeatherFile",
+      "predicted": "SchattenFile",
+      "error": "Nominal",
+      "timing": "LateCycle",
+      "schatten_flux": 190.0,
+      "schatten_ap": 6.0
+    },
+    {
+      "key": "CssiHistorySchatten21",
+      "history": "CSSISpaceWeatherFile",
+      "predicted": "SchattenFile",
+      "error": "PlusTwoSigma",
+      "timing": "LateCycle",
+      "schatten_flux": 200.0,
+      "schatten_ap": 6.0
+    },
+    {
+      "key": "CssiHistorySchatten22",
+      "history": "CSSISpaceWeatherFile",
+      "predicted": "SchattenFile",
+      "error": "MinusTwoSigma",
+      "timing": "LateCycle",
+      "schatten_flux": 180.0,
+      "schatten_ap": 6.0
+    }
+  ],
+  "probes": {
+    "historic": [
+      {
+        "utc_gmat_mjd": 30315.520833333332,
+        "utc": "2024-01-06T00:30:00",
+        "obsF107": 110.0,
+        "obsCtrF107a": 120.0,
+        "ap": [
+          7.0,
+          7.0,
+          6.0,
+          6.0,
+          6.0,
+          5.625,
+          4.625
+        ]
+      },
+      {
+        "utc_gmat_mjd": 30315.645833333332,
+        "utc": "2024-01-06T03:30:00",
+        "obsF107": 110.0,
+        "obsCtrF107a": 120.0,
+        "ap": [
+          7.0,
+          7.0,
+          7.0,
+          6.0,
+          6.0,
+          5.75,
+          4.75
+        ]
+      },
+      {
+        "utc_gmat_mjd": 30315.770833333332,
+        "utc": "2024-01-06T06:30:00",
+        "obsF107": 110.0,
+        "obsCtrF107a": 120.0,
+        "ap": [
+          7.0,
+          7.0,
+          7.0,
+          7.0,
+          6.0,
+          5.875,
+          4.875
+        ]
+      },
+      {
+        "utc_gmat_mjd": 30315.895833333332,
+        "utc": "2024-01-06T09:30:00",
+        "obsF107": 110.0,
+        "obsCtrF107a": 120.0,
+        "ap": [
+          7.0,
+          7.0,
+          7.0,
+          7.0,
+          7.0,
+          6.0,
+          5.0
+        ]
+      },
+      {
+        "utc_gmat_mjd": 30316.020833333332,
+        "utc": "2024-01-06T12:30:00",
+        "obsF107": 110.0,
+        "obsCtrF107a": 120.0,
+        "ap": [
+          7.0,
+          7.0,
+          7.0,
+          7.0,
+          7.0,
+          6.125,
+          5.125
+        ]
+      },
+      {
+        "utc_gmat_mjd": 30316.145833333332,
+        "utc": "2024-01-06T15:30:00",
+        "obsF107": 110.0,
+        "obsCtrF107a": 120.0,
+        "ap": [
+          7.0,
+          7.0,
+          7.0,
+          7.0,
+          7.0,
+          6.25,
+          5.25
+        ]
+      },
+      {
+        "utc_gmat_mjd": 30316.270833333332,
+        "utc": "2024-01-06T18:30:00",
+        "obsF107": 110.0,
+        "obsCtrF107a": 120.0,
+        "ap": [
+          7.0,
+          7.0,
+          7.0,
+          7.0,
+          7.0,
+          6.375,
+          5.375
+        ]
+      },
+      {
+        "utc_gmat_mjd": 30316.395833333332,
+        "utc": "2024-01-06T21:30:00",
+        "obsF107": 110.0,
+        "obsCtrF107a": 120.0,
+        "ap": [
+          7.0,
+          7.0,
+          7.0,
+          7.0,
+          7.0,
+          6.5,
+          5.5
+        ]
+      }
+    ],
+    "forecast": [
+      {
+        "utc_gmat_mjd": 30346.520833333332,
+        "utc": "2024-02-06T00:30:00",
+        "obsF107": 210.0,
+        "obsCtrF107a": 220.0,
+        "ap": [
+          6.0,
+          6.0,
+          5.0,
+          5.0,
+          5.0,
+          4.625,
+          3.625
+        ]
+      },
+      {
+        "utc_gmat_mjd": 30346.645833333332,
+        "utc": "2024-02-06T03:30:00",
+        "obsF107": 210.0,
+        "obsCtrF107a": 220.0,
+        "ap": [
+          6.0,
+          6.0,
+          6.0,
+          5.0,
+          5.0,
+          4.75,
+          3.75
+        ]
+      },
+      {
+        "utc_gmat_mjd": 30346.770833333332,
+        "utc": "2024-02-06T06:30:00",
+        "obsF107": 210.0,
+        "obsCtrF107a": 220.0,
+        "ap": [
+          6.0,
+          6.0,
+          6.0,
+          6.0,
+          5.0,
+          4.875,
+          3.875
+        ]
+      },
+      {
+        "utc_gmat_mjd": 30346.895833333332,
+        "utc": "2024-02-06T09:30:00",
+        "obsF107": 210.0,
+        "obsCtrF107a": 220.0,
+        "ap": [
+          6.0,
+          6.0,
+          6.0,
+          6.0,
+          6.0,
+          5.0,
+          4.0
+        ]
+      },
+      {
+        "utc_gmat_mjd": 30347.020833333332,
+        "utc": "2024-02-06T12:30:00",
+        "obsF107": 210.0,
+        "obsCtrF107a": 220.0,
+        "ap": [
+          6.0,
+          6.0,
+          6.0,
+          6.0,
+          6.0,
+          5.125,
+          4.125
+        ]
+      },
+      {
+        "utc_gmat_mjd": 30347.145833333332,
+        "utc": "2024-02-06T15:30:00",
+        "obsF107": 210.0,
+        "obsCtrF107a": 220.0,
+        "ap": [
+          6.0,
+          6.0,
+          6.0,
+          6.0,
+          6.0,
+          5.25,
+          4.25
+        ]
+      },
+      {
+        "utc_gmat_mjd": 30347.270833333332,
+        "utc": "2024-02-06T18:30:00",
+        "obsF107": 210.0,
+        "obsCtrF107a": 220.0,
+        "ap": [
+          6.0,
+          6.0,
+          6.0,
+          6.0,
+          6.0,
+          5.375,
+          4.375
+        ]
+      },
+      {
+        "utc_gmat_mjd": 30347.395833333332,
+        "utc": "2024-02-06T21:30:00",
+        "obsF107": 210.0,
+        "obsCtrF107a": 220.0,
+        "ap": [
+          6.0,
+          6.0,
+          6.0,
+          6.0,
+          6.0,
+          5.5,
+          4.5
+        ]
+      }
+    ]
+  },
+  "forecast_epoch": "06 Feb 2024 12:30:00.000",
+  "forecast_utc_mjd": 30347.020833333332,
+  "duration_seconds": 5,
+  "mu": 398600.4415,
+  "radius_km": 7000,
+  "constant_F107": 150,
+  "constant_F107A": 155,
+  "constant_Kp": 3,
+  "position_bound_km": 2e-05,
+  "velocity_bound_km_s": 2e-08,
+  "weather_value_bound": 1e-12,
+  "fixture_sha256": {
+    "cssi.txt": "6dd949bd4841f7be8accda368af5e0692760566c1d9a7bc2378720354b68b09b",
+    "schatten.txt": "641e1a49fc9631a6eafb5a09f0e77ec1215076855d992b88d123258644dc8690"
+  },
+  "sources": [
+    "doc/help/src/Resource_ForceModel.xml",
+    "plugins/Msise00Plugin/src/base/atmosphere/nrlmsise00_sub.f"
+  ],
+  "limits": [
+    "Earth NRLMSISE00 and Spherical drag only;other models,bodies and spacecraft shapes remain open.",
+    "Synthetic flat solar-flux columns distinguish sources and all nine Schatten selections;monthly interpolation,real weather provenance and empirical density truth are not qualified.",
+    "Daily Ap varies by date and is flat inside each day;all eight slot lookups exercise cross-day histories,but arbitrary within-day patterns remain open.",
+    "Cached forecast file data is checked before explicit public-API UTC lookup probes on the runtime clone. Constant branches have no effective-input public readback;configured/runtime constants are checked without treating an inactive file buffer as their result.",
+    "Null-area mission checks the zero-force invariant and finite positive density,not nonzero drag accuracy."
+  ]
+}

@@ -1,0 +1,272 @@
+{
+  "baseline_matrix": "build/nasa-coverage/coverage95-20261103-function-math-clone/math-main-matrix-v1.json",
+  "baseline_matrix_sha256": "294b84e366620647da966ed7f2bbcea90aca8baed5b53b9e4c02d14c62cfc31c",
+  "qualified_keys": [],
+  "cases": [
+    {
+      "key": "MathElement",
+      "type": "MathElement",
+      "native_type": "MathElement",
+      "cpp_class": "MathElement"
+    },
+    {
+      "key": "Add",
+      "type": "Add",
+      "native_type": "Add",
+      "cpp_class": "Add"
+    },
+    {
+      "key": "Divide",
+      "type": "Divide",
+      "native_type": "Divide",
+      "cpp_class": "Divide"
+    },
+    {
+      "key": "Multiply",
+      "type": "Multiply",
+      "native_type": "Multiply",
+      "cpp_class": "Multiply"
+    },
+    {
+      "key": "Negate",
+      "type": "Negate",
+      "native_type": "Negate",
+      "cpp_class": "Negate"
+    },
+    {
+      "key": "Subtract",
+      "type": "Subtract",
+      "native_type": "Subtract",
+      "cpp_class": "Subtract"
+    },
+    {
+      "key": "Abs",
+      "type": "Abs",
+      "native_type": "Abs",
+      "cpp_class": "Abs"
+    },
+    {
+      "key": "Ceil",
+      "type": "Ceil",
+      "native_type": "Ceil",
+      "cpp_class": "Ceil"
+    },
+    {
+      "key": "Exp",
+      "type": "Exp",
+      "native_type": "Exp",
+      "cpp_class": "Exp"
+    },
+    {
+      "key": "Fix",
+      "type": "Fix",
+      "native_type": "Fix",
+      "cpp_class": "Fix"
+    },
+    {
+      "key": "Floor",
+      "type": "Floor",
+      "native_type": "Floor",
+      "cpp_class": "Floor"
+    },
+    {
+      "key": "Log",
+      "type": "Log",
+      "native_type": "Log",
+      "cpp_class": "Log"
+    },
+    {
+      "key": "Log10",
+      "type": "Log10",
+      "native_type": "Log10",
+      "cpp_class": "Log10"
+    },
+    {
+      "key": "Min",
+      "type": "Min",
+      "native_type": "Min",
+      "cpp_class": "Min"
+    },
+    {
+      "key": "Mod",
+      "type": "Mod",
+      "native_type": "Mod",
+      "cpp_class": "Mod"
+    },
+    {
+      "key": "Power",
+      "type": "Power",
+      "native_type": "Power",
+      "cpp_class": "Power"
+    },
+    {
+      "key": "Sqrt",
+      "type": "Sqrt",
+      "native_type": "Sqrt",
+      "cpp_class": "Sqrt"
+    },
+    {
+      "key": "Cross",
+      "type": "Cross",
+      "native_type": "Cross3",
+      "cpp_class": "Cross3"
+    },
+    {
+      "key": "Det",
+      "type": "Det",
+      "native_type": "Determinant",
+      "cpp_class": "Determinant"
+    },
+    {
+      "key": "Diag",
+      "type": "Diag",
+      "native_type": "Diag",
+      "cpp_class": "Diag"
+    },
+    {
+      "key": "Inv",
+      "type": "Inv",
+      "native_type": "Inverse",
+      "cpp_class": "Inverse"
+    },
+    {
+      "key": "Norm",
+      "type": "Norm",
+      "native_type": "Norm",
+      "cpp_class": "Norm"
+    },
+    {
+      "key": "Rand",
+      "type": "Rand",
+      "native_type": "Rand",
+      "cpp_class": "Rand"
+    },
+    {
+      "key": "Randn",
+      "type": "Randn",
+      "native_type": "Randn",
+      "cpp_class": "Randn"
+    },
+    {
+      "key": "Transpose",
+      "type": "Transpose",
+      "native_type": "Transpose",
+      "cpp_class": "Transpose"
+    },
+    {
+      "key": "Sin",
+      "type": "Sin",
+      "native_type": "Sin",
+      "cpp_class": "Sin"
+    },
+    {
+      "key": "Cos",
+      "type": "Cos",
+      "native_type": "Cos",
+      "cpp_class": "Cos"
+    },
+    {
+      "key": "Tan",
+      "type": "Tan",
+      "native_type": "Tan",
+      "cpp_class": "Tan"
+    },
+    {
+      "key": "Asin",
+      "type": "Asin",
+      "native_type": "Asin",
+      "cpp_class": "Asin"
+    },
+    {
+      "key": "Acos",
+      "type": "Acos",
+      "native_type": "Acos",
+      "cpp_class": "Acos"
+    },
+    {
+      "key": "Atan",
+      "type": "Atan",
+      "native_type": "Atan",
+      "cpp_class": "Atan"
+    },
+    {
+      "key": "Atan2",
+      "type": "Atan2",
+      "native_type": "Atan2",
+      "cpp_class": "Atan2"
+    },
+    {
+      "key": "DegToRad",
+      "type": "DegToRad",
+      "native_type": "DegToRad",
+      "cpp_class": "DegToRad"
+    },
+    {
+      "key": "RadToDeg",
+      "type": "RadToDeg",
+      "native_type": "RadToDeg",
+      "cpp_class": "RadToDeg"
+    },
+    {
+      "key": "Deg2Rad",
+      "type": "Deg2Rad",
+      "native_type": "DegToRad",
+      "cpp_class": "DegToRad"
+    },
+    {
+      "key": "Rad2Deg",
+      "type": "Rad2Deg",
+      "native_type": "RadToDeg",
+      "cpp_class": "RadToDeg"
+    },
+    {
+      "key": "Sprintf",
+      "type": "Sprintf",
+      "native_type": "Sprintf",
+      "cpp_class": "Sprintf"
+    },
+    {
+      "key": "Strcat",
+      "type": "Strcat",
+      "native_type": "Strcat",
+      "cpp_class": "Strcat"
+    },
+    {
+      "key": "Strcmp",
+      "type": "Strcmp",
+      "native_type": "Strcmp",
+      "cpp_class": "Strcmp"
+    },
+    {
+      "key": "Strfind",
+      "type": "Strfind",
+      "native_type": "Strfind",
+      "cpp_class": "Strfind"
+    },
+    {
+      "key": "Strrep",
+      "type": "Strrep",
+      "native_type": "Strrep",
+      "cpp_class": "Strrep"
+    },
+    {
+      "key": "Substr",
+      "type": "Substr",
+      "native_type": "Substr",
+      "cpp_class": "Substr"
+    },
+    {
+      "key": "Strlen",
+      "type": "Strlen",
+      "native_type": "Strlen",
+      "cpp_class": "Strlen"
+    },
+    {
+      "key": "FunctionRunner",
+      "type": "FunctionRunner",
+      "native_type": "FunctionRunner",
+      "cpp_class": "FunctionRunner"
+    }
+  ],
+  "scope": "All 44 math-node factory spellings retained for actual main/private/Global object Write and native default-state/identity witnesses;no operand graph evaluation or science qualification."
+}

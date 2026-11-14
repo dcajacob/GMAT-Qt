@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "purpose": "Portable retained-GUI SPK encoded-curve reader corpus,not physical trajectory qualification",
+  "normative_source": "https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/req/spk.html",
+  "scope": "Two opposed-bias batch final-pass type13 degree7 SPK outputs;two segments sharing one endpoint;every knot and midpoint compared with retained native SPICE reader values. Corpus uses no fresh GUI replay.",
+  "cases": [
+    {
+      "case": "Positive",
+      "kernel": "Positive.bsp",
+      "kernel_sha256": "727196881ec4a6a7747b5cd91dd43deb83a7fa258d3782899c90fc2ee95e8394",
+      "queries": "Positive.csv",
+      "queries_sha256": "7c69013a9da2d42bf7b3c0ae8ea7aaab816249e4cfbe2b7d87b604f191b5c009",
+      "query_count": 2869,
+      "knots": 1435,
+      "midpoints": 1434,
+      "source_raw_file": "build/gui-acceptance/20261030-batch-spk-canary-unattended/QtGui.NativeNasaBatchSpkPositive/mission.bsp",
+      "source_raw_file_sha256": "727196881ec4a6a7747b5cd91dd43deb83a7fa258d3782899c90fc2ee95e8394",
+      "source_reader_audit": "build/nasa-coverage/batch-spk-review/unattended-Positive-reader-audit.json",
+      "source_reader_audit_sha256": "a59378a920c2af03c72fc97437fad62b5f474723c839be9a1f3b922385cb66c4",
+      "source_receipt": "build/gui-acceptance/20261030-batch-spk-canary-unattended/results.json",
+      "source_receipt_sha256": "7202771207886103b7db4ed628ae26d23bdf39818b581aafd43c3f9595a8c8b8",
+      "source_snapshot_manifest": "build/gui-acceptance/20261030-batch-spk-canary-unattended/snapshot/manifest.json",
+      "source_snapshot_manifest_sha256": "0659884515eb85b67da883c0a5c081cf98a3c99af274a1be806b6d11f3749b8e",
+      "source_gui_test": "QtGui.NativeNasaBatchSpkPositive",
+      "source_test_status": "failed;strict physical midpoint gate remains unwaived"
+    },
+    {
+      "case": "Negative",
+      "kernel": "Negative.bsp",
+      "kernel_sha256": "f1e978c6ac4ce2602026bbcf045c045e9cc7c9370f251ece3f1405c8bc914e0b",
+      "queries": "Negative.csv",
+      "queries_sha256": "6369139cbc703d4883099584736188c08cbb0d4461e422c5d466854b9c251e68",
+      "query_count": 2869,
+      "knots": 1435,
+      "midpoints": 1434,
+      "source_raw_file": "build/gui-acceptance/20261030-batch-spk-negative-unattended/QtGui.NativeNasaBatchSpkNegative/mission.bsp",
+      "source_raw_file_sha256": "f1e978c6ac4ce2602026bbcf045c045e9cc7c9370f251ece3f1405c8bc914e0b",
+      "source_reader_audit": "build/nasa-coverage/batch-spk-review/unattended-Negative-reader-audit.json",
+      "source_reader_audit_sha256": "d3fd948c2ecd54c3ecb26b080d49a448c3b2e0ec0c146f1c213b58eded3cde44",
+      "source_receipt": "build/gui-acceptance/20261030-batch-spk-negative-unattended/results.json",
+      "source_receipt_sha256": "0f41a144795dd5e643862859d05326700df59eb41adc199a88f6f0ba7dca998c",
+      "source_snapshot_manifest": "build/gui-acceptance/20261030-batch-spk-negative-unattended/snapshot/manifest.json",
+      "source_snapshot_manifest_sha256": "78393b545f8762ea5fe75bae7e68ab7edf8ed86af131c9584b4bf327f42e6165",
+      "source_gui_test": "QtGui.NativeNasaBatchSpkNegative",
+      "source_test_status": "failed;strict physical midpoint gate remains unwaived"
+    }
+  ],
+  "default_target": -100056,
+  "default_center": 399,
+  "default_frame": 1,
+  "physical_trajectory_qualified": false,
+  "strict_physical_bounds_unchanged": true
+}

@@ -79,6 +79,7 @@ EphemWriterWithInterpolator::EphemWriterWithInterpolator(const std::string &name
    processingLargeStep  (false),
    checkForLargeTimeGap (false),
    allowLowerOrder      (false),
+   allowOrderReduction  (true),
    timeTolerance        (1.0e-6)
 {
    #ifdef DEBUG_EPHEMFILE_INSTANCE
@@ -142,6 +143,7 @@ EphemWriterWithInterpolator::EphemWriterWithInterpolator(const EphemWriterWithIn
    processingLargeStep  (ef.processingLargeStep),
    checkForLargeTimeGap (ef.checkForLargeTimeGap),
    allowLowerOrder      (ef.allowLowerOrder),
+   allowOrderReduction  (ef.allowOrderReduction),
    timeTolerance        (ef.timeTolerance)
 {
 }
@@ -173,6 +175,7 @@ EphemWriterWithInterpolator::operator=(const EphemWriterWithInterpolator& ef)
    processingLargeStep  = ef.processingLargeStep;
    checkForLargeTimeGap = ef.checkForLargeTimeGap;
    allowLowerOrder      = ef.allowLowerOrder;
+   allowOrderReduction  = ef.allowOrderReduction;
    timeTolerance        = ef.timeTolerance;
    return *this;
 }
@@ -480,6 +483,32 @@ bool EphemWriterWithInterpolator::IsTimeToWrite(Real epochInSecs, const Real sta
       MessageInterface::ShowMessage("   Computing next output time\n");
       #endif
       
+      // Processing a waiting request above can complete the explicit interval.
+      // Do not queue its start again while the first native sample is outside it.
+      if (finalEpochProcessed)
+         return false;
+
+      // A whole explicit window can lie between two native samples. Queue its
+      // fixed grid before the ordinary first-write path consumes the initial
+      // epoch setting; finalization can then interpolate every requested time.
+      if (firstTimeWriting && writingNewSegment && useFixedStepSize &&
+          currPropDirection > 0.0 && initialEpochA1Mjd != -999.999 &&
+          finalEpochA1Mjd != -999.999 && finalEpochReached)
+      {
+         const Real stop = finalEpochA1Mjd * GmatTimeConstants::SECS_PER_DAY;
+         for (Real epoch = initialEpochA1Mjd * GmatTimeConstants::SECS_PER_DAY;
+              epoch <= stop + timeTolerance;)
+         {
+            if (epoch > lastEpochWrote + timeTolerance)
+               AddNextEpochToWrite(epoch, "   Adding pending explicit output grid, ");
+            const Real next = epoch + stepSizeInSecs;
+            if (next <= epoch)
+               throw SubscriberException("Ephemeris output step cannot advance its epoch.");
+            epoch = next;
+         }
+         return false;
+      }
+
       // compute next output time
       if (writingNewSegment)
       {
@@ -642,6 +671,11 @@ void EphemWriterWithInterpolator::WriteOrbitAt(Real reqEpochInSecs, const Real s
 //------------------------------------------------------------------------------
 void EphemWriterWithInterpolator::ProcessFinalDataOnWaiting(bool canFinish)
 {
+   // Segment boundaries also arrive with canFinalize=false. Enforce the
+   // strict order before attempting the remaining requests or discarding the
+   // interpolation buffer, even when the last feasibility status is stale.
+   RequireInterpolationData(interpolator->GetPointCount(),
+         "interpolation input samples at segment closure");
    #ifdef DEBUG_EPHEMFILE_FINISH
    MessageInterface::ShowMessage
       ("\nEphemWriterWithInterpolator::ProcessFinalDataOnWaiting() entered, canFinish=%d, "
@@ -893,6 +927,7 @@ void EphemWriterWithInterpolator::ProcessEpochsOnWaiting(bool checkFinalEpoch,
       // Attempt to lower order to make interpolation feasible
       if (retval == -1 && allowLowerOrder)
       {
+         RequireInterpolationData(interpolator->GetPointCount(),"interpolation input samples");
          if (interpolator->AdjustOrderToNumPoints())
          {
             retval = interpolator->IsInterpolationFeasible(reqEpochInSecs);
@@ -1202,3 +1237,19 @@ void EphemWriterWithInterpolator::DebugWriteEpochsOnWaiting(const std::string &m
       DebugWriteTime("      ", epochsOnWaiting[i]);
 }
 
+
+
+void EphemWriterWithInterpolator::RequireInterpolationData(Integer count,
+      const std::string &context)
+{
+   if (!allowOrderReduction && count < interpolationOrder+1)
+   {
+      // Finalization must not retry order reduction while unwinding this error.
+      isFinalized=true;
+      throw SubscriberException("Insufficient data for " + interpolatorName +
+            " interpolation of order " + GmatStringUtil::ToString(interpolationOrder,0) +
+            " in ephemeris file \"" + fileName + "\": " + context + " requires at least " +
+            GmatStringUtil::ToString(interpolationOrder+1,0) + " points; received " +
+            GmatStringUtil::ToString(count,0) + ". InsufficientDataAction is Error.");
+   }
+}

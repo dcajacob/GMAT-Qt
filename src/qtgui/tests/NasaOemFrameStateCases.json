@@ -1,0 +1,916 @@
+{
+  "cases": [
+    {
+      "key": "EarthEquator_XY",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            0.0
+          ],
+          [
+            5,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743,
+            0.0
+          ],
+          [
+            10,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067,
+            0.0
+          ],
+          [
+            15,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205,
+            0.0
+          ],
+          [
+            20,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647,
+            0.0
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "frame_kind": "EarthEquator",
+      "plane": "XY",
+      "coordinate_system": "OemFrame",
+      "frame_setup": "Sat.NAIFId = -101401;\nCreate CoordinateSystem OemFrame;\nOemFrame.Origin = Earth;\nOemFrame.Axes = MJ2000Eq;\n",
+      "initial_state": [
+        7000.0,
+        0.0,
+        0.0,
+        -0.0,
+        7.546053287267836,
+        0.0
+      ],
+      "expected_center": "EARTH",
+      "expected_frame": "EME2000"
+    },
+    {
+      "key": "EarthEquator_YZ",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            0.0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            7.546053287267836
+          ],
+          [
+            5,
+            0.0,
+            6999.898316460083,
+            37.73008374344544,
+            0.0,
+            -0.04067331749444531,
+            7.545943671637743
+          ],
+          [
+            10,
+            0.0,
+            6999.59326879449,
+            75.45907133589762,
+            0.0,
+            -0.08134545332977548,
+            7.545614827932067
+          ],
+          [
+            15,
+            0.0,
+            6999.084865865597,
+            113.18586665820918,
+            0.0,
+            -0.12201522588120547,
+            7.5450667657045205
+          ],
+          [
+            20,
+            0.0,
+            6998.37312244375,
+            150.9093736549235,
+            0.0,
+            -0.16268145359260938,
+            7.544299500877647
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        0.0,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "frame_kind": "EarthEquator",
+      "plane": "YZ",
+      "coordinate_system": "OemFrame",
+      "frame_setup": "Sat.NAIFId = -101401;\nCreate CoordinateSystem OemFrame;\nOemFrame.Origin = Earth;\nOemFrame.Axes = MJ2000Eq;\n",
+      "initial_state": [
+        0.0,
+        7000.0,
+        0.0,
+        0.0,
+        -0.0,
+        7.546053287267836
+      ],
+      "expected_center": "EARTH",
+      "expected_frame": "EME2000"
+    },
+    {
+      "key": "EarthEquator_ZX",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            0.0,
+            0.0,
+            7000.0,
+            7.546053287267836,
+            0.0,
+            -0.0
+          ],
+          [
+            5,
+            37.73008374344544,
+            0.0,
+            6999.898316460083,
+            7.545943671637743,
+            0.0,
+            -0.04067331749444531
+          ],
+          [
+            10,
+            75.45907133589762,
+            0.0,
+            6999.59326879449,
+            7.545614827932067,
+            0.0,
+            -0.08134545332977548
+          ],
+          [
+            15,
+            113.18586665820918,
+            0.0,
+            6999.084865865597,
+            7.5450667657045205,
+            0.0,
+            -0.12201522588120547
+          ],
+          [
+            20,
+            150.9093736549235,
+            0.0,
+            6998.37312244375,
+            7.544299500877647,
+            0.0,
+            -0.16268145359260938
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        150.9093736549235,
+        0.0,
+        6998.37312244375,
+        7.544299500877647,
+        0.0,
+        -0.16268145359260938,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "frame_kind": "EarthEquator",
+      "plane": "ZX",
+      "coordinate_system": "OemFrame",
+      "frame_setup": "Sat.NAIFId = -101401;\nCreate CoordinateSystem OemFrame;\nOemFrame.Origin = Earth;\nOemFrame.Axes = MJ2000Eq;\n",
+      "initial_state": [
+        0.0,
+        0.0,
+        7000.0,
+        7.546053287267836,
+        0.0,
+        -0.0
+      ],
+      "expected_center": "EARTH",
+      "expected_frame": "EME2000"
+    },
+    {
+      "key": "EarthEcliptic_XY",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            0.0,
+            0.0,
+            -0.0,
+            6.923368530486422,
+            -3.001647615120068
+          ],
+          [
+            5,
+            6999.898316460083,
+            34.61667503497924,
+            -15.008165404540659,
+            -0.04067331749444531,
+            6.9232679601120894,
+            -3.001604012526484
+          ],
+          [
+            10,
+            6999.59326879449,
+            69.23234437108484,
+            -30.015894785256748,
+            -0.08134545332977548,
+            6.922966251910908,
+            -3.001473206012494
+          ],
+          [
+            15,
+            6999.084865865597,
+            103.84600233866121,
+            -45.022752130991265,
+            -0.12201522588120547,
+            6.922463414648235,
+            -3.0012551993783467
+          ],
+          [
+            20,
+            6998.37312244375,
+            138.4566433264879,
+            -60.02830145592194,
+            -0.16268145359260938,
+            6.921759462932722,
+            -3.0009499989576662
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "frame_kind": "EarthEcliptic",
+      "plane": "XY",
+      "coordinate_system": "OemFrame",
+      "frame_setup": "Sat.NAIFId = -101401;\nCreate CoordinateSystem OemFrame;\nOemFrame.Origin = Earth;\nOemFrame.Axes = MJ2000Ec;\n",
+      "initial_state": [
+        7000.0,
+        0.0,
+        0.0,
+        -0.0,
+        7.546053287267836,
+        0.0
+      ],
+      "expected_center": "EARTH",
+      "expected_frame": "MJ2000Ec"
+    },
+    {
+      "key": "EarthEcliptic_YZ",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            0.0,
+            6422.374434484273,
+            -2784.440091523396,
+            0.0,
+            3.001647615120068,
+            6.923368530486422
+          ],
+          [
+            5,
+            0.0,
+            6437.289307064932,
+            -2749.7829690991034,
+            0.0,
+            2.9642869733204855,
+            6.939446876667346
+          ],
+          [
+            10,
+            0.0,
+            6452.017160684391,
+            -2715.0459587701544,
+            0.0,
+            2.9268402117515393,
+            6.955323614984418
+          ],
+          [
+            15,
+            0.0,
+            6466.5575674625625,
+            -2680.230069731456,
+            0.0,
+            2.8893084183330213,
+            6.970998284179651
+          ],
+          [
+            20,
+            0.0,
+            6480.910104965152,
+            -2645.3363134695337,
+            0.0,
+            2.851692683455107,
+            6.98647042886566
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        0.0,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "frame_kind": "EarthEcliptic",
+      "plane": "YZ",
+      "coordinate_system": "OemFrame",
+      "frame_setup": "Sat.NAIFId = -101401;\nCreate CoordinateSystem OemFrame;\nOemFrame.Origin = Earth;\nOemFrame.Axes = MJ2000Ec;\n",
+      "initial_state": [
+        0.0,
+        7000.0,
+        0.0,
+        0.0,
+        -0.0,
+        7.546053287267836
+      ],
+      "expected_center": "EARTH",
+      "expected_frame": "MJ2000Ec"
+    },
+    {
+      "key": "EarthEcliptic_ZX",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            0.0,
+            2784.440091523396,
+            6422.374434484273,
+            7.546053287267836,
+            0.0,
+            -0.0
+          ],
+          [
+            5,
+            37.73008374344544,
+            2784.399644134083,
+            6422.281141660391,
+            7.545943671637743,
+            -0.016178916555256207,
+            -0.037317039205998215
+          ],
+          [
+            10,
+            75.45907133589762,
+            2784.278303141239,
+            6422.001265899134,
+            7.545614827932067,
+            -0.03235736307351031,
+            -0.07463299426095481
+          ],
+          [
+            15,
+            113.18586665820918,
+            2784.076072070117,
+            6421.534815331571,
+            7.5450667657045205,
+            -0.04853486953141594,
+            -0.1119467810453254
+          ],
+          [
+            20,
+            150.9093736549235,
+            2783.7929567960214,
+            6420.88180350923,
+            7.544299500877647,
+            -0.06471096593293776,
+            -0.14925731550255916
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        150.9093736549235,
+        0.0,
+        6998.37312244375,
+        7.544299500877647,
+        0.0,
+        -0.16268145359260938,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "frame_kind": "EarthEcliptic",
+      "plane": "ZX",
+      "coordinate_system": "OemFrame",
+      "frame_setup": "Sat.NAIFId = -101401;\nCreate CoordinateSystem OemFrame;\nOemFrame.Origin = Earth;\nOemFrame.Axes = MJ2000Ec;\n",
+      "initial_state": [
+        0.0,
+        0.0,
+        7000.0,
+        7.546053287267836,
+        0.0,
+        -0.0
+      ],
+      "expected_center": "EARTH",
+      "expected_frame": "MJ2000Ec"
+    },
+    {
+      "key": "RelativeEquator_XY",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat, Other) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            7000.0,
+            -8000.0,
+            0.0,
+            -0.0,
+            7.546053287267836,
+            -7.058686505823871
+          ],
+          [
+            5,
+            6999.898316460083,
+            -7962.192064734092,
+            -35.29331804373444,
+            -0.04067331749444531,
+            7.577084230115375,
+            -7.058617814637488
+          ],
+          [
+            10,
+            6999.59326879449,
+            -7924.229524089468,
+            -70.58594917783327,
+            -0.08134545332977548,
+            7.6078953388023605,
+            -7.0584117424152675
+          ],
+          [
+            15,
+            6999.084865865597,
+            -7886.113478730891,
+            -105.87720650603012,
+            -0.12201522588120547,
+            7.638486016809326,
+            -7.05806829316797
+          ],
+          [
+            20,
+            6998.37312244375,
+            -7847.845032289742,
+            -141.16640315879684,
+            -0.16268145359260938,
+            7.668855674009233,
+            -7.057587473580106
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        0.0,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "frame_kind": "RelativeEquator",
+      "plane": "XY",
+      "coordinate_system": "OemFrame",
+      "frame_setup": "Sat.NAIFId = -101401;\nCreate Spacecraft Other;\nOther.NAIFId = -101402;\nOther.Id = 'GMAT-OEM-reference';\nOther.DateFormat = UTCGregorian;\nOther.Epoch = '01 Jan 2000 12:00:00.000';\nOther.CoordinateSystem = EarthMJ2000Eq;\nOther.DisplayStateType = Cartesian;\nOther.X = 0;\nOther.Y = 8000;\nOther.Z = 0;\nOther.VX = 0;\nOther.VY = -0;\nOther.VZ = 7.0586865058238706;\nCreate CoordinateSystem OemFrame;\nOemFrame.Origin = Other;\nOemFrame.Axes = MJ2000Eq;\n",
+      "initial_state": [
+        7000.0,
+        0.0,
+        0.0,
+        -0.0,
+        7.546053287267836,
+        0.0
+      ],
+      "expected_center": "OTHER",
+      "expected_frame": "EME2000"
+    },
+    {
+      "key": "RelativeEquator_YZ",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat, Other) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            0.0,
+            -1000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.4873667814439653
+          ],
+          [
+            5,
+            0.0,
+            -1000.023832017454,
+            2.436765699711003,
+            0.0,
+            -0.009532759016813011,
+            0.487325857000255
+          ],
+          [
+            10,
+            0.0,
+            -1000.0953266308761,
+            4.873122158064348,
+            0.0,
+            -0.019064942459482828,
+            0.4872030855167999
+          ],
+          [
+            15,
+            0.0,
+            -1000.2144795235035,
+            7.308660152179058,
+            0.0,
+            -0.028595974776400204,
+            0.48699847253655015
+          ],
+          [
+            20,
+            0.0,
+            -1000.3812835009167,
+            9.742970496126674,
+            0.0,
+            -0.03812528046102295,
+            0.48671202729754093
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        0.0,
+        6998.37312244375,
+        150.9093736549235,
+        0.0,
+        -0.16268145359260938,
+        7.544299500877647,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "frame_kind": "RelativeEquator",
+      "plane": "YZ",
+      "coordinate_system": "OemFrame",
+      "frame_setup": "Sat.NAIFId = -101401;\nCreate Spacecraft Other;\nOther.NAIFId = -101402;\nOther.Id = 'GMAT-OEM-reference';\nOther.DateFormat = UTCGregorian;\nOther.Epoch = '01 Jan 2000 12:00:00.000';\nOther.CoordinateSystem = EarthMJ2000Eq;\nOther.DisplayStateType = Cartesian;\nOther.X = 0;\nOther.Y = 8000;\nOther.Z = 0;\nOther.VX = 0;\nOther.VY = -0;\nOther.VZ = 7.0586865058238706;\nCreate CoordinateSystem OemFrame;\nOemFrame.Origin = Other;\nOemFrame.Axes = MJ2000Eq;\n",
+      "initial_state": [
+        0.0,
+        7000.0,
+        0.0,
+        0.0,
+        -0.0,
+        7.546053287267836
+      ],
+      "expected_center": "OTHER",
+      "expected_frame": "EME2000"
+    },
+    {
+      "key": "RelativeEquator_ZX",
+      "duration": 20,
+      "mu": 398600.4415,
+      "radius": 7000.0,
+      "speed": 7.546053287267836,
+      "sampling": "IntegratorSteps",
+      "order": 7,
+      "user_interval": false,
+      "initial_epoch": "InitialSpacecraftEpoch",
+      "final_epoch": "FinalSpacecraftEpoch",
+      "mission": "Propagate 'Entire arc' PropA(Sat, Other) {Sat.ElapsedSecs = 20};\n",
+      "expected_segments": [
+        [
+          [
+            0,
+            0.0,
+            -8000.0,
+            7000.0,
+            7.546053287267836,
+            0.0,
+            -7.058686505823871
+          ],
+          [
+            5,
+            37.73008374344544,
+            -7999.922148477537,
+            6964.604998416348,
+            7.545943671637743,
+            0.0311405584776323,
+            -7.099291132131933
+          ],
+          [
+            10,
+            75.45907133589762,
+            -7999.688595425366,
+            6929.007319616657,
+            7.545614827932067,
+            0.062280510870292655,
+            -7.139757195745043
+          ],
+          [
+            15,
+            113.18586665820918,
+            -7999.2993453891,
+            6893.207659359567,
+            7.5450667657045205,
+            0.09341925110480527,
+            -7.180083519049176
+          ],
+          [
+            20,
+            150.9093736549235,
+            -7998.754405944666,
+            6857.206719284953,
+            7.544299500877647,
+            0.12455617313158643,
+            -7.220268927172715
+          ]
+        ]
+      ],
+      "expected_final": [
+        20,
+        150.9093736549235,
+        0.0,
+        6998.37312244375,
+        7.544299500877647,
+        0.0,
+        -0.16268145359260938,
+        9
+      ],
+      "expected_degree": 4,
+      "reverse_delta_v": [
+        4.796185474225739,
+        -14.309726962942685,
+        -0.0
+      ],
+      "position_tolerance": 2e-05,
+      "velocity_tolerance": 2e-08,
+      "scenario": "RawSteps",
+      "expected_degrees": [
+        4
+      ],
+      "frame_kind": "RelativeEquator",
+      "plane": "ZX",
+      "coordinate_system": "OemFrame",
+      "frame_setup": "Sat.NAIFId = -101401;\nCreate Spacecraft Other;\nOther.NAIFId = -101402;\nOther.Id = 'GMAT-OEM-reference';\nOther.DateFormat = UTCGregorian;\nOther.Epoch = '01 Jan 2000 12:00:00.000';\nOther.CoordinateSystem = EarthMJ2000Eq;\nOther.DisplayStateType = Cartesian;\nOther.X = 0;\nOther.Y = 8000;\nOther.Z = 0;\nOther.VX = 0;\nOther.VY = -0;\nOther.VZ = 7.0586865058238706;\nCreate CoordinateSystem OemFrame;\nOemFrame.Origin = Other;\nOemFrame.Axes = MJ2000Eq;\n",
+      "initial_state": [
+        0.0,
+        0.0,
+        7000.0,
+        7.546053287267836,
+        0.0,
+        -0.0
+      ],
+      "expected_center": "OTHER",
+      "expected_frame": "EME2000"
+    }
+  ],
+  "object_id": "GMAT-OEM-frame-state",
+  "test_interface_profile": {
+    "sender": "New NasaOemFrameStateTests GUI fixture",
+    "receiver": "RunOemFrameStates independent raw-file checker",
+    "object_id": "GMAT-OEM-frame-state",
+    "object_name": "Sat",
+    "originator": "GMAT USER",
+    "version": "1.0",
+    "frames": {
+      "EarthEquator": "EME2000 with EARTH center",
+      "EarthEcliptic": "MJ2000Ec:fixed X rotation from EME2000 by IAU1976 J2000 obliquity84381.448arcsec",
+      "RelativeEquator": "EME2000 axes centered on Other,another independently propagated circular spacecraft"
+    },
+    "time_system": "UTC",
+    "units": [
+      "km",
+      "km/s"
+    ],
+    "filenames": [
+      "Every state \u0394.oem",
+      "mission.oem"
+    ],
+    "exchange": "private local unchanged retained bytes,SHA256-bound;no retroactive operational agreement"
+  },
+  "constants": {
+    "mu_km3_s2": 398600.4415,
+    "obliquity_arcsec": 84381.448,
+    "obliquity_source": "https://ssd.jpl.nasa.gov/astro_par.html"
+  },
+  "scope": "Complete retained output states for three declared frame/origin kinds and three spanning circular planes. Existing original assertions/catalogs unchanged;no arbitrary frame/domain,whole-E375,E381 or scientific-failure waiver."
+}

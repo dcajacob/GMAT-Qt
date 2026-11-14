@@ -1,0 +1,359 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "Spacecraft",
+      "type": "Spacecraft",
+      "category": "Spacecraft",
+      "field": "DryMass",
+      "kind": "real",
+      "first": "910.25",
+      "second": "975.5",
+      "requirement": "FRAC-6.1.1",
+      "legacy_groups": [
+        "Spacecraft_OrbitEpoch",
+        "SpacecraftAttitude",
+        "SpacecraftBallisticMass",
+        "SpacecraftVisualization"
+      ],
+      "clone_allowed": true
+    },
+    {
+      "key": "ChemicalTank",
+      "type": "ChemicalTank",
+      "category": "Hardware",
+      "field": "FuelMass",
+      "kind": "real",
+      "first": "12.25",
+      "second": "24.5",
+      "requirement": "FRAC-6.1.2",
+      "legacy_groups": [
+        "Spacecraft Tank Panel"
+      ],
+      "clone_allowed": true
+    },
+    {
+      "key": "ChemicalThruster",
+      "type": "ChemicalThruster",
+      "category": "Hardware",
+      "field": "DutyCycle",
+      "kind": "real",
+      "first": "0.5",
+      "second": "0.75",
+      "requirement": "FRAC-6.1.3",
+      "legacy_groups": [
+        "Spacecraft Actuators"
+      ],
+      "clone_allowed": true
+    },
+    {
+      "key": "Transmitter",
+      "type": "Transmitter",
+      "category": "Hardware",
+      "field": "Frequency",
+      "kind": "real",
+      "first": "2200",
+      "second": "2300",
+      "requirement": "FRAC-6.1.4",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "Transponder",
+      "type": "Transponder",
+      "category": "Hardware",
+      "field": "HardwareDelay",
+      "kind": "real",
+      "first": "0.1",
+      "second": "0.2",
+      "requirement": "FRAC-6.1.5",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "Receiver",
+      "type": "Receiver",
+      "category": "Hardware",
+      "field": "Id",
+      "kind": "string",
+      "first": "1",
+      "second": "2",
+      "requirement": "FRAC-6.1.6",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "Antenna",
+      "type": "Antenna",
+      "category": "Hardware",
+      "field": "FieldOfView",
+      "kind": "string",
+      "first": "Cone1",
+      "second": "Cone2",
+      "requirement": "FRAC-6.1.7",
+      "legacy_groups": [],
+      "clone_allowed": true,
+      "fixture": "Create ConicalFOV Cone1 Cone2;\n"
+    },
+    {
+      "key": "GroundStation",
+      "type": "GroundStation",
+      "category": "Ground Stations",
+      "field": "MinimumElevationAngle",
+      "kind": "real",
+      "first": "5",
+      "second": "10",
+      "requirement": "FRAC-6.1.8",
+      "legacy_groups": [
+        "Ground Station"
+      ],
+      "clone_allowed": true
+    },
+    {
+      "key": "Formation",
+      "type": "Formation",
+      "category": "Formations",
+      "field": "Add",
+      "kind": "list",
+      "first": "Anchor",
+      "second": "Anchor,Other",
+      "requirement": "FRAC-6.1.9",
+      "legacy_groups": [],
+      "clone_allowed": true,
+      "fixture": "Create Spacecraft Third;\n",
+      "clone_fields": {
+        "Add": "Other"
+      },
+      "clone_edit": "Third",
+      "clone_default_rejected": true
+    },
+    {
+      "key": "ImpulsiveBurn",
+      "type": "ImpulsiveBurn",
+      "category": "Burns",
+      "field": "Element1",
+      "kind": "real",
+      "first": "0.1",
+      "second": "0.2",
+      "requirement": "FRAC-6.1.10",
+      "legacy_groups": [
+        "ImpulsiveBurn"
+      ],
+      "clone_allowed": true
+    },
+    {
+      "key": "FiniteBurn",
+      "type": "FiniteBurn",
+      "category": "Burns",
+      "field": "Thrusters",
+      "kind": "list",
+      "first": "Engine",
+      "second": "Engine,Engine2",
+      "requirement": "FRAC-6.1.11",
+      "legacy_groups": [],
+      "clone_allowed": true,
+      "fixture": "Create ChemicalThruster Engine Engine2;\n"
+    },
+    {
+      "key": "Barycenter",
+      "type": "Barycenter",
+      "category": "Calculated Points",
+      "field": "BodyNames",
+      "kind": "list",
+      "first": "Earth,Mars",
+      "second": "Earth,Luna",
+      "requirement": "FRAC-6.1.12",
+      "legacy_groups": [
+        "Barycenter"
+      ],
+      "clone_allowed": true
+    },
+    {
+      "key": "LibrationPoint",
+      "type": "LibrationPoint",
+      "category": "Calculated Points",
+      "field": "Secondary",
+      "kind": "string",
+      "first": "Luna",
+      "second": "Mars",
+      "requirement": "FRAC-6.1.13",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "Propagator",
+      "type": "PropSetup",
+      "category": "Propagators",
+      "field": "InitialStepSize",
+      "kind": "real",
+      "first": "120",
+      "second": "180",
+      "requirement": "FRAC-6.1.17",
+      "legacy_groups": [
+        "Numerical Integrators"
+      ],
+      "clone_allowed": false,
+      "object_type": "PropSetup"
+    },
+    {
+      "key": "DifferentialCorrector",
+      "type": "DifferentialCorrector",
+      "category": "Solvers",
+      "field": "MaximumIterations",
+      "kind": "integer",
+      "first": "15",
+      "second": "30",
+      "requirement": "FRAC-6.1.18",
+      "legacy_groups": [
+        "Differential Corrector"
+      ],
+      "clone_allowed": true
+    },
+    {
+      "key": "BatchEstimator",
+      "type": "BatchEstimator",
+      "category": "Solvers",
+      "field": "MaximumIterations",
+      "kind": "integer",
+      "first": "7",
+      "second": "8",
+      "requirement": "FRAC-6.1.21",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "ExtendedKalmanFilter",
+      "type": "ExtendedKalmanFilter",
+      "category": "Solvers",
+      "field": "ScaledResidualThreshold",
+      "kind": "real",
+      "first": "4",
+      "second": "5",
+      "requirement": "FRAC-6.1.22",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "Simulator",
+      "type": "Simulator",
+      "category": "Solvers",
+      "field": "MeasurementTimeStep",
+      "kind": "real",
+      "first": "30",
+      "second": "90",
+      "requirement": "FRAC-6.1.23",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "XYPlot",
+      "type": "XYPlot",
+      "category": "Output",
+      "field": "SolverIterations",
+      "kind": "string",
+      "first": "All",
+      "second": "None",
+      "requirement": "FRAC-6.1.24",
+      "legacy_groups": [
+        "XYPlot"
+      ],
+      "clone_allowed": true,
+      "create_fields": {
+        "ShowPlot": "false"
+      },
+      "controls": {
+        "ShowPlot": "xyShowPlot",
+        "SolverIterations": "xySolverIterations"
+      }
+    },
+    {
+      "key": "OrbitView",
+      "type": "OrbitView",
+      "category": "Output",
+      "field": "NumPointsToRedraw",
+      "kind": "integer",
+      "first": "10",
+      "second": "20",
+      "requirement": "FRAC-6.1.25",
+      "legacy_groups": [],
+      "clone_allowed": true,
+      "create_fields": {
+        "ShowPlot": "false"
+      }
+    },
+    {
+      "key": "ReportFile",
+      "type": "ReportFile",
+      "category": "Output",
+      "field": "Precision",
+      "kind": "integer",
+      "first": "12",
+      "second": "14",
+      "requirement": "FRAC-6.1.26",
+      "legacy_groups": [
+        "ReportFile"
+      ],
+      "clone_allowed": true
+    },
+    {
+      "key": "EphemerisFile",
+      "type": "EphemerisFile",
+      "category": "Output",
+      "field": "StepSize",
+      "kind": "string",
+      "first": "60",
+      "second": "120",
+      "requirement": "FRAC-6.1.27",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "Variable",
+      "type": "Variable",
+      "category": "Variables, Arrays, Strings",
+      "field": "Value",
+      "kind": "real",
+      "first": "12.25",
+      "second": "24.5",
+      "requirement": "FRAC-6.1.28",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "String",
+      "type": "String",
+      "category": "Variables, Arrays, Strings",
+      "field": "Value",
+      "kind": "string",
+      "first": "NASA first text",
+      "second": "NASA revised text",
+      "requirement": "FRAC-6.1.30",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "CoordinateSystem",
+      "type": "CoordinateSystem",
+      "category": "Coordinate Systems",
+      "field": "Origin",
+      "kind": "string",
+      "first": "Mars",
+      "second": "Luna",
+      "requirement": "FRAC-6.1.31",
+      "legacy_groups": [],
+      "clone_allowed": true
+    },
+    {
+      "key": "Yukon",
+      "type": "Yukon",
+      "category": "Solvers",
+      "field": "MaximumIterations",
+      "kind": "integer",
+      "first": "15",
+      "second": "30",
+      "requirement": "",
+      "legacy_groups": [],
+      "clone_allowed": true
+    }
+  ]
+}

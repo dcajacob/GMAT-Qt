@@ -63,6 +63,9 @@ public:
    virtual const Rvector6 GetMJ2000State(const A1Mjd &atTime);
    virtual const Rvector3 GetMJ2000Position(const A1Mjd &atTime);
    virtual const Rvector3 GetMJ2000Velocity(const A1Mjd &atTime);
+   const Rvector3 GetMJ2000Acceleration(const A1Mjd &atTime) override;
+   const Rvector3 GetMJ2000Acceleration(const Real atTime) override { return GetMJ2000Acceleration(GmatTime(atTime)); }
+   const Rvector3 GetMJ2000Acceleration(const GmatTime &atTime) override;
 
    virtual const Rvector6 GetMJ2000State(const GmatTime &atTime);
    virtual const Rvector3 GetMJ2000Position(const GmatTime &atTime);

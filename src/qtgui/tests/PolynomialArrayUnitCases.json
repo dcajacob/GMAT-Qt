@@ -1,0 +1,28 @@
+{
+  "cases": [
+    {
+      "key": "Transmitter",
+      "type": "Transmitter",
+      "fixture": "Create Transmitter Probe;\nProbe.FrequencyBias = [0.1 0.2 0.3];\nProbe.FrequencyBiasSigma = [0.1 0.2 0.3];\n",
+      "fields": [
+        "FrequencyBias",
+        "FrequencyBiasSigma"
+      ],
+      "base_unit": "MHz",
+      "allow_resize": false
+    },
+    {
+      "key": "ThrustSegment",
+      "type": "ThrustSegment",
+      "fixture": "Create ThrustSegment Probe;\nProbe.ThrustAngle1 = [0.1 0.2 0.3];\nProbe.ThrustAngle2 = [0.1 0.2 0.3];\nProbe.ThrustAngle1Sigma = [0.1 0.2 0.3];\nProbe.ThrustAngle2Sigma = [0.1 0.2 0.3];\n",
+      "fields": [
+        "ThrustAngle1",
+        "ThrustAngle2",
+        "ThrustAngle1Sigma",
+        "ThrustAngle2Sigma"
+      ],
+      "base_unit": "deg",
+      "allow_resize": true
+    }
+  ]
+}

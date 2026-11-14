@@ -1,0 +1,760 @@
+
+                                                     G E N E R A L  M I S S I O N  A N A L Y S I S  T O O L       
+
+                                                                          Release R2026a
+                                                           Build Date : Tuesday Oct 27, 2026 23:24:03
+
+                                    Hostname : dan-xps15-9520                       OS / Arch : Linux #15-Ubuntu SMP PREEMPT_DYNAMIC Mon Sep 21 07:24:00 UTC 2026
+                                    User ID  : dan                                  Run Date  : Fri Oct 30, 2026 03:12:26
+
+
+***************************************************************  SPACECRAFT INITIAL CONDITIONS  ****************************************************************
+
+ Spacecraft State at Beginning of Estimation :
+
+ Spacecraft Name                                 EstSat 
+ ID                                              LEOSat 
+                                                        
+ Epoch (UTC)                   10 Jun 2012 00:00:00.000 
+ Coordinate System                        EarthMJ2000Eq 
+ X  (km)                                  7001.00000000 
+ Y  (km)                                    -0.50000000 
+ Z  (km)                                     0.25000000 
+ VX (km/s)                               0.000500000000 
+ VY (km/s)                               5.335565450622 
+ VZ (km/s)                               5.336065450622 
+ Cr                                            1.800000 
+ CrSigma                                  Not Estimated 
+ Cd                                            2.200000 
+ CdSigma                                  Not Estimated 
+ DryMass  (kg)                               850.000000 
+ DragArea (m^2)                               15.000000 
+ SRPArea  (m^2)                               15.000000 
+
+
+********************************************************************  SPACECRAFT HARDWARE  *********************************************************************
+
+ Spacecraft Name             EstSat                    
+
+ Name                        SpacecraftAntenna         
+ Type                        Antenna                   
+
+ Name                        Transponder1              
+ Type                        Transponder               
+ Primary Antenna             SpacecraftAntenna         
+ Hardware Delay (sec)        5.00000000e-05            
+ Turnaround Ratio            240/221                   
+
+*******************************************************************  FORCE MODELING OPTIONS  *******************************************************************
+
+ Spacecraft Name                        EstSat                   
+                                                                 
+ Orbit Generator                                                 
+ Central Body of Integration            Earth                    
+ System of Integration                  J2000Eq                  
+ Integrator                             RungeKutta89             
+   Error Control                        None                     
+   Initial Step Size (sec)              20                       
+   Accuracy (km)                        1e-13                    
+   Minimum Step Size (sec)              0                        
+   Maximum Step Size (sec)              20                       
+   Maximum Attempts                     50                       
+   Stop if Accuracy is Violated         True                     
+ Central Body Gravity Model             None                     
+ Non - Central Bodies                   Earth                    
+ Solar Radiation Pressure               No                       
+ Drag                                   No                       
+ Central Body Solid Tides                                        
+ Central Body Albedo                    No                       
+ Central Body Thermal Radiation         No                       
+ Spacecraft Thermal Radiation Pressure  No                       
+ Relativistic Accelerations             No                       
+
+
+********************************************************************  MEASUREMENT MODELING  ********************************************************************
+
+                                                                  Tracking Data Configuration
+
+ Tracking File Set          estData                            
+                                                               
+ Tracking Data              {{North0,EstSat,North0},Range_Skin}
+                            {{North1,EstSat,North1},Range_Skin}
+                            {{North2,EstSat,North2},Range_Skin}
+                            {{North3,EstSat,North3},Range_Skin}
+                            {{North4,EstSat,North4},Range_Skin}
+                            {{North5,EstSat,North5},Range_Skin}
+                            {{South0,EstSat,South0},Range_Skin}
+                            {{South1,EstSat,South1},Range_Skin}
+                            {{South2,EstSat,South2},Range_Skin}
+                            {{South3,EstSat,South3},Range_Skin}
+                            {{South4,EstSat,South4},Range_Skin}
+                            {{South5,EstSat,South5},Range_Skin}
+ Light Time                 No                                 
+ Relativistic Corrections   No                                 
+ ET-TAI Corrections         No                                 
+ Aberration Correction      None                               
+ Frequency Model            Constant Frequency                 
+   Ramp Table               N/A                                
+
+                                                                  Ground Station Configuration
+
+ Name                       North0                      North1                      North2                      North3                      North4                      
+ Central Body               Earth                       Earth                       Earth                       Earth                       Earth                       
+ State Type                 Spherical                   Spherical                   Spherical                   Spherical                   Spherical                   
+ Horizon Reference          Ellipsoid                   Ellipsoid                   Ellipsoid                   Ellipsoid                   Ellipsoid                   
+ Location1 (km)                30.000000                   30.000000                   30.000000                   30.000000                   30.000000                
+ Location2 (km)                 0.000000                   60.000000                  120.000000                  180.000000                  240.000000                
+ Location3 (km)                 0.000000                    0.000000                    0.000000                    0.000000                    0.000000                
+ Pad ID                     North0                      North1                      North2                      North3                      North4                      
+ Min.Elevation Angle (deg)  0                           0                           0                           0                           0                           
+ Ionosphere Model           None                        None                        None                        None                        None                        
+ Troposphere Model          None                        None                        None                        None                        None                        
+ Measurement Error Models   RangeModel                  RangeModel                  RangeModel                  RangeModel                  RangeModel                  
+
+
+ Name                       North5                      South0                      South1                      South2                      South3                      
+ Central Body               Earth                       Earth                       Earth                       Earth                       Earth                       
+ State Type                 Spherical                   Spherical                   Spherical                   Spherical                   Spherical                   
+ Horizon Reference          Ellipsoid                   Ellipsoid                   Ellipsoid                   Ellipsoid                   Ellipsoid                   
+ Location1 (km)                30.000000                  -30.000000                  -30.000000                  -30.000000                  -30.000000                
+ Location2 (km)               300.000000                    0.000000                   60.000000                  120.000000                  180.000000                
+ Location3 (km)                 0.000000                    0.000000                    0.000000                    0.000000                    0.000000                
+ Pad ID                     North5                      South0                      South1                      South2                      South3                      
+ Min.Elevation Angle (deg)  0                           0                           0                           0                           0                           
+ Ionosphere Model           None                        None                        None                        None                        None                        
+ Troposphere Model          None                        None                        None                        None                        None                        
+ Measurement Error Models   RangeModel                  RangeModel                  RangeModel                  RangeModel                  RangeModel                  
+
+
+ Name                       South4                      South5                      
+ Central Body               Earth                       Earth                       
+ State Type                 Spherical                   Spherical                   
+ Horizon Reference          Ellipsoid                   Ellipsoid                   
+ Location1 (km)               -30.000000                  -30.000000                
+ Location2 (km)               240.000000                  300.000000                
+ Location3 (km)                 0.000000                    0.000000                
+ Pad ID                     South4                      South5                      
+ Min.Elevation Angle (deg)  0                           0                           
+ Ionosphere Model           None                        None                        
+ Troposphere Model          None                        None                        
+ Measurement Error Models   RangeModel                  RangeModel                  
+
+
+                                                                    Measurement Error Models
+
+ Name              RangeModel              
+ Measurement Type  Range_Skin              
+ Noise Sigma       1e-02                   
+ Bias              0                       
+ Bias Sigma        1e+70                   
+ Solve Fors        None                    
+
+
+*******************************************************************  ASTRODYNAMIC CONSTANTS  *******************************************************************
+
+ Earth Orientation Parameters                        /home/dan/GIT/GMAT-Qt/build/gui-acceptance/20261030-batch-mode-reentry-unattended/snapshot/repo/application
+ Atmospheric Model Data File                         Not used
+ Central Body Gravity Model                          Not used
+ Planetary Ephemeris File                            /home/dan/GIT/GMAT-Qt/build/gui-acceptance/20261030-batch-mode-reentry-unattended/snapshot/repo/application
+
+ Planetary Ephemeris                                 DE405
+ Speed of Light (km/sec)                             299792.458
+ Universal Gravitational Constant (km^3/kg*sec^2)    6.673000e-20
+
+ Celestial Body                          Earth                
+ Gravitational Constant (km^3/sec^2)     398600.4415          
+ Mean Equatorial Radius (km)             6378.1363            
+ Inverse Flattening Coefficient          298.26706833         
+ Rotation Rate (deg/day)                 360.9856235          
+
+*********************************************************************  ESTIMATION OPTIONS  *********************************************************************
+
+                                 OLSE Initial RMS Sigma              1000                      Estimation Epoch :
+                                 OLSE Multiplicative Constant        3                         
+                                 OLSE Additive Constant              1                         10 Jun 2012 00:00:00.000 UTCG
+                                 Absolute Tolerance for Convergence  0.0001                    26088.5003939164548611111111 A.1 Mod. Julian
+                                 Relative Tolerance for Convergence  0.0001                    26088.5003935185185185185190 TAI Mod. Julian
+                                 Maximum Iterations                  1                         
+                                 Maximum Consecutive Divergences     3                         
+                                 Inner Loop Editing                  No                        
+
+************************************************************  ITERATION   0:  MEASUREMENT RESIDUALS  ***********************************************************
+
+                                                                  Notations Used In Report File
+
+                         -    : Not edited                                                    IRMS : Edited by initial RMS sigma filter
+                         U    : Unused because no computed value configuration available      OLSE : Edited by outer-loop sigma editor
+                         R    : Out of ramp table range                                       ILSE : Edited by inner-loop sigma editor
+                         BXY  : Blocked, X = Path index, Y = Count index(Doppler)             USER : Edited by second-level data editor
+                         HORP : Blocked by Height of Ray Path criteria                        EGAP : Edited due to ephemeris gap
+
+                                                                  Measurement and Residual Units
+
+              Azimuth                   degrees               Range                 kilometers                RangeRate       kilometers/second
+              Elevation                 degrees               Range_Skin            kilometers                DSN_TCP         Hertz
+              XEast                     degrees               DSN_SeqRange          Range Units               SN_Doppler      Hertz
+              XSouth                    degrees               DSN_PNRange           Range Units               SN_Doppler_Rtn  Hertz
+              YNorth                    degrees               GPS_PosVec            kilometers                SN_DOWD         Hertz
+              YEast                     degrees               SN_Range              kilometers                BRTS_Doppler    Hertz
+                                                              BRTS_Range            kilometers                                     
+
+Iter RecNum  UTCGregorian-Epoch        Obs-Type            Participants             Edit          Observed (O)          Computed (C)       Residual (O-C)  Elev.
+
+   0      0  10 Jun 2012 00:04:00.000  Range_Skin          North2,LEOSat,North2                    5045.045392           5046.320571            -1.275179   3.48
+   0      1  10 Jun 2012 00:05:00.000  Range_Skin          North2,LEOSat,North2                    4325.238685           4326.603753            -1.365068   7.61
+   0      2  10 Jun 2012 00:06:00.000  Range_Skin          North2,LEOSat,North2                    3641.442062           3642.877871            -1.435810  12.49
+   0      3  10 Jun 2012 00:07:00.000  Range_Skin          North2,LEOSat,North2                    3021.816654           3023.269863            -1.453209  18.35
+   0      4  10 Jun 2012 00:08:00.000  Range_Skin          North2,LEOSat,North2                    2517.557024           2518.899286            -1.342263  24.97
+   0      5  10 Jun 2012 00:09:00.000  Range_Skin          North2,LEOSat,North2                    2211.714290           2212.699611            -0.985321  30.47
+   0      6  10 Jun 2012 00:10:00.000  Range_Skin          North2,LEOSat,North2                    2190.517889           2190.873701            -0.355813  30.98
+   0      7  10 Jun 2012 00:11:00.000  Range_Skin          North2,LEOSat,North2                    2461.538449           2461.200859             0.337590  26.03
+   0      8  10 Jun 2012 00:12:00.000  Range_Skin          North2,LEOSat,North2                    2944.465443           2943.561893             0.903550  19.44
+   0      9  10 Jun 2012 00:13:00.000  Range_Skin          North2,LEOSat,North2                    3552.613545           3551.286252             1.327293  13.46
+   0     10  10 Jun 2012 00:14:00.000  Range_Skin          North2,LEOSat,North2                    4230.618836           4228.964273             1.654564   8.45
+   0     11  10 Jun 2012 00:15:00.000  Range_Skin          North2,LEOSat,North2                    4947.866510           4945.943339             1.923171   4.24
+   0     12  10 Jun 2012 00:16:00.000  Range_Skin          North2,LEOSat,North2                    5687.358903           5685.202968             2.155935   0.59
+   0     13  10 Jun 2012 00:18:00.000  Range_Skin          North3,LEOSat,North3                    5363.647905           5368.711430            -5.063525   2.12
+   0     14  10 Jun 2012 00:19:00.000  Range_Skin          North3,LEOSat,North3                    4822.856073           4827.913042            -5.056970   4.93
+   0     15  10 Jun 2012 00:20:00.000  Range_Skin          North3,LEOSat,North3                    4357.567950           4362.433839            -4.865889   7.69
+   0     16  10 Jun 2012 00:21:00.000  Range_Skin          North3,LEOSat,North3                    3996.188278           4000.589893            -4.401616  10.11
+   0     17  10 Jun 2012 00:22:00.000  Range_Skin          North3,LEOSat,North3                    3770.163455           3773.754318            -3.590863  11.81
+   0     18  10 Jun 2012 00:23:00.000  Range_Skin          North3,LEOSat,North3                    3705.187801           3707.628173            -2.440372  12.33
+   0     19  10 Jun 2012 00:24:00.000  Range_Skin          North3,LEOSat,North3                    3809.710400           3810.786088            -1.075688  11.53
+   0     20  10 Jun 2012 00:25:00.000  Range_Skin          North3,LEOSat,North3                    4070.309040           4069.991511             0.317530   9.64
+   0     21  10 Jun 2012 00:26:00.000  Range_Skin          North3,LEOSat,North3                    4458.832003           4457.234546             1.597457   7.12
+   0     22  10 Jun 2012 00:27:00.000  Range_Skin          North3,LEOSat,North3                    4943.962963           4941.256387             2.706576   4.34
+   0     23  10 Jun 2012 00:28:00.000  Range_Skin          North3,LEOSat,North3                    5498.652037           5495.005476             3.646561   1.54
+   0     24  10 Jun 2012 00:31:00.000  Range_Skin          North4,LEOSat,North4     IRMS           5098.151527           5109.376486           -11.224960   3.43
+   0     25  10 Jun 2012 00:32:00.000  Range_Skin          North4,LEOSat,North4     IRMS           4318.378970           4330.117766           -11.738796   7.87
+   0     26  10 Jun 2012 00:33:00.000  Range_Skin          North4,LEOSat,North4     IRMS           3549.236693           3561.473648           -12.236956  13.47
+   0     27  10 Jun 2012 00:34:00.000  Range_Skin          North4,LEOSat,North4     IRMS           2803.655466           2816.298875           -12.643409  21.12
+   0     28  10 Jun 2012 00:35:00.000  Range_Skin          North4,LEOSat,North4     IRMS           2111.129744           2123.801951           -12.672208  32.70
+   0     29  10 Jun 2012 00:36:00.000  Range_Skin          North4,LEOSat,North4     IRMS           1549.001875           1560.218563           -11.216688  51.87
+   0     30  10 Jun 2012 00:37:00.000  Range_Skin          North4,LEOSat,North4                    1302.353231           1307.994735            -5.641504  73.50
+   0     31  10 Jun 2012 00:38:00.000  Range_Skin          North4,LEOSat,North4                    1532.927689           1530.732913             2.194776  53.33
+   0     32  10 Jun 2012 00:39:00.000  Range_Skin          North4,LEOSat,North4                    2087.652178           2080.597468             7.054709  33.50
+   0     33  10 Jun 2012 00:40:00.000  Range_Skin          North4,LEOSat,North4                    2777.384674           2767.784339             9.600335  21.54
+   0     34  10 Jun 2012 00:41:00.000  Range_Skin          North4,LEOSat,North4     IRMS           3521.916882           3510.809313            11.107569  13.70
+   0     35  10 Jun 2012 00:42:00.000  Range_Skin          North4,LEOSat,North4     IRMS           4290.755903           4278.626750            12.129154   8.00
+   0     36  10 Jun 2012 00:43:00.000  Range_Skin          North4,LEOSat,North4     IRMS           5070.609181           5057.716404            12.892777   3.50
+   0     37  10 Jun 2012 00:54:00.000  Range_Skin          South5,LEOSat,South5     IRMS           5377.268278           5400.546019           -23.277740   1.78
+   0     38  10 Jun 2012 00:55:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4593.671051           4617.339532           -23.668481   5.93
+   0     39  10 Jun 2012 00:56:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3817.238458           3841.163760           -23.925303  11.04
+   0     40  10 Jun 2012 00:57:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3057.486667           3081.378482           -23.891815  17.83
+   0     41  10 Jun 2012 00:58:00.000  Range_Skin          South5,LEOSat,South5     IRMS           2335.010849           2358.123598           -23.112749  27.78
+   0     42  10 Jun 2012 00:59:00.000  Range_Skin          South5,LEOSat,South5     IRMS           1702.380135           1722.467152           -20.087018  44.27
+   0     43  10 Jun 2012 01:00:00.000  Range_Skin          South5,LEOSat,South5     IRMS           1301.996325           1312.632831           -10.636506  72.60
+   0     44  10 Jun 2012 01:01:00.000  Range_Skin          South5,LEOSat,South5                    1359.374817           1354.105078             5.269738  67.35
+   0     45  10 Jun 2012 01:02:00.000  Range_Skin          South5,LEOSat,South5     IRMS           1831.766683           1816.047442            15.719240  41.09
+   0     46  10 Jun 2012 01:03:00.000  Range_Skin          South5,LEOSat,South5     IRMS           2492.304682           2471.936875            20.367807  26.03
+   0     47  10 Jun 2012 01:04:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3225.735956           3203.119621            22.616335  16.75
+   0     48  10 Jun 2012 01:05:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3990.046200           3966.167817            23.878383  10.31
+   0     49  10 Jun 2012 01:06:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4768.182528           4743.513982            24.668546   5.39
+   0     50  10 Jun 2012 01:07:00.000  Range_Skin          South5,LEOSat,South5     IRMS           5551.972775           5526.776463            25.196312   1.36
+   0     51  10 Jun 2012 01:09:00.000  Range_Skin          South0,LEOSat,South0     IRMS           5790.841102           5814.326043           -23.484940   0.05
+   0     52  10 Jun 2012 01:10:00.000  Range_Skin          South0,LEOSat,South0     IRMS           5206.323547           5228.303721           -21.980173   2.83
+   0     53  10 Jun 2012 01:11:00.000  Range_Skin          South0,LEOSat,South0     IRMS           4679.608355           4699.303095           -19.694740   5.67
+   0     54  10 Jun 2012 01:12:00.000  Range_Skin          South0,LEOSat,South0     IRMS           4234.629116           4250.987595           -16.358478   8.41
+   0     55  10 Jun 2012 01:13:00.000  Range_Skin          South0,LEOSat,South0     IRMS           3901.378937           3913.131106           -11.752168  10.74
+   0     56  10 Jun 2012 01:14:00.000  Range_Skin          South0,LEOSat,South0                    3711.475996           3717.397832            -5.921836  12.24
+   0     57  10 Jun 2012 01:15:00.000  Range_Skin          South0,LEOSat,South0                    3687.902564           3687.290214             0.612350  12.47
+   0     58  10 Jun 2012 01:16:00.000  Range_Skin          South0,LEOSat,South0                    3833.856433           3826.875736             6.980697  11.37
+   0     59  10 Jun 2012 01:17:00.000  Range_Skin          South0,LEOSat,South0     IRMS           4130.962761           4118.516494            12.446267   9.27
+   0     60  10 Jun 2012 01:18:00.000  Range_Skin          South0,LEOSat,South0     IRMS           4548.787446           4532.060784            16.726662   6.62
+   0     61  10 Jun 2012 01:19:00.000  Range_Skin          South0,LEOSat,South0     IRMS           5056.215019           5036.308264            19.906755   3.79
+   0     62  10 Jun 2012 01:20:00.000  Range_Skin          South0,LEOSat,South0     IRMS           5627.504571           5605.292159            22.212412   0.97
+   0     63  10 Jun 2012 01:22:00.000  Range_Skin          South1,LEOSat,South1     IRMS           5306.115052           5335.580087           -29.465035   2.23
+   0     64  10 Jun 2012 01:23:00.000  Range_Skin          South1,LEOSat,South1     IRMS           4592.713631           4621.392360           -28.678729   6.02
+   0     65  10 Jun 2012 01:24:00.000  Range_Skin          South1,LEOSat,South1     IRMS           3914.984184           3942.186423           -27.202239  10.40
+   0     66  10 Jun 2012 01:25:00.000  Range_Skin          South1,LEOSat,South1     IRMS           3298.270436           3322.769993           -24.499558  15.46
+   0     67  10 Jun 2012 01:26:00.000  Range_Skin          South1,LEOSat,South1     IRMS           2786.371960           2806.023044           -19.651084  21.06
+   0     68  10 Jun 2012 01:27:00.000  Range_Skin          South1,LEOSat,South1     IRMS           2448.301142           2459.913582           -11.612440  25.99
+   0     69  10 Jun 2012 01:28:00.000  Range_Skin          South1,LEOSat,South1                    2361.261204           2362.050002            -0.788798  27.61
+   0     70  10 Jun 2012 01:29:00.000  Range_Skin          South1,LEOSat,South1                    2551.237797           2541.478800             9.758997  24.61
+   0     71  10 Jun 2012 01:30:00.000  Range_Skin          South1,LEOSat,South1     IRMS           2964.718233           2947.285141            17.433092  19.20
+   0     72  10 Jun 2012 01:31:00.000  Range_Skin          South1,LEOSat,South1     IRMS           3522.522923           3500.287790            22.235133  13.68
+   0     73  10 Jun 2012 01:32:00.000  Range_Skin          South1,LEOSat,South1     IRMS           4165.319268           4140.185096            25.134172   8.81
+   0     74  10 Jun 2012 01:33:00.000  Range_Skin          South1,LEOSat,South1     IRMS           4857.450949           4830.546563            26.904386   4.63
+   0     75  10 Jun 2012 01:34:00.000  Range_Skin          South1,LEOSat,South1     IRMS           5578.360168           5550.357140            28.003028   0.98
+   0     76  10 Jun 2012 01:45:00.000  Range_Skin          North2,LEOSat,North2     IRMS           5523.377335           5557.491276           -34.113941   1.05
+   0     77  10 Jun 2012 01:46:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4767.679630           4801.651583           -33.971953   4.90
+   0     78  10 Jun 2012 01:47:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4027.680127           4061.137575           -33.457449   9.49
+   0     79  10 Jun 2012 01:48:00.000  Range_Skin          North2,LEOSat,North2     IRMS           3317.503571           3349.721144           -32.217572  15.19
+
+Iter RecNum  UTCGregorian-Epoch        Obs-Type            Participants             Edit          Observed (O)          Computed (C)       Residual (O-C)  Elev.
+
+   0     80  10 Jun 2012 01:49:00.000  Range_Skin          North2,LEOSat,North2     IRMS           2664.686278           2694.127303           -29.441026  22.58
+   0     81  10 Jun 2012 01:50:00.000  Range_Skin          North2,LEOSat,North2     IRMS           2126.105080           2149.425339           -23.320258  32.01
+   0     82  10 Jun 2012 01:51:00.000  Range_Skin          North2,LEOSat,North2     IRMS           1809.438967           1820.676436           -11.237469  40.90
+   0     83  10 Jun 2012 01:52:00.000  Range_Skin          North2,LEOSat,North2                    1834.578230           1829.450964             5.127266  40.67
+   0     84  10 Jun 2012 01:53:00.000  Range_Skin          North2,LEOSat,North2     IRMS           2189.515152           2171.435644            18.079508  31.67
+   0     85  10 Jun 2012 01:54:00.000  Range_Skin          North2,LEOSat,North2     IRMS           2748.227176           2722.786702            25.440475  22.35
+   0     86  10 Jun 2012 01:55:00.000  Range_Skin          North2,LEOSat,North2     IRMS           3410.392161           3381.000207            29.391953  15.07
+   0     87  10 Jun 2012 01:56:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4124.541685           4092.911124            31.630561   9.45
+   0     88  10 Jun 2012 01:57:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4865.681930           4832.696029            32.985901   4.91
+   0     89  10 Jun 2012 01:58:00.000  Range_Skin          North2,LEOSat,North2     IRMS           5620.845801           5586.997785            33.848015   1.10
+   0     90  10 Jun 2012 02:01:00.000  Range_Skin          North3,LEOSat,North3     IRMS           5351.373988           5384.107693           -32.733704   2.08
+   0     91  10 Jun 2012 02:02:00.000  Range_Skin          North3,LEOSat,North3     IRMS           4746.008971           4776.656585           -30.647614   5.25
+   0     92  10 Jun 2012 02:03:00.000  Range_Skin          North3,LEOSat,North3     IRMS           4201.681471           4229.001028           -27.319557   8.57
+   0     93  10 Jun 2012 02:04:00.000  Range_Skin          North3,LEOSat,North3     IRMS           3747.610186           3769.827079           -22.216894  11.84
+   0     94  10 Jun 2012 02:05:00.000  Range_Skin          North3,LEOSat,North3     IRMS           3422.004892           3436.891958           -14.887067  14.62
+   0     95  10 Jun 2012 02:06:00.000  Range_Skin          North3,LEOSat,North3                    3264.993009           3270.471642            -5.478633  16.17
+   0     96  10 Jun 2012 02:07:00.000  Range_Skin          North3,LEOSat,North3                    3301.434352           3296.632005             4.802347  15.91
+   0     97  10 Jun 2012 02:08:00.000  Range_Skin          North3,LEOSat,North3     IRMS           3525.325497           3511.093131            14.232366  13.93
+   0     98  10 Jun 2012 02:09:00.000  Range_Skin          North3,LEOSat,North3     IRMS           3903.933311           3882.184497            21.748814  10.95
+   0     99  10 Jun 2012 02:10:00.000  Range_Skin          North3,LEOSat,North3     IRMS           4396.384825           4369.115880            27.268946   7.61
+   0    100  10 Jun 2012 02:11:00.000  Range_Skin          North3,LEOSat,North3     IRMS           4967.505363           4936.309850            31.195513   4.31
+   0    101  10 Jun 2012 02:12:00.000  Range_Skin          North3,LEOSat,North3     IRMS           5591.549245           5557.567716            33.981529   1.18
+   0    102  10 Jun 2012 02:14:00.000  Range_Skin          North4,LEOSat,North4     IRMS           5373.468250           5407.463622           -33.995372   1.87
+   0    103  10 Jun 2012 02:15:00.000  Range_Skin          North4,LEOSat,North4     IRMS           4870.679661           4901.063435           -30.383773   4.44
+   0    104  10 Jun 2012 02:16:00.000  Range_Skin          North4,LEOSat,North4     IRMS           4457.405258           4482.585909           -25.180651   6.81
+   0    105  10 Jun 2012 02:17:00.000  Range_Skin          North4,LEOSat,North4     IRMS           4161.970824           4180.118380           -18.147556   8.70
+   0    106  10 Jun 2012 02:18:00.000  Range_Skin          North4,LEOSat,North4                    4011.489879           4020.950086            -9.460208   9.76
+   0    107  10 Jun 2012 02:19:00.000  Range_Skin          North4,LEOSat,North4                    4022.610455           4022.510304             0.100151   9.72
+   0    108  10 Jun 2012 02:20:00.000  Range_Skin          North4,LEOSat,North4                    4193.767181           4184.373527             9.393654   8.59
+   0    109  10 Jun 2012 02:21:00.000  Range_Skin          North4,LEOSat,North4     IRMS           4505.934915           4488.435864            17.499051   6.65
+   0    110  10 Jun 2012 02:22:00.000  Range_Skin          North4,LEOSat,North4     IRMS           4931.140448           4907.095089            24.045358   4.25
+   0    111  10 Jun 2012 02:23:00.000  Range_Skin          North4,LEOSat,North4     IRMS           5441.341779           5412.237305            29.104474   1.67
+   0    112  10 Jun 2012 02:30:00.000  Range_Skin          South4,LEOSat,South4                    5552.602909           5562.101195            -9.498286   0.99
+   0    113  10 Jun 2012 02:31:00.000  Range_Skin          South4,LEOSat,South4                    5449.802489           5451.692418            -1.889929   1.53
+   0    114  10 Jun 2012 02:32:00.000  Range_Skin          South4,LEOSat,South4                    5462.313748           5456.295554             6.018193   1.53
+   0    115  10 Jun 2012 02:33:00.000  Range_Skin          South4,LEOSat,South4     IRMS           5589.588294           5575.883971            13.704323   0.98
+   0    116  10 Jun 2012 02:37:00.000  Range_Skin          South5,LEOSat,South5     IRMS           5338.051924           5390.794154           -52.742231   1.93
+   0    117  10 Jun 2012 02:38:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4663.115313           4713.976902           -50.861589   5.49
+   0    118  10 Jun 2012 02:39:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4031.792571           4079.302111           -47.509540   9.47
+   0    119  10 Jun 2012 02:40:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3470.802290           3512.541553           -41.739263  13.85
+   0    120  10 Jun 2012 02:41:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3022.043633           3054.247349           -32.203717  18.31
+   0    121  10 Jun 2012 02:42:00.000  Range_Skin          South5,LEOSat,South5     IRMS           2743.008097           2760.874696           -17.866599  21.85
+   0    122  10 Jun 2012 02:43:00.000  Range_Skin          South5,LEOSat,South5                    2688.034936           2688.005744             0.029192  22.85
+   0    123  10 Jun 2012 02:44:00.000  Range_Skin          South5,LEOSat,South5     IRMS           2870.051861           2852.683324            17.368537  20.71
+   0    124  10 Jun 2012 02:45:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3248.744321           3217.976040            30.768281  16.66
+   0    125  10 Jun 2012 02:46:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3763.953201           3724.094399            39.858802  12.18
+   0    126  10 Jun 2012 02:47:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4365.979224           4320.221415            45.757809   7.96
+   0    127  10 Jun 2012 02:48:00.000  Range_Skin          South5,LEOSat,South5     IRMS           5021.796027           4972.212162            49.583865   4.16
+   0    128  10 Jun 2012 02:49:00.000  Range_Skin          South5,LEOSat,South5     IRMS           5710.818181           5658.723989            52.094192   0.76
+   0    129  10 Jun 2012 02:52:00.000  Range_Skin          South0,LEOSat,South0     IRMS           5306.831838           5362.971676           -56.139837   2.16
+   0    130  10 Jun 2012 02:53:00.000  Range_Skin          South0,LEOSat,South0     IRMS           4616.764383           4670.704002           -53.939618   5.82
+   0    131  10 Jun 2012 02:54:00.000  Range_Skin          South0,LEOSat,South0     IRMS           3965.123397           4015.318935           -50.195538   9.99
+   0    132  10 Jun 2012 02:55:00.000  Range_Skin          South0,LEOSat,South0     IRMS           3377.480707           3421.348939           -43.868232  14.71
+   0    133  10 Jun 2012 02:56:00.000  Range_Skin          South0,LEOSat,South0     IRMS           2896.051819           2929.418073           -33.366254  19.75
+   0    134  10 Jun 2012 02:57:00.000  Range_Skin          South0,LEOSat,South0     IRMS           2583.347582           2600.584824           -17.237242  24.06
+   0    135  10 Jun 2012 02:58:00.000  Range_Skin          South0,LEOSat,South0                    2504.888320           2501.615845             3.272475  25.55
+   0    136  10 Jun 2012 02:59:00.000  Range_Skin          South0,LEOSat,South0     IRMS           2681.777794           2658.854149            22.923645  23.17
+   0    137  10 Jun 2012 03:00:00.000  Range_Skin          South0,LEOSat,South0     IRMS           3069.793666           3032.372518            37.421148  18.49
+   0    138  10 Jun 2012 03:01:00.000  Range_Skin          South0,LEOSat,South0     IRMS           3600.304872           3553.655087            46.649785  13.43
+   0    139  10 Jun 2012 03:02:00.000  Range_Skin          South0,LEOSat,South0     IRMS           4218.452884           4166.197005            52.255879   8.82
+   0    140  10 Jun 2012 03:03:00.000  Range_Skin          South0,LEOSat,South0     IRMS           4889.370971           4833.711490            55.659481   4.77
+   0    141  10 Jun 2012 03:04:00.000  Range_Skin          South0,LEOSat,South0     IRMS           5592.143739           5534.406055            57.737685   1.20
+   0    142  10 Jun 2012 03:17:00.000  Range_Skin          North1,LEOSat,North1     IRMS           5400.286058           5447.544026           -47.257968   1.46
+   0    143  10 Jun 2012 03:18:00.000  Range_Skin          North1,LEOSat,North1     IRMS           4834.532316           4876.595055           -42.062739   4.37
+   0    144  10 Jun 2012 03:19:00.000  Range_Skin          North1,LEOSat,North1     IRMS           4343.325153           4377.995327           -34.670174   7.27
+   0    145  10 Jun 2012 03:20:00.000  Range_Skin          North1,LEOSat,North1     IRMS           3956.970310           3981.496978           -24.526668   9.92
+   0    146  10 Jun 2012 03:21:00.000  Range_Skin          North1,LEOSat,North1     IRMS           3710.296453           3721.849666           -11.553213  11.89
+   0    147  10 Jun 2012 03:22:00.000  Range_Skin          North1,LEOSat,North1                    3633.126364           3629.855445             3.270919  12.65
+   0    148  10 Jun 2012 03:23:00.000  Range_Skin          North1,LEOSat,North1     IRMS           3736.505491           3718.562492            17.942998  11.98
+   0    149  10 Jun 2012 03:24:00.000  Range_Skin          North1,LEOSat,North1     IRMS           4006.329310           3975.790347            30.538964  10.08
+   0    150  10 Jun 2012 03:25:00.000  Range_Skin          North1,LEOSat,North1     IRMS           4411.442645           4371.209395            40.233250   7.47
+   0    151  10 Jun 2012 03:26:00.000  Range_Skin          North1,LEOSat,North1     IRMS           4917.357204           4870.140632            47.216573   4.59
+   0    152  10 Jun 2012 03:27:00.000  Range_Skin          North1,LEOSat,North1     IRMS           5494.795110           5442.708534            52.086576   1.68
+   0    153  10 Jun 2012 03:29:00.000  Range_Skin          North2,LEOSat,North2     IRMS           5389.392706           5445.517176           -56.124470   1.70
+   0    154  10 Jun 2012 03:30:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4795.992025           4848.067710           -52.075685   4.78
+   0    155  10 Jun 2012 03:31:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4266.470311           4312.395863           -45.925552   7.96
+   0    156  10 Jun 2012 03:32:00.000  Range_Skin          North2,LEOSat,North2     IRMS           3829.653624           3866.523967           -36.870343  11.05
+   0    157  10 Jun 2012 03:33:00.000  Range_Skin          North2,LEOSat,North2     IRMS           3521.974508           3546.294156           -24.319648  13.62
+   0    158  10 Jun 2012 03:34:00.000  Range_Skin          North2,LEOSat,North2                    3380.023301           3388.706072            -8.682770  15.03
+   0    159  10 Jun 2012 03:35:00.000  Range_Skin          North2,LEOSat,North2                    3424.891700           3416.817697             8.074003  14.78
+
+Iter RecNum  UTCGregorian-Epoch        Obs-Type            Participants             Edit          Observed (O)          Computed (C)       Residual (O-C)  Elev.
+
+   0    160  10 Jun 2012 03:36:00.000  Range_Skin          North2,LEOSat,North2     IRMS           3649.440114           3626.108496            23.331619  12.98
+   0    161  10 Jun 2012 03:37:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4022.877713           3987.377250            35.500464  10.22
+   0    162  10 Jun 2012 03:38:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4507.102271           4462.653442            44.448830   7.09
+   0    163  10 Jun 2012 03:39:00.000  Range_Skin          North2,LEOSat,North2     IRMS           5068.897550           5018.106348            50.791203   3.94
+   0    164  10 Jun 2012 03:40:00.000  Range_Skin          North2,LEOSat,North2     IRMS           5683.505448           5628.264676            55.240772   0.92
+   0    165  10 Jun 2012 03:43:00.000  Range_Skin          North3,LEOSat,North3     IRMS           5176.039929           5248.314114           -72.274185   2.74
+   0    166  10 Jun 2012 03:44:00.000  Range_Skin          North3,LEOSat,North3     IRMS           4415.550652           4487.276867           -71.726215   6.92
+   0    167  10 Jun 2012 03:45:00.000  Range_Skin          North3,LEOSat,North3     IRMS           3671.215822           3741.402286           -70.186464  12.04
+   0    168  10 Jun 2012 03:46:00.000  Range_Skin          North3,LEOSat,North3     IRMS           2959.236232           3025.885090           -66.648858  18.68
+   0    169  10 Jun 2012 03:47:00.000  Range_Skin          North3,LEOSat,North3     IRMS           2313.747623           2372.406424           -58.658801  27.79
+   0    170  10 Jun 2012 03:48:00.000  Range_Skin          North3,LEOSat,North3     IRMS           1811.210010           1851.788917           -40.578908  40.04
+   0    171  10 Jun 2012 03:49:00.000  Range_Skin          North3,LEOSat,North3                    1595.876411           1602.321752            -6.445341  49.80
+   0    172  10 Jun 2012 03:50:00.000  Range_Skin          North3,LEOSat,North3     IRMS           1776.503271           1745.630193            30.873078  43.60
+   0    173  10 Jun 2012 03:51:00.000  Range_Skin          North3,LEOSat,North3     IRMS           2259.721556           2206.217448            53.504107  30.84
+   0    174  10 Jun 2012 03:52:00.000  Range_Skin          North3,LEOSat,North3     IRMS           2896.774849           2832.274725            64.500123  20.80
+   0    175  10 Jun 2012 03:53:00.000  Range_Skin          North3,LEOSat,North3     IRMS           3605.432097           3535.415090            70.017008  13.56
+   0    176  10 Jun 2012 03:54:00.000  Range_Skin          North3,LEOSat,North3     IRMS           4348.921087           4275.897723            73.023364   8.08
+   0    177  10 Jun 2012 03:55:00.000  Range_Skin          North3,LEOSat,North3     IRMS           5109.943959           5035.177631            74.766328   3.67
+   0    178  10 Jun 2012 04:06:00.000  Range_Skin          South4,LEOSat,South4     B1             5759.006709           5840.209163           -81.202454  -0.30
+   0    179  10 Jun 2012 04:07:00.000  Range_Skin          South4,LEOSat,South4     IRMS           5013.005744           5093.080529           -80.074785   3.28
+   0    180  10 Jun 2012 04:08:00.000  Range_Skin          South4,LEOSat,South4     IRMS           4285.543093           4363.277543           -77.734450   7.42
+   0    181  10 Jun 2012 04:09:00.000  Range_Skin          South4,LEOSat,South4     IRMS           3591.624243           3664.883130           -73.258887  12.37
+   0    182  10 Jun 2012 04:10:00.000  Range_Skin          South4,LEOSat,South4     IRMS           2958.636168           3023.439070           -64.802902  18.41
+   0    183  10 Jun 2012 04:11:00.000  Range_Skin          South4,LEOSat,South4     IRMS           2437.976503           2486.916630           -48.940127  25.54
+   0    184  10 Jun 2012 04:12:00.000  Range_Skin          South4,LEOSat,South4     IRMS           2117.021033           2138.706257           -21.685224  32.12
+   0    185  10 Jun 2012 04:13:00.000  Range_Skin          South4,LEOSat,South4     IRMS           2091.383982           2077.478966            13.905016  33.58
+   0    186  10 Jun 2012 04:14:00.000  Range_Skin          South4,LEOSat,South4     IRMS           2370.875086           2326.352278            44.522808  28.43
+   0    187  10 Jun 2012 04:15:00.000  Range_Skin          South4,LEOSat,South4     IRMS           2866.885209           2803.290148            63.595062  21.19
+   0    188  10 Jun 2012 04:16:00.000  Range_Skin          South4,LEOSat,South4     IRMS           3486.888579           3412.720718            74.167860  14.70
+   0    189  10 Jun 2012 04:17:00.000  Range_Skin          South4,LEOSat,South4     IRMS           4174.268556           4094.216606            80.051950   9.38
+   0    190  10 Jun 2012 04:18:00.000  Range_Skin          South4,LEOSat,South4     IRMS           4898.742512           4815.306338            83.436173   4.96
+   0    191  10 Jun 2012 04:19:00.000  Range_Skin          South4,LEOSat,South4     IRMS           5643.855207           5558.436490            85.418718   1.19
+   0    192  10 Jun 2012 04:21:00.000  Range_Skin          South5,LEOSat,South5     IRMS           5419.421499           5489.586878           -70.165379   1.54
+   0    193  10 Jun 2012 04:22:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4874.437905           4937.790997           -63.353092   4.33
+   0    194  10 Jun 2012 04:23:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4402.866392           4456.468772           -53.602380   7.10
+   0    195  10 Jun 2012 04:24:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4032.522708           4072.711101           -40.188393   9.60
+   0    196  10 Jun 2012 04:25:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3794.656364           3817.616030           -22.959666  11.46
+   0    197  10 Jun 2012 04:26:00.000  Range_Skin          South5,LEOSat,South5                    3715.693829           3718.731636            -3.037806  12.23
+   0    198  10 Jun 2012 04:27:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3805.796560           3788.646884            17.149676  11.68
+   0    199  10 Jun 2012 04:28:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4053.372647           4018.298717            35.073930   9.99
+   0    200  10 Jun 2012 04:29:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4431.280483           4381.876753            49.403729   7.56
+   0    201  10 Jun 2012 04:30:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4908.294188           4848.176811            60.117377   4.83
+   0    202  10 Jun 2012 04:31:00.000  Range_Skin          South5,LEOSat,South5     IRMS           5456.975207           5389.126088            67.849119   2.03
+   0    203  10 Jun 2012 04:34:00.000  Range_Skin          South0,LEOSat,South0     IRMS           5125.396405           5220.381657           -94.985253   2.83
+   0    204  10 Jun 2012 04:35:00.000  Range_Skin          South0,LEOSat,South0     IRMS           4346.883627           4441.294797           -94.411170   7.14
+   0    205  10 Jun 2012 04:36:00.000  Range_Skin          South0,LEOSat,South0     IRMS           3579.473554           3672.316073           -92.842519  12.50
+   0    206  10 Jun 2012 04:37:00.000  Range_Skin          South0,LEOSat,South0     IRMS           2836.327441           2925.538256           -89.210815  19.71
+   0    207  10 Jun 2012 04:38:00.000  Range_Skin          South0,LEOSat,South0     IRMS           2147.115282           2227.704063           -80.588781  30.36
+   0    208  10 Jun 2012 04:39:00.000  Range_Skin          South0,LEOSat,South0     IRMS           1588.056974           1646.648442           -58.591467  47.44
+   0    209  10 Jun 2012 04:40:00.000  Range_Skin          South0,LEOSat,South0                    1337.276044           1346.795845            -9.519801  67.73
+   0    210  10 Jun 2012 04:41:00.000  Range_Skin          South0,LEOSat,South0     IRMS           1553.112209           1507.792056            45.320153  54.45
+   0    211  10 Jun 2012 04:42:00.000  Range_Skin          South0,LEOSat,South0     IRMS           2095.515359           2022.012775            73.502584  34.79
+   0    212  10 Jun 2012 04:43:00.000  Range_Skin          South0,LEOSat,South0     IRMS           2778.111891           2693.012007            85.099884  22.44
+   0    213  10 Jun 2012 04:44:00.000  Range_Skin          South0,LEOSat,South0     IRMS           3518.475936           3428.229910            90.246026  14.36
+   0    214  10 Jun 2012 04:45:00.000  Range_Skin          South0,LEOSat,South0     IRMS           4284.707680           4191.985205            92.722475   8.51
+   0    215  10 Jun 2012 04:46:00.000  Range_Skin          South0,LEOSat,South0     IRMS           5062.828058           4968.908908            93.919149   3.92
+   0    216  10 Jun 2012 04:57:00.000  Range_Skin          North1,LEOSat,North1     IRMS           5394.405209           5492.511081           -98.105872   1.31
+   0    217  10 Jun 2012 04:58:00.000  Range_Skin          North1,LEOSat,North1     IRMS           4610.562671           4708.435404           -97.872733   5.37
+   0    218  10 Jun 2012 04:59:00.000  Range_Skin          North1,LEOSat,North1     IRMS           3833.613735           3930.513716           -96.899981  10.34
+   0    219  10 Jun 2012 05:00:00.000  Range_Skin          North1,LEOSat,North1     IRMS           3072.831697           3167.292041           -94.460344  16.88
+   0    220  10 Jun 2012 05:01:00.000  Range_Skin          North1,LEOSat,North1     IRMS           2348.224316           2436.825074           -88.600758  26.36
+   0    221  10 Jun 2012 05:02:00.000  Range_Skin          North1,LEOSat,North1     IRMS           1710.811926           1784.196648           -73.384722  41.91
+   0    222  10 Jun 2012 05:03:00.000  Range_Skin          North1,LEOSat,North1     IRMS           1300.008789           1333.278392           -33.269603  69.47
+   0    223  10 Jun 2012 05:04:00.000  Range_Skin          North1,LEOSat,North1     IRMS           1344.619550           1313.755044            30.864506  72.40
+   0    224  10 Jun 2012 05:05:00.000  Range_Skin          North1,LEOSat,North1     IRMS           1811.090398           1740.162882            70.927515  43.72
+   0    225  10 Jun 2012 05:06:00.000  Range_Skin          North1,LEOSat,North1     IRMS           2469.864315           2383.056076            86.808239  27.50
+   0    226  10 Jun 2012 05:07:00.000  Range_Skin          North1,LEOSat,North1     IRMS           3202.728678           3109.318487            93.410190  17.70
+   0    227  10 Jun 2012 05:08:00.000  Range_Skin          North1,LEOSat,North1     IRMS           3966.812552           3870.313537            96.499015  11.00
+   0    228  10 Jun 2012 05:09:00.000  Range_Skin          North1,LEOSat,North1     IRMS           4744.831024           4646.801468            98.029556   5.94
+   0    229  10 Jun 2012 05:10:00.000  Range_Skin          North1,LEOSat,North1     IRMS           5528.542591           5429.791294            98.751297   1.82
+   0    230  10 Jun 2012 05:13:00.000  Range_Skin          North2,LEOSat,North2     IRMS           5241.669198           5317.930004           -76.260806   2.39
+   0    231  10 Jun 2012 05:14:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4707.698510           4775.710275           -68.011765   5.25
+   0    232  10 Jun 2012 05:15:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4253.151514           4309.384455           -56.232942   8.04
+   0    233  10 Jun 2012 05:16:00.000  Range_Skin          North2,LEOSat,North2     IRMS           3907.819531           3947.965107           -40.145576  10.51
+   0    234  10 Jun 2012 05:17:00.000  Range_Skin          North2,LEOSat,North2     IRMS           3703.839474           3723.655666           -19.816192  12.21
+   0    235  10 Jun 2012 05:18:00.000  Range_Skin          North2,LEOSat,North2                    3665.720343           3662.650685             3.069657  12.70
+   0    236  10 Jun 2012 05:19:00.000  Range_Skin          North2,LEOSat,North2     IRMS           3798.645349           3773.145994            25.499354  11.82
+   0    237  10 Jun 2012 05:20:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4085.555972           4040.768636            44.787336   9.84
+   0    238  10 Jun 2012 05:21:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4496.193774           4436.353031            59.840743   7.23
+   0    239  10 Jun 2012 05:22:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4998.910541           4927.973480            70.937061   4.39
+
+Iter RecNum  UTCGregorian-Epoch        Obs-Type            Participants             Edit          Observed (O)          Computed (C)       Residual (O-C)  Elev.
+
+   0    240  10 Jun 2012 05:23:00.000  Range_Skin          North2,LEOSat,North2     IRMS           5567.283129           5488.382376            78.900753   1.55
+   0    241  10 Jun 2012 05:25:00.000  Range_Skin          North3,LEOSat,North3     IRMS           5358.451580           5459.556135          -101.104555   1.66
+   0    242  10 Jun 2012 05:26:00.000  Range_Skin          North3,LEOSat,North3     IRMS           4652.625413           4750.824103           -98.198690   5.32
+   0    243  10 Jun 2012 05:27:00.000  Range_Skin          North3,LEOSat,North3     IRMS           3984.418750           4077.270495           -92.851746   9.49
+   0    244  10 Jun 2012 05:28:00.000  Range_Skin          North3,LEOSat,North3     IRMS           3379.415934           3462.692181           -83.276247  14.25
+   0    245  10 Jun 2012 05:29:00.000  Range_Skin          North3,LEOSat,North3     IRMS           2880.598682           2947.140242           -66.541559  19.43
+   0    246  10 Jun 2012 05:30:00.000  Range_Skin          North3,LEOSat,North3     IRMS           2553.228595           2592.719496           -39.490901  24.02
+   0    247  10 Jun 2012 05:31:00.000  Range_Skin          North3,LEOSat,North3                    2467.758429           2471.153455            -3.395026  25.86
+   0    248  10 Jun 2012 05:32:00.000  Range_Skin          North3,LEOSat,North3     IRMS           2647.866000           2615.403254            32.462746  23.61
+   0    249  10 Jun 2012 05:33:00.000  Range_Skin          North3,LEOSat,North3     IRMS           3046.083495           2986.582674            59.500820  18.83
+   0    250  10 Jun 2012 05:34:00.000  Range_Skin          North3,LEOSat,North3     IRMS           3589.217606           3512.223326            76.994280  13.64
+   0    251  10 Jun 2012 05:35:00.000  Range_Skin          North3,LEOSat,North3     IRMS           4219.948982           4132.115501            87.833481   8.92
+   0    252  10 Jun 2012 05:36:00.000  Range_Skin          North3,LEOSat,North3     IRMS           4902.568998           4807.963336            94.605662   4.80
+   0    253  10 Jun 2012 05:37:00.000  Range_Skin          North3,LEOSat,North3     IRMS           5615.977262           5517.058027            98.919236   1.18
+   0    254  10 Jun 2012 05:48:00.000  Range_Skin          South4,LEOSat,South4     IRMS           5574.281449           5692.348812          -118.067363   0.46
+   0    255  10 Jun 2012 05:49:00.000  Range_Skin          South4,LEOSat,South4     IRMS           4821.959124           4938.987990          -117.028866   4.19
+   0    256  10 Jun 2012 05:50:00.000  Range_Skin          South4,LEOSat,South4     IRMS           4086.037389           4200.580403          -114.543014   8.58
+   0    257  10 Jun 2012 05:51:00.000  Range_Skin          South4,LEOSat,South4     IRMS           3380.798725           3490.177300          -109.378575  13.96
+   0    258  10 Jun 2012 05:52:00.000  Range_Skin          South4,LEOSat,South4     IRMS           2733.614234           2832.455644           -98.841410  20.82
+   0    259  10 Jun 2012 05:53:00.000  Range_Skin          South4,LEOSat,South4     IRMS           2199.624277           2276.874901           -77.250623  29.44
+   0    260  10 Jun 2012 05:54:00.000  Range_Skin          South4,LEOSat,South4     IRMS           1880.425815           1917.105907           -36.680092  37.97
+   0    261  10 Jun 2012 05:55:00.000  Range_Skin          South4,LEOSat,South4     IRMS           1889.358841           1871.119244            18.239597  39.39
+   0    262  10 Jun 2012 05:56:00.000  Range_Skin          South4,LEOSat,South4     IRMS           2222.250547           2159.022440            63.228108  31.97
+   0    263  10 Jun 2012 05:57:00.000  Range_Skin          South4,LEOSat,South4     IRMS           2763.358959           2674.131957            89.227002  23.04
+   0    264  10 Jun 2012 05:58:00.000  Range_Skin          South4,LEOSat,South4     IRMS           3413.491754           3310.545337           102.946417  15.74
+   0    265  10 Jun 2012 05:59:00.000  Range_Skin          South4,LEOSat,South4     IRMS           4119.434611           4009.041797           110.392814  10.03
+   0    266  10 Jun 2012 06:00:00.000  Range_Skin          South4,LEOSat,South4     IRMS           4854.763688           4740.153306           114.610383   5.43
+   0    267  10 Jun 2012 06:01:00.000  Range_Skin          South4,LEOSat,South4     IRMS           5605.641330           5488.602690           117.038640   1.56
+   0    268  10 Jun 2012 06:04:00.000  Range_Skin          South5,LEOSat,South5     IRMS           5372.925196           5476.075022          -103.149825   1.62
+   0    269  10 Jun 2012 06:05:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4760.023347           4855.787641           -95.764294   4.79
+   0    270  10 Jun 2012 06:06:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4205.880031           4290.461266           -84.581235   8.15
+   0    271  10 Jun 2012 06:07:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3739.296165           3807.297523           -68.001358  11.53
+   0    272  10 Jun 2012 06:08:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3398.689953           3443.308030           -44.618077  14.53
+   0    273  10 Jun 2012 06:09:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3225.760818           3240.563741           -14.802923  16.42
+   0    274  10 Jun 2012 06:10:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3248.189562           3230.487415            17.702147  16.50
+   0    275  10 Jun 2012 06:11:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3462.225696           3414.948284            47.277413  14.74
+   0    276  10 Jun 2012 06:12:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3835.344970           3764.977718            70.367253  11.79
+   0    277  10 Jun 2012 06:13:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4325.515296           4238.769791            86.745505   8.41
+   0    278  10 Jun 2012 06:14:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4896.289945           4798.440058            97.849887   5.03
+   0    279  10 Jun 2012 06:15:00.000  Range_Skin          South5,LEOSat,South5     IRMS           5521.042404           5415.786854           105.255549   1.82
+   0    280  10 Jun 2012 06:17:00.000  Range_Skin          South0,LEOSat,South0     IRMS           5465.300218           5556.114538           -90.814320   1.12
+   0    281  10 Jun 2012 06:18:00.000  Range_Skin          South0,LEOSat,South0     IRMS           4973.388127           5052.772339           -79.384212   3.59
+   0    282  10 Jun 2012 06:19:00.000  Range_Skin          South0,LEOSat,South0     IRMS           4570.779186           4634.658562           -63.879377   5.86
+   0    283  10 Jun 2012 06:20:00.000  Range_Skin          South0,LEOSat,South0     IRMS           4284.236983           4328.135686           -43.898703   7.69
+   0    284  10 Jun 2012 06:21:00.000  Range_Skin          South0,LEOSat,South0     IRMS           4138.885043           4158.991683           -20.106640   8.76
+   0    285  10 Jun 2012 06:22:00.000  Range_Skin          South0,LEOSat,South0                    4149.908545           4144.504077             5.404468   8.83
+   0    286  10 Jun 2012 06:23:00.000  Range_Skin          South0,LEOSat,South0     IRMS           4315.825535           4286.051639            29.773896   7.87
+   0    287  10 Jun 2012 06:24:00.000  Range_Skin          South0,LEOSat,South0     IRMS           4619.160252           4568.418968            50.741284   6.12
+   0    288  10 Jun 2012 06:25:00.000  Range_Skin          South0,LEOSat,South0     IRMS           5033.884402           4966.462136            67.422266   3.89
+   0    289  10 Jun 2012 06:26:00.000  Range_Skin          South0,LEOSat,South0     IRMS           5533.422848           5453.374516            80.048332   1.43
+   0    290  10 Jun 2012 06:32:00.000  Range_Skin          North0,LEOSat,North0     IRMS           5636.426105           5675.716422           -39.290316   0.41
+   0    291  10 Jun 2012 06:33:00.000  Range_Skin          North0,LEOSat,North0     IRMS           5419.856406           5441.857086           -22.000680   1.52
+   0    292  10 Jun 2012 06:34:00.000  Range_Skin          North0,LEOSat,North0                    5314.707919           5317.702905            -2.994986   2.14
+   0    293  10 Jun 2012 06:35:00.000  Range_Skin          North0,LEOSat,North0     IRMS           5328.272381           5311.718884            16.553497   2.19
+   0    294  10 Jun 2012 06:36:00.000  Range_Skin          North0,LEOSat,North0     IRMS           5459.884494           5424.589137            35.295357   1.67
+   0    295  10 Jun 2012 06:37:00.000  Range_Skin          North0,LEOSat,North0     IRMS           5701.148314           5649.034832            52.113481   0.64
+   0    296  10 Jun 2012 06:40:00.000  Range_Skin          North1,LEOSat,North1     IRMS           5407.561266           5526.067895          -118.506629   1.26
+   0    297  10 Jun 2012 06:41:00.000  Range_Skin          North1,LEOSat,North1     IRMS           4735.532962           4849.100532          -113.567569   4.72
+   0    298  10 Jun 2012 06:42:00.000  Range_Skin          North1,LEOSat,North1     IRMS           4106.872431           4212.283049          -105.410618   8.55
+   0    299  10 Jun 2012 06:43:00.000  Range_Skin          North1,LEOSat,North1     IRMS           3547.520581           3639.591494           -92.070913  12.76
+   0    300  10 Jun 2012 06:44:00.000  Range_Skin          North1,LEOSat,North1     IRMS           3097.707291           3168.508039           -70.800748  17.08
+   0    301  10 Jun 2012 06:45:00.000  Range_Skin          North1,LEOSat,North1     IRMS           2812.338435           2851.794566           -39.456131  20.67
+   0    302  10 Jun 2012 06:46:00.000  Range_Skin          North1,LEOSat,North1                    2744.192021           2744.556546            -0.364526  22.07
+   0    303  10 Jun 2012 06:47:00.000  Range_Skin          North1,LEOSat,North1     IRMS           2908.651712           2870.582421            38.069291  20.48
+   0    304  10 Jun 2012 06:48:00.000  Range_Skin          North1,LEOSat,North1     IRMS           3270.138259           3201.881515            68.256743  16.82
+   0    305  10 Jun 2012 06:49:00.000  Range_Skin          North1,LEOSat,North1     IRMS           3771.199690           3682.322633            88.877057  12.51
+   0    306  10 Jun 2012 06:50:00.000  Range_Skin          North1,LEOSat,North1     IRMS           4362.405241           4260.199369           102.205871   8.35
+   0    307  10 Jun 2012 06:51:00.000  Range_Skin          North1,LEOSat,North1     IRMS           5010.074126           4899.323945           110.750181   4.57
+   0    308  10 Jun 2012 06:52:00.000  Range_Skin          North1,LEOSat,North1     IRMS           5692.907799           5576.645861           116.261938   1.15
+   0    309  10 Jun 2012 06:55:00.000  Range_Skin          North2,LEOSat,North2     IRMS           5320.222630           5444.550672          -124.328042   1.78
+   0    310  10 Jun 2012 06:56:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4623.399593           4743.369915          -119.970322   5.43
+   0    311  10 Jun 2012 06:57:00.000  Range_Skin          North2,LEOSat,North2     IRMS           3962.710191           4075.160032          -112.449842   9.60
+   0    312  10 Jun 2012 06:58:00.000  Range_Skin          North2,LEOSat,North2     IRMS           3362.836495           3462.393097           -99.556602  14.38
+   0    313  10 Jun 2012 06:59:00.000  Range_Skin          North2,LEOSat,North2     IRMS           2865.311237           2943.033980           -77.722743  19.65
+   0    314  10 Jun 2012 07:00:00.000  Range_Skin          North2,LEOSat,North2     IRMS           2533.702677           2576.848187           -43.145511  24.48
+   0    315  10 Jun 2012 07:01:00.000  Range_Skin          North2,LEOSat,North2                    2438.291416           2435.725520             2.565896  26.71
+   0    316  10 Jun 2012 07:02:00.000  Range_Skin          North2,LEOSat,North2     IRMS           2605.687734           2557.905535            47.782199  24.72
+   0    317  10 Jun 2012 07:03:00.000  Range_Skin          North2,LEOSat,North2     IRMS           2991.737917           2910.186139            81.551778  19.95
+   0    318  10 Jun 2012 07:04:00.000  Range_Skin          North2,LEOSat,North2     IRMS           3524.316676           3421.317472           102.999204  14.65
+   0    319  10 Jun 2012 07:05:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4145.903172           4029.939238           115.963933   9.80
+
+Iter RecNum  UTCGregorian-Epoch        Obs-Type            Participants             Edit          Observed (O)          Computed (C)       Residual (O-C)  Elev.
+
+   0    320  10 Jun 2012 07:06:00.000  Range_Skin          North2,LEOSat,North2     IRMS           4820.446493           4696.609834           123.836659   5.58
+   0    321  10 Jun 2012 07:07:00.000  Range_Skin          North2,LEOSat,North2     IRMS           5526.631759           5397.941077           128.690682   1.89
+   0    322  10 Jun 2012 07:20:00.000  Range_Skin          South3,LEOSat,South3     IRMS           5321.544041           5433.314785          -111.770743   1.56
+   0    323  10 Jun 2012 07:21:00.000  Range_Skin          South3,LEOSat,South3     IRMS           4744.872189           4845.387248          -100.515059   4.58
+   0    324  10 Jun 2012 07:22:00.000  Range_Skin          South3,LEOSat,South3     IRMS           4241.956093           4326.069668           -84.113575   7.64
+   0    325  10 Jun 2012 07:23:00.000  Range_Skin          South3,LEOSat,South3     IRMS           3844.363418           3905.420097           -61.056678  10.52
+   0    326  10 Jun 2012 07:24:00.000  Range_Skin          South3,LEOSat,South3     IRMS           3589.253414           3620.100790           -30.847376  12.75
+   0    327  10 Jun 2012 07:25:00.000  Range_Skin          South3,LEOSat,South3                    3509.134423           3504.758517             4.375907  13.75
+   0    328  10 Jun 2012 07:26:00.000  Range_Skin          South3,LEOSat,South3     IRMS           3616.190879           3576.557642            39.633236  13.17
+   0    329  10 Jun 2012 07:27:00.000  Range_Skin          South3,LEOSat,South3     IRMS           3894.850429           3824.934144            69.916284  11.22
+   0    330  10 Jun 2012 07:28:00.000  Range_Skin          South3,LEOSat,South3     IRMS           4311.218900           4218.167390            93.051510   8.48
+   0    331  10 Jun 2012 07:29:00.000  Range_Skin          South3,LEOSat,South3     IRMS           4828.607102           4719.067554           109.539548   5.45
+   0    332  10 Jun 2012 07:30:00.000  Range_Skin          South3,LEOSat,South3     IRMS           5416.606863           5295.695341           120.911521   2.42
+   0    333  10 Jun 2012 07:32:00.000  Range_Skin          South4,LEOSat,South4     IRMS           5458.276440           5585.073796          -126.797356   1.05
+   0    334  10 Jun 2012 07:33:00.000  Range_Skin          South4,LEOSat,South4     IRMS           4864.302567           4981.821843          -117.519277   4.07
+   0    335  10 Jun 2012 07:34:00.000  Range_Skin          South4,LEOSat,South4     IRMS           4332.699571           4436.357135          -103.657564   7.19
+   0    336  10 Jun 2012 07:35:00.000  Range_Skin          South4,LEOSat,South4     IRMS           3891.359386           3974.857417           -83.498032  10.27
+   0    337  10 Jun 2012 07:36:00.000  Range_Skin          South4,LEOSat,South4     IRMS           3575.655643           3631.374856           -55.719214  12.91
+   0    338  10 Jun 2012 07:37:00.000  Range_Skin          South4,LEOSat,South4     IRMS           3421.722545           3442.732405           -21.009860  14.54
+   0    339  10 Jun 2012 07:38:00.000  Range_Skin          South4,LEOSat,South4     IRMS           3451.747098           3435.157886            16.589212  14.61
+   0    340  10 Jun 2012 07:39:00.000  Range_Skin          South4,LEOSat,South4     IRMS           3661.005253           3609.724779            51.280473  13.11
+   0    341  10 Jun 2012 07:40:00.000  Range_Skin          South4,LEOSat,South4     IRMS           4020.844397           3941.650922            79.193475  10.54
+   0    342  10 Jun 2012 07:41:00.000  Range_Skin          South4,LEOSat,South4     IRMS           4494.034736           4394.303242            99.731493   7.49
+   0    343  10 Jun 2012 07:42:00.000  Range_Skin          South4,LEOSat,South4     IRMS           5047.264409           4933.093608           114.170801   4.37
+   0    344  10 Jun 2012 07:43:00.000  Range_Skin          South4,LEOSat,South4     IRMS           5655.318421           5531.182013           124.136408   1.35
+   0    345  10 Jun 2012 07:46:00.000  Range_Skin          South5,LEOSat,South5     IRMS           5190.711738           5346.213486          -155.501748   2.23
+   0    346  10 Jun 2012 07:47:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4426.296979           4579.968024          -153.671045   6.33
+   0    347  10 Jun 2012 07:48:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3676.462580           3826.252815          -149.790235  11.34
+   0    348  10 Jun 2012 07:49:00.000  Range_Skin          South5,LEOSat,South5     IRMS           2956.345925           3098.222076          -141.876151  17.83
+   0    349  10 Jun 2012 07:50:00.000  Range_Skin          South5,LEOSat,South5     IRMS           2298.192884           2423.262986          -125.070103  26.83
+   0    350  10 Jun 2012 07:51:00.000  Range_Skin          South5,LEOSat,South5     IRMS           1776.316111           1864.056323           -87.740212  39.52
+   0    351  10 Jun 2012 07:52:00.000  Range_Skin          South5,LEOSat,South5     IRMS           1539.338724           1554.441270           -15.102545  52.09
+   0    352  10 Jun 2012 07:53:00.000  Range_Skin          South5,LEOSat,South5     IRMS           1711.188897           1643.679276            67.509620  47.60
+   0    353  10 Jun 2012 07:54:00.000  Range_Skin          South5,LEOSat,South5     IRMS           2197.657619           2080.992607           116.665012  33.49
+   0    354  10 Jun 2012 07:55:00.000  Range_Skin          South5,LEOSat,South5     IRMS           2840.361618           2701.366680           138.994938  22.43
+   0    355  10 Jun 2012 07:56:00.000  Range_Skin          South5,LEOSat,South5     IRMS           3553.935164           3404.659503           149.275661  14.64
+   0    356  10 Jun 2012 07:57:00.000  Range_Skin          South5,LEOSat,South5     IRMS           4301.335882           4147.038635           154.297247   8.87
+   0    357  10 Jun 2012 07:58:00.000  Range_Skin          South5,LEOSat,South5     IRMS           5065.488369           4908.715520           156.772848   4.29
+
+***********************************************************  ITERATION   0:  MEASUREMENT STATISTICS  ***********************************************************
+
+                                                                  Estimation did not converge!                                                                  
+                                                       Number of iterations reached its maximum value (1).                                                      
+                                                              Estimation completed in 1 iterations                                                              
+
+                                                      Time of First Observation : 10 Jun 2012 00:04:00.000
+                                                      Time of Last Observation  : 10 Jun 2012 07:58:00.000
+
+                                 Total Number Of Observations              : 358             Current WRMS Residuals   : 477.740073
+                                 Observations Used For Estimation          : 58              Predicted WRMS Residuals : 108.919693
+                                 No Computed Value Configuration Available : 0               OLSE Initial RMS Sigma   : 1000.000000
+                                 Out of Ramp Table Range                   : 0               Smallest WRMS Residuals  : 477.740073
+                                 Signal Blocked                            : 1               DC Status                : Maximum Iterations Diverged
+                                 Sigma Editing                             : 299             
+                                 Inner Loop Sigma Editing                  : 0               
+                                 User Editing                              : 0               
+
+
+
+                                                          Observation Summary by Station and Data Type
+
+                                                                                Mean      Standard      Weighted     User          Mean      Standard
+ Pad# Station        Data Type             Total   Accepted    Percent      Residual     Deviation           RMS   Edited      Residual     Deviation  Units
+ ---------------------------------------------------------------------  ----------------------------------------  -----------------------------------  --------
+ Nort North0         All                       6          1     16.67%     -2.994986                  299.498565                                       km    
+                     Range_Skin                6          1     16.67%     -2.994986                  299.498565                                       km    
+
+ Nort North1         All                      38          2      5.26%      1.453197      1.817722    232.720764                                       km    
+                     Range_Skin               38          2      5.26%      1.453197      1.817722    232.720764                                       km    
+
+ Nort North2         All                      63         18     28.57%      0.569083      3.344850    339.291578                                       km    
+                     Range_Skin               63         18     28.57%      0.569083      3.344850    339.291578                                       km    
+
+ Nort North3         All                      49         15     30.61%     -1.916230      3.546015    403.065234                                       km    
+                     Range_Skin               49         15     30.61%     -1.916230      3.546015    403.065234                                       km    
+
+ Nort North4         All                      23          7     30.43%      1.891702      6.879322    713.467661                                       km    
+                     Range_Skin               23          7     30.43%      1.891702      6.879322    713.467661                                       km    
+
+ Sout South0         All                      48          6     12.50%      0.138059      5.980564    598.215697                                       km    
+                     Range_Skin               48          6     12.50%      0.138059      5.980564    598.215697                                       km    
+
+ Sout South1         All                      13          2     15.38%      4.485100      5.273898    692.315775                                       km    
+                     Range_Skin               13          2     15.38%      4.485100      5.273898    692.315775                                       km    
+
+ Sout South3         All                      11          1      9.09%      4.375907                  437.590678                                       km    
+                     Range_Skin               11          1      9.09%      4.375907                  437.590678                                       km    
+
+ Sout South4         All                      44          3      6.82%     -1.790007      6.334970    658.300626                                       km    
+                     Range_Skin               44          3      6.82%     -1.790007      6.334970    658.300626                                       km    
+
+ Sout South5         All                      63          3      4.76%      0.753708      3.430016    351.184963                                       km    
+                     Range_Skin               63          3      4.76%      0.753708      3.430016    351.184963                                       km    
+
+
+                                                          Observation Summary by Data Type and Station
+
+                                                                                Mean      Standard      Weighted     User          Mean      Standard
+ Data Type           Pad# Station          Total   Accepted    Percent      Residual     Deviation           RMS   Edited      Residual     Deviation  Units
+ ---------------------------------------------------------------------  ----------------------------------------  -----------------------------------  --------
+ Range_Skin          All                     358         58     16.20%      0.098602      4.776383    477.740073                                       km    
+                     Nort North0               6          1     16.67%     -2.994986                  299.498565                                       km    
+                     Nort North1              38          2      5.26%      1.453197      1.817722    232.720764                                       km    
+                     Nort North2              63         18     28.57%      0.569083      3.344850    339.291578                                       km    
+                     Nort North3              49         15     30.61%     -1.916230      3.546015    403.065234                                       km    
+                     Nort North4              23          7     30.43%      1.891702      6.879322    713.467661                                       km    
+                     Sout South0              48          6     12.50%      0.138059      5.980564    598.215697                                       km    
+                     Sout South1              13          2     15.38%      4.485100      5.273898    692.315775                                       km    
+                     Sout South3              11          1      9.09%      4.375907                  437.590678                                       km    
+                     Sout South4              44          3      6.82%     -1.790007      6.334970    658.300626                                       km    
+                     Sout South5              63          3      4.76%      0.753708      3.430016    351.184963                                       km    
+
+
+                                                                 Observation Summary by Station
+
+                                                                                Mean      Standard      Weighted     User          Mean      Standard
+ Pad# Station                              Total   Accepted    Percent      Residual     Deviation           RMS   Edited      Residual     Deviation  Units
+ ---------------------------------------------------------------------  ----------------------------------------  -----------------------------------  --------
+ Nort North0                                   6          1     16.67%     -2.994986                  299.498565                                       km    
+ Nort North1                                  38          2      5.26%      1.453197      1.817722    232.720764                                       km    
+ Nort North2                                  63         18     28.57%      0.569083      3.344850    339.291578                                       km    
+ Nort North3                                  49         15     30.61%     -1.916230      3.546015    403.065234                                       km    
+ Nort North4                                  23          7     30.43%      1.891702      6.879322    713.467661                                       km    
+ Sout South0                                  48          6     12.50%      0.138059      5.980564    598.215697                                       km    
+ Sout South1                                  13          2     15.38%      4.485100      5.273898    692.315775                                       km    
+ Sout South3                                  11          1      9.09%      4.375907                  437.590678                                       km    
+ Sout South4                                  44          3      6.82%     -1.790007      6.334970    658.300626                                       km    
+ Sout South5                                  63          3      4.76%      0.753708      3.430016    351.184963                                       km    
+
+
+                                                                Observation Summary by Data Type
+
+                                                                                Mean      Standard      Weighted     User          Mean      Standard
+ Data Type                                 Total   Accepted    Percent      Residual     Deviation           RMS   Edited      Residual     Deviation  Units
+ ---------------------------------------------------------------------  ----------------------------------------  -----------------------------------  --------
+ Range_Skin                                  358         58     16.20%      0.098602      4.776383    477.740073                                       km    
+
+
+**************************************************************  ITERATION   1: STATE INFORMATION  **************************************************************
+
+ Estimation Epoch : 10 Jun 2012 00:00:00.000 UTCG
+
+ State Component                Units           Current State        Apriori State      Standard Dev.       Previous State    Current-Apriori   Current-Previous
+
+  1 EstSat.EarthMJ2000Eq.X      km              7000.23533667        7001.00000000     1.85619144e-03        7001.00000000    -7.64663329e-01    -7.64663329e-01
+  2 EstSat.EarthMJ2000Eq.Y      km                 0.22781127          -0.50000000     2.46739814e-03          -0.50000000     7.27811267e-01     7.27811267e-01
+  3 EstSat.EarthMJ2000Eq.Z      km                 0.24151060           0.25000000     2.47644510e-03           0.25000000    -8.48939898e-03    -8.48939898e-03
+  4 EstSat.EarthMJ2000Eq.VX     km/s              -0.00046673           0.00050000     3.43747557e-06           0.00050000    -9.66731127e-04    -9.66731127e-04
+  5 EstSat.EarthMJ2000Eq.VY     km/s               5.33562382           5.33556545     1.60786192e-06           5.33556545     5.83708388e-05     5.83708388e-05
+  6 EstSat.EarthMJ2000Eq.VZ     km/s               5.33589918           5.33606545     1.56216369e-06           5.33606545    -1.66266301e-04    -1.66266301e-04
+
+  1 EstSat.EarthMJ2000Eq.SMA    km              7000.19797965        7001.86911690     6.67747605e-04        7001.86911690    -1.67113725e+00    -1.67113725e+00
+  2 EstSat.EarthMJ2000Eq.ECC                       0.00001540           0.00013072     1.92847419e-07           0.00013072    -1.15324016e-04    -1.15324016e-04
+  3 EstSat.EarthMJ2000Eq.INC    deg               45.00147844          45.00268437     9.58883667e-06          45.00268437    -1.20592933e-03    -1.20592933e-03
+  4 EstSat.EarthMJ2000Eq.RAAN   deg              359.99988797         359.99386224     1.69023873e-05         359.99386224     6.02573828e-03     6.02573828e-03
+  5 EstSat.EarthMJ2000Eq.AOP    deg              110.28365932         341.71555170     8.12492020e-01         341.71555170    -2.31431892e+02    -2.31431892e+02
+  6 EstSat.EarthMJ2000Eq.MA     deg              249.72079140          18.28264164     8.12474494e-01          18.28264164     2.31438150e+02     2.31438150e+02
+
+ Ancillary Elements             Units           Current State        Apriori State      Standard Dev.       Previous State    Current-Apriori   Current-Previous
+
+    Right Ascension             deg                0.00186460          -0.00409197                             -0.00409197     5.95656901e-03     5.95656901e-03
+    Declination                 deg                0.00197672           0.00204599                              0.00204599    -6.92608447e-05    -6.92608447e-05
+    Vertical Flight Path Angle  deg               90.00082764          89.99765008                             89.99765008     3.17756007e-03     3.17756007e-03
+    Azimuth Angle               deg               44.99852160          44.99731567                             44.99731567     1.20592690e-03     1.20592690e-03
+    Magnitude of Radius Vector  km              7000.23534454        7001.00002232                           7001.00002232    -7.64677775e-01    -7.64677775e-01
+    Magnitude of Velocity       km/s               7.54590630           7.54598260                              7.54598260    -7.63015141e-05    -7.63015141e-05
+    Eccentric Anomaly           deg              249.71996376          18.28499156                             18.28499156     2.31434972e+02     2.31434972e+02
+    True Anomaly                deg              249.71913612          18.28734162                             18.28734162     2.31431794e+02     2.31431794e+02
+    Period                      min               97.14606520          97.18085438                             97.18085438    -3.47891797e-02    -3.47891797e-02
+    Perifocal Oblate Height     km               631.37210640         623.86322108                            623.86322108     7.50888532e+00     7.50888532e+00
+    Perifocal Radius            km              7000.09017832        7000.95380617                           7000.95380617    -8.63627846e-01    -8.63627846e-01
+    Apofocal Oblate Height      km               631.58770806         625.69384095                            625.69384095     5.89386711e+00     5.89386711e+00
+    Apofocal Radius             km              7000.30578098        7002.78442763                           7002.78442763    -2.47864665e+00    -2.47864665e+00
+    Mean Motion                 deg/day         5336.29436196        5334.38405458                           5334.38405458     1.91030738e+00     1.91030738e+00
+    Velocity at Apoapsis        km/s               7.54583037           7.54405978                              7.54405978     1.77059747e-03     1.77059747e-03
+    Velocity at Periapsis       km/s               7.54606278           7.54603241                              7.54603241     3.03751656e-05     3.03751656e-05
+    Planetocentric Latitude     deg                0.07305197           0.07312137                              0.07312137    -6.93983970e-05    -6.93983970e-05
+    Planetodetic Latitude       deg                0.07350026           0.07357003                              0.07357003    -6.97749496e-05    -6.97749496e-05
+    Longitude                   deg              101.41424620         101.40828963                            101.40828963     5.95657225e-03     5.95657225e-03
+    Height                      km               622.09907946         622.86375730                            622.86375730    -7.64677841e-01    -7.64677841e-01
+    C3 Energy                   km2/s2           -56.94130975         -56.92771956                            -56.92771956    -1.35901917e-02    -1.35901917e-02
+
+
+********************************************************  ITERATION   1: COVARIANCE/CORRELATION MATRIX  ********************************************************
+
+                                                Covariance Matrix in Cartesian Coordinate System (MJ2000Eq Axes)                                                
+
+                 1                    2                    3                    4                    5                    6
+  1     3.445446656101e-06   3.149624997923e-06   3.246579994226e-06  -5.551110976603e-09  -2.448030697898e-09  -2.343764836026e-09
+  2     3.149624997923e-06   6.088053586676e-06   3.978030309741e-06  -7.092833666010e-09  -2.322921895397e-09  -2.175604572143e-09
+  3     3.246579994226e-06   3.978030309741e-06   6.132780340177e-06  -7.221225024596e-09  -2.162859788261e-09  -2.324820316541e-09
+  4    -5.551110976603e-09  -7.092833666010e-09  -7.221225024596e-09   1.181623829052e-11   3.931807938774e-12   3.684824095444e-12
+  5    -2.448030697898e-09  -2.322921895397e-09  -2.162859788261e-09   3.931807938774e-12   2.585219944541e-12   9.179591838065e-13
+  6    -2.343764836026e-09  -2.175604572143e-09  -2.324820316541e-09   3.684824095444e-12   9.179591838065e-13   2.440355384427e-12
+
+                                                Correlation Matrix in Cartesian Coordinate System (MJ2000Eq Axes)                                               
+
+                 1                    2                    3                    4                    5                    6
+  1         1.000000000000       0.687696557458       0.706276308020      -0.869996537734      -0.820248312188      -0.808285393519
+  2         0.687696557458       1.000000000000       0.651028722931      -0.836259225458      -0.585526594578      -0.564435331884
+  3         0.706276308020       0.651028722931       1.000000000000      -0.848286495853      -0.543188932513      -0.600944201716
+  4        -0.869996537734      -0.836259225458      -0.848286495853       1.000000000000       0.711383726445       0.686199823538
+  5        -0.820248312188      -0.585526594578      -0.543188932513       0.711383726445       1.000000000000       0.365466929117
+  6        -0.808285393519      -0.564435331884      -0.600944201716       0.686199823538       0.365466929117       1.000000000000
+
+                                                Covariance Matrix in Keplerian Coordinate System (MJ2000Eq Axes)                                                
+
+                 1                    2                    3                    4                    5                    6
+  1     4.458868639988e-07   5.081099225229e-11   1.001007444212e-10  -1.703426448089e-09   2.056064217654e-05  -2.054837327728e-05
+  2     5.081099225229e-11   3.719012703509e-14   1.951162180302e-13  -5.075324938289e-14   4.739418866253e-08  -4.738988236902e-08
+  3     1.001007444212e-10   1.951162180302e-13   9.194578862496e-11   1.358432614280e-11  -7.341389891461e-09   7.352388230841e-09
+  4    -1.703426448089e-09  -5.075324938289e-14   1.358432614280e-11   2.856906975429e-10   5.859221799107e-07  -5.861379994568e-07
+  5     2.056064217654e-05   4.739418866253e-08  -7.341389891466e-09   5.859221799107e-07   6.601432827735e-01  -6.601290423334e-01
+  6    -2.054837327728e-05  -4.738988236902e-08   7.352388230843e-09  -5.861379994568e-07  -6.601290423334e-01   6.601148029404e-01
+
+                                                Correlation Matrix in Keplerian Coordinate System (MJ2000Eq Axes)                                               
+
+                 1                    2                    3                    4                    5                    6
+  1         1.000000000000       0.394576763387       0.015633601843      -0.150925629957       0.037897034901      -0.037875238083
+  2         0.394576763387       1.000000000000       0.105514857659      -0.015570478951       0.302476861289      -0.302455902206
+  3         0.015633601843       0.105514857659       1.000000000000       0.083815459276      -0.000942308837       0.000943740894
+  4        -0.150925629957      -0.015570478951       0.083815459276       1.000000000000       0.042665101626      -0.042681737656
+  5         0.037897034901       0.302476861289      -0.000942308837       0.042665101626       1.000000000000      -0.999999999439
+  6        -0.037875238083      -0.302455902206       0.000943740894      -0.042681737656      -0.999999999439       1.000000000000
+
+***********************************************************************  END OF REPORT  ************************************************************************

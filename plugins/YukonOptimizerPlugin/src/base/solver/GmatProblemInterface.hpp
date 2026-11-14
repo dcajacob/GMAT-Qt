@@ -34,6 +34,7 @@
 #define GmatProblemInterface_hpp
 
 #include "YukonUserProblem.hpp"
+#include <memory>
 
 class YUKON_API Yukonad;
 
@@ -54,9 +55,12 @@ public:
    virtual void EvaluateConJacDimensions(Integer numVariables, Rvector decVector, bool isNewX, Integer &rowCount, Integer &colCount);
    virtual std::vector <Real> GetMaxVarStepSize();
    void SetPointerToOptimizer(Yukonad *inputDataPointer);
+   Yukonad* GetOptimizer() const;
    void SetConFunction(Integer id, Real value, const std::string &conType);
 
 private:
+   Yukonad& RequireOptimizer() const;
+   std::weak_ptr<const void> optimizerIdentity;
    Yukonad *optimizerData;
 };
 #endif

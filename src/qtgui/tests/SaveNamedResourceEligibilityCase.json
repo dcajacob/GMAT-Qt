@@ -1,0 +1,25 @@
+{
+  "case": "NamedCandidates",
+  "types": [
+    "PointMassForce",
+    "GravityField",
+    "SolarRadiationPressure",
+    "DragForce",
+    "FiniteThrust",
+    "RelativisticCorrection",
+    "ExternalModel",
+    "PolyhedronGravityModel",
+    "Exponential",
+    "MSISE90",
+    "JacchiaRoberts",
+    "MSISE86",
+    "NRLMSISE00",
+    "StopCondition",
+    "OpenGLPlot",
+    "Enhanced3DView",
+    "OwnedPlot",
+    "StateNoiseCompensation",
+    "FirstOrderGaussMarkov"
+  ],
+  "scope": "Unmatched native factory entries only; actually attempt named Create rather than assume an owned/internal role."
+}

@@ -1,4 +1,5 @@
 #include "MainWindow.hpp"
+#include "AcceptancePlatform.hpp"
 #include "CelestialBodyPanel.hpp"
 #include "ResourceEditor.hpp"
 #include "TestSettings.hpp"
@@ -88,10 +89,138 @@ static int changedPixels(const QImage &first,const QImage &second)
    for (int y=0;y<first.height();++y) for (int x=0;x<first.width();++x) if (first.pixel(x,y)!=second.pixel(x,y)) ++count;
    return count;
 }
+#include "AcceptanceView.hpp"
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QKeyEvent>
+#include <QPointer>
+#include <QTextDocument>
+
+// Included after CelestialBodyTests' existing helpers. These checks extend that
+// scenario; its independent scripts, propagation and image assertions still run.
+static void bodyProof(const QString &name,const QString &operation)
+{
+   const QJsonObject record{{"checkpoint","body."+name+"."+operation},
+      {"body",name},{"operation",operation},{"outcome","passed"},
+      {"facets",QJsonArray{"named-gui-controls","model-readback","source-preservation"}}};
+   std::cout<<"NASA_CHECK "<<QJsonDocument(record).toJson(QJsonDocument::Compact).constData()<<std::endl;
+}
+
+static void typeBodyValue(QLineEdit &control,const QString &text)
+{
+   control.setFocus(); control.selectAll();
+   if (text.isEmpty()) {
+      QKeyEvent press(QEvent::KeyPress,Qt::Key_Backspace,Qt::NoModifier);
+      QApplication::sendEvent(&control,&press);
+   } else for (const auto ch:text) {
+      QKeyEvent press(QEvent::KeyPress,0,Qt::NoModifier,QString(ch));
+      QKeyEvent release(QEvent::KeyRelease,0,Qt::NoModifier,QString(ch));
+      QApplication::sendEvent(&control,&press); QApplication::sendEvent(&control,&release);
+   }
+   require(control.text()==text,"Body input did not receive the authored key events");
+}
+
+static void nasaBodyPhysicalChecks(MainWindow &window,QPlainTextEdit &source,const QString &directory)
+{
+   const QString fixture="% NASA body physical controls - retain this comment\n"
+      "Create Variable Keep;\nKeep = 17;\nBeginMissionSequence;\nKeep = Keep + 4; % retain this mission\n";
+   const QStringList defaults{"Sun","Mercury","Venus","Earth","Luna","Mars",
+                              "Jupiter","Saturn","Uranus","Neptune","Pluto"};
+   QStringList names=defaults;
+   for (const auto &type:QStringList{"Moon","Asteroid","Comet","Planet"}) names.append("Acceptance"+type);
+   for (const auto &name:names) {
+      close(window); source.setPlainText(fixture);
+      require(window.buildScript(),"Body physical baseline did not build");
+      const bool builtin=defaults.contains(name);
+      if (!builtin) {
+         const auto type=name.mid(QString("Acceptance").size());
+         modal(window,[&] { window.findChild<QAction *>("createResource")->trigger(); },[&](QDialog *dialog) {
+            auto *types=dialog->findChild<QComboBox *>("resourceType");
+            require(types && types->findText(type)>=0,"User celestial-body type missing from creation dialog");
+            types->setCurrentText(type); dialog->findChild<QLineEdit *>("resourceName")->setText(name);
+            dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+         });
+         require(body(name) && body(name)->IsUserDefined() && body(name)->IsOfType(type.toStdString()),"GUI did not create the selected body type");
+         close(window);
+         // A new user body is intentionally incomplete (Mu/radius default to
+         // zero). Establish a valid applied baseline before testing rejected
+         // edits; typing the identical initial zero is a clean no-op.
+         auto *created=open(window,name); acceptanceView(*created);
+         typeBodyValue(*edit(*created,"Mu"),"60");
+         typeBodyValue(*edit(*created,"EquatorialRadius"),"300");
+         typeBodyValue(*edit(*created,"Flattening"),"0.01");
+         apply(*created); close(window);
+         require(state(name).value("CentralBody")== (type=="Moon" ? "Earth" : "Sun"),"New body's central body differs from its documented type default");
+      }
+      require(body(name) && body(name)->IsUserDefined()!=builtin,"Default/user body identity differs from requested object");
+      const auto original=source.toPlainText(); const auto originalState=state(name);
+      auto *panel=open(window,name); acceptanceView(*panel);
+      auto *pages=panel->findChild<QTabWidget *>("bodyPages");
+      require(pages && pages->count()==4,"Body pages missing"); pages->setCurrentIndex(0);
+      require(edit(*panel,"Mu")->isVisible() && edit(*panel,"EquatorialRadius")->isVisible() && edit(*panel,"Flattening")->isVisible(),"Physical inputs are not visible on Properties");
+      const auto initialUndo=source.document()->availableUndoSteps();
+      QPointer<QMdiSubWindow> owner=qobject_cast<QMdiSubWindow *>(panel->parentWidget());
+      require(owner,"Body panel has no owning workspace window");
+      panel->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+      QApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
+      require(!owner && source.toPlainText()==original && source.document()->availableUndoSteps()==initialUndo && state(name)==originalState,"Clean body OK changed source, model or history");
+
+      panel=open(window,name); acceptanceView(*panel); pages=panel->findChild<QTabWidget *>("bodyPages"); pages->setCurrentIndex(0);
+      for (const auto &field:QStringList{"Mu","EquatorialRadius","Flattening"}) {
+         auto *input=edit(*panel,field); const auto initial=input->text();
+         QStringList invalid{"","not-a-number","NaN","Inf","-Inf","1e999","-0.001"};
+         if (field!="Flattening") invalid.append("0");
+         for (const auto &value:invalid) {
+            typeBodyValue(*input,value); panel->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
+            require(panel->hasChanges() && input->text()==value && !panel->findChild<QLabel *>("bodyStatus")->text().isEmpty(),qPrintable("Invalid body input "+name+"."+field+"="+value+" (initial="+initial+", actual="+input->text()+", pending="+QString::number(panel->hasChanges())+", diagnostic="+panel->findChild<QLabel *>("bodyStatus")->text()+")"));
+            require(source.toPlainText()==original && source.document()->availableUndoSteps()==initialUndo && state(name)==originalState,"Invalid body input mutated model, source or history");
+            typeBodyValue(*input,initial);
+         }
+      }
+      require(!panel->hasChanges(),"Restoring rejected body fields left pending changes");
+      typeBodyValue(*edit(*panel,"Mu"),"12345.25");
+      owner=qobject_cast<QMdiSubWindow *>(panel->parentWidget());
+      panel->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Cancel)->click();
+      QApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
+      require(!owner && source.toPlainText()==original && source.document()->availableUndoSteps()==initialUndo && state(name)==originalState,"Body Cancel committed pending physical values");
+
+      // The strict positive boundaries for Mu/radius and inclusive zero for
+      // flattening come from Resource_CelestialBody.xml, not current readback.
+      for (const auto &values:QList<QStringList>{{"1e-12","1e-12","0"},{"12345.25","987.5","0.125"}}) {
+         const auto before=source.toPlainText(); const auto beforeState=state(name);
+         panel=open(window,name); acceptanceView(*panel); pages=panel->findChild<QTabWidget *>("bodyPages"); pages->setCurrentIndex(0);
+         const QStringList fields{"Mu","EquatorialRadius","Flattening"};
+         for (int i=0;i<fields.size();++i) typeBodyValue(*edit(*panel,fields[i]),values[i]);
+         require(source.toPlainText()==before && state(name)==beforeState && panel->hasChanges(),"Pending body edit escaped to source or model");
+         apply(*panel); const auto after=source.toPlainText();
+         for (int i=0;i<fields.size();++i) require(state(name).value(fields[i]).toDouble()==values[i].toDouble(),"Applied body property differs from independently specified value");
+         require(after!=before && after.contains("% NASA body physical controls - retain this comment") && after.endsWith("Keep = Keep + 4; % retain this mission\n"),"Body Apply changed unrelated source");
+         const auto steps=source.document()->availableUndoSteps(); close(window); panel=open(window,name); apply(*panel);
+         require(source.toPlainText()==after && source.document()->availableUndoSteps()==steps,"Repeated body Apply changed source or history");
+         close(window); source.undo(); require(source.toPlainText()==before && window.buildScript() && state(name)==beforeState,"Body Undo did not restore exact source and properties");
+         source.redo(); require(source.toPlainText()==after && window.buildScript(),"Body Redo did not restore exact source");
+         for (int i=0;i<fields.size();++i) require(state(name).value(fields[i]).toDouble()==values[i].toDouble(),"Body Redo did not restore expected properties");
+      }
+      const auto applied=source.toPlainText(); const auto appliedState=state(name);
+      const auto saved=directory+"/physical-"+name+".script";
+      require(window.saveScriptTo(saved) && window.loadScript(saved) && source.toPlainText()==applied && state(name)==appliedState,"Body save/reopen did not preserve source and properties");
+      panel=open(window,name); acceptanceView(*panel); pages=panel->findChild<QTabWidget *>("bodyPages"); pages->setCurrentIndex(0);
+      typeBodyValue(*edit(*panel,"Mu"),"12346.25"); owner=qobject_cast<QMdiSubWindow *>(panel->parentWidget());
+      panel->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->click();
+      QApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
+      require(!owner && state(name).value("Mu").toDouble()==12346.25 && source.toPlainText()!=applied,"Changed body OK failed to commit and close its owner");
+      source.undo(); require(source.toPlainText()==applied && window.buildScript() && state(name)==appliedState,"Body OK Undo failed exact restoration");
+      bodyProof(name,"physical");
+      if (builtin) bodyProof(name,"default"); else bodyProof(name,"create");
+   }
+   close(window); source.setPlainText(fixture); require(window.buildScript(),"Body physical checks did not restore a clean fixture");
+}
 int main(int argc,char **argv)
 {
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv); app.setOrganizationName("GMATTests"); app.setApplicationName("QtBodies");
    try {
+      require(acceptanceWidgetPlatform(),"Body acceptance requires offscreen or supported visible widgets");
       TestSettings settings; QTemporaryDir files; require(files.isValid() && argc>1,"Body fixtures unavailable"); const auto startup=QFileInfo(argv[1]).absoluteFilePath(),captures=argc>2 ? QString::fromLocal8Bit(argv[2]) : QString(); QDir::setCurrent(QFileInfo(startup).absolutePath());
       MainWindow window; window.show(); require(window.initialize(startup),"Body runtime initialization failed"); auto *editor=window.findChild<QPlainTextEdit *>("scriptEditor"); const auto report=files.filePath("bodies.txt"),saved=files.filePath("bodies ü.script");
       const QString resources="% body GUI round trip Δ\nCreate Spacecraft Sat;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nCreate ReportFile Values;\nValues.Filename = '"+report+"';\nValues.WriteHeaders = false;\nValues.Precision = 16;\nCreate OrbitView Orb;\nOrb.Add = {Sat, Earth};\nOrb.ViewPointReference = Earth;\nOrb.ViewPointVector = [0 0 25000];\nOrb.ViewDirection = Earth;\nOrb.EnableStars = Off;\nOrb.EnableConstellations = Off;\nOrb.Axes = Off;\nOrb.Grid = Off;\n";
@@ -191,6 +320,7 @@ int main(int argc,char **argv)
       pickerPanel=resource(window,"FM"); section(*pickerPanel,"Bodies"); selectBodies(*pickerPanel,"PointMasses",{},{"Earth"},true); applyResource(*pickerPanel); require(window.runMission()==MainWindow::RunResult::Completed,"Clear point-mass selection failed");
       close(window); editor->setPlainText(original); require(window.buildScript(),"Body Stop fixture restore failed"); panel=open(window,"Earth"); edit(*panel,"Mu")->setText("400000"); modal(*panel,[&] { panel->parentWidget()->close(); },[](QDialog *dialog) { auto *question=qobject_cast<QMessageBox *>(dialog); require(question,"Body close prompt missing"); question->button(QMessageBox::Cancel)->click(); }); require(panel->hasChanges() && editor->toPlainText()==original,"Body Close Cancel lost pending edits"); close(window);
       const QString loop="Create Variable n;\nBeginMissionSequence;\nWhile n < 1e12;\nn = n + 1;\nEndWhile;\n"; editor->setPlainText(loop); require(window.buildScript(),"Body loop fixture failed"); panel=open(window,"Earth"); bool guarded=false; QTimer::singleShot(20,&window,[&] { guarded=!panel->isEnabled() && !window.applyResourceChanges("Earth",{{"Mu","400000"}},loop).isEmpty(); window.stopMission(); }); require(window.runMission()==MainWindow::RunResult::Stopped && guarded && panel->isEnabled(),"Body editing not guarded during Run/Stop"); close(window); editor->setPlainText(original); require(window.runMission()==MainWindow::RunResult::Completed && bytes(report)==baselineReport,"Body mission did not recover after Stop");
+      nasaBodyPhysicalChecks(window,*editor,files.path());
       std::cout<<"Qt bodies: four wx pages, built-in protection, pending/Cancel/correction/rollback, physical reports, texture/model/pose/color rendering, comment-preserving repeated digit-prefixed properties, exact Undo/Redo, Unicode save/reopen, New Asteroid, SPICE orbit and custom-pole frame reports, PCK/FK selection/replacement/removal/order, startup kernel replacement/clear, independent scripts, invalid-ID/missing-SPK recovery and Run/Stop guards passed\n";
       std::cout<<"Qt body selection: solar-shadow and primary/point-mass callers, user-body choices, hidden Sun/overlapping gravity bodies, Select all/Clear/Cancel/pending/Apply, typed rejection, exact Undo/Redo, explicit empty shadows, Unicode save/reopen and exact raw-script power/propagation reports passed\n";
    } catch (BaseException &error) { std::cerr<<error.GetFullMessage()<<'\n'; return 1; } catch (const std::exception &error) { std::cerr<<error.what()<<'\n'; return 1; }

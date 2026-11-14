@@ -110,12 +110,12 @@ bool EndTarget::Initialize()
 {
    GmatCommand::Initialize();
    
-   // Validate that next points to the owning Target command
+   // EndTarget also serves as the legacy spelling for an Optimize terminator.
    if (!next)
       throw CommandException("EndTarget Command not properly reconnected");
     
-   if (next->GetTypeName() != "Target")
-      throw CommandException("EndTarget Command not connected to Target Command");
+   if (next->GetTypeName() != "Target" && next->GetTypeName() != "Optimize")
+      throw CommandException("EndTarget Command not connected to Target or Optimize Command");
     
    return true;
 }

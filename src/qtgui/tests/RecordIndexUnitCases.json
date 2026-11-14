@@ -1,0 +1,25 @@
+{
+  "scope": "Record-number list units only; preserve list/range text; no mission execution.",
+  "cases": [
+    {
+      "key": "AcceptFilter",
+      "group": "RecordIndexUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create AcceptFilter Probe;\nProbe.RecordNumbers = {1, 4-9, 12};\n",
+      "units": {
+        "RecordNumbers": "record indices"
+      }
+    },
+    {
+      "key": "RejectFilter",
+      "group": "RecordIndexUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create RejectFilter Probe;\nProbe.RecordNumbers = {1, 4-9, 12};\n",
+      "units": {
+        "RecordNumbers": "record indices"
+      }
+    }
+  ]
+}

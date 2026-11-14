@@ -19,10 +19,11 @@ class CelestialBodyPanel final : public EditablePanel {
 public:
    using Apply=std::function<QString(const QMap<QString,QString> &)>;
    CelestialBodyPanel(CelestialBody &body,Apply apply,QWidget *parent=nullptr);
+   ~CelestialBodyPanel() override;
    bool hasChanges() const override;
    void discardChanges() override { applied=true; }
-private:
    QMap<QString,QString> settings() const;
+private:
    QMap<QString,QString> original;
    QMap<QString,std::function<QString()>> values;
    QLabel *status;

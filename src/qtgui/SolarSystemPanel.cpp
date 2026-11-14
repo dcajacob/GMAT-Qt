@@ -129,7 +129,7 @@ SolarSystemPanel::SolarSystemPanel(SolarSystem &system,Apply apply,QWidget *pare
       try { const auto error=apply(settings()); if (error.isEmpty()) { applied=true; appliedSuccessfully(); } else status->setText(error); }
       catch (const std::exception &error) { status->setText(QString::fromUtf8(error.what())); }
    });
-   connect(buttons,&QDialogButtonBox::rejected,this,[this] { parentWidget()->close(); });
+   connect(buttons->button(QDialogButtonBox::Close),&QPushButton::clicked,this,[this] { parentWidget()->close(); });
 }
 QMap<QString,QString> SolarSystemPanel::settings() const
 {

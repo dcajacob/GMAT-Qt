@@ -1,3 +1,4 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "CommandEditor.hpp"
 #include "CommandForm.hpp"
@@ -82,7 +83,7 @@ int main(int argc,char **argv)
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv);
    app.setOrganizationName("GMATTests"); app.setApplicationName("QtMissionLabelsWrite");
    try {
-      require(argc==2 && app.platformName()=="offscreen","Mission Label/Write check requires offscreen and one startup argument");
+      require(argc==2 && acceptanceWidgetPlatform(),"Mission Label/Write check requires offscreen and one startup argument");
       TestSettings settings; QTemporaryDir files; require(files.isValid(),"Fixture folder unavailable");
       const auto startup=QFileInfo(QString::fromLocal8Bit(argv[1])).absoluteFilePath(); QDir::setCurrent(QFileInfo(startup).absolutePath());
       MainWindow window; require(window.initialize(startup),"Mission Label/Write runtime initialization failed"); window.show();

@@ -28,7 +28,24 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ExpressionBinding.hpp"
+#include <memory>
+#include <typeinfo>
 #include "Num2str.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration num2strValueProvider({
+   Num2str::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Num2str*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<Num2str*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "FunctionException.hpp"
 #include "RealUtilities.hpp"       // for Num2str()
 #include "MessageInterface.hpp"
@@ -161,9 +178,7 @@ void Num2str::SetOutputTypes(WrapperTypeArray &outputTypes,
    #endif
 
    // Set output wrapper type for Num2str
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;
+   Function::SetOutputTypes(outputTypes, rowCounts, colCounts);
 }
 
 //------------------------------------------------------------------------------
@@ -416,7 +431,15 @@ void Num2str::Finalize(bool cleanUp)
 //------------------------------------------------------------------------------
 GmatBase* Num2str::Clone() const
 {
-   return (new Num2str(*this));
+   std::unique_ptr<Num2str> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new Num2str(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived Num2str must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -431,7 +454,18 @@ GmatBase* Num2str::Clone() const
 //---------------------------------------------------------------------------
 void Num2str::Copy(const GmatBase* orig)
 {
-   operator=(*((Num2str *)(orig)));
+   const auto *source = dynamic_cast<const Num2str*>(orig);
+   if (!source || typeid(*this) != typeid(Num2str) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible Num2str value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   const auto previousObjectBindings = objectBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -446,3 +480,19 @@ void Num2str::Copy(const GmatBase* orig)
 
 
 
+
+
+bool Num2str::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const Num2str*>(&original);
+   if (!source || typeid(*this) != typeid(Num2str) || typeid(original) != typeid(Num2str))
+      throw FunctionException("Derived Num2str references need their own passive provider.\n");
+   RebindObjectManagedFunctionValue(*source, resolve);
+   return true;
+}
+
+bool Num2str::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(Num2str);
+}

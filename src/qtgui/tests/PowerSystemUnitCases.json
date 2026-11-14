@@ -1,0 +1,35 @@
+{
+  "scope": "Power and electric polynomial coefficient unit display; no new mission execution or whole-row acceptance.",
+  "cases": [
+    {
+      "key": "NuclearPowerSystem",
+      "group": "PowerSystemUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create NuclearPowerSystem Probe;\n",
+      "units": {
+        "AnnualDecayRate": "percent/year",
+        "BusCoeff1": "kW",
+        "BusCoeff2": "kW*AU",
+        "BusCoeff3": "kW*AU^2",
+        "InitialMaxPower": "kW",
+        "Margin": "percent"
+      }
+    },
+    {
+      "key": "SolarPowerSystem",
+      "group": "PowerSystemUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create SolarPowerSystem Probe;\n",
+      "units": {
+        "AnnualDecayRate": "percent/year",
+        "BusCoeff1": "kW",
+        "BusCoeff2": "kW*AU",
+        "BusCoeff3": "kW*AU^2",
+        "InitialMaxPower": "kW",
+        "Margin": "percent"
+      }
+    }
+  ]
+}

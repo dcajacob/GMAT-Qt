@@ -1,0 +1,989 @@
+{
+  "schema_version": 1,
+  "scope": "All18 builtin resource spellings;actual automatic shared helper identity and positive main/direct/nested use. Original private recipes and3 strict scope profiles preserved;no whole-domain or exact-row credit.",
+  "cases": [
+    {
+      "key": "Angle",
+      "builtin_type": "Angle",
+      "kind": "array",
+      "oracle": "literal",
+      "columns": 1,
+      "tolerance": 1e-09,
+      "declarations": "Create Angle NativeHelper;\nCreate Spacecraft Vertex;\nVertex.CoordinateSystem = EarthMJ2000Eq;\nVertex.DateFormat = A1ModJulian;\nVertex.Epoch = '21545';\nVertex.DisplayStateType = Cartesian;\nVertex.NAIFId = -130001;\nVertex.NAIFIdReferenceFrame = -8130001;\nVertex.X = 7000;\nVertex.Y = 0;\nVertex.Z = 0;\nVertex.VX = 0;\nVertex.VY = 7.5;\nVertex.VZ = 0;\nCreate Spacecraft EndOne;\nEndOne.CoordinateSystem = EarthMJ2000Eq;\nEndOne.DateFormat = A1ModJulian;\nEndOne.Epoch = '21545';\nEndOne.DisplayStateType = Cartesian;\nEndOne.NAIFId = -130002;\nEndOne.NAIFIdReferenceFrame = -8130002;\nEndOne.X = 7001;\nEndOne.Y = 0;\nEndOne.Z = 0;\nEndOne.VX = 0;\nEndOne.VY = 7.5;\nEndOne.VZ = 0;\nCreate Spacecraft EndTwo;\nEndTwo.CoordinateSystem = EarthMJ2000Eq;\nEndTwo.DateFormat = A1ModJulian;\nEndTwo.Epoch = '21545';\nEndTwo.DisplayStateType = Cartesian;\nEndTwo.NAIFId = -130003;\nEndTwo.NAIFIdReferenceFrame = -8130003;\nEndTwo.X = 7000;\nEndTwo.Y = 1;\nEndTwo.Z = 0;\nEndTwo.VX = 0;\nEndTwo.VY = 7.5;\nEndTwo.VZ = 0;\nCreate Variable Measured;\n",
+      "execution": "[Measured] = NativeHelper(Vertex, EndOne, EndTwo);\nout(1,1) = Measured;\n",
+      "main_declarations": "Create Angle CallerHelper;\nCreate Spacecraft Vertex;\nVertex.CoordinateSystem = EarthMJ2000Eq;\nVertex.DateFormat = A1ModJulian;\nVertex.Epoch = '21545';\nVertex.DisplayStateType = Cartesian;\nVertex.NAIFId = -130001;\nVertex.NAIFIdReferenceFrame = -8130001;\nVertex.X = 7000;\nVertex.Y = 0;\nVertex.Z = 0;\nVertex.VX = 0;\nVertex.VY = 7.5;\nVertex.VZ = 0;\nCreate Spacecraft EndOne;\nEndOne.CoordinateSystem = EarthMJ2000Eq;\nEndOne.DateFormat = A1ModJulian;\nEndOne.Epoch = '21545';\nEndOne.DisplayStateType = Cartesian;\nEndOne.NAIFId = -130002;\nEndOne.NAIFIdReferenceFrame = -8130002;\nEndOne.X = 7001;\nEndOne.Y = 0;\nEndOne.Z = 0;\nEndOne.VX = 0;\nEndOne.VY = 7.5;\nEndOne.VZ = 0;\nCreate Spacecraft EndTwo;\nEndTwo.CoordinateSystem = EarthMJ2000Eq;\nEndTwo.DateFormat = A1ModJulian;\nEndTwo.Epoch = '21545';\nEndTwo.DisplayStateType = Cartesian;\nEndTwo.NAIFId = -130003;\nEndTwo.NAIFIdReferenceFrame = -8130003;\nEndTwo.X = 7001;\nEndTwo.Y = 1;\nEndTwo.Z = 0;\nEndTwo.VX = 0;\nEndTwo.VY = 7.5;\nEndTwo.VZ = 0;\nCreate Variable Measured;\n",
+      "main_execution": "[Measured] = CallerHelper(Vertex, EndOne, EndTwo);\nout(1,1) = Measured;\n",
+      "expected": [
+        90
+      ],
+      "main_expected": [
+        45
+      ],
+      "caller_objects": [
+        "CallerHelper",
+        "Vertex",
+        "EndOne",
+        "EndTwo",
+        "Measured"
+      ],
+      "main_runtime_expected": {
+        "Vertex": {
+          "type": "Spacecraft",
+          "values": [
+            7000,
+            0,
+            0,
+            0,
+            7.5,
+            0
+          ],
+          "epoch": 21545
+        },
+        "EndOne": {
+          "type": "Spacecraft",
+          "values": [
+            7001,
+            0,
+            0,
+            0,
+            7.5,
+            0
+          ],
+          "epoch": 21545
+        },
+        "EndTwo": {
+          "type": "Spacecraft",
+          "values": [
+            7001,
+            1,
+            0,
+            0,
+            7.5,
+            0
+          ],
+          "epoch": 21545
+        },
+        "Measured": {
+          "type": "Variable",
+          "value": 45
+        }
+      },
+      "original_scope_case": true,
+      "private_primary_builtin_calls_per_block": 1,
+      "main_primary_builtin_calls_per_block": 1
+    },
+    {
+      "key": "GetLastState",
+      "builtin_type": "GetLastState",
+      "kind": "array",
+      "oracle": "literal",
+      "columns": 6,
+      "tolerance": 1e-09,
+      "declarations": "Create GetLastState NativeHelper;\nCreate Spacecraft Local;\nLocal.CoordinateSystem = EarthMJ2000Eq;\nLocal.DateFormat = A1ModJulian;\nLocal.Epoch = '21545';\nLocal.DisplayStateType = Cartesian;\nLocal.NAIFId = -130011;\nLocal.NAIFIdReferenceFrame = -8130011;\nLocal.X = 7100;\nLocal.Y = 20;\nLocal.Z = -30;\nLocal.VX = -0.125;\nLocal.VY = 7.25;\nLocal.VZ = 0.375;\nCreate Array State[6,1];\n",
+      "execution": "[State] = NativeHelper(Local);\nout(1,1) = State(1,1);\nout(1,2) = State(2,1);\nout(1,3) = State(3,1);\nout(1,4) = State(4,1);\nout(1,5) = State(5,1);\nout(1,6) = State(6,1);\n",
+      "main_declarations": "Create GetLastState CallerHelper;\nCreate Spacecraft Local;\nLocal.CoordinateSystem = EarthMJ2000Eq;\nLocal.DateFormat = A1ModJulian;\nLocal.Epoch = '21545';\nLocal.DisplayStateType = Cartesian;\nLocal.NAIFId = -130011;\nLocal.NAIFIdReferenceFrame = -8130011;\nLocal.X = 8100;\nLocal.Y = -40;\nLocal.Z = 60;\nLocal.VX = 0.25;\nLocal.VY = 6.75;\nLocal.VZ = -0.5;\nCreate Array State[6,1];\n",
+      "main_execution": "[State] = CallerHelper(Local);\nout(1,1) = State(1,1);\nout(1,2) = State(2,1);\nout(1,3) = State(3,1);\nout(1,4) = State(4,1);\nout(1,5) = State(5,1);\nout(1,6) = State(6,1);\n",
+      "expected": [
+        7100,
+        20,
+        -30,
+        -0.125,
+        7.25,
+        0.375
+      ],
+      "main_expected": [
+        8100,
+        -40,
+        60,
+        0.25,
+        6.75,
+        -0.5
+      ],
+      "caller_objects": [
+        "CallerHelper",
+        "Local",
+        "State"
+      ],
+      "main_runtime_expected": {
+        "Local": {
+          "type": "Spacecraft",
+          "values": [
+            8100,
+            -40,
+            60,
+            0.25,
+            6.75,
+            -0.5
+          ],
+          "epoch": 21545
+        },
+        "State": {
+          "type": "Array",
+          "values": [
+            8100,
+            -40,
+            60,
+            0.25,
+            6.75,
+            -0.5
+          ],
+          "rows": 6,
+          "columns": 1
+        }
+      },
+      "original_scope_case": true,
+      "private_primary_builtin_calls_per_block": 1,
+      "main_primary_builtin_calls_per_block": 1
+    },
+    {
+      "key": "GetEphemStates",
+      "builtin_type": "GetEphemStates",
+      "kind": "array",
+      "oracle": "literal",
+      "columns": 14,
+      "tolerance": 1e-09,
+      "declarations": "Create GetEphemStates NativeHelper;\nCreate Spacecraft Local;\nLocal.CoordinateSystem = EarthMJ2000Eq;\nLocal.DateFormat = A1ModJulian;\nLocal.Epoch = '21545';\nLocal.DisplayStateType = Cartesian;\nLocal.NAIFId = -130021;\nLocal.NAIFIdReferenceFrame = -8130021;\nLocal.X = 7100;\nLocal.Y = 20;\nLocal.Z = -30;\nLocal.VX = -0.125;\nLocal.VY = 7.25;\nLocal.VZ = 0.375;\nLocal.EphemerisName = '@GMAT_BUILTIN_SCOPE_PRIVATE_OEM@';\nCreate String StartEpoch EndEpoch;\nCreate Array StartState[6,1] EndState[6,1];\n",
+      "execution": "[StartEpoch, StartState, EndEpoch, EndState] = NativeHelper('CCSDS-OEM', Local, 'UTCGregorian', EarthMJ2000Eq);\nWrite StartEpoch EndEpoch {Style = Script, MessageWindow = true, LogFile = false};\nout(1,1) = strcmp(StartEpoch, '01 Jan 2018 00:00:00.000');\nout(1,14) = strcmp(EndEpoch, '01 Jan 2018 00:01:00.000');\nout(1,2) = StartState(1,1);\nout(1,8) = EndState(1,1);\nout(1,3) = StartState(2,1);\nout(1,9) = EndState(2,1);\nout(1,4) = StartState(3,1);\nout(1,10) = EndState(3,1);\nout(1,5) = StartState(4,1);\nout(1,11) = EndState(4,1);\nout(1,6) = StartState(5,1);\nout(1,12) = EndState(5,1);\nout(1,7) = StartState(6,1);\nout(1,13) = EndState(6,1);\n",
+      "main_declarations": "Create GetEphemStates CallerHelper;\nCreate Spacecraft Local;\nLocal.CoordinateSystem = EarthMJ2000Eq;\nLocal.DateFormat = A1ModJulian;\nLocal.Epoch = '21545';\nLocal.DisplayStateType = Cartesian;\nLocal.NAIFId = -130021;\nLocal.NAIFIdReferenceFrame = -8130021;\nLocal.X = 7100;\nLocal.Y = 20;\nLocal.Z = -30;\nLocal.VX = -0.125;\nLocal.VY = 7.25;\nLocal.VZ = 0.375;\nLocal.EphemerisName = '@GMAT_BUILTIN_SCOPE_CALLER_OEM@';\nCreate String StartEpoch EndEpoch;\nCreate Array StartState[6,1] EndState[6,1];\n",
+      "main_execution": "[StartEpoch, StartState, EndEpoch, EndState] = CallerHelper('CCSDS-OEM', Local, 'UTCGregorian', EarthMJ2000Eq);\nWrite StartEpoch EndEpoch {Style = Script, MessageWindow = true, LogFile = false};\nout(1,1) = strcmp(StartEpoch, '02 Jan 2018 00:00:00.000');\nout(1,14) = strcmp(EndEpoch, '02 Jan 2018 00:02:00.000');\nout(1,2) = StartState(1,1);\nout(1,8) = EndState(1,1);\nout(1,3) = StartState(2,1);\nout(1,9) = EndState(2,1);\nout(1,4) = StartState(3,1);\nout(1,10) = EndState(3,1);\nout(1,5) = StartState(4,1);\nout(1,11) = EndState(4,1);\nout(1,6) = StartState(5,1);\nout(1,12) = EndState(5,1);\nout(1,7) = StartState(6,1);\nout(1,13) = EndState(6,1);\n",
+      "expected": [
+        1,
+        7000,
+        0,
+        0,
+        0,
+        7.5,
+        0,
+        7001,
+        2,
+        3,
+        0.1,
+        7.4,
+        0.2,
+        1
+      ],
+      "main_expected": [
+        1,
+        8000,
+        100,
+        -20,
+        -0.2,
+        6.5,
+        0.4,
+        8002,
+        104,
+        -18,
+        -0.1,
+        6.6,
+        0.5,
+        1
+      ],
+      "caller_objects": [
+        "CallerHelper",
+        "Local",
+        "StartEpoch",
+        "EndEpoch",
+        "StartState",
+        "EndState"
+      ],
+      "main_runtime_expected": {
+        "Local": {
+          "type": "Spacecraft",
+          "values": [
+            7100,
+            20,
+            -30,
+            -0.125,
+            7.25,
+            0.375
+          ],
+          "epoch": 21545,
+          "ephemeris": "@GMAT_BUILTIN_SCOPE_CALLER_OEM@"
+        },
+        "StartEpoch": {
+          "type": "String",
+          "value": "02 Jan 2018 00:00:00.000"
+        },
+        "EndEpoch": {
+          "type": "String",
+          "value": "02 Jan 2018 00:02:00.000"
+        },
+        "StartState": {
+          "type": "Array",
+          "values": [
+            8000,
+            100,
+            -20,
+            -0.2,
+            6.5,
+            0.4
+          ],
+          "rows": 6,
+          "columns": 1
+        },
+        "EndState": {
+          "type": "Array",
+          "values": [
+            8002,
+            104,
+            -18,
+            -0.1,
+            6.6,
+            0.5
+          ],
+          "rows": 6,
+          "columns": 1
+        }
+      },
+      "original_scope_case": true,
+      "private_primary_builtin_calls_per_block": 1,
+      "main_primary_builtin_calls_per_block": 1
+    },
+    {
+      "key": "QuaternionProduct",
+      "builtin_type": "QuaternionProduct",
+      "kind": "array",
+      "columns": 12,
+      "declarations": "Create QuaternionProduct NativeHelper;\nCreate Array Qx[1,4];\nQx(1,1) = 1;\nQx(1,2) = 0;\nQx(1,3) = 0;\nQx(1,4) = 1;\nCreate Array Qy[1,4];\nQy(1,1) = 0;\nQy(1,2) = 1;\nQy(1,3) = 0;\nQy(1,4) = 1;\nCreate Array Qn[1,4];\nQn(1,1) = 0;\nQn(1,2) = 0;\nQn(1,3) = 1.7320508075688772;\nQn(1,4) = -1;\nCreate Array Qi[1,4];\nQi(1,1) = 0;\nQi(1,2) = 0;\nQi(1,3) = 0;\nQi(1,4) = 2;\nCreate Array P[1,4];\n",
+      "execution": "P = NativeHelper(Qx, Qy);\nout(1,1) = P(1,1);\nout(1,2) = P(1,2);\nout(1,3) = P(1,3);\nout(1,4) = P(1,4);\nP = NativeHelper(Qy, Qx);\nout(1,5) = P(1,1);\nout(1,6) = P(1,2);\nout(1,7) = P(1,3);\nout(1,8) = P(1,4);\nP = NativeHelper(Qn, Qi);\nout(1,9) = P(1,1);\nout(1,10) = P(1,2);\nout(1,11) = P(1,3);\nout(1,12) = P(1,4);\n",
+      "expected": [
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        -0.5,
+        0.5,
+        0,
+        0,
+        -0.8660254037844386,
+        0.5
+      ],
+      "oracle": "literal",
+      "tolerance": 2e-12,
+      "builtin_calls_per_function": 3,
+      "original_scope_case": false,
+      "main_declarations": "Create QuaternionProduct CallerHelper;\nCreate Array Qx[1,4];\nQx(1,1) = -1;\nQx(1,2) = 0;\nQx(1,3) = 0;\nQx(1,4) = 1;\nCreate Array Qy[1,4];\nQy(1,1) = 0;\nQy(1,2) = 1;\nQy(1,3) = 0;\nQy(1,4) = 1;\nCreate Array Qn[1,4];\nQn(1,1) = 0;\nQn(1,2) = 0;\nQn(1,3) = -1.7320508075688772;\nQn(1,4) = -1;\nCreate Array Qi[1,4];\nQi(1,1) = 0;\nQi(1,2) = 0;\nQi(1,3) = 0;\nQi(1,4) = 2;\nCreate Array P[1,4];\nCreate Variable MainSentinel;\nMainSentinel = 29;\n",
+      "main_execution": "P = CallerHelper(Qx, Qy);\nout(1,1) = P(1,1);\nout(1,2) = P(1,2);\nout(1,3) = P(1,3);\nout(1,4) = P(1,4);\nP = CallerHelper(Qy, Qx);\nout(1,5) = P(1,1);\nout(1,6) = P(1,2);\nout(1,7) = P(1,3);\nout(1,8) = P(1,4);\nP = CallerHelper(Qn, Qi);\nout(1,9) = P(1,1);\nout(1,10) = P(1,2);\nout(1,11) = P(1,3);\nout(1,12) = P(1,4);\n",
+      "main_expected": [
+        -0.5,
+        0.5,
+        -0.5,
+        0.5,
+        -0.5,
+        0.5,
+        0.5,
+        0.5,
+        0,
+        0,
+        0.8660254037844386,
+        0.5
+      ],
+      "caller_objects": [
+        "CallerHelper",
+        "Qx",
+        "Qy",
+        "Qn",
+        "Qi",
+        "P",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        },
+        "Qx": {
+          "type": "Array",
+          "rows": 1,
+          "columns": 4,
+          "values": [
+            -1.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "Qy": {
+          "type": "Array",
+          "rows": 1,
+          "columns": 4,
+          "values": [
+            0.0,
+            1.0,
+            0.0,
+            1.0
+          ]
+        },
+        "Qn": {
+          "type": "Array",
+          "rows": 1,
+          "columns": 4,
+          "values": [
+            0.0,
+            0.0,
+            -1.7320508075688772,
+            -1.0
+          ]
+        },
+        "Qi": {
+          "type": "Array",
+          "rows": 1,
+          "columns": 4,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            2.0
+          ]
+        }
+      },
+      "private_primary_builtin_calls_per_block": 3,
+      "main_primary_builtin_calls_per_block": 3
+    },
+    {
+      "key": "QuaternionRotation",
+      "builtin_type": "QuaternionRotation",
+      "kind": "array",
+      "columns": 9,
+      "declarations": "Create QuaternionRotation NativeHelper;\nCreate Array Qz[1,4];\nQz(1,1) = 0;\nQz(1,2) = 0;\nQz(1,3) = 2;\nQz(1,4) = 2;\nCreate Array Qneg[1,4];\nQneg(1,1) = 0;\nQneg(1,2) = 0;\nQneg(1,3) = -2;\nQneg(1,4) = -2;\nCreate Array Qx[1,4];\nQx(1,1) = 2;\nQx(1,2) = 0;\nQx(1,3) = 0;\nQx(1,4) = 0;\nCreate Array V[1,3];\nV(1,1) = 3;\nV(1,2) = -2;\nV(1,3) = 5;\nCreate Array R[1,3];\n",
+      "execution": "R = NativeHelper(Qz,V);\nout(1,1) = R(1,1);\nout(1,2) = R(1,2);\nout(1,3) = R(1,3);\nR = NativeHelper(Qneg,V);\nout(1,4) = R(1,1);\nout(1,5) = R(1,2);\nout(1,6) = R(1,3);\nR = NativeHelper(Qx,V);\nout(1,7) = R(1,1);\nout(1,8) = R(1,2);\nout(1,9) = R(1,3);\n",
+      "expected": [
+        2,
+        3,
+        5,
+        2,
+        3,
+        5,
+        3,
+        2,
+        -5
+      ],
+      "oracle": "literal",
+      "tolerance": 2e-12,
+      "builtin_calls_per_function": 3,
+      "original_scope_case": false,
+      "main_declarations": "Create QuaternionRotation CallerHelper;\nCreate Array Qz[1,4];\nQz(1,1) = 0;\nQz(1,2) = 0;\nQz(1,3) = 2;\nQz(1,4) = 2;\nCreate Array Qneg[1,4];\nQneg(1,1) = 0;\nQneg(1,2) = 0;\nQneg(1,3) = -2;\nQneg(1,4) = -2;\nCreate Array Qx[1,4];\nQx(1,1) = 2;\nQx(1,2) = 0;\nQx(1,3) = 0;\nQx(1,4) = 0;\nCreate Array V[1,3];\nV(1,1) = 4;\nV(1,2) = -1;\nV(1,3) = 6;\nCreate Array R[1,3];\nCreate Variable MainSentinel;\nMainSentinel = 29;\n",
+      "main_execution": "R = CallerHelper(Qz,V);\nout(1,1) = R(1,1);\nout(1,2) = R(1,2);\nout(1,3) = R(1,3);\nR = CallerHelper(Qneg,V);\nout(1,4) = R(1,1);\nout(1,5) = R(1,2);\nout(1,6) = R(1,3);\nR = CallerHelper(Qx,V);\nout(1,7) = R(1,1);\nout(1,8) = R(1,2);\nout(1,9) = R(1,3);\n",
+      "main_expected": [
+        1,
+        4,
+        6,
+        1,
+        4,
+        6,
+        4,
+        1,
+        -6
+      ],
+      "caller_objects": [
+        "CallerHelper",
+        "Qz",
+        "Qneg",
+        "Qx",
+        "V",
+        "R",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        },
+        "Qz": {
+          "type": "Array",
+          "rows": 1,
+          "columns": 4,
+          "values": [
+            0.0,
+            0.0,
+            2.0,
+            2.0
+          ]
+        },
+        "Qneg": {
+          "type": "Array",
+          "rows": 1,
+          "columns": 4,
+          "values": [
+            0.0,
+            0.0,
+            -2.0,
+            -2.0
+          ]
+        },
+        "Qx": {
+          "type": "Array",
+          "rows": 1,
+          "columns": 4,
+          "values": [
+            2.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "V": {
+          "type": "Array",
+          "rows": 1,
+          "columns": 3,
+          "values": [
+            4.0,
+            -1.0,
+            6.0
+          ]
+        }
+      },
+      "private_primary_builtin_calls_per_block": 3,
+      "main_primary_builtin_calls_per_block": 3
+    },
+    {
+      "key": "QuaternionDCM",
+      "builtin_type": "QuaternionToDCM",
+      "kind": "array",
+      "columns": 27,
+      "declarations": "Create QuaternionToDCM NativeHelper;\nCreate Array Qz[1,4];\nQz(1,1) = 0;\nQz(1,2) = 0;\nQz(1,3) = 2;\nQz(1,4) = 2;\nCreate Array Qneg[1,4];\nQneg(1,1) = 0;\nQneg(1,2) = 0;\nQneg(1,3) = -2;\nQneg(1,4) = -2;\nCreate Array Qx[1,4];\nQx(1,1) = 2;\nQx(1,2) = 0;\nQx(1,3) = 0;\nQx(1,4) = 0;\nCreate Array R[3,3];\n",
+      "execution": "R = NativeHelper(Qz);\nout(1,1) = R(1,1);\nout(1,2) = R(1,2);\nout(1,3) = R(1,3);\nout(1,4) = R(2,1);\nout(1,5) = R(2,2);\nout(1,6) = R(2,3);\nout(1,7) = R(3,1);\nout(1,8) = R(3,2);\nout(1,9) = R(3,3);\nR = NativeHelper(Qneg);\nout(1,10) = R(1,1);\nout(1,11) = R(1,2);\nout(1,12) = R(1,3);\nout(1,13) = R(2,1);\nout(1,14) = R(2,2);\nout(1,15) = R(2,3);\nout(1,16) = R(3,1);\nout(1,17) = R(3,2);\nout(1,18) = R(3,3);\nR = NativeHelper(Qx);\nout(1,19) = R(1,1);\nout(1,20) = R(1,2);\nout(1,21) = R(1,3);\nout(1,22) = R(2,1);\nout(1,23) = R(2,2);\nout(1,24) = R(2,3);\nout(1,25) = R(3,1);\nout(1,26) = R(3,2);\nout(1,27) = R(3,3);\n",
+      "expected": [
+        0,
+        1,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        1,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        -1
+      ],
+      "oracle": "literal",
+      "tolerance": 2e-12,
+      "builtin_calls_per_function": 3,
+      "original_scope_case": false,
+      "main_declarations": "Create QuaternionToDCM CallerHelper;\nCreate Array Qz[1,4];\nQz(1,1) = 0;\nQz(1,2) = 0;\nQz(1,3) = 2;\nQz(1,4) = 2;\nCreate Array Qneg[1,4];\nQneg(1,1) = 0;\nQneg(1,2) = 0;\nQneg(1,3) = -2;\nQneg(1,4) = -2;\nCreate Array Qx[1,4];\nQx(1,1) = 0;\nQx(1,2) = 2;\nQx(1,3) = 0;\nQx(1,4) = 0;\nCreate Array R[3,3];\nCreate Variable MainSentinel;\nMainSentinel = 29;\n",
+      "main_execution": "R = CallerHelper(Qz);\nout(1,1) = R(1,1);\nout(1,2) = R(1,2);\nout(1,3) = R(1,3);\nout(1,4) = R(2,1);\nout(1,5) = R(2,2);\nout(1,6) = R(2,3);\nout(1,7) = R(3,1);\nout(1,8) = R(3,2);\nout(1,9) = R(3,3);\nR = CallerHelper(Qneg);\nout(1,10) = R(1,1);\nout(1,11) = R(1,2);\nout(1,12) = R(1,3);\nout(1,13) = R(2,1);\nout(1,14) = R(2,2);\nout(1,15) = R(2,3);\nout(1,16) = R(3,1);\nout(1,17) = R(3,2);\nout(1,18) = R(3,3);\nR = CallerHelper(Qx);\nout(1,19) = R(1,1);\nout(1,20) = R(1,2);\nout(1,21) = R(1,3);\nout(1,22) = R(2,1);\nout(1,23) = R(2,2);\nout(1,24) = R(2,3);\nout(1,25) = R(3,1);\nout(1,26) = R(3,2);\nout(1,27) = R(3,3);\n",
+      "main_expected": [
+        0,
+        1,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        1,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        -1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        -1
+      ],
+      "caller_objects": [
+        "CallerHelper",
+        "Qz",
+        "Qneg",
+        "Qx",
+        "R",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        },
+        "Qz": {
+          "type": "Array",
+          "rows": 1,
+          "columns": 4,
+          "values": [
+            0.0,
+            0.0,
+            2.0,
+            2.0
+          ]
+        },
+        "Qneg": {
+          "type": "Array",
+          "rows": 1,
+          "columns": 4,
+          "values": [
+            0.0,
+            0.0,
+            -2.0,
+            -2.0
+          ]
+        },
+        "Qx": {
+          "type": "Array",
+          "rows": 1,
+          "columns": 4,
+          "values": [
+            0.0,
+            2.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "private_primary_builtin_calls_per_block": 3,
+      "main_primary_builtin_calls_per_block": 3
+    },
+    {
+      "key": "Sign",
+      "builtin_type": "Sign",
+      "kind": "array",
+      "columns": 5,
+      "declarations": "Create Sign NativeHelper;\n",
+      "execution": "out(1,1) = NativeHelper(-7.25);\nout(1,2) = NativeHelper(0);\nout(1,3) = NativeHelper(9.5);\nout(1,4) = NativeHelper(-1e-100);\nout(1,5) = NativeHelper(1e-100);\n",
+      "expected": [
+        -1,
+        0,
+        1,
+        -1,
+        1
+      ],
+      "oracle": "literal",
+      "tolerance": 2e-12,
+      "builtin_calls_per_function": 5,
+      "original_scope_case": false,
+      "main_declarations": "Create Sign CallerHelper;\nCreate Variable MainSentinel;\nMainSentinel = 29;\n",
+      "main_execution": "out(1,1) = CallerHelper(7.25);\nout(1,2) = CallerHelper(0);\nout(1,3) = CallerHelper(9.5);\nout(1,4) = CallerHelper(-1e-100);\nout(1,5) = CallerHelper(1e-100);\n",
+      "main_expected": [
+        1,
+        0,
+        1,
+        -1,
+        1
+      ],
+      "caller_objects": [
+        "CallerHelper",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        }
+      },
+      "private_primary_builtin_calls_per_block": 5,
+      "main_primary_builtin_calls_per_block": 5
+    },
+    {
+      "key": "SignAlias",
+      "builtin_type": "sign",
+      "kind": "array",
+      "columns": 5,
+      "declarations": "Create sign NativeHelper;\n",
+      "execution": "out(1,1) = NativeHelper(-7.25);\nout(1,2) = NativeHelper(0);\nout(1,3) = NativeHelper(9.5);\nout(1,4) = NativeHelper(-1e-100);\nout(1,5) = NativeHelper(1e-100);\n",
+      "expected": [
+        -1,
+        0,
+        1,
+        -1,
+        1
+      ],
+      "oracle": "literal",
+      "tolerance": 2e-12,
+      "builtin_calls_per_function": 5,
+      "original_scope_case": false,
+      "main_declarations": "Create sign CallerHelper;\nCreate Variable MainSentinel;\nMainSentinel = 29;\n",
+      "main_execution": "out(1,1) = CallerHelper(7.25);\nout(1,2) = CallerHelper(0);\nout(1,3) = CallerHelper(9.5);\nout(1,4) = CallerHelper(-1e-100);\nout(1,5) = CallerHelper(1e-100);\n",
+      "main_expected": [
+        1,
+        0,
+        1,
+        -1,
+        1
+      ],
+      "caller_objects": [
+        "CallerHelper",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        }
+      },
+      "private_primary_builtin_calls_per_block": 5,
+      "main_primary_builtin_calls_per_block": 5
+    },
+    {
+      "key": "StringNumber",
+      "builtin_type": "Str2num",
+      "kind": "array",
+      "columns": 3,
+      "declarations": "Create Str2num NativeHelper;\n",
+      "execution": "out(1,1) = NativeHelper('-1234.5');\nout(1,2) = NativeHelper('1.25e2');\nout(1,3) = NativeHelper('0');\n",
+      "expected": [
+        -1234.5,
+        125,
+        0
+      ],
+      "oracle": "literal",
+      "tolerance": 2e-12,
+      "builtin_calls_per_function": 3,
+      "original_scope_case": false,
+      "main_declarations": "Create Str2num CallerHelper;\nCreate Variable MainSentinel;\nMainSentinel = 29;\n",
+      "main_execution": "out(1,1) = CallerHelper('2468.25');\nout(1,2) = CallerHelper('1.25e2');\nout(1,3) = CallerHelper('0');\n",
+      "main_expected": [
+        2468.25,
+        125,
+        0
+      ],
+      "caller_objects": [
+        "CallerHelper",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        }
+      },
+      "private_primary_builtin_calls_per_block": 3,
+      "main_primary_builtin_calls_per_block": 3
+    },
+    {
+      "key": "StringNumberAlias",
+      "builtin_type": "str2num",
+      "kind": "array",
+      "columns": 3,
+      "declarations": "Create str2num NativeHelper;\n",
+      "execution": "out(1,1) = NativeHelper('-1234.5');\nout(1,2) = NativeHelper('1.25e2');\nout(1,3) = NativeHelper('0');\n",
+      "expected": [
+        -1234.5,
+        125,
+        0
+      ],
+      "oracle": "literal",
+      "tolerance": 2e-12,
+      "builtin_calls_per_function": 3,
+      "original_scope_case": false,
+      "main_declarations": "Create str2num CallerHelper;\nCreate Variable MainSentinel;\nMainSentinel = 29;\n",
+      "main_execution": "out(1,1) = CallerHelper('2468.25');\nout(1,2) = CallerHelper('1.25e2');\nout(1,3) = CallerHelper('0');\n",
+      "main_expected": [
+        2468.25,
+        125,
+        0
+      ],
+      "caller_objects": [
+        "CallerHelper",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        }
+      },
+      "private_primary_builtin_calls_per_block": 3,
+      "main_primary_builtin_calls_per_block": 3
+    },
+    {
+      "key": "NumberString",
+      "builtin_type": "Num2str",
+      "kind": "string",
+      "columns": 1,
+      "declarations": "Create Num2str NativeHelper;\n",
+      "execution": "out = NativeHelper(-1234.5);\n",
+      "expected": "-1234.500000",
+      "oracle": "literal",
+      "tolerance": 2e-12,
+      "builtin_calls_per_function": 1,
+      "format_basis": "Current Num2str uses C++ std::to_string(real),whose C++17 decimal conversion has six fractional digits. NASA guide promises semantic conversion,not a universal exact format;other precision/formatting domains remain open.",
+      "original_scope_case": false,
+      "main_declarations": "Create Num2str CallerHelper;\nCreate Variable MainSentinel;\nMainSentinel = 29;\n",
+      "main_execution": "out = CallerHelper(987.25);\n",
+      "main_expected": "987.250000",
+      "caller_objects": [
+        "CallerHelper",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        }
+      },
+      "private_primary_builtin_calls_per_block": 1,
+      "main_primary_builtin_calls_per_block": 1
+    },
+    {
+      "key": "NumberStringAlias",
+      "builtin_type": "num2str",
+      "kind": "string",
+      "columns": 1,
+      "declarations": "Create num2str NativeHelper;\n",
+      "execution": "out = NativeHelper(-1234.5);\n",
+      "expected": "-1234.500000",
+      "oracle": "literal",
+      "tolerance": 2e-12,
+      "builtin_calls_per_function": 1,
+      "format_basis": "Current Num2str uses C++ std::to_string(real),whose C++17 decimal conversion has six fractional digits. NASA guide promises semantic conversion,not a universal exact format;other precision/formatting domains remain open.",
+      "original_scope_case": false,
+      "main_declarations": "Create num2str CallerHelper;\nCreate Variable MainSentinel;\nMainSentinel = 29;\n",
+      "main_execution": "out = CallerHelper(987.25);\n",
+      "main_expected": "987.250000",
+      "caller_objects": [
+        "CallerHelper",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        }
+      },
+      "private_primary_builtin_calls_per_block": 1,
+      "main_primary_builtin_calls_per_block": 1
+    },
+    {
+      "key": "TimeConversion",
+      "builtin_type": "ConvertTime",
+      "kind": "string",
+      "columns": 1,
+      "declarations": "Create ConvertTime NativeHelper;\n",
+      "execution": "out = NativeHelper('TAIGregorian','TTGregorian','01 Jan 2000 12:00:00.000');\n",
+      "expected": "01 Jan 2000 12:00:32.184",
+      "oracle": "literal",
+      "tolerance": 2e-12,
+      "builtin_calls_per_function": 1,
+      "original_scope_case": false,
+      "main_declarations": "Create ConvertTime CallerHelper;\nCreate Variable MainSentinel;\nMainSentinel = 29;\n",
+      "main_execution": "out = CallerHelper('TAIGregorian','TTGregorian','01 Jan 2000 12:01:00.000');\n",
+      "main_expected": "01 Jan 2000 12:01:32.184",
+      "caller_objects": [
+        "CallerHelper",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        }
+      },
+      "private_primary_builtin_calls_per_block": 1,
+      "main_primary_builtin_calls_per_block": 1
+    },
+    {
+      "key": "SystemClock",
+      "builtin_type": "SystemTime",
+      "kind": "string",
+      "columns": 1,
+      "declarations": "Create SystemTime NativeHelper;\n",
+      "execution": "out = NativeHelper('UTCModJulian');\n",
+      "expected": null,
+      "oracle": "host-utc-bracket",
+      "tolerance": 2e-12,
+      "builtin_calls_per_function": 1,
+      "original_scope_case": false,
+      "main_declarations": "Create SystemTime CallerHelper;\nCreate Variable MainSentinel;\nMainSentinel = 29;\n",
+      "main_execution": "out = CallerHelper('UTCModJulian');\n",
+      "main_expected": null,
+      "caller_objects": [
+        "CallerHelper",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        }
+      },
+      "private_primary_builtin_calls_per_block": 1,
+      "main_primary_builtin_calls_per_block": 1
+    },
+    {
+      "key": "RandomSeed",
+      "builtin_type": "SetSeed",
+      "kind": "array",
+      "columns": 6,
+      "declarations": "Create SetSeed NativeHelper;\n",
+      "execution": "NativeHelper(12345);\nout(1,1) = rand();\nout(1,2) = rand();\nNativeHelper(12345);\nout(1,3) = rand();\nout(1,4) = rand();\nNativeHelper(54321);\nout(1,5) = rand();\nout(1,6) = rand();\n",
+      "expected": null,
+      "oracle": "seed-repeatability",
+      "tolerance": 2e-12,
+      "builtin_calls_per_function": 3,
+      "original_scope_case": false,
+      "main_declarations": "Create SetSeed CallerHelper;\nCreate Variable MainSentinel;\nMainSentinel = 29;\n",
+      "main_execution": "CallerHelper(777);\nout(1,1) = rand();\nout(1,2) = rand();\nCallerHelper(777);\nout(1,3) = rand();\nout(1,4) = rand();\nCallerHelper(987);\nout(1,5) = rand();\nout(1,6) = rand();\n",
+      "main_expected": null,
+      "caller_objects": [
+        "CallerHelper",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        }
+      },
+      "private_primary_builtin_calls_per_block": 3,
+      "main_primary_builtin_calls_per_block": 3
+    },
+    {
+      "key": "TimedPause",
+      "builtin_type": "Pause",
+      "kind": "array",
+      "columns": 2,
+      "declarations": "Create Str2num str2num;\nCreate Pause NativeHelper;\nCreate SystemTime Clock;\nCreate String Before After;\n",
+      "execution": "Before = Clock('UTCModJulian');\nNativeHelper(0.02);\nAfter = Clock('UTCModJulian');\nout(1,1) = (str2num(After) - str2num(Before)) * 86400;\nout(1,2) = 42;\n",
+      "expected": null,
+      "oracle": "elapsed-pause",
+      "tolerance": 2e-12,
+      "builtin_calls_per_function": 1,
+      "original_scope_case": false,
+      "main_declarations": "Create Str2num str2num;\nCreate Pause CallerHelper;\nCreate SystemTime Clock;\nCreate String Before After;\nCreate Variable MainSentinel;\nMainSentinel = 29;\n",
+      "main_execution": "Before = Clock('UTCModJulian');\nCallerHelper(0.06);\nAfter = Clock('UTCModJulian');\nout(1,1) = (str2num(After) - str2num(Before)) * 86400;\nout(1,2) = 42;\n",
+      "main_expected": null,
+      "caller_objects": [
+        "str2num",
+        "CallerHelper",
+        "Clock",
+        "Before",
+        "After",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        }
+      },
+      "private_primary_builtin_calls_per_block": 1,
+      "main_primary_builtin_calls_per_block": 1
+    },
+    {
+      "key": "TimedPauseAlias",
+      "builtin_type": "pause",
+      "kind": "array",
+      "columns": 2,
+      "declarations": "Create Str2num str2num;\nCreate pause NativeHelper;\nCreate SystemTime Clock;\nCreate String Before After;\n",
+      "execution": "Before = Clock('UTCModJulian');\nNativeHelper(0.02);\nAfter = Clock('UTCModJulian');\nout(1,1) = (str2num(After) - str2num(Before)) * 86400;\nout(1,2) = 42;\n",
+      "expected": null,
+      "oracle": "elapsed-pause",
+      "tolerance": 2e-12,
+      "builtin_calls_per_function": 1,
+      "original_scope_case": false,
+      "main_declarations": "Create Str2num str2num;\nCreate pause CallerHelper;\nCreate SystemTime Clock;\nCreate String Before After;\nCreate Variable MainSentinel;\nMainSentinel = 29;\n",
+      "main_execution": "Before = Clock('UTCModJulian');\nCallerHelper(0.06);\nAfter = Clock('UTCModJulian');\nout(1,1) = (str2num(After) - str2num(Before)) * 86400;\nout(1,2) = 42;\n",
+      "main_expected": null,
+      "caller_objects": [
+        "str2num",
+        "CallerHelper",
+        "Clock",
+        "Before",
+        "After",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        }
+      },
+      "private_primary_builtin_calls_per_block": 1,
+      "main_primary_builtin_calls_per_block": 1
+    },
+    {
+      "key": "FixedRotation",
+      "builtin_type": "RotationMatrix",
+      "kind": "array",
+      "columns": 18,
+      "declarations": "Create RotationMatrix NativeHelper;\nCreate Array R[3,3] D[3,3];\n",
+      "execution": "[R,D] = NativeHelper(EarthMJ2000Eq,'21545','A1ModJulian');\nout(1,1) = R(1,1);\nout(1,10) = D(1,1);\nout(1,2) = R(1,2);\nout(1,11) = D(1,2);\nout(1,3) = R(1,3);\nout(1,12) = D(1,3);\nout(1,4) = R(2,1);\nout(1,13) = D(2,1);\nout(1,5) = R(2,2);\nout(1,14) = D(2,2);\nout(1,6) = R(2,3);\nout(1,15) = D(2,3);\nout(1,7) = R(3,1);\nout(1,16) = D(3,1);\nout(1,8) = R(3,2);\nout(1,17) = D(3,2);\nout(1,9) = R(3,3);\nout(1,18) = D(3,3);\n",
+      "expected": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "oracle": "literal",
+      "tolerance": 2e-12,
+      "builtin_calls_per_function": 1,
+      "original_scope_case": false,
+      "main_declarations": "Create RotationMatrix CallerHelper;\nCreate Array R[3,3] D[3,3];\nCreate Variable MainSentinel;\nMainSentinel = 29;\n",
+      "main_execution": "[R,D] = CallerHelper(EarthMJ2000Ec,'21545','A1ModJulian');\nout(1,1) = R(1,1);\nout(1,10) = D(1,1);\nout(1,2) = R(1,2);\nout(1,11) = D(1,2);\nout(1,3) = R(1,3);\nout(1,12) = D(1,3);\nout(1,4) = R(2,1);\nout(1,13) = D(2,1);\nout(1,5) = R(2,2);\nout(1,14) = D(2,2);\nout(1,6) = R(2,3);\nout(1,15) = D(2,3);\nout(1,7) = R(3,1);\nout(1,16) = D(3,1);\nout(1,8) = R(3,2);\nout(1,17) = D(3,2);\nout(1,9) = R(3,3);\nout(1,18) = D(3,3);\n",
+      "main_expected": [
+        1,
+        0,
+        0,
+        0,
+        0.9174820620691818,
+        -0.39777715593191365,
+        0,
+        0.39777715593191365,
+        0.9174820620691818,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "caller_objects": [
+        "CallerHelper",
+        "R",
+        "D",
+        "MainSentinel"
+      ],
+      "main_runtime_expected": {
+        "MainSentinel": {
+          "type": "Variable",
+          "value": 29
+        }
+      },
+      "private_primary_builtin_calls_per_block": 1,
+      "main_primary_builtin_calls_per_block": 1
+    }
+  ]
+}

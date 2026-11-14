@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "For",
+      "family": "For",
+      "group": "SideEffectLeafOrder",
+      "legacy_object": "For",
+      "recipe_key": "For",
+      "positions": [
+        {
+          "position": "LeafBefore",
+          "historical_key": "H2012:R1417",
+          "fingerprint": "2a0c0af15cea0cce557a88f8e8760902c8049a5c1c84d38dd74853148cd38767",
+          "operation": "Control Logic Insert Before"
+        },
+        {
+          "position": "LeafAfter",
+          "historical_key": "H2012:R1416",
+          "fingerprint": "a0f1b8a32f43f84ac54c87f9389089471a62b99a38af7264a28b52707472d9f3",
+          "operation": "Control Logic Insert After"
+        }
+      ]
+    },
+    {
+      "key": "If",
+      "family": "If",
+      "group": "SideEffectLeafOrder",
+      "legacy_object": "If",
+      "recipe_key": "IfNoElse",
+      "positions": [
+        {
+          "position": "LeafBefore",
+          "historical_key": "H2012:R1483",
+          "fingerprint": "0dd308c2ac91ec478636a25a6cd9e1a9e6e0e3b8dbba9448759861b65e64e034",
+          "operation": "Control Logic Insert Before"
+        },
+        {
+          "position": "LeafAfter",
+          "historical_key": "H2012:R1482",
+          "fingerprint": "30cf112a5b4450d0a629f486100121e110a4c4cbc26c5cfb13c8c9d0d1818f44",
+          "operation": "Control Logic Insert After"
+        }
+      ]
+    },
+    {
+      "key": "IfElse",
+      "family": "IfElse",
+      "group": "SideEffectLeafOrder",
+      "legacy_object": "If-Else",
+      "recipe_key": "If",
+      "positions": [
+        {
+          "position": "LeafBefore",
+          "historical_key": "H2012:R1552",
+          "fingerprint": "2cfe1e29ceaf2f4002dc8c2f1cab69578ddae3209ca5b30c8b62a59209af50fd",
+          "operation": "Control Logic Insert Before"
+        },
+        {
+          "position": "LeafAfter",
+          "historical_key": "H2012:R1551",
+          "fingerprint": "2ac8fa2038f9680fc24fbd92073a767c34b33601342258095d782009577fa7cc",
+          "operation": "Control Logic Insert After"
+        }
+      ]
+    },
+    {
+      "key": "While",
+      "family": "While",
+      "group": "SideEffectLeafOrder",
+      "legacy_object": "While",
+      "recipe_key": "While",
+      "positions": [
+        {
+          "position": "LeafBefore",
+          "historical_key": "H2012:R1623",
+          "fingerprint": "2b84ed80f094699dc705b29e0f131cb418016f22346b63ddbe67005817c2d535",
+          "operation": "Control Logic Insert Before"
+        },
+        {
+          "position": "LeafAfter",
+          "historical_key": "H2012:R1622",
+          "fingerprint": "f91378b8033ad6c9a81da5f8aeaf1c088d45e0e63b4f216c3cb4fbcf6ba4b7f2",
+          "operation": "Control Logic Insert After"
+        }
+      ]
+    }
+  ],
+  "scope": "Eight finite LeafBefore/LeafAfter contexts for For/plain If/If-with-Else/While. Keep+=10 leaf and native observations at body and pre-leaf boundaries discriminate exact relative execution order. No broader all-parent/input/private-keyword/native-OS/platform/science/full-build claim."
+}

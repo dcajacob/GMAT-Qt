@@ -8,6 +8,7 @@
          xmlns:html="http://www.w3.org/1999/xhtml"
          xmlns:db="http://docbook.org/ns/docbook">
   <title>Simulate DSN Range and Doppler Data</title>
+  <para>For the three-week simulation, replace the original DSNsimData.FileName assignment with {'Simulate DSN Range and Doppler Data 3 weeks.gmd'} rather than appending a second filename assignment. This avoids opening an unused short-simulation output file while configuring the same resources.</para>
 
   <indexterm>
     <primary>Orbit Determination</primary>

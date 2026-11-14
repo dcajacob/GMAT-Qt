@@ -1,0 +1,432 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<refentry xmlns="http://docbook.org/ns/docbook" version="5.0" xml:id="QtControlUnits">
+  <refmeta>
+    <refentrytitle>Qt Control Units</refentrytitle>
+  </refmeta>
+  <refnamediv>
+    <refname>Qt Control Units</refname>
+    <refpurpose>Units and nonphysical values in Qt controls and specialist editors</refpurpose>
+  </refnamediv>
+  <refsection>
+    <title>Using this reference</title>
+    <para>Use the convention for the selected field, representation and model. A blank unit label does not imply dimensionless data. Names, modes and logical choices do not accept physical quantities. Numeric input uses the stated numerical scale without an appended unit suffix or automatic unit conversion. The resource and command reference tables give each physical field's detailed convention; the sections below cover the Qt-specific and inherited control families.</para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Text">
+    <title>Names, paths, search and navigation</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Resource/command names, filter terms, search text, replacement text, comments, file names and directory paths are text, not physical quantities. Checkboxes and selected modes are logical choices. Array rows/columns, report page numbers, editor line numbers and mission-tree expansion depth are integer counts or indices. Read-only credits, summaries, console messages, reports and debugger values are outputs, not numeric input fields. A selected summary coordinate system changes the basis of displayed quantities; the selector itself names a resource.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Scripts">
+    <title>Scripts, functions and literal parameters</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Script and function source use the unit conventions of their referenced resource fields, parameters and functions. The editor does not introduce a common physical unit or convert numeric literals. Command names, template choices and script-event comments are text. Line numbers are counts. Variable initial values and array values have no independent physical-unit declaration; choose their numerical meaning consistently in expressions. String initial values are literal text.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="ScriptLanguage"/></para>
+    <para>Field reference: <xref linkend="Variable"/></para>
+    <para>Field reference: <xref linkend="Array"/></para>
+    <para>Field reference: <xref linkend="GmatFunction"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Commands">
+    <title>Command operands and condition tables</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Command operands retain the units of their selected parameters and expressions. Achieve goals/tolerances and Vary guesses/bounds/perturbations/additive scales/maximum steps use the selected goal/control units; Vary multiplicative scale has reciprocal control units for a nondimensional solver variable. NonlinearConstraint operands need compatible units. For loop bounds/increments use the chosen numerical scale of the index. Propagate Seconds selects ElapsedSecs (seconds), Days selects ElapsedDays (days), and Other parameter uses that parameter's units for goal and tolerance. Object/propagator lists, AND/OR, relation operators, On/Off, backward propagation, single-step and STM/A-matrix/covariance choices are names or logical modes, not physical input values.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="Vary"/></para>
+    <para>Field reference: <xref linkend="Achieve"/></para>
+    <para>Field reference: <xref linkend="Propagate"/></para>
+    <para>Field reference: <xref linkend="NonlinearConstraint"/></para>
+    <para>Field reference: <xref linkend="For"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Comparisons">
+    <title>File comparison and folder runs</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Absolute numerical tolerance uses the numerical scale of each compared value or column. The GUI does not infer or convert physical units between files, and one threshold can apply to columns with different quantities. Normalize units and choose a suitable tolerance before comparing. Text comparison has no physical tolerance. File limits, first script number, script count and repeat count are integer counts/indices. Filenames, directories, prefixes, replacement strings and inclusion/exclusion filters are text. Comparison mode and copy/run-folder/output switches are logical choices.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsection>
+  <refsection xml:id="QtControlUnits_ResourceTables">
+    <title>Generic properties, bulk editing and matrices</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Each resource property retains the units stated in its own resource-reference field table, including conditional representation and plugin fields. Property filters, reference choices, filenames, colors and enumeration selectors do not accept physical quantities. Epoch formats select the time system and either Gregorian text or modified-Julian days. Array row/column dimensions and cell indices are integer counts/indices; user-array values have user-assigned meaning. A covariance entry has the product of its row-parameter and column-parameter units. Thruster coefficient grids use the corresponding C/K or thrust/mass-flow coefficient units shown in the Unit column and reference formula. Tank mixture ratios are dimensionless relative proportions. A mode change may change units; a blank label does not establish dimensionless input.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="Spacecraft"/></para>
+    <para>Field reference: <xref linkend="Array"/></para>
+    <para>Field reference: <xref linkend="Thruster"/></para>
+    <para>Field reference: <xref linkend="ElectricThruster"/></para>
+    <para>Field reference: <xref linkend="CoordinateSystem"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Atmosphere">
+    <title>Atmosphere and space weather</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>F107 and F107A are in 10^-22 W/m^2/Hz; MagneticIndex is the dimensionless Kp geomagnetic index (0–9); atmosphere models perform any required Kp-to-Ap conversion internally. Body, atmosphere/density/drag model and historic/predicted weather selectors choose names/modes. Weather and density-file entries are filenames. File contents retain the format and units documented for the chosen model.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="ForceModel"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Attitude">
+    <title>Attitude representation and rates</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Attitude model, reference frame, body and display-state/rate-state selectors choose names or representations. Angular components and Euler angles are degrees; angular rates are deg/s, with higher-order rate coefficients following their documented time powers. Quaternions, modified Rodrigues parameters, direction cosines and alignment/constraint vector components are dimensionless. File fields name ephemeris or kernel files. Representation-dependent components retain the units and ordering of the attitude reference table.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="SpacecraftAttitude"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Mass">
+    <title>Ballistics and mass</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Dry mass is kg, mass-center components are metres, and inertia components are kg*m^2. Areas are m^2; drag/reflectivity coefficients and their scale factors are dimensionless. SPAD model filenames and method selectors are names. Other exposed fields retain their individual reference units; a model selector does not convert a pending number automatically.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="SpacecraftBallisticMass"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Burn">
+    <title>Impulsive maneuver</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Burn Element1/2/3 are km/s in the selected axes/coordinate system. Isp is seconds and gravitational acceleration is m/s^2. Tank and coordinate/body/axes entries are resource names or modes. Decrement mass is Boolean.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="ImpulsiveBurn"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Bodies">
+    <title>Celestial bodies and kernels</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Body physical and orientation fields use the units of their individual CelestialBody table entries: gravitational parameter km^3/s^2, equatorial radius km, flattening dimensionless, and angular orientation/rate coefficients in the stated degrees and day/century powers. Sources, kernel/model/texture filenames, frame identifiers and colors are names or selections. Rotation-data-source selection does not itself carry angular units.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="CelestialBody"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Ephemeris">
+    <title>Ephemeris output</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>StepSize is seconds or the IntegratorSteps selection. InterpolationOrder is a polynomial order count. Initial/final epochs use the selected epoch representation: modified-Julian days or Gregorian date/time text. Filename, spacecraft, coordinate system, output format, state/covariance format and interpolator are names/modes; Boolean output/segment choices have no physical quantity. State/covariance units are those of the selected output format.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="EphemerisFile"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Epochs">
+    <title>Event search and epoch intervals</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Initial/final epochs use the selected time system and representation: modified-Julian days or Gregorian date/time text. StepSize is seconds. Body/resource/sensor lists, report-coordinate/run-mode selectors, filenames, interval overrides and light-time/aberration/output switches are names or logical choices. Other event-specific values retain their locator-reference units.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="EclipseLocator"/></para>
+    <para>Field reference: <xref linkend="ContactLocator"/></para>
+    <para>Field reference: <xref linkend="IntrusionLocator"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_External">
+    <title>External derivative providers</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Use external Python force and Exclude other forces are Boolean choices. Python module and derivative-function fields are names. The provider interface and state/derivative arrays retain the units defined for that interface; entering a module name does not convert or declare those units.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="ForceModel"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Find">
+    <title>Find and replace</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Search/replacement terms are text. Match case and Whole words are Boolean options. There is no physical quantity to enter.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Gravity">
+    <title>Gravity and tides</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Degree, Order and STM degree/order limit are integer harmonic counts/indices. Primary body, gravity/tide model and tide-source selections name models/resources. Potential and tide files are filenames, and their contents retain their documented file-format conventions.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="ForceModel"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Stations">
+    <title>Ground-station position</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Cartesian Location1/2/3 are km. Spherical location uses latitude/longitude in degrees and altitude in km; HorizonReference selects the spherical/ellipsoidal interpretation. MinimumElevationAngle is degrees. Station ID, central body, state/horizon selectors and colors are text or choices.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="GroundStation"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_PlotSetup">
+    <title>Orbit, ground-track and XY setup</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Camera point/reference/offset vectors use the OrbitView field-table convention in the selected coordinate system; position vectors are km, while an object choice is a resource name. ViewScaleFactor is dimensionless. Up-axis/frame and plot/object/solver choices are names or modes. DataCollectFrequency and UpdatePlotFrequency are sample counts, NumPointsToRedraw and MaxPlotPoints are segment/point counts, StarCount is a star count, and LastN is a solver-history count (zero retains all). XY X/Y entries select parameters, with the parameters' own data units. GroundTrack central-body/texture fields name resources/files. Show/grid/label/drawing flags are logical choices.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="OrbitView"/></para>
+    <para>Field reference: <xref linkend="GroundTrack"/></para>
+    <para>Field reference: <xref linkend="XYPlot"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Drawing">
+    <title>Object drawing and model overrides</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Line width, marker size and font size are display-pixel sizes. Trajectory/label/velocity/center/endpoint/body-guide/frame-label options are logical modes. Object names, label-position selections and model-file overrides are text. An override model uses native asset coordinates with unit scale and zero translation/rotation; it does not declare a new physical length unit. The velocity display uses its fixed 1000-second scale, not a user-entered length.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Playback">
+    <title>Playback and simulation clock</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Simulation-clock rate is simulated seconds per real second; its sign sets direction and zero holds time. Ordinary history-sweep speed is a dimensionless playback multiplier. Timeline position is a normalized history cursor, not a physical epoch entry. Clock mode, synchronization parent and toolbar options are names/logical selections.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Masks">
+    <title>Sensor-mask display</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Manual sensor-mask Length is km. Auto length uses the source display size. Hardware-origin components in the hardware resource remain metres, and its pointing vectors are dimensionless. Mask/source/hardware names and labels are text, and length type is a selector. Field-of-view angular geometry retains the FOV resource units.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="Imager"/></para>
+    <para>Field reference: <xref linkend="FieldOfView"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Stars">
+    <title>Star display</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Custom star count is a count. Minimum/maximum magnitude use the catalogue's astronomical magnitude scale (logarithmic, with no length or time unit). Minimum/maximum size are pixels; dimming ratio is dimensionless, from zero to one. Preset and catalogue entries are a mode and filename. Inactive custom values keep their meaning when a preset is selected.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Paths">
+    <title>Runtime file paths</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Startup/scientific-file entries are filenames; function/Python/output entries are directory paths. Ordered path lists are lists of names. Read-only startup preview text is output. No physical quantity is entered by these path controls.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="StartupFile"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_PlotStyle">
+    <title>Viewer camera, axes and curve style</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Camera field of view is degrees. Projection/view choices and grid/legend/visibility/error-bar flags are logical modes. Titles and axis labels are text. Axis Minimum/Maximum values use the corresponding plotted parameter/data-column units; Ticks is a count and Precision is a digit count. Line widths and marker sizes are display pixels; style/marker/curve choices and colors are selections. Playback timeline is a normalized history position; sweep speed is a dimensionless multiplier; simulation rate is simulated seconds per real second. Export-data and image-save entries are filenames.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Polyhedra">
+    <title>Polyhedral gravity inputs</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Density is kg/m^3. Shape-file vertex coordinates are km; the field in the table is a filename. The contributor Body column names a celestial body. Adding/removing rows changes a contributor count, not a physical quantity.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="ForceModel"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Colors">
+    <title>Color entry</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>A color is a named GMAT color or integer RGB components from zero to 255. These are color-channel values, with no physical quantity. Override is Boolean. The color picker selects the same color data.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Integrators">
+    <title>Propagator settings</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Propagator Type and force-model selection name resources/models. Time-step fields use seconds; accuracy and count controls retain the selected propagator's documented error-control convention and integer counts. Ephemeris StartEpoch uses its selected epoch representation or the FromSpacecraft selection. File/provider fields are filenames or names. Mode-dependent fields retain the chosen propagator's own reference-table units.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="Propagator"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Dynamic">
+    <title>Dynamic-data tables</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Row/column sizes and cell locations are counts/indices. Parameter entries name parameters. Warning and critical bounds use the selected parameter's units and numerical scale. Colors are selections; the displayed grid shows parameter outputs rather than entering values for those parameters.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="DynamicDataDisplay"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Reports">
+    <title>Report-parameter selection</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Parameter/object/property/dependency entries select references, and array row and column entries are one-based integer indices. When the picker accepts a literal value or expression for a goal, tolerance or function argument, use the units required by that receiving field or function. User-variable and array literals have the numerical meaning assigned by the user. Selecting or entering a value here does not convert its units. Selected report parameters retain their own units.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="ReportFile"/></para>
+    <para>Field reference: <xref linkend="CalculationParameters"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Outputs">
+    <title>Read-only result tables</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Report cells and solver-progress values are outputs in their selected parameter/model units. They do not define independent numeric input fields. Selection or scrolling of an output table does not change its physical units.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Regions">
+    <title>FOV and region vertices</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>FOV cone/clock or azimuth/elevation vertex pairs are degrees; InterpolationStepSize is degrees. Planetographic-region latitude/longitude pairs are degrees in the selected central-body convention. Source/coordinate/central-body selectors name modes/resources and area/FOV file fields are filenames.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="FieldOfView"/></para>
+    <para>Field reference: <xref linkend="PlanetographicRegion"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_SolarSystem">
+    <title>Solar-system ephemeris</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>EphemerisUpdateInterval is seconds. Ephemeris source is a model choice, ephemeris/kernel entries are filenames, and Use TT is Boolean.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="SolarSystem"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Thrusters">
+    <title>Thruster setup</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Thrust is N, Isp is seconds, gravitational acceleration m/s^2 and pressure-related fields use their documented kPa conventions. Direction-vector components and duty/scale factors are dimensionless. Coordinate/origin/axes/tank/model choices are names, with a separate unit convention for each chemical or electric coefficient formula. Inactive fields retain the selected thruster model's documentation.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="Thruster"/></para>
+    <para>Field reference: <xref linkend="ElectricThruster"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Tracking">
+    <title>Tracking configurations</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Signal paths are ordered participant resource names and measurement-type names. The selectors do not enter measured numeric values or change measurement units; those belong to the selected measurement model and data format.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="TrackingFileSet"/></para>
+  </refsection>
+  <refsection xml:id="QtControlUnits_Models">
+    <title>Spacecraft visual-model transforms</title>
+    <variablelist>
+      <varlistentry>
+        <term>Units</term>
+        <listitem>
+          <para>Model rotations are degrees. Model offsets are local model-coordinate values, and ModelScale is a dimensionless factor; offsets are not orbital-position edits. The Qt spacecraft display translates in local model coordinates before applying its display scale and rotation. Offset sliders move in 0.01 model-coordinate increments, rotation sliders in degrees, and the scale slider maps nonlinearly to its displayed factor. Model files, colors and display choices are names/selections.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>Field reference: <xref linkend="SpacecraftVisualizationProperties"/></para>
+  </refsection>
+</refentry>

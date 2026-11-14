@@ -1,4 +1,5 @@
 #include "ReportParameterDialog.hpp"
+#include "AcceptanceView.hpp"
 #include "MainWindow.hpp"
 #include "FindReplaceDialog.hpp"
 #include <QCheckBox>
@@ -23,6 +24,9 @@
 #include "AttitudeDialog.hpp"
 #include "SpacecraftOrbit.hpp"
 #include "ODEModel.hpp"
+#include "PropSetup.hpp"
+#include "FileManager.hpp"
+#include "GmatCommand.hpp"
 #include "AttitudeConversionUtility.hpp"
 #include "GmatConstants.hpp"
 #include <QSlider>
@@ -61,15 +65,68 @@
 #include <QTabBar>
 #include <QMenu>
 #include <QMessageBox>
+#include <QScreen>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <utility>
 #include <QKeyEvent>
 #include <QEventLoop>
 #include <cmath>
 #include <iostream>
+#include <memory>
+#include <vector>
 #include <stdexcept>
 
 static void require(bool condition, const char *message)
 {
    if (!condition) { std::cerr<<"CHECK FAILED: "<<message<<'\n'; throw std::runtime_error(message); }
+}
+
+// Visible replay waits only at test-owned, safe boundaries. In particular a
+// zero-delay modal driver must not dismiss its window before native exposure.
+// Ordinary unattended execution keeps the original timer scheduling.
+static QJsonArray workflowViewingStages;
+static void workflowView(QWidget &widget)
+{
+   if (qEnvironmentVariable("GMAT_QT_ACCEPTANCE_MODE")!="visible") return;
+   auto *window=widget.window();
+   if (window!=&widget && !window->layout() && !qobject_cast<QMdiSubWindow *>(window)) {
+      const auto available=window->screen()->availableGeometry().size()-QSize(40,60);
+      window->resize(widget.sizeHint().expandedTo(QSize(1100,700)).boundedTo(available));
+      widget.setGeometry(window->rect());
+   }
+   acceptanceView(widget);
+   require(widget.isVisible() && window->windowHandle() && window->windowHandle()->isExposed(),"Workflow viewing boundary was not exposed");
+   workflowViewingStages.append(QJsonObject{{"stage",workflowViewingStages.size()+1},
+      {"class",QString::fromLatin1(widget.metaObject()->className())},{"name",widget.objectName()},
+      {"visible",widget.isVisible()},{"exposed",window->windowHandle()->isExposed()},
+      {"native_window_id",static_cast<qint64>(window->winId())}});
+}
+static void workflowViewModal()
+{
+   if (qEnvironmentVariable("GMAT_QT_ACCEPTANCE_MODE")!="visible") return;
+   auto *target=QApplication::activePopupWidget();
+   if (!target) target=QApplication::activeModalWidget();
+   require(target,"Workflow modal driver has no active window to expose");
+   workflowView(*target);
+   if (auto *picker=qobject_cast<QFileDialog *>(target)) {
+      // Qt 6.10 intentionally leaves a focused filename edit untouched by
+      // selectFile(). Exposure gives that edit focus, unlike the old hidden
+      // callback. Release it before the unchanged selection/accept driver.
+      auto *filename=picker->findChild<QLineEdit *>("fileNameEdit");
+      require(filename,"Workflow widget file chooser has no filename edit");
+      filename->clearFocus();
+      require(!filename->hasFocus(),"Workflow file chooser selection remains focus-blocked");
+   }
+}
+template <typename Callback> static void workflowAfterExposure(int delay,Callback callback)
+{
+   QTimer::singleShot(delay,[callback=std::move(callback)]() mutable {workflowViewModal();callback();});
+}
+template <typename Context,typename Callback> static void workflowAfterExposure(int delay,Context *context,Callback callback)
+{
+   QTimer::singleShot(delay,context,[callback=std::move(callback)]() mutable {workflowViewModal();callback();});
 }
 
 int main(int argc, char **argv)
@@ -89,23 +146,23 @@ int main(int argc, char **argv)
       TestSettings isolatedSettings;
       {
          const QString grouped="Propagate 'Groups' BackProp Synchronized Prop(Sat, OtherSat) {Sat.ElapsedSecs = -60, StopTolerance = 1e-8}; % keep groups";
-         PropagationGroupsDialog groups(grouped,{"Prop","Other"},{"Sat","OtherSat","Fleet"});
+         PropagationGroupsDialog groups(grouped,{"Prop","Other"},{"Sat","OtherSat","Fleet"}); workflowView(groups);
          auto *groupTable=groups.findChild<QTableWidget *>("propagationGroupsTable");
          require(groupTable->rowCount()==1 && groupTable->item(0,1)->text()=="Sat, OtherSat","Existing group objects lost");
          groups.findChild<QComboBox *>("propagationGroupMode")->setCurrentIndex(0); groups.findChild<QCheckBox *>("propagationGroupBackwards")->setChecked(false);
          groupTable->item(0,1)->setText("Fleet");
          require(groups.statement()=="Propagate 'Groups' Prop(Fleet) {Sat.ElapsedSecs = -60, StopTolerance = 1e-8}; % keep groups","Group editing changed stopping conditions or comment");
-         PropagationGroupsDialog variational("Propagate Prop(Sat, 'STM', 'AMatrix') {Sat.ElapsedSecs = 60};",{"Prop"},{"Sat"});
+         PropagationGroupsDialog variational("Propagate Prop(Sat, 'STM', 'AMatrix') {Sat.ElapsedSecs = 60};",{"Prop"},{"Sat"}); workflowView(variational);
          require(variational.findChild<QCheckBox *>("propagationGroupSTM")->isChecked() && variational.findChild<QCheckBox *>("propagationGroupAMatrix")->isChecked(),"Variational flags not loaded");
          variational.findChild<QCheckBox *>("propagationGroupSTM")->setChecked(false);
          require(variational.statement()=="Propagate Prop(Sat, 'AMatrix') {Sat.ElapsedSecs = 60};","Variational flags not independently editable");
          require(PropagationGroupsDialog::supports("Propagate Prop(Sat, 'Covariance') {Sat.ElapsedSecs = 60};"),"Covariance flag does not support group editing");
          const QString stopSource="Propagate 'Keep' BackProp Prop(Sat) {Sat.ElapsedSecs = 60, StopTolerance = 1e-8, OrbitColor = Green}; % comment";
-         PropagationStopsDialog stops(stopSource);
+         PropagationStopsDialog stops(stopSource); workflowView(stops);
          stops.findChild<QTableWidget *>("propagationStopsTable")->item(0,1)->setText("120");
          auto stopExpected=stopSource; stopExpected.replace("= 60,","= 120,");
          require(stops.statement()==stopExpected,"Stop table changed options, modifier, label or comment");
-         QString changed; PropagationForm form({"Prop"},{"Sat"},[&](const QString &value) { changed=value; });
+         QString changed; PropagationForm form({"Prop"},{"Sat"},[&](const QString &value) { changed=value; }); workflowView(form);
          const QString source="  Propagate 'Keep label' BackProp Prop(Sat) {Sat.A1ModJulian = 20000}; % keep comment\n";
          form.setStatement(source); require(!form.isHidden(),"Labeled custom propagation hidden");
          form.findChild<QLineEdit *>("propagationDuration")->setText("20001");
@@ -120,6 +177,16 @@ int main(int argc, char **argv)
          form.setStatement("Propagate Prop(Sat) {Sat.ElapsedSecs = 60,StopTolerance = 1e-5}; % keep");
          tolerance->setText("2e-6");
          require(changed=="Propagate Prop(Sat) {Sat.ElapsedSecs = 60,StopTolerance = 2e-6}; % keep","Existing tolerance formatting changed");
+         const QString tabbed="Propagate Prop(Sat) {Sat.ElapsedSecs = 60,\tStopTolerance\t=\t1e-5  , OrbitColor = Green}; % keep";
+         form.setStatement(tabbed); tolerance->setText("2e-6");
+         auto tabbedExpected=tabbed; tabbedExpected.replace("1e-5","2e-6");
+         require(changed==tabbedExpected,"Tolerance edit normalized unrelated whitespace or options");
+         const QString multiline="Propagate Prop(Sat) {Sat.ElapsedSecs = 60,\n  StopTolerance = 1e-5\n}; % keep";
+         form.setStatement(multiline); tolerance->setText("2e-6");
+         auto multilineExpected=multiline; multilineExpected.replace("1e-5","2e-6");
+         require(changed==multilineExpected,"Tolerance edit normalized authored line breaks");
+
+
          form.setStatement("Propagate Prop(Sat) {Sat.Earth.Periapsis};"); require(!form.isHidden() && !form.findChild<QLineEdit *>("propagationDuration")->isEnabled(),"Apsis propagation lacks event controls");
          form.findChild<QLineEdit *>("propagationStopParameter")->setText("Sat.Earth.Apoapsis");
          require(changed=="Propagate Prop(Sat) {Sat.Earth.Apoapsis};","Apsis stop acquired a spurious goal");
@@ -195,11 +262,22 @@ int main(int argc, char **argv)
          require(!convertOpenFramesViews("Create OpenFramesVector Vec;\nVec.VectorType = 'Thrust Vector';\n").error.isEmpty(),"Unsupported OFI declaration was silently removed");
          require(!convertOpenFramesViews(input+"Display.Axes = Off;\n").error.isEmpty(),"Dynamic viewer setting was silently rewritten");
       }
+      // Saved scripts and referenced assets must outlive the open window.
+      // Keep the owners before window so normal cleanup follows its teardown.
+      std::vector<std::unique_ptr<QTemporaryDir>> fixtureDirectories;
+      auto fixtureDirectory=[&]() -> QTemporaryDir & {
+         fixtureDirectories.emplace_back(new QTemporaryDir);
+         return *fixtureDirectories.back();
+      };
       MainWindow window;
+      auto checkedLoadScript=[&](const QString &path) {
+         require(QFileInfo(path).isFile(),qPrintable("Script fixture missing before Open: "+path));
+         return window.loadScript(path);
+      };
       window.show();
       require(window.initialize(startup), "Runtime initialization failed");
-      require(window.loadScript(script), "Script read failed");
-      require(window.buildScript(), "Script interpretation failed");
+      require(checkedLoadScript(script), "Script read failed");
+      require(window.buildScript(), "Script interpretation failed"); workflowView(window);
       auto *sat = dynamic_cast<Spacecraft *>(Moderator::Instance()->GetConfiguredObject("QtSat"));
       require(sat != nullptr, "Configured spacecraft missing");
       const auto epoch = sat->GetEpoch();
@@ -217,7 +295,7 @@ int main(int argc, char **argv)
          {
             QWidget owner; ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("QtSat"),[&](const QMap<QString,QString> &changes) {
                error=window.applyResourceChanges("QtSat",changes,before); return error;
-            },&owner,before);
+            },&owner,before); workflowView(panel);
             auto *format=panel.findChild<QComboBox *>("spacecraftEpochFormat"); auto *grid=panel.findChild<QTableWidget *>(); QTableWidgetItem *date=nullptr;
             for (int row=0;row<grid->rowCount();++row) if (grid->item(row,0)->text()=="Epoch") date=grid->item(row,1);
             require(format && date,"Spacecraft epoch conversion controls absent");
@@ -237,8 +315,8 @@ int main(int argc, char **argv)
          }
          require(error.isEmpty(),qPrintable(error));
          require(std::abs(Moderator::Instance()->GetConfiguredObject("QtSat")->GetRealParameter("A1Epoch")-initial)*86400.<.001,"Format change moved spacecraft epoch");
-         QTemporaryDir files; const auto path=files.filePath("epoch-converted.script");
-         require(window.saveScriptTo(path) && window.loadScript(path) && window.buildScript(),"Converted spacecraft epoch did not reopen");
+         auto &files=fixtureDirectory(); const auto path=files.filePath("epoch-converted.script");
+         require(window.saveScriptTo(path) && checkedLoadScript(path) && window.buildScript(),"Converted spacecraft epoch did not reopen");
          require(window.runMission()==MainWindow::RunResult::Completed &&
             std::abs((dynamic_cast<Spacecraft *>(Moderator::Instance()->GetInternalObject("QtSat"))->GetEpoch()-initial)*86400.-600)<.01,
             "Converted epoch changed reopened propagation");
@@ -252,7 +330,7 @@ int main(int argc, char **argv)
          {
             QWidget owner; ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("QtSat"),[&](const QMap<QString,QString> &changes) {
                error=window.applyResourceChanges("QtSat",changes,before); return error;
-            },&owner,before);
+            },&owner,before); workflowView(panel);
             auto *choice=panel.findChild<QComboBox *>("spacecraftStateRepresentation"); auto *grid=panel.findChild<QTableWidget *>();
             require(choice,"State representation conversion control absent");
             const auto field=[&](const QString &name)->QTableWidgetItem * {
@@ -282,7 +360,7 @@ int main(int argc, char **argv)
          sat=dynamic_cast<Spacecraft *>(Moderator::Instance()->GetConfiguredObject("QtSat"));
       }
       {
-         const auto originalMission=editor->toPlainText(); QTemporaryDir files;
+         const auto originalMission=editor->toPlainText(); auto &files=fixtureDirectory();
          const auto reportPath=files.filePath("orbit-frames.txt");
          auto fixture=originalMission;
          // Use explicit input time in both runs. The engine's default
@@ -317,12 +395,29 @@ int main(int argc, char **argv)
          auto *referenceForces=dynamic_cast<ODEModel *>(Moderator::Instance()->GetInternalObject("QtForces"));
          require(referenceForces,"Orbit-frame reference force model missing");
          const auto derivatives=referenceForces->GetDerivativesForSpacecraft(dynamic_cast<Spacecraft *>(Moderator::Instance()->GetInternalObject("QtSat")));
+         auto integrationTime=[&] {
+            for (auto *command=Moderator::Instance()->GetFirstCommand();command;command=command->GetNext()) {
+               if (command->GetTypeName()!="Propagate") continue;
+               auto *setup=dynamic_cast<PropSetup *>(command->GetRefObject(Gmat::PROP_SETUP,"QtProp",0));
+               require(setup && setup->GetODEModel(),"Orbit-frame integration clock missing");
+               return setup->GetODEModel()->GetTime();
+            }
+            throw std::runtime_error("Orbit-frame propagation command missing");
+         };
+         const auto referenceIntegrationTime=integrationTime();
+
          auto compareOrbit=[&](const QVector<QVector<double>> &samples,const QString &description) {
             const auto initialOffset=(dynamic_cast<Spacecraft *>(Moderator::Instance()->GetConfiguredObject("QtSat"))->GetEpochGT()-referenceEpoch).GetTimeInSec();
             require(std::abs(initialOffset)<1e-9,qPrintable(QString("Orbit round trip changed initial epoch by %1 sec").arg(initialOffset,0,'g',17)));
             const auto stop=dynamic_cast<Spacecraft *>(Moderator::Instance()->GetInternalObject("QtSat"))->GetEpochGT();
-            const auto dt=(stop-referenceStop).GetTimeInSec();
-            require(std::abs(dt)<1e-6,"Round-trip propagation stopping epochs differ by more than one microsecond");
+            const auto epochOffset=(stop-referenceStop).GetTimeInSec();
+            require(std::abs(epochOffset)<1e-6,"Round-trip propagation stopping epochs differ by more than one microsecond");
+            // The absolute spacecraft epoch can be rounded through a double.
+            // Align physical states with the executing propagator's elapsed
+            // seconds, not that rounded absolute-time difference. Retain both
+            // independent sub-microsecond bounds and the original state limits.
+            const auto dt=integrationTime()-referenceIntegrationTime;
+            require(std::abs(dt)<1e-6,"Round-trip integration durations differ by more than one microsecond");
             for (int sample=0;sample<2;++sample) {
                require(std::abs(samples[sample][0]-reference[sample][0])<1e-10,"Orbit round trip changed epoch");
                for (int i=0;i<6;++i) {
@@ -340,7 +435,7 @@ int main(int argc, char **argv)
          {
             QWidget owner; ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("QtSat"),[&](const QMap<QString,QString> &changes) {
                applied=window.applyResourceChanges("QtSat",changes,before); return applied;
-            },&owner,before);
+            },&owner,before); workflowView(panel);
             auto *frame=panel.findChild<QComboBox *>("spacecraftOrbitFrame"),*representation=panel.findChild<QComboBox *>("spacecraftStateRepresentation"),*anomaly=panel.findChild<QComboBox *>("spacecraftAnomalyType");
             auto *grid=panel.findChild<QTableWidget *>();
             auto field=[&](const QString &name)->QTableWidgetItem * { for (int row=0;row<grid->rowCount();++row) if (grid->item(row,0)->text()==name) return grid->item(row,1); return nullptr; };
@@ -405,7 +500,7 @@ int main(int argc, char **argv)
          require(after.mid(after.indexOf("BeginMissionSequence;"))==before.mid(before.indexOf("BeginMissionSequence;")),"Orbit-frame Apply rewrote mission commands");
          editor->undo(); require(editor->toPlainText()==before && window.buildScript(),"Orbit-frame paired Apply not one exact Undo");
          editor->redo(); require(editor->toPlainText()==after && window.buildScript(),"Orbit-frame paired Apply not one exact Redo");
-         const auto path=files.filePath("orbit-frames.script"); require(window.saveScriptTo(path) && window.loadScript(path) && window.buildScript(),"Orbit-frame save/reopen failed");
+         const auto path=files.filePath("orbit-frames.script"); require(window.saveScriptTo(path) && checkedLoadScript(path) && window.buildScript(),"Orbit-frame save/reopen failed");
          auto *configured=Moderator::Instance()->GetConfiguredObject("QtSat");
          require(configured->GetStringParameter("CoordinateSystem")=="QtEarthFixed" && configured->GetStringParameter("DisplayStateType")=="Planetodetic","Orbit-frame settings lost on reopen");
          require(window.runMission()==MainWindow::RunResult::Completed,"GUI-converted orbit failed propagation"); const auto converted=readReport();
@@ -429,14 +524,14 @@ int main(int argc, char **argv)
             {
                QWidget owner; ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("QtSat"),[&](const auto &changes) {
                   result=window.applyResourceChanges("QtSat",changes,source); return result;
-               },&owner,source);
+               },&owner,source); workflowView(panel);
                panel.findChild<QComboBox *>("spacecraftOrbitFrame")->setCurrentText(QString::fromStdString(initial));
                panel.findChild<QComboBox *>("spacecraftStateRepresentation")->setCurrentText("Keplerian");
                panel.findChild<QComboBox *>("spacecraftAnomalyType")->setCurrentText(selectedAnomaly);
                panel.findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
                require(result.isEmpty(),qPrintable(result));
             }
-            require(window.saveScriptTo(path) && window.loadScript(path) && window.buildScript(),"Anomaly save/reopen failed");
+            require(window.saveScriptTo(path) && checkedLoadScript(path) && window.buildScript(),"Anomaly save/reopen failed");
             auto *anomalySat=dynamic_cast<Spacecraft *>(Moderator::Instance()->GetConfiguredObject("QtSat"));
             require(QString::fromStdString(anomalySat->GetAnomalyType())==selectedAnomaly,"Anomaly selection lost on reopen");
             const auto anomalyState=anomalySat->GetState("Keplerian"); bool displayed=false;
@@ -454,7 +549,7 @@ int main(int argc, char **argv)
          {
             QWidget owner; ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("QtSat"),[&](const QMap<QString,QString> &changes) {
                applied=window.applyResourceChanges("QtSat",changes,currentScript); return applied;
-            },&owner,currentScript);
+            },&owner,currentScript); workflowView(panel);
             auto *representation=panel.findChild<QComboBox *>("spacecraftStateRepresentation"); representation->setCurrentText("Cartesian");
             auto *grid=panel.findChild<QTableWidget *>(); auto field=[&](const QString &name)->QTableWidgetItem * { for (int row=0;row<grid->rowCount();++row) if (grid->item(row,0)->text()==name) return grid->item(row,1); return nullptr; };
             const double changedEpoch=field("Epoch")->text().toDouble()+1;
@@ -473,7 +568,7 @@ int main(int argc, char **argv)
          }
          require(applied.isEmpty(),qPrintable(applied));
          require(std::abs(Moderator::Instance()->GetConfiguredObject("QtSat")->GetRealParameter("A1Epoch")-reference[0][0]-1)<1e-8,"Pending epoch lost on paired Apply");
-         require(window.saveScriptTo(path) && window.loadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Pending epoch/state save/reopen propagation failed");
+         require(window.saveScriptTo(path) && checkedLoadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Pending epoch/state save/reopen propagation failed");
          const auto pendingReport=readReport();
          for (int i=0;i<6;++i) require(std::abs(pendingReport[0][i+1]-expectedPending[i])<(i<3 ? 1e-6 : 1e-9),qPrintable(QString("Pending frame/epoch/state Apply changed element %1: got %2 expected %3").arg(i).arg(pendingReport[0][i+1],0,'g',17).arg(expectedPending[i],0,'g',17)));
          auto hyperbolic=fixture;
@@ -485,7 +580,7 @@ int main(int argc, char **argv)
          {
             QWidget owner; ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("QtSat"),[&](const auto &changes) {
                hyperError=window.applyResourceChanges("QtSat",changes,hyperbolic); return hyperError;
-            },&owner,hyperbolic);
+            },&owner,hyperbolic); workflowView(panel);
             auto *representation=panel.findChild<QComboBox *>("spacecraftStateRepresentation"),*anomaly=panel.findChild<QComboBox *>("spacecraftAnomalyType");
             require(anomaly->findText("HA")>=0 && anomaly->findText("EA")<0,"Hyperbolic orbit anomaly choices incorrect");
             for (const auto &type:QStringList{"IncomingAsymptote","OutgoingAsymptote"}) {
@@ -503,7 +598,7 @@ int main(int argc, char **argv)
             panel.findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
          }
          require(hyperError.isEmpty(),qPrintable(hyperError));
-         require(window.saveScriptTo(path) && window.loadScript(path) && window.buildScript(),"Hyperbolic anomaly save/reopen failed");
+         require(window.saveScriptTo(path) && checkedLoadScript(path) && window.buildScript(),"Hyperbolic anomaly save/reopen failed");
          auto *hyperSat=dynamic_cast<Spacecraft *>(Moderator::Instance()->GetConfiguredObject("QtSat"));
          require(hyperSat->GetAnomalyType()=="HA","Hyperbolic anomaly lost on reopen");
          const auto hyperState=hyperSat->GetState("Keplerian"); bool hyperDisplayed=false;
@@ -520,7 +615,7 @@ int main(int argc, char **argv)
          if (!orbitCapture.isEmpty()) return 0;
       }
       {
-         const auto before=editor->toPlainText(); QTemporaryDir files;
+         const auto before=editor->toPlainText(); auto &files=fixtureDirectory();
          const auto reportPath=files.filePath("ballistics.txt");
          const auto spadPath=QFileInfo("../data/vehicle/spad/SphericalModel.spo").absoluteFilePath();
          require(QFileInfo::exists(spadPath),"SPAD qualification fixture missing");
@@ -534,7 +629,7 @@ int main(int argc, char **argv)
          {
             QWidget owner; ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("MassSat"),[&](const QMap<QString,QString> &changes) {
                error=window.applyResourceChanges("MassSat",changes,source); return error;
-            },&owner,source);
+            },&owner,source); workflowView(panel);
             auto *button=panel.findChild<QPushButton *>("spacecraftBallisticsMass"); require(button,"Ballistics editor missing");
             auto *grid=panel.findChild<QTableWidget *>();
             const auto value=[&](const QString &name) {
@@ -545,12 +640,12 @@ int main(int argc, char **argv)
                return QString();
             };
             const auto original=value("DryMass");
-            QTimer::singleShot(0,&panel,[&] {
+            workflowAfterExposure(0,&panel,[&] {
                auto *dialog=panel.findChild<QDialog *>("ballisticsMassDialog"); require(dialog,"Ballistics dialog missing");
                dialog->findChild<QLineEdit *>("ballistics_DryMass")->setText("999"); dialog->reject();
             }); button->click();
             require(value("DryMass")==original && !panel.hasChanges(),"Cancelled ballistics edits leaked into properties");
-            QTimer::singleShot(0,&panel,[&] {
+            workflowAfterExposure(0,&panel,[&] {
                auto *dialog=panel.findChild<QDialog *>("ballisticsMassDialog");
                require(dialog->findChildren<QGroupBox *>().size()==2,"wx ballistics groups missing");
                auto *mass=dialog->findChild<QLineEdit *>("ballistics_DryMass"); auto *buttons=dialog->findChild<QDialogButtonBox *>();
@@ -566,10 +661,10 @@ int main(int argc, char **argv)
                }
                auto *file=dialog->findChild<QLineEdit *>("ballistics_SPADSRPFile");
                const auto previous=file->text();
-               QTimer::singleShot(0,dialog,[&] { dialog->findChild<QFileDialog *>("ballisticsFileDialog")->reject(); });
+               workflowAfterExposure(0,dialog,[&] { dialog->findChild<QFileDialog *>("ballisticsFileDialog")->reject(); });
                dialog->findChild<QPushButton *>("ballisticsBrowse_SPADSRPFile")->click();
                require(file->text()==previous,"Cancelled SPAD chooser changed the path");
-               QTimer::singleShot(0,dialog,[&] {
+               workflowAfterExposure(0,dialog,[&] {
                   auto *picker=dialog->findChild<QFileDialog *>("ballisticsFileDialog");
                   require(picker->fileMode()==QFileDialog::ExistingFile,"SPAD chooser is not an input picker");
                   picker->selectFile(spadPath); QMetaObject::invokeMethod(picker,"accept",Qt::DirectConnection);
@@ -590,7 +685,7 @@ int main(int argc, char **argv)
          require(Moderator::Instance()->GetConfiguredObject("MassSat")->GetRealParameter("DryMass")!=975.5,"Ballistics Undo retained the edited mass");
          editor->redo(); require(editor->toPlainText()==appliedMassSource && window.buildScript(),"Ballistics Redo lost applied settings");
          const auto path=files.filePath("mass.script");
-         require(window.saveScriptTo(path) && window.loadScript(path) && window.buildScript(),"Ballistics save/reopen failed");
+         require(window.saveScriptTo(path) && checkedLoadScript(path) && window.buildScript(),"Ballistics save/reopen failed");
          require(window.runMission()==MainWindow::RunResult::Completed,"GUI-configured SPAD mission failed");
          QFile report(reportPath); require(report.open(QIODevice::ReadOnly),"Ballistics report missing");
          const auto numbers=QString::fromUtf8(report.readAll()).trimmed().split(',');
@@ -606,7 +701,7 @@ int main(int argc, char **argv)
          sat=dynamic_cast<Spacecraft *>(Moderator::Instance()->GetConfiguredObject("QtSat"));
       }
       {
-         const auto source=editor->toPlainText(); QTemporaryDir assets;
+         const auto source=editor->toPlainText(); auto &assets=fixtureDirectory();
          QFile mesh(assets.filePath("preview model.obj")); require(mesh.open(QIODevice::WriteOnly),"Preview mesh fixture failed");
          mesh.write("v -1 -1 0\nv 1 -1 0\nv 0 1 0\nf 1 2 3\n"); mesh.close();
          QFile invalidMesh(assets.filePath("broken.obj")); require(invalidMesh.open(QIODevice::WriteOnly),"Bad mesh fixture failed");
@@ -618,13 +713,13 @@ int main(int argc, char **argv)
          {
             QWidget owner; ResourceEditor panel(*configured,[&](const auto &changes) {
                error=window.applyResourceChanges("QtSat",changes,source); return error;
-            },&owner,source);
+            },&owner,source); workflowView(panel);
             auto *button=panel.findChild<QPushButton *>("spacecraftVisualModel"); require(button,"Visual model editor absent");
-            QTimer::singleShot(0,&panel,[&] {
+            workflowAfterExposure(0,&panel,[&] {
                auto *dialog=panel.findChild<QDialog *>("visualModelDialog");
                require(dialog,"Visual model dialog missing"); dialog->findChild<QLineEdit *>("visual_ModelOffsetX")->setText("2"); dialog->reject();
             }); button->click(); require(!panel.hasChanges(),"Visual model Cancel changed pending properties");
-            QTimer::singleShot(0,&panel,[&] {
+            workflowAfterExposure(0,&panel,[&] {
                auto *base=panel.findChild<QDialog *>("visualModelDialog"); auto *dialog=dynamic_cast<VisualModelDialog *>(base);
                auto field=[&](const QString &name) { return dialog->findChild<QLineEdit *>("visual_"+name); };
                auto *ok=dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok);
@@ -644,9 +739,9 @@ int main(int argc, char **argv)
                field("ModelFile")->setText(invalidMesh.fileName()); ok->click();
                require(dialog->isVisible() && !dialog->findChild<QLabel *>("visualModelError")->text().isEmpty(),"Unreadable model accepted");
                const auto previous=field("ModelFile")->text();
-               QTimer::singleShot(0,dialog,[&] { dialog->findChild<QFileDialog *>("visualModelFileDialog")->reject(); });
+               workflowAfterExposure(0,dialog,[&] { dialog->findChild<QFileDialog *>("visualModelFileDialog")->reject(); });
                dialog->findChild<QPushButton *>("visualBrowseModel")->click(); require(field("ModelFile")->text()==previous,"Cancelled model chooser changed path");
-               QTimer::singleShot(0,dialog,[&] {
+               workflowAfterExposure(0,dialog,[&] {
                   auto *picker=dialog->findChild<QFileDialog *>("visualModelFileDialog"); require(picker->fileMode()==QFileDialog::ExistingFile,"Visual model chooser accepted nonexistent files");
                   picker->selectFile(mesh.fileName()); QMetaObject::invokeMethod(picker,"accept",Qt::DirectConnection);
                }); dialog->findChild<QPushButton *>("visualBrowseModel")->click();
@@ -660,20 +755,26 @@ int main(int argc, char **argv)
                require(field("ModelOffsetX")->text()=="3.5" && field("ModelRotationZ")->text()=="-135" && field("ModelScale")->text()=="1000",
                   "Visual editor did not show the engine's normalized bounds");
                field("ModelOffsetX")->setText("1.25"); field("ModelRotationZ")->setText("45"); field("ModelScale")->setText("2.5");
-               QTimer::singleShot(0,dialog,[&] {
+               workflowAfterExposure(0,dialog,[&] {
                   auto *picker=dialog->findChild<QColorDialog *>("visualModelColorDialog"); picker->setCurrentColor(QColor(10,100,220)); picker->accept();
                }); dialog->findChild<QPushButton *>("visualChoose_OrbitColor")->click();
                require(field("OrbitColor")->text()=="[10 100 220]","Visual color picker lost selected RGB values");
                field("TargetColor")->setText("Yellow");
-               QTimer::singleShot(0,dialog,[&] { dialog->findChild<QColorDialog *>("visualModelColorDialog")->reject(); });
+               workflowAfterExposure(0,dialog,[&] { dialog->findChild<QColorDialog *>("visualModelColorDialog")->reject(); });
                dialog->findChild<QPushButton *>("visualChoose_TargetColor")->click();
                require(field("TargetColor")->text()=="Yellow","Cancelled visual color picker changed pending color");
                dialog->findChild<QPushButton *>("visualShowEarth")->click();
                require(dialog->previewModel()->curves[1].visible && dialog->previewModel()->curves[1].wireframeObject,"Earth size reference is not a wireframe");
                dialog->findChild<QPushButton *>("visualShowEarth")->click(); ok->click();
                const auto &curve=dialog->previewModel()->curves[0];
-               require(curve.modelPath==mesh.fileName() && curve.modelScale==2.5 && curve.modelOffset[0]==1.25 && curve.modelRotation[0]==90,
-                  "Recovered visual preview lost pending transforms or path");
+               const auto expectedModelPath=QFileInfo(mesh.fileName()).canonicalFilePath();
+               const auto previewModelPath=QFileInfo(curve.modelPath).canonicalFilePath();
+               if (curve.modelPath!=mesh.fileName())
+                  std::cerr<<"Preview resolved path: "<<curve.modelPath.toStdString()<<"; authored path: "<<mesh.fileName().toStdString()<<'\n';
+               // Preview uses the engine's resolved native path; separators may
+               // differ from QFile's authored spelling on Windows.
+               require(!expectedModelPath.isEmpty() && previewModelPath==expectedModelPath && curve.modelScale==2.5 && curve.modelOffset[0]==1.25 && curve.modelRotation[0]==90,
+                  qPrintable(QString("Recovered visual preview differs: path %1 expected %2 scale %3 offset %4 rotation %5").arg(curve.modelPath,mesh.fileName()).arg(curve.modelScale).arg(curve.modelOffset[0]).arg(curve.modelRotation[0])));
             }); button->click();
             require(panel.hasChanges() && editor->toPlainText()==source && configured->GetRealParameter("ModelRotationX")!=90,
                "Visual model preview altered configured spacecraft before Apply");
@@ -683,7 +784,7 @@ int main(int argc, char **argv)
          require(changed.mid(changed.indexOf("BeginMissionSequence"))==source.mid(source.indexOf("BeginMissionSequence")),"Visual Apply changed mission commands");
          editor->undo(); require(editor->toPlainText()==source && window.buildScript(),"Visual Apply Undo lost source");
          editor->redo(); require(editor->toPlainText()==changed && window.buildScript(),"Visual Apply Redo lost transforms");
-         const auto path=assets.filePath("model.script"); require(window.saveScriptTo(path) && window.loadScript(path) && window.buildScript(),"Visual model save/reopen failed");
+         const auto path=assets.filePath("model.script"); require(window.saveScriptTo(path) && checkedLoadScript(path) && window.buildScript(),"Visual model save/reopen failed");
          configured=Moderator::Instance()->GetConfiguredObject("QtSat");
          require(configured->GetStringParameter("ModelFile")==mesh.fileName().toStdString() && configured->GetRealParameter("ModelScale")==2.5 &&
             configured->GetRealParameter("ModelOffsetY")==-.5 && configured->GetRealParameter("ModelOffsetZ")==.75 &&
@@ -698,9 +799,9 @@ int main(int argc, char **argv)
       {
          window.findChild<QAction *>("scriptFind")->trigger();
          auto *integrated=window.findChild<QDialog *>("findReplaceDialog");
-         require(integrated && integrated->isVisible(),"Find menu did not open script search"); integrated->hide();
-         QPlainTextEdit text; const QString original="Sat Satellite sat Sat\nSat"; text.setPlainText(original);
-         FindReplaceDialog search(&text,&window);
+         require(integrated && integrated->isVisible(),"Find menu did not open script search"); workflowView(*integrated); integrated->hide();
+         QPlainTextEdit text; const QString original="Sat Satellite sat Sat\nSat"; text.setPlainText(original); workflowView(text);
+         FindReplaceDialog search(&text,&window); workflowView(search);
          auto *find=search.findChild<QComboBox *>("findText"),*replace=search.findChild<QComboBox *>("replaceText");
          find->setEditText("Sat"); replace->setEditText("SatSat");
          search.findChild<QCheckBox *>("findMatchCase")->setChecked(true);
@@ -727,9 +828,9 @@ int main(int argc, char **argv)
          QWidget parent;
          ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("UserFrame"),[&](const QMap<QString,QString> &changes) {
             return window.applyResourceChanges("UserFrame",changes,beforeAxes);
-         },&parent);
+         },&parent); workflowView(panel);
          auto *button=panel.findChild<QPushButton *>("editCoordinateAxes"); require(button,"Dedicated coordinate axes editor missing");
-         QTimer::singleShot(0,&panel,[&] {
+         workflowAfterExposure(0,&panel,[&] {
             if (auto *dialog=qobject_cast<QDialog *>(QApplication::activeModalWidget())) {
                auto *type=dialog->findChild<QComboBox *>("coordinateAxisType");
                if (type) { type->setCurrentText("ObjectReferenced"); cancelledAxes=true; }
@@ -746,8 +847,8 @@ int main(int argc, char **argv)
          ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("UserFrame"),[&](const QMap<QString,QString> &changes) {
             const auto error=window.applyResourceChanges("UserFrame",changes,beforeAxes); appliedAxes=error.isEmpty();
             if (!error.isEmpty()) std::cerr<<error.toStdString()<<'\n'; return error;
-         },&parent);
-         QTimer::singleShot(0,&panel,[&] {
+         },&parent); workflowView(panel);
+         workflowAfterExposure(0,&panel,[&] {
             if (auto *dialog=qobject_cast<QDialog *>(QApplication::activeModalWidget())) {
                dialog->findChild<QComboBox *>("coordinateAxisType")->setCurrentText("ObjectReferenced");
                axisPickers=dialog->findChild<QPushButton *>("chooseProperty_Primary") && dialog->findChild<QPushButton *>("chooseProperty_Secondary");
@@ -789,8 +890,8 @@ int main(int argc, char **argv)
             "Edited radial frame changed the expected coordinate transform");
       };
       checkRadialFrame();
-      QTemporaryDir axesFiles;
-      require(window.saveScriptTo(axesFiles.filePath("axes.script")) && window.loadScript(axesFiles.filePath("axes.script")) && window.runMission()==MainWindow::RunResult::Completed,
+      auto &axesFiles=fixtureDirectory();
+      require(window.saveScriptTo(axesFiles.filePath("axes.script")) && checkedLoadScript(axesFiles.filePath("axes.script")) && window.runMission()==MainWindow::RunResult::Completed,
          "Coordinate axes save/reopen failed");
       checkRadialFrame();
       const auto configuredAxes=editor->toPlainText();
@@ -804,8 +905,8 @@ int main(int argc, char **argv)
          QWidget parent;
          ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("UserFrame"),[&](const QMap<QString,QString> &changes) {
             const auto error=window.applyResourceChanges("UserFrame",changes,beforeAxes); appliedType=error.isEmpty(); return error;
-         },&parent);
-         QTimer::singleShot(0,&panel,[&] {
+         },&parent); workflowView(panel);
+         workflowAfterExposure(0,&panel,[&] {
             if (auto *dialog=qobject_cast<QDialog *>(QApplication::activeModalWidget())) {
                dialog->findChild<QComboBox *>("coordinateAxisType")->setCurrentText("MJ2000Ec");
                dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
@@ -842,7 +943,7 @@ int main(int argc, char **argv)
          const auto changed=epochTransform(31000);
          require(std::hypot(first[0]-changed[0],first[1]-changed[1],first[2]-changed[2])>1,"Epoch edit did not change the coordinate transform");
          const auto path=axesFiles.filePath("epoch.script");
-         require(window.saveScriptTo(path) && window.loadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Epoch axes save/reopen failed");
+         require(window.saveScriptTo(path) && checkedLoadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Epoch axes save/reopen failed");
          const auto reopened=epochTransform(31000);
          for (int axis=0;axis<3;++axis) require(std::abs(changed[axis]-reopened[axis])<1e-10,"Epoch save/reopen changed calculations");
          require(window.applyResourceChanges("UserFrame",{{"Axes","LocalAlignedConstrained"},{"ReferenceObject","Sun"},
@@ -878,7 +979,7 @@ int main(int argc, char **argv)
             require(!window.applyResourceChanges("UserFrame",invalid,valid).isEmpty() && editor->toPlainText()==valid,
                "Invalid constrained geometry was accepted or changed the script");
          }
-         require(window.saveScriptTo(axesFiles.filePath("constrained.script")) && window.loadScript(axesFiles.filePath("constrained.script")),
+         require(window.saveScriptTo(axesFiles.filePath("constrained.script")) && checkedLoadScript(axesFiles.filePath("constrained.script")),
             "Constrained axes save/reopen failed");
          checkConstraint();
          editor->setPlainText(base); require(window.buildScript(),"Coordinate fixture restoration failed");
@@ -937,7 +1038,7 @@ int main(int argc, char **argv)
       editor->undo(); require(editor->toPlainText()==forceScript && window.buildScript(),"Attitude representation was not undoable");
       {
          const auto originalMission=editor->toPlainText();
-         QTemporaryDir files; const auto report=files.filePath("attitude.txt");
+         auto &files=fixtureDirectory(); const auto report=files.filePath("attitude.txt");
          auto fixture=originalMission;
          fixture.replace("BeginMissionSequence;","Create ReportFile AttitudeReport;\nAttitudeReport.Filename = '"+report+"';\nAttitudeReport.WriteHeaders = false;\n"
             "AttitudeReport.Add = {QtSat.Q1, QtSat.Q2, QtSat.Q3, QtSat.Q4};\nBeginMissionSequence;");
@@ -948,15 +1049,15 @@ int main(int argc, char **argv)
          {
             QWidget owner; ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("QtSat"),[&](const QMap<QString,QString> &values) {
                applied=window.applyResourceChanges("QtSat",values,before); return applied;
-            },&owner,before);
+            },&owner,before); workflowView(panel);
             auto *open=panel.findChild<QPushButton *>("spacecraftAttitude"); require(open,"Focused attitude editor absent");
-            QTimer::singleShot(0,[&] {
+            workflowAfterExposure(0,[&] {
                auto *dialog=dynamic_cast<AttitudeDialog *>(QApplication::activeModalWidget()); require(dialog,"Attitude dialog not open");
                dialog->findChild<QComboBox *>("attitudeModel")->setCurrentText("Spinner");
                dialog->findChild<QLineEdit *>("attitude_Q1")->setText("0.3"); dialog->reject();
             }); open->click();
             require(!panel.hasChanges() && editor->toPlainText()==before,"Attitude Cancel changed spacecraft");
-            QTimer::singleShot(0,[&] {
+            workflowAfterExposure(0,[&] {
                auto *dialog=dynamic_cast<AttitudeDialog *>(QApplication::activeModalWidget()); require(dialog,"Attitude dialog not open");
                auto combo=[&](const QString &name) { auto *widget=dialog->findChild<QComboBox *>("attitude_"+name); require(widget,qPrintable("Attitude selector missing: "+name)); return widget; };
                auto field=[&](const QString &name) { auto *widget=dialog->findChild<QLineEdit *>("attitude_"+name); require(widget,qPrintable("Attitude numeric field missing: "+name)); return widget; };
@@ -1002,7 +1103,7 @@ int main(int argc, char **argv)
                require(field("BodyAlignmentVectorX") && combo("AttitudeReferenceBody") && combo("AttitudeConstraintType"),"Nadir controls absent");
                require(!dialog->findChild<QComboBox *>("attitude_AttitudeCoordinateSystem"),"Locked nadir reference frame remains editable");
                model->setCurrentText("CCSDS-AEM"); require(field("AttitudeFileName") && dialog->findChild<QPushButton *>("attitudeBrowse_AttitudeFileName"),"Attitude ephemeris chooser absent");
-               QTimer::singleShot(0,[&] { auto *chooser=qobject_cast<QFileDialog *>(QApplication::activeModalWidget()); require(chooser && chooser->fileMode()==QFileDialog::ExistingFile,"AEM chooser permits new input files"); chooser->reject(); });
+               workflowAfterExposure(0,[&] { auto *chooser=qobject_cast<QFileDialog *>(QApplication::activeModalWidget()); require(chooser && chooser->fileMode()==QFileDialog::ExistingFile,"AEM chooser permits new input files"); chooser->reject(); });
                dialog->findChild<QPushButton *>("attitudeBrowse_AttitudeFileName")->click();
                model->setCurrentText("PrecessingSpinner"); require(std::abs(field("SpinRate")->text().toDouble()-.75)<1e-12,qPrintable("Switching models lost pending spinner data: "+field("SpinRate")->text()));
                model->setCurrentText("Spinner");
@@ -1018,14 +1119,14 @@ int main(int argc, char **argv)
             require(Moderator::Instance()->GetConfiguredObject("QtSat")->GetStringParameter("Attitude")!="Spinner","Dialog mutated configured attitude");
             auto *grid=panel.findChild<QTableWidget *>();
             for (int row=0;row<grid->rowCount();++row) if (grid->item(row,0)->text()=="DryMass") grid->item(row,1)->setText("850");
-            QTimer::singleShot(0,[&] { auto *dialog=dynamic_cast<AttitudeDialog *>(QApplication::activeModalWidget()); require(dialog && dialog->findChild<QLineEdit *>("attitude_Q4"),"Reopened pending attitude model absent"); dialog->reject(); }); open->click();
+            workflowAfterExposure(0,[&] { auto *dialog=dynamic_cast<AttitudeDialog *>(QApplication::activeModalWidget()); require(dialog && dialog->findChild<QLineEdit *>("attitude_Q4"),"Reopened pending attitude model absent"); dialog->reject(); }); open->click();
             panel.findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
          }
          require(applied.isEmpty(),qPrintable(applied)); const auto after=editor->toPlainText();
          require(after.mid(after.indexOf("BeginMissionSequence;"))==before.mid(before.indexOf("BeginMissionSequence;")),"Attitude Apply rewrote mission commands");
          editor->undo(); require(editor->toPlainText()==before && window.buildScript(),"Attitude paired Apply not one exact Undo");
          editor->redo(); require(editor->toPlainText()==after && window.buildScript(),"Attitude paired Apply not one exact Redo");
-         const auto path=files.filePath("attitude.script"); require(window.saveScriptTo(path) && window.loadScript(path) && window.buildScript(),"Attitude save/reopen failed");
+         const auto path=files.filePath("attitude.script"); require(window.saveScriptTo(path) && checkedLoadScript(path) && window.buildScript(),"Attitude save/reopen failed");
          auto *edited=Moderator::Instance()->GetConfiguredObject("QtSat");
          require(edited->GetStringParameter("Attitude")=="Spinner" && edited->GetStringParameter("AttitudeDisplayStateType")=="Quaternion" && edited->GetRealParameter("DryMass")==850,"Attitude Apply lost paired spacecraft edits");
          for (int i=1;i<=4;++i) require(std::abs(edited->GetRealParameter("Q"+std::to_string(i))-expected[i-1])<1e-12,"Attitude quaternion changed after reopen");
@@ -1050,11 +1151,11 @@ int main(int argc, char **argv)
       {
          QWidget owner;
          ResourceEditor gridPanel(*Moderator::Instance()->GetConfiguredObject("QtMatrix"),
-            [](const QMap<QString,QString>&) { return QString(); },&owner);
+            [](const QMap<QString,QString>&) { return QString(); },&owner); workflowView(gridPanel);
          auto *editCells=gridPanel.findChild<QPushButton *>("editCells_RmatValue");
          require(editCells,"Array has no cell editor button");
          bool gridOpened=false,invalidRejected=false;
-         QTimer::singleShot(0,&gridPanel,[&] {
+         workflowAfterExposure(0,&gridPanel,[&] {
             auto *dialog=gridPanel.findChild<QDialog *>("numericGridDialog");
             if (!dialog) return;
             auto *grid=dialog->findChild<QTableWidget *>("numericGrid");
@@ -1071,7 +1172,7 @@ int main(int argc, char **argv)
             "Grid mutated configured array before Apply");
          const auto value=gridPanel.findChild<QTableWidget *>()->findItems("4 0 0; 0 0 -12.5",Qt::MatchExactly);
          require(value.size()==1,"Grid did not preserve cell order");
-         QTimer::singleShot(0,&gridPanel,[&] {
+         workflowAfterExposure(0,&gridPanel,[&] {
             auto *dialog=gridPanel.findChild<QDialog *>("numericGridDialog");
             dialog->findChild<QTableWidget *>("numericGrid")->item(0,0)->setText("777");
             dialog->reject();
@@ -1079,7 +1180,7 @@ int main(int argc, char **argv)
          editCells->click();
          require(value.first()->text()=="4 0 0; 0 0 -12.5","Cancel changed matrix values");
          bool resized=false;
-         QTimer::singleShot(0,&gridPanel,[&] {
+         workflowAfterExposure(0,&gridPanel,[&] {
             auto *dialog=gridPanel.findChild<QDialog *>("numericGridDialog");
             auto *rows=dialog->findChild<QSpinBox *>("arrayRows");
             auto *columns=dialog->findChild<QSpinBox *>("arrayColumns");
@@ -1129,10 +1230,10 @@ int main(int argc, char **argv)
          QWidget owner;
          ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("Formula"),[&](const QMap<QString,QString> &changes) {
             expressionError=window.applyResourceChanges("Formula",changes,beforeExpressions); return expressionError;
-         },&owner,beforeExpressions);
+         },&owner,beforeExpressions); workflowView(panel);
          auto *button=panel.findChild<QPushButton *>("arrayExpressions"); require(button,"Expression grid missing");
          auto fill=[&](bool accept) {
-            QTimer::singleShot(0,&panel,[&,accept] {
+            workflowAfterExposure(0,&panel,[&,accept] {
                auto *dialog=panel.findChild<QDialog *>("arrayExpressionDialog");
                if (!dialog) return;
                auto *grid=dialog->findChild<QTableWidget *>("arrayExpressionGrid");
@@ -1157,14 +1258,14 @@ int main(int argc, char **argv)
       require(window.applyResourceChanges("ExprSat",{{"DryMass","850"}},formulaScript).isEmpty() &&
          arrayExpressions(editor->toPlainText(),"Formula")==arrayExpressions(formulaScript,"Formula") && formulaResult()==20,
          "Unrelated resource edit lost array expressions");
-      QTemporaryDir expressionFiles;
+      auto &expressionFiles=fixtureDirectory();
       const auto expressionPath=expressionFiles.filePath("expressions.script");
-      require(window.saveScriptTo(expressionPath) && window.loadScript(expressionPath) && formulaResult()==20,"Expression save/reopen changed results");
+      require(window.saveScriptTo(expressionPath) && checkedLoadScript(expressionPath) && formulaResult()==20,"Expression save/reopen changed results");
       {
          QWidget owner;
-         ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("Formula"),[](const QMap<QString,QString>&) { return QString(); },&owner,editor->toPlainText());
+         ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("Formula"),[](const QMap<QString,QString>&) { return QString(); },&owner,editor->toPlainText()); workflowView(panel);
          bool restored=false;
-         QTimer::singleShot(0,&panel,[&] {
+         workflowAfterExposure(0,&panel,[&] {
             auto *dialog=panel.findChild<QDialog *>("arrayExpressionDialog");
             if (!dialog) return;
             auto *grid=dialog->findChild<QTableWidget *>("arrayExpressionGrid");
@@ -1189,11 +1290,11 @@ int main(int argc, char **argv)
          ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("Formula"),[&](const QMap<QString,QString> &changes) {
             require(changes.contains("RmatValue") && changes.contains("@ArrayExpressions"),"Panel did not submit both pending array edits");
             combinedError=window.applyResourceChanges("Formula",changes,expressionSource); return combinedError;
-         },&owner,expressionSource);
+         },&owner,expressionSource); workflowView(panel);
          auto *properties=panel.findChild<QTableWidget *>();
          for (int row=0;row<properties->rowCount();++row)
             if (properties->item(row,0)->text()=="RmatValue") properties->item(row,1)->setText("3 0 0; 0 0 0");
-         QTimer::singleShot(0,&panel,[&] {
+         workflowAfterExposure(0,&panel,[&] {
             auto *dialog=panel.findChild<QDialog *>("arrayExpressionDialog");
             auto *grid=dialog->findChild<QTableWidget *>("arrayExpressionGrid");
             require(grid->rowCount()==2 && grid->columnCount()==3,"Expression grid ignored pending resize");
@@ -1204,7 +1305,7 @@ int main(int argc, char **argv)
          for (int row=0;row<properties->rowCount();++row)
             if (properties->item(row,0)->text()=="RmatValue") numeric=properties->item(row,1);
          require(numeric,"Array numeric field missing"); numeric->setText("3");
-         QTimer::singleShot(0,&panel,[&] {
+         workflowAfterExposure(0,&panel,[&] {
             auto *dialog=panel.findChild<QDialog *>("arrayExpressionDialog");
             auto *grid=dialog->findChild<QTableWidget *>("arrayExpressionGrid");
             auto *ok=dialog->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok);
@@ -1231,7 +1332,7 @@ int main(int argc, char **argv)
       require(window.buildScript(),"Power-system panel fixture failed");
       for (const auto &name:{QString("SolarPower"),QString("NuclearPower")}) {
          QWidget owner;
-         ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject(name.toStdString()),[](const QMap<QString,QString>&) { return QString(); },&owner,editor->toPlainText());
+         ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject(name.toStdString()),[](const QMap<QString,QString>&) { return QString(); },&owner,editor->toPlainText()); workflowView(panel);
          auto *sections=panel.findChild<QTabBar *>("propertySections"); auto *grid=panel.findChild<QTableWidget *>();
          require(sections && grid,"Power-system sections missing");
          const auto checkSection=[&](const QString &section,const QStringList &fields) {
@@ -1269,7 +1370,7 @@ int main(int argc, char **argv)
          if (name=="SolarPower") {
             checkSection("Solar coefficients",{"SolarCoeff1","SolarCoeff2","SolarCoeff3","SolarCoeff4","SolarCoeff5"});
             checkSection("Shadow",{"ShadowModel","ShadowBodies"});
-            QTimer::singleShot(0,&panel,[&] {
+            workflowAfterExposure(0,&panel,[&] {
                auto *dialog=panel.findChild<QDialog *>("resourceSelectionDialog"); auto *list=dialog->findChild<QListWidget *>("resourceSelectionList");
                bool earth=false,luna=false;
                for (int i=0;i<list->count();++i) {
@@ -1300,7 +1401,7 @@ int main(int argc, char **argv)
       {
          QWidget owner;
          ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("Vehicle"),
-            [](const QMap<QString,QString>&) { return QString(); },&owner);
+            [](const QMap<QString,QString>&) { return QString(); },&owner); workflowView(panel);
          auto *choice=panel.findChild<QComboBox *>("spacecraftOrbitFrame");
          require(choice && choice->findText("EarthFixed")>=0,"Coordinate-system selector missing choices");
          choice->setCurrentText("EarthFixed");
@@ -1309,14 +1410,14 @@ int main(int argc, char **argv)
          panel.discardChanges();
       }
       {
-         QWidget owner; QTemporaryDir destination;
+         QWidget owner; auto &destination=fixtureDirectory();
          ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("PickerReport"),
-            [](const QMap<QString,QString>&) { return QString(); },&owner);
+            [](const QMap<QString,QString>&) { return QString(); },&owner); workflowView(panel);
          auto *choose=panel.findChild<QPushButton *>("chooseProperty_Filename");
          require(choose,"Report filename picker missing");
          const auto path=destination.filePath("new report.txt");
          bool opened=false;
-         QTimer::singleShot(0,&panel,[&] {
+         workflowAfterExposure(0,&panel,[&] {
             auto *dialog=qobject_cast<QFileDialog *>(QApplication::activeModalWidget());
             if (!dialog) return;
             opened=dialog->acceptMode()==QFileDialog::AcceptSave && dialog->fileMode()==QFileDialog::AnyFile; dialog->selectFile(path); QMetaObject::invokeMethod(dialog,"accept",Qt::DirectConnection);
@@ -1328,21 +1429,21 @@ int main(int argc, char **argv)
          panel.discardChanges();
       }
       {
-         QWidget owner; QTemporaryDir source;
+         QWidget owner; auto &source=fixtureDirectory();
          const auto path=source.filePath("spacecraft model.obj"); QFile model(path);
          require(model.open(QIODevice::WriteOnly),"Input picker fixture failed"); model.write("v 0 0 0\n"); model.close();
          ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("Vehicle"),
-            [](const QMap<QString,QString>&) { return QString(); },&owner);
+            [](const QMap<QString,QString>&) { return QString(); },&owner); workflowView(panel);
          auto *choose=panel.findChild<QPushButton *>("chooseProperty_ModelFile");
          require(choose,"Spacecraft model file picker missing");
          bool inputMode=false;
-         QTimer::singleShot(0,&panel,[&] {
+         workflowAfterExposure(0,&panel,[&] {
             auto *dialog=qobject_cast<QFileDialog *>(QApplication::activeModalWidget()); if (!dialog) return;
             inputMode=dialog->fileMode()==QFileDialog::ExistingFile && dialog->acceptMode()==QFileDialog::AcceptOpen;
             dialog->selectFile(path); dialog->reject();
          });
          choose->click(); require(inputMode && !panel.hasChanges(),"Input picker mode or Cancel is incorrect");
-         QTimer::singleShot(0,&panel,[&] {
+         workflowAfterExposure(0,&panel,[&] {
             auto *dialog=qobject_cast<QFileDialog *>(QApplication::activeModalWidget()); if (!dialog) return;
             dialog->selectFile(path); QMetaObject::invokeMethod(dialog,"accept",Qt::DirectConnection);
          });
@@ -1353,29 +1454,29 @@ int main(int argc, char **argv)
             "Browsing input applied the resource prematurely"); panel.discardChanges();
       }
       {
-         QTemporaryDir kernels; const auto kernel=QFileInfo(startup).dir().absoluteFilePath("../data/vehicle/ephem/spk/GEOSat.bsp");
+         auto &kernels=fixtureDirectory(); const auto kernel=QFileInfo(startup).dir().absoluteFilePath("../data/vehicle/ephem/spk/GEOSat.bsp");
          const auto first=kernels.filePath("first kernel.bsp"),second=kernels.filePath("second,kernel.bsp");
          require(kernels.isValid() && QFile::copy(kernel,first) && QFile::copy(kernel,second),"Kernel fixtures unavailable");
          const auto before=editor->toPlainText(); QString error="No Apply";
          QWidget owner;
          ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("Vehicle"),
-            [&](const QMap<QString,QString> &changes) { error=window.applyResourceChanges("Vehicle",changes,before); return error; },&owner);
+            [&](const QMap<QString,QString> &changes) { error=window.applyResourceChanges("Vehicle",changes,before); return error; },&owner); workflowView(panel);
          auto *choose=panel.findChild<QPushButton *>("chooseProperty_OrbitSpiceKernelName");
          require(choose && panel.findChild<QPushButton *>("chooseProperty_FrameSpiceKernelName") &&
             panel.findChild<QPushButton *>("chooseProperty_AttitudeSpiceKernelName") && panel.findChild<QPushButton *>("chooseProperty_SCClockSpiceKernelName"),"Kernel list controls missing");
          bool ordered=false;
-         QTimer::singleShot(0,&panel,[&] {
+         workflowAfterExposure(0,&panel,[&] {
             auto *dialog=panel.findChild<QDialog *>("kernelFileDialog"); if (!dialog) return;
             auto *list=dialog->findChild<QListWidget *>("kernelFileList");
             for (const auto &path:{first,second,first}) {
-               QTimer::singleShot(0,dialog,[path] {
+               workflowAfterExposure(0,dialog,[path] {
                   auto *picker=qobject_cast<QFileDialog *>(QApplication::activeModalWidget()); if (!picker) return;
                   picker->selectFile(path); QMetaObject::invokeMethod(picker,"accept",Qt::DirectConnection);
                }); dialog->findChild<QPushButton *>("kernelFileAdd")->click();
             }
             ordered=list->count()==2; if (ordered) list->insertItem(0,list->takeItem(1)); dialog->accept();
          }); choose->click(); require(ordered && panel.hasChanges(),"Kernel Add did not preserve unique ordered files");
-         QTimer::singleShot(0,&panel,[&] {
+         workflowAfterExposure(0,&panel,[&] {
             auto *dialog=panel.findChild<QDialog *>("kernelFileDialog"); if (!dialog) return;
             auto *list=dialog->findChild<QListWidget *>("kernelFileList"); list->selectAll();
             dialog->findChild<QPushButton *>("kernelFileRemove")->click(); dialog->reject();
@@ -1387,7 +1488,7 @@ int main(int argc, char **argv)
          const auto selected=editor->toPlainText(); editor->undo();
          require(editor->toPlainText()==before && window.buildScript() && Moderator::Instance()->GetConfiguredObject("Vehicle")->GetStringArrayParameter("OrbitSpiceKernelName").empty(),"Kernel Undo failed");
          editor->redo(); require(window.buildScript(),"Kernel Redo failed");
-         require(window.saveScriptTo(kernels.filePath("selected.script")) && window.loadScript(kernels.filePath("selected.script")) && window.buildScript(),"Kernel save/reopen failed");
+         require(window.saveScriptTo(kernels.filePath("selected.script")) && checkedLoadScript(kernels.filePath("selected.script")) && window.buildScript(),"Kernel save/reopen failed");
          require(editor->toPlainText()==selected,"Kernel save/reopen changed source");
          require(!window.applyResourceChanges("Vehicle",{{"OrbitSpiceKernelName",kernels.filePath("missing.bsp")}},selected).isEmpty() && editor->toPlainText()==selected,"Missing kernel did not roll back");
          require(window.applyResourceChanges("Vehicle",{{"OrbitSpiceKernelName",""}},selected).isEmpty() && Moderator::Instance()->GetConfiguredObject("Vehicle")->GetStringArrayParameter("OrbitSpiceKernelName").empty(),"Clearing kernel files failed");
@@ -1400,11 +1501,11 @@ int main(int argc, char **argv)
       {
          QWidget owner;
          ResourceEditor panel(*Moderator::Instance()->GetConfiguredObject("Engine"),
-            [&](const QMap<QString,QString> &changes) { tankError=window.applyResourceChanges("Engine",changes,hardwareScript); return tankError; },&owner);
+            [&](const QMap<QString,QString> &changes) { tankError=window.applyResourceChanges("Engine",changes,hardwareScript); return tankError; },&owner); workflowView(panel);
          auto *choose=panel.findChild<QPushButton *>("chooseProperty_Tank");
          require(choose,"Tank reference picker missing");
          bool candidatesCorrect=false;
-         QTimer::singleShot(0,&panel,[&] {
+         workflowAfterExposure(0,&panel,[&] {
             auto *dialog=panel.findChild<QDialog *>("resourceSelectionDialog");
             if (!dialog) return;
             auto *list=dialog->findChild<QListWidget *>("resourceSelectionList");
@@ -1418,7 +1519,7 @@ int main(int argc, char **argv)
          });
          choose->click();
          require(candidatesCorrect && !panel.hasChanges(),"Picker lost order, included wrong resource types, or Cancel changed values");
-         QTimer::singleShot(0,&panel,[&] {
+         workflowAfterExposure(0,&panel,[&] {
             auto *dialog=panel.findChild<QDialog *>("resourceSelectionDialog");
             auto *list=dialog->findChild<QListWidget *>("resourceSelectionList");
             list->insertItem(0,list->takeItem(1));
@@ -1451,20 +1552,20 @@ int main(int argc, char **argv)
          "Combined tank removal and ratio resize failed");
       require(window.applyResourceChanges("Engine",{{"Tank","FuelB, FuelA"},{"MixRatio","17 19"}},editor->toPlainText()).isEmpty(),
          "Combined tank addition and ratio resize failed");
-      QTemporaryDir mixtureFiles; const auto mixturePath=mixtureFiles.filePath("tank-mixtures.script");
-      require(window.saveScriptTo(mixturePath) && window.loadScript(mixturePath) && window.buildScript(),"Combined mixture save/reopen failed");
+      auto &mixtureFiles=fixtureDirectory(); const auto mixturePath=mixtureFiles.filePath("tank-mixtures.script");
+      require(window.saveScriptTo(mixturePath) && checkedLoadScript(mixturePath) && window.buildScript(),"Combined mixture save/reopen failed");
       engine=Moderator::Instance()->GetConfiguredObject("Engine");
       require(engine->GetStringArrayParameter("Tank").front()=="FuelB" && engine->GetRvectorParameter("MixRatio").GetSize()==2 &&
          engine->GetRvectorParameter("MixRatio")[0]==17 && engine->GetRvectorParameter("MixRatio")[1]==19,"Combined mixture did not survive round trip");
       {
          QWidget owner; QString error="Not applied"; const auto before=editor->toPlainText();
-         ResourceEditor panel(*engine,[&](const auto &changes) { error=window.applyResourceChanges("Engine",changes,before); return error; },&owner);
+         ResourceEditor panel(*engine,[&](const auto &changes) { error=window.applyResourceChanges("Engine",changes,before); return error; },&owner); workflowView(panel);
          auto *button=panel.findChild<QPushButton *>("thrusterTankMixtures"); require(button,"Combined mixture editor missing");
-         QTimer::singleShot(0,[&] {
+         workflowAfterExposure(0,[&] {
             auto *dialog=panel.findChild<QDialog *>("tankMixtureDialog"); require(dialog,"Combined mixture dialog absent");
             dialog->findChild<QPushButton *>("tankMixtureRemove")->click(); dialog->reject();
          }); button->click(); require(!panel.hasChanges(),"Mixture Cancel changed pending values");
-         QTimer::singleShot(0,[&] {
+         workflowAfterExposure(0,[&] {
             auto *dialog=panel.findChild<QDialog *>("tankMixtureDialog");
             auto *grid=dialog->findChild<QTableWidget *>("tankMixtureTable");
             auto *available=dialog->findChild<QComboBox *>("tankMixtureAvailable");
@@ -1488,7 +1589,7 @@ int main(int argc, char **argv)
          panel.findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Apply)->click();
          require(error.isEmpty(),qPrintable(error));
       }
-      require(window.saveScriptTo(mixturePath) && window.loadScript(mixturePath) && window.buildScript(),"Mixture dialog round trip failed");
+      require(window.saveScriptTo(mixturePath) && checkedLoadScript(mixturePath) && window.buildScript(),"Mixture dialog round trip failed");
       engine=Moderator::Instance()->GetConfiguredObject("Engine");
       require(engine->GetStringArrayParameter("Tank").front()=="FuelA" && engine->GetRvectorParameter("MixRatio")[0]==17 &&
          engine->GetRvectorParameter("MixRatio")[1]==19,"Mixture dialog lost explicit ratios unchanged from original vector");
@@ -1498,7 +1599,7 @@ int main(int argc, char **argv)
       auto counter = [] { return Moderator::Instance()->GetInternalObject("count")->GetRealParameter("Value"); };
       QTimer::singleShot(40, &window, [&] {
          protectedEdits = window.isRunning() && editor->isReadOnly() && !window.buildScript()
-            && window.runMission() == MainWindow::RunResult::Busy && !window.loadScript(script);
+            && window.runMission() == MainWindow::RunResult::Busy && !checkedLoadScript(script);
          window.pauseMission();
          paused = Moderator::Instance()->GetRunState() == Gmat::PAUSED;
          countAtPause = counter();
@@ -1518,7 +1619,7 @@ int main(int argc, char **argv)
          "Window closed before stopping the active engine");
       editor->setPlainText("Not a valid GMAT command;\n");
       require(window.runMission() == MainWindow::RunResult::Failed, "Invalid script ran the previous mission");
-      require(window.loadScript(script), "Could not recover after invalid script");
+      require(checkedLoadScript(script), "Could not recover after invalid script");
       require(window.runMission() == MainWindow::RunResult::Completed, "Recovery execution failed");
       auto *tree = window.findChild<QTreeWidget *>("Resources");
       require(tree != nullptr, "Resource tree missing");
@@ -1579,7 +1680,7 @@ int main(int argc, char **argv)
       require(resourcePanelCount==1 && panel->hasChanges(),"Reopening a resource duplicated its panel or lost pending edits");
       require(!window.buildScript() && window.runMission() == MainWindow::RunResult::Failed,
          "Unapplied resource settings were silently ignored during run");
-      require(!window.loadScript(script), "Loading discarded pending resource settings");
+      require(!checkedLoadScript(script), "Loading discarded pending resource settings");
       require(!window.createResource("Spacecraft","PendingSat",editor->toPlainText()).isEmpty(),"Creation ignored pending panel changes");
       if (!screenshot.isEmpty()) {
          QApplication::processEvents();
@@ -1598,7 +1699,7 @@ int main(int argc, char **argv)
       require(!Moderator::Instance()->GetConfiguredObject("CreatedSat"),"Undo retained created resource");
       bool createdThroughDialog=false;
       bool capturedCreateDialog=screenshot.isEmpty();
-      QTimer::singleShot(0,&window,[&] {
+      workflowAfterExposure(0,&window,[&] {
          auto *dialog=window.findChild<QDialog *>("newResourceDialog");
          if (!dialog) return;
          dialog->findChild<QComboBox *>("resourceType")->setCurrentText("Spacecraft");
@@ -1669,12 +1770,12 @@ int main(int argc, char **argv)
       commandText->setPlainText(advanced);
       require(form->isHidden() && commandText->toPlainText()==advanced,"Form simplified an advanced command");
       auto *editStops=commandPanel->findChild<QPushButton *>("editPropagationStops"); require(editStops && !editStops->isHidden(),"Multiple stopping conditions lack GUI editor");
-      QTimer::singleShot(0,[&] {
+      workflowAfterExposure(0,[&] {
          auto *dialog=commandPanel->findChild<QDialog *>("propagationStopsDialog"); auto *table=dialog->findChild<QTableWidget *>("propagationStopsTable");
          require(table->rowCount()==2 && table->item(1,1)->text().isEmpty() && !(table->item(1,1)->flags() & Qt::ItemIsEditable),"Apsis row has editable goal");
          table->item(0,1)->setText("120"); dialog->reject();
       }); editStops->click(); require(commandText->toPlainText()==advanced,"Stopping conditions Cancel changed command");
-      QTimer::singleShot(0,[&] {
+      workflowAfterExposure(0,[&] {
          auto *dialog=commandPanel->findChild<QDialog *>("propagationStopsDialog"); auto *table=dialog->findChild<QTableWidget *>("propagationStopsTable");
          require(table->horizontalHeader()->sectionResizeMode(0)==QHeaderView::Interactive,"Stop columns are locked");
          dialog->findChild<QPushButton *>("propagationStopAdd")->click();
@@ -1703,7 +1804,7 @@ int main(int argc, char **argv)
       units->setCurrentIndex(units->findData("ElapsedDays")); duration->setText("0.01");
       require(commandText->toPlainText().contains("QtSat.ElapsedDays = 0.01"),"Form did not synchronize duration and units");
       commandText->setPlainText("Propagate 'GUI stop' QtProp(QtSat) {QtSat.ElapsedDays = 0.01}; % retain stop comment");
-      QTimer::singleShot(0,[&] {
+      workflowAfterExposure(0,[&] {
          auto *dialog=commandPanel->findChild<QDialog *>("propagationParameterDialog");
          require(dialog,"Stop parameter browser missing");
          dialog->findChild<QComboBox *>("reportPropertyObject")->setCurrentText("QtSat");
@@ -1717,12 +1818,12 @@ int main(int argc, char **argv)
       require(units->currentData().toString().isEmpty() && commandText->toPlainText().contains("QtSat.A1ModJulian") &&
          commandText->toPlainText().contains("'GUI stop'") && commandText->toPlainText().contains("% retain stop comment"),"Selected epoch stop lost source or type");
       const auto selectedStop=commandText->toPlainText();
-      QTimer::singleShot(0,[&] { commandPanel->findChild<QDialog *>("propagationParameterDialog")->reject(); });
+      workflowAfterExposure(0,[&] { commandPanel->findChild<QDialog *>("propagationParameterDialog")->reject(); });
       commandPanel->findChild<QPushButton *>("propagationChooseGoal")->click(); require(commandText->toPlainText()==selectedStop,"Stop goal picker Cancel changed source");
       if (!screenshot.isEmpty()) { duration->setFocus(); QApplication::processEvents(); require(window.grab().save(screenshot+".propagation.png"),"Propagation form capture failed"); }
       applyCommand->click();
-      QTemporaryDir propagationFiles; const auto propagationPath=propagationFiles.filePath("selected-stop.script");
-      require(window.saveScriptTo(propagationPath) && window.loadScript(propagationPath) && window.buildScript(),"Selected stop condition save/reopen failed");
+      auto &propagationFiles=fixtureDirectory(); const auto propagationPath=propagationFiles.filePath("selected-stop.script");
+      require(window.saveScriptTo(propagationPath) && checkedLoadScript(propagationPath) && window.buildScript(),"Selected stop condition save/reopen failed");
       const auto formEpoch=dynamic_cast<Spacecraft *>(Moderator::Instance()->GetConfiguredObject("QtSat"))->GetEpoch();
       require(window.runMission()==MainWindow::RunResult::Completed,"Form-edited propagation failed");
       const auto finalEpoch=dynamic_cast<Spacecraft *>(Moderator::Instance()->GetInternalObject("QtSat"))->GetEpoch();
@@ -1747,6 +1848,13 @@ int main(int argc, char **argv)
       const auto oldMass=unusedMass->text(); unusedMass->setText("999");
       require(!window.deleteResource("UnusedSat",beforeUnusedDelete).isEmpty(),"Deletion discarded its panel changes");
       unusedMass->setText(oldMass);
+      // NASA panels retain their dirty flag after reverting a draft. Clear it
+      // through the existing no-op Apply path before testing clean deletion.
+      require(!unusedPanel->hasChanges() && unusedPanel->hasUnappliedInput(),"Restored deletion draft did not retain NASA's dirty flag");
+      auto *unusedButtons=unusedPanel->findChild<QDialogButtonBox *>("resourceButtons");
+      require(unusedButtons && unusedButtons->button(QDialogButtonBox::Apply)->isEnabled(),"Reverted deletion draft has no enabled Apply");
+      unusedButtons->button(QDialogButtonBox::Apply)->click();
+      require(!unusedPanel->hasChanges() && !unusedPanel->hasUnappliedInput() && editor->toPlainText()==beforeUnusedDelete,"No-op deletion draft Apply changed source or retained dirty input");
       require(window.deleteResource("UnusedSat",beforeUnusedDelete).isEmpty(),"Unrelated open resource panel blocked deletion");
       require(!Moderator::Instance()->GetConfiguredObject("UnusedSat") && tree->findItems("UnusedSat",Qt::MatchExactly|Qt::MatchRecursive).isEmpty(),"Deleted resource remained in model or tree");
       require(!window.deleteResource("CreatedSat",beforeUnusedDelete).isEmpty(),"Stale deletion snapshot accepted");
@@ -1763,12 +1871,12 @@ int main(int argc, char **argv)
       const auto scratchItems=tree->findItems("ScratchTwo",Qt::MatchExactly|Qt::MatchRecursive);
       require(scratchItems.size()==1,"Deletion menu fixture missing"); tree->scrollToItem(scratchItems.first());
       bool confirmedDeletion=false;
-      QTimer::singleShot(0,&window,[&] {
+      workflowAfterExposure(0,&window,[&] {
          auto *menu=qobject_cast<QMenu *>(QApplication::activePopupWidget());
          if (!menu) return;
          for (auto *action:menu->actions()) if (action->text()=="Delete resource…") {
             menu->setActiveAction(action);
-            QTimer::singleShot(0,&window,[&] {
+            workflowAfterExposure(0,&window,[&] {
                if (auto *confirmation=qobject_cast<QMessageBox *>(QApplication::activeModalWidget())) {
                   confirmedDeletion=true; confirmation->button(QMessageBox::Yes)->click();
                }
@@ -1781,12 +1889,15 @@ int main(int argc, char **argv)
       tree->customContextMenuRequested(tree->visualItemRect(scratchItems.first()).center());
       require(confirmedDeletion && !Moderator::Instance()->GetConfiguredObject("ScratchTwo"),"Context-menu deletion failed");
       const auto sample=QFileInfo(startup).dir().filePath("../samples/Ex_HohmannTransfer.script");
-      require(window.loadScript(sample),"Could not load shipped OFI sample");
+      require(checkedLoadScript(sample),"Could not load shipped OFI sample");
+      const auto starFolder=QString::fromStdString(FileManager::Instance()->GetFullPathname("STAR_PATH"));
+      require(QFileInfo(QDir(starFolder).filePath("inp_StarsHYGv3.txt")).isFile(),
+         "Workflow requires the current inp_StarsHYGv3.txt catalogue through STAR_PATH");
       const auto originalSample=editor->toPlainText();
       const auto dynamics=originalSample.mid(originalSample.indexOf("BeginMissionSequence;"));
       int conversionPrompts=0;
       auto answerConversion=[&](QMessageBox::StandardButton answer) {
-         QTimer::singleShot(0,&window,[&,answer] {
+         workflowAfterExposure(0,&window,[&,answer] {
             auto *prompt=qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
             if (prompt && prompt->objectName()=="openFramesConversionPrompt") {
                ++conversionPrompts; prompt->button(answer)->click();
@@ -1851,9 +1962,9 @@ int main(int argc, char **argv)
       require(qtCameraSettings(editor->toPlainText())["OFI_EarthView"].fieldOfView==45,
          "Resource editing lost the Qt camera directive");
       editor->undo(); require(editor->toPlainText()==convertedSource && window.buildScript(),"Camera-preserving resource edit lost Undo");
-      QTemporaryDir cameraFiles;
+      auto &cameraFiles=fixtureDirectory();
       const auto savedCamera=cameraFiles.filePath("converted.script");
-      require(window.saveScriptTo(savedCamera) && window.loadScript(savedCamera) && window.runMission()==MainWindow::RunResult::Completed,
+      require(window.saveScriptTo(savedCamera) && checkedLoadScript(savedCamera) && window.runMission()==MainWindow::RunResult::Completed,
          "Converted camera save/reopen failed");
       checkCameraUp();
       convertedView=window.plotReceiver()->model("OFI_EarthView");
@@ -1878,14 +1989,14 @@ int main(int argc, char **argv)
          editor->moveCursor(QTextCursor::End); editor->insertPlainText("% unbuilt edit\n");
          const auto dirty=editor->toPlainText();
          bool refused=false;
-         QTimer::singleShot(0,&window,[&] {
+         workflowAfterExposure(0,&window,[&] {
             if (auto *warning=qobject_cast<QMessageBox *>(QApplication::activeModalWidget())) {
                refused=warning->text().contains("Build the current script"); warning->accept();
             }
          });
          keep->click(); require(refused && editor->toPlainText()==dirty,"Keep projection overwrote an unbuilt script");
          editor->undo();
-         require(window.saveScriptTo(savedCamera) && window.loadScript(savedCamera) && window.runMission()==MainWindow::RunResult::Completed,
+         require(window.saveScriptTo(savedCamera) && checkedLoadScript(savedCamera) && window.runMission()==MainWindow::RunResult::Completed,
             "Interactive projection save/reopen failed");
          checkCameraUp();
          const auto reopened=window.plotReceiver()->model("OFI_EarthView");
@@ -1921,7 +2032,7 @@ int main(int argc, char **argv)
          selector->setCurrentIndex(2); require(model->fieldOfView==28.5 && !model->perspective,"Secondary camera projection was lost during switching");
          require(model->frame==frameCount && Moderator::Instance()->GetInternalObject("DefaultSC")==spacecraft,
             "Switching cameras reran or reconstructed the mission");
-         require(window.saveScriptTo(savedCamera) && window.loadScript(savedCamera) && window.runMission()==MainWindow::RunResult::Completed,
+         require(window.saveScriptTo(savedCamera) && checkedLoadScript(savedCamera) && window.runMission()==MainWindow::RunResult::Completed,
             "Multiple camera save/reopen failed");
          checkViewHistories();
          selector=window.findChild<QComboBox *>("orbitCameraView"); selector->setCurrentIndex(2);
@@ -1943,8 +2054,8 @@ int main(int argc, char **argv)
          trajectoryScript.replace(QRegularExpression("TheView\\.ViewFrame\\s*=\\s*CoordinateSystem"),"TheView.ViewFrame = DefaultSC;\nTheView.ViewTrajectory = On");
          const auto converted=convertOpenFramesViews(trajectoryScript); require(converted.error.isEmpty(),"Trajectory runtime conversion failed");
          editor->setPlainText(converted.script);
-         QTemporaryDir files; const auto path=files.filePath("trajectory-camera.script");
-         require(window.saveScriptTo(path) && window.loadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Trajectory camera save/reopen/run failed");
+         auto &files=fixtureDirectory(); const auto path=files.filePath("trajectory-camera.script");
+         require(window.saveScriptTo(path) && checkedLoadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Trajectory camera save/reopen/run failed");
          const auto model=window.plotReceiver()->model("OFI_EarthView"); require(model && model->cameras.size()>2,"Trajectory camera history missing");
          bool moved=false;
          for (const auto &curve:model->curves) if (curve.name=="DefaultSC" && curve.points.size()>1) {
@@ -1959,7 +2070,7 @@ int main(int argc, char **argv)
          trajectoryScript.replace(QRegularExpression("TheView\\.SetDefaultLocation\\s*=\\s*On"),"TheView.SetDefaultLocation = Off");
          const auto automatic=convertOpenFramesViews(trajectoryScript); require(automatic.error.isEmpty(),"Automatic trajectory runtime conversion failed");
          editor->setPlainText(automatic.script);
-         require(window.saveScriptTo(path) && window.loadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Automatic trajectory save/reopen/run failed");
+         require(window.saveScriptTo(path) && checkedLoadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Automatic trajectory save/reopen/run failed");
          const auto autoModel=window.plotReceiver()->model("OFI_EarthView");
          require(autoModel && autoModel->automaticTrajectory=="DefaultSC","Automatic trajectory did not reach viewer");
          const auto autoCamera=orbitCamera(*autoModel,autoModel->frame,0,0,1,1);
@@ -1975,7 +2086,7 @@ int main(int argc, char **argv)
                "Earth_View.LookAtFrame = DefaultSC;\nEarth_View.ShortestAngle = %1;\nBeginMissionSequence;").arg(shortest ? "On" : "Off"));
             const auto converted=convertOpenFramesViews(aligned); require(converted.error.isEmpty(),"Automatic trajectory LookAt conversion failed");
             editor->setPlainText(converted.script);
-            require(window.saveScriptTo(path) && window.loadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Automatic LookAt save/reopen failed");
+            require(window.saveScriptTo(path) && checkedLoadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Automatic LookAt save/reopen failed");
             const auto model=window.plotReceiver()->model("OFI_EarthView");
             require(model && model->cameraViews[1].automaticTrajectory=="DefaultSC","Named automatic LookAt did not reach viewer");
             auto *selector=window.findChild<QComboBox *>("orbitCameraView"); require(selector,"Automatic named camera selector missing");
@@ -2000,7 +2111,7 @@ int main(int argc, char **argv)
          require(overridden.automaticTrajectory.isEmpty() && !overridden.lookAtRotation &&
             overridden.views[0].automaticTrajectory==secondaryBefore[0].automaticTrajectory && overridden.views[0].lookAtRotation,
             "Explicit pose was still automatic or changed named views");
-         require(window.saveScriptTo(path) && window.loadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Manual camera override save/reopen failed");
+         require(window.saveScriptTo(path) && checkedLoadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Manual camera override save/reopen failed");
          const auto overriddenModel=window.plotReceiver()->model("OFI_EarthView");
          const auto pose=orbitCamera(*overriddenModel,overriddenModel->frame,0,0,1,1);
          require(pose.target.length()<1e-8 && std::abs(pose.distance-12345)<1e-8,"Explicit camera distance/target ignored after reopen");
@@ -2022,8 +2133,8 @@ int main(int argc, char **argv)
          if (aligned) extra+="TheView.LookAtFrame = DefaultSC;\nEarth_View.LookAtFrame = DefaultSC;\n";
          originScript.replace("BeginMissionSequence;",extra+"BeginMissionSequence;");
          const auto converted=convertOpenFramesViews(originScript); require(converted.error.isEmpty(),"Automatic origin conversion failed");
-         editor->setPlainText(converted.script); QTemporaryDir files; const auto path=files.filePath("origin-camera.script");
-         require(window.saveScriptTo(path) && window.loadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Automatic origin save/reopen failed");
+         editor->setPlainText(converted.script); auto &files=fixtureDirectory(); const auto path=files.filePath("origin-camera.script");
+         require(window.saveScriptTo(path) && checkedLoadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Automatic origin save/reopen failed");
          const auto model=window.plotReceiver()->model("OFI_EarthView"); auto *selector=window.findChild<QComboBox *>("orbitCameraView");
          require(model && selector && model->automaticTrajectory=="CoordinateSystem" && model->cameraViews[1].automaticTrajectory=="CoordinateSystem", "Origin framing not delivered to primary/named cameras");
          const double radius=aligned ? 1 : static_cast<double>(static_cast<float>(12*6378.1363));
@@ -2041,8 +2152,8 @@ int main(int argc, char **argv)
          const auto converted=convertOpenFramesViews(bodyScript); require(converted.error.isEmpty(),"Automatic body conversion failed");
          const auto settings=qtCameraSettings(converted.script).value("OFI_EarthView");
          require(settings.automaticBody=="Earth" && settings.views[1].automaticBody=="DefaultSC","Automatic body metadata lost");
-         editor->setPlainText(converted.script); QTemporaryDir files; const auto path=files.filePath("body-camera.script");
-         require(window.saveScriptTo(path) && window.loadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Automatic body save/reopen failed");
+         editor->setPlainText(converted.script); auto &files=fixtureDirectory(); const auto path=files.filePath("body-camera.script");
+         require(window.saveScriptTo(path) && checkedLoadScript(path) && window.runMission()==MainWindow::RunResult::Completed,"Automatic body save/reopen failed");
          const auto model=window.plotReceiver()->model("OFI_EarthView"); require(model && model->automaticBody=="Earth","Automatic body not delivered to viewer");
          double radius=0; osg::Vec3d center;
          for (const auto &curve:model->curves) if (curve.name=="Earth") {
@@ -2097,7 +2208,7 @@ int main(int argc, char **argv)
          require(window.applyResourceChanges("OFI_EarthView",{{"CoordinateSystem","EarthFixed"}},editor->toPlainText()).isEmpty() &&
             window.runMission()==MainWindow::RunResult::Completed,"Body camera in rotating plot frame failed");
          checkBodyCamera(); checkViewHistories();
-         require(window.saveScriptTo(savedCamera) && window.loadScript(savedCamera) && window.runMission()==MainWindow::RunResult::Completed,
+         require(window.saveScriptTo(savedCamera) && checkedLoadScript(savedCamera) && window.runMission()==MainWindow::RunResult::Completed,
             "Body-relative camera save/reopen failed");
          checkBodyCamera(); checkViewHistories();
          const auto good=editor->toPlainText();
@@ -2155,7 +2266,7 @@ int main(int argc, char **argv)
             if (!shortest) azimuthUp=up;
             else require(std::hypot(up[0]-azimuthUp[0],up[1]-azimuthUp[1],up[2]-azimuthUp[2])>1e-4,"ShortestAngle did not change camera roll");
          }
-         require(window.saveScriptTo(savedCamera) && window.loadScript(savedCamera) && window.runMission()==MainWindow::RunResult::Completed,
+         require(window.saveScriptTo(savedCamera) && checkedLoadScript(savedCamera) && window.runMission()==MainWindow::RunResult::Completed,
             "Two-frame camera save/reopen failed");
          checkLookAt();
          const auto beforeDirection=editor->toPlainText();
@@ -2166,7 +2277,7 @@ int main(int argc, char **argv)
       }
       editor->setPlainText("Create OpenFramesVector Vec;\nVec.VectorType = 'Thrust Vector';\nBeginMissionSequence;\n");
       bool manualExplanation=false;
-      QTimer::singleShot(0,&window,[&] {
+      workflowAfterExposure(0,&window,[&] {
          if (auto *prompt=qobject_cast<QMessageBox *>(QApplication::activeModalWidget())) {
             manualExplanation=prompt->windowTitle()=="OpenFrames views need manual conversion";
             prompt->accept();
@@ -2174,7 +2285,7 @@ int main(int argc, char **argv)
       });
       require(!window.buildScript() && manualExplanation,"Unsupported OpenFrames script lacked a specific explanation");
       require(editor->toPlainText().startsWith("Create OpenFramesVector"),"Unsupported conversion changed source");
-      require(window.loadScript(script) && window.buildScript(),"Normal script no longer builds without conversion");
+      require(checkedLoadScript(script) && window.buildScript(),"Normal script no longer builds without conversion");
       std::cout<<"PASS: expression grid Cancel/Apply, formula order, source preservation, Undo/Redo, save/reopen, clear and failed-formula recovery\n";
       std::cout<<"PASS: automatic OpenFrames conversion offer, decline, accept, Run, undo, original-file preservation and unsupported-feature explanation\n";
       const auto capabilities=window.availableEngineTypes();
@@ -2184,6 +2295,11 @@ int main(int argc, char **argv)
       std::cout<<"PASS: propagation form, advanced-command preservation, invalid-input rollback and actual elapsed-days execution\n";
       std::cout<<"PASS: resource creation, name/type validation, pending/stale protection, undo, dialog/tree integration and actual propagation\n";
       std::cout << "PASS: propagation, repeated runs, pause/resume/stop, edit protection, close protection, invalid-script recovery, resource apply/rollback/stale-panel protection/undo\n";
+      const QJsonObject workflowProof{{"checkpoint","workflow-visible-boundaries"},{"outcome","passed"},
+         {"mode",qEnvironmentVariable("GMAT_QT_ACCEPTANCE_MODE")},{"stages",workflowViewingStages},
+         {"stage_count",workflowViewingStages.size()},{"modal_driver_waits_for_exposure",true},
+         {"all_original_assertions_preserved",true},{"scope","Existing Workflow only; explicit fixture and modal-driver viewing boundaries. Original runtime, scientific, source/history and result assertions retained. Automatic pre-map Show observations remain raw evidence, not a claim that every change or low-level input is paced."}};
+      std::cout<<"NASA_CHECK "<<QJsonDocument(workflowProof).toJson(QJsonDocument::Compact).constData()<<std::endl;
       return 0;
    } catch (const std::exception &error) {
       std::cerr << "FAIL: " << error.what() << '\n';

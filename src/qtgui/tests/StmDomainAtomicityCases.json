@@ -1,0 +1,219 @@
+{
+  "kind": "supplementary-stm-domain-atomicity-v1",
+  "row": "FRR!E525",
+  "fingerprint": "2be2d97f1f8fd7ca79b2e65cfd084cf206c186135f8ee2e5ccc0a1bcca3a7b39",
+  "matrix_tolerance": 1e-09,
+  "native_stm": [
+    [
+      1.1,
+      -0.0049999999999999975,
+      -0.016,
+      -0.026999999999999996,
+      -0.03799999999999999,
+      -0.049
+    ],
+    [
+      0.023000000000000003,
+      1.1300000000000001,
+      0.0010000000000000009,
+      -0.009999999999999995,
+      -0.02099999999999999,
+      -0.032
+    ],
+    [
+      0.04000000000000001,
+      0.029000000000000005,
+      1.1600000000000001,
+      0.007000000000000006,
+      -0.00399999999999999,
+      -0.015
+    ],
+    [
+      0.05700000000000001,
+      0.046000000000000006,
+      0.035,
+      1.1900000000000002,
+      0.013000000000000012,
+      0.0020000000000000018
+    ],
+    [
+      0.07400000000000001,
+      0.063,
+      0.052000000000000005,
+      0.04100000000000001,
+      1.2200000000000002,
+      0.019000000000000003
+    ],
+    [
+      0.09100000000000001,
+      0.08000000000000002,
+      0.069,
+      0.05800000000000001,
+      0.047000000000000014,
+      1.25
+    ]
+  ],
+  "expected_stm": [
+    [
+      1.1102217206784666,
+      0.04853693283960314,
+      -0.02598836837349744,
+      -0.04243188585785135,
+      -0.04229839907396083,
+      -0.04940058879810348
+    ],
+    [
+      -0.007810496554287307,
+      1.1253189544388857,
+      0.01548649182420838,
+      0.0013612132881068177,
+      -0.008322682061871063,
+      -0.011090865340455775
+    ],
+    [
+      0.050894534976296577,
+      0.02068813253182887,
+      1.1534312747405338,
+      0.004898498789136388,
+      -0.007824067079702127,
+      -0.01093726548791953
+    ],
+    [
+      0.10090710881265719,
+      0.044392410836427795,
+      0.04404161639581818,
+      1.2128835952405268,
+      0.07023879553255033,
+      -0.0067082039520527685
+    ],
+    [
+      0.08040566692238159,
+      0.0394428577045399,
+      0.04040924845198118,
+      0.006001875847459759,
+      1.2075392082012497,
+      0.02658048556596832
+    ],
+    [
+      0.09804506385767671,
+      0.048528721106883464,
+      0.04979617935229188,
+      0.0715877829539849,
+      0.03278760274938076,
+      1.2384271890204368
+    ]
+  ],
+  "cases": [
+    {
+      "key": "matrix_nan",
+      "mode": "matrix_nan",
+      "outcome": "reject",
+      "diagnostic": "nonfinite Cartesian",
+      "row": 0,
+      "column": 0
+    },
+    {
+      "key": "matrix_inf",
+      "mode": "matrix_inf",
+      "outcome": "reject",
+      "diagnostic": "nonfinite Cartesian",
+      "row": 1,
+      "column": 4
+    },
+    {
+      "key": "matrix_neg_inf",
+      "mode": "matrix_neg_inf",
+      "outcome": "reject",
+      "diagnostic": "nonfinite Cartesian",
+      "row": 5,
+      "column": 2
+    },
+    {
+      "key": "short_rows",
+      "mode": "short_rows",
+      "outcome": "reject",
+      "diagnostic": "six Cartesian rows"
+    },
+    {
+      "key": "short_columns",
+      "mode": "short_columns",
+      "outcome": "reject",
+      "diagnostic": "six Cartesian rows"
+    },
+    {
+      "key": "axis_nan",
+      "mode": "axis_nan",
+      "outcome": "reject",
+      "diagnostic": "nonfinite"
+    },
+    {
+      "key": "axis_inf_rate",
+      "mode": "axis_inf_rate",
+      "outcome": "reject",
+      "diagnostic": "nonfinite"
+    },
+    {
+      "key": "singular_initial",
+      "mode": "singular_initial",
+      "outcome": "reject",
+      "diagnostic": "singular"
+    },
+    {
+      "key": "missing_history",
+      "mode": "missing_history",
+      "outcome": "reject",
+      "diagnostic": "initial state/epoch is unavailable"
+    },
+    {
+      "key": "fresh_invalid_axes",
+      "mode": "fresh_invalid_axes",
+      "outcome": "reject",
+      "diagnostic": "nonfinite"
+    },
+    {
+      "key": "nonfinite_fresh_state",
+      "mode": "nonfinite_fresh_state",
+      "outcome": "reject",
+      "diagnostic": "finite six-component owner state"
+    },
+    {
+      "key": "guide_not_coeval",
+      "mode": "guide_not_coeval",
+      "outcome": "reject",
+      "diagnostic": "coeval"
+    },
+    {
+      "key": "guide_missing_history",
+      "mode": "guide_missing_history",
+      "outcome": "reject",
+      "diagnostic": "No retained STM frame-reference state"
+    },
+    {
+      "key": "guide_stale_generation",
+      "mode": "guide_stale_generation",
+      "outcome": "reject",
+      "diagnostic": "No retained STM frame-reference state"
+    },
+    {
+      "key": "extended_finite",
+      "mode": "extended_finite",
+      "outcome": "accept"
+    },
+    {
+      "key": "extended_nonfinite_tail",
+      "mode": "extended_nonfinite_tail",
+      "outcome": "accept"
+    },
+    {
+      "key": "singular_phi",
+      "mode": "singular_phi",
+      "outcome": "accept"
+    },
+    {
+      "key": "fresh_valid_axes",
+      "mode": "fresh_valid_axes",
+      "outcome": "accept"
+    }
+  ],
+  "scope": "Actual five native readonly Parameters; invalid matrix/frame/history rejection and state/cache/history atomicity; public 6x6 Cartesian block of augmented storage. No full-row qualification."
+}

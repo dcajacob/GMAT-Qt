@@ -34,6 +34,7 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ScriptStringLiteral.hpp"
 #include "Validator.hpp"
 #include "Moderator.hpp"
 #include "InterpreterException.hpp"
@@ -50,8 +51,11 @@
 #include "ObjectWrapper.hpp"
 #include "StringUtil.hpp"               // for GmatStringUtil::
 #include "Assignment.hpp"
+#include "MathTree.hpp"
 #include "RHSEquation.hpp"
 #include "ParameterInfo.hpp"            // for IsSettable()
+#include "FactoryManager.hpp"
+#include <memory>
 #include "UserDefinedFunction.hpp"    // for AddAutomaticObject()
 
 //#define DEBUG_HANDLE_ERROR
@@ -104,6 +108,60 @@ Validator* Validator::Instance()
 //------------------------------------------------------------------------------
 // void SetInterpreter(Interpreter *interp)
 //------------------------------------------------------------------------------
+ValidatorContext::ValidatorContext(std::function<void()> action) : restore(std::move(action))
+{
+}
+
+ValidatorContext::~ValidatorContext() noexcept
+{
+   Restore();
+}
+
+void ValidatorContext::Restore() noexcept
+{
+   auto action = std::move(restore);
+   restore = {};
+   if (!action) return;
+   try { action(); }
+   catch (...)
+   {
+      try { MessageInterface::ShowMessage("Validator context restoration failed.\n"); }
+      catch (...) {}
+   }
+}
+
+std::unique_ptr<ValidatorContext> Validator::CaptureContext(bool restoreDiagnostics)
+{
+   // The snapshot owns copied scratch/diagnostic storage, never the services.
+   auto saved = std::shared_ptr<Validator>(new Validator(*this),
+         [](Validator *value) { delete value; });
+   auto moderator = theModerator->CaptureInterpreterContext();
+   auto restore = [this, saved, restoreDiagnostics, moderator = std::move(moderator)]() mutable noexcept
+   {
+      std::swap(theInterpreter, saved->theInterpreter);
+      std::swap(theModerator, saved->theModerator);
+      std::swap(theSolarSystem, saved->theSolarSystem);
+      std::swap(theCommand, saved->theCommand);
+      std::swap(theFunction, saved->theFunction);
+      std::swap(theObjectMap, saved->theObjectMap);
+      theParameterList.swap(saved->theParameterList);
+      theDescription.swap(saved->theDescription);
+      std::swap(createDefaultStringWrapper, saved->createDefaultStringWrapper);
+      std::swap(lhsParamType, saved->lhsParamType);
+      std::swap(continueOnError, saved->continueOnError);
+      std::swap(skipErrorMessage, saved->skipErrorMessage);
+      std::swap(isFinalError, saved->isFinalError);
+      std::swap(allowObjectProperty, saved->allowObjectProperty);
+      if (restoreDiagnostics)
+      {
+         validatorErrorList.swap(saved->validatorErrorList);
+         theErrorMsg.swap(saved->theErrorMsg);
+      }
+      moderator();
+   };
+   return std::make_unique<ValidatorContext>(std::move(restore));
+}
+
 void Validator::SetInterpreter(Interpreter *interp)
 {
    theInterpreter = interp;
@@ -750,11 +808,11 @@ Validator::CreateElementWrapper(const std::string &desc, bool parametersFirst,
    
    // first, check to see if it is enclosed with single quotes
    // or if it is an array of strings, enclosed in braces
-   if (GmatStringUtil::IsEnclosedWith(theDescription, "'") ||
+   if (GmatScriptString::IsLiteral(theDescription) ||
        GmatStringUtil::IsEnclosedWithBraces(theDescription))
    {
       bool createObjectWrapper = false;
-      std::string withoutQuotes = GmatStringUtil::RemoveEnclosingString(theDescription, "'");
+      std::string withoutQuotes = GmatScriptString::Decode(theDescription);
       #if DBGLVL_WRAPPERS > 1
       MessageInterface::ShowMessage("   withoutQuotes='%s'\n", withoutQuotes.c_str());
       #endif
@@ -1120,7 +1178,29 @@ bool Validator::CreateAssignmentWrappers(GmatCommand *cmd, Integer manage)
       if (lhs == "" || lhs == "Not_Set")
          createDefaultStringWrapper = true;
       
-      bool paramFirst = false;
+      // A known read-only parameter must not fall back to an object-property
+      // wrapper just because its name also matches a resource field (for
+      // example Spacecraft.TotalMass). ParameterWrapper preserves its
+      // IsSettable contract and Assignment rejects the destination at build.
+      bool paramFirst = !isLhsSettableParam && theModerator->IsParameter(newType);
+      // The covariance calculation Parameter is read-only, but the direct
+      // Spacecraft field is a writable initial condition. NASA's filter
+      // sample assigns it in the mission sequence before running the filter.
+      // Keep qualified calculation Parameters and other read-only names on
+      // their existing path; only this direct, writable field uses its setter.
+      if (paramFirst && newType == "OrbitErrorCovariance" && dep.empty() &&
+          lhs.find_first_of('.') == lhs.find_last_of('.'))
+      {
+         GmatBase *fieldOwner = FindObject(owner);
+         if (fieldOwner != NULL && fieldOwner->IsOfType(Gmat::SPACECRAFT))
+         {
+            const Integer field = fieldOwner->GetParameterID(newType);
+            if (fieldOwner->GetParameterType(field) == Gmat::RMATRIX_TYPE &&
+                !fieldOwner->IsParameterReadOnly(field) &&
+                fieldOwner->IsParameterCommandModeSettable(field))
+               paramFirst = false;
+         }
+      }
       if (isLhsSettableParam)
       {
          paramFirst = true;
@@ -1336,6 +1416,19 @@ bool Validator::CreateAssignmentWrappers(GmatCommand *cmd, Integer manage)
       if ((origVal == lhs && !isMathTree) ||
           (origVal == lhs && isMathTree && origVal.find(".") == origVal.npos))
          continue;
+      if (origVal == lhs && isMathTree)
+      {
+         // Dotted destinations are inventoried for function-scope registration
+         // even when they are absent from the RHS. Only create a second,
+         // calculation-Parameter wrapper when the expression actually reads it.
+         // In particular a writable covariance field must not be rejected just
+         // because its read-only reporting Parameter is not a destination.
+         const StringArray refs = acmd->GetMathTree()->GetRefObjectNameArray(Gmat::PARAMETER);
+         const StringArray inputs = acmd->GetMathTree()->GetWrapperObjectNameArray();
+         if (std::find(refs.begin(), refs.end(), lhs) == refs.end() &&
+             std::find(inputs.begin(), inputs.end(), lhs) == inputs.end())
+            continue;
+      }
       
       std::string name = origVal;
       bool addedQuotes = false;
@@ -1345,7 +1438,7 @@ bool Validator::CreateAssignmentWrappers(GmatCommand *cmd, Integer manage)
       if (createDefaultStringWrapper)
       {
          if (leftEw && leftEw->GetDataType() == Gmat::FILENAME_TYPE &&
-             !GmatStringUtil::IsEnclosedWith(name, "'"))
+             !GmatScriptString::IsLiteral(name))
          {
             // Check if name is not an object name (Bug 2148 fix)
             if (FindObject(name) == NULL)
@@ -2334,7 +2427,7 @@ Parameter* Validator::CreateSystemParameter(bool &paramCreated,
    }
    
    // Check if string enclosed with single quotes (LOJ: 2010.08.09)
-   if (GmatStringUtil::IsEnclosedWith(str, "'"))
+   if (GmatScriptString::IsLiteral(str))
    {
       #ifdef DEBUG_CREATE_PARAM
       MessageInterface::ShowMessage
@@ -2372,6 +2465,44 @@ Parameter* Validator::CreateSystemParameter(bool &paramCreated,
       if (find(theParameterList.begin(), theParameterList.end(), paramType) != 
           theParameterList.end())
       {
+         // A resource field may share a name with a system parameter for a
+         // different owner type: ImpulsiveBurn.Isp is a writable burn field,
+         // whereas the Isp system parameter belongs to Spacecraft/Thruster.
+         // Leave a valid direct field to ObjectPropertyWrapper in that case.
+         // Matching owners still use the system parameter and its read-only
+         // contract (for example Spacecraft.TotalMass).
+         GmatBase *owner = NULL;
+         if (depName.empty())
+         {
+            // During function parsing the validator map may still be the caller's
+            // scope. A declared local resource takes precedence over that map.
+            if (theFunction && theFunction->IsOfType("UserDefinedFunction"))
+               owner = static_cast<UserDefinedFunction*>(theFunction)->
+                  FindFunctionObject(ownerName);
+            if (!owner)
+               owner = FindObject(ownerName);
+         }
+         UnsignedInt ownerType =
+            ParameterInfo::Instance()->GetObjectType(paramType);
+         // Isolated parsers may not have constructed this parameter yet.
+         // Obtain its declared owner without binding it to the field owner.
+         if (owner != NULL && ownerType == Gmat::UNKNOWN_OBJECT)
+         {
+            std::unique_ptr<Parameter> prototype(
+               FactoryManager::Instance()->CreateParameter(paramType));
+            if (prototype)
+               ownerType = prototype->GetOwnerType();
+         }
+         if (owner != NULL && ownerType != Gmat::UNKNOWN_OBJECT &&
+             !owner->IsOfType(ownerType))
+         {
+            Integer field = -1;
+            try { field = owner->GetParameterID(paramType); }
+            catch (BaseException &) {} // Unknown fields retain normal errors.
+            if (field >= 0)
+               continue;
+         }
+
          bool alreadyManaged;
          param = CreateAutoParameter(paramType, names[i], alreadyManaged, ownerName,
                                      depName, manage);
@@ -2823,8 +2954,11 @@ ElementWrapper* Validator::CreateValidWrapperWithDot(GmatBase *obj,
             }
             else
             {
+               // HA also accepts a frame-qualified state. Keep its established
+               // body-qualified syntax and factory dependency metadata.
+               const bool haFrame = type == "HA" && depObjPtr->IsOfType(Gmat::COORDINATE_SYSTEM);
                if ((depType == GmatParam::COORD_SYS && !depObjPtr->IsOfType(Gmat::COORDINATE_SYSTEM)) ||
-                   (depType == GmatParam::ORIGIN && !depObjPtr->IsOfType(Gmat::CELESTIAL_BODY)))
+                   (depType == GmatParam::ORIGIN && !depObjPtr->IsOfType(Gmat::CELESTIAL_BODY) && !haFrame))
                   isParameterValid = false;
             }
          }
@@ -3860,6 +3994,9 @@ void Validator::ShowObjectMap(const std::string &label)
 //------------------------------------------------------------------------------
 Validator::Validator()
 {
+   theInterpreter = nullptr;
+   lhsParamType = Gmat::UNKNOWN_PARAMETER_TYPE;
+   allowObjectProperty = true;
    theModerator = Moderator::Instance();
    StringArray parms = theModerator->GetListOfFactoryItems(Gmat::PARAMETER);
    copy(parms.begin(), parms.end(), back_inserter(theParameterList));

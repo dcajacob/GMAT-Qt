@@ -48,6 +48,8 @@
 #include "EphemerisFile.hpp"
 
 #include <algorithm>       // for find
+#include <exception>       // for cleanup diagnostics
+#include <memory>
 
 //#define DISABLE_SOLAR_SYSTEM_CLONING
 
@@ -118,6 +120,8 @@ Sandbox::Sandbox() :
 //------------------------------------------------------------------------------
 Sandbox::~Sandbox()
 {
+   objectStoreLifetime.Reset();
+   globalStoreLifetime.Reset();
    #ifndef DISABLE_SOLAR_SYSTEM_CLONING   
       if (solarSys)
       {
@@ -216,7 +220,15 @@ GmatBase* Sandbox::AddObject(GmatBase *obj)
          obj->GetTypeName().c_str());
       #endif
       
-      cloned = obj->Clone();
+      if (obj->IsOfType(Gmat::SUBSCRIBER) && !obj->GetFunctionValueContext())
+      {
+         // Ordinary execution copies bind their parameters to this sandbox.
+         // Do not turn their configured references into private function values.
+         GmatBase::FunctionValueCopyGuard executionCopy;
+         cloned = obj->Clone();
+      }
+      else
+         cloned = obj->Clone();
       
       #ifdef DEBUG_MEMORY
       MemoryTracker::Instance()->Add
@@ -628,6 +640,9 @@ bool Sandbox::Initialize()
    // Already initialized
    if (state == INITIALIZED)
       return true;
+
+   objectStoreLifetime.Bind(&objectMap);
+   globalStoreLifetime.Bind(&globalObjectMap);
 
 
    current = sequence;
@@ -1062,7 +1077,10 @@ bool Sandbox::Execute()
    
    current = sequence;
    if (!current)
+   {
+      state = STOPPED;
       return false;
+   }
 
    try
    {
@@ -1256,37 +1274,67 @@ bool Sandbox::Execute()
          }
       } // while (current)
    }
-   catch (BaseException &e)
+   catch (...)
    {
-      // Use exception to remove Visual C++ warning
-      e.GetMessageType();
-      sequence->RunComplete(true);
+      // Retire the run before cleanup, which can itself fail. Preserve the
+      // execution exception after attempting every command's RunComplete.
       state = STOPPED;
-      
-      #if DBGLVL_SANDBOX_RUN
-      MessageInterface::ShowMessage
-         ("Sandbox::Execute() rethrowing %s\n", e.GetFullMessage().c_str());
-      #endif
-      
-      // Set FCS eror flag (LOJ: 2015.10.07)
       errorInPreviousFcs = true;
+      try
+      {
+         sequence->RunComplete(true);
+      }
+      catch (BaseException &cleanupError)
+      {
+         try
+         {
+            MessageInterface::ShowMessage("Additional error resetting mission commands: %s\n",
+                  cleanupError.GetFullMessage().c_str());
+         }
+         catch (...) {} // A diagnostic must not replace the execution error.
+      }
+      catch (const std::exception &cleanupError)
+      {
+         try
+         {
+            MessageInterface::ShowMessage("Additional error resetting mission commands: %s\n",
+                  cleanupError.what());
+         }
+         catch (...) {}
+      }
+      catch (...)
+      {
+         try
+         {
+            MessageInterface::ShowMessage("Additional unknown error resetting mission commands.\n");
+         }
+         catch (...) {}
+      }
       throw;
    }
    
-   sequence->RunComplete(true);
    state = STOPPED;
-   
-   // notify subscribers end of run
-   currentState = Gmat::IDLE;
-   publisher->SetRunState(currentState);
-   publisher->NotifyEndOfRun();
-   
-   // Write out event data, if any, and if we are writing in
-   // "Automatic mode"
-   for (UnsignedInt i = 0; i < events.size(); ++i)
+   try
    {
-      if (events[i]->IsInAutomaticMode())
-         events[i]->LocateEvents();
+      sequence->RunComplete(true);
+
+      // notify subscribers end of run
+      currentState = Gmat::IDLE;
+      publisher->SetRunState(currentState);
+      publisher->NotifyEndOfRun();
+
+      // Write out event data, if any, and if we are writing in
+      // "Automatic mode"
+      for (UnsignedInt i = 0; i < events.size(); ++i)
+      {
+         if (events[i]->IsInAutomaticMode())
+            events[i]->LocateEvents();
+      }
+   }
+   catch (...)
+   {
+      errorInPreviousFcs = true;
+      throw;
    }
    
    #if DBGLVL_SANDBOX_RUN > 0
@@ -1355,6 +1403,31 @@ void Sandbox::Clear()
       ("Sandbox::Clear() entered, errorInPreviousFcs=%d\n", errorInPreviousFcs);
    #endif
    
+   // Function sequences can retain calls to other sandbox functions after
+   // failed initialization. Finalize them before deleting any of their
+   // function or parameter owners. The main sequence is borrowed and may
+   // already have been deleted by Moderator, so it cannot be used here.
+   std::vector<UserDefinedFunction*> pendingFunctions;
+   for (const ObjectMap *map : {&objectMap, &globalObjectMap})
+      for (const auto &entry : *map)
+         if (auto *function = dynamic_cast<UserDefinedFunction*>(entry.second))
+            if (std::find(pendingFunctions.begin(), pendingFunctions.end(),
+                          function) == pendingFunctions.end())
+               pendingFunctions.push_back(function);
+   for (auto *function : pendingFunctions)
+      if (!function->IsFcsFinalized())
+         function->Finalize(true);
+   // Function declaration maps can cache borrowed sandbox Parameters. Retire
+   // those aliases before either owning object map starts deleting its values.
+   for (auto *function : pendingFunctions)
+   {
+      function->RetireSandboxReferences(objectMap);
+      function->RetireSandboxReferences(globalObjectMap);
+   }
+
+   objectStoreLifetime.Reset();
+   globalStoreLifetime.Reset();
+
    sequence  = NULL;
    current   = NULL;
    
@@ -1946,6 +2019,12 @@ bool Sandbox::HandleGmatFunction(GmatCommand *cmd,
                fcsCmd = fcsCmd->GetNext();
             }
          }
+         // Function commands use this sandbox's event-manager clones just as
+         // main-sequence commands do. Refresh existing FCS bindings on reuse;
+         // branch commands forward the managers to their children.
+         for (GmatCommand *functionCmd = udf->GetFunctionControlSequence();
+              functionCmd; functionCmd = functionCmd->GetNext())
+            functionCmd->SetTriggerManagers(&triggerManagers);
       }
    }
    #ifdef DEBUG_SANDBOX_GMATFUNCTION
@@ -2277,50 +2356,23 @@ void Sandbox::PassToBranchCommand(GmatBase *theClone,
 void Sandbox::UpdateAndInitializeCloneOwner(GmatBase *theClone,
          GmatBase* theOwner, Integer updatedParameterIndex)
 {
-   bool incomingInitState = theOwner->IsInitialized();
-
+   if (!theClone || !theOwner) throw SandboxException("Cannot update a null clone or owner.");
+   const bool incomingInitState = theOwner->IsInitialized();
    if (updatedParameterIndex >= 0)
-   {
-      #ifdef DEBUG_CLONE_UPDATES
-         MessageInterface::ShowMessage("In Sandbox::UpdateAndInitializeClone"
-               "Owner(%s, %s, %d), %s may not need reinitialization\n",
-               theClone->GetName().c_str(), theOwner->GetName().c_str(),
-               updatedParameterIndex, theOwner->GetName().c_str());
-      #endif
-
       theOwner->UpdateClonedObjectParameter(theClone, updatedParameterIndex);
-   }
    else
-   {
       theOwner->UpdateClonedObject(theClone);
 
-      if ((theOwner->IsInitialized() == false) && incomingInitState)
-      {
-         #ifdef DEBUG_CLONE_UPDATES
-            MessageInterface::ShowMessage("In Sandbox::UpdateAndInitializeClone"
-                  "Owner(%s, %s, %d), %s must be reinitialized\n",
-                  theClone->GetName().c_str(), theOwner->GetName().c_str(),
-                  updatedParameterIndex, theOwner->GetName().c_str());
-         #endif
-
-         ObjectInitializer *objInit = new ObjectInitializer(solarSys, &objectMap, &globalObjectMap,
-                  internalCoordSys, true);
-         objInit->BuildReferences(theOwner);
-         objInit->BuildAssociations(theOwner);
-         delete objInit;
-
-         #ifdef DEBUG_CLONE_UPDATES
-            bool retval =
-         #endif
-
-         theOwner->Initialize();
-
-         #ifdef DEBUG_CLONE_UPDATES
-            if (retval == false)
-               MessageInterface::ShowMessage("%s needs initialization, but "
-                     "initialization fails\n", theOwner->GetName().c_str());
-         #endif
-      }
+   // A property setter can invalidate its owner just as a whole-value update
+   // can. Honor that native result for both notification routes.
+   if (!theOwner->IsInitialized() && incomingInitState)
+   {
+      std::unique_ptr<ObjectInitializer> initializer(new ObjectInitializer(solarSys,
+         &objectMap, &globalObjectMap, internalCoordSys, true));
+      initializer->BuildReferences(theOwner);
+      initializer->BuildAssociations(theOwner);
+      if (!theOwner->Initialize())
+         throw SandboxException("Cannot initialize clone owner after update: " + theOwner->GetName());
    }
 }
 

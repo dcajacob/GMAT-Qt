@@ -46,6 +46,11 @@ public:
    virtual ~Covariance();
    Covariance(const Covariance &cov);
    Covariance& operator=(const Covariance &cov);
+   void ValidateRestorationLayout(const Covariance &source) const;
+   void RestoreValues(const Covariance &source);
+   // Resource copies rebind only references to their original owning object.
+   void RebindOwner(const GmatBase *previous, GmatBase *replacement) noexcept;
+   bool HasOwner(const GmatBase *object) const noexcept;
 
    // Overload the parentheses operators
    Real& operator()(const Integer r, const Integer c);
@@ -61,6 +66,7 @@ public:
    Integer GetDimension();
 
    Rmatrix *GetCovariance();
+   const Rmatrix *GetCovariance() const;
    Rmatrix *GetCovariance(const Integer forParameterID);
    
    Integer   GetElementIndex(const std::string elementName) const;
@@ -99,6 +105,8 @@ protected:
    ObjectArray  elementOwners;
 
    Integer dimension;
+   // Metadata slot for the most recently returned ephemeral parameter block.
+   Integer subCovarianceIndex;
 
    void PrepareMatrix();
 };

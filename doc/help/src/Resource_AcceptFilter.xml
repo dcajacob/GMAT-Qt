@@ -625,8 +625,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>Depends on <guilabel>ThinMode</guilabel>
-                    value</para>
+                    <para>Observation count for ThinMode=Frequency; seconds for ThinMode=Time</para>
                   </listitem>
                 </varlistentry>
 

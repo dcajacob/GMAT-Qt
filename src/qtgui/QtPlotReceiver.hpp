@@ -26,15 +26,17 @@ public:
    void clear(bool resetViews=false);
    void missionFinished();
    bool hasReplayDisplays() const;
-   void setReplayPosition(int value);
+   void setReplayPosition(double value);
    void setReplayMode(PlotReplayMode mode);
    PlotReplayMode replayMode() const { return sharedReplayMode; }
    void releaseSharedReplay();
    std::optional<PlotSimulationClocks::State> simulationClock(const QString &name) const;
    void advanceSimulationClocks(double seconds);
-   std::optional<int> replayPosition() const { return sharedReplayPosition; }
+   std::optional<double> replayPosition() const { return sharedReplayPosition; }
    static void validateCameraReferences(const QMap<QString,QtCameraSetting> &settings);
    QStringList names() const;
+   QStringList backendNames() const;
+   QString displayName(const QString &name) const;
    bool show(const QString &name);
    QMdiArea *workspaceArea() const { return workspace; }
    std::shared_ptr<const PlotModel> model(const QString &name) const;
@@ -195,8 +197,9 @@ virtual bool SetDynamicDataTextColor(const std::string &plotName,
                         std::vector<std::vector<DDD>>) override;
 private:
    struct Cell { QString text; QColor foreground = Qt::black, background = Qt::white; };
-   struct OrbitDataAvailability { double epoch=0; QMap<QString,bool> objects; };
+   struct OrbitDataAvailability { double epoch=0; bool committedSteps=false; QMap<QString,bool> objects; QSet<QString> arcStarts, skipped; };
    struct Entry {
+      QString logicalName;
       std::shared_ptr<PlotModel> data;
       QPointer<QMdiSubWindow> window;
       QPointer<PlotWidget> widget;
@@ -214,12 +217,12 @@ private:
       bool xyRedrawSuspended = false;
       bool ignoreTimeSequence = false;
       bool solverData = false;
+      bool clearSolverOnNextOrbitUpdate = false;
+      bool bufferedOrbitReplay = false;
       QString solverScope;
       QMap<QString,QMap<QString,quint64>> solverBreaks;
       QMap<QString,QColor> segmentColors;
       QMap<QString,QColor> orbitColors,targetColors;
-      bool automaticGeometry = false;
-      QRect automaticRect;
       bool useInitialView = true;
       bool toolbarVisible = true;
       bool rawClockPublication = false;
@@ -235,8 +238,10 @@ private:
       OrbitTrialHistory trialHistory;
    };
    Entry *find(const std::string &name);
+   QString resolveName(const QString &name) const;
    Entry &create(const std::string &name, PlotModel::Kind kind, Real x, Real y, Real w, Real h, bool maximized);
    void refresh(Entry &entry, bool force = false);
+   void clearOrbitSolverSamples(Entry &entry);
    void loadSkyCatalogs(Entry &entry,const std::string &name);
    bool remove(const std::string &name);
    void warn(const std::string &name, const std::string &option);
@@ -253,7 +258,7 @@ private:
    QElapsedTimer simulationElapsed;
    QMdiArea *workspace;
    QMap<QString, Entry> entries;
-   std::optional<int> sharedReplayPosition;
+   std::optional<double> sharedReplayPosition;
    PlotReplayMode sharedReplayMode=PlotReplayMode::InterpolatedSteps;
    QSet<QString> warnings;
    QMap<QString,PlotViewState> savedViews;

@@ -30,6 +30,7 @@
 
 #include "EndFileThrust.hpp"
 #include "MessageInterface.hpp"
+#include "ODEModel.hpp"
 
 
 //------------------------------------------------------------------------------
@@ -503,6 +504,7 @@ bool EndFileThrust::Execute()
                ("EndFiniteBurn::Execute() Removing burnForce<%p>'%s' from "
                      "transientForces\n", *j, (*j)->GetName().c_str());
             #endif
+            ODEModel::SetTransientAccelerationContext(*j, false);
             transientForces->erase(j);
             break;
          }
@@ -514,7 +516,7 @@ bool EndFileThrust::Execute()
          // but publisher->SetManeuvering() only takes a Real epoch, it doesn't have a precision time overload
          Real epoch = sats[0]->GetEpoch();
          publisher->SetManeuvering(this, false, epoch, satNames, "end of file "
-               "based maneuver");
+               "based maneuver", ObjectArray(sats.begin(), sats.end()));
       }
    }
 

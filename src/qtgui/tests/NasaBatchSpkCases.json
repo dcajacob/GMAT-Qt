@@ -1,0 +1,112 @@
+{
+  "cases": [
+    {
+      "key": "Positive",
+      "initial_guess": [
+        7001.0,
+        -0.5,
+        0.25,
+        0.0005,
+        5.335565450622125,
+        5.336065450622126
+      ]
+    },
+    {
+      "key": "Negative",
+      "initial_guess": [
+        6999.0,
+        0.5,
+        -0.25,
+        -0.0005,
+        5.336165450622126,
+        5.335665450622125
+      ]
+    }
+  ],
+  "stations": [
+    {
+      "name": "North0",
+      "latitude": 30.0,
+      "longitude": 0.0
+    },
+    {
+      "name": "North1",
+      "latitude": 30.0,
+      "longitude": 60.0
+    },
+    {
+      "name": "North2",
+      "latitude": 30.0,
+      "longitude": 120.0
+    },
+    {
+      "name": "North3",
+      "latitude": 30.0,
+      "longitude": 180.0
+    },
+    {
+      "name": "North4",
+      "latitude": 30.0,
+      "longitude": 240.0
+    },
+    {
+      "name": "North5",
+      "latitude": 30.0,
+      "longitude": 300.0
+    },
+    {
+      "name": "South0",
+      "latitude": -30.0,
+      "longitude": 0.0
+    },
+    {
+      "name": "South1",
+      "latitude": -30.0,
+      "longitude": 60.0
+    },
+    {
+      "name": "South2",
+      "latitude": -30.0,
+      "longitude": 120.0
+    },
+    {
+      "name": "South3",
+      "latitude": -30.0,
+      "longitude": 180.0
+    },
+    {
+      "name": "South4",
+      "latitude": -30.0,
+      "longitude": 240.0
+    },
+    {
+      "name": "South5",
+      "latitude": -30.0,
+      "longitude": 300.0
+    }
+  ],
+  "mu": 398600.4415,
+  "radius": 7000.0,
+  "truth": [
+    7000.0,
+    0.0,
+    0.0,
+    -0.0,
+    5.3358654506221255,
+    5.3358654506221255
+  ],
+  "epoch_utc": "10 Jun 2012 00:00:00.000",
+  "utc_mjd": 26088.5,
+  "tai_minus_utc": 34.0,
+  "a1_minus_tai": 0.0343817,
+  "a1_epoch": 26088.500393916456,
+  "duration": 28800,
+  "position_tolerance": 2e-05,
+  "velocity_tolerance": 2e-08,
+  "recovered_position_tolerance": 1e-05,
+  "recovered_velocity_tolerance": 1e-08,
+  "metadata_time_tolerance": 0.002,
+  "min_observations": 30,
+  "min_oem_points": 100,
+  "scope": "Two biased starts, converged batch SPK type13 degree7 final-only output for one noiseless8h45deg Earth point-mass orbit. Actual GUI controls/history/Unicode/binary details, recovered initial state and converged native clone. All raw knots must match native final published states and independent frame-transformed circular truth, with complete final time extent, exact overlap across1000-point writer split, NAIF TDB clock and independent DAF/LSK algebra. Reader checks every knot and every inter-knot midpoint. Shared ICRF table/LSK/frame and simulated measurement inputs are not independent physical frame/time/measurement truth. No general orbit/dynamics/noise/covariance,filter/smoother format boundaries,failed/stopped/nested/recovery,OS-input/GPU/hardware/platform/stress/current-private NASA/full-build qualification;E406 remains uncredited."
+}

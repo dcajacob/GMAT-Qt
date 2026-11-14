@@ -56,6 +56,7 @@ public:
 
    /// inherited from GmatBase
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
    
    virtual std::vector<Rmatrix33> 
                      GetRotationMatrixDerivative(GmatTime &epochGT, CoordinateSystem *j2kCS);

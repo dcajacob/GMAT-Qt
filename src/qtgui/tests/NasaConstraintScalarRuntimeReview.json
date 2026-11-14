@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "doc/SystemDocs/Requirements/GMAT Requirements.xlsx": "736847e909ca550731386261073e46a9fa3ac8d78f53f0c37dd5d93b11a85c23",
+    "doc/SystemDocs/Test/Requirements-To-Test Matrix, 2012-05-11 (GMAT Build 2012-05-04).csv": "4693e097b183af76bc7c8dfcc0f62d7696b2e1417c90cb10d0ed4f9577160a97"
+  },
+  "scope": "Runtime-only discovery/acceptance execution; zero NASA rows awarded until complete family conjunction review.",
+  "reference_sources": {
+    "src/qtgui/tests/NasaConstraintScalarTests.cpp": "09d16819420e8c5e391920bd317c7b3e8ff27f9104edee9448e703c8da82c340",
+    "src/qtgui/tests/NasaConstraintScalarCases.json": "5f74df530661caed43c96fb7b6103af8ae1bb9501dc47a46c582ef2c0cab5a4f",
+    "src/qtgui/tests/NasaConstraintScalarOracle.py": "635317c106a4e357c7109a2be058de575bc3fbb2688ad34174d73c4f437da4f0",
+    "src/qtgui/tests/constraint-scalars-sun.bsp": "3ce61eee3dd20713ba2b15b7e490423d7c5537196fef2318202f839e231d96b3",
+    "src/qtgui/tests/NasaScalarFamilyInventory.cpp": "3283136db31bf28017c7c741d02ab941130564ed5639e53b6696e118ae3b15b7",
+    "application/data/icrf/ICRF_Table.txt": "e6b3969a7961c56cacd37a3daa2a98d1d7d765e8605699d5151db2a5bde44547",
+    "plugins/YukonOptimizerPlugin/src/base/solver/GmatProblemInterface.cpp": "c6e1ed0a3917ccc7e37bc8a78a4917930c95951ad80a84f6be4edf971e54fdf8",
+    "plugins/YukonOptimizerPlugin/src/base/solver/Yukonad.cpp": "f9f8182e01438a212109b023191745476e93f24bc9185e7215f9be9308148486",
+    "src/base/command/Optimize.cpp": "3e63d62d62aff3574cd8e335ee3b5f193e99496d59188f29f4fc6b374a7f6720",
+    "src/gmatutil/util/CalculationUtilities.cpp": "d48508e19de5f6b397b24ddacb5795eaa611f4d37e58fad101016aa068cf2df9",
+    "src/qtgui/tests/NasaAttitudeDefinitionCases.json": "b0b027d28da1bf25c7e3434b8b6f418f7ee54272705000f05ba8111004f6e723",
+    "src/qtgui/tests/NasaEpochDefinitionCases.json": "3e381985f34952a15a079f46cbf34b60ba5a2bd265799e3ac457e28152767aaa",
+    "src/qtgui/tests/OrbitalParameterOracle.py": "3eb53d2b1d5bcaa79ae2231de4d0758b8367ae8aaadc40888d883abd0262cbbc",
+    "src/qtgui/tests/OrbitCalculationOracle.py": "16d7fe09619c8aa4b0f34d91c52de479a0f09cf4a36632916a30ab1e8921b2fe",
+    "src/qtgui/tests/EclipseGeometryOracle.py": "510d0026a2da16c7ca7ae5c1c74d2b0c38b87ddd54b62ee5ae2b5f64eebbb499"
+  },
+  "reviews": []
+}

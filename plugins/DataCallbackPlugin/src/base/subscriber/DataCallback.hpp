@@ -40,6 +40,8 @@ class Parameter;
 class DATACALLBACK_API DataCallback : public Subscriber
 {
   public:
+   bool HasSubscriberValueReferenceProvider() const override;
+   std::unique_ptr<FunctionInvocationState> SuspendFunctionBindings() override;
     DataCallback(const std::string &typeName, const std::string &name,
 	Parameter *firstParam = NULL);
 
@@ -95,6 +97,8 @@ class DATACALLBACK_API DataCallback : public Subscriber
       GetWrapperObjectNameArray(bool completeSet = false);
 
   protected:
+   void RebindSubscriberValueReferences(const Subscriber &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
     std::vector<Parameter*> mParams;
     Integer mNumParams;
     StringArray mParamNames;
@@ -103,6 +107,8 @@ class DATACALLBACK_API DataCallback : public Subscriber
     // methods inhereted from Subscriber
     virtual bool Distribute(const Real *dat, Integer len);
 
+    // Borrowed host configuration, including across native value copies. The
+    // host must keep the callback and its userdata alive while a copy is used.
     void (*mCallbackFcn)(const double *dat, int len, void *userdata);
     void *mUserData; // User data sent to callback function
 

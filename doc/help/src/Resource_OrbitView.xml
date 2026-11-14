@@ -383,7 +383,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Integer count or order (samples, segments, iterations or polynomial degree as described)</para>
                   </listitem>
                 </varlistentry>
 
@@ -731,7 +731,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Integer count or order (samples, segments, iterations or polynomial degree as described)</para>
                   </listitem>
                 </varlistentry>
 
@@ -1095,7 +1095,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Integer count or order (samples, segments, iterations or polynomial degree as described)</para>
                   </listitem>
                 </varlistentry>
 
@@ -1218,7 +1218,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Integer count or order (samples, segments, iterations or polynomial degree as described)</para>
                   </listitem>
                 </varlistentry>
 
@@ -1414,7 +1414,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>km or N/A</para>
+                    <para>km for a literal three-component vector; no physical quantity for an object-name selection</para>
                   </listitem>
                 </varlistentry>
 
@@ -1480,7 +1480,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>km or N/A</para>
+                    <para>km for a literal three-component vector; no physical quantity for an object-name selection</para>
                   </listitem>
                 </varlistentry>
 
@@ -1551,7 +1551,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>km or N/A</para>
+                    <para>km for a literal three-component vector; no physical quantity for an object-name selection</para>
                   </listitem>
                 </varlistentry>
 
@@ -1610,7 +1610,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless view-vector multiplier</para>
                   </listitem>
                 </varlistentry>
 

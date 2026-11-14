@@ -34,8 +34,27 @@
  */
 //------------------------------------------------------------------------------
 
+#include "FunctionException.hpp"
+#include "ExpressionBinding.hpp"
+#include <memory>
+#include <typeinfo>
 #include "GetLastState.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration getLastStateValueProvider({
+   GetLastState::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const GetLastState*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<GetLastState*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "ArrayWrapper.hpp"
+#include "Spacecraft.hpp"
 #include "MessageInterface.hpp"
 
 //#define DEBUG_FUNCTION_INIT
@@ -169,9 +188,7 @@ void GetLastState::SetOutputTypes(WrapperTypeArray &outputTypes,
    #endif
    
    // Set output wrapper type for GetLastState
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;   
+   Function::SetOutputTypes(outputTypes, rowCounts, colCounts);
 }
 
 //------------------------------------------------------------------------------
@@ -286,8 +303,15 @@ bool GetLastState::Execute(ObjectInitializer *objInit, bool reinitialize)
          ("   outputWrapperTypes[%d] = %d\n", i, outputWrapperTypes[i]);
    #endif
    
-   // Get last state
-   Rvector6 state = ((SpacePoint*)obj)->GetLastState();
+   // The formal object-store entry can be a placeholder in a function frame.
+   // Read the spacecraft actually bound by the input wrapper, as other
+   // object-valued built-ins do, rather than the placeholder's stale state.
+   ElementWrapper *inputWrapper = inputArgMap.begin()->second;
+   Spacecraft *spacecraft = inputWrapper ?
+      dynamic_cast<Spacecraft*>(inputWrapper->GetRefObject()) : NULL;
+   if (spacecraft == NULL)
+      throw GmatBaseException("GetLastState requires a bound Spacecraft input");
+   Rvector6 state = spacecraft->GetLastState();
    
    // Only 1 output
    int index = 0;
@@ -319,13 +343,26 @@ bool GetLastState::Execute(ObjectInitializer *objInit, bool reinitialize)
    MessageInterface::ShowMessage("   rmat = %s", rmat.ToString().c_str());
    #endif
    
-   // Create Array, this array will be deleted when ArrayWrapper is deleted
-   Array *outArray = new Array(ewi->first);
-   #ifdef DEBUG_MEMORY
-   MemoryTracker::Instance()->Add
-      (outArray, "outArray", "GetLastState::Execute()",
-       "outArray = new Array()");
-   #endif
+   // Function frames retain wrappers for their formal output objects. Update
+   // that Array rather than returning a detached Array while the formal stays
+   // unchanged. Keep the legacy detached-output path for callers without one.
+   Array *outArray = NULL;
+   ObjectMap::iterator outputObject = objectStore->find(ewi->first);
+   if (outputObject != objectStore->end())
+   {
+      outArray = dynamic_cast<Array*>(outputObject->second);
+      if (outArray == NULL)
+         throw GmatBaseException("GetLastState requires an Array output object");
+   }
+   else
+   {
+      outArray = new Array(ewi->first);
+      #ifdef DEBUG_MEMORY
+      MemoryTracker::Instance()->Add
+         (outArray, "outArray", "GetLastState::Execute()",
+          "outArray = new Array()");
+      #endif
+   }
    
    outArray->SetSize(numRows, numCols);
    outArray->SetRmatrix(rmat);
@@ -392,7 +429,15 @@ void GetLastState::Finalize(bool cleanUp)
 //------------------------------------------------------------------------------
 GmatBase* GetLastState::Clone() const
 {
-   return (new GetLastState(*this));
+   std::unique_ptr<GetLastState> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new GetLastState(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived GetLastState must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -407,6 +452,33 @@ GmatBase* GetLastState::Clone() const
 //---------------------------------------------------------------------------
 void GetLastState::Copy(const GmatBase* orig)
 {
-   operator=(*((GetLastState *)(orig)));
+   const auto *source = dynamic_cast<const GetLastState*>(orig);
+   if (!source || typeid(*this) != typeid(GetLastState) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible GetLastState value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   const auto previousObjectBindings = objectBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
 }
 
+
+
+bool GetLastState::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const GetLastState*>(&original);
+   if (!source || typeid(*this) != typeid(GetLastState) || typeid(original) != typeid(GetLastState))
+      throw FunctionException("Derived GetLastState references need their own passive provider.\n");
+   RebindObjectManagedFunctionValue(*source, resolve);
+   return true;
+}
+
+bool GetLastState::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(GetLastState);
+}

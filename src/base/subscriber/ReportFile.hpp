@@ -47,6 +47,8 @@
 class GMAT_API ReportFile : public Subscriber
 {
 public:
+   bool HasSubscriberValueReferenceProvider() const override;
+   std::unique_ptr<FunctionInvocationState> SuspendFunctionBindings() override;
    ReportFile(const std::string &typeName, const std::string &name,
               const std::string &fname = "", 
               Parameter *firstParam = NULL);
@@ -135,6 +137,8 @@ public:
                         GetWrapperObjectNameArray(bool completeSet = false);
    
 protected:
+   void RebindSubscriberValueReferences(const Subscriber &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
    /// Name of the output path
    std::string          outputPath;
    /// Name of the report file

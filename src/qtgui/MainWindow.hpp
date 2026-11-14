@@ -29,7 +29,11 @@ class QMdiSubWindow;
 class GmatBase;
 class GmatCommand;
 class QAction;
+class QLabel;
+class QPushButton;
 struct ScriptDocument;
+struct SatelliteImportData;
+class McpBridge;
 class MainWindow : public QMainWindow
 {
 public:
@@ -55,35 +59,49 @@ public:
    void resumeMission();
    void stopMission();
    QStringList summaryFrames() const;
-   QString summaryText(int index,const QString &frame,bool physicsOnly=false);
+   QString summaryText(int index,const QString &frame,bool physicsOnly=false,bool includeA1=false);
    void showSummary(int index=-1);
    bool isRunning() const { return running; }
    QtPlotReceiver *plotReceiver() const { return plots.get(); }
    const MissionSnapshot &missionSnapshot() const { return missionState; }
    QString applyMissionChange(const MissionSnapshot &snapshot, int index,
-                              MissionEdit operation, const QString &replacement);
+                              MissionEdit operation, const QString &replacement,const QMap<QString,QString> &pendingFiniteResources={});
    QString applySolverCorrections(const MissionSnapshot &snapshot,int index);
    QString applyResourceChanges(const QString &name, const QMap<QString, QString> &changes,
                                 const QString &expectedScript);
-   QString createResource(const QString &type, const QString &name, const QString &expectedScript, int rows=1, int columns=1, const std::optional<QString> &initialValue=std::nullopt, const QString &functionPath={}, const QString &spacecraft={}, const QMap<QString,QString> &settings={});
+   enum class ResourceCreationPolicy { RequireReferences, AllowIncomplete };
+   QString createResource(const QString &type, const QString &name, const QString &expectedScript, int rows=1, int columns=1, const std::optional<QString> &initialValue=std::nullopt, const QString &functionPath={}, const QString &spacecraft={}, const QMap<QString,QString> &settings={}, ResourceCreationPolicy policy=ResourceCreationPolicy::RequireReferences);
+   QString importSatellite(const SatelliteImportData &data,const QString &name,const QString &expectedScript,const QString &storageDirectory={},std::optional<int> propagationCommand=std::nullopt,const QString &statePropagator={});
    QString cloneResource(const QString &original, const QString &name, const QString &expectedScript, const QMap<QString,QString> &settings={});
+   enum class ResourceClonePolicy { Native, IncludePropagators, IncludeBuiltInFrames, IncludeBuiltInPoints, IncludeDefaultBodies };
+   QString cloneResource(const QString &original, const QString &name, const QString &expectedScript, const QMap<QString,QString> &settings, ResourceClonePolicy policy);
+   enum class ResourceCloneSourcePolicy { PreserveIncludes, CopyIncludedStatements };
+   QString cloneResource(const QString &original, const QString &name, const QString &expectedScript, const QMap<QString,QString> &settings, ResourceClonePolicy policy, ResourceCloneSourcePolicy sourcePolicy);
    QString renameResource(const QString &original,const QString &name,const QString &expectedScript);
    QString deleteResource(const QString &name, const QString &expectedScript);
+   // SolarSystem-owned bodies use source reconstruction,not ConfigManager removal.
+   QString deleteUserDefinedBody(const QString &name,const QString &expectedScript);
 protected:
    void closeEvent(QCloseEvent *event) override;
 private:
+   friend class McpBridge;
+   McpBridge *mcpBridge=nullptr;
    QString applyResourceSettings(GmatBase &object,const QMap<QString,QString> &changes,const QString &source);
+   QString createResourceUnderBody(const QString &type,const QString &name,const QString &expectedScript,int rows,int columns,const std::optional<QString> &initialValue,const QString &functionPath,const QString &spacecraft,const QMap<QString,QString> &settings,ResourceCreationPolicy policy,const QString &centralBody);
    QString savePlotProjection(const QString &name,bool perspective,double fov);
    void refreshTrees();
    void refreshOutput();
    EditablePanel *makeResourcePanel(GmatBase &object,const QString &snapshot);
    void refreshAppliedResourcePanels();
    void openCommandEditor(int index, MissionEdit operation);
+   void showRenameCommand(int index);
    CommandEditor *makeCommandPanel(int index,MissionEdit operation);
-   void showCreateResource(const QString &initialType={});
-   void showCloneResource(const QString &original);
+   void showCreateResource(const QString &initialType={},const QString &centralBody={});
+   bool showImportSatellite();
+   void showCloneResource(const QString &original, ResourceClonePolicy policy=ResourceClonePolicy::Native);
    void showRenameResource(const QString &original);
    void showPathSettings();
+   void openPathSettings(bool outputTab);
    void showFileComparison(const QString &baseline={});
    QString applyModelScript(const QString &candidate,const std::function<QString()> &validate={},const QString &removedCamera={});
    bool restoreBuiltModel();
@@ -107,14 +125,21 @@ private:
    QList<std::shared_ptr<ScriptDocument>> scriptDocuments;
    std::shared_ptr<ScriptDocument> activeDocument;
    void updateTitle();
+   void updateModelStatus();
    void setRunning(bool value);
+   bool setMatlabConnection(bool open);
+   void showMatlabMode();
    RunResult executeMission(bool debug);
    void refreshBreakpoints();
    QMdiArea *workspace;
+   QWidget *modelBuildStatus=nullptr;
+   QLabel *modelBuildMessage=nullptr;
+   QPushButton *modelBuildButton=nullptr;
    QPlainTextEdit *editor;
    QPlainTextEdit *messages;
    QString *folderMessages=nullptr;
    QPointer<QWidget> textEditTarget;
+   QPointer<QWidget> editContextTarget;
    HelpController *contextHelp;
    QTreeWidget *resources;
    QTreeWidget *mission;

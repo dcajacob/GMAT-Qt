@@ -31,7 +31,18 @@
 //------------------------------------------------------------------------------
 
 
+#include <memory>
+#include <algorithm>
+#include <cmath>
+#include <limits>
 #include "FiniteThrust.hpp"
+#include "OrbitStmForceGradient.hpp"
+#include "PropagationStateManager.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
+#ifdef DEBUG_MEMORY
+#include "MemoryTracker.hpp"
+#endif
 
 //#define DEBUG_FINITETHRUST_INIT
 //#define DEBUG_REGISTRATION
@@ -63,6 +74,8 @@ FiniteThrust::FiniteThrust(const std::string &name) :
    depleteMass          (true)
 {
    derivativeIds.push_back(Gmat::CARTESIAN_STATE);
+   derivativeIds.push_back(Gmat::ORBIT_STATE_TRANSITION_MATRIX);
+   derivativeIds.push_back(Gmat::ORBIT_A_MATRIX);
    objectTypeNames.push_back("FiniteThrust");
    isConservative = false;
 }
@@ -94,6 +107,7 @@ FiniteThrust::~FiniteThrust()
 //------------------------------------------------------------------------------
 FiniteThrust::FiniteThrust(const FiniteThrust& ft) :
    PhysicalModel           (ft),
+   maneuverTargets         (ft.maneuverTargets),
    burnNames               (ft.burnNames),
    mySpacecraft            (ft.mySpacecraft),
    spacecraft              (ft.spacecraft),
@@ -104,8 +118,10 @@ FiniteThrust::FiniteThrust(const FiniteThrust& ft) :
    mDotIndex               (ft.mDotIndex),
    depleteMass             (ft.depleteMass)
 {
-   burns.clear();
-   scIndices.clear();
+   burns = ft.burns;
+   burnLifetimes = ft.burnLifetimes;
+   burnReferences = ft.burnReferences;
+   scIndices = ft.scIndices;
 }
 
 
@@ -124,11 +140,41 @@ FiniteThrust& FiniteThrust::operator=(const FiniteThrust& ft)
 {
    if (this != &ft)
    {
+      const bool restoring = GmatBase::IsNativeRestorationCopy();
+      const bool ready = isInitialized;
+      if (restoring)
+      {
+         RequireLiveBurns();
+         ft.RequireLiveBurns();
+         if (burnNames != ft.burnNames || mySpacecraft != ft.mySpacecraft ||
+             burns != ft.burns || burnReferences != ft.burnReferences ||
+             spacecraft != ft.spacecraft || scIndices != ft.scIndices ||
+             satCount != ft.satCount || cartIndex != ft.cartIndex ||
+             fillCartesian != ft.fillCartesian || satThrustCount != ft.satThrustCount ||
+             mDotIndex != ft.mDotIndex || depleteMass != ft.depleteMass ||
+             maneuverTargets.size() != ft.maneuverTargets.size())
+            throw ODEModelException("Prepare finite-thrust roles before restoring changed active bindings.");
+         for (const auto &entry : maneuverTargets)
+         {
+            const auto source = ft.maneuverTargets.find(entry.first);
+            if (!GmatBase::IsLiveReference(entry.second.object, entry.second.lifetime) ||
+                source == ft.maneuverTargets.end() || source->second.object != entry.second.object ||
+                !GmatBase::IsLiveReference(source->second.object, source->second.lifetime))
+               throw ODEModelException("Restoration cannot replace an active finite-thrust target.");
+         }
+         isInitialized = false;
+         PhysicalModel::operator=(ft);
+         isInitialized = ready;
+         return *this;
+      }
       PhysicalModel::operator=(ft);
 
       burnNames    = ft.burnNames;
       spacecraft   = ft.spacecraft;
       mySpacecraft = ft.mySpacecraft;
+      maneuverTargets = ft.maneuverTargets;
+      burnLifetimes.clear();
+      burnReferences.clear();
       burns.clear();
       scIndices.clear();
 
@@ -144,85 +190,70 @@ FiniteThrust& FiniteThrust::operator=(const FiniteThrust& ft)
 
 
 //------------------------------------------------------------------------------
-// bool FiniteThrust::operator==(const FiniteThrust& ft) const
-//------------------------------------------------------------------------------
-/**
- * Checks to see if two FiniteThrusts apply the same thruster force.
- *
- * The check performed here identifies if the burns overlap at all; in other
- * words, if the input burn applies finite thrust using any thruster-spacecraft
- * combination that is also covered by this instance, the return value will be
- * true indicating that the finite thrust from ft overlaps with this one.
- *
- * @param ft The second FiniteThrust
- *
- * @return true if the thrust is applied from the same thruster on the same
- * spacecraft as this instance applies, false if it is a different independent
- * force.
- */
-//------------------------------------------------------------------------------
+bool FiniteThrust::TargetsSpacecraft(const Spacecraft *sc) const
+{
+   if (!sc) return false;
+   if (maneuverTargets.empty()) return PhysicalModel::TargetsSpacecraft(sc);
+   for (const auto &entry : maneuverTargets)
+      if (entry.second.object == sc && GmatBase::IsLiveReference(sc, entry.second.lifetime)) return true;
+   return false;
+}
+
+bool FiniteThrust::SharesTargets(const FiniteThrust &other) const
+{
+   if (!maneuverTargets.empty())
+   {
+      for (const auto &entry : maneuverTargets)
+         if (GmatBase::IsLiveReference(entry.second.object, entry.second.lifetime) &&
+             other.TargetsSpacecraft(entry.second.object)) return true;
+      return false;
+   }
+   if (!other.maneuverTargets.empty()) return other.SharesTargets(*this);
+   for (const std::string &name : mySpacecraft)
+      if (std::find(other.mySpacecraft.begin(), other.mySpacecraft.end(), name) != other.mySpacecraft.end()) return true;
+   return false;
+}
+
+bool FiniteThrust::UsesBurn(const FiniteBurn *burn) const
+{
+   if (!burn || std::find(burns.begin(), burns.end(), burn) == burns.end()) return false;
+   RequireLiveBurns();
+   return true;
+}
+
+void FiniteThrust::RequireLiveBurns() const
+{
+   for (const FiniteBurn *burn : burns)
+   {
+      const auto lifetime = burnLifetimes.find(burn);
+      if (lifetime == burnLifetimes.end() || !GmatBase::IsLiveReference(burn, lifetime->second))
+         throw ODEModelException("FiniteThrust references a FiniteBurn outside its live scope.");
+   }
+}
+
 bool FiniteThrust::operator==(const FiniteThrust& ft) const
 {
-   bool retval = false;
-
-   #ifdef DEBUG_COMPARISON
-      MessageInterface::ShowMessage("Comparing: Does %p == %p?\n", this, &ft);
-      MessageInterface::ShowMessage("   %s\n", (isInitialized ? "Initialized" :
-            "Not Initialized"));
-   #endif
-//   if (isInitialized)
+   if (!SharesTargets(ft)) return false;
+   RequireLiveBurns();
+   ft.RequireLiveBurns();
+   if (burns.empty() || ft.burns.empty())
    {
-      StringArray ftBurnNames = ((FiniteThrust&)ft).GetRefObjectNameArray(
-            Gmat::FINITE_BURN);
-      StringArray ftSatNames = ((FiniteThrust&)ft).GetRefObjectNameArray(
-            Gmat::SPACECRAFT);
-
-      #ifdef DEBUG_COMPARISON
-         MessageInterface::ShowMessage("   %d Sats, %d burns\n",
-               ftSatNames.size(), ftBurnNames.size());
-      #endif
-      // Check to see if there is spacecraft overlap
-      Integer satOverlap = 0, burnOverlap = 0;
-      for (UnsignedInt i = 0; i < mySpacecraft.size(); ++i)
-      {
-         #ifdef DEBUG_COMPARISON
-            MessageInterface::ShowMessage("   Sats: %s?\n",
-                  mySpacecraft[i].c_str());
-         #endif
-         if (find(ftSatNames.begin(), ftSatNames.end(),
-               mySpacecraft[i]) != ftSatNames.end())
-         {
-            ++satOverlap;
-            #ifdef DEBUG_COMPARISON
-               MessageInterface::ShowMessage("   MatchFound\n");
-            #endif
-         }
-      }
-
-      for (UnsignedInt i = 0; i < burnNames.size(); ++i)
-      {
-         #ifdef DEBUG_COMPARISON
-            MessageInterface::ShowMessage("   Burns: %s?\n",
-                  burnNames[i].c_str());
-         #endif
-         if (find(ftBurnNames.begin(), ftBurnNames.end(),
-               burnNames[i]) != ftBurnNames.end())
-         {
-            ++burnOverlap;
-            #ifdef DEBUG_COMPARISON
-               MessageInterface::ShowMessage("   MatchFound\n");
-            #endif
-         }
-      }
-
-      // Note that the current test is not yet rigorous -- it will return a
-      // false positive if sat1.thruster2 and sat2.thruster1 both fire if both
-      // sats and thrusters are in the lists
-      if ((satOverlap > 0) && (burnOverlap > 0))
-         retval = true;
+      for (const std::string &name : burnNames)
+         if (std::find(ft.burnNames.begin(), ft.burnNames.end(), name) != ft.burnNames.end()) return true;
+      return false;
    }
-
-   return retval;
+   // Overlap means the same target and selected thruster, not equal burn labels.
+   for (const FiniteBurn *left : burns)
+   {
+      const StringArray names = left->GetStringArrayParameter(left->GetParameterID("Thrusters"));
+      for (const FiniteBurn *right : ft.burns)
+      {
+         const StringArray other = right->GetStringArrayParameter(right->GetParameterID("Thrusters"));
+         for (const std::string &name : names)
+            if (std::find(other.begin(), other.end(), name) != other.end()) return true;
+      }
+   }
+   return false;
 }
 
 
@@ -237,7 +268,9 @@ bool FiniteThrust::operator==(const FiniteThrust& ft) const
 //------------------------------------------------------------------------------
 GmatBase* FiniteThrust::Clone() const
 {
-   return (new FiniteThrust(*this));
+   std::unique_ptr<FiniteThrust> value(new FiniteThrust(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -257,11 +290,15 @@ void FiniteThrust::Clear(const UnsignedInt type)
    {
       mySpacecraft.clear();
       spacecraft.clear();
+      maneuverTargets.clear();
    }
    
-   if ((type == Gmat::UNKNOWN_OBJECT) || (type == Gmat::THRUSTER)) 
+   if (type == Gmat::UNKNOWN_OBJECT || type == Gmat::THRUSTER || type == Gmat::FINITE_BURN)
    {
       burnNames.clear();
+      burns.clear();
+      burnLifetimes.clear();
+      burnReferences.clear();
    }
 }
 
@@ -343,20 +380,45 @@ const StringArray& FiniteThrust::GetRefObjectNameArray(
 bool FiniteThrust::SetRefObject(GmatBase *obj, const UnsignedInt type,
                                 const std::string &name)
 {
+   if (!obj) return false;
+   if (type == Gmat::SPACECRAFT)
+   {
+      auto *sc = dynamic_cast<Spacecraft*>(obj);
+      if (!sc) return false;
+      const std::string key = name.empty() ? sc->GetName() : name;
+      SetRefObjectName(Gmat::SPACECRAFT, key);
+      maneuverTargets[key] = {sc, sc->GetLifetimeToken()};
+      return true;
+   }
    if (type == Gmat::FINITE_BURN) 
    {
-      if (obj->IsOfType("FiniteBurn") == false)
+      auto *burn = dynamic_cast<FiniteBurn*>(obj);
+      if (!burn)
          throw ODEModelException(
             "FiniteThrust::SetRefObject cannot use objects of type " + 
             obj->GetTypeName());
-      if (find(burns.begin(), burns.end(), obj) == burns.end())
+      const std::string key = name.empty() ? burn->GetName() : name;
+      StringArray names = burnNames;
+      if (std::find(names.begin(), names.end(), key) == names.end()) names.push_back(key);
+      auto references = burnReferences;
+      references[key] = burn;
+      auto lifetimes = burnLifetimes;
+      lifetimes[burn] = burn->GetLifetimeToken();
+      std::vector<FiniteBurn*> selected;
+      for (const std::string &role : names)
       {
-         burns.push_back((FiniteBurn*)obj);
-         if (find(burnNames.begin(), burnNames.end(), name) == burnNames.end())
-         {
-            burnNames.push_back(name);
-         }
+         const auto reference = references.find(role);
+         if (reference != references.end() &&
+             std::find(selected.begin(), selected.end(), reference->second) == selected.end())
+            selected.push_back(reference->second);
       }
+      for (auto entry = lifetimes.begin(); entry != lifetimes.end(); )
+         if (std::find(selected.begin(), selected.end(), entry->first) == selected.end()) entry = lifetimes.erase(entry);
+         else ++entry;
+      burnNames.swap(names);
+      burnReferences.swap(references);
+      burnLifetimes.swap(lifetimes);
+      burns.swap(selected);
       return true;
    }
    
@@ -402,8 +464,37 @@ bool FiniteThrust::SetRefObject(GmatBase *obj, const UnsignedInt type,
 bool FiniteThrust::RenameRefObject(const UnsignedInt type,
       const std::string &oldName, const std::string &newName)
 {
+   if (type == Gmat::SPACECRAFT)
+   {
+      if (oldName == newName) return true;
+      const auto existing = maneuverTargets.find(oldName);
+      const auto collision = maneuverTargets.find(newName);
+      if (existing != maneuverTargets.end() && collision != maneuverTargets.end() &&
+          collision->second.object != existing->second.object)
+         throw ODEModelException("Conflicting configured finite-thrust target names.");
+      if (existing != maneuverTargets.end())
+      {
+         maneuverTargets[newName] = existing->second;
+         maneuverTargets.erase(existing);
+      }
+      for (auto &target : mySpacecraft) if (target == oldName) target = newName;
+      return true;
+   }
    if (type == Gmat::FINITE_BURN)
    {
+      RequireLiveBurns();
+      if (oldName == newName) return true;
+      const auto existing = burnReferences.find(oldName);
+      const auto collision = burnReferences.find(newName);
+      if (existing != burnReferences.end() && collision != burnReferences.end() &&
+          existing->second != collision->second)
+         throw ODEModelException("Conflicting configured finite-burn reference names.");
+      if (existing != burnReferences.end())
+      {
+         burnReferences[newName] = existing->second;
+         burnReferences.erase(existing);
+      }
+
       for (UnsignedInt i = 0; i < burnNames.size(); ++i)
       {
          if (burnNames[i] == oldName)
@@ -437,10 +528,20 @@ bool FiniteThrust::RenameRefObject(const UnsignedInt type,
 GmatBase* FiniteThrust::GetRefObject(const UnsignedInt type,
       const std::string &name)
 {
+   if (type == Gmat::SPACECRAFT && !maneuverTargets.empty())
+   {
+      for (const auto &entry : maneuverTargets)
+         if (name.empty() || entry.first == name)
+            return GmatBase::IsLiveReference(entry.second.object, entry.second.lifetime) ? entry.second.object : NULL;
+      return NULL;
+   }
    if (type == Gmat::FINITE_BURN)
    {
+      RequireLiveBurns();
       if ((name == "") && (burns.size() > 0))
          return burns[0];
+      const auto role = burnReferences.find(name);
+      if (role != burnReferences.end()) return role->second;
 
       for (UnsignedInt i = 0; i < burns.size(); ++i)
       {
@@ -552,6 +653,7 @@ bool FiniteThrust::Initialize()
       MessageInterface::ShowMessage("FiniteThrust::Initialize entered\n");
    #endif
 
+   RequireLiveBurns();
    isInitialized = PhysicalModel::Initialize();
 
    if (modelState != NULL)
@@ -657,6 +759,7 @@ bool FiniteThrust::Initialize()
 bool FiniteThrust::GetDerivatives(Real * state, Real dt, Integer order, 
       const Integer id)
 {
+   RequireLiveBurns();
    #ifdef DEBUG_FINITETHRUST_EXE
       MessageInterface::ShowMessage(
             "FiniteThrust::GetDerivatives entered; fillCartesian is %s, "
@@ -699,8 +802,7 @@ bool FiniteThrust::GetDerivatives(Real * state, Real dt, Integer order,
                sat->GetName().c_str());
          #endif
 
-         if (find(mySpacecraft.begin(), mySpacecraft.end(), sat->GetName()) != 
-             mySpacecraft.end()) 
+         if (TargetsSpacecraft(dynamic_cast<Spacecraft*>(sat))) 
          {
 
             #ifdef DEBUG_FINITETHRUST_EXE
@@ -814,6 +916,43 @@ bool FiniteThrust::GetDerivatives(Real * state, Real dt, Integer order,
       }
    }
    
+   for (const auto matrixType : {Gmat::ORBIT_STATE_TRANSITION_MATRIX, Gmat::ORBIT_A_MATRIX})
+   {
+      const bool stm = matrixType == Gmat::ORBIT_STATE_TRANSITION_MATRIX;
+      if (!(stm ? fillSTM : fillAMatrix))
+         continue;
+      if (!psm || !theState)
+         throw ODEModelException("Finite-thrust derivatives require the propagation state map.");
+      const auto &mapping = *psm->GetStateMap();
+      Integer start = stm ? stmStart : aMatrixStart;
+      const Integer count = stm ? stmCount : aMatrixCount;
+      GmatTime atEpoch = hasPrecisionTime ? epochGT : GmatTime(epoch);
+      atEpoch.AddSeconds(elapsedTime + dt);
+      for (Integer index = 0; index < count; ++index)
+      {
+         if (start < 0 || start >= static_cast<Integer>(mapping.size()))
+            throw ODEModelException("Finite-thrust matrix index is outside the propagation state.");
+         auto *owner = dynamic_cast<Spacecraft*>(mapping[start]->object);
+         if (!owner)
+            throw ODEModelException("Finite-thrust matrix has no spacecraft owner.");
+         const Integer rows = owner->GetIntegerParameter("FullSTMRowCount");
+         const Integer associate = theState->GetAssociateIndex(start);
+         if (rows < 6 || rows > (dimension - start) / rows ||
+             associate < 0 || associate > dimension - 6)
+            throw ODEModelException("Finite-thrust matrix layout is inconsistent.");
+         std::fill(deriv + start, deriv + start + rows*rows, 0.0);
+         if (TargetsSpacecraft(owner))
+         {
+            Rmatrix gradient(3,6);
+            SampleSpacecraft(owner, state + associate, atEpoch, &gradient);
+            for (Integer row = 0; row < 3; ++row)
+               for (Integer column = 0; column < 6; ++column)
+                  deriv[start + (row+3)*rows + column] = gradient(row,column);
+         }
+         start += rows*rows;
+      }
+   }
+
    #ifdef DEBUG_FINITETHRUST_EXE
       //ShowDerivative("FiniteThrust::GetDerivatives() AFTER compute", state,
       //               satCount);
@@ -840,69 +979,112 @@ bool FiniteThrust::GetDerivatives(Real * state, Real dt, Integer order,
 //------------------------------------------------------------------------------
 Rvector6 FiniteThrust::GetDerivativesForSpacecraft(Spacecraft* sc)
 {
-   Rvector6 dv;
+   if (!sc) throw ODEModelException("Finite-thrust sampling requires a spacecraft.");
+   const bool capture = OrbitStmForceGradient::Request::For(this);
+   Rmatrix gradient(3,6);
+   Rvector6 result(0,0,0,0,0,0);
+   if (TargetsSpacecraft(sc) && !burns.empty())
+      result = SampleSpacecraft(sc, nullptr,
+            sc->HasPrecisionTime() ? sc->GetEpochGT() : GmatTime(sc->GetEpoch()),
+            capture ? &gradient : nullptr);
+   if (capture)
+      OrbitStmForceGradient::Request::Capture(this, gradient);
+   return result;
+}
 
-   Real accel[3], burnData[4];
-   //Real mDot;     // in case we want a mass flow parameter
+Rvector6 FiniteThrust::SampleSpacecraft(Spacecraft *sc, const Real *modelState,
+      const GmatTime &atEpoch, Rmatrix *gradient)
+{
+   RequireLiveBurns();
 
-   if (find(mySpacecraft.begin(), mySpacecraft.end(), sc->GetName()) !=
-       mySpacecraft.end())
+   // Reporting/ephemeris evaluation must not retarget a live shared burn or
+   // change the queried spacecraft's throttle/derivative-state caches.
+   std::unique_ptr<GmatBase> value(sc->Clone());
+   bool borrowed = value.get() == sc;
+   for (GmatBase *original : spacecraft) borrowed = borrowed || value.get() == original;
+   for (GmatBase *original : scObjs) borrowed = borrowed || value.get() == original;
+   if (borrowed)
    {
-      // Start with zero thrust
-      //mDot =
-      accel[0] = accel[1] = accel[2] = 0.0;
+      value.release();
+      throw ODEModelException("Finite-thrust spacecraft sampling Clone returned an existing object.");
+   }
+   auto *sample = dynamic_cast<Spacecraft*>(value.get());
+   if (!sample || sample->GetTypeName() != sc->GetTypeName())
+      throw ODEModelException("Incompatible finite-thrust spacecraft sampling clone.");
+   if (modelState)
+   {
+      if (!forceOrigin)
+         throw ODEModelException("Finite-thrust stage sampling requires a force origin.");
+      const Rvector6 origin = forceOrigin->GetMJ2000State(atEpoch);
+      for (Integer component = 0; component < 6; ++component)
+         sample->GetState()[component] = modelState[component] + origin[component];
+      sample->GetState().SetEpoch(atEpoch.GetMjd());
+      sample->GetState().SetEpochGT(atEpoch);
+   }
+   if (!sample->InitializeClonedResource())
+      throw ODEModelException("Cannot initialize finite-thrust scratch spacecraft.");
 
-      // Accumulate thrust and mass flow for each active thruster
-      for (std::vector <FiniteBurn*>::iterator fb = burns.begin();
-           fb != burns.end(); ++fb)
+   Real nominal[6];
+   for (Integer component = 0; component < 6; ++component)
+      nominal[component] = sample->GetState()[component];
+   auto evaluate = [&](Integer component, Real offset)
+   {
+      for (Integer index = 0; index < 6; ++index)
+         sample->GetState()[index] = nominal[index];
+      sample->GetState()[component] += offset;
+      Rvector3 result(0,0,0);
+      for (const FiniteBurn *burn : burns)
       {
-         (*fb)->SetSpacecraftToManeuver(sc);
-         Real now = sc->GetEpoch();
-         if ((*fb)->Fire(burnData, now))
-         {
-            accel[0] += burnData[0];
-            accel[1] += burnData[1];
-            accel[2] += burnData[2];
-
-            // No mass flow (for now, so left in place)
-            //if ((*fb)->DepletesMass())
-            //{
-            //   if (order != 1)
-            //      throw ODEModelException("Mass depletion cannot be "
-            //              "performed with the selected propagator.");
-            //   mDot += burnData[3];
-            //   #ifdef DEBUG_MASS_FLOW
-            //      MessageInterface::ShowMessage("  mDot =  %.12lf\n",
-            //            mDot);
-            //   #endif
-            //}
-            //#ifdef DEBUG_MASS_FLOW
-            //   else
-            //      MessageInterface::ShowMessage("  mDot =  0.0\n");
-            //#endif
-         }
+         if (!burn) throw ODEModelException("Missing FiniteBurn during spacecraft sampling.");
+         Real burnData[4];
+         if (burn->EvaluateForSpacecraft(sample, burnData, sample->GetEpoch()))
+            for (Integer row = 0; row < 3; ++row)
+               result[row] += burnData[row];
       }
-
-      // Apply the burns to the state vector
-      dv[0]     =
-      dv[1] =
-      dv[2] = 0.0;
-      dv[3] = accel[0];
-      dv[4] = accel[1];
-      dv[5] = accel[2];
-
-   }
-   else // Thrust does not apply to this spacecraft
+      return result;
+   };
+   const Rvector3 acceleration = evaluate(0,0);
+   if (gradient)
    {
-      dv[0] =
-      dv[1] =
-      dv[2] =
-      dv[3] =
-      dv[4] =
-      dv[5] = 0.0;
+      for (Integer column = 0; column < 6; ++column)
+      {
+         Real step = column < 3 ? 1.0 : 0.01;
+         Rvector3 previous(0,0,0);
+         bool accepted = false;
+         for (Integer attempt = 0; attempt < 5; ++attempt)
+         {
+            const Rvector3 minusTwo = evaluate(column,-2*step);
+            const Rvector3 minusOne = evaluate(column,-step);
+            const Rvector3 plusOne = evaluate(column,step);
+            const Rvector3 plusTwo = evaluate(column,2*step);
+            const Rvector3 current = (8*(plusOne-minusOne)-(plusTwo-minusTwo))/(12*step);
+            accepted = attempt > 0;
+            for (Integer row = 0; row < 3; ++row)
+            {
+               const Real scale = std::max(std::abs(current[row]),std::abs(previous[row]));
+               const Real rounding = 512*std::numeric_limits<Real>::epsilon()*
+                  std::max({std::abs(acceleration[row]),std::abs(minusTwo[row]),std::abs(plusTwo[row])})/step;
+               const Real tolerance = std::max(rounding,scale*1e-6);
+               const Real forward = (-3*acceleration[row]+4*plusOne[row]-plusTwo[row])/(2*step);
+               const Real backward = (3*acceleration[row]-4*minusOne[row]+minusTwo[row])/(2*step);
+               accepted = accepted && std::isfinite(current[row]) &&
+                  std::abs(current[row]-previous[row]) <= tolerance &&
+                  std::abs(forward-backward) <= tolerance;
+            }
+            if (accepted)
+            {
+               for (Integer row = 0; row < 3; ++row)
+                  (*gradient)(row,column) = current[row];
+               break;
+            }
+            previous = current;
+            step /= 2;
+         }
+         if (!accepted)
+            throw ODEModelException("Finite-thrust sampling did not converge to a smooth finite gradient.");
+      }
    }
-
-   return dv;
+   return Rvector6(0,0,0,acceleration[0],acceleration[1],acceleration[2]);
 }
 
 
@@ -925,11 +1107,9 @@ bool FiniteThrust::SupportsDerivative(Gmat::StateElementId id)
             "FiniteThrust checking for support for id %d\n", id);
    #endif
    
-   if (id == Gmat::CARTESIAN_STATE)
+   if (id == Gmat::CARTESIAN_STATE || id == Gmat::ORBIT_STATE_TRANSITION_MATRIX ||
+       id == Gmat::ORBIT_A_MATRIX)
       return true;
-   
-//   if (id == Gmat::ORBIT_STATE_TRANSITION_MATRIX)
-//      return true;
    
    if (id == Gmat::MASS_FLOW)
    {
@@ -974,24 +1154,26 @@ bool FiniteThrust::SetStart(Gmat::StateElementId id, Integer index,
          satCount = quantity;
          cartIndex = index;
          fillCartesian = true;
+         cartesianCount = quantity;
+         cartesianStart = index;
          retval = true;
          break;
-         
-//      case Gmat::ORBIT_STATE_TRANSITION_MATRIX:
-//         stmCount = quantity;
-//         stmIndex = index;
-//         fillSTM = true;
-//         stmRowCount = sqrt(sizeOfType);
-//         retval = true;
-//         break;
-         
-//      case Gmat::ORBIT_A_MATRIX:
-//         stmCount = quantity;
-//         stmIndex = index;
-//         fillSTM = true;
-//         stmRowCount = sqrt(sizeOfType);
-//         retval = true;
-//         break;
+
+      case Gmat::ORBIT_STATE_TRANSITION_MATRIX:
+         stmCount = quantity;
+         stmStart = index;
+         fillSTM = true;
+         totalSTMSize = sizeOfType;
+         retval = true;
+         break;
+
+      case Gmat::ORBIT_A_MATRIX:
+         aMatrixCount = quantity;
+         aMatrixStart = index;
+         fillAMatrix = true;
+         totalSTMSize = sizeOfType;
+         retval = true;
+         break;
 
       case Gmat::MASS_FLOW:
          // todo: add mass flow bits here
@@ -1006,4 +1188,98 @@ bool FiniteThrust::SetStart(Gmat::StateElementId id, Integer index,
    }
    
    return retval;
+}
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void FiniteThrust::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const FiniteThrust*>(original);
+   if (!source || typeid(*source) != typeid(FiniteThrust) ||
+       typeid(*this) != typeid(FiniteThrust))
+      throw GmatBaseException("Cannot copy incompatible object into FiniteThrust");
+   if (source == this)
+      return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
+}
+
+void FiniteThrust::RebindClonedReferences(const FiniteThrust &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   if (&source == this) return;
+   source.RequireLiveBurns();
+   for (const auto &entry : source.maneuverTargets)
+      if (!GmatBase::IsLiveReference(entry.second.object, entry.second.lifetime))
+         throw ODEModelException("Cannot retain an expired configured finite-thrust target.");
+   std::map<std::string, ManeuverTarget> targets;
+   for (const auto &entry : source.maneuverTargets)
+   {
+      auto *target = dynamic_cast<Spacecraft*>(resolve(entry.second.object));
+      if (!target) throw ODEModelException("Incompatible retained finite-thrust spacecraft.");
+      targets.emplace(entry.first, ManeuverTarget{target, target->GetLifetimeToken()});
+   }
+   std::vector<FiniteBurn*> selected;
+   std::map<const FiniteBurn*, FiniteBurn*> mapped;
+   std::map<const FiniteBurn*, std::weak_ptr<const void>> lifetimes;
+   for (FiniteBurn *original : source.burns)
+   {
+      auto *burn = dynamic_cast<FiniteBurn*>(resolve(original));
+      if (!burn) throw ODEModelException("Incompatible retained finite-thrust burn.");
+      mapped.emplace(original, burn);
+      if (std::find(selected.begin(), selected.end(), burn) == selected.end()) selected.push_back(burn);
+      lifetimes[burn] = burn->GetLifetimeToken();
+   }
+   std::map<std::string, FiniteBurn*> references;
+   for (const auto &entry : source.burnReferences)
+   {
+      const auto burn = mapped.find(entry.second);
+      if (burn == mapped.end()) throw ODEModelException("Unbound retained finite-burn role " + entry.first);
+      references.emplace(entry.first, burn->second);
+   }
+   StringArray names = source.burnNames, spacecraftNames = source.mySpacecraft;
+   burns.swap(selected);
+   burnLifetimes.swap(lifetimes);
+   burnReferences.swap(references);
+   maneuverTargets.swap(targets);
+   burnNames.swap(names);
+   mySpacecraft.swap(spacecraftNames);
+   // These belong to a prepared propagator, not to the force definition.
+   psm = NULL;
+   theState = NULL;
+   scObjs.clear();
+   spacecraft.clear();
+   scIndices.clear();
+   satCount = satThrustCount = 0;
+   cartIndex = mDotIndex = -1;
+   fillCartesian = false;
+   PhysicalModel::fillCartesian = false;
+   cartesianStart = -1;
+   cartesianCount = 0;
+   fillSTM = fillAMatrix = fillMassJacobian = fillTimeJacobian = false;
+   stmStart = aMatrixStart = -1;
+   stmCount = aMatrixCount = 0;
+   #ifdef DEBUG_MEMORY
+   auto untrack = [](Real *buffer, const std::string &name)
+   {
+      if (buffer) MemoryTracker::Instance()->Remove(buffer, name,
+            "FiniteThrust::RebindClonedReferences()", "retiring evaluator buffer");
+   };
+   if (rawState != modelState) untrack(rawState, "rawState");
+   untrack(modelState, "modelState");
+   untrack(deriv, "deriv");
+   untrack(massJacobian, "massJacobian");
+   untrack(timeJacobian, "timeJacobian");
+   #endif
+   if (rawState != modelState) delete [] rawState;
+   delete [] modelState;
+   rawState = modelState = NULL;
+   delete [] deriv;
+   deriv = NULL;
+   delete [] massJacobian;
+   massJacobian = NULL;
+   delete [] timeJacobian;
+   timeJacobian = NULL;
+   stateChanged = true;
+   isInitialized = false;
 }

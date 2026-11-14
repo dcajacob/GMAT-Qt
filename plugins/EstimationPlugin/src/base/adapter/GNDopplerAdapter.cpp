@@ -758,6 +758,8 @@ const MeasurementData& GNDopplerAdapter::CalculateMeasurement(bool withEvents,
       ObservationData* forObservation, std::vector<RampTableData>* rampTable,
       bool forSimulation)
 {
+   ObservationEpochGuard observationEpoch(cMeasurement, forObservation);
+
    #ifdef DEBUG_DOPPLER_CALCULATION
       MessageInterface::ShowMessage("GNDopplerAdapter::CalculateMeasurement(%s, "
             "<%p>, <%p>) called\n", (withEvents ? "true" : "false"), forObservation,
@@ -768,7 +770,7 @@ const MeasurementData& GNDopplerAdapter::CalculateMeasurement(bool withEvents,
 
    GmatTime computeEpoch;
    if (forObservation)
-	   computeEpoch = forObservation->epochGT;
+	   computeEpoch = forObservation->GetEpochInA1();
    else
    {
 	   for (UnsignedInt i = 0; i < refObjects.size(); ++i)
@@ -827,6 +829,7 @@ const MeasurementData& GNDopplerAdapter::CalculateMeasurement(bool withEvents,
 	   addNoise = false;
 	   addBias = false;
 	   rangeOnly = true;
+	   calcData->SetIntegrationInterval(dopplerCountInterval);
 	   RangeAdapterKm::CalculateMeasurement(withEvents, forObservation, rampTB, forSimulation);
 	   measDataE = cMeasurement;
 	   measDataE.value[0] = (measDataE.value[0] - 2 * GetIonoCorrection());
@@ -854,8 +857,7 @@ const MeasurementData& GNDopplerAdapter::CalculateMeasurement(bool withEvents,
 		   obData = new ObservationData(*forObservation);
 	   else
 		   obData = new ObservationData();
-	   obData->epochGT = tm;
-	   obData->epoch = tm.GetMjd();
+	   obData->SetReceiverEpochInA1(tm);
 
 	   // Set doppler count interval to MeasureModel object due to the Start-path
 	   // is measured earlier by number of seconds shown in doppler count interval
@@ -1064,7 +1066,7 @@ const MeasurementData& GNDopplerAdapter::CalculateMeasurement(bool withEvents,
 					   {
 						   // add pass bias
 						   // specify pass number associate to the current observation
-						   Real passBias = measErrorModel->GetPassBias(cMeasurement.epochGT);
+						   Real passBias = measErrorModel->GetPassBias(observationEpoch.GetEpoch(cMeasurement.epochGT));
 						   cMeasurement.value[i] = cMeasurement.value[i] + passBias;                            // pass bias unit: Km/s
 						   cMeasurement.correction[i] = cMeasurement.correction[i] + passBias;                  // pass bias unit: Km/s
 					   }

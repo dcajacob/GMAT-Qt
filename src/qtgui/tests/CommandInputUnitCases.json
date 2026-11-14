@@ -1,0 +1,111 @@
+{
+  "scope": "Display units for typed command operands, literal goals and tolerances; no mission execution.",
+  "cases": [
+    {
+      "key": "VaryDistance",
+      "statement": "Vary DC(Sat.X = 7000, {Perturbation=1, Lower=6000, Upper=9000, MaxStep=100, AdditiveScaleFactor=0, MultiplicativeScaleFactor=1});",
+      "units": {
+        "Variable": "km",
+        "Initial value": "km",
+        "Perturbation": "km",
+        "Lower": "km",
+        "Upper": "km",
+        "MaxStep": "km",
+        "AdditiveScaleFactor": "km",
+        "MultiplicativeScaleFactor": "1/(km)"
+      },
+      "transition": {
+        "field": "Variable",
+        "value": "Sat.ECC",
+        "units": {
+          "Variable": "dimensionless",
+          "Initial value": "dimensionless",
+          "Perturbation": "dimensionless",
+          "Lower": "dimensionless",
+          "Upper": "dimensionless",
+          "MaxStep": "dimensionless",
+          "AdditiveScaleFactor": "dimensionless",
+          "MultiplicativeScaleFactor": "dimensionless"
+        }
+      }
+    },
+    {
+      "key": "AchieveDistance",
+      "statement": "Achieve DC(Sat.SMA = 8000, {Tolerance=1});",
+      "units": {
+        "Goal": "km",
+        "Value": "km",
+        "Tolerance": "km"
+      }
+    },
+    {
+      "key": "AchieveTime",
+      "statement": "Achieve DC(Sat.ElapsedSecs = 60, {Tolerance=0.1});",
+      "units": {
+        "Goal": "s",
+        "Value": "s",
+        "Tolerance": "s"
+      }
+    },
+    {
+      "key": "AchieveVariable",
+      "statement": "Achieve DC(user = 4, {Tolerance=0.1});",
+      "units": {
+        "Goal": "user-defined units",
+        "Value": "user-defined units",
+        "Tolerance": "user-defined units"
+      }
+    },
+    {
+      "key": "AchieveArray",
+      "statement": "Achieve DC(A(1,1) = 4, {Tolerance=0.1});",
+      "units": {
+        "Goal": "user-defined units",
+        "Value": "user-defined units",
+        "Tolerance": "user-defined units"
+      }
+    },
+    {
+      "key": "AchieveConstant",
+      "statement": "Achieve DC(2 = 4, {Tolerance=0.1, AllowConstantGoal=true});",
+      "units": {
+        "Goal": "user-defined units",
+        "Value": "user-defined units",
+        "Tolerance": "user-defined units"
+      }
+    },
+    {
+      "key": "Minimize",
+      "statement": "Minimize Opt(Sat.DryMass);",
+      "units": {
+        "Objective": "kg"
+      }
+    },
+    {
+      "key": "Constraint",
+      "statement": "NonlinearConstraint Opt(Sat.X >= 6500);",
+      "units": {
+        "Left side": "km",
+        "Right side": "km"
+      }
+    },
+    {
+      "key": "Assignment",
+      "statement": "GMAT Sat.DryMass = 850;",
+      "units": {
+        "Destination": "kg",
+        "Expression": "kg"
+      }
+    },
+    {
+      "key": "For",
+      "statement": "For user = 0:1:3;\nEndFor;",
+      "units": {
+        "Index": "user-defined units",
+        "Start": "user-defined units",
+        "Step": "user-defined units",
+        "End": "user-defined units"
+      }
+    }
+  ]
+}

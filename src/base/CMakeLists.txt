@@ -272,6 +272,7 @@ SET(BASE_SRCS
     function/GetEphemStates.cpp
     function/GetLastState.cpp
     function/ObjectManagedFunction.cpp
+    function/ObjectStoreLifetime.cpp
     function/Pause.cpp
     function/QuaternionProduct.cpp
     function/QuaternionRotation.cpp
@@ -403,6 +404,7 @@ SET(BASE_SRCS
     parameter/ModEquinoctialParameters.cpp
     parameter/OrbitTime.cpp
     parameter/NumberWrapper.cpp
+    parameter/RvectorWrapper.cpp
     parameter/ObjectWrapper.cpp
     parameter/ObjectPropertyWrapper.cpp
     parameter/OnOffWrapper.cpp
@@ -445,6 +447,7 @@ SET(BASE_SRCS
     plugin/DynamicLibrary.cpp
     plugin/GmatEventHandler.cpp
     plugin/GuiInterface.cpp
+    propagator/AcceptedStepHistory.cpp
     propagator/AdamsBashforthMoulton.cpp
     propagator/DormandElMikkawyPrince68.cpp
     propagator/Integrator.cpp
@@ -500,6 +503,7 @@ SET(BASE_SRCS
     stopcond/StopCondition.cpp
     subscriber/AttitudeWriterCK.cpp
     subscriber/EphemerisFile.cpp
+    subscriber/EphemerisIterationScope.cpp
     subscriber/EphemerisWriter.cpp
     subscriber/EphemWriterCCSDS.cpp
     subscriber/EphemWriterCode500.cpp
@@ -507,6 +511,7 @@ SET(BASE_SRCS
     subscriber/EphemWriterSTK.cpp
     subscriber/EphemWriterWithInterpolator.cpp
     subscriber/EphemManager.cpp
+    subscriber/EventRootRefinement.cpp
     subscriber/MessageWindow.cpp
     subscriber/TextEphemFile.cpp
     subscriber/OrbitView.cpp

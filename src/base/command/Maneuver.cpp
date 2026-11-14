@@ -721,12 +721,12 @@ bool Maneuver::Execute()
    burn->SetSpacecraftToManeuver(sat);
    
    // Set maneuvering to Publisher so that any subscriber can do its own action
-   publisher->SetManeuvering(this, true, epoch, satName, "ImpulsiveBurn");
+   publisher->SetManeuvering(this, true, epoch, satName, "ImpulsiveBurn", sat);
    
    bool retval = burn->Fire(NULL, epoch, maneuverBackwards);
    
    // Reset maneuvering to Publisher so that any subscriber can do its action
-   publisher->SetManeuvering(this, false, epoch, satName, "ImpulsiveBurn");
+   publisher->SetManeuvering(this, false, epoch, satName, "ImpulsiveBurn", sat);
    
    #ifdef DEBUG_MANEUVER_EXEC
       state = sat->GetState(0); // Get Cartesian state

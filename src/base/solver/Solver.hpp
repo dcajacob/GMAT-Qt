@@ -57,6 +57,8 @@
 class GMAT_API Solver : public GmatBase
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = GmatBase::NativeValueProviderDepth + 1;
+
    /// Enumeration defining the states in the state machine
    enum SolverState
    {
@@ -124,6 +126,12 @@ public:
    virtual ~Solver();
    Solver(const Solver& sol);
    Solver&             operator=(const Solver& sol);
+
+   bool HasSolverValueReferenceProvider() const;
+   void PrepareClonedSolverValue(const Solver &source);
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source,
+         SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
    
    bool                IsSolverInternal() { return isInternal; }
    bool                RequiresVariables() { return requiresVariables; }
@@ -187,9 +195,15 @@ public:
    virtual bool        Finalize();
    
     
+   // Both variable-data methods consume six values: scaled initial value,
+   // perturbation, lower, upper, maximum step, physical initial value.
    virtual Integer     SetSolverVariables(Real *data,
                                           const std::string &name);
    virtual bool        RefreshSolverVariables(Real *data,
+                                          const std::string &name);
+   // A literal control has a command-local identity even when its text matches
+   // another literal. This nonvirtual entry point preserves plugin ABI.
+   bool                RefreshSolverVariable(Real *data, Integer id,
                                           const std::string &name);
 
    virtual Real        GetSolverVariable(Integer id);
@@ -230,6 +244,9 @@ public:
                                       const std::string &resultType = "") = 0;
 
 protected:
+   void CheckSolverValueType(const Solver &source) const;
+   void CopySolverValueData(const Solver &source);
+   void ValidateVariableDataIndex(UnsignedInt index) const;
    /// Flag indicating if this Solver runs integrated into GMAT, or through
    /// an external controller like MATLAB
    bool                isInternal;

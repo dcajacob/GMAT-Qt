@@ -28,6 +28,7 @@
 
 
 #include "ElectricTank.hpp"
+#include <memory>
 #include "StringUtil.hpp"          // for GmatStringUtil
 #include "HardwareException.hpp"
 #include "MessageInterface.hpp"
@@ -291,7 +292,9 @@ ElectricTank& ElectricTank::operator=(const ElectricTank& ft)
 //---------------------------------------------------------------------------
 GmatBase* ElectricTank::Clone() const
 {
-   return new ElectricTank(*this);
+   std::unique_ptr<ElectricTank> value(new ElectricTank(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -306,7 +309,13 @@ GmatBase* ElectricTank::Clone() const
 //---------------------------------------------------------------------------
 void ElectricTank::Copy(const GmatBase* orig)
 {
-   operator=(*((ElectricTank *)(orig)));
+   const auto *source = dynamic_cast<const ElectricTank*>(orig);
+   if (!source || source->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Incompatible ElectricTank value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 

@@ -33,6 +33,11 @@
 #include "Achieve.hpp"
 #include "StringUtil.hpp"  // for ToReal()
 #include <sstream>
+#include <cmath>
+#include <array>
+#include <algorithm>
+#include <memory>
+#include <typeinfo>
 #include "MessageInterface.hpp"
 
 //#define DEBUG_ACHIEVE_PARSE
@@ -60,7 +65,8 @@ const std::string
       "Goal",
       "GoalValue",
       "Tolerance",
-      "AchievedValue"
+      "AchievedValue",
+      "AllowConstantGoal"
    };
    
 const Gmat::ParameterType
@@ -70,7 +76,8 @@ const Gmat::ParameterType
       Gmat::STRING_TYPE,
       Gmat::STRING_TYPE,
       Gmat::STRING_TYPE,
-      Gmat::REAL_TYPE
+      Gmat::REAL_TYPE,
+      Gmat::BOOLEAN_TYPE
    };
 
 
@@ -97,11 +104,14 @@ Achieve::Achieve() :
    goalId                  (-1),
    targeter                (NULL),
    targeterDataFinalized   (false),
-   achievedValue           (0.0)
+   achievedValue           (0.0),
+   allowConstantGoal       (false),
+   constantGoalOptionSpecified(false)
 {
    objectTypeNames.push_back("SolverCommand");
    objectTypeNames.push_back("Achieve");
    settables.push_back("Tolerance"); 
+   settables.push_back("AllowConstantGoal");
    parameterCount = AchieveParamCount;
 }
 
@@ -137,10 +147,12 @@ Achieve::Achieve(const Achieve& t) :
    achieve                 (NULL),
    toleranceName           (t.toleranceName),
    tolerance               (NULL),
-   goalId                  (t.goalId),
+   goalId                  (-1),
    targeter                (NULL),
    targeterDataFinalized   (false),
-   achievedValue           (0.0)
+   achievedValue           (0.0),
+   allowConstantGoal       (t.allowConstantGoal),
+   constantGoalOptionSpecified(t.constantGoalOptionSpecified)
 {
    parameterCount = AchieveParamCount;
 }
@@ -162,6 +174,7 @@ Achieve& Achieve::operator=(const Achieve& t)
    if (this == &t)
       return *this;
     
+   ClearWrappers();
    SolverSequenceCommand::operator=(t);
    targeterName          = t.targeterName;
    goalName              = t.goalName;
@@ -170,9 +183,12 @@ Achieve& Achieve::operator=(const Achieve& t)
    achieve               = NULL;
    toleranceName         = t.toleranceName;
    tolerance             = NULL;
-   goalId                = t.goalId;
+   goalId                = -1;
    targeter              = NULL;
    targeterDataFinalized = false;
+   achievedValue = 0.0;
+   allowConstantGoal = t.allowConstantGoal;
+   constantGoalOptionSpecified = t.constantGoalOptionSpecified;
 
    return *this;
 }
@@ -428,6 +444,8 @@ Real Achieve::GetRealParameter(const Integer id) const
       if (achieve) return achieve->EvaluateReal();
    if (id == toleranceID)
       if (tolerance) return tolerance->EvaluateReal();
+   if (id == achievedValueID)
+      return achievedValue;
     
    return SolverSequenceCommand::GetRealParameter(id);
 }
@@ -493,6 +511,33 @@ std::string Achieve::GetStringParameter(const Integer id) const
  * @return  success flag.
  */
 //------------------------------------------------------------------------------
+bool Achieve::GetBooleanParameter(const Integer id) const
+{
+   if (id == allowConstantGoalID) return allowConstantGoal;
+   return SolverSequenceCommand::GetBooleanParameter(id);
+}
+
+bool Achieve::GetBooleanParameter(const std::string &label) const
+{
+   return GetBooleanParameter(GetParameterID(label));
+}
+
+bool Achieve::SetBooleanParameter(const Integer id, const bool value)
+{
+   if (id == allowConstantGoalID)
+   {
+      allowConstantGoal = value;
+      constantGoalOptionSpecified = true;
+      return true;
+   }
+   return SolverSequenceCommand::SetBooleanParameter(id, value);
+}
+
+bool Achieve::SetBooleanParameter(const std::string &label, const bool value)
+{
+   return SetBooleanParameter(GetParameterID(label), value);
+}
+
 bool Achieve::SetStringParameter(const Integer id, const char *value)
 {
    return SetStringParameter(id, std::string(value));
@@ -514,6 +559,12 @@ bool Achieve::SetStringParameter(const Integer id, const char *value)
 //------------------------------------------------------------------------------
 bool Achieve::SetStringParameter(const Integer id, const std::string &value)
 {
+   if (id == allowConstantGoalID)
+   {
+      if (value != "true" && value != "false")
+         throw CommandException("AllowConstantGoal must be true or false.");
+      return SetBooleanParameter(id, value == "true");
+   }
    #ifdef DEBUG_ACHIEVE_PARAMS
    MessageInterface::ShowMessage
       ("Achieve::SetStringParameter() id=%d, value=%s\n", id, value.c_str());
@@ -586,6 +637,8 @@ void Achieve::SetField(const Integer id, const Real value)
    case goalValueID:
       if (achieve)
       {
+         if (!std::isfinite(value))
+            throw CommandException("An Achieve desired value must be finite.");
          achieve->SetReal(value);
          return;
       }
@@ -594,7 +647,7 @@ void Achieve::SetField(const Integer id, const Real value)
    case toleranceID:
       if (tolerance)
       {
-         tolerance->SetReal(value);
+         SetTolerance(value);
          return;
       }
       break;
@@ -713,6 +766,8 @@ bool Achieve::SetRefObject(GmatBase *obj, const UnsignedInt type,
 //------------------------------------------------------------------------------
 bool Achieve::InterpretAction()
 {
+   allowConstantGoal = false;
+   constantGoalOptionSpecified = false;
    // Clean out any old data
    wrapperObjectNames.clear();
    ClearWrappers();
@@ -890,7 +945,7 @@ bool Achieve::SetElementWrapper(ElementWrapper *toWrapper,
 
    if (goalName == withName)
    {
-      if (toWrapper->GetWrapperType() == Gmat::NUMBER_WT)
+      if (toWrapper->GetWrapperType() == Gmat::NUMBER_WT && !allowConstantGoal)
       {
          std::string errmsg = "The value of \"" + goalName;
          errmsg            += "\" for field \"Goal\" on object \"";
@@ -900,58 +955,67 @@ bool Achieve::SetElementWrapper(ElementWrapper *toWrapper,
          errmsg            += "or Parameter, excluding numbers].";
          throw CommandException(errmsg);
       }
-      goal = toWrapper;
-      #ifdef DEBUG_WRAPPER_CODE   
-      MessageInterface::ShowMessage
-         ("   goal set to wrapper <%p>'%s'\n", toWrapper, withName.c_str());
-      #endif
-      retval = true;
+      if (toWrapper->GetWrapperType() == Gmat::NUMBER_WT && !std::isfinite(toWrapper->EvaluateReal()))
+         throw CommandException("An Achieve constant goal must be finite.");
    }
-   
-   std::vector<ElementWrapper*> temp;
-   if (achieveName == withName)
+
+   // Equal numeric text denotes separate values in the measured, desired and
+   // tolerance roles. Explicit references retain native shared-object identity.
+   const std::array<const std::string*, 3> names{{&goalName, &achieveName, &toleranceName}};
+   const std::array<ElementWrapper**, 3> destinations{{&goal, &achieve, &tolerance}};
+   std::array<ElementWrapper*, 3> previous, proposed;
+   for (std::size_t i = 0; i < destinations.size(); ++i)
+      previous[i] = proposed[i] = *destinations[i];
+
+   std::vector<std::unique_ptr<ElementWrapper>> literals;
+   literals.reserve(destinations.size());
+   for (std::size_t i = 0; i < names.size(); ++i)
    {
-      if (achieve != NULL)
-         temp.push_back(achieve);
-      
-      achieve = toWrapper;
-      #ifdef DEBUG_WRAPPER_CODE   
-      MessageInterface::ShowMessage
-         ("   achieve set to wrapper <%p>'%s'\n", toWrapper, withName.c_str());
-      #endif
+      if (*names[i] != withName) continue;
       retval = true;
-   }
-   
-   if (toleranceName == withName)
-   {
-      if (tolerance != NULL)
+      if (toWrapper->GetWrapperType() != Gmat::NUMBER_WT)
+         proposed[i] = toWrapper;
+      else
       {
-         if (find(temp.begin(), temp.end(), tolerance) == temp.end())
-            temp.push_back(tolerance);
+         ElementWrapper *raw = toWrapper->Clone();
+         bool borrowed = raw == toWrapper ||
+            std::find(previous.begin(), previous.end(), raw) != previous.end() ||
+            std::find(oldWrappers.begin(), oldWrappers.end(), raw) != oldWrappers.end();
+         for (const auto &copy : literals) if (copy.get() == raw) borrowed = true;
+         if (!raw || borrowed)
+            throw CommandException("Achieve literal Clone returned a null or borrowed wrapper.");
+         std::unique_ptr<ElementWrapper> copy(raw);
+         if (typeid(*copy) != typeid(*toWrapper) ||
+               copy->GetWrapperType() != Gmat::NUMBER_WT ||
+               copy->GetDataType() != Gmat::REAL_TYPE)
+            throw CommandException("Achieve literal Clone returned an incompatible wrapper.");
+         proposed[i] = copy.get();
+         literals.push_back(std::move(copy));
       }
-      tolerance = toWrapper;
-      #ifdef DEBUG_WRAPPER_CODE   
-      MessageInterface::ShowMessage
-         ("   tolerance set to wrapper <%p>'%s'\n", toWrapper, withName.c_str());
-      #endif
-      retval = true;
    }
-   
-   // Delete old wrappers
-   ElementWrapper *wrapper;
-   for (UnsignedInt i = 0; i < temp.size(); ++i)
+   if (!retval) return false;
+
+   // Stage ownership before publishing. Any failed Clone/allocation leaves
+   // existing bindings intact and the incoming wrapper owned by the caller.
+   WrapperArray retiring(oldWrappers);
+   retiring.erase(std::remove_if(retiring.begin(), retiring.end(),
+      [&](ElementWrapper *wrapper)
+      {
+         return std::find(proposed.begin(), proposed.end(), wrapper) != proposed.end();
+      }), retiring.end());
+   auto retire = [&](ElementWrapper *wrapper)
    {
-      wrapper = temp[i];
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (wrapper, wrapper->GetDescription(), "Achieve::ClearWrappers()",
-          GetGeneratingString(Gmat::NO_COMMENTS) + " deleting wrapper");
-      #endif
-      #ifdef DEBUG_WRAPPER_CODE   
-      MessageInterface::ShowMessage("   Deleting wrapper<%p>\n", wrapper);
-      #endif
-      delete wrapper;
-   }
+      if (wrapper && std::find(proposed.begin(), proposed.end(), wrapper) == proposed.end() &&
+            std::find(retiring.begin(), retiring.end(), wrapper) == retiring.end())
+         retiring.push_back(wrapper);
+   };
+   for (auto *wrapper : previous) retire(wrapper);
+   // Accepted numeric templates and their per-role clones are all command-owned.
+   retire(toWrapper);
+   oldWrappers.swap(retiring);
+   for (std::size_t i = 0; i < destinations.size(); ++i)
+      *destinations[i] = proposed[i];
+   for (auto &copy : literals) copy.release();
    
    #ifdef DEBUG_WRAPPER_CODE   
    MessageInterface::ShowMessage
@@ -967,45 +1031,12 @@ bool Achieve::SetElementWrapper(ElementWrapper *toWrapper,
 //------------------------------------------------------------------------------
 void Achieve::ClearWrappers()
 {
-   #ifdef DEBUG_WRAPPER_CODE
-   MessageInterface::ShowMessage("Achieve::ClearWrappers() this=<%p> entered\n", this);
-   #endif
-   std::vector<ElementWrapper*> temp;
-   if (goal)
-   {
-      temp.push_back(goal);
-      goal = NULL;
-   }
-   if (achieve)
-   {
-      if (find(temp.begin(), temp.end(), achieve) == temp.end())
-         temp.push_back(achieve);
-      achieve = NULL;
-   }
-   if (tolerance)
-   {
-      if (find(temp.begin(), temp.end(), tolerance) == temp.end())
-         temp.push_back(tolerance);
-      tolerance = NULL;
-   }
-   
-   ElementWrapper *wrapper;
-   for (UnsignedInt i = 0; i < temp.size(); ++i)
-   {
-      wrapper = temp[i];
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (wrapper, wrapper->GetDescription(), "Achieve::ClearWrappers()",
-          GetGeneratingString(Gmat::NO_COMMENTS) + " deleting wrapper");
-      #endif
-      #ifdef DEBUG_WRAPPER_CODE
-      MessageInterface::ShowMessage("   Deleting wrapper<%p>\n", wrapper);
-      #endif
-      delete wrapper;
-   }
-   #ifdef DEBUG_WRAPPER_CODE
-   MessageInterface::ShowMessage("Achieve::ClearWrappers() this=<%p> leaving\n", this);
-   #endif
+   // Retired bindings must survive until DeleteOldWrappers deduplicates and
+   // releases them along with the active role bindings.
+   CollectOldWrappers(&goal);
+   CollectOldWrappers(&achieve);
+   CollectOldWrappers(&tolerance);
+   DeleteOldWrappers();
 }
 
 
@@ -1026,6 +1057,16 @@ bool Achieve::Initialize()
    #endif
    
    bool retval = SolverSequenceCommand::Initialize();
+
+   if (!goal || !achieve || !tolerance)
+      throw CommandException("Achieve requires goal, desired-value and tolerance wrappers.");
+   if (goal->GetWrapperType() == Gmat::NUMBER_WT)
+   {
+      if (!allowConstantGoal)
+         throw CommandException("A numeric Achieve goal requires AllowConstantGoal = true.");
+      if (!std::isfinite(goal->EvaluateReal()))
+         throw CommandException("An Achieve constant goal must be finite.");
+   }
 
    if (targeter == NULL)
       throw CommandException(
@@ -1088,6 +1129,9 @@ bool Achieve::Initialize()
 //------------------------------------------------------------------------------
 bool Achieve::Execute()
 {
+   if (!targeter || !goal || !achieve || !tolerance)
+      throw CommandException("Achieve requires a bound targeter, goal, desired-value and tolerance wrappers.");
+
    #ifdef DEBUG_ACHIEVE_EXEC
    MessageInterface::ShowMessage
       ("Achieve::Execute() targeterDataFinalized=%d\n   targeter=<%p>'%s'\n",
@@ -1100,9 +1144,6 @@ bool Achieve::Execute()
       ("   achieve=<%p>'%s'\n", achieve, achieve ? achieve->GetDescription().c_str() : "NULL");
    #endif
 
-   if (goal == NULL || achieve == NULL || tolerance == NULL)
-      throw CommandException("NULL element wrappers found in Achieve command\n");
-   
    bool retval = true;
    if (!targeterDataFinalized) 
    {
@@ -1111,7 +1152,9 @@ bool Achieve::Execute()
       goalData[0] = goal->EvaluateReal();
       goalData[1] = tolerance->EvaluateReal();
 
-      if (goalData[1] <= 0.0)
+      if (!std::isfinite(goalData[0]))
+         throw CommandException("An Achieve goal value must be finite.");
+      if (!std::isfinite(goalData[1]) || goalData[1] <= 0.0)
       {
          CommandException ce;
          ce.SetDetails(errorMessageFormat.c_str(),
@@ -1132,10 +1175,21 @@ bool Achieve::Execute()
       return retval;
    }
    
-   Real val = -999.999;
+   // Evaluate dynamic wrappers once and validate the complete update before
+   // changing solver data. In particular a floating tolerance must remain
+   // finite and positive on every pass, not just on registration.
+   const Real desiredValue = achieve->EvaluateRealForCalculation();
+   const Real measuredValue = goal->EvaluateRealForCalculation();
+   const Real currentTolerance = tolerance->EvaluateRealForCalculation();
+   if (!std::isfinite(desiredValue))
+      throw CommandException("An Achieve desired value must be finite.");
+   if (!std::isfinite(measuredValue))
+      throw CommandException("An Achieve goal value must be finite.");
+   if (!std::isfinite(currentTolerance) || currentTolerance <= 0.0)
+      throw CommandException("An Achieve tolerance must be finite and greater than zero.");
+   Real val = desiredValue;
    
    // Evaluate the floating target (if there is one) and set it on the targeter
-   val = achieve->EvaluateReal();
 
    #ifdef DEBUG_ACHIEVE_EXEC
    MessageInterface::ShowMessage
@@ -1144,7 +1198,7 @@ bool Achieve::Execute()
    targeter->UpdateSolverGoal(goalId, val);
    
    // Evaluate goal and pass it to the targeter
-   val = goal->EvaluateReal();
+   val = measuredValue;
    #ifdef DEBUG_ACHIEVE_EXEC
    MessageInterface::ShowMessage
       ("   Setting goal = %f to targeter<%p>\n", val, targeter);
@@ -1153,7 +1207,7 @@ bool Achieve::Execute()
    achievedValue = val;
    
    // Evaluate tolerance pass it to the targeter
-   val = tolerance->EvaluateReal();
+   val = currentTolerance;
    #ifdef DEBUG_ACHIEVE_EXEC
    MessageInterface::ShowMessage
       ("   Setting tolerance = %f to targeter<%p>\n", val, targeter);
@@ -1195,6 +1249,8 @@ const std::string& Achieve::GetGeneratingString(Gmat::WriteMode mode,
    // Build the local string
    std::string gen = prefix + "Achieve " + targeterName + "(" + goalName +
                      " = " + achieveName + ", {Tolerance = " + toleranceName;
+   if (allowConstantGoal || constantGoalOptionSpecified)
+      gen += std::string(", AllowConstantGoal = ") + (allowConstantGoal ? "true" : "false");
    
    generatingString = gen + "});";
    
@@ -1229,7 +1285,7 @@ void Achieve::SetTolerance(Real value)
        tolerance);
    #endif
    
-   if (value > 0.0)
+   if (std::isfinite(value) && value > 0.0)
    {
       if (tolerance)
       {
@@ -1253,4 +1309,15 @@ void Achieve::SetTolerance(Real value)
    #ifdef DEBUG_ACHIEVE_PARAM
    MessageInterface::ShowMessage("Achieve::SetTolerance() leaving\n");
    #endif
+}
+
+void Achieve::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   ClearWrappers();
+   targeter = nullptr;
+   goalId = -1;
+   targeterDataFinalized = false;
+   achievedValue = 0.0;
+   SolverSequenceCommand::RetireFunctionBindings(store);
 }

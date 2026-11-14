@@ -8,6 +8,7 @@
          xmlns:html="http://www.w3.org/1999/xhtml"
          xmlns:db="http://docbook.org/ns/docbook">
   <title>Formation Rendezvous</title>
+  <para>For reference comparison, set both Target branches to Solver DC, SolveMode Solve and ExitMode DiscardAndContinue. Set DataReport.SolverIterations to None. Use explicit EarthMJ2000Eq Cartesian report parameters (for example Sat1.EarthMJ2000Eq.X), and use Sat2.EarthMJ2000Eq.VX = Sat1.EarthMJ2000Eq.VX and corresponding VY/VZ goals in Target2. The separate residual diagnostic variables and report described at the end are observational additions in the shipped reference; they do not change the trajectory.</para>
 
   <para>In the Qt GUI, start with File → New and rename DefaultSC to Sat1 and
   DefaultProp to PropRKV_LowEarth. Clone Sat1 for the other three spacecraft,
@@ -1507,12 +1508,10 @@
     and Mission → Mission summary lets you inspect and save command endpoint
     states. The final 0.2-day coast follows Target2 and adds no constraints.</para>
 
-    <para>The downloadable reconstructed script adds a separate
-    FormationRendezvousResiduals.data diagnostic report and suppresses trial
-    rows in its Cartesian report. Those additional diagnostic variables and
-    assignments are not created by the steps above. Both missions demonstrate
-    the same two separate targeting goals. Position remains unconstrained at
-    the later velocity-match endpoint.</para>
+    <para>To reproduce the reference diagnostics, add Variables named PositionX PositionY PositionZ PositionNorm VelocityX VelocityY VelocityZ VelocityNorm PositionAtVelocityX PositionAtVelocityY PositionAtVelocityZ PositionBurnV PositionBurnN PositionBurnB VelocityBurnV VelocityBurnN VelocityBurnB and a ReportFile named RendezvousResiduals with Filename FormationRendezvousResiduals.data and Precision 16. Keep its default WriteHeaders and WriteReport On.</para>
+    <para>Use the Assignment template with the following Destination and Expression fields. Insert the first seven assignments after EndTarget1, and the remaining ten after EndTarget2, before the final coast. These are measurements of the solved endpoints; they do not feed back into the trajectory.</para>
+    <informaltable><tgroup cols="2"><thead><row><entry>Destination</entry><entry>Expression</entry></row></thead><tbody><row><entry>PositionX</entry><entry>Sat2.Sat1LVLH.X</entry></row><row><entry>PositionY</entry><entry>Sat2.Sat1LVLH.Y</entry></row><row><entry>PositionZ</entry><entry>Sat2.Sat1LVLH.Z</entry></row><row><entry>PositionNorm</entry><entry>sqrt(PositionX^2 + PositionY^2 + PositionZ^2)</entry></row><row><entry>PositionBurnV</entry><entry>Burn1.Element1</entry></row><row><entry>PositionBurnN</entry><entry>Burn1.Element2</entry></row><row><entry>PositionBurnB</entry><entry>Burn1.Element3</entry></row><row><entry>VelocityX</entry><entry>Sat2.EarthMJ2000Eq.VX - Sat1.EarthMJ2000Eq.VX</entry></row><row><entry>VelocityY</entry><entry>Sat2.EarthMJ2000Eq.VY - Sat1.EarthMJ2000Eq.VY</entry></row><row><entry>VelocityZ</entry><entry>Sat2.EarthMJ2000Eq.VZ - Sat1.EarthMJ2000Eq.VZ</entry></row><row><entry>VelocityNorm</entry><entry>sqrt(VelocityX^2 + VelocityY^2 + VelocityZ^2)</entry></row><row><entry>PositionAtVelocityX</entry><entry>Sat2.Sat1LVLH.X</entry></row><row><entry>PositionAtVelocityY</entry><entry>Sat2.Sat1LVLH.Y</entry></row><row><entry>PositionAtVelocityZ</entry><entry>Sat2.Sat1LVLH.Z</entry></row><row><entry>VelocityBurnV</entry><entry>Burn1.Element1</entry></row><row><entry>VelocityBurnN</entry><entry>Burn1.Element2</entry></row><row><entry>VelocityBurnB</entry><entry>Burn1.Element3</entry></row></tbody></tgroup></informaltable>
+    <para>After the ten assignments following EndTarget2, insert a Report command using RendezvousResiduals and this ordered parameter list: PositionX PositionY PositionZ PositionNorm VelocityX VelocityY VelocityZ VelocityNorm PositionAtVelocityX PositionAtVelocityY PositionAtVelocityZ PositionBurnV PositionBurnN PositionBurnB VelocityBurnV VelocityBurnN VelocityBurnB. Then perform the final coast and Reports 17 through 20. The position and velocity goals are at separate epochs; these diagnostics do not turn them into a simultaneous docking constraint.</para>
 
     <para>The figure below is retained as a historical illustration. Its
     numerical trajectories are not acceptance values for the reconstructed

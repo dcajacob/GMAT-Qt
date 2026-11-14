@@ -217,7 +217,7 @@ GmatCoordinate::ParameterUsage BodyFixedAxes::UsesItrfFile() const
 //---------------------------------------------------------------------------
 GmatCoordinate::ParameterUsage BodyFixedAxes::UsesNutationUpdateInterval() const
 {
-   if (originName == GmatSolarSystemDefaults::EARTH_NAME)
+   if (GetOriginPhysicalName() == GmatSolarSystemDefaults::EARTH_NAME)
       return GmatCoordinate::REQUIRED;
    return DynamicAxes::UsesNutationUpdateInterval();
 }
@@ -241,7 +241,7 @@ bool BodyFixedAxes::Initialize()
             origin->GetName().c_str(), origin);
 #endif
    DynamicAxes::Initialize();
-   if (originName == GmatSolarSystemDefaults::EARTH_NAME) InitializeFK5();
+   if (GetOriginPhysicalName() == GmatSolarSystemDefaults::EARTH_NAME) InitializeFK5();
    
    // Check for spacecraft origin whose attitude does not compute rates
    if (origin && origin->IsOfType("Spacecraft"))
@@ -379,7 +379,7 @@ void BodyFixedAxes::SetSpiceFrameId(std::string spiceId)
  //------------------------------------------------------------------------------
 void BodyFixedAxes::SetForGravityUpdate(bool turnOn)
 {
-   if(originName == GmatSolarSystemDefaults::EARTH_NAME || originName == GmatSolarSystemDefaults::MOON_NAME)
+   if(GetOriginPhysicalName() == GmatSolarSystemDefaults::EARTH_NAME || GetOriginPhysicalName() == GmatSolarSystemDefaults::MOON_NAME)
       forGravityUpdate = turnOn;
    else
       forGravityUpdate = false;
@@ -536,7 +536,7 @@ void BodyFixedAxes::CalculateRotationMatrix(const GmatTime &atEpoch,
       // 3. if the origin is Luna, the rotation data source has changed
 
       if ((!forceComputation)                    &&
-          (originName == GmatSolarSystemDefaults::MOON_NAME) &&
+          (GetOriginPhysicalName() == GmatSolarSystemDefaults::MOON_NAME) &&
           (IsEqual(atEpoch,       prevEpoch))    &&
           (prevLunaSrc == ((CelestialBody*)origin)->GetRotationDataSource()))
          {
@@ -557,7 +557,7 @@ void BodyFixedAxes::CalculateRotationMatrix(const GmatTime &atEpoch,
             spiceToFrame = origin->GetStringParameter(originSpiceIdPId);
          CalculateSpiceFrameRotationMatrix(spiceToFrame, atEpoch);
       }
-      else if (originName == GmatSolarSystemDefaults::EARTH_NAME)
+      else if (GetOriginPhysicalName() == GmatSolarSystemDefaults::EARTH_NAME)
       {
          Real intervalFromOrigin = ((Planet*) origin)->GetNutationUpdateInterval();
          if ((!forceComputation)                                     &&
@@ -810,7 +810,7 @@ void BodyFixedAxes::CalculateRotationMatrix(const GmatTime &atEpoch,
 
       }
       //Checks for SpiceKernel && forGravityUpdate as under a forGravityUpdate we should use this if Spice_Kernel is set
-      else if ((originName == GmatSolarSystemDefaults::MOON_NAME) &&
+      else if ((GetOriginPhysicalName() == GmatSolarSystemDefaults::MOON_NAME) &&
               (((CelestialBody*)origin)->GetRotationDataSource() == Gmat::DE_FILE || (((CelestialBody*)origin)->GetRotationDataSource() == Gmat::SPICE_KERNEL && forGravityUpdate)))
       {
          #ifdef DEBUG_BF_RECOMPUTE
@@ -1001,6 +1001,35 @@ void BodyFixedAxes::CalculateRotationMatrix(const GmatTime &atEpoch,
                                     R3leftT[p3+2] * R13[2][q];
             }
          }
+         // User-defined pole angles can drift. The velocity transform must
+         // differentiate both pole factors as well as the prime meridian:
+         // d(L M R)/dt = Ldot M R + L Mdot R + L M Rdot.
+         // The existing Rdot term above retains the established spin model.
+         auto *body = static_cast<CelestialBody*>(origin);
+         if (!body->UsesDefaultBodyModel())
+         {
+            const Rvector6 parameters = body->GetOrientationParameters();
+            const Real centurySeconds =
+               GmatTimeConstants::DAYS_PER_JULIAN_CENTURY * SECS_PER_DAY;
+            const Real alphaDot = Rad(parameters[1]) / centurySeconds;
+            const Real tiltDot = -Rad(parameters[3]) / centurySeconds;
+            const Real leftDot[9] = {
+               -alphaDot*Sin(rot1), -alphaDot*Cos(rot1), 0.0,
+                alphaDot*Cos(rot1), -alphaDot*Sin(rot1), 0.0,
+                0.0, 0.0, 0.0};
+            const Real middleDot[9] = {
+               0.0, 0.0, 0.0,
+               0.0, -tiltDot*Sin(rot2), -tiltDot*Cos(rot2),
+               0.0,  tiltDot*Cos(rot2), -tiltDot*Sin(rot2)};
+            for (Integer i = 0; i < 3; ++i)
+               for (Integer j = 0; j < 3; ++j)
+                  for (Integer k = 0; k < 3; ++k)
+                     for (Integer l = 0; l < 3; ++l)
+                        rotDotResult[i][j] +=
+                           (leftDot[3*i+k] * R1middleT[3*k+l] +
+                            R3leftT[3*i+k] * middleDot[3*k+l]) *
+                           R3rightT[3*l+j];
+         }
          rotDotMatrix.Set(rotDotResult[0][0],rotDotResult[0][1],rotDotResult[0][2],
                           rotDotResult[1][0],rotDotResult[1][1],rotDotResult[1][2],
                           rotDotResult[2][0],rotDotResult[2][1],rotDotResult[2][2]);
@@ -1012,7 +1041,7 @@ void BodyFixedAxes::CalculateRotationMatrix(const GmatTime &atEpoch,
    #ifdef DEBUG_BF_RECOMPUTE
       MessageInterface::ShowMessage("at the end, just set prevEpoch to %12.10f\n", prevEpoch.GetMjd());
    #endif
-   if (originName == GmatSolarSystemDefaults::MOON_NAME)
+   if (GetOriginPhysicalName() == GmatSolarSystemDefaults::MOON_NAME)
       prevLunaSrc = ((CelestialBody*)origin)->GetRotationDataSource();
 
    #ifdef DEBUG_FIRST_CALL

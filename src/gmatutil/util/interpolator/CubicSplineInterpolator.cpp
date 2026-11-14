@@ -32,6 +32,10 @@
 
 
 #include "CubicSplineInterpolator.hpp"
+#include <algorithm>
+#include <array>
+#include <memory>
+#include <typeinfo>
 #include "MessageInterface.hpp"
 
 //#define DUMP_SPLINE_POINTS
@@ -101,6 +105,8 @@ CubicSplineInterpolator::CubicSplineInterpolator
       y[i]  = NULL;
       y2[i] = NULL;
    }
+   if (csi.independent)
+      CopyArrays(csi);
 }
 
 
@@ -121,9 +127,9 @@ CubicSplineInterpolator& CubicSplineInterpolator::operator=
    if (&csi == this)
       return *this;
 
-   CleanupArrays();
-   
-   CopyArrays(csi);
+   Interpolator::operator=(csi);
+   if (csi.independent)
+      CopyArrays(csi);
    lastX = csi.lastX;
    return *this;
 }
@@ -193,15 +199,17 @@ bool CubicSplineInterpolator::Interpolate(const Real ind, Real *results)
 //------------------------------------------------------------------------------
 void CubicSplineInterpolator::AllocateArrays()
 {
-   Interpolator::AllocateArrays();
-
-   Integer i;
-   for (i = 0; i < bufferSize; ++i)
+   std::array<std::unique_ptr<Real[]>,5> nextY, nextY2;
+   for (Integer row = 0; row < 5; ++row)
    {
-      y[i]  = new Real[dimension];
-      y2[i] = new Real[dimension];
+      nextY[row] = std::make_unique<Real[]>(dimension);
+      nextY2[row] = std::make_unique<Real[]>(dimension);
    }
-    
+   Interpolator::AllocateArrays();
+   for (Integer row = 0; row < 5; ++row)
+   {
+      y[row] = nextY[row].release(); y2[row] = nextY2[row].release();
+   }
    latestPoint = -1;
 }
 
@@ -470,3 +478,36 @@ Interpolator* CubicSplineInterpolator::Clone() const
    return (new CubicSplineInterpolator(*this));
 }
 
+
+void CubicSplineInterpolator::ValidateRestorationLayout(const CubicSplineInterpolator &source) const
+{
+   if (typeid(*this) != typeid(CubicSplineInterpolator) || bufferSize != 5)
+      throw InterpolatorException("A changed cubic spline needs native preparation.");
+   ValidateTableRestoration(source);
+   for (const auto *value : {this, &source})
+      for (Integer row = 0; row < 5; ++row)
+         if ((value->y[row] != nullptr) != (value->independent != nullptr) ||
+             (value->y2[row] != nullptr) != (value->independent != nullptr))
+            throw InterpolatorException("Incomplete cubic spline scratch storage.");
+}
+
+void CubicSplineInterpolator::RestoreValues(const CubicSplineInterpolator &source)
+{
+   if (&source == this) return;
+   ValidateRestorationLayout(source);
+   RestoreTableValues(source);
+   for (Integer row = 0; row < 5; ++row)
+   {
+      x[row] = source.x[row];
+      if (y[row])
+      {
+         if (source.y[row])
+         {
+            std::copy_n(source.y[row], dimension, y[row]);
+            std::copy_n(source.y2[row], dimension, y2[row]);
+         }
+         else { std::fill_n(y[row], dimension, 0.0); std::fill_n(y2[row], dimension, 0.0); }
+      }
+   }
+   lastX = source.lastX;
+}

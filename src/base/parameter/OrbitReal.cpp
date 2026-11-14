@@ -192,6 +192,8 @@ Real OrbitReal::EvaluateReal()
 //------------------------------------------------------------------------------
 void OrbitReal::SetReal(Real val)
 {
+   if (!IsSettable())
+      throw ParameterException("Orbit parameter '" + GetName() + "' is read-only.");
    #ifdef DEBUG_ORBITREAL_SET
    MessageInterface::ShowMessage
       ("OrbitReal::SetReal() <%p>'%s' entered, val = %f, mItemId = %d\n", this,
@@ -347,6 +349,9 @@ bool OrbitReal::Initialize()
       #endif
       
       InitializeRefObjects();
+      // Clones resolve their owner in their own scope. Keep access metadata tied
+      // to that resolved spacecraft rather than the configured/template owner.
+      SetOwner(mSpacePoint);
    }
    catch(InvalidDependencyException &e)
    {

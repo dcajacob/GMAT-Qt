@@ -45,10 +45,19 @@
 const char CINTERFACE_API *getLastMessage();
 int CINTERFACE_API StartGmat();
 
+/* Loading or rerunning a script invalidates the selected runtime model and
+ * state pointers, including after failure. Rediscover/select models after
+ * RunScript initializes the new sandbox. Model IDs are scoped to that run. */
 int CINTERFACE_API LoadScript(const char* scriptName);
 int CINTERFACE_API RunScript();
+/* Equivalent to LoadScript followed by RunScript only after a successful load.
+ * Returns the load error without executing commands, or the run status. The
+ * final operation supplies getLastMessage(). PrepareMissionSequence retains
+ * its prepare-only behavior. Call StartGmat first, as for the separate calls. */
 int CINTERFACE_API LoadAndRunScript(const char* scriptName);
 
+/* Locate a numerical model in the initialized run's command graph, including
+ * branch children. Lookup never executes a mission command or advances it. */
 int CINTERFACE_API FindOdeModel(const char* modelName);
 int CINTERFACE_API SetModel(int modelID);
 int CINTERFACE_API SetModelByName(const char* modelName);
@@ -57,6 +66,17 @@ int CINTERFACE_API GetStateSize();
 const char CINTERFACE_API *GetStateDescription();
 int CINTERFACE_API SetState(double epoch, double state[], int stateDim);
 double CINTERFACE_API *GetState();
+
+/* Read the named run-sandbox spacecraft's epoch in GMAT A1 modified Julian
+ * days (JD - 2430000.0). Call after RunScript, including a stopped or failed
+ * execution. A new StartGmat/LoadScript invalidates access until another run.
+ * Returns 0 on success; -1 for null/empty arguments, -2 without an initialized
+ * run sandbox, -3 for a missing/non-spacecraft object, -4 for a read error.
+ * On failure *epochA1Mjd is unchanged; getLastMessage describes the result.
+ * This copies a scalar and does not select an ODE model or change any state.
+ */
+int CINTERFACE_API GetSpacecraftEpoch(const char *spacecraftName,
+      double *epochA1Mjd);
 
 double CINTERFACE_API *GetDerivativesForState(double epoch, double state[], 
       int stateDim, double dt, int order, int *pdim);

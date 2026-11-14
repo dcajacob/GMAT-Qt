@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 
 #include "BeginFiniteBurn.hpp"
+#include "ODEModel.hpp"
 
 
 //#define DEBUG_BEGIN_MANEUVER
@@ -599,6 +600,10 @@ bool BeginFiniteBurn::Initialize()
          #endif
          burnForce->SetRefObjectName(type, *iter);
       }
+      for (UnsignedInt i = 0; i < sats.size(); ++i)
+         if (!burnForce->SetRefObject(sats[i], Gmat::SPACECRAFT, satNames.at(i)))
+            throw CommandException("Cannot bind actual BeginFiniteBurn spacecraft " + satNames.at(i));
+
    }
    
    #ifdef DEBUG_BEGIN_MANEUVER
@@ -707,12 +712,15 @@ bool BeginFiniteBurn::Execute()
       }
    }
    
+   ODEModel::SetTransientAccelerationContext(burnForce, std::find(transientForces->begin(),
+         transientForces->end(), burnForce) != transientForces->end());
+
    // Set maneuvering to Publisher so that any subscriber can do its own action
    if (!sats.empty())
    {
       Real epoch = sats[0]->GetEpoch();
       publisher->SetManeuvering(this, true, epoch, satNames,
-            "begin of finite maneuver");
+            "begin of finite maneuver", ObjectArray(sats.begin(), sats.end()));
    }
    
    #ifdef DEBUG_BEGIN_MANEUVER_EXE

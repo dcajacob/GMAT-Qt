@@ -31,6 +31,9 @@
 #include "gmatdefs.hpp"
 #include "CalculatedPoint.hpp"
 #include "Barycenter.hpp"
+#include <memory>
+#include "EphemerisDerivative.hpp"
+#include <cmath>
 #include "SolarSystemException.hpp"
 #include "CelestialBody.hpp"
 #include "MessageInterface.hpp"
@@ -111,7 +114,7 @@ Barycenter& Barycenter::operator=(const Barycenter &bary)
 
    CalculatedPoint::operator=(bary);
    parameterCount  = bary.parameterCount;
-   builtInSP       = bary.builtInSP;
+   builtInSP       = NULL; // Resolve against this value's current SolarSystem.
 
    return *this;
 }
@@ -140,7 +143,9 @@ Barycenter::~Barycenter()
 //------------------------------------------------------------------------------
 GmatBase* Barycenter::Clone() const
 {
-   return (new Barycenter(*this));
+   std::unique_ptr<Barycenter> value(new Barycenter(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //---------------------------------------------------------------------------
@@ -154,10 +159,15 @@ GmatBase* Barycenter::Clone() const
 //---------------------------------------------------------------------------
 void Barycenter::Copy(const GmatBase* orig)
 {
+   const auto *source = dynamic_cast<const Barycenter*>(orig);
+   if (!source) throw GmatBaseException("Incompatible Barycenter value copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
    // We don't want to copy instanceName
    std::string name = instanceName;
-   operator=(*((Barycenter *)(orig)));
+   operator=(*source);
    instanceName     = name;
+   RebindFunctionValueContext(*source);
 }
 
 //---------------------------------------------------------------------------
@@ -174,10 +184,12 @@ void Barycenter::Copy(const GmatBase* orig)
 const Rvector6 Barycenter::GetMJ2000State(const A1Mjd &atTime)
 {
    // if it's built-in, get the state from the SpacePoint
-   if (isBuiltIn)
+   if (UsesSolarSystemEphemeris())
    {
+      const Rvector6 state = GetNativePoint()->GetMJ2000State(atTime);
+      lastState = state;
       lastStateTime = atTime;
-      lastState     = builtInSP->GetMJ2000State(atTime);
+      lastStateTimeGT = GmatTime(atTime.Get());
       #ifdef DEBUG_BARYCENTER_STATE
          MessageInterface::ShowMessage("Computing state for Barycenter %s, whose builtInSP is %s\n",
                instanceName.c_str(), (builtInSP->GetName()).c_str());
@@ -230,12 +242,12 @@ const Rvector6 Barycenter::GetMJ2000State(const A1Mjd &atTime)
 const Rvector6 Barycenter::GetMJ2000State(const GmatTime &atTime)
 {
    // if it's built-in, get the state from the SpacePoint
-   if (isBuiltIn)
+   if (UsesSolarSystemEphemeris())
    {
+      const Rvector6 state = GetNativePoint()->GetMJ2000State(atTime);
+      lastState = state;
       lastStateTimeGT = atTime;
       lastStateTime   = GmatTime(atTime).GetMjd();
-
-      lastState = builtInSP->GetMJ2000State(atTime);
 #ifdef DEBUG_BARYCENTER_STATE
       MessageInterface::ShowMessage("Computing state for Barycenter %s, whose builtInSP is %s\n",
          instanceName.c_str(), (builtInSP->GetName()).c_str());
@@ -338,6 +350,50 @@ const Rvector3 Barycenter::GetMJ2000Velocity(const GmatTime &atTime)
 }
 
 
+// Native MJ2000 acceleration, in km/s^2.
+const Rvector3 Barycenter::GetMJ2000Acceleration(const A1Mjd &atTime)
+{
+   return GetMJ2000Acceleration(GmatTime(atTime.Get()));
+}
+
+const Rvector3 Barycenter::GetMJ2000Acceleration(const GmatTime &atTime)
+{
+   GmatEphemerisDetail::ScopedDerivativeQuery uncached;
+   Rvector3 acceleration(0.0, 0.0, 0.0);
+   if (UsesSolarSystemEphemeris())
+   {
+      SpacePoint *provider = GetNativePoint();
+      if (!provider->IsOfType(Gmat::CELESTIAL_BODY))
+         throw SolarSystemException("Barycenter acceleration requires a native built-in body provider for " + instanceName);
+      acceleration = provider->GetMJ2000Acceleration(atTime);
+   }
+   else
+   {
+      CheckBodies();
+      if (bodyList.size() != bodyNames.size())
+         throw SolarSystemException("Barycenter acceleration requires all body references to be resolved for " + instanceName);
+      const Real totalMass = GetMass();
+      if (!std::isfinite(totalMass) || totalMass <= 0.0)
+         throw SolarSystemException("Barycenter acceleration requires a finite positive total mass for " + instanceName);
+      // These are the same constant mass weights used by GetMJ2000State.
+      for (auto *point : bodyList)
+      {
+         auto *body = static_cast<CelestialBody *>(point); // CheckBodies validates the type.
+         const Real mass = body->GetMass();
+         if (!std::isfinite(mass) || mass < 0.0)
+            throw SolarSystemException("Barycenter acceleration requires finite nonnegative body masses for " + instanceName);
+         if (body->GetJ2000BodyName() != GetJ2000BodyName())
+            throw SolarSystemException("Barycenter acceleration requires a common J2000 reference body for " + instanceName);
+         acceleration += (mass / totalMass) * body->GetMJ2000Acceleration(atTime);
+      }
+   }
+   for (Integer i = 0; i < 3; ++i)
+      if (!std::isfinite(acceleration[i]))
+         throw SolarSystemException("Nonfinite MJ2000 acceleration for " + instanceName);
+   GetMJ2000State(atTime); // Leave point and body epoch caches at the query time.
+   return acceleration;
+}
+
 //------------------------------------------------------------------------------
 // bool SetRefObject(GmatBase *obj, const UnsignedInt type,
 //                   const std::string &name, const Integer index)
@@ -357,6 +413,9 @@ bool Barycenter::SetRefObject(GmatBase *obj,
                               const UnsignedInt type,
                               const std::string &name)
 {
+   if (!obj) return false;
+   if (UsesSolarSystemEphemeris())
+      return SpacePoint::SetRefObject(obj, type, name);
    if ((obj->IsOfType(Gmat::SPACE_POINT)) && (!obj->IsOfType("CelestialBody")))
    {
       std::string errmsg = "The value of \"";
@@ -383,8 +442,13 @@ bool Barycenter::SetRefObject(GmatBase *obj,
 Real Barycenter::GetMass() 
 {
    // if it's built-in, get the mass from the SpacePoint
-   if (isBuiltIn)
-      return ((CelestialBody*)builtInSP)->GetMass();
+   if (UsesSolarSystemEphemeris())
+   {
+      auto *provider = dynamic_cast<CelestialBody *>(GetNativePoint());
+      if (!provider)
+         throw SolarSystemException("Barycenter mass requires a native body provider for " + instanceName);
+      return provider->GetMass();
+   }
    // otherwise, sum the masses of the bodies
    Real     sumMass  = 0.0;
    for (unsigned int i = 0; i < bodyList.size() ; i++)
@@ -414,23 +478,9 @@ bool Barycenter::Initialize()
       for (unsigned int ii = 0; ii < defaultBodies.size(); ii++)
          MessageInterface::ShowMessage("   %d    %s\n", ii, (defaultBodies.at(ii)).c_str());
    #endif
-   if (isBuiltIn)
+   if (UsesSolarSystemEphemeris())
    {
-      // create the builtInSP here
-      if ((builtInType == "SSB") || (builtInType == GmatSolarSystemDefaults::SOLAR_SYSTEM_BARYCENTER_NAME))
-      {
-         builtInSP = theSolarSystem->GetSpecialPoint(GmatSolarSystemDefaults::SOLAR_SYSTEM_BARYCENTER_NAME);
-         if (!builtInSP)
-         {
-            std::string errmsg = "No special point \"";
-            errmsg += GmatSolarSystemDefaults::SOLAR_SYSTEM_BARYCENTER_NAME + "\" found in Solar System.\n";
-            throw SolarSystemException(errmsg);
-         }
-      }
-      else // no others currently available
-      {
-         throw SolarSystemException("Unknown built-in barycenter\n");
-      }
+      GetNativePoint();
    }
    else
    {
@@ -466,9 +516,163 @@ bool Barycenter::Initialize()
 StringArray Barycenter::GetBuiltInNames()
 {
    StringArray spNames;
-   if (builtInType ==  "SSB")
+   if (UsesSolarSystemEphemeris())
       spNames.push_back("SolarSystemBarycenter");
    return spNames;
+}
+
+bool Barycenter::UsesSolarSystemEphemeris() const
+{
+   return isBuiltIn || builtInType == "SSB" ||
+      builtInType == GmatSolarSystemDefaults::SOLAR_SYSTEM_BARYCENTER_NAME;
+}
+
+SpacePoint* Barycenter::GetNativePoint()
+{
+   if (builtInType != "SSB" &&
+         builtInType != GmatSolarSystemDefaults::SOLAR_SYSTEM_BARYCENTER_NAME)
+      throw SolarSystemException("Unknown native barycenter source for " + instanceName);
+   if (!theSolarSystem)
+      throw SolarSystemException("No SolarSystem is bound to barycenter " + instanceName);
+   SpacePoint *provider = theSolarSystem->GetSpecialPoint(
+      GmatSolarSystemDefaults::SOLAR_SYSTEM_BARYCENTER_NAME);
+   if (!provider)
+      throw SolarSystemException("No native SolarSystemBarycenter provider for " + instanceName);
+   // Re-resolve on every query. Copies and provider-context changes must not
+   // use a pointer borrowed from a different SolarSystem instance.
+   builtInSP = provider;
+   return provider;
+}
+
+void Barycenter::MakeUserDefinedCopy()
+{
+   const bool native = UsesSolarSystemEphemeris();
+   SetIsBuiltIn(false, native ? "SSB" : "");
+   builtInSP = NULL;
+   isInitialized = false;
+}
+
+std::string Barycenter::GetParameterText(const Integer id) const
+{
+   if (id == EPHEMERIS_SOURCE) return "EphemerisSource";
+   return CalculatedPoint::GetParameterText(id);
+}
+
+Integer Barycenter::GetParameterID(const std::string &str) const
+{
+   if (str == "EphemerisSource") return EPHEMERIS_SOURCE;
+   return CalculatedPoint::GetParameterID(str);
+}
+
+Gmat::ParameterType Barycenter::GetParameterType(const Integer id) const
+{
+   if (id == EPHEMERIS_SOURCE) return Gmat::ENUMERATION_TYPE;
+   return CalculatedPoint::GetParameterType(id);
+}
+
+bool Barycenter::IsParameterReadOnly(const Integer id) const
+{
+   if (id == EPHEMERIS_SOURCE) return isBuiltIn;
+   if (id == BODY_NAMES && UsesSolarSystemEphemeris()) return true;
+   return CalculatedPoint::IsParameterReadOnly(id);
+}
+
+bool Barycenter::IsParameterCommandModeSettable(const Integer id) const
+{
+   if (id == EPHEMERIS_SOURCE) return false;
+   return CalculatedPoint::IsParameterCommandModeSettable(id);
+}
+
+std::string Barycenter::GetStringParameter(const Integer id) const
+{
+   if (id == EPHEMERIS_SOURCE)
+      return UsesSolarSystemEphemeris() ? "SolarSystemBarycenter" : "MassWeighted";
+   return CalculatedPoint::GetStringParameter(id);
+}
+
+std::string Barycenter::GetStringParameter(const std::string &label) const
+{
+   return GetStringParameter(GetParameterID(label));
+}
+
+bool Barycenter::SetStringParameter(const Integer id, const std::string &value)
+{
+   if (id == EPHEMERIS_SOURCE)
+   {
+      if (value != "MassWeighted" && value != "SolarSystemBarycenter")
+         throw SolarSystemException("EphemerisSource must be MassWeighted or SolarSystemBarycenter for " + instanceName);
+      if (isBuiltIn && value != "SolarSystemBarycenter")
+         throw SolarSystemException("Cannot change the built-in SolarSystemBarycenter calculation source.");
+      if (value == GetStringParameter(id)) return true;
+      std::string nextType = value == "SolarSystemBarycenter" ? "SSB" : "";
+      StringArray defaults = defaultBodies;
+      if (value == "MassWeighted" && bodyNames.empty() && defaults.empty())
+      {
+         defaults.push_back(GmatSolarSystemDefaults::EARTH_NAME);
+         defaults.push_back(GmatSolarSystemDefaults::MOON_NAME);
+      }
+      builtInType.swap(nextType);
+      defaultBodies.swap(defaults);
+      builtInSP = NULL;
+      isInitialized = false;
+      if (UsesSolarSystemEphemeris())
+      {
+         bodyNames.clear();
+         bodyList.clear();
+         numberOfBodies = 0;
+      }
+      return true;
+   }
+   // Preserve the inherited immutable-membership diagnostic for built-in points.
+   if (id == BODY_NAMES && UsesSolarSystemEphemeris() && !isBuiltIn)
+      throw SolarSystemException("BodyNames is not used with the native SolarSystemBarycenter ephemeris source.");
+   return CalculatedPoint::SetStringParameter(id, value);
+}
+
+bool Barycenter::SetStringParameter(const Integer id, const std::string &value,
+                                  const Integer index)
+{
+   if (id == BODY_NAMES && UsesSolarSystemEphemeris() && !isBuiltIn)
+      throw SolarSystemException("BodyNames is not used with the native SolarSystemBarycenter ephemeris source.");
+   return CalculatedPoint::SetStringParameter(id, value, index);
+}
+
+const StringArray& Barycenter::GetStringArrayParameter(const Integer id) const
+{
+   if (id == BODY_NAMES && UsesSolarSystemEphemeris())
+   {
+      static const StringArray none;
+      return none;
+   }
+   return CalculatedPoint::GetStringArrayParameter(id);
+}
+
+const StringArray& Barycenter::GetPropertyEnumStrings(const Integer id) const
+{
+   if (id == EPHEMERIS_SOURCE)
+   {
+      static const StringArray sources{"MassWeighted", "SolarSystemBarycenter"};
+      return sources;
+   }
+   return CalculatedPoint::GetPropertyEnumStrings(id);
+}
+
+const StringArray& Barycenter::GetRefObjectNameArray(const UnsignedInt type)
+{
+   if (UsesSolarSystemEphemeris() &&
+         (type == Gmat::UNKNOWN_OBJECT || type == Gmat::SPACE_POINT))
+   {
+      static const StringArray none;
+      return none;
+   }
+   return CalculatedPoint::GetRefObjectNameArray(type);
+}
+
+bool Barycenter::TakeRequiredAction(const Integer id)
+{
+   if (id == BODY_NAMES && UsesSolarSystemEphemeris())
+      throw SolarSystemException("Cannot replace BodyNames for a native ephemeris barycenter.");
+   return CalculatedPoint::TakeRequiredAction(id);
 }
 
 //------------------------------------------------------------------------------

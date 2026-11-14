@@ -46,6 +46,8 @@
 class LOCATOR_API EclipseLocator : public EventLocator
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = EventLocator::NativeValueProviderDepth + 1;
+
    EclipseLocator(const std::string &name);
    virtual ~EclipseLocator();
    EclipseLocator(const EclipseLocator& el);
@@ -60,6 +62,11 @@ public:
 
    virtual const StringArray&
                         GetPropertyEnumStrings(const Integer id) const;
+   virtual bool         IsParameterCloaked(const Integer id) const;
+   virtual Real         GetRealParameter(const Integer id) const;
+   virtual Real         SetRealParameter(const Integer id, const Real value);
+   virtual Real         GetRealParameter(const std::string &label) const;
+   virtual Real         SetRealParameter(const std::string &label, const Real value);
 
    virtual std::string  GetStringParameter(const Integer id) const;
    virtual bool         SetStringParameter(const Integer id,
@@ -98,6 +105,11 @@ public:
    virtual bool         Initialize();
    virtual bool         ReportEventData(const std::string &reportNotice = "");
 
+   bool HasEventLocatorValueReferenceProvider() const override;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source,
+         SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+
    DEFAULT_TO_NO_CLONES
 
 protected:
@@ -113,12 +125,16 @@ protected:
    Real        maxDuration;
    /// the default types of eclipse
    StringArray defaultEclipseTypes;
+   std::string rootFindingMethod = "SPICE";
+   Real rootTolerance = 1.0e-6;
 
 
    /// Published parameters for eclipse locators
    enum
    {
     ECLIPSE_TYPES = EventLocatorParamCount,
+    ROOT_FINDING_METHOD,
+    ROOT_TOLERANCE,
     EclipseLocatorParamCount
    };
 

@@ -56,8 +56,8 @@
   <refsection>
     <title>Remarks</title>
 
-    <refsection>
-      <title xml:id="System_PythonInterface_InterfaceSetup">Interface
+    <refsection xml:id="System_PythonInterface_InterfaceSetup">
+      <title>Interface
       Setup</title>
 
       <para>The following conditions must all be true for GMAT to successfully

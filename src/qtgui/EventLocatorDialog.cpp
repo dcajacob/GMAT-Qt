@@ -34,7 +34,7 @@ double epochMjd(const QString &format,const QString &value)
 }
 }
 
-QSet<QString> applyEventLocatorProperties(GmatBase &object,const QMap<QString,QString> &values)
+QSet<QString> applyEventLocatorProperties(GmatBase &object,const QMap<QString,QString> &values,bool creating)
 {
    QSet<QString> consumed;
    if (!object.IsOfType("EventLocator")) return consumed;
@@ -55,6 +55,7 @@ QSet<QString> applyEventLocatorProperties(GmatBase &object,const QMap<QString,QS
       const auto value=values.value(name);
       if (property.list) {
          const auto selected=splitResourceReferences(value); QSet<QString> unique;
+         if (name=="EventTypes" && selected.isEmpty()) throw std::runtime_error("Select at least one event type.");
          for (const auto &entry:selected) {
             if (!property.references.contains(entry)) throw std::runtime_error(("Select an available "+name+" entry: "+entry).toStdString());
             if (unique.contains(entry)) throw std::runtime_error("Select each entry only once.");
@@ -75,9 +76,29 @@ QSet<QString> applyEventLocatorProperties(GmatBase &object,const QMap<QString,QS
       auto *target=Moderator::Instance()->GetConfiguredObject(object.GetStringParameter("Target"));
       const bool regionTarget=target && target->IsOfType(Gmat::REGION);
       const auto observers=object.GetStringArrayParameter("Observers");
-      if (regionTarget && observers.size()!=1) throw std::runtime_error("Select exactly one spacecraft observer for a planetographic region.");
+      const auto types=object.GetStringArrayParameter("EventTypes");
+      const auto additional=object.GetStringArrayParameter("AdditionalTargets");
+      if (!additional.empty() && (!target || !target->IsOfType("Spacecraft")))
+         throw std::runtime_error("Additional spacecraft require a spacecraft primary Target.");
+      for (const auto &name:additional) {
+         auto *selected=Moderator::Instance()->GetConfiguredObject(name);
+         if (!selected || !selected->IsOfType("Spacecraft")) throw std::runtime_error("Select an available additional spacecraft.");
+         if (selected==target) throw std::runtime_error("The primary Target cannot also be an additional spacecraft.");
+         if (std::find(observers.begin(),observers.end(),name)!=observers.end())
+            throw std::runtime_error("A selected target cannot also be an observer.");
+      }
+      if (std::find(observers.begin(),observers.end(),object.GetStringParameter("Target"))!=observers.end())
+         throw std::runtime_error("A selected target cannot also be an observer.");
+      const bool stationSelection=std::find(types.begin(),types.end(),"StationRise")!=types.end() || std::find(types.begin(),types.end(),"StationSet")!=types.end();
+      if (stationSelection && (!target || !target->IsOfType("Spacecraft"))) throw std::runtime_error("Station rise/set events require a spacecraft target.");
+      // Creation may precede the spacecraft/observer configuration. Keep
+      // explicit observer edits and edits of existing locators strict;
+      // FindEvents initialization remains the engine's responsibility.
+      const bool pendingObservers=creating && observers.empty() && !values.contains("Observers");
+      if (regionTarget && observers.size()!=1 && !pendingObservers) throw std::runtime_error("Select exactly one spacecraft observer for a planetographic region.");
       for (const auto &name:observers) {
          auto *observer=Moderator::Instance()->GetConfiguredObject(name);
+         if (stationSelection && (!observer || !observer->IsOfType("GroundStation"))) throw std::runtime_error("Station rise/set events require ground-station observers.");
          if (!observer || (regionTarget ? !observer->IsOfType("Spacecraft") : (!observer->IsOfType("GroundStation") && !observer->IsOfType("Spacecraft"))))
             throw std::runtime_error(regionTarget ? "A planetographic region requires one spacecraft observer." : "Select an available ground station or spacecraft observer.");
       }
@@ -131,8 +152,11 @@ EventLocatorDialog::EventLocatorDialog(GmatBase &object,const QMap<QString,QStri
       } else {
          auto *row=new QWidget(content); auto *line=new QHBoxLayout(row); line->setContentsMargins(0,0,0,0);
          auto *edit=new QLineEdit(value,row); edit->setObjectName("event_"+name); text.insert(name,edit); line->addWidget(edit);
-         const auto unit=property.unit.isEmpty() && (name=="StepSize" || name=="IntervalStepSize") ? QString("s") : property.unit;
-         if (!unit.isEmpty()) line->addWidget(new QLabel(unit,row));
+         const auto unit=property.unit.isEmpty() && (name=="StepSize" || name=="IntervalStepSize" || name=="RootTolerance") ? QString("s") : property.unit;
+         if (!unit.isEmpty()) {
+            auto *unitLabel=new QLabel(unit,row); line->addWidget(unitLabel);
+            if (name=="InitialEpoch" || name=="FinalEpoch") unitLabel->setObjectName("epochUnit_"+name);
+         }
          if (property.filename) {
             auto *browse=new QPushButton("Browse…",row); browse->setObjectName("eventBrowse_"+name); line->addWidget(browse);
             connect(browse,&QPushButton::clicked,this,[this,edit,name,property] {
@@ -145,8 +169,9 @@ EventLocatorDialog::EventLocatorDialog(GmatBase &object,const QMap<QString,QStri
       }
    };
    auto *selection=group("Objects");
-   for (const auto &name:QStringList{"Spacecraft","Target","CentralBody","OccultingBodies","IntrudingBodies","Observers","EclipseTypes","Sensors"}) field(selection,name,name);
+   for (const auto &name:QStringList{"Spacecraft","Target","AdditionalTargets","CentralBody","OccultingBodies","IntrudingBodies","Observers","EclipseTypes","EventTypes","Sensors"}) field(selection,name,name=="AdditionalTargets" ? "Additional spacecraft" : name);
    auto *interval=group("Search interval");
+   field(interval,"RootFindingMethod","Root refinement");field(interval,"RootTolerance","Brent tolerance (TDB seconds)");
    field(interval,"UseEntireInterval","Use entire propagated interval"); field(interval,"InputEpochFormat","Epoch format"); field(interval,"InitialEpoch","Initial epoch"); field(interval,"FinalEpoch","Final epoch"); field(interval,"StepSize","Search step");
    auto *corrections=group("Light-time corrections");
    field(corrections,"UseLightTimeDelay","Use light-time delay"); field(corrections,"UseStellarAberration","Use stellar aberration"); field(corrections,"LightTimeDirection","Light-time direction");
@@ -173,18 +198,34 @@ EventLocatorDialog::EventLocatorDialog(GmatBase &object,const QMap<QString,QStri
          auto *item=new QListWidgetItem(entry,list); item->setFlags(item->flags()|Qt::ItemIsUserCheckable); item->setCheckState(selected.contains(entry) ? Qt::Checked : Qt::Unchecked);
       }
    });
-   if (object.IsOfType("ContactLocator")) connect(choices.value("Target"),&QComboBox::currentTextChanged,this,[this](const QString &target) {
-      auto *list=lists.value("Observers"); QStringList selected;
-      for (int i=0;i<list->count();++i) if (list->item(i)->checkState()==Qt::Checked) selected.append(list->item(i)->text());
-      list->clear();
-      auto *configuredTarget=Moderator::Instance()->GetConfiguredObject(target.toStdString());
-      const bool regionTarget=configuredTarget && configuredTarget->IsOfType(Gmat::REGION);
-      for (const auto &name:Moderator::Instance()->GetListOfObjects(Gmat::SPACE_POINT)) {
-         const auto entry=QString::fromStdString(name); auto *observer=Moderator::Instance()->GetConfiguredObject(name);
-         if (entry==target || !observer || (regionTarget ? !observer->IsOfType("Spacecraft") : (!observer->IsOfType("GroundStation") && !observer->IsOfType("Spacecraft")))) continue;
-         auto *item=new QListWidgetItem(entry,list); item->setFlags(item->flags()|Qt::ItemIsUserCheckable); item->setCheckState(selected.contains(entry) ? Qt::Checked : Qt::Unchecked);
-      }
-   });
+   if (object.IsOfType("ContactLocator")) {
+      auto updateObservers=[this] {
+         const auto target=choices.value("Target")->currentText();
+         auto *list=lists.value("Observers"); QStringList selected,targets{target};
+         for (int i=0;i<list->count();++i) if (list->item(i)->checkState()==Qt::Checked) selected.append(list->item(i)->text());
+         auto *additional=lists.value("AdditionalTargets");
+         for (int i=0;i<additional->count();++i) if (additional->item(i)->checkState()==Qt::Checked) targets.append(additional->item(i)->text());
+         list->clear();
+         auto *configuredTarget=Moderator::Instance()->GetConfiguredObject(target.toStdString());
+         const bool regionTarget=configuredTarget && configuredTarget->IsOfType(Gmat::REGION);
+         for (const auto &name:Moderator::Instance()->GetListOfObjects(Gmat::SPACE_POINT)) {
+            const auto entry=QString::fromStdString(name); auto *observer=Moderator::Instance()->GetConfiguredObject(name);
+            if (targets.contains(entry) || !observer || (regionTarget ? !observer->IsOfType("Spacecraft") : (!observer->IsOfType("GroundStation") && !observer->IsOfType("Spacecraft")))) continue;
+            auto *item=new QListWidgetItem(entry,list); item->setFlags(item->flags()|Qt::ItemIsUserCheckable); item->setCheckState(selected.contains(entry) ? Qt::Checked : Qt::Unchecked);
+         }
+      };
+      connect(lists.value("AdditionalTargets"),&QListWidget::itemChanged,this,[updateObservers](QListWidgetItem*) { updateObservers(); });
+      connect(choices.value("Target"),&QComboBox::currentTextChanged,this,[this,updateObservers](const QString &target) {
+         auto *list=lists.value("AdditionalTargets"); const QSignalBlocker block(list); QStringList selected;
+         for (int i=0;i<list->count();++i) if (list->item(i)->checkState()==Qt::Checked) selected.append(list->item(i)->text());
+         list->clear();
+         for (const auto &name:Moderator::Instance()->GetListOfObjects(Gmat::SPACECRAFT)) {
+            const auto entry=QString::fromStdString(name); if (entry==target) continue;
+            auto *item=new QListWidgetItem(entry,list); item->setFlags(item->flags()|Qt::ItemIsUserCheckable); item->setCheckState(selected.contains(entry) ? Qt::Checked : Qt::Unchecked);
+         }
+         updateObservers();
+      });
+   }
    updateDependencies();
    auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,this); layout->addWidget(buttons);
    connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);
@@ -210,6 +251,11 @@ void EventLocatorDialog::updateDependencies()
    const bool entire=checks.value("UseEntireInterval")->isChecked(),lightTime=checks.value("UseLightTimeDelay")->isChecked();
    choices.value("InputEpochFormat")->setEnabled(!entire); text.value("InitialEpoch")->setEnabled(!entire); text.value("FinalEpoch")->setEnabled(!entire);
    checks.value("UseStellarAberration")->setEnabled(lightTime); if (auto *direction=choices.value("LightTimeDirection")) direction->setEnabled(lightTime);
+   if (auto *method=choices.value("RootFindingMethod")) {
+      auto *tolerance=text.value("RootTolerance");
+      const auto update=[method,tolerance] { if (tolerance) tolerance->setEnabled(method->currentText()=="Brent"); };
+      connect(method,&QComboBox::currentTextChanged,this,[update] {update();});update();
+   }
    if (auto *report=choices.value("ReportFormat")) text.value("IntervalStepSize")->setEnabled(report->currentText().startsWith("Azimuth"));
    if (auto *coordinates=choices.value("ReportCoordinates")) {
       const bool fixed=coordinates->currentText()=="FixedGrid"; text.value("SpiceGridFrameFile")->setEnabled(fixed); findChild<QPushButton *>("eventBrowse_SpiceGridFrameFile")->setEnabled(fixed);
@@ -225,4 +271,6 @@ void EventLocatorDialog::convertEpochs()
       }
       text.value("InitialEpoch")->setText(converted[0]); text.value("FinalEpoch")->setText(converted[1]); previousFormat=next; error->clear();
    } catch (BaseException &failure) { const QSignalBlocker blocker(format); format->setCurrentText(previousFormat); error->setText(QString::fromStdString(failure.GetFullMessage())); }
+   for (const auto &name:QStringList{"InitialEpoch","FinalEpoch"})
+      if (auto *unit=findChild<QLabel *>("epochUnit_"+name)) unit->setText(epochInputUnit(format->currentText()));
 }

@@ -47,6 +47,7 @@ public:
    ThrustSegment& operator=(const ThrustSegment &ts);
 
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
 
    virtual bool      Initialize();
 

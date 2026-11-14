@@ -39,6 +39,9 @@
 
 #include "Spacecraft.hpp"
 #include "FormationInterface.hpp"
+#include "TransientForceSelection.hpp"
+#include <map>
+#include <memory>
 
 
 /// A convenient typedef used in this code
@@ -73,6 +76,7 @@ public:
    virtual void UpdateClonedObjectParameter(GmatBase *obj,
          Integer updatedParameterId);
    virtual bool CreateNewSegments(Real epochNow);
+   void RunComplete() override;
 
 protected:
    // todo: Merge the propagator objects in the Propagate command into this code
@@ -157,6 +161,21 @@ protected:
    /// needed for the last step
    std::vector<Spacecraft *>    satBuffer;
    std::vector<FormationInterface *>     formBuffer;
+   // Buffers refer to exact live values, including private Formation members.
+   std::map<const SpaceObject*, SpaceObject*> bufferSources;
+   struct BufferedRoot
+   {
+      SpaceObject *object = NULL;
+      std::shared_ptr<const FunctionValueContext> context;
+      std::shared_ptr<const void> stateLayout;
+      std::vector<SpaceObject*> members;
+      IntegerArray stateSizes;
+      std::vector<std::shared_ptr<const FunctionValueContext>> memberContexts;
+      std::vector<std::shared_ptr<const void>> memberStateLayouts;
+   };
+   std::map<std::string, BufferedRoot> bufferRoots;
+   TransientForceSelection transientBindings;
+
 
    /// Flag used to turn off publishing during event location
    bool                 publishOnStep;
@@ -166,6 +185,13 @@ protected:
    bool                 Step(Real dt);
    virtual bool         TakeAStep(Real propStep = 0.0);
 
+   ObjectArray GetPropagatedSpacecraft() const;
+   std::vector<Publisher::CartesianColumns> GetPublicationColumns();
+   bool PublishElementData(Real direction);
+   std::vector<SpaceObject*> ResolveFormationMembers(FormationInterface *formation);
+   BufferedRoot         CaptureBufferRoot(SpaceObject *object);
+   bool                 BufferBindingsChanged();
+   void                 AppendBuffer(SpaceObject *object);
    virtual void         AddToBuffer(SpaceObject *so);
    virtual void         EmptyBuffer();
    virtual void         BufferSatelliteStates(bool fillingBuffer = true);

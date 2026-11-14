@@ -45,6 +45,7 @@
 #include <sstream>
 #include <iomanip>
 #include "Attitude.hpp"
+#include "ObjectMatlabExportScope.hpp"
 #include "AttitudeException.hpp"
 #include "RealUtilities.hpp"
 #include "MessageInterface.hpp"
@@ -513,6 +514,13 @@ Attitude::Attitude(const Attitude& att) :
 //------------------------------------------------------------------------------
 Attitude& Attitude::operator=(const Attitude& att)
 {
+   if (&att == this) return *this;
+   const bool restoring = GmatBase::IsNativeRestorationCopy();
+   const bool ready = isInitialized;
+   const bool reinitialize = needsReinit;
+   if (restoring && (refCSName != att.refCSName || refBodyName != att.refBodyName ||
+       attitudeModelName != att.attitudeModelName || aemFileFullPath != att.aemFileFullPath))
+      throw AttitudeException("Prepare attitude references before changing an active restoration graph.");
    GmatBase::operator=(att);
    inputAttitudeType       = att.inputAttitudeType;
    inputAttitudeRateType   = att.inputAttitudeRateType;
@@ -523,9 +531,9 @@ Attitude& Attitude::operator=(const Attitude& att)
    eulerSequenceList       = att.eulerSequenceList;
    epoch                   = att.epoch;
    epochGT                 = att.epochGT;
-   owningSC                = att.owningSC;
+   if (!restoring) owningSC                = att.owningSC;
    refCSName               = att.refCSName;
-   refCS                   = att.refCS;
+   if (!restoring) refCS                   = att.refCS;
    eulerSequence           = att.eulerSequence;
    eulerSequenceArray      = att.eulerSequenceArray;
    RBi                     = att.RBi;
@@ -561,7 +569,7 @@ Attitude& Attitude::operator=(const Attitude& att)
    spinRate                = att.spinRate;
    // Additional NadirPointing fields here
    refBodyName             = att.refBodyName;
-   refBody                 = att.refBody;
+   if (!restoring) refBody                 = att.refBody;
    attitudeConstraintType  = att.attitudeConstraintType;
    bodyAlignmentVector     = att.bodyAlignmentVector;
    bodyConstraintVector    = att.bodyConstraintVector;
@@ -569,6 +577,7 @@ Attitude& Attitude::operator=(const Attitude& att)
    aemFile                 = att.aemFile;
    aemFileFullPath         = att.aemFileFullPath;
 
+   if (restoring) { isInitialized = ready; needsReinit = reinitialize; }
    return *this;
 }
 
@@ -805,7 +814,7 @@ void Attitude::NeedsReinitialization()
 
 void Attitude::SetOwningSpacecraft(GmatBase *theSC)
 {
-   if (theSC->IsOfType("Spacecraft"))
+   if (theSC && theSC->IsOfType("Spacecraft"))
       owningSC = theSC;
    else
    {
@@ -1353,7 +1362,7 @@ bool Attitude::SetRefObject(GmatBase *obj,
             #endif
             // Make sure we don't have a circular dependency
             CoordinateSystem *tmpCS = (CoordinateSystem*) obj;
-            if (tmpCS->IsOfType("BodyFixed") &&
+            if (owningSC && tmpCS->IsOfType("BodyFixed") &&
                 tmpCS->UsesSpacecraft(owningSC->GetName()))
             {
                std::string errmsg = "Cannot set attitude coordinate system \"";
@@ -1683,7 +1692,8 @@ bool Attitude::IsParameterReadOnly(const Integer id) const
       if ((id >= NUTATION_REFERENCE_VECTOR_X) && (id <= SPIN_RATE))
          return true;
    }
-   if (attitudeModelName != "NadirPointing")
+   if (attitudeModelName != "NadirPointing" &&
+       attitudeModelName != "CommandableNadirPointing")
    {
       if ((id >= ATTITUDE_REFERENCE_BODY) && (id <= BODY_CONSTRAINT_VECTOR_Z))
          return true;
@@ -3320,6 +3330,7 @@ const std::string& Attitude::GetGeneratingString(Gmat::WriteMode   mode,
                                                  const std::string &prefix,
                                                  const std::string &useName)
 {
+   ObjectMatlabModeScope matlabMode(inMatlabMode, mode);
    #ifdef DEBUG_ATTITUDE_GEN_STRING
    MessageInterface::ShowMessage
       ("Attitude::GetGeneratingString() this=%p, mode=%d, prefix=%s, "
@@ -3331,11 +3342,15 @@ const std::string& Attitude::GetGeneratingString(Gmat::WriteMode   mode,
    data.precision(18);   // Crank up data precision so we don't lose anything
    std::string preface = "", nomme;
 
-   if ((mode == Gmat::SCRIPTING) || (mode == Gmat::OWNED_OBJECT) ||
-       (mode == Gmat::SHOW_SCRIPT))
+   if ((mode == Gmat::SCRIPTING)     || (mode == Gmat::OWNED_OBJECT) ||
+       (mode == Gmat::SHOW_SCRIPT)   || (mode == Gmat::NO_COMMENTS)  ||
+       (mode == Gmat::OBJECT_EXPORT) || (mode == Gmat::DEBUG_INSPECT))
       inMatlabMode = false;
    if (mode == Gmat::MATLAB_STRUCT || mode == Gmat::EPHEM_HEADER)
       inMatlabMode = true;
+
+   matlabMode.Apply();
+   ObjectMatlabExportScope::Prepare(data);
 
    if (useName != "")
       nomme = useName;
@@ -4101,4 +4116,43 @@ std::vector<Rmatrix33> Attitude::GetRotationMatrixDerivative(GmatTime &epochGT, 
 	std::vector<Rmatrix33> MTDeriv = cv.GetLastRotationMatrixDerivative();
 
 	return MTDeriv;
+}
+
+void Attitude::RebindClonedReferences(const Attitude &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   if (&source == this) return;
+   auto *owner = resolve(source.owningSC);
+   auto *frame = dynamic_cast<CoordinateSystem*>(resolve(source.refCS));
+   auto *body = dynamic_cast<CelestialBody*>(resolve(source.refBody));
+   if ((source.owningSC && (!owner || !owner->IsOfType(Gmat::SPACECRAFT))) ||
+       (source.refCS && !frame) || (source.refBody && !body))
+      throw AttitudeException("Incompatible retained attitude dependency.");
+   if (owner && frame && frame->IsOfType("BodyFixed") && frame->UsesSpacecraft(owner->GetName()))
+      throw AttitudeException("Circular body-fixed frame in retained attitude.");
+   std::string frameName = frame ? frame->GetName() : source.refCSName;
+   std::string bodyName = body ? body->GetName() : source.refBodyName;
+   owningSC = owner;
+   refCS = frame;
+   refBody = body;
+   refCSName.swap(frameName);
+   refBodyName.swap(bodyName);
+   // Native owner construction rebases attitude epochs for a new definition.
+   // A retained value carries the source's prepared intrinsic state instead.
+   // Reinitializing a ready CSFixed/Spinner can overwrite its initial basis.
+   epoch = source.epoch;
+   epochGT = source.epochGT;
+   attitudeTime = source.attitudeTime;
+   attitudeTimeGT = source.attitudeTimeGT;
+   isInitialized = source.isInitialized;
+   GmatBase::isInitialized = source.GmatBase::isInitialized;
+   needsReinit = source.needsReinit;
+}
+
+bool Attitude::InitializeClonedResource()
+{
+   if (isInitialized && !needsReinit) return true;
+   // Named prototypes can retain an unprepared definition without an owner.
+   if (!owningSC) return true;
+   return Initialize();
 }

@@ -1,0 +1,26 @@
+{
+  "cases": [
+    {"key": "Spherical", "initial": "SPADFile", "selected": "Spherical"},
+    {"key": "SPADFile", "initial": "Spherical", "selected": "SPADFile"}
+  ],
+  "mu_km3_s2": 398600.4415,
+  "earth_radius_km": 6378.1363,
+  "orbit_radius_km": 7000,
+  "epoch_a1": 21545,
+  "duration_seconds": 10,
+  "dry_mass_kg": 1000,
+  "cd": 2.2,
+  "drag_area_m2": 1000,
+  "spad_body_area_m2": [300, 400, 500],
+  "spad_scale": 4,
+  "reference_density_kg_m3": 4e-8,
+  "scale_height_km": 200,
+  "acceleration_relative_bound": 1e-8,
+  "acceleration_absolute_bound_km_s2": 1e-18,
+  "density_relative_bound": 1e-8,
+  "density_absolute_bound_kg_m3": 1e-20,
+  "position_bound_km": 2e-5,
+  "velocity_bound_km_s": 2e-8,
+  "oracle_step_seconds": 0.01,
+  "scope": "Actual atmosphere DragModel popup, nested Cancel/OK, parent Discard/Apply, exact history and Unicode persistence. Nonzero drag in a prescribed spherical Earth/single-layer exponential atmosphere, identity attitude and constant SPAD effective-area grid. Independent RK4 central-gravity/drag integration uses captured native atmosphere angular velocity; no independent Earth orientation, empirical density, arbitrary SPAD geometry or full drag-domain qualification."
+}

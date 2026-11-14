@@ -30,11 +30,14 @@
 //------------------------------------------------------------------------------
 
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <iomanip>
 #include "Attitude.hpp"
 #include "AttitudeException.hpp"
 #include "SpiceAttitude.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "MessageInterface.hpp"
 #include "AttitudeConversionUtility.hpp"
 
@@ -74,6 +77,23 @@ const Integer SpiceAttitude::UNDEFINED_NAIF_ID_REF_FRAME = -123456789;
  * This method creates an object of the SpiceAttitude class
  * (default Constructor).
  */
+#ifdef __USE_SPICE__
+namespace
+{
+std::unique_ptr<SpiceAttitudeKernelReader> CopyOwnedSpiceAttitudeReader(const SpiceAttitudeKernelReader *source)
+{
+   std::unique_ptr<SpiceAttitudeKernelReader> value(source ? source->Clone() : new SpiceAttitudeKernelReader());
+   if (source && value.get() == source)
+   {
+      value.release();
+      throw AttitudeException("Spice attitude reader Clone returned its source.");
+   }
+   if (!value) throw AttitudeException("Cannot copy Spice attitude reader.");
+   return value;
+}
+}
+#endif
+
 //------------------------------------------------------------------------------
 SpiceAttitude::SpiceAttitude(const std::string &attName) :
    Attitude("SpiceAttitude",attName),
@@ -127,7 +147,7 @@ SpiceAttitude::SpiceAttitude(const SpiceAttitude& att) :
    sclkFullPath = att.sclkFullPath;
    fkFullPath   = att.fkFullPath;
    #ifdef __USE_SPICE__
-      reader = (att.reader)->Clone();
+      reader = CopyOwnedSpiceAttitudeReader(att.reader).release();
    #endif
 
 }
@@ -148,6 +168,20 @@ SpiceAttitude& SpiceAttitude::operator=(const SpiceAttitude& att)
 {
    if (&att == this)
       return *this;
+   if (GmatBase::IsNativeRestorationCopy())
+   {
+      if (ckFullPath != att.ckFullPath || sclkFullPath != att.sclkFullPath || fkFullPath != att.fkFullPath)
+         throw AttitudeException("Prepare SPICE attitude kernels before changing an active restoration graph.");
+      #ifdef __USE_SPICE__
+      if ((reader == nullptr) != (att.reader == nullptr))
+         throw AttitudeException("An active SPICE attitude reader cannot be replaced by restoration.");
+      #endif
+      Attitude::operator=(att);
+      return *this;
+   }
+   #ifdef __USE_SPICE__
+   auto prepared = CopyOwnedSpiceAttitudeReader(att.reader);
+   #endif
    Attitude::operator=(att);
    ck.clear();
    sclk.clear();
@@ -165,8 +199,8 @@ SpiceAttitude& SpiceAttitude::operator=(const SpiceAttitude& att)
    sclkFullPath   = att.sclkFullPath;
    fkFullPath     = att.fkFullPath;
    #ifdef __USE_SPICE__
-      if (reader) delete reader;
-      reader         = (att.reader)->Clone();
+      delete reader;
+      reader = prepared.release();
    #endif
    return *this;
 }
@@ -307,7 +341,9 @@ bool SpiceAttitude::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* SpiceAttitude::Clone() const
 {
-   return (new SpiceAttitude(*this));
+   std::unique_ptr<SpiceAttitude> value(new SpiceAttitude(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //------------------------------------------------------------------------------
@@ -821,3 +857,28 @@ void SpiceAttitude::ComputeCosineMatrixAndAngularVelocity(GmatTime &atTime)
 //  private methods
 //------------------------------------------------------------------------------
 // none
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void SpiceAttitude::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const SpiceAttitude*>(original);
+   if (!source || typeid(*source) != typeid(SpiceAttitude) ||
+       typeid(*this) != typeid(SpiceAttitude))
+      throw GmatBaseException("Cannot copy incompatible object into SpiceAttitude");
+   if (source == this)
+      return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
+}
+
+void SpiceAttitude::RebindClonedReferences(const Attitude &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   if (!dynamic_cast<const SpiceAttitude*>(&source))
+      throw AttitudeException("Incompatible retained SpiceAttitude.");
+   Attitude::RebindClonedReferences(source, resolve);
+   if (owningSC)
+      SetObjectID(owningSC->GetName(), owningSC->GetIntegerParameter("NAIFId"),
+            owningSC->GetIntegerParameter("NAIFIdReferenceFrame"));
+}

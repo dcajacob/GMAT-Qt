@@ -266,9 +266,10 @@ bool Planet::Initialize()
       ("Planet::Initialize() this=<%p> %10s\n",
        this, GetName().c_str());
    #endif
-   if (eopFileName != "")
-      GmatGlobal::Instance()->GetEopFile()->ResetEopFile(eopFileName);
-   if (ionosphereModelDirectory != "")
+   if (!eopFileName.empty())
+      if (auto *eop = GmatGlobal::Instance()->GetEopFile())
+         eop->ResetEopFile(eopFileName);
+   if (!ionosphereModelDirectory.empty())
       GmatGlobal::Instance()->SetIonosphereDir(ionosphereModelDirectory);
    return CelestialBody::Initialize();
 }
@@ -292,16 +293,16 @@ bool Planet::Initialize()
 Rvector Planet::GetBodyCartographicCoordinates(const A1Mjd &forTime) const
 {
    // Neptune is the special case for the planets
-   if (instanceName == GmatSolarSystemDefaults::NEPTUNE_NAME)
+   if (GetPhysicalBodyName() == GmatSolarSystemDefaults::NEPTUNE_NAME)
    {
       if (rotationSrc == Gmat::IAU_2002)
       {
       Real d = GetJulianDaysFromTDBEpoch(forTime); // interval in Julian days
       Real T = d / GmatTimeConstants::DAYS_PER_JULIAN_CENTURY;  // interval in Julian centuries
       Real N    = 357.85 + 52.316 * T;
-      //Real NDot = 52.316 * CelestialBody::TDot;
-	  //NDot = 52.316 (deg/century) * (1 century/36525 days)
-      Real NDot      = 0.0014323;   // fixed conversion error from spec, (SPH) 02 Nov. 2012
+      // N is specified in degrees. Differentiating sin(Rad(N)) requires
+      // the argument rate in radians/day; Wdot below remains degrees/day.
+      Real NDot = Rad(52.316) / GmatTimeConstants::DAYS_PER_JULIAN_CENTURY;
       Real alpha     = orientation[0] + orientation[1] * Sin(Rad(N));
       Real delta     = orientation[2] + orientation[3] * Cos(Rad(N));
       Real W         = orientation[4] + orientation[5] * d - 0.48 * Sin(Rad(N));
@@ -319,7 +320,7 @@ Rvector Planet::GetBodyCartographicCoordinates(const A1Mjd &forTime) const
          throw SolarSystemException(errmsg);
       }
    }
-   else if (instanceName == GmatSolarSystemDefaults::EARTH_NAME)
+   else if (GetPhysicalBodyName() == GmatSolarSystemDefaults::EARTH_NAME)
    {
       // TBD - actually, the FK5 stuff is handled in the AxesSystem class(es) for 
       // which it is appropriate (e.g. BodyFixedAxes)
@@ -346,16 +347,19 @@ Rvector Planet::GetBodyCartographicCoordinates(const A1Mjd &forTime) const
 //------------------------------------------------------------------------------
 Real Planet::GetHourAngle(A1Mjd atTime)
 {
-   if (instanceName == GmatSolarSystemDefaults::EARTH_NAME)
+   if (GetPhysicalBodyName() == GmatSolarSystemDefaults::EARTH_NAME)
    {
       // Convert the time to a UT1 MJD
       // 20.02.06 - arg: changed to use enum types instead of strings
       Real mjdUT1 = theTimeConverter->Convert(atTime.Get(),
                                  TimeSystemConverter::A1MJD, TimeSystemConverter::UT1MJD,
                                  GmatTimeConstants::JD_JAN_5_1941);
-      Real jdUT1    = mjdUT1 + GmatTimeConstants::JD_JAN_5_1941; // right?
-                                                            // Compute elapsed Julian centuries (UT1)
-      Real tUT1     = (jdUT1 - GmatTimeConstants::JD_OF_J2000) / GmatTimeConstants::DAYS_PER_JULIAN_CENTURY;
+      // Subtract in the modified-Julian scale to preserve the fractional
+      // UT1 day. Forming a full Julian date first loses sidereal precision.
+      const Real j2000Mjd = GmatTimeConstants::JD_OF_J2000 -
+                            GmatTimeConstants::JD_JAN_5_1941;
+      const Real tUT1 = (mjdUT1 - j2000Mjd) /
+                        GmatTimeConstants::DAYS_PER_JULIAN_CENTURY;
       
       // compute mean sidereal time, in degrees
       // according to Vallado Eq. 3-45, converted to degrees, where
@@ -395,7 +399,7 @@ bool Planet::SetTwoBodyEpoch(const A1Mjd &toTime)
    if (!CelestialBody::SetTwoBodyEpoch(toTime)) return false;
    bool OK = true;
    // For the Earth, send the information to the Sun
-   if (instanceName == GmatSolarSystemDefaults::EARTH_NAME)
+   if (GetPhysicalBodyName() == GmatSolarSystemDefaults::EARTH_NAME)
    {
       if (!theCentralBody) 
          throw SolarSystemException("Central body must be set for " 
@@ -432,7 +436,7 @@ bool Planet::SetTwoBodyElements(const Rvector6 &kepl)
    if (!CelestialBody::SetTwoBodyElements(kepl)) return false;
    bool OK = true;
    // For the Earth, send the information to the Sun
-   if (instanceName == GmatSolarSystemDefaults::EARTH_NAME)
+   if (GetPhysicalBodyName() == GmatSolarSystemDefaults::EARTH_NAME)
    {
       if (!theCentralBody) 
          throw SolarSystemException("Central body must be set for " 
@@ -544,15 +548,15 @@ bool Planet::NeedsOnlyMainSPK()
 {
    // If the planet data is included in our "built-in" SPK file,
    // we don't need another one
-   if ((instanceName == GmatSolarSystemDefaults::MERCURY_NAME) ||
-       (instanceName == GmatSolarSystemDefaults::VENUS_NAME)   ||
-       (instanceName == GmatSolarSystemDefaults::EARTH_NAME)   ||
-       (instanceName == GmatSolarSystemDefaults::MARS_NAME)    ||
-       (instanceName == GmatSolarSystemDefaults::JUPITER_NAME) ||
-       (instanceName == GmatSolarSystemDefaults::SATURN_NAME)  ||
-       (instanceName == GmatSolarSystemDefaults::URANUS_NAME)  ||
-       (instanceName == GmatSolarSystemDefaults::NEPTUNE_NAME) ||
-       (instanceName == GmatSolarSystemDefaults::PLUTO_NAME)      )
+   if ((GetPhysicalBodyName() == GmatSolarSystemDefaults::MERCURY_NAME) ||
+       (GetPhysicalBodyName() == GmatSolarSystemDefaults::VENUS_NAME)   ||
+       (GetPhysicalBodyName() == GmatSolarSystemDefaults::EARTH_NAME)   ||
+       (GetPhysicalBodyName() == GmatSolarSystemDefaults::MARS_NAME)    ||
+       (GetPhysicalBodyName() == GmatSolarSystemDefaults::JUPITER_NAME) ||
+       (GetPhysicalBodyName() == GmatSolarSystemDefaults::SATURN_NAME)  ||
+       (GetPhysicalBodyName() == GmatSolarSystemDefaults::URANUS_NAME)  ||
+       (GetPhysicalBodyName() == GmatSolarSystemDefaults::NEPTUNE_NAME) ||
+       (GetPhysicalBodyName() == GmatSolarSystemDefaults::PLUTO_NAME)      )
               return true;
    // Otherwise, we need an additional SPK file
    return false;
@@ -659,17 +663,17 @@ bool Planet::IsParameterReadOnly(const Integer id) const
 {
    if (id == NUTATION_UPDATE_INTERVAL)
    {
-      if (instanceName == GmatSolarSystemDefaults::EARTH_NAME) return false;
+      if (GetPhysicalBodyName() == GmatSolarSystemDefaults::EARTH_NAME) return false;
       else                                         return true;
    }
    if (id == EOP_FILE_NAME)
    {
-      if (instanceName == GmatSolarSystemDefaults::EARTH_NAME) return false;
+      if (GetPhysicalBodyName() == GmatSolarSystemDefaults::EARTH_NAME) return false;
       else                                         return true;
    }
     if (id == IONOSPHERE_MODEL_DIR)
    {
-      if (instanceName == GmatSolarSystemDefaults::EARTH_NAME) return false;
+      if (GetPhysicalBodyName() == GmatSolarSystemDefaults::EARTH_NAME) return false;
       else                                         return true;
    }
    return CelestialBody::IsParameterReadOnly(id);
@@ -710,7 +714,7 @@ Real Planet::SetRealParameter(const Integer id, const Real value)
 {
    if (id == NUTATION_UPDATE_INTERVAL)
    {
-      if (instanceName == GmatSolarSystemDefaults::EARTH_NAME)
+      if (GetPhysicalBodyName() == GmatSolarSystemDefaults::EARTH_NAME)
       {
          SetNutationUpdateInterval(value);
          return nutationUpdateInterval;
@@ -811,11 +815,15 @@ bool Planet::SetStringParameter(const Integer id,
 
    if (id == EOP_FILE_NAME)
    {
-      if (instanceName == GmatSolarSystemDefaults::EARTH_NAME)
+      if (GetPhysicalBodyName() == GmatSolarSystemDefaults::EARTH_NAME)
       {
+         // Clear this Earth's previous override without resetting an
+         // unrelated host setting when the field was already empty.
+         if (!value.empty() || !eopFileName.empty())
+            if (auto *eop = GmatGlobal::Instance()->GetEopFile())
+               eop->ResetEopFile(value.empty() ?
+                  FileManager::Instance()->GetFullPathname("EOP_FILE") : value);
          eopFileName = value;
-         if (eopFileName != "")
-            GmatGlobal::Instance()->GetEopFile()->ResetEopFile(eopFileName);
          return true;
       }
       else
@@ -824,11 +832,11 @@ bool Planet::SetStringParameter(const Integer id,
 
    if (id == IONOSPHERE_MODEL_DIR)
    {
-      if (instanceName == GmatSolarSystemDefaults::EARTH_NAME)
+      if (GetPhysicalBodyName() == GmatSolarSystemDefaults::EARTH_NAME)
       {
+         if (!value.empty() || !ionosphereModelDirectory.empty())
+            GmatGlobal::Instance()->SetIonosphereDir(value);
          ionosphereModelDirectory = value;
-         if (ionosphereModelDirectory != "")
-            GmatGlobal::Instance()->SetIonosphereDir(ionosphereModelDirectory);
          return true;
       }
       else
@@ -855,7 +863,7 @@ bool Planet::SetStringParameter(const Integer id,
 Integer Planet::SetIntegerParameter(const Integer id,
                                     const Integer value)
 {
-   if (instanceName == GmatSolarSystemDefaults::EARTH_NAME)
+   if (GetPhysicalBodyName() == GmatSolarSystemDefaults::EARTH_NAME)
    {
       if ((id == NAIF_ID) &&
           (value != GmatSolarSystemDefaults::PLANET_NAIF_IDS[2]))

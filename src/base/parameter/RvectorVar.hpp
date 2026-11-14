@@ -49,9 +49,13 @@ public:
               bool isTimeParam = false, bool isSettable = false,
               UnsignedInt ownedObjType = Gmat::UNKNOWN_OBJECT,
               Integer size = 0);
+   RvectorVar(const std::string &name, Integer size);
    RvectorVar(const RvectorVar &param);
    RvectorVar& operator= (const RvectorVar& param);
    virtual ~RvectorVar();
+
+   GmatBase* Clone() const override;
+   void Copy(const GmatBase *source) override;
    
    bool operator==(const RvectorVar &param) const;
    bool operator!=(const RvectorVar &param) const;
@@ -65,6 +69,7 @@ public:
    // methods inherited from GmatBase
    virtual Integer      GetParameterID(const std::string &str) const;
    virtual std::string  GetParameterText(const Integer id) const;
+   Gmat::ParameterType GetParameterType(const Integer id) const override;
    virtual bool         IsParameterReadOnly(const Integer id) const;
    virtual bool         IsParameterCommandModeSettable(const Integer id) const;
    virtual Integer      GetIntegerParameter(const Integer id) const;

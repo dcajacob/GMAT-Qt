@@ -1,0 +1,149 @@
+{
+  "cases": [
+    {
+      "definitions": [
+        "Create ThrustHistoryFile Subject",
+        "Create ThrustSegment Segment",
+        "Create ChemicalTank Fuel",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_Segment_Fuel_ReloadAlive.data",
+      "fixture_files": {
+        "history.thf": "BeginThrust {Segment}\nStart_Epoch = 01 Jan 2000 12:00:00.000\nThrust_Vector_Coordinate_System = EarthMJ2000Eq\nThrust_Vector_Interpolation_Method = None\nMass_Flow_Rate_Interpolation_Method = None\nModelAccelAndMassRate\n0.0 0.1 0 0 0.5\n120.0 0.1 0 0 0.5\nEndThrust {Segment}\n"
+      },
+      "key": "MissingThrustSegment",
+      "objects": [
+        "Subject",
+        "Segment",
+        "Fuel",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "Segment",
+        "Fuel",
+        "ReloadAlive"
+      ],
+      "setup": "Create ChemicalTank Fuel;\nFuel.FuelMass = 100;\nCreate ThrustSegment Segment;\nSegment.MassSource = {Fuel};\nSegment.ThrustScaleFactor = 1.25;\nCreate ThrustHistoryFile Subject;\nSubject.FileName = '@FILES@/history.thf';\nSubject.AddThrustSegment = {Segment};\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": "@FILES@/history.thf",
+          "field": "FileName",
+          "object": "Subject",
+          "type": "Filename"
+        },
+        {
+          "expected": [
+            "Segment"
+          ],
+          "field": "AddThrustSegment",
+          "object": "Subject",
+          "type": "StringArray"
+        },
+        {
+          "expected": 1.25,
+          "field": "ThrustScaleFactor",
+          "object": "Segment",
+          "type": "Real"
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Segment",
+          "owned_indices": [],
+          "native_type": "ThrustSegment",
+          "field": "Covariance",
+          "type": "Rmatrix"
+        },
+        {
+          "object": "Segment",
+          "owned_indices": [],
+          "native_type": "ThrustSegment",
+          "field": "StartEpoch",
+          "type": "Real"
+        },
+        {
+          "object": "Segment",
+          "owned_indices": [],
+          "native_type": "ThrustSegment",
+          "field": "EndEpoch",
+          "type": "Real"
+        }
+      ],
+      "original_test": "QtGui.SaveLegacyAncillaryThrustHistoryFile",
+      "scope": "Only missing real post-reload consumers at unchanged existing bounds. No complete Save row credit."
+    },
+    {
+      "definitions": [
+        "Create PlanetographicRegion Subject;",
+        "Create Variable Marker\n",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_Marker_ReloadAlive.data",
+      "fixture_files": {
+        "region \u03a9.AT": "PlanetographicRegion\n10 30\n10 40\n20 40\n20 30\n"
+      },
+      "key": "MissingRegionFile",
+      "objects": [
+        "Subject",
+        "Marker",
+        "ReloadAlive"
+      ],
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "selected": [
+        "Subject",
+        "Marker",
+        "ReloadAlive"
+      ],
+      "setup": "Create Variable Marker;\nMarker = 1;\nCreate PlanetographicRegion Subject;\nSubject.CentralBody = Earth;\nSubject.AreaFileName = '@FILES@/region \u03a9.AT';\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": "@FILES@/region \u03a9.AT",
+          "field": "AreaFileName",
+          "object": "Subject",
+          "type": "String"
+        },
+        {
+          "expected": 1,
+          "field": "Value",
+          "object": "Marker",
+          "type": "Real"
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "PlanetographicRegion",
+          "field": "Latitude",
+          "type": "Rvector"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "PlanetographicRegion",
+          "field": "Longitude",
+          "type": "Rvector"
+        }
+      ]
+    }
+  ],
+  "scope": "Missing covariance and file-defined region consumers; unchanged original bounds and driver."
+}

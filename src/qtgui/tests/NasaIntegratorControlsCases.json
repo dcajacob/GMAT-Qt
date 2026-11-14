@@ -1,0 +1,104 @@
+{
+  "methods": [
+    "RungeKutta89",
+    "RungeKutta68",
+    "RungeKutta56",
+    "PrinceDormand45",
+    "PrinceDormand78",
+    "AdamsBashforthMoulton",
+    "BulirschStoer",
+    "RungeKutta4",
+    "PrinceDormand853"
+  ],
+  "mu": 398600.4418,
+  "radius": 7000,
+  "duration": 600,
+  "position_tolerance": 2e-05,
+  "velocity_tolerance": 2e-08,
+  "time_tolerance": 1e-06,
+  "common": {
+    "InitialStepSize": "12",
+    "Accuracy": "2e-12",
+    "MinStep": "0",
+    "MaxStep": "24",
+    "MaxStepAttempts": "83",
+    "StopIfAccuracyIsViolated": "true"
+  },
+  "bounds": [
+    [
+      "40",
+      "50"
+    ],
+    [
+      "1",
+      "20"
+    ],
+    [
+      "0",
+      "24"
+    ]
+  ],
+  "invalid": {
+    "InitialStepSize": [
+      "",
+      "not-a-number",
+      "nan",
+      "inf",
+      "0",
+      "0.00001"
+    ],
+    "Accuracy": [
+      "",
+      "nan",
+      "inf",
+      "0",
+      "-1"
+    ],
+    "MinStep": [
+      "",
+      "nan",
+      "inf",
+      "-1",
+      "100"
+    ],
+    "MaxStep": [
+      "",
+      "nan",
+      "inf",
+      "0",
+      "-1"
+    ],
+    "MaxStepAttempts": [
+      "",
+      "oops",
+      "0",
+      "-1",
+      "1.5"
+    ]
+  },
+  "specific": {
+    "AdamsBashforthMoulton": {
+      "LowerError": "1e-16",
+      "TargetError": "1e-14"
+    },
+    "BulirschStoer": {
+      "MinimumReduction": "0.6",
+      "MaximumReduction": "0.0001"
+    }
+  },
+  "specific_invalid": {
+    "AdamsBashforthMoulton": {
+      "LowerError": [
+        "0",
+        "-1",
+        "1e-14"
+      ],
+      "TargetError": [
+        "0",
+        "-1",
+        "1e-16",
+        "2e-12"
+      ]
+    }
+  }
+}

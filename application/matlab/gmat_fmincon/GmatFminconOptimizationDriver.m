@@ -39,10 +39,24 @@
 % 06/15/06, D. Conway, Created 
 % --- Declare global variables 
 global NonLinearEqCon JacNonLinearEqCon NonLinearIneqCon JacNonLinearIneqCon
-OpenGMAT
+global GMAT_QT_CALLBACK
+if ~(isstruct(GMAT_QT_CALLBACK) && isfield(GMAT_QT_CALLBACK,'port'))
+    OpenGMAT
+end
 GMAToptions = optimset(GMAToptions,'Algorithm','active-set');
-[X, fVal, exitFlag] = fmincon(@EvaluateGMATObjective, X0, [], [], [], [], Lower, Upper, ...
-@EvaluateGMATConstraints, GMAToptions) 
+if isstruct(GMAT_QT_CALLBACK) && isfield(GMAT_QT_CALLBACK,'port')
+    GMAToptions = optimset(GMAToptions,'OutputFcn',@GmatQtFminconOutputFcn);
+    global GMAT_QT_ITERATION_AUDIT GMAT_QT_ITERATION_HISTORY
+    if isequal(GMAT_QT_ITERATION_AUDIT,true)
+        GMAT_QT_ITERATION_HISTORY = struct('state',{},'iteration',{}, ...
+            'funccount',{},'fval',{},'x',{},'native_fval',{});
+    end
+    [X, fVal, exitFlag, GMATfminconOutput] = fmincon(@EvaluateGMATObjective, X0, [], [], [], [], Lower, Upper, ...
+        @EvaluateGMATConstraints, GMAToptions);
+else
+    [X, fVal, exitFlag] = fmincon(@EvaluateGMATObjective, X0, [], [], [], [], Lower, Upper, ...
+        @EvaluateGMATConstraints, GMAToptions);
+end
 % Apply the converged variables 
 CallGMATfminconSolver(X)
 %CloseGMAT

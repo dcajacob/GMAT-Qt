@@ -31,6 +31,121 @@
 
 #include "CommandUtil.hpp"
 #include "MessageInterface.hpp"
+#include <memory>
+#include <set>
+#include <typeinfo>
+
+namespace
+{
+std::vector<const GmatCommand*> DefinitionNodes(const GmatCommand *sequence)
+{
+   std::vector<const GmatCommand*> nodes;
+   if (!sequence) return nodes;
+   std::set<const GmatCommand*> seen{sequence};
+   nodes.push_back(sequence);
+   for (size_t i = 0; i < nodes.size(); ++i)
+      for (const auto &edge : nodes[i]->GetDefinitionCommandLinks())
+         if (edge.first && seen.insert(edge.first).second) nodes.push_back(edge.first);
+   return nodes;
+}
+
+struct StagedCommandSequence
+{
+   std::vector<std::unique_ptr<GmatCommand>> nodes;
+   ~StagedCommandSequence()
+   {
+      // A failed reconnect can leave cycles/parent links. Detach every staged
+      // command before any recursive native destructor is allowed to run.
+      for (auto &node : nodes) if (node) node->DetachCommandLinks();
+   }
+};
+}
+
+std::vector<GmatCommand*> GmatCommandUtil::GetCommandSequenceNodes(GmatCommand *sequence)
+{
+   std::vector<GmatCommand*> nodes;
+   for (const auto *node : DefinitionNodes(sequence))
+      nodes.push_back(const_cast<GmatCommand*>(node));
+   return nodes;
+}
+
+GmatCommand *GmatCommandUtil::CloneCommandSequence(const GmatCommand *sequence,
+      std::map<const GmatCommand*, GmatCommand*> *copies)
+{
+   const auto sources = DefinitionNodes(sequence);
+   std::map<const GmatCommand*, GmatCommand*> identities;
+   if (sources.empty())
+   {
+      if (copies) copies->clear();
+      return nullptr;
+   }
+   // Native deletion owns next except at branch ends, plus each branch root.
+   // Backlinks may cycle, but deletion ownership must remain a single tree.
+   std::set<const GmatCommand*> owned{sequence};
+   std::vector<const GmatCommand*> ownership{sequence};
+   for (size_t i = 0; i < ownership.size(); ++i)
+      for (const auto &edge : ownership[i]->GetDefinitionCommandLinks())
+         if (edge.first && edge.second)
+         {
+            if (!owned.insert(edge.first).second)
+               throw CommandException("Command definition has cyclic or multiple native deletion ownership.\n");
+            ownership.push_back(edge.first);
+         }
+   if (owned.size() != sources.size())
+      throw CommandException("Command definition has a backlink outside its owned sequence.\n");
+
+   StagedCommandSequence staged;
+   staged.nodes.reserve(sources.size());
+   std::set<GmatBase*> allocated;
+   for (const auto *source : sources)
+   {
+      GmatBase *raw = source->Clone();
+      if (!raw || owned.count(dynamic_cast<GmatCommand*>(raw)) || allocated.count(raw))
+         throw CommandException("Command Clone returned a source, peer or null definition.\n");
+      std::unique_ptr<GmatBase> value(raw);
+      auto *command = dynamic_cast<GmatCommand*>(raw);
+      if (!command || typeid(*command) != typeid(*source) ||
+            command->GetTypeName() != source->GetTypeName())
+      {
+         if (command) command->DetachCommandLinks();
+         throw CommandException("Command Clone returned an incompatible definition.\n");
+      }
+      // Individual Clone is the native detached-command contract. Complete
+      // navigation is installed only after all concrete clones are allocated.
+      for (const auto &edge : command->GetDefinitionCommandLinks())
+         if (edge.first)
+         {
+            command->DetachCommandLinks();
+            throw CommandException("Individual command Clone returned connected navigation.\n");
+         }
+      allocated.insert(raw);
+      identities.emplace(source, command);
+      value.release();
+      staged.nodes.emplace_back(command);
+   }
+   auto resolve = [&identities](const GmatCommand *source) -> GmatCommand*
+   {
+      const auto found = identities.find(source);
+      // Previous can refer to a command outside the function's owned graph.
+      return found == identities.end() ? nullptr : found->second;
+   };
+   for (const auto *source : sources)
+      identities.at(source)->RebindClonedCommandLinks(*source, resolve);
+   for (const auto *source : sources)
+   {
+      const auto original = source->GetDefinitionCommandLinks();
+      const auto cloned = identities.at(source)->GetDefinitionCommandLinks();
+      if (original.size() != cloned.size())
+         throw CommandException("Copied command graph changed its structural roles.\n");
+      for (size_t i = 0; i < original.size(); ++i)
+         if (cloned[i].first != resolve(original[i].first) || cloned[i].second != original[i].second)
+            throw CommandException("Copied command graph has an incomplete link or deletion role.\n");
+   }
+   GmatCommand *root = identities.at(sequence);
+   if (copies) copies->swap(identities);
+   for (auto &node : staged.nodes) node.release();
+   return root;
+}
 
 //#define DEBUG_MATCHING_END
 //#define DEBUG_GET_PARENT

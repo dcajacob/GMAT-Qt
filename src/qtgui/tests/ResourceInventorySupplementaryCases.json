@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "Fmincon",
+      "type": "FminconOptimizer",
+      "category": "Solvers",
+      "field": "MaximumIterations",
+      "kind": "integer",
+      "first": "18",
+      "second": "23",
+      "clone_allowed": true,
+      "requirement_context": "All Others!E139: fmiconOptimizer (if library is available)",
+      "scope": "Creation, native configuration, clone independence, rename/delete and source lifecycle only; MATLAB optimizer execution and scientific correctness remain separate."
+    }
+  ]
+}

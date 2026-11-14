@@ -171,6 +171,9 @@ public:
    
 
 
+   void RebindClonedReferences(const Propagator &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve, bool bindObjects = true) override;
+
 protected:
    /// The configuration file name
    std::string configFileName;

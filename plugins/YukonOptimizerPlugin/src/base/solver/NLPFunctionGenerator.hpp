@@ -45,6 +45,10 @@ public:
    NLPFunctionGenerator(YukonUserProblem *inputUserFunction,
                         bool inputIsModeElastic, Real inputElasticWeight);
    ~NLPFunctionGenerator();
+   NLPFunctionGenerator(const NLPFunctionGenerator &source);
+   NLPFunctionGenerator& operator=(const NLPFunctionGenerator &source);
+   YukonUserProblem* GetUserProblem() const;
+   void RebindUserProblem(YukonUserProblem *original, YukonUserProblem *replacement);
    void ValidateUserProblem();
    void PrepareElasticMode(Real inputElasticWeight);
    void PrepareArrays();
@@ -97,24 +101,25 @@ public:
    Rvector EvaluateMaxVarStep();
 
 private:
+   void SwapValueState(NLPFunctionGenerator &other);
    /// Pointer to object that thes user provides
-   YukonUserProblem *userFunction;
+   YukonUserProblem *userFunction = NULL;
    /// Number of decision variables in the user's problem
-   Integer numUserDecisionVars;
+   Integer numUserDecisionVars = 0;
    /// Number of (non-bound) constraints in the user's problem
-   Integer numUserConstraints;
+   Integer numUserConstraints = 0;
    /// Number of decision variables with non -inf to inf bounds
-   Integer numBoundCons;
+   Integer numBoundCons = 0;
    /// Total number of decision variables (user + elastic)
-   Integer totalNumDecisionVars;
+   Integer totalNumDecisionVars = 0;
    /// Total number of constraints (user con + bound con + elastic var con)
-   Integer totalNumConstraints;
+   Integer totalNumConstraints = 0;
    /// Number of elastic mode decision variables
-   Integer numElasticVars;
+   Integer numElasticVars = 0;
    /// Number of elastic mode constraints
-   Integer numElasticConstraints;
+   Integer numElasticConstraints = 0;
    /// Flag indicating if problem is in elastic mode
-   bool isModeElastic;
+   bool isModeElastic = false;
    /// Vector of all constraints (user cons + bound cons)
    Rvector conValues;
    /// The Jacobian of the cost function
@@ -132,28 +137,28 @@ private:
    ///  A matrix for computing bound constraints
    Rmatrix boundAMatrix;
    /// Index into conValues array indicating where user cons start
-   Integer userConJacRowStartIdx;
+   Integer userConJacRowStartIdx = 0;
    /// Index into conValues array indicating where user cons end
-   Integer userConJacRowStopIdx;
+   Integer userConJacRowStopIdx = 0;
    /// Index into conValues array indicating where user vars start
-   Integer userConJacColStartIdx;
+   Integer userConJacColStartIdx = 0;
    /// Index into conValues array indicating where user vars end
-   Integer userConJacColStopIdx;
+   Integer userConJacColStopIdx = 0;
    /// Elastic weight parameter
-   Real elasticWeight;
+   Real elasticWeight = 0.0;
    /// Index into decision vector indicating where elastic V vars start
-   Integer elasticVarVStartIdx;
+   Integer elasticVarVStartIdx = 0;
    /// Index into decision vector indicating where elastic V vars end
-   Integer elasticVarVStopIdx;
+   Integer elasticVarVStopIdx = 0;
    /// Index into decision vector indicating where elastic W vars start
-   Integer elasticVarWStartIdx;
+   Integer elasticVarWStartIdx = 0;
    /// Index into decision vector indicating where elastic W vars end
-   Integer elasticVarWStopIdx;
+   Integer elasticVarWStopIdx = 0;
    /// Index into conValues indicating constraints associated with user
    /// decision variable bounds
    Rvector userVarBoundConIdxs;
    /// Parameter representing infinity
-   Real inf;
+   Real inf = 0.0;
 
 };
 #endif

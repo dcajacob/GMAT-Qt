@@ -150,7 +150,12 @@ bool VelApoapsis::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* VelApoapsis::Clone(void) const
 {
-   return new VelApoapsis(*this);
+   return CompleteParameterClone(new VelApoapsis(*this));
+}
+
+void VelApoapsis::Copy(const GmatBase *source)
+{
+   CopyParameterValue<VelApoapsis>(source);
 }
 
 
@@ -271,7 +276,12 @@ bool VelPeriapsis::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* VelPeriapsis::Clone(void) const
 {
-   return new VelPeriapsis(*this);
+   return CompleteParameterClone(new VelPeriapsis(*this));
+}
+
+void VelPeriapsis::Copy(const GmatBase *source)
+{
+   CopyParameterValue<VelPeriapsis>(source);
 }
 
 
@@ -406,7 +416,12 @@ bool Apoapsis::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* Apoapsis::Clone(void) const
 {
-   return new Apoapsis(*this);
+   return CompleteParameterClone(new Apoapsis(*this));
+}
+
+void Apoapsis::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Apoapsis>(source);
 }
 
 
@@ -546,7 +561,12 @@ bool Periapsis::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* Periapsis::Clone(void) const
 {
-   return new Periapsis(*this);
+   return CompleteParameterClone(new Periapsis(*this));
+}
+
+void Periapsis::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Periapsis>(source);
 }
 
 
@@ -667,7 +687,12 @@ bool OrbitPeriod::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* OrbitPeriod::Clone(void) const
 {
-   return new OrbitPeriod(*this);
+   return CompleteParameterClone(new OrbitPeriod(*this));
+}
+
+void OrbitPeriod::Copy(const GmatBase *source)
+{
+   CopyParameterValue<OrbitPeriod>(source);
 }
 
 
@@ -786,7 +811,12 @@ bool C3Energy::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* C3Energy::Clone(void) const
 {
-   return new C3Energy(*this);
+   return CompleteParameterClone(new C3Energy(*this));
+}
+
+void C3Energy::Copy(const GmatBase *source)
+{
+   CopyParameterValue<C3Energy>(source);
 }
 
 
@@ -903,6 +933,11 @@ bool Energy::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* Energy::Clone(void) const
 {
-   return new Energy(*this);
+   return CompleteParameterClone(new Energy(*this));
+}
+
+void Energy::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Energy>(source);
 }
 

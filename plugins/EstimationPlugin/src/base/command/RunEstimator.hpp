@@ -34,6 +34,8 @@
 #define RunEstimator_hpp
 
 #include <RunSolver.hpp>
+#include <cstdint>
+#include <memory>
 
 #include "PropSetup.hpp"
 #include "Estimator.hpp"
@@ -58,6 +60,10 @@ public:
 
    virtual GmatBase* Clone() const;
 
+   /// Zero until this command has successfully finished in the current run.
+   std::uint64_t GetSuccessfulExecutionSequence() const;
+
+
    virtual std::string GetRefObjectName(const UnsignedInt type) const;
    virtual GmatBase* GetRefObject(const UnsignedInt type,
          const std::string &name);
@@ -79,6 +85,9 @@ public:
 
    virtual bool HasLocalClones();
    virtual void UpdateClonedObject(GmatBase *obj);
+   virtual void UpdateClonedObjectParameter(GmatBase *obj, Integer parameterId);
+   virtual ObjectArray GetCommandOwnedObjects() const;
+   virtual void RetireFunctionBindings(ObjectMap *store);
 
    //Parses commands
    virtual bool InterpretAction();
@@ -88,6 +97,10 @@ public:
 protected:
    /// The estimator that drives this process
    Estimator      *theEstimator;
+   std::unique_ptr<Estimator> pendingDefinition;
+   void ClearNavigationReferences(bool closeStreams);
+   /// Runtime completion order; never inherited by copies or new executions.
+   std::uint64_t successfulExecutionSequence;
    /// Flag indicating if command execution is started
    bool commandRunning;
 //   /// Flag indicating if propagation is running and needs reentrance

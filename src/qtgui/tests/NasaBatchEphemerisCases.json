@@ -1,0 +1,112 @@
+{
+  "cases": [
+    {
+      "key": "Positive",
+      "initial_guess": [
+        7001.0,
+        -0.5,
+        0.25,
+        0.0005,
+        5.335565450622125,
+        5.336065450622126
+      ]
+    },
+    {
+      "key": "Negative",
+      "initial_guess": [
+        6999.0,
+        0.5,
+        -0.25,
+        -0.0005,
+        5.336165450622126,
+        5.335665450622125
+      ]
+    }
+  ],
+  "stations": [
+    {
+      "name": "North0",
+      "latitude": 30.0,
+      "longitude": 0.0
+    },
+    {
+      "name": "North1",
+      "latitude": 30.0,
+      "longitude": 60.0
+    },
+    {
+      "name": "North2",
+      "latitude": 30.0,
+      "longitude": 120.0
+    },
+    {
+      "name": "North3",
+      "latitude": 30.0,
+      "longitude": 180.0
+    },
+    {
+      "name": "North4",
+      "latitude": 30.0,
+      "longitude": 240.0
+    },
+    {
+      "name": "North5",
+      "latitude": 30.0,
+      "longitude": 300.0
+    },
+    {
+      "name": "South0",
+      "latitude": -30.0,
+      "longitude": 0.0
+    },
+    {
+      "name": "South1",
+      "latitude": -30.0,
+      "longitude": 60.0
+    },
+    {
+      "name": "South2",
+      "latitude": -30.0,
+      "longitude": 120.0
+    },
+    {
+      "name": "South3",
+      "latitude": -30.0,
+      "longitude": 180.0
+    },
+    {
+      "name": "South4",
+      "latitude": -30.0,
+      "longitude": 240.0
+    },
+    {
+      "name": "South5",
+      "latitude": -30.0,
+      "longitude": 300.0
+    }
+  ],
+  "mu": 398600.4415,
+  "radius": 7000.0,
+  "truth": [
+    7000.0,
+    0.0,
+    0.0,
+    -0.0,
+    5.3358654506221255,
+    5.3358654506221255
+  ],
+  "epoch_utc": "10 Jun 2012 00:00:00.000",
+  "utc_mjd": 26088.5,
+  "tai_minus_utc": 34.0,
+  "a1_minus_tai": 0.0343817,
+  "a1_epoch": 26088.500393916456,
+  "duration": 28800,
+  "position_tolerance": 2e-05,
+  "velocity_tolerance": 2e-08,
+  "recovered_position_tolerance": 1e-05,
+  "recovered_velocity_tolerance": 1e-08,
+  "metadata_time_tolerance": 0.002,
+  "min_observations": 30,
+  "min_oem_points": 100,
+  "scope": "Two biased initial Cartesian states for a noiseless eight-hour Range_Skin batch estimation of one prescribed45-degree circular Earth point-mass orbit. Independent closed-form truth for every written OEM state;source/GUI/history isolation and initial-state recovery. Explicit twelve-station30-degree latitude/60-degree longitude network;native simulator observations and shared time/frame/measurement inputs are not independent measurement physics. No SPK/Code500/STK,EKF/smoother supported format boundaries,nested/failed/stopped estimators,arbitrary dynamics/data/noise, native OS input/GPU/hardware/platform/stress/current-private NASA or full-build qualification. E406 remains uncredited while broader format/segment and estimator boundaries remain open."
+}

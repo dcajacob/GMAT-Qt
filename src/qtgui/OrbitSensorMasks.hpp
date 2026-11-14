@@ -23,7 +23,8 @@ inline std::optional<OrbitSensorMaskGeometry> orbitSensorMaskGeometry(const Plot
    if (!std::isfinite(length) || length<=0) return {};
    auto position=[&](const std::array<double,3> &direction,double scale) {
       osg::Vec3d body;
-      for (int i=0;i<3;++i) body[i]=mask.origin[i]+direction[i]*scale;
+      const double originScale=mask.originInMetres ? .001 : 1.;
+      for (int i=0;i<3;++i) body[i]=mask.origin[i]*originScale+direction[i]*scale;
       const auto &r=pose.bodyToView;
       return osg::Vec3d(pose.x+r[0]*body.x()+r[1]*body.y()+r[2]*body.z(),
          pose.y+r[3]*body.x()+r[4]*body.y()+r[5]*body.z(),

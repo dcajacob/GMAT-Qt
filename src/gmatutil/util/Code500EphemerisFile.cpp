@@ -2356,6 +2356,12 @@ Real Code500EphemerisFile::GetTimeSystem()
    return mOutputTimeSystem;
 }
 
+// The input header and output configuration may use different time systems.
+Real Code500EphemerisFile::GetInputTimeSystem() const
+{
+   return mInputTimeSystem;
+}
+
 
 //------------------------------------------------------------------------------
 // std::string GetCentralBody()

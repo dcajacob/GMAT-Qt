@@ -34,6 +34,8 @@
 #ifndef FiniteThrust_hpp
 #define FiniteThrust_hpp
 
+#include <memory>
+#include <map>
 #include "PhysicalModel.hpp"
 #include "FiniteBurn.hpp"
 
@@ -49,8 +51,16 @@ public:
    FiniteThrust(const FiniteThrust& ft);
    FiniteThrust&           operator=(const FiniteThrust& ft);
    bool                    operator==(const FiniteThrust& ft) const;
+   bool TargetsSpacecraft(const Spacecraft *spacecraft) const override;
+   bool SharesTargets(const FiniteThrust &other) const;
+   bool UsesBurn(const FiniteBurn *burn) const;
+   void RebindClonedReferences(const FiniteThrust &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+
+
 
    virtual GmatBase*       Clone() const;
+   void Copy(const GmatBase *original) override;
 
    virtual void            Clear(const UnsignedInt
                                  type = Gmat::UNKNOWN_OBJECT);
@@ -96,6 +106,19 @@ protected:
    // Pieces needed for bookkeeping
    /// The finite burn objects this model uses
    std::vector <FiniteBurn *>    burns;
+   std::map<const FiniteBurn*, std::weak_ptr<const void>> burnLifetimes;
+   std::map<std::string, FiniteBurn*> burnReferences;
+   struct ManeuverTarget
+   {
+      Spacecraft *object = NULL;
+      std::weak_ptr<const void> lifetime;
+   };
+   // Configured targets differ from the propagated-object list below.
+   std::map<std::string, ManeuverTarget> maneuverTargets;
+   void RequireLiveBurns() const;
+   Rvector6 SampleSpacecraft(Spacecraft *spacecraft, const Real *modelState,
+         const GmatTime &atEpoch, Rmatrix *gradient);
+
    /// Names for the FiniteBurn objects used for this force 
    StringArray                   burnNames;
    /// Names of the spacecraft accessed by this force

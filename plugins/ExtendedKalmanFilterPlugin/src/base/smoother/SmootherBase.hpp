@@ -44,6 +44,8 @@
 class KALMAN_API SmootherBase: public Estimator
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = Estimator::NativeValueProviderDepth + 1;
+
    /// Enumeration defining the states in the state machine
    enum SmootherState
    {
@@ -136,6 +138,11 @@ public:
    virtual bool        UpdateInitialConditions();
 
    virtual void         UpdateCov();
+
+   void PrepareClonedSolverValueImpl(const Solver &source);
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
 
 protected:
    /// Filter

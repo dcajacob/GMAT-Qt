@@ -30,6 +30,8 @@
 //------------------------------------------------------------------------------
 
 #include "OpenGlPlot.hpp"
+#include "ObjectScriptExportScope.hpp"
+#include "SubscriberBindingState.hpp"
 #include "PlotInterface.hpp"       // for UpdateGlPlot()
 #include "ColorTypes.hpp"          // for namespace GmatColor::
 #include "SubscriberException.hpp" // for SubscriberException()
@@ -299,7 +301,7 @@ OpenGlPlot::OpenGlPlot(const OpenGlPlot &ogl)
    mPerspectiveMode = ogl.mPerspectiveMode;
    mUseFixedFov = ogl.mUseFixedFov;
    
-   mOldName = ogl.mOldName;;
+   mOldName = instanceName;
    mViewCoordSysName = ogl.mViewCoordSysName;
    
    // viewpoint
@@ -398,7 +400,7 @@ OpenGlPlot& OpenGlPlot::operator=(const OpenGlPlot& ogl)
    mPerspectiveMode = ogl.mPerspectiveMode;
    mUseFixedFov = ogl.mUseFixedFov;
    
-   mOldName = ogl.mOldName;;
+   // Preserve this output's pending native rename.
    mViewCoordSysName = ogl.mViewCoordSysName;
    
    // viewpoint
@@ -477,7 +479,7 @@ OpenGlPlot& OpenGlPlot::operator=(const OpenGlPlot& ogl)
 //------------------------------------------------------------------------------
 OpenGlPlot::~OpenGlPlot()
 {
-   PlotInterface::TakeGlAction(instanceName, "ClearObjects");
+   PlotInterface::TakeGlAction(GetRuntimePlotName(), "ClearObjects");
 }
 
 
@@ -744,7 +746,7 @@ bool OpenGlPlot::Initialize()
       #endif
       
       if (PlotInterface::CreateGlPlotWindow
-          (instanceName, mOldName, (mEclipticPlane == "On"), (mXYPlane == "On"),
+          (GetRuntimePlotName(), GetRuntimePlotName(mOldName), (mEclipticPlane == "On"), (mXYPlane == "On"),
            (mWireFrame == "On"), (mAxes == "On"), (mGrid == "On"),
            (mSunLine == "On"), (mOverlapPlot == "On"), (mUseInitialView == "On"),
            (mPerspectiveMode == "On"), mNumPointsToRedraw, 
@@ -869,7 +871,7 @@ bool OpenGlPlot::Initialize()
          #endif
          
          // set SolarSystem
-         PlotInterface::SetGlSolarSystem(instanceName, theSolarSystem);
+         PlotInterface::SetGlSolarSystem(GetRuntimePlotName(), theSolarSystem);
          
          #if DBGLVL_OPENGL_INIT
          MessageInterface::ShowMessage
@@ -881,7 +883,7 @@ bool OpenGlPlot::Initialize()
          #endif
          
          // set all object array and pointers
-         PlotInterface::SetGlObject(instanceName, mObjectNameArray,
+         PlotInterface::SetGlObject(GetRuntimePlotName(), mObjectNameArray,
                                     mOrbitColorArray, mObjectArray);
          
          //--------------------------------------------------------
@@ -915,7 +917,7 @@ bool OpenGlPlot::Initialize()
             ("   calling PlotInterface::SetGlCoordSystem()\n");
          #endif
          
-         PlotInterface::SetGlCoordSystem(instanceName, theInternalCoordSystem,
+         PlotInterface::SetGlCoordSystem(GetRuntimePlotName(), theInternalCoordSystem,
                                          mViewCoordSystem, mViewUpCoordSystem);
          
          //--------------------------------------------------------
@@ -927,20 +929,20 @@ bool OpenGlPlot::Initialize()
          #endif
          
          PlotInterface::SetGlViewOption
-            (instanceName, mViewPointRefObj, mViewPointObj,
+            (GetRuntimePlotName(), mViewPointRefObj, mViewPointObj,
              mViewDirectionObj, mViewScaleFactor, mViewPointRefVector,
              mViewPointVecVector, mViewDirectionVector, mViewUpAxisName,
              (mViewPointRefType == "Vector"), (mViewPointVecType == "Vector"),
              (mViewDirectionType == "Vector"), (mUseFixedFov == "On"),
              mFixedFovAngle);
          
-         PlotInterface::SetGlUpdateFrequency(instanceName, mUpdatePlotFrequency);
+         PlotInterface::SetGlUpdateFrequency(GetRuntimePlotName(), mUpdatePlotFrequency);
          
          //--------------------------------------------------------
          // set drawing object flag
          //--------------------------------------------------------
-         PlotInterface::SetGlDrawOrbitFlag(instanceName, mDrawOrbitArray);
-         PlotInterface::SetGlShowObjectFlag(instanceName, mShowObjectArray);
+         PlotInterface::SetGlDrawOrbitFlag(GetRuntimePlotName(), mDrawOrbitArray);
+         PlotInterface::SetGlShowObjectFlag(GetRuntimePlotName(), mShowObjectArray);
          
          isInitialized = true;
          retval = true;
@@ -1079,7 +1081,7 @@ bool OpenGlPlot::TakeAction(const std::string &action,
    }
    else if (action == "Finalize")
    {
-      PlotInterface::DeleteGlPlot(instanceName);
+      PlotInterface::DeleteGlPlot(GetRuntimePlotName());
    }
    
    return false;
@@ -1598,26 +1600,34 @@ std::string OpenGlPlot::GetStringParameter(const Integer id) const
    case VIEWPOINT_REF:      
       WriteDeprecatedMessage(id);
       if (mViewPointRefType == "Vector")
-         return ("[ " + mViewPointRefVector.ToString(16) + " ]");
+         return ObjectScriptExportScope::IsActive() ?
+            ObjectScriptExportScope::VectorLiteral(mViewPointRefVector) :
+            ("[ " + mViewPointRefVector.ToString(16) + " ]");
       else
          return mViewPointRefName;
    case VIEWPOINT_REFERENCE:      
       if (mViewPointRefType == "Vector")         
-         return ("[ " + mViewPointRefVector.ToString(16) + " ]");
+         return ObjectScriptExportScope::IsActive() ?
+            ObjectScriptExportScope::VectorLiteral(mViewPointRefVector) :
+            ("[ " + mViewPointRefVector.ToString(16) + " ]");
       else
          return mViewPointRefName;
    case VIEWPOINT_REF_TYPE:
       return mViewPointRefType;
    case VIEWPOINT_VECTOR:
       if (mViewPointVecType == "Vector")
-         return ("[ " + mViewPointVecVector.ToString(16) + " ]");
+         return ObjectScriptExportScope::IsActive() ?
+            ObjectScriptExportScope::VectorLiteral(mViewPointVecVector) :
+            ("[ " + mViewPointVecVector.ToString(16) + " ]");
       else
          return mViewPointVecName;
    case VIEWPOINT_VECTOR_TYPE:
       return mViewPointVecType;
    case VIEW_DIRECTION:
       if (mViewDirectionType == "Vector")
-         return ("[ " + mViewDirectionVector.ToString(16) + " ]");
+         return ObjectScriptExportScope::IsActive() ?
+            ObjectScriptExportScope::VectorLiteral(mViewDirectionVector) :
+            ("[ " + mViewDirectionVector.ToString(16) + " ]");
       else
          return mViewDirectionName;
    case VIEW_DIRECTION_TYPE:
@@ -2462,7 +2472,7 @@ bool OpenGlPlot::RemoveSpacePoint(const std::string &name)
       if (mObjectNameArray[i] == name)
       {
          mDrawOrbitArray[i] = false;
-         PlotInterface::SetGlDrawOrbitFlag(instanceName, mDrawOrbitArray);
+         PlotInterface::SetGlDrawOrbitFlag(GetRuntimePlotName(), mDrawOrbitArray);
          return true;
       }
    }
@@ -2628,7 +2638,7 @@ bool OpenGlPlot::RemoveSpacePoint(const std::string &name)
    
    if (removedFromScArray && removedFromAllSpArray)
       // set all object array and pointers
-      PlotInterface::SetGlObject(instanceName, mObjectNameArray,
+      PlotInterface::SetGlObject(GetRuntimePlotName(), mObjectNameArray,
                                  mOrbitColorArray, mObjectArray);
    
    return (removedFromScArray && removedFromAllSpArray);
@@ -2934,7 +2944,7 @@ bool OpenGlPlot::UpdateSolverData()
       
       // Just buffer data up to last point - 1
       PlotInterface::
-         UpdateGlPlot(instanceName, mOldName, mCurrScArray[i],
+         UpdateGlPlot(GetRuntimePlotName(), GetRuntimePlotName(mOldName), mCurrScArray[i],
                       mCurrEpochArray[i], mCurrXArray[i], mCurrYArray[i],
                       mCurrZArray[i], mCurrVxArray[i], mCurrVyArray[i],
                       mCurrVzArray[i], colorArray, true, mSolverIterOption, false);
@@ -2942,7 +2952,7 @@ bool OpenGlPlot::UpdateSolverData()
    
    // Buffer last point and Update the plot
    PlotInterface::
-      UpdateGlPlot(instanceName, mOldName, mCurrScArray[last],
+      UpdateGlPlot(GetRuntimePlotName(), GetRuntimePlotName(mOldName), mCurrScArray[last],
                    mCurrEpochArray[last], mCurrXArray[last], mCurrYArray[last],
                    mCurrZArray[last], mCurrVxArray[last], mCurrVyArray[last],
                    mCurrVzArray[last], colorArray, true, mSolverIterOption, true);
@@ -2958,7 +2968,7 @@ bool OpenGlPlot::UpdateSolverData()
    mCurrVzArray.clear();
    
    if (runstate == Gmat::SOLVING)
-      PlotInterface::TakeGlAction(instanceName, "ClearSolverData");
+      PlotInterface::TakeGlAction(GetRuntimePlotName(), "ClearSolverData");
    
    return true;
 }
@@ -2999,7 +3009,7 @@ bool OpenGlPlot::Distribute(const Real *dat, Integer len)
    
    // test isEndOfRun first
    if (isEndOfRun)
-      return PlotInterface::SetGlEndOfRun(instanceName);
+      return PlotInterface::SetGlEndOfRun(GetRuntimePlotName());
    
    if (isEndOfReceive)
    {
@@ -3010,7 +3020,7 @@ bool OpenGlPlot::Distribute(const Real *dat, Integer len)
       }
       else
       {
-         return PlotInterface::RefreshGlPlot(instanceName);
+         return PlotInterface::RefreshGlPlot(GetRuntimePlotName());
       }
    }
    
@@ -3207,7 +3217,7 @@ bool OpenGlPlot::Distribute(const Real *dat, Integer len)
       }
       
       PlotInterface::
-         UpdateGlPlot(instanceName, mOldName, mScNameArray,
+         UpdateGlPlot(GetRuntimePlotName(), GetRuntimePlotName(mOldName), mScNameArray,
                       dat[0], mScXArray, mScYArray, mScZArray,
                       mScVxArray, mScVyArray, mScVzArray,
                       colorArray, solving, mSolverIterOption, update);
@@ -3221,3 +3231,32 @@ bool OpenGlPlot::Distribute(const Real *dat, Integer len)
    return true;
 }
 
+
+
+std::unique_ptr<FunctionInvocationState> OpenGlPlot::SuspendFunctionBindings()
+{
+   auto native = std::make_shared<SubscriberBindingState>();
+   native->Capture(mViewCoordSystem);
+   native->Capture(mViewUpCoordSystem);
+   native->Capture(mViewCoordSysOrigin);
+   native->Capture(mViewUpCoordSysOrigin);
+   native->Capture(mViewPointRefObj);
+   native->Capture(mViewPointObj);
+   native->Capture(mViewDirectionObj);
+   native->Capture(mObjectArray);
+   native->Capture(mAllSpArray);
+   native->Require([this, role0 = mViewCoordSysName, role1 = mViewUpCoordSysName, role2 = mViewPointRefName, role3 = mViewPointRefType, role4 = mViewPointVecName, role5 = mViewPointVecType, role6 = mViewDirectionName, role7 = mViewDirectionType, role8 = mObjectNameArray, role9 = mAllSpNameArray]
+   {
+      return role0 == mViewCoordSysName &&
+            role1 == mViewUpCoordSysName &&
+            role2 == mViewPointRefName &&
+            role3 == mViewPointRefType &&
+            role4 == mViewPointVecName &&
+            role5 == mViewPointVecType &&
+            role6 == mViewDirectionName &&
+            role7 == mViewDirectionType &&
+            role8 == mObjectNameArray &&
+            role9 == mAllSpNameArray;
+   });
+   return WrapFunctionBindings(std::move(native), Subscriber::SuspendFunctionBindings());
+}

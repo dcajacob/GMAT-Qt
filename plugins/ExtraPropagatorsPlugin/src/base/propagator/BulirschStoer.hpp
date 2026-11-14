@@ -145,8 +145,11 @@ private:
    Real *estimatedState;
    /// Array containing number of subintervals at each level
    Integer *subinterval;
-//   /// Minimum tolerance permitted
-//   Real mintolerance;
+   /// Optional operational tolerance floor (zero disables it).
+   Real mintolerance;
+   /// Preserve the requested Accuracy while a floor is enabled.
+   Real requestedTolerance;
+   void UpdateToleranceControl();
    /// Safety factor used when estimating error
    Real bs_safety1;
    /// Safety factor used to prevent thrashing on the stepsize

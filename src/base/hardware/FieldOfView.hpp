@@ -34,7 +34,7 @@
 #include "Rvector.hpp"   // to represent sensor mask angles
 #include "Rmatrix33.hpp"
 
-class FieldOfView: public GmatBase
+class GMAT_API FieldOfView: public GmatBase
 {
 public:
    

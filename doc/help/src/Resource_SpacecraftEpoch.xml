@@ -142,6 +142,11 @@
                 </varlistentry>
 
                 <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>N/A (time-system and representation selector).</para></listitem>
+                </varlistentry>
+
+                <varlistentry>
                   <term>Interfaces</term>
 
                   <listitem>
@@ -192,6 +197,11 @@
                   <listitem>
                     <para>21545</para>
                   </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Days for the selected GMAT modified Julian representation; a date and time string for the selected Gregorian representation. See DateFormat for the time system.</para></listitem>
                 </varlistentry>
 
                 <varlistentry>

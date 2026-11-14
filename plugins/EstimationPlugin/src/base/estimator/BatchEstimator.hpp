@@ -50,6 +50,8 @@
 class ESTIMATION_API BatchEstimator: public BatchEstimatorBase
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = BatchEstimatorBase::NativeValueProviderDepth + 1;
+
    BatchEstimator(const std::string &name);
    virtual ~BatchEstimator();
    BatchEstimator(const BatchEstimator& est);
@@ -83,6 +85,9 @@ public:
    virtual bool         GetBooleanParameter(const Integer id) const;
    virtual bool         SetBooleanParameter(const Integer id,
                                             const bool value);
+
+   bool HasSolverValueReferenceProviderImpl() const;
+   void PrepareClonedSolverValueImpl(const Solver &source);
 
 protected:
    /// Parameters associated with the BatchEstimators

@@ -159,7 +159,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>deg</para>
                   </listitem>
                 </varlistentry>
 
@@ -622,7 +622,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>Angles are in degrees.</para>
+                    <para>Filename; no physical quantity. The angle values inside the file are in degrees.</para>
                   </listitem>
                 </varlistentry>
 

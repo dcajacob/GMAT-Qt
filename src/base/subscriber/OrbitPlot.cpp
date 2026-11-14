@@ -31,6 +31,11 @@
 
 #include "SolverBranchCommand.hpp"
 #include "OrbitPlot.hpp"
+#include "SubscriberBindingState.hpp"
+#include "PlotOriginScope.hpp"
+#include "AxisSystem.hpp"
+#include <set>
+#include "Spacecraft.hpp"
 #include "PlotInterface.hpp"       // for UpdateGlPlot()
 #include "SubscriberException.hpp" // for SubscriberException()
 #include "MessageInterface.hpp"    // for ShowMessage()
@@ -43,11 +48,41 @@
 #include "ColorTypes.hpp"          // for namespace GmatColor::
 #include "GmatCommand.hpp"
 #include <cstdint>
+#include <limits>
 #include <iomanip>
 #include <locale>
 #include <sstream>
 
 namespace {
+StringArray PlotEventRoles(GmatBase *originator, Publisher::ObjectEvent kind,
+      const StringArray &names, const std::vector<SpacePoint*> &objects,
+      const StringArray &roles, const std::vector<SpacePoint*> &otherObjects,
+      const StringArray &otherRoles)
+{
+   StringArray selected;
+   bool identified = false;
+   Publisher::IsPublishedEventSubject(kind, originator, NULL, identified);
+   auto collect = [&](const std::vector<SpacePoint*> &points, const StringArray &labels)
+   {
+      for (size_t i = 0; i < points.size() && i < labels.size(); ++i)
+      {
+         auto *point = points[i];
+         bool hasIdentity = false;
+         const bool matches = Publisher::IsPublishedEventSubject(kind, originator, point, hasIdentity);
+         const bool named = !hasIdentity &&
+            (std::find(names.begin(), names.end(), labels[i]) != names.end() ||
+             (point && std::find(names.begin(), names.end(), point->GetName()) != names.end()));
+         if ((matches || named) && std::find(selected.begin(), selected.end(), labels[i]) == selected.end())
+            selected.push_back(labels[i]);
+      }
+   };
+   collect(objects, roles);
+   collect(otherObjects, otherRoles);
+   // Legacy/configuration callers can set colors before reference binding.
+   if (!identified && objects.empty() && otherObjects.empty()) selected = names;
+   return selected;
+}
+
 std::string PlotProviderName(GmatBase *provider)
 {
    if (!provider) return "";
@@ -98,7 +133,8 @@ OrbitPlot::PARAMETER_TEXT[OrbitPlotParamCount - SubscriberParamCount] =
    "UpdatePlotFrequency",
    "NumPointsToRedraw",
    "ShowPlot",
-   "MaxPlotPoints"
+   "MaxPlotPoints",
+   "IntegrationStepsToSkip"
 }; 
 
 
@@ -114,7 +150,8 @@ OrbitPlot::PARAMETER_TYPE[OrbitPlotParamCount - SubscriberParamCount] =
    Gmat::INTEGER_TYPE,           //"UpdatePlotFrequency"
    Gmat::INTEGER_TYPE,           //"NumPointsToRedraw"
    Gmat::BOOLEAN_TYPE,           //"ShowPlot"
-   Gmat::INTEGER_TYPE            //"MaxPlotPoints"
+   Gmat::INTEGER_TYPE,           //"MaxPlotPoints"
+   Gmat::INTEGER_TYPE            //"IntegrationStepsToSkip"
 };
 
 
@@ -202,9 +239,11 @@ OrbitPlot::OrbitPlot(const OrbitPlot &plot)
    // Just copy configured object pointer
    mViewCoordSystem = plot.mViewCoordSystem;
    
-   mOldName = plot.mOldName;
+   mOldName = instanceName;
    mViewCoordSysName = plot.mViewCoordSysName;
    
+   integrationStepsToSkip = plot.integrationStepsToSkip;
+   integrationSampler.Reset();
    mDataCollectFrequency = plot.mDataCollectFrequency;
    mUpdatePlotFrequency = plot.mUpdatePlotFrequency;
    mNumPointsToRedraw = plot.mNumPointsToRedraw;
@@ -250,6 +289,8 @@ OrbitPlot::OrbitPlot(const OrbitPlot &plot)
    mNumData = plot.mNumData;
    mNumCollected = plot.mNumCollected;
    mDataAbsentWarningCount = plot.mDataAbsentWarningCount;
+   if (typeid(plot) == typeid(OrbitPlot)) ReconnectSubscriberCopy(plot);
+
 }
 
 
@@ -262,63 +303,68 @@ OrbitPlot::OrbitPlot(const OrbitPlot &plot)
 //------------------------------------------------------------------------------
 OrbitPlot& OrbitPlot::operator=(const OrbitPlot& plot)
 {
-   if (this == &plot)
-      return *this;
-   
-   Subscriber::operator=(plot);
-   mDataAvailabilityContext.clear(); mCurrDataAvailabilityArray.clear();
-   
-   // Just copy configured object pointer
-   mViewCoordSystem = plot.mViewCoordSystem;
-   
-   mOldName = plot.mOldName;
-   mViewCoordSysName = plot.mViewCoordSysName;
-   
-   mDataCollectFrequency = plot.mDataCollectFrequency;
-   mUpdatePlotFrequency = plot.mUpdatePlotFrequency;
-   mNumPointsToRedraw = plot.mNumPointsToRedraw;
-   mMaxData = plot.mMaxData;
-   
-   mAllSpCount = plot.mAllSpCount;
-   mScCount = plot.mScCount;
-   mObjectCount = plot.mObjectCount;
-   mNonStdBodyCount = plot.mNonStdBodyCount;
-   
-   mObjectArray = plot.mObjectArray;
-   mDrawOrbitArray = plot.mDrawOrbitArray;
-   mDrawObjectArray = plot.mDrawObjectArray;
-   mAllSpArray = plot.mAllSpArray;
-   mScNameArray = plot.mScNameArray;
-   mObjectNameArray = plot.mObjectNameArray;
-   mAllSpNameArray = plot.mAllSpNameArray;
-   mAllRefObjectNames = plot.mAllRefObjectNames;
-   mScXArray = plot.mScXArray;
-   mScYArray = plot.mScYArray;
-   mScZArray = plot.mScZArray;
-   mScVxArray = plot.mScVxArray;
-   mScVyArray = plot.mScVyArray;
-   mScVzArray = plot.mScVzArray;
-   mScPrevDataPresent = plot.mScPrevDataPresent;
-   mScPrevEpoch = plot.mScPrevEpoch;
-   mScPrevX = plot.mScPrevX;
-   mScPrevY = plot.mScPrevY;
-   mScPrevZ = plot.mScPrevZ;
-   mScPrevVx = plot.mScPrevVx;
-   mScPrevVy = plot.mScPrevVy;
-   mScPrevVz = plot.mScPrevVz;
-   
-   mDrawOrbitMap = plot.mDrawOrbitMap;
-   mShowObjectMap = plot.mShowObjectMap;
-   
-   mDefaultOrbitColorMap = plot.mDefaultOrbitColorMap;
-   mDefaultTargetColorMap = plot.mDefaultTargetColorMap;
-   mCurrentOrbitColorMap = plot.mCurrentOrbitColorMap;
-   mCurrentTargetColorMap = plot.mCurrentTargetColorMap;
-   
-   mNumData = plot.mNumData;
-   mNumCollected = plot.mNumCollected;
-   mDataAbsentWarningCount = plot.mDataAbsentWarningCount;
+   if (this == &plot) return *this;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = typeid(*this) == typeid(OrbitPlot) ? BeginSubscriberValueCopy(plot) : SubscriberValueCopyToken{};
+   {
+      FunctionValueCopyGuard nativeCopy;
+      Subscriber::operator=(plot);
+      mDataAvailabilityContext.clear(); mCurrDataAvailabilityArray.clear();
 
+      // Just copy configured object pointer
+      mViewCoordSystem = plot.mViewCoordSystem;
+
+      // Preserve this output's pending native rename.
+      mViewCoordSysName = plot.mViewCoordSysName;
+
+      integrationStepsToSkip = plot.integrationStepsToSkip;
+      integrationSampler.Reset();
+      mDataCollectFrequency = plot.mDataCollectFrequency;
+      mUpdatePlotFrequency = plot.mUpdatePlotFrequency;
+      mNumPointsToRedraw = plot.mNumPointsToRedraw;
+      mMaxData = plot.mMaxData;
+
+      mAllSpCount = plot.mAllSpCount;
+      mScCount = plot.mScCount;
+      mObjectCount = plot.mObjectCount;
+      mNonStdBodyCount = plot.mNonStdBodyCount;
+
+      mObjectArray = plot.mObjectArray;
+      mDrawOrbitArray = plot.mDrawOrbitArray;
+      mDrawObjectArray = plot.mDrawObjectArray;
+      mAllSpArray = plot.mAllSpArray;
+      mScNameArray = plot.mScNameArray;
+      mObjectNameArray = plot.mObjectNameArray;
+      mAllSpNameArray = plot.mAllSpNameArray;
+      mAllRefObjectNames = plot.mAllRefObjectNames;
+      mScXArray = plot.mScXArray;
+      mScYArray = plot.mScYArray;
+      mScZArray = plot.mScZArray;
+      mScVxArray = plot.mScVxArray;
+      mScVyArray = plot.mScVyArray;
+      mScVzArray = plot.mScVzArray;
+      mScPrevDataPresent = plot.mScPrevDataPresent;
+      mScPrevEpoch = plot.mScPrevEpoch;
+      mScPrevX = plot.mScPrevX;
+      mScPrevY = plot.mScPrevY;
+      mScPrevZ = plot.mScPrevZ;
+      mScPrevVx = plot.mScPrevVx;
+      mScPrevVy = plot.mScPrevVy;
+      mScPrevVz = plot.mScPrevVz;
+
+      mDrawOrbitMap = plot.mDrawOrbitMap;
+      mShowObjectMap = plot.mShowObjectMap;
+
+      mDefaultOrbitColorMap = plot.mDefaultOrbitColorMap;
+      mDefaultTargetColorMap = plot.mDefaultTargetColorMap;
+      mCurrentOrbitColorMap = plot.mCurrentOrbitColorMap;
+      mCurrentTargetColorMap = plot.mCurrentTargetColorMap;
+
+      mNumData = plot.mNumData;
+      mNumCollected = plot.mNumCollected;
+      mDataAbsentWarningCount = plot.mDataAbsentWarningCount;
+   }
+   if (typeid(*this) == typeid(OrbitPlot)) CompleteSubscriberValueCopy(plot, transaction);
    return *this;
 }
 
@@ -455,6 +501,8 @@ bool OrbitPlot::Validate()
 //------------------------------------------------------------------------------
 bool OrbitPlot::Initialize()
 {
+   integrationSampler.Reset();
+   Publisher::SetIntegrationStepConsumer(this, integrationStepsToSkip >= 0);
    //if (GmatGlobal::Instance()->GetRunMode() == GmatGlobal::TESTING_NO_PLOTS)             // made changes by TUAN NGUYEN
    if (GmatGlobal::Instance()->GetRunModeStartUp() == GmatGlobal::TESTING_NO_PLOTS)        // made changes by TUAN NGUYEN
       return true;
@@ -576,7 +624,15 @@ bool OrbitPlot::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* OrbitPlot::Clone() const
 {
-   return (new OrbitPlot(*this));
+   if (typeid(*this) != typeid(OrbitPlot))
+      throw GmatBaseException("A derived OrbitPlot must provide its complete Clone.\n");
+   std::unique_ptr<OrbitPlot> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new OrbitPlot(*this));
+   }
+   value->ReconnectSubscriberCopy(*this);
+   return value.release();
 }
 
 
@@ -589,9 +645,19 @@ GmatBase* OrbitPlot::Clone() const
  * @param orig The original that is being copied.
  */
 //---------------------------------------------------------------------------
-void OrbitPlot::Copy(const GmatBase* orig)
+void OrbitPlot::Copy(const GmatBase *original)
 {
-   operator=(*((OrbitPlot *)(orig)));
+   const auto *source = dynamic_cast<const OrbitPlot*>(original);
+   if (!source || typeid(*source) != typeid(*this) || !HasSubscriberValueReferenceProvider())
+      throw GmatBaseException("Cannot copy an incompatible OrbitPlot value.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = BeginSubscriberValueCopy(*source);
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   CompleteSubscriberValueCopy(*source, transaction);
 }
 
 
@@ -637,6 +703,7 @@ bool OrbitPlot::SetName(const std::string &who, const std::string &oldName)
 bool OrbitPlot::TakeAction(const std::string &action,
                            const std::string &actionData)
 {
+   integrationSampler.Action(action, actionData);
    #if DBGLVL_TAKE_ACTION
    MessageInterface::ShowMessage
       ("OrbitPlot::TakeAction() '%s' entered, action='%s', actionData='%s'\n",
@@ -654,7 +721,7 @@ bool OrbitPlot::TakeAction(const std::string &action,
    else if (action == "Finalize")
    {
       // This action is usually called when GMAT function finalizes
-      PlotInterface::DeleteGlPlot(instanceName);
+      PlotInterface::DeleteGlPlot(GetRuntimePlotName());
    }
    else if (action == "PenUp")
    {
@@ -891,6 +958,7 @@ bool OrbitPlot::IsParameterReadOnly(const Integer id) const
 //------------------------------------------------------------------------------
 Integer OrbitPlot::GetIntegerParameter(const Integer id) const
 {
+   if (id == INTEGRATION_STEPS_TO_SKIP) return integrationStepsToSkip;
    switch (id)
    {
    case DATA_COLLECT_FREQUENCY:
@@ -921,6 +989,14 @@ Integer OrbitPlot::GetIntegerParameter(const std::string &label) const
 //------------------------------------------------------------------------------
 Integer OrbitPlot::SetIntegerParameter(const Integer id, const Integer value)
 {
+   if (id == INTEGRATION_STEPS_TO_SKIP)
+   {
+      if (value < -1) throw SubscriberException("IntegrationStepsToSkip must be -1 (publication sampling) or nonnegative");
+      integrationStepsToSkip = value;
+      integrationSampler.Reset();
+      if (isInitialized) Publisher::SetIntegrationStepConsumer(this, value >= 0);
+      return value;
+   }
    switch (id)
    {
    case DATA_COLLECT_FREQUENCY:
@@ -1546,8 +1622,12 @@ void OrbitPlot::SetOrbitColorChanged(GmatBase *originator,
    #endif
    
    UnsignedInt intColor = RgbColor::ToIntColor(newColor);
-   mDefaultOrbitColorMap[objName] = intColor;
-   mCurrentOrbitColorMap[objName] = intColor;
+   for (const auto &role : PlotEventRoles(originator, Publisher::ObjectEvent::OrbitColor,
+         StringArray{objName}, mAllSpArray, mAllSpNameArray, mObjectArray, mObjectNameArray))
+   {
+      mDefaultOrbitColorMap[role] = intColor;
+      mCurrentOrbitColorMap[role] = intColor;
+   }
    
    #ifdef DEBUG_COLOR
    MessageInterface::ShowMessage
@@ -1581,8 +1661,12 @@ void OrbitPlot::SetTargetColorChanged(GmatBase *originator,
    #endif
    
    UnsignedInt intColor = RgbColor::ToIntColor(newColor);
-   mDefaultTargetColorMap[objName] = intColor;
-   mCurrentTargetColorMap[objName] = intColor;
+   for (const auto &role : PlotEventRoles(originator, Publisher::ObjectEvent::TargetColor,
+         StringArray{objName}, mAllSpArray, mAllSpNameArray, mObjectArray, mObjectNameArray))
+   {
+      mDefaultTargetColorMap[role] = intColor;
+      mCurrentTargetColorMap[role] = intColor;
+   }
    
    #ifdef DEBUG_COLOR
    MessageInterface::ShowMessage
@@ -1614,20 +1698,10 @@ void OrbitPlot::SetSegmentOrbitColor(GmatBase *originator, bool overrideColor,
       MessageInterface::ShowMessage("   objNames[%d] = %s\n", i, objNames[i].c_str());
    #endif
    
-   // If overrding color, set the same color for all objects
-   if (overrideColor)
-   {
-      for (UnsignedInt i = 0; i < objNames.size(); i++)
-         mCurrentOrbitColorMap[objNames[i]] = orbitColor;
-   }
-   else
-   {
-      for (UnsignedInt i = 0; i < objNames.size(); i++)
-      {
-         std::string objName = objNames[i];
-         mCurrentOrbitColorMap[objName] = mDefaultOrbitColorMap[objName];
-      }
-   }
+   const auto roles = PlotEventRoles(originator, Publisher::ObjectEvent::SegmentColor,
+      objNames, mAllSpArray, mAllSpNameArray, mObjectArray, mObjectNameArray);
+   for (const auto &role : roles)
+      mCurrentOrbitColorMap[role] = overrideColor ? orbitColor : mDefaultOrbitColorMap[role];
    
    #ifdef DEBUG_COLOR
    ColorMap::iterator iter = mCurrentOrbitColorMap.begin();
@@ -1812,7 +1886,7 @@ bool OrbitPlot::RemoveSpacePoint(const std::string &name)
       if (mObjectNameArray[i] == name)
       {
          mDrawOrbitArray[i] = false;
-         PlotInterface::SetGlDrawOrbitFlag(instanceName, mDrawOrbitArray);
+         PlotInterface::SetGlDrawOrbitFlag(GetRuntimePlotName(), mDrawOrbitArray);
          return true;
       }
    }
@@ -1964,7 +2038,7 @@ bool OrbitPlot::RemoveSpacePoint(const std::string &name)
    
    // Set all object array and pointers
    if (removedFromScArray && removedFromAllSpArray)
-      PlotInterface::SetGlObject(instanceName, mObjectNameArray, mObjectArray);
+      PlotInterface::SetGlObject(GetRuntimePlotName(), mObjectNameArray, mObjectArray);
    
    return (removedFromScArray && removedFromAllSpArray);
    
@@ -2172,21 +2246,65 @@ void OrbitPlot::UpdateObjectList(SpacePoint *sp, bool show)
 // Metadata observes the publisher before plot decimation, without modifying
 // collected arrays, counters, or numerical execution. Only requested segment
 // spacecraft incur the extra position/attitude conversion.
+SpacePoint *OrbitPlot::GetPlottedObject(const std::string &role) const
+{
+   for (size_t i = 0; i < mAllSpNameArray.size() && i < mAllSpArray.size(); ++i)
+      if (mAllSpNameArray[i] == role) return mAllSpArray[i];
+   for (size_t i = 0; i < mObjectNameArray.size() && i < mObjectArray.size(); ++i)
+      if (mObjectNameArray[i] == role) return mObjectArray[i];
+   return NULL;
+}
+
+bool OrbitPlot::GetCartesianIndices(const std::string &role,
+   const Real *dat, Integer len, Integer indices[6])
+{
+   std::fill(indices, indices + 6, -1);
+   auto *object = GetPlottedObject(role);
+   const auto *columns = Publisher::GetPublishedCartesianColumns(dat, len);
+   if (columns)
+   {
+      for (const auto &column : *columns)
+         if (column.object == object)
+         {
+            std::copy(column.indices.begin(), column.indices.end(), indices);
+            return true;
+         }
+      // Identity metadata is authoritative: a same-name object is not a match.
+      return false;
+   }
+   if (theDataLabels.empty()) return false;
+   const std::string name = object ? object->GetName() : role;
+   const char *fields[] = {".X", ".Y", ".Z", ".Vx", ".Vy", ".Vz"};
+   bool present = true;
+   for (Integer i = 0; i < 6; ++i)
+   {
+      indices[i] = FindIndexOfElement(theDataLabels[0], name + fields[i]);
+      present = present && indices[i] > 0 && indices[i] < len;
+   }
+   return present;
+}
+
+CoordinateSystem *OrbitPlot::GetPublishedFrame(const std::string &role,
+      const Real *dat, Integer len)
+{
+   auto *frame = Publisher::GetPublishedSpacecraftFrame(dat, len, GetPlottedObject(role));
+   return frame ? frame : theDataCoordSystem;
+}
+
 std::string OrbitPlot::DataAvailabilityAction(const Real *dat,Integer len)
 {
    if (len<=0 || theDataLabels.empty() ||
-       !PlotInterface::TakeGlAction(instanceName,"NeedsOrbitDataAvailability")) return "";
-   auto &labels=theDataLabels[0];
+       !PlotInterface::TakeGlAction(GetRuntimePlotName(),"NeedsOrbitDataAvailability")) return "";
    std::ostringstream available; available.imbue(std::locale::classic());
-   available << "OrbitDataAvailability:" << std::setprecision(17) << dat[0] << ' ' << mScCount;
-   const char *fields[]={".X",".Y",".Z",".Vx",".Vy",".Vz"};
+   available << (stepArcStarts.empty() && stepSkipped.empty() ? "OrbitDataAvailability:" : "PlotStepAvailability:") << std::setprecision(17) << dat[0] << ' ' << mScCount;
    for (Integer sc=0;sc<mScCount;++sc) {
-      bool present=true;
-      for (const auto *field:fields) {
-         const auto index=FindIndexOfElement(labels,mScNameArray[sc]+field);
-         present=present && index>=0 && index<len;
-      }
-      available << ' ' << std::quoted(mScNameArray[sc]) << ' ' << (present ? 1 : 0);
+      Integer indices[6];
+      const bool present=GetCartesianIndices(mScNameArray[sc],dat,len,indices);
+      const bool newArc = std::find(stepArcStarts.begin(), stepArcStarts.end(), mScNameArray[sc]) != stepArcStarts.end();
+      const bool skipped = std::find(stepSkipped.begin(), stepSkipped.end(), mScNameArray[sc]) != stepSkipped.end();
+      // 0 absent, 1 selected, 2 starts an arc, 3 available but decimated.
+      const int status = present ? (newArc ? 2 : 1) : (skipped ? 3 : 0);
+      available << ' ' << std::quoted(mScNameArray[sc]) << ' ' << status;
    }
    return available.str();
 }
@@ -2194,29 +2312,31 @@ std::string OrbitPlot::DataAvailabilityAction(const Real *dat,Integer len)
 void OrbitPlot::PublishArcMetadata(const Real *dat,Integer len)
 {
    mArcContext.clear();
-   if (!PlotInterface::TakeGlAction(instanceName,"NeedsOrbitArcMetadata")) return;
+   if (!PlotInterface::TakeGlAction(GetRuntimePlotName(),"NeedsOrbitArcMetadata")) return;
    std::ostringstream context; context.imbue(std::locale::classic());
    context << "SetOrbitProvider:" << reinterpret_cast<std::uintptr_t>(currentProvider)
            << ' ' << (runstate==Gmat::SOLVING) << ' ' << mNumData << ' ' << PlotProviderName(currentProvider);
-   mArcContext=context.str(); PlotInterface::TakeGlAction(instanceName,mArcContext);
-   PlotInterface::TakeGlAction(instanceName,"BeginOrbitArcSample");
+   mArcContext=context.str(); PlotInterface::TakeGlAction(GetRuntimePlotName(),mArcContext);
+   PlotInterface::TakeGlAction(GetRuntimePlotName(),"BeginOrbitArcSample");
    if (runstate==Gmat::SOLVING || !isDataOn || theDataLabels.empty()) return;
-   auto &labels=theDataLabels[0];
    for (Integer sc=0;sc<mScCount;++sc) {
       const auto &name=mScNameArray[sc];
-      if (!PlotInterface::TakeGlAction(instanceName,"NeedsOrbitArcPose:"+name)) continue;
-      Integer indices[6]; const char *fields[]={".X",".Y",".Z",".Vx",".Vy",".Vz"};
-      bool present=true;
-      for (int i=0;i<6;++i) { indices[i]=FindIndexOfElement(labels,name+fields[i]); present=present && indices[i]>=0 && indices[i]<len; }
-      if (!present) continue;
-      SpacePoint *object=nullptr;
-      for (auto *point:mAllSpArray) if (point && point->GetName()==name) { object=point; break; }
+      if (!PlotInterface::TakeGlAction(GetRuntimePlotName(),"NeedsOrbitArcPose:"+name)) continue;
+      Integer indices[6];
+      if (!GetCartesianIndices(name,dat,len,indices)) continue;
+      SpacePoint *object=GetPlottedObject(name);
       if (!object) continue;
       try {
          Rvector6 state,converted;
          state.Set(dat[indices[0]],dat[indices[1]],dat[indices[2]],dat[indices[3]],dat[indices[4]],dat[indices[5]]);
-         if (theDataCoordSystem && mViewCoordSystem && theDataCoordSystem!=mViewCoordSystem) {
-            CoordinateConverter converter; converter.Convert(dat[0],state,theDataCoordSystem,converted,mViewCoordSystem); state=converted;
+         auto *source = GetPublishedFrame(name,dat,len);
+         GmatTime epoch(dat[0]);
+         const bool precise = Publisher::GetPublishedSpacecraftEpoch(dat,len,object,epoch);
+         if (source && mViewCoordSystem && source!=mViewCoordSystem) {
+            CoordinateConverter converter;
+            if (precise) converter.Convert(epoch,state,source,converted,mViewCoordSystem);
+            else converter.Convert(dat[0],state,source,converted,mViewCoordSystem);
+            state=converted;
          }
          Rmatrix33 viewToBase;
          if (mViewCoordSystem) { mViewCoordSystem->ToBaseSystem(A1Mjd(dat[0]),Rvector6(),true); viewToBase=mViewCoordSystem->GetLastRotationMatrix(); }
@@ -2227,14 +2347,14 @@ void OrbitPlot::PublishArcMetadata(const Real *dat,Integer len)
          sample << "OrbitArcPose:" << name << ' ' << dat[0] << ' ' << state[0] << ' ' << state[1] << ' ' << state[2];
          for (int row=0;row<3;++row) for (int col=0;col<3;++col) sample << ' ' << rotation(row,col);
          for (int row=0;row<3;++row) for (int col=0;col<3;++col) sample << ' ' << viewToBase(col,row);
-         PlotInterface::TakeGlAction(instanceName,sample.str());
+         PlotInterface::TakeGlAction(GetRuntimePlotName(),sample.str());
       } catch (BaseException &) { /* Unavailable visualization pose must not interrupt the mission. */ }
    }
    // The captured pose list can be a subset of the plotted spacecraft.
    // Camera fallback must know which other spacecraft this publisher omitted.
    const auto available=DataAvailabilityAction(dat,len);
-   if (!available.empty()) PlotInterface::TakeGlAction(instanceName,available);
-   PlotInterface::TakeGlAction(instanceName,"PrepareOrbitArcCameras");
+   if (!available.empty()) PlotInterface::TakeGlAction(GetRuntimePlotName(),available);
+   PlotInterface::TakeGlAction(GetRuntimePlotName(),"PrepareOrbitArcCameras");
 }
 
 bool OrbitPlot::UpdateData(const Real *dat, Integer len)
@@ -2245,7 +2365,10 @@ bool OrbitPlot::UpdateData(const Real *dat, Integer len)
    // Skip data if data publishing command such as Propagate is inside a function
    // and this OrbitPlot is not a global nor a local object (i.e declared in the main script)
    // (LOJ: 2015.08.17)
-   if (currentProvider && currentProvider->TakeAction("IsInFunction"))
+   // Identity-bound packets already distinguish callee-local copies from
+   // caller/global objects. Keep legacy scope filtering for name-only packets.
+   if (!Publisher::GetPublishedCartesianColumns(dat, len) &&
+       currentProvider && currentProvider->TakeAction("IsInFunction"))
    {
       #ifdef DEBUG_FUNCTION_DATA
       MessageInterface::ShowMessage
@@ -2310,7 +2433,138 @@ bool OrbitPlot::UpdateData(const Real *dat, Integer len)
    }
    
    
+   if (integrationStepsToSkip >= 0)
+   {
+      const auto *steps = Publisher::GetPublishedIntegrationSteps(dat, len);
+      if (!steps) return true;
+      const auto originalLabels = theDataLabels;
+      // Provider groups can contribute different primitive epochs to the same
+      // publication. A spacecraft represented elsewhere in this packet has not
+      // gone missing just because another group's record is being drawn.
+      std::set<const GmatBase*> packetObjects;
+      for (const auto &record : *steps)
+         for (const auto &sample : record.states) packetObjects.insert(sample.object);
+      std::vector<SpaceObject*> references;
+      PlotOriginScope::CollectReferences(mViewCoordSystem, references);
+      if (const auto *columns = Publisher::GetPublishedCartesianColumns(dat,len))
+         for (const auto &column : *columns)
+            if (std::find(mAllSpArray.begin(),mAllSpArray.end(),column.object)!=mAllSpArray.end())
+               PlotOriginScope::CollectReferences(Publisher::GetPublishedSpacecraftFrame(dat,len,column.object),references);
+      PlotOriginScope::Packet originPacket(dat, len, references);
+      try
+      {
+         stepSkipped.clear();
+         for (size_t i = 0; i < mAllSpArray.size() && i < mAllSpNameArray.size(); ++i)
+            if (packetObjects.count(mAllSpArray[i])) stepSkipped.push_back(mAllSpNameArray[i]);
+         for (const auto &step : *steps)
+         {
+            StringArray labels(1, "Epoch");
+            RealArray values(1, step.epoch.GetMjd());
+            std::vector<Publisher::CartesianColumns> columns;
+            const char *components[] = {".X", ".Y", ".Z", ".Vx", ".Vy", ".Vz"};
+            PlotOriginScope originState(originPacket, step.epoch);
+            stepArcStarts.clear();
+            for (const auto &sample : step.states)
+            {
+               bool newArc = false;
+               if (std::find(mAllSpArray.begin(), mAllSpArray.end(), sample.object) == mAllSpArray.end()) continue;
+               const bool selected = integrationSampler.Select(step, sample, integrationStepsToSkip, &newArc);
+               if (!selected) continue;
+               if (!originState.Available())
+               {
+                  integrationSampler.MarkUnavailable(sample.object);
+                  if ((!newArc || step.initial) && mDataAbsentWarningCount < mScCount * 10)
+                  {
+                     ++mDataAbsentWarningCount;
+                     MessageInterface::ShowMessage("Plot '%s' omitted a sample at %.16f A1MJD: origin '%s' has no coherent state for frame '%s'.\n",
+                        instanceName.c_str(), step.epoch.GetMjd(), originState.MissingObject()->GetName().c_str(), mViewCoordSystem->GetName().c_str());
+                  }
+                  continue;
+               }
+               if (newArc)
+                  for (size_t i = 0; i < mAllSpArray.size() && i < mAllSpNameArray.size(); ++i)
+                     if (mAllSpArray[i] == sample.object) stepArcStarts.push_back(mAllSpNameArray[i]);
+               Publisher::CartesianColumns column;
+               column.object = sample.object;
+               column.hasEpoch = true;
+               column.epoch = sample.epoch;
+               column.frame = Publisher::GetPublishedSpacecraftFrame(dat,len,sample.object);
+               if (column.frame) column.frameIdentity = column.frame->GetLifetimeToken();
+               for (Integer c = 0; c < 6; ++c)
+               {
+                  column.indices[c] = static_cast<Integer>(values.size());
+                  labels.push_back(sample.object->GetName() + components[c]);
+                  values.push_back(sample.state[c]);
+               }
+               columns.push_back(column);
+            }
+            if (values.size() == 1) continue;
+            theDataLabels.assign(1, labels);
+            Publisher::CartesianColumnScope columnScope(values.data(), values.size(), columns);
+            if (mNumData < (std::numeric_limits<Integer>::max)()) ++mNumData;
+            PublishArcMetadata(values.data(), values.size());
+            CollectSample(values.data(), values.size());
+         }
+      }
+      catch (...) { stepArcStarts.clear(); stepSkipped.clear(); theDataLabels = originalLabels; throw; }
+      stepArcStarts.clear();
+      stepSkipped.clear();
+      theDataLabels = originalLabels;
+      return true;
+   }
+
    mNumData++;
+   const auto epochs = Publisher::GetPublishedEpochGroups(dat,len,ObjectArray(mAllSpArray.begin(),mAllSpArray.end()));
+   if (!epochs.empty())
+   {
+      // Collection frequency counts the original publication once, even when
+      // independent groups require different timestamped renderer callbacks.
+      const bool collect=(mNumData % mDataCollectFrequency)==0 || mNumData==1;
+      const auto savedSkipped = stepSkipped;
+      const auto savedStarts = stepArcStarts;
+      std::vector<SpaceObject*> references;
+      PlotOriginScope::CollectReferences(mViewCoordSystem,references);
+      const auto *all = Publisher::GetPublishedCartesianColumns(dat,len);
+      for (const auto &column : *all)
+         if (std::find(mAllSpArray.begin(),mAllSpArray.end(),column.object)!=mAllSpArray.end())
+            PlotOriginScope::CollectReferences(Publisher::GetPublishedSpacecraftFrame(dat,len,column.object),references);
+      PlotOriginScope::Packet originPacket(dat,len,references);
+      try
+      {
+         for (const auto &group : epochs)
+         {
+            RealArray values(dat,dat+len); values[0]=group.epoch.GetMjd();
+            auto columns=group.columns;
+            PlotOriginScope originState(originPacket,group.epoch);
+            stepSkipped.clear(); stepArcStarts.clear();
+            for (size_t i=0;i<mAllSpArray.size() && i<mAllSpNameArray.size();++i)
+               for (const auto &column : *all)
+                  if (column.object==mAllSpArray[i])
+                  {
+                     const bool selected=std::any_of(group.columns.begin(),group.columns.end(),
+                        [&](const Publisher::CartesianColumns &entry){return entry.object==column.object;});
+                     if (!selected || originState.Available()) stepSkipped.push_back(mAllSpNameArray[i]);
+                  }
+            if (!originState.Available())
+            {
+               if (mDataAbsentWarningCount<mScCount*10)
+               {
+                  ++mDataAbsentWarningCount;
+                  MessageInterface::ShowMessage("Plot '%s' omitted a sample at %.16f A1MJD: origin '%s' has no coherent state.\n",
+                     instanceName.c_str(),group.epoch.GetMjd(),originState.MissingObject()->GetName().c_str());
+               }
+               columns.clear();
+            }
+            Publisher::CartesianColumnScope view(values.data(),len,columns);
+            if (originState.Available()) PublishArcMetadata(values.data(),len);
+            else {mArcContext.clear(); PlotInterface::TakeGlAction(GetRuntimePlotName(),"BeginOrbitArcSample");}
+            if (collect && !CollectSample(values.data(),len)) {stepSkipped=savedSkipped;stepArcStarts=savedStarts;return false;}
+         }
+      }
+      catch (...) {stepSkipped=savedSkipped;stepArcStarts=savedStarts;throw;}
+      stepSkipped=savedSkipped;stepArcStarts=savedStarts;
+      return true;
+   }
    PublishArcMetadata(dat,len);
    
    #if DBGLVL_UPDATE > 1
@@ -2329,6 +2583,18 @@ bool OrbitPlot::UpdateData(const Real *dat, Integer len)
    // Buffer data if data collect frequency is met or fist data
    if ((mNumData % mDataCollectFrequency) == 0 || (mNumData == 1))
    {
+      return CollectSample(dat, len);
+   }
+   
+   #if DBGLVL_UPDATE > 1
+   MessageInterface::ShowMessage("OrbitPlot::UpdateData() returning true\n");
+   #endif
+   return true;
+}
+
+
+bool OrbitPlot::CollectSample(const Real *dat, Integer len)
+{
       Integer status = BufferOrbitData(dat, len);
       
       // if solving and plotting current iteration just return
@@ -2348,26 +2614,20 @@ bool OrbitPlot::UpdateData(const Real *dat, Integer len)
          inFunction = true;
       
       bool update = (mNumCollected % mUpdatePlotFrequency) == 0;
-      PlotInterface::TakeGlAction(instanceName, "SetDataProvider:" + PlotProviderName(currentProvider));
+      PlotInterface::TakeGlAction(GetRuntimePlotName(), "SetDataProvider:" + PlotProviderName(currentProvider));
       if (!mDataAvailabilityContext.empty())
-         PlotInterface::TakeGlAction(instanceName,mDataAvailabilityContext);
+         PlotInterface::TakeGlAction(GetRuntimePlotName(),mDataAvailabilityContext);
       
       PlotInterface::
-         UpdateGlPlot(instanceName, mOldName, mScNameArray, dat[0], mScXArray,
+         UpdateGlPlot(GetRuntimePlotName(), GetRuntimePlotName(mOldName), mScNameArray, dat[0], mScXArray,
                       mScYArray, mScZArray, mScVxArray, mScVyArray, mScVzArray,
                       mCurrentOrbitColorMap, mCurrentTargetColorMap, solving,
                       mSolverIterOption, update, isDataOn, inFunction);
       
       if (update)
          mNumCollected = 0;
-   }
-   
-   #if DBGLVL_UPDATE > 1
-   MessageInterface::ShowMessage("OrbitPlot::UpdateData() returning true\n");
-   #endif
    return true;
 }
-
 
 //------------------------------------------------------------------------------
 // bool UpdateSolverData()
@@ -2398,14 +2658,14 @@ bool OrbitPlot::UpdateSolverData()
       
       // Just buffer data up to last point - 1
       if (!mCurrArcContextArray[i].empty()) {
-         PlotInterface::TakeGlAction(instanceName,mCurrArcContextArray[i]);
-         PlotInterface::TakeGlAction(instanceName,"ReplayOrbitArcCamera:"+std::to_string(i));
+         PlotInterface::TakeGlAction(GetRuntimePlotName(),mCurrArcContextArray[i]);
+         PlotInterface::TakeGlAction(GetRuntimePlotName(),"ReplayOrbitArcCamera:"+std::to_string(i));
       }
-      PlotInterface::TakeGlAction(instanceName, "SetDataProvider:" + mCurrProviderArray[i]);
+      PlotInterface::TakeGlAction(GetRuntimePlotName(), "SetDataProvider:" + mCurrProviderArray[i]);
       if (i<static_cast<int>(mCurrDataAvailabilityArray.size()) && !mCurrDataAvailabilityArray[i].empty())
-         PlotInterface::TakeGlAction(instanceName,mCurrDataAvailabilityArray[i]);
+         PlotInterface::TakeGlAction(GetRuntimePlotName(),mCurrDataAvailabilityArray[i]);
       PlotInterface::
-         UpdateGlPlot(instanceName, mOldName, mCurrScArray[i],
+         UpdateGlPlot(GetRuntimePlotName(), GetRuntimePlotName(mOldName), mCurrScArray[i],
                       mCurrEpochArray[i], mCurrXArray[i], mCurrYArray[i],
                       mCurrZArray[i], mCurrVxArray[i], mCurrVyArray[i],
                       mCurrVzArray[i], mCurrentOrbitColorMap, mCurrentTargetColorMap,
@@ -2414,14 +2674,14 @@ bool OrbitPlot::UpdateSolverData()
    
    // Buffer last point and Update the plot
    if (!mCurrArcContextArray[last].empty()) {
-      PlotInterface::TakeGlAction(instanceName,mCurrArcContextArray[last]);
-      PlotInterface::TakeGlAction(instanceName,"ReplayOrbitArcCamera:"+std::to_string(last));
+      PlotInterface::TakeGlAction(GetRuntimePlotName(),mCurrArcContextArray[last]);
+      PlotInterface::TakeGlAction(GetRuntimePlotName(),"ReplayOrbitArcCamera:"+std::to_string(last));
    }
-   PlotInterface::TakeGlAction(instanceName, "SetDataProvider:" + mCurrProviderArray[last]);
+   PlotInterface::TakeGlAction(GetRuntimePlotName(), "SetDataProvider:" + mCurrProviderArray[last]);
    if (last<static_cast<int>(mCurrDataAvailabilityArray.size()) && !mCurrDataAvailabilityArray[last].empty())
-      PlotInterface::TakeGlAction(instanceName,mCurrDataAvailabilityArray[last]);
+      PlotInterface::TakeGlAction(GetRuntimePlotName(),mCurrDataAvailabilityArray[last]);
    PlotInterface::
-      UpdateGlPlot(instanceName, mOldName, mCurrScArray[last],
+      UpdateGlPlot(GetRuntimePlotName(), GetRuntimePlotName(mOldName), mCurrScArray[last],
                    mCurrEpochArray[last], mCurrXArray[last], mCurrYArray[last],
                    mCurrZArray[last], mCurrVxArray[last], mCurrVyArray[last],
                    mCurrVzArray[last], mCurrentOrbitColorMap, mCurrentTargetColorMap,
@@ -2441,7 +2701,7 @@ bool OrbitPlot::UpdateSolverData()
    mCurrVzArray.clear();
    
    if (runstate == Gmat::SOLVING)
-      PlotInterface::TakeGlAction(instanceName, "ClearSolverData");
+      PlotInterface::TakeGlAction(GetRuntimePlotName(), "ClearSolverData");
    
    return true;
 }
@@ -2545,13 +2805,10 @@ Integer OrbitPlot::BufferOrbitData(const Real *dat, Integer len)
    
    for (Integer i = 0; i < mScCount; i++)
    {
-      idX = FindIndexOfElement(dataLabels, mScNameArray[i]+".X");
-      idY = FindIndexOfElement(dataLabels, mScNameArray[i]+".Y");
-      idZ = FindIndexOfElement(dataLabels, mScNameArray[i]+".Z");
-      
-      idVx = FindIndexOfElement(dataLabels, mScNameArray[i]+".Vx");
-      idVy = FindIndexOfElement(dataLabels, mScNameArray[i]+".Vy");
-      idVz = FindIndexOfElement(dataLabels, mScNameArray[i]+".Vz");
+      Integer indices[6];
+      GetCartesianIndices(mScNameArray[i], dat, len, indices);
+      idX = indices[0]; idY = indices[1]; idZ = indices[2];
+      idVx = indices[3]; idVy = indices[4]; idVz = indices[5];
       
       #if DBGLVL_DATA_LABELS
       MessageInterface::ShowMessage
@@ -2565,6 +2822,8 @@ Integer OrbitPlot::BufferOrbitData(const Real *dat, Integer len)
       if (idX < 0 || idY < 0 || idZ < 0 || idVx < 0 || idVy < 0 || idVz < 0 ||
           idX >= len || idY >= len || idZ >= len || idVx >= len || idVy >= len || idVz >= len)
       {
+         if (std::find(stepSkipped.begin(),stepSkipped.end(),mScNameArray[i])!=stepSkipped.end())
+         {BufferPreviousData(scIndex);continue;}
          HandleAbsentData(mScNameArray[i], scIndex, dat[0]);
          mScPrevDataPresent[scIndex] = false;
          continue;
@@ -2584,12 +2843,13 @@ Integer OrbitPlot::BufferOrbitData(const Real *dat, Integer len)
       // If we convert after current epoch, it will not give correct
       // results, if origin is spacecraft,
       // ie, sat->GetMJ2000State(epoch) will not give correct results.
-      if ((theDataCoordSystem != NULL && mViewCoordSystem != NULL) &&
-          (mViewCoordSystem != theDataCoordSystem))
+      auto *sourceFrame=GetPublishedFrame(mScNameArray[i],dat,len);
+      if ((sourceFrame != NULL && mViewCoordSystem != NULL) &&
+          (mViewCoordSystem != sourceFrame))
       {
          #if DBGLVL_DATA
          MessageInterface::ShowMessage
-            ("   Converting data from '%s' to '%s'\n", theDataCoordSystem->GetName().c_str(),
+            ("   Converting data from '%s' to '%s'\n", sourceFrame->GetName().c_str(),
              mViewCoordSystem->GetName().c_str());
          #endif
          
@@ -2600,8 +2860,10 @@ Integer OrbitPlot::BufferOrbitData(const Real *dat, Integer len)
          inState.Set(dat[idX], dat[idY], dat[idZ],
                      dat[idVx], dat[idVy], dat[idVz]);
          
-         coordConverter.Convert(dat[0], inState, theDataCoordSystem,
-                                outState, mViewCoordSystem);
+         GmatTime epoch;
+         if (Publisher::GetPublishedSpacecraftEpoch(dat,len,GetPlottedObject(mScNameArray[i]),epoch))
+            coordConverter.Convert(epoch,inState,sourceFrame,outState,mViewCoordSystem);
+         else coordConverter.Convert(dat[0],inState,sourceFrame,outState,mViewCoordSystem);
          
          mScXArray[scIndex] = outState[0];
          mScYArray[scIndex] = outState[1];
@@ -2659,7 +2921,7 @@ Integer OrbitPlot::BufferOrbitData(const Real *dat, Integer len)
          mCurrProviderArray.push_back(PlotProviderName(currentProvider));
          mCurrDataAvailabilityArray.push_back(mDataAvailabilityContext);
          mCurrArcContextArray.push_back(mArcContext); mCurrSolvingArray.push_back(runstate==Gmat::SOLVING);
-         if (!mArcContext.empty()) PlotInterface::TakeGlAction(instanceName,"SaveOrbitArcCamera:"+std::to_string(mCurrArcContextArray.size()-1));
+         if (!mArcContext.empty()) PlotInterface::TakeGlAction(GetRuntimePlotName(),"SaveOrbitArcCamera:"+std::to_string(mCurrArcContextArray.size()-1));
          mCurrEpochArray.push_back(dat[0]);
          mCurrXArray.push_back(mScXArray);
          mCurrYArray.push_back(mScYArray);
@@ -2706,7 +2968,7 @@ void OrbitPlot::HandleAbsentData(const std::string &scName, Integer scIndex,
    bool useZeroForDataAbsent = false;
    BufferPreviousData(scIndex);
    // Send one time flag to plots to ignore time order
-   PlotInterface::TakeGlAction(instanceName, "IgnoreTimeSequence");
+   PlotInterface::TakeGlAction(GetRuntimePlotName(), "IgnoreTimeSequence");
    #else
    bool useZeroForDataAbsent = true;
    BufferZeroData(scIndex);
@@ -2816,3 +3078,59 @@ void OrbitPlot::WriteCoordinateSystem(CoordinateSystem *cs, const std::string &l
 }
 
 
+
+// An unused plot has no objects and no DrawObject flags. The script parser
+// rejects an empty boolean array; omitting this default reconstructs the same
+// empty plot. Nonempty object/flag configurations retain the native writer.
+void OrbitPlot::WriteParameterValue(Integer id, std::stringstream &stream)
+{
+   if (id == DRAW_OBJECT && mAllSpNameArray.empty() && mDrawObjectArray.empty())
+      return;
+   Subscriber::WriteParameterValue(id, stream);
+}
+
+
+std::unique_ptr<FunctionInvocationState> OrbitPlot::SuspendFunctionBindings()
+{
+   auto native = std::make_shared<SubscriberBindingState>();
+   native->Capture(mViewCoordSystem);
+   native->Capture(mObjectArray);
+   native->Capture(mAllSpArray);
+   native->Require([this, role0 = mViewCoordSysName, role1 = mObjectNameArray, role2 = mAllSpNameArray]
+   {
+      return role0 == mViewCoordSysName &&
+            role1 == mObjectNameArray &&
+            role2 == mAllSpNameArray;
+   });
+   return WrapFunctionBindings(std::move(native), Subscriber::SuspendFunctionBindings());
+}
+
+
+bool OrbitPlot::HasSubscriberValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(OrbitPlot);
+}
+
+
+void OrbitPlot::RebindSubscriberValueReferences(const Subscriber &original,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &source = dynamic_cast<const OrbitPlot&>(original);
+   auto *frame = MapSubscriberReference(source.mViewCoordSystem, resolve);
+   std::vector<SpacePoint*> objects, all;
+   objects.reserve(source.mObjectArray.size()); all.reserve(source.mAllSpArray.size());
+   for (auto *point : source.mObjectArray) objects.push_back(MapSubscriberReference(point, resolve));
+   for (auto *point : source.mAllSpArray) all.push_back(MapSubscriberReference(point, resolve));
+   Subscriber::RebindSubscriberValueReferences(source, resolve);
+   mViewCoordSystem = frame;
+   mObjectArray.swap(objects);
+   mAllSpArray.swap(all);
+}
+
+bool OrbitPlot::HasNativeSubscriberBindings() const
+{
+   return mViewCoordSystem && mObjectArray.size() == mObjectNameArray.size() &&
+         mAllSpArray.size() == mAllSpNameArray.size() &&
+         std::all_of(mObjectArray.begin(), mObjectArray.end(), [](auto *point) {return point != nullptr;}) &&
+         std::all_of(mAllSpArray.begin(), mAllSpArray.end(), [](auto *point) {return point != nullptr;});
+}

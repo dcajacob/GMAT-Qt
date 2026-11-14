@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 
 #include "MathFunction.hpp"
+#include "ExpressionBinding.hpp"
 #include "MessageInterface.hpp"
 #include <sstream>
 
@@ -111,7 +112,7 @@ MathFunction& MathFunction::operator=(const MathFunction &mf)
    if (this == &mf)
       return *this;
    
-   GmatBase::operator=(mf);
+   MathNode::operator=(mf);
    leftNode   = mf.leftNode;
    rightNode  = mf.rightNode;
    
@@ -350,3 +351,19 @@ bool MathFunction::ValidateMatrixInputs(bool allowScalarInput)
    return retval;
 }
 
+
+void MathFunction::RebindExpressionReferences(const MathNode &source,
+      const std::function<GmatBase*(GmatBase*)> &, WrapperMap *)
+{
+   if (typeid(*this) != typeid(source))
+      throw MathException("Incompatible native arithmetic expression copy.\n");
+   // Native arithmetic subclasses add value data, not reference roles.
+   // A provider adding references must override this contract.
+}
+
+void MathFunction::RetireExpressionReferences()
+{
+   // Arithmetic subclasses retain only definition edges and value data. A
+   // provider adding invocation references must override this contract too.
+   isInitialized = false;
+}

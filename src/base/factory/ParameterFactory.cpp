@@ -255,7 +255,7 @@ Parameter* ParameterFactory::CreateParameter(const std::string &ofType,
       return new ModEquinK(withName);
    if (ofType == "TLONG")
       return new ModEquinTLONG(withName);
-   if (ofType == "ModifiedEquinoctial")
+   if (ofType == "ModifiedEquinoctial" || ofType == "ModEquinoctial")
       return new ModEquinState(withName);
    
    // Alternate Equinoctial parameters by HYKim
@@ -313,6 +313,8 @@ Parameter* ParameterFactory::CreateParameter(const std::string &ofType,
       return new IncAsymDHA(withName);
    if (ofType == "IncomingBVAZI")
       return new IncAsymBVAZI(withName);
+   if (ofType == "IncomingAsymptote")
+      return new IncAsymState(withName);
    
    // OutgoingAsymptote parameters; Modified by YK
    // Added OutgoingRadPer and OutgoingC3Energy (LOJ: 2014.05.07)
@@ -326,6 +328,8 @@ Parameter* ParameterFactory::CreateParameter(const std::string &ofType,
       return new OutAsymDHA(withName);
    if (ofType == "OutgoingBVAZI")
       return new OutAsymBVAZI(withName);
+   if (ofType == "OutgoingAsymptote")
+      return new OutAsymState(withName);
    
    // Brouwer Mean Short parameters; Modified by YK
    // Changed Parameter names (see GMT-4228 LOJ: 2014.01.09)
@@ -341,6 +345,8 @@ Parameter* ParameterFactory::CreateParameter(const std::string &ofType,
       return new BLshortAOPP(withName);
    if (ofType == "BrouwerShortMA")
       return new BLshortMAP(withName);
+   if (ofType == "BrouwerMeanShort")
+      return new BLshortState(withName);
    
    // BrouwerMeanLong parameters; Modified by YK
    // Changed Parameter names (see GMT-4228 LOJ: 2014.01.09)
@@ -356,6 +362,8 @@ Parameter* ParameterFactory::CreateParameter(const std::string &ofType,
       return new BLlongAOPDP(withName);
    if (ofType == "BrouwerLongMA")
       return new BLlongMADP(withName);
+   if (ofType == "BrouwerMeanLong")
+      return new BLlongState(withName);
    
    // Orbital parameters
    if (ofType == "VelApoapsis")

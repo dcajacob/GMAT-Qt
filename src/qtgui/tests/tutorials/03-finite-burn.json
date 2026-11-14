@@ -1,0 +1,854 @@
+{
+  "id": "03-finite-burn",
+  "title": "Target Finite Burn to Raise Apogee",
+  "guide": "doc/help/src/Tut_TargetFiniteBurn.xml",
+  "guide_sha256": "239447761d5815f9e7f6b485e07dfab879fbcf09f671b8ae680045b483f0b94d",
+  "reference": "application/samples/Tut_Target_Finite_Burn_to_Raise_Apogee.script",
+  "provenance": "Reviewed current Help instructions, using semantic QtTest widget selectors. Values come from the Help chapter; the generator never reads a completed example mission. Script-event text is entered only where the chapter explicitly teaches it.",
+  "stages": [
+    {
+      "name": "Current Help GUI instructions with QtTest selectors",
+      "input": null,
+      "requires_run": true,
+      "actions": [
+        {
+          "action": "key",
+          "keys": "Esc"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+N"
+        },
+        {
+          "action": "window",
+          "state": "maximized"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Hardware",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ChemicalThruster",
+          "target_role": "menu"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Hardware",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ChemicalTank",
+          "target_role": "menu"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "ChemicalThruster1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_name": "thrusterTankMixtures"
+        },
+        {
+          "action": "click",
+          "target_name": "tankMixtureAdd"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Fuel",
+          "target_role": "tab"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "DecrementMass",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "select",
+          "field_hint": "DecrementMass",
+          "value": "true"
+        },
+        {
+          "action": "click",
+          "target_name": "thrusterCoefficients"
+        },
+        {
+          "action": "click",
+          "field_hint": "C1",
+          "count": 2
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A"
+        },
+        {
+          "action": "text",
+          "text": "1000"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "DefaultSC",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Orbit and hardware",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "field_button": "resource_Tanks"
+        },
+        {
+          "action": "check",
+          "target_text": "ChemicalTank1",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "field_button": "resource_Thrusters"
+        },
+        {
+          "action": "check",
+          "target_text": "ChemicalThruster1",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Burns",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add FiniteBurn",
+          "target_role": "menu"
+        },
+        {
+          "action": "click",
+          "field_button": "resource_Thrusters"
+        },
+        {
+          "action": "check",
+          "target_text": "ChemicalThruster1",
+          "target_role": "list",
+          "checked": true
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Solvers",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add DifferentialCorrector",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "DC1",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add Variable",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "BurnDuration",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Propagate",
+          "target_role": "tree"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Prop To Perigee",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "text",
+          "text": "DefaultSC.Earth.Periapsis",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Target"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Raise Apogee",
+          "target_name": "commandName"
+        },
+        {
+          "action": "select",
+          "target_name": "commandChoice_ExitMode",
+          "value": "SaveAndContinue"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Raise Apogee",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Vary"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Vary Burn Duration",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "text",
+          "text": "BurnDuration",
+          "target_name": "commandField_Variable"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "text",
+          "text": "200",
+          "target_name": "commandField_Initial value"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "text",
+          "text": "10000",
+          "target_name": "commandField_Upper"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "text",
+          "text": "100",
+          "target_name": "commandField_MaxStep"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Raise Apogee",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "BeginFiniteBurn"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Turn Thruster On",
+          "target_name": "commandName"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Raise Apogee",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Prop BurnDuration",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "BurnDuration",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Raise Apogee",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "EndFiniteBurn"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Turn Thruster Off",
+          "target_name": "commandName"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Raise Apogee",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Prop To Apogee",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "text",
+          "text": "DefaultSC.Earth.Apoapsis",
+          "target_name": "propagationStopParameter"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Target \u2014 Raise Apogee",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append inside branch",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Achieve"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Achieve Apogee Radius = 12000",
+          "target_name": "commandName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "text",
+          "text": "12000",
+          "target_name": "commandField_Value"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+S"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial03-authored.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-finite-burn-target-solved"
+        },
+        {
+          "action": "click",
+          "target_text": "Resources",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "DefaultOrbitView",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "target_name": "orbit_SolverIterations",
+          "value": "All"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+S"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-all-target-trials"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagate \u2014 Prop To Perigee",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Command summary",
+          "target_role": "menu"
+        },
+        {
+          "action": "screenshot",
+          "label": "summary-Prop-To-Perigee"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "BeginFiniteBurn \u2014 Turn Thruster On",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Command summary",
+          "target_role": "menu"
+        },
+        {
+          "action": "screenshot",
+          "label": "summary-Turn-Thruster-On"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "EndFiniteBurn \u2014 Turn Thruster Off",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Command summary",
+          "target_role": "menu"
+        },
+        {
+          "action": "screenshot",
+          "label": "summary-Turn-Thruster-Off"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagate \u2014 Prop To Apogee",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Command summary",
+          "target_role": "menu"
+        },
+        {
+          "action": "screenshot",
+          "label": "summary-Prop-To-Apogee"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+O"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial03-authored.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "screenshot",
+          "label": "own-saved-mission-reopened"
+        }
+      ]
+    }
+  ]
+}

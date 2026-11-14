@@ -1,0 +1,2355 @@
+{
+  "cases": [
+    {
+      "key": "Euler123",
+      "representation": "EulerAngles",
+      "sequence": "123",
+      "rate_representation": "EulerAngleRates",
+      "names": [
+        "EulerAngle1",
+        "EulerAngle2",
+        "EulerAngle3"
+      ],
+      "values": [
+        12,
+        25,
+        33
+      ],
+      "units": [
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "rate_names": [
+        "EulerAngleRate1",
+        "EulerAngleRate2",
+        "EulerAngleRate3"
+      ],
+      "rate_values": [
+        0.1,
+        0.2,
+        0.3
+      ],
+      "matrix": [
+        [
+          0.7600936664873876,
+          0.6064290647807772,
+          -0.23345536523042695
+        ],
+        [
+          -0.4936105985582457,
+          0.7724876546862405,
+          0.3995139551358903
+        ],
+        [
+          0.42261826174069944,
+          -0.18843198440409165,
+          0.8865027874162641
+        ]
+      ],
+      "angular_velocity_degrees": [
+        0.1849371736517442,
+        0.11837305373326026,
+        0.34226182617406997
+      ],
+      "invalid_field": "EulerAngle2",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "representations": [
+        {
+          "kind": "Quaternion",
+          "names": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "values": [
+            0.15898366613026885,
+            0.17740575017638857,
+            0.2974564952403275,
+            0.9245382778162693
+          ]
+        },
+        {
+          "kind": "DirectionCosineMatrix",
+          "names": [
+            "DCM11",
+            "DCM12",
+            "DCM13",
+            "DCM21",
+            "DCM22",
+            "DCM23",
+            "DCM31",
+            "DCM32",
+            "DCM33"
+          ],
+          "values": [
+            0.7600936664873876,
+            0.6064290647807772,
+            -0.23345536523042695,
+            -0.4936105985582457,
+            0.7724876546862405,
+            0.3995139551358903,
+            0.42261826174069944,
+            -0.18843198440409165,
+            0.8865027874162641
+          ]
+        },
+        {
+          "kind": "MRPs",
+          "names": [
+            "MRP1",
+            "MRP2",
+            "MRP3"
+          ],
+          "values": [
+            0.08260873164376033,
+            0.09218094138282712,
+            0.15455992674660896
+          ]
+        },
+        {
+          "kind": "EulerAngles",
+          "names": [
+            "EulerAngle1",
+            "EulerAngle2",
+            "EulerAngle3"
+          ],
+          "values": [
+            12,
+            25,
+            33
+          ]
+        }
+      ],
+      "rate_representations": [
+        {
+          "kind": "AngularVelocity",
+          "names": [
+            "AngularVelocityX",
+            "AngularVelocityY",
+            "AngularVelocityZ"
+          ],
+          "values": [
+            0.1849371736517442,
+            0.11837305373326026,
+            0.34226182617406997
+          ]
+        },
+        {
+          "kind": "EulerAngleRates",
+          "names": [
+            "EulerAngleRate1",
+            "EulerAngleRate2",
+            "EulerAngleRate3"
+          ],
+          "values": [
+            0.09999999999999998,
+            0.20000000000000004,
+            0.3
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Euler132",
+      "representation": "EulerAngles",
+      "sequence": "132",
+      "rate_representation": "EulerAngleRates",
+      "names": [
+        "EulerAngle1",
+        "EulerAngle2",
+        "EulerAngle3"
+      ],
+      "values": [
+        13,
+        26,
+        34
+      ],
+      "units": [
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "rate_names": [
+        "EulerAngleRate1",
+        "EulerAngleRate2",
+        "EulerAngleRate3"
+      ],
+      "rate_values": [
+        0.11,
+        0.22,
+        0.32999999999999996
+      ],
+      "matrix": [
+        [
+          0.7451340343707852,
+          0.47990259591349255,
+          -0.463107729645931
+        ],
+        [
+          -0.4383711467890774,
+          0.8757580131211031,
+          0.20218466835298624
+        ],
+        [
+          0.5025992523722521,
+          0.05235838891399294,
+          0.8629325527671234
+        ]
+      ],
+      "angular_velocity_degrees": [
+        -0.04105769498277793,
+        0.28177917385320145,
+        0.2376741837230569
+      ],
+      "invalid_field": "EulerAngle2",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "representations": [
+        {
+          "kind": "Quaternion",
+          "names": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "values": [
+            0.04013560913502689,
+            0.25869452351334893,
+            0.24598806133389647,
+            0.9332503147948855
+          ]
+        },
+        {
+          "kind": "DirectionCosineMatrix",
+          "names": [
+            "DCM11",
+            "DCM12",
+            "DCM13",
+            "DCM21",
+            "DCM22",
+            "DCM23",
+            "DCM31",
+            "DCM32",
+            "DCM33"
+          ],
+          "values": [
+            0.7451340343707852,
+            0.47990259591349255,
+            -0.463107729645931,
+            -0.4383711467890774,
+            0.8757580131211031,
+            0.20218466835298624,
+            0.5025992523722521,
+            0.05235838891399294,
+            0.8629325527671234
+          ]
+        },
+        {
+          "kind": "MRPs",
+          "names": [
+            "MRP1",
+            "MRP2",
+            "MRP3"
+          ],
+          "values": [
+            0.020760689305401824,
+            0.13381325818679407,
+            0.12724066793181688
+          ]
+        },
+        {
+          "kind": "EulerAngles",
+          "names": [
+            "EulerAngle1",
+            "EulerAngle2",
+            "EulerAngle3"
+          ],
+          "values": [
+            13,
+            26,
+            34
+          ]
+        }
+      ],
+      "rate_representations": [
+        {
+          "kind": "AngularVelocity",
+          "names": [
+            "AngularVelocityX",
+            "AngularVelocityY",
+            "AngularVelocityZ"
+          ],
+          "values": [
+            -0.04105769498277793,
+            0.28177917385320145,
+            0.2376741837230569
+          ]
+        },
+        {
+          "kind": "EulerAngleRates",
+          "names": [
+            "EulerAngleRate1",
+            "EulerAngleRate2",
+            "EulerAngleRate3"
+          ],
+          "values": [
+            0.11000000000000001,
+            0.21999999999999997,
+            0.32999999999999996
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Euler213",
+      "representation": "EulerAngles",
+      "sequence": "213",
+      "rate_representation": "EulerAngleRates",
+      "names": [
+        "EulerAngle1",
+        "EulerAngle2",
+        "EulerAngle3"
+      ],
+      "values": [
+        14,
+        27,
+        35
+      ],
+      "units": [
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "rate_names": [
+        "EulerAngleRate1",
+        "EulerAngleRate2",
+        "EulerAngleRate3"
+      ],
+      "rate_values": [
+        0.12000000000000001,
+        0.24000000000000002,
+        0.36
+      ],
+      "matrix": [
+        [
+          0.8578157667150954,
+          0.5110603469094962,
+          0.05449249665539779
+        ],
+        [
+          -0.46657109739460995,
+          0.7298698157637306,
+          0.4996013041546303
+        ],
+        [
+          0.21555398732332115,
+          -0.45399049973954675,
+          0.8645398225040036
+        ]
+      ],
+      "angular_velocity_degrees": [
+        0.25792373225849763,
+        -0.05007396683260342,
+        0.30552114003125436
+      ],
+      "invalid_field": "EulerAngle2",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "representations": [
+        {
+          "kind": "Quaternion",
+          "names": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "values": [
+            0.2566155336526616,
+            0.043342319229107945,
+            0.26308470120152255,
+            0.9290082622052979
+          ]
+        },
+        {
+          "kind": "DirectionCosineMatrix",
+          "names": [
+            "DCM11",
+            "DCM12",
+            "DCM13",
+            "DCM21",
+            "DCM22",
+            "DCM23",
+            "DCM31",
+            "DCM32",
+            "DCM33"
+          ],
+          "values": [
+            0.8578157667150954,
+            0.5110603469094962,
+            0.05449249665539779,
+            -0.46657109739460995,
+            0.7298698157637306,
+            0.4996013041546303,
+            0.21555398732332115,
+            -0.45399049973954675,
+            0.8645398225040036
+          ]
+        },
+        {
+          "kind": "MRPs",
+          "names": [
+            "MRP1",
+            "MRP2",
+            "MRP3"
+          ],
+          "values": [
+            0.13302977425264695,
+            0.022468705851761233,
+            0.1363833978091709
+          ]
+        },
+        {
+          "kind": "EulerAngles",
+          "names": [
+            "EulerAngle1",
+            "EulerAngle2",
+            "EulerAngle3"
+          ],
+          "values": [
+            14,
+            27,
+            35
+          ]
+        }
+      ],
+      "rate_representations": [
+        {
+          "kind": "AngularVelocity",
+          "names": [
+            "AngularVelocityX",
+            "AngularVelocityY",
+            "AngularVelocityZ"
+          ],
+          "values": [
+            0.25792373225849763,
+            -0.05007396683260342,
+            0.30552114003125436
+          ]
+        },
+        {
+          "kind": "EulerAngleRates",
+          "names": [
+            "EulerAngleRate1",
+            "EulerAngleRate2",
+            "EulerAngleRate3"
+          ],
+          "values": [
+            0.12,
+            0.24000000000000007,
+            0.35999999999999993
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Euler231",
+      "representation": "EulerAngles",
+      "sequence": "231",
+      "rate_representation": "EulerAngleRates",
+      "names": [
+        "EulerAngle1",
+        "EulerAngle2",
+        "EulerAngle3"
+      ],
+      "values": [
+        15,
+        28,
+        36
+      ],
+      "units": [
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "rate_names": [
+        "EulerAngleRate1",
+        "EulerAngleRate2",
+        "EulerAngleRate3"
+      ],
+      "rate_values": [
+        0.13,
+        0.26,
+        0.39
+      ],
+      "matrix": [
+        [
+          0.8528618832022029,
+          0.4694715627858908,
+          -0.22852365285931675
+        ],
+        [
+          -0.21473872692289533,
+          0.7143196077653239,
+          0.6660591393574058
+        ],
+        [
+          0.47593475113751293,
+          -0.5189835736296162,
+          0.7100296916061374
+        ]
+      ],
+      "angular_velocity_degrees": [
+        0.4510313031621659,
+        0.24568571460553518,
+        0.14287655396563625
+      ],
+      "invalid_field": "EulerAngle2",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "representations": [
+        {
+          "kind": "Quaternion",
+          "names": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "values": [
+            0.3273043628760323,
+            0.1945687750880031,
+            0.18897632169045056,
+            0.9051534652441077
+          ]
+        },
+        {
+          "kind": "DirectionCosineMatrix",
+          "names": [
+            "DCM11",
+            "DCM12",
+            "DCM13",
+            "DCM21",
+            "DCM22",
+            "DCM23",
+            "DCM31",
+            "DCM32",
+            "DCM33"
+          ],
+          "values": [
+            0.8528618832022029,
+            0.4694715627858908,
+            -0.22852365285931675,
+            -0.21473872692289533,
+            0.7143196077653239,
+            0.6660591393574058,
+            0.47593475113751293,
+            -0.5189835736296162,
+            0.7100296916061374
+          ]
+        },
+        {
+          "kind": "MRPs",
+          "names": [
+            "MRP1",
+            "MRP2",
+            "MRP3"
+          ],
+          "values": [
+            0.17179947382039104,
+            0.10212761262414784,
+            0.09919217802553087
+          ]
+        },
+        {
+          "kind": "EulerAngles",
+          "names": [
+            "EulerAngle1",
+            "EulerAngle2",
+            "EulerAngle3"
+          ],
+          "values": [
+            15,
+            28,
+            36
+          ]
+        }
+      ],
+      "rate_representations": [
+        {
+          "kind": "AngularVelocity",
+          "names": [
+            "AngularVelocityX",
+            "AngularVelocityY",
+            "AngularVelocityZ"
+          ],
+          "values": [
+            0.4510313031621659,
+            0.24568571460553518,
+            0.14287655396563625
+          ]
+        },
+        {
+          "kind": "EulerAngleRates",
+          "names": [
+            "EulerAngleRate1",
+            "EulerAngleRate2",
+            "EulerAngleRate3"
+          ],
+          "values": [
+            0.13,
+            0.26,
+            0.3899999999999999
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Euler312",
+      "representation": "EulerAngles",
+      "sequence": "312",
+      "rate_representation": "EulerAngleRates",
+      "names": [
+        "EulerAngle1",
+        "EulerAngle2",
+        "EulerAngle3"
+      ],
+      "values": [
+        16,
+        29,
+        37
+      ],
+      "units": [
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "rate_names": [
+        "EulerAngleRate1",
+        "EulerAngleRate2",
+        "EulerAngleRate3"
+      ],
+      "rate_values": [
+        0.14,
+        0.28,
+        0.42
+      ],
+      "matrix": [
+        [
+          0.6872761952213067,
+          0.5005969841853879,
+          -0.5263592793013331
+        ],
+        [
+          -0.24107786342134122,
+          0.8407384229858913,
+          0.48480962024633706
+        ],
+        [
+          0.6852247042031727,
+          -0.20630454076362673,
+          0.6985023559086851
+        ]
+      ],
+      "angular_velocity_degrees": [
+        0.14992764371105533,
+        0.48787334683448713,
+        0.26629853630978945
+      ],
+      "invalid_field": "EulerAngle2",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "representations": [
+        {
+          "kind": "Quaternion",
+          "names": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "values": [
+            0.19237685432941906,
+            0.33725356627317504,
+            0.20645080388647508,
+            0.8981254052352438
+          ]
+        },
+        {
+          "kind": "DirectionCosineMatrix",
+          "names": [
+            "DCM11",
+            "DCM12",
+            "DCM13",
+            "DCM21",
+            "DCM22",
+            "DCM23",
+            "DCM31",
+            "DCM32",
+            "DCM33"
+          ],
+          "values": [
+            0.6872761952213067,
+            0.5005969841853879,
+            -0.5263592793013331,
+            -0.24107786342134122,
+            0.8407384229858913,
+            0.48480962024633706,
+            0.6852247042031727,
+            -0.20630454076362673,
+            0.6985023559086851
+          ]
+        },
+        {
+          "kind": "MRPs",
+          "names": [
+            "MRP1",
+            "MRP2",
+            "MRP3"
+          ],
+          "values": [
+            0.10135097175287892,
+            0.17767717841139036,
+            0.1087656291397083
+          ]
+        },
+        {
+          "kind": "EulerAngles",
+          "names": [
+            "EulerAngle1",
+            "EulerAngle2",
+            "EulerAngle3"
+          ],
+          "values": [
+            16,
+            29,
+            37
+          ]
+        }
+      ],
+      "rate_representations": [
+        {
+          "kind": "AngularVelocity",
+          "names": [
+            "AngularVelocityX",
+            "AngularVelocityY",
+            "AngularVelocityZ"
+          ],
+          "values": [
+            0.14992764371105533,
+            0.48787334683448713,
+            0.26629853630978945
+          ]
+        },
+        {
+          "kind": "EulerAngleRates",
+          "names": [
+            "EulerAngleRate1",
+            "EulerAngleRate2",
+            "EulerAngleRate3"
+          ],
+          "values": [
+            0.14,
+            0.28,
+            0.41999999999999993
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Euler321",
+      "representation": "EulerAngles",
+      "sequence": "321",
+      "rate_representation": "EulerAngleRates",
+      "names": [
+        "EulerAngle1",
+        "EulerAngle2",
+        "EulerAngle3"
+      ],
+      "values": [
+        17,
+        30,
+        38
+      ],
+      "units": [
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "rate_names": [
+        "EulerAngleRate1",
+        "EulerAngleRate2",
+        "EulerAngleRate3"
+      ],
+      "rate_values": [
+        0.15000000000000002,
+        0.30000000000000004,
+        0.44999999999999996
+      ],
+      "matrix": [
+        [
+          0.8281842124238669,
+          0.2532013236376528,
+          -0.49999999999999994
+        ],
+        [
+          0.06398795108672717,
+          0.8435794289606627,
+          0.5331784777634264
+        ],
+        [
+          0.5567912107851397,
+          -0.4735639732312231,
+          0.6824373310787412
+        ]
+      ],
+      "angular_velocity_degrees": [
+        0.3749999999999999,
+        0.3163799977465306,
+        -0.08233284293588627
+      ],
+      "invalid_field": "EulerAngle2",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "representations": [
+        {
+          "kind": "Quaternion",
+          "names": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "values": [
+            0.27484880042691784,
+            0.2885125150916571,
+            0.051656775195059096,
+            0.9157238902179072
+          ]
+        },
+        {
+          "kind": "DirectionCosineMatrix",
+          "names": [
+            "DCM11",
+            "DCM12",
+            "DCM13",
+            "DCM21",
+            "DCM22",
+            "DCM23",
+            "DCM31",
+            "DCM32",
+            "DCM33"
+          ],
+          "values": [
+            0.8281842124238669,
+            0.2532013236376528,
+            -0.49999999999999994,
+            0.06398795108672717,
+            0.8435794289606627,
+            0.5331784777634264,
+            0.5567912107851397,
+            -0.4735639732312231,
+            0.6824373310787412
+          ]
+        },
+        {
+          "kind": "MRPs",
+          "names": [
+            "MRP1",
+            "MRP2",
+            "MRP3"
+          ],
+          "values": [
+            0.14346994461485507,
+            0.1506023475328899,
+            0.02696462442152001
+          ]
+        },
+        {
+          "kind": "EulerAngles",
+          "names": [
+            "EulerAngle1",
+            "EulerAngle2",
+            "EulerAngle3"
+          ],
+          "values": [
+            17,
+            30,
+            38
+          ]
+        }
+      ],
+      "rate_representations": [
+        {
+          "kind": "AngularVelocity",
+          "names": [
+            "AngularVelocityX",
+            "AngularVelocityY",
+            "AngularVelocityZ"
+          ],
+          "values": [
+            0.3749999999999999,
+            0.3163799977465306,
+            -0.08233284293588627
+          ]
+        },
+        {
+          "kind": "EulerAngleRates",
+          "names": [
+            "EulerAngleRate1",
+            "EulerAngleRate2",
+            "EulerAngleRate3"
+          ],
+          "values": [
+            0.15000000000000005,
+            0.30000000000000004,
+            0.44999999999999996
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Euler121",
+      "representation": "EulerAngles",
+      "sequence": "121",
+      "rate_representation": "EulerAngleRates",
+      "names": [
+        "EulerAngle1",
+        "EulerAngle2",
+        "EulerAngle3"
+      ],
+      "values": [
+        18,
+        61,
+        39
+      ],
+      "units": [
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "rate_names": [
+        "EulerAngleRate1",
+        "EulerAngleRate2",
+        "EulerAngleRate3"
+      ],
+      "rate_values": [
+        0.16,
+        0.32,
+        0.48
+      ],
+      "matrix": [
+        [
+          0.4848096202463371,
+          0.2702723531213128,
+          -0.8318127717550812
+        ],
+        [
+          0.5504160161168588,
+          0.644828466604837,
+          0.5303192037425201
+        ],
+        [
+          0.67970717321406,
+          -0.7149469237603048,
+          0.163856812147157
+        ]
+      ],
+      "angular_velocity_degrees": [
+        0.5575695392394139,
+        0.3367532702449281,
+        -0.09262937742169834
+      ],
+      "invalid_field": "EulerAngle2",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "representations": [
+        {
+          "kind": "Quaternion",
+          "names": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "values": [
+            0.4111339019998056,
+            0.499039586158088,
+            -0.09249152028156817,
+            0.757214450964575
+          ]
+        },
+        {
+          "kind": "DirectionCosineMatrix",
+          "names": [
+            "DCM11",
+            "DCM12",
+            "DCM13",
+            "DCM21",
+            "DCM22",
+            "DCM23",
+            "DCM31",
+            "DCM32",
+            "DCM33"
+          ],
+          "values": [
+            0.4848096202463371,
+            0.2702723531213128,
+            -0.8318127717550812,
+            0.5504160161168588,
+            0.644828466604837,
+            0.5303192037425201,
+            0.67970717321406,
+            -0.7149469237603048,
+            0.163856812147157
+          ]
+        },
+        {
+          "kind": "MRPs",
+          "names": [
+            "MRP1",
+            "MRP2",
+            "MRP3"
+          ],
+          "values": [
+            0.23396911047147653,
+            0.28399469733711435,
+            -0.052635305970080926
+          ]
+        },
+        {
+          "kind": "EulerAngles",
+          "names": [
+            "EulerAngle1",
+            "EulerAngle2",
+            "EulerAngle3"
+          ],
+          "values": [
+            18,
+            61,
+            39
+          ]
+        }
+      ],
+      "rate_representations": [
+        {
+          "kind": "AngularVelocity",
+          "names": [
+            "AngularVelocityX",
+            "AngularVelocityY",
+            "AngularVelocityZ"
+          ],
+          "values": [
+            0.5575695392394139,
+            0.3367532702449281,
+            -0.09262937742169834
+          ]
+        },
+        {
+          "kind": "EulerAngleRates",
+          "names": [
+            "EulerAngleRate1",
+            "EulerAngleRate2",
+            "EulerAngleRate3"
+          ],
+          "values": [
+            0.16000000000000006,
+            0.32000000000000006,
+            0.47999999999999987
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Euler131",
+      "representation": "EulerAngles",
+      "sequence": "131",
+      "rate_representation": "EulerAngleRates",
+      "names": [
+        "EulerAngle1",
+        "EulerAngle2",
+        "EulerAngle3"
+      ],
+      "values": [
+        19,
+        62,
+        40
+      ],
+      "units": [
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "rate_names": [
+        "EulerAngleRate1",
+        "EulerAngleRate2",
+        "EulerAngleRate3"
+      ],
+      "rate_values": [
+        0.17,
+        0.34,
+        0.51
+      ],
+      "matrix": [
+        [
+          0.46947156278589086,
+          0.8348433503288181,
+          0.2874596182894698
+        ],
+        [
+          -0.6763770970748587,
+          0.13077142007453604,
+          0.7248536805757946
+        ],
+        [
+          0.5675477726922733,
+          -0.5347292923559018,
+          0.626062384757778
+        ]
+      ],
+      "angular_velocity_degrees": [
+        0.5898101656736013,
+        0.10356368079069735,
+        0.356938232018139
+      ],
+      "invalid_field": "EulerAngle2",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "representations": [
+        {
+          "kind": "Quaternion",
+          "names": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "values": [
+            0.4220893738160132,
+            0.0938582342296977,
+            0.5064137147376023,
+            0.7460404425395123
+          ]
+        },
+        {
+          "kind": "DirectionCosineMatrix",
+          "names": [
+            "DCM11",
+            "DCM12",
+            "DCM13",
+            "DCM21",
+            "DCM22",
+            "DCM23",
+            "DCM31",
+            "DCM32",
+            "DCM33"
+          ],
+          "values": [
+            0.46947156278589086,
+            0.8348433503288181,
+            0.2874596182894698,
+            -0.6763770970748587,
+            0.13077142007453604,
+            0.7248536805757946,
+            0.5675477726922733,
+            -0.5347292923559018,
+            0.626062384757778
+          ]
+        },
+        {
+          "kind": "MRPs",
+          "names": [
+            "MRP1",
+            "MRP2",
+            "MRP3"
+          ],
+          "values": [
+            0.24174089186737804,
+            0.05375490277486727,
+            0.2900355011256518
+          ]
+        },
+        {
+          "kind": "EulerAngles",
+          "names": [
+            "EulerAngle1",
+            "EulerAngle2",
+            "EulerAngle3"
+          ],
+          "values": [
+            19,
+            62,
+            40
+          ]
+        }
+      ],
+      "rate_representations": [
+        {
+          "kind": "AngularVelocity",
+          "names": [
+            "AngularVelocityX",
+            "AngularVelocityY",
+            "AngularVelocityZ"
+          ],
+          "values": [
+            0.5898101656736013,
+            0.10356368079069735,
+            0.356938232018139
+          ]
+        },
+        {
+          "kind": "EulerAngleRates",
+          "names": [
+            "EulerAngleRate1",
+            "EulerAngleRate2",
+            "EulerAngleRate3"
+          ],
+          "values": [
+            0.17000000000000007,
+            0.34,
+            0.5099999999999999
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Euler212",
+      "representation": "EulerAngles",
+      "sequence": "212",
+      "rate_representation": "EulerAngleRates",
+      "names": [
+        "EulerAngle1",
+        "EulerAngle2",
+        "EulerAngle3"
+      ],
+      "values": [
+        20,
+        63,
+        41
+      ],
+      "units": [
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "rate_names": [
+        "EulerAngleRate1",
+        "EulerAngleRate2",
+        "EulerAngleRate3"
+      ],
+      "rate_values": [
+        0.18,
+        0.36,
+        0.54
+      ],
+      "matrix": [
+        [
+          0.6073261820725947,
+          0.5845528750832275,
+          -0.5380082200125367
+        ],
+        [
+          0.30474217910701146,
+          0.4539904997395468,
+          0.8372722558519102
+        ],
+        [
+          0.7336805250531294,
+          -0.6724511598459542,
+          0.09758239994791687
+        ]
+      ],
+      "angular_velocity_degrees": [
+        0.3769149663951788,
+        0.6217182899531184,
+        0.11514004166431081
+      ],
+      "invalid_field": "EulerAngle2",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "representations": [
+        {
+          "kind": "Quaternion",
+          "names": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "values": [
+            0.5137492779520791,
+            0.43274759321082173,
+            0.09521780050990375,
+            0.734659628971141
+          ]
+        },
+        {
+          "kind": "DirectionCosineMatrix",
+          "names": [
+            "DCM11",
+            "DCM12",
+            "DCM13",
+            "DCM21",
+            "DCM22",
+            "DCM23",
+            "DCM31",
+            "DCM32",
+            "DCM33"
+          ],
+          "values": [
+            0.6073261820725947,
+            0.5845528750832275,
+            -0.5380082200125367,
+            0.30474217910701146,
+            0.4539904997395468,
+            0.8372722558519102,
+            0.7336805250531294,
+            -0.6724511598459542,
+            0.09758239994791687
+          ]
+        },
+        {
+          "kind": "MRPs",
+          "names": [
+            "MRP1",
+            "MRP2",
+            "MRP3"
+          ],
+          "values": [
+            0.29616719578398987,
+            0.24947118499984483,
+            0.05489134520665544
+          ]
+        },
+        {
+          "kind": "EulerAngles",
+          "names": [
+            "EulerAngle1",
+            "EulerAngle2",
+            "EulerAngle3"
+          ],
+          "values": [
+            20,
+            63,
+            41
+          ]
+        }
+      ],
+      "rate_representations": [
+        {
+          "kind": "AngularVelocity",
+          "names": [
+            "AngularVelocityX",
+            "AngularVelocityY",
+            "AngularVelocityZ"
+          ],
+          "values": [
+            0.3769149663951788,
+            0.6217182899531184,
+            0.11514004166431081
+          ]
+        },
+        {
+          "kind": "EulerAngleRates",
+          "names": [
+            "EulerAngleRate1",
+            "EulerAngleRate2",
+            "EulerAngleRate3"
+          ],
+          "values": [
+            0.18,
+            0.35999999999999993,
+            0.54
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Euler232",
+      "representation": "EulerAngles",
+      "sequence": "232",
+      "rate_representation": "EulerAngleRates",
+      "names": [
+        "EulerAngle1",
+        "EulerAngle2",
+        "EulerAngle3"
+      ],
+      "values": [
+        21,
+        64,
+        42
+      ],
+      "units": [
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "rate_names": [
+        "EulerAngleRate1",
+        "EulerAngleRate2",
+        "EulerAngleRate3"
+      ],
+      "rate_values": [
+        0.19,
+        0.38,
+        0.5700000000000001
+      ],
+      "matrix": [
+        [
+          0.06434056571396546,
+          0.6679341446771155,
+          -0.7414339282620247
+        ],
+        [
+          -0.8390965290771221,
+          0.43837114678907746,
+          0.32209897943575616
+        ],
+        [
+          0.5401641477313479,
+          0.6014106051918934,
+          0.5886662700277528
+        ]
+      ],
+      "angular_velocity_degrees": [
+        -0.12736214292771425,
+        0.6532905178899249,
+        0.39666304866786967
+      ],
+      "invalid_field": "EulerAngle2",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "representations": [
+        {
+          "kind": "Quaternion",
+          "names": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "values": [
+            -0.09657011558595026,
+            0.4431039130518256,
+            0.5210457171699787,
+            0.7230798680869901
+          ]
+        },
+        {
+          "kind": "DirectionCosineMatrix",
+          "names": [
+            "DCM11",
+            "DCM12",
+            "DCM13",
+            "DCM21",
+            "DCM22",
+            "DCM23",
+            "DCM31",
+            "DCM32",
+            "DCM33"
+          ],
+          "values": [
+            0.06434056571396546,
+            0.6679341446771155,
+            -0.7414339282620247,
+            -0.8390965290771221,
+            0.43837114678907746,
+            0.32209897943575616,
+            0.5401641477313479,
+            0.6014106051918934,
+            0.5886662700277528
+          ]
+        },
+        {
+          "kind": "MRPs",
+          "names": [
+            "MRP1",
+            "MRP2",
+            "MRP3"
+          ],
+          "values": [
+            -0.05604506057700333,
+            0.2571580814438808,
+            0.3023920868789778
+          ]
+        },
+        {
+          "kind": "EulerAngles",
+          "names": [
+            "EulerAngle1",
+            "EulerAngle2",
+            "EulerAngle3"
+          ],
+          "values": [
+            21,
+            64,
+            42
+          ]
+        }
+      ],
+      "rate_representations": [
+        {
+          "kind": "AngularVelocity",
+          "names": [
+            "AngularVelocityX",
+            "AngularVelocityY",
+            "AngularVelocityZ"
+          ],
+          "values": [
+            -0.12736214292771425,
+            0.6532905178899249,
+            0.39666304866786967
+          ]
+        },
+        {
+          "kind": "EulerAngleRates",
+          "names": [
+            "EulerAngleRate1",
+            "EulerAngleRate2",
+            "EulerAngleRate3"
+          ],
+          "values": [
+            0.19000000000000003,
+            0.38000000000000006,
+            0.5700000000000002
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Euler313",
+      "representation": "EulerAngles",
+      "sequence": "313",
+      "rate_representation": "EulerAngleRates",
+      "names": [
+        "EulerAngle1",
+        "EulerAngle2",
+        "EulerAngle3"
+      ],
+      "values": [
+        22,
+        65,
+        43
+      ],
+      "units": [
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "rate_names": [
+        "EulerAngleRate1",
+        "EulerAngleRate2",
+        "EulerAngleRate3"
+      ],
+      "rate_values": [
+        0.2,
+        0.4,
+        0.6
+      ],
+      "matrix": [
+        [
+          0.5701283731766216,
+          0.541207449475626,
+          0.6181004244708673
+        ],
+        [
+          -0.748122559120513,
+          0.031096083720808188,
+          0.6628315548555328
+        ],
+        [
+          0.3395088726881133,
+          -0.8403139474085362,
+          0.42261826174069944
+        ]
+      ],
+      "angular_velocity_degrees": [
+        0.41616156554184175,
+        -0.14023303305389276,
+        0.6845236523481398
+      ],
+      "invalid_field": "EulerAngle2",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "representations": [
+        {
+          "kind": "Quaternion",
+          "names": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "values": [
+            0.5283024767392053,
+            -0.09791507647380843,
+            0.45315389351832497,
+            0.7113091308703497
+          ]
+        },
+        {
+          "kind": "DirectionCosineMatrix",
+          "names": [
+            "DCM11",
+            "DCM12",
+            "DCM13",
+            "DCM21",
+            "DCM22",
+            "DCM23",
+            "DCM31",
+            "DCM32",
+            "DCM33"
+          ],
+          "values": [
+            0.5701283731766216,
+            0.541207449475626,
+            0.6181004244708673,
+            -0.748122559120513,
+            0.031096083720808188,
+            0.6628315548555328,
+            0.3395088726881133,
+            -0.8403139474085362,
+            0.42261826174069944
+          ]
+        },
+        {
+          "kind": "MRPs",
+          "names": [
+            "MRP1",
+            "MRP2",
+            "MRP3"
+          ],
+          "values": [
+            0.30871247468335394,
+            -0.05721647521626329,
+            0.2647995533617335
+          ]
+        },
+        {
+          "kind": "EulerAngles",
+          "names": [
+            "EulerAngle1",
+            "EulerAngle2",
+            "EulerAngle3"
+          ],
+          "values": [
+            22,
+            65,
+            43
+          ]
+        }
+      ],
+      "rate_representations": [
+        {
+          "kind": "AngularVelocity",
+          "names": [
+            "AngularVelocityX",
+            "AngularVelocityY",
+            "AngularVelocityZ"
+          ],
+          "values": [
+            0.41616156554184175,
+            -0.14023303305389276,
+            0.6845236523481398
+          ]
+        },
+        {
+          "kind": "EulerAngleRates",
+          "names": [
+            "EulerAngleRate1",
+            "EulerAngleRate2",
+            "EulerAngleRate3"
+          ],
+          "values": [
+            0.20000000000000004,
+            0.4,
+            0.6
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Euler323",
+      "representation": "EulerAngles",
+      "sequence": "323",
+      "rate_representation": "EulerAngleRates",
+      "names": [
+        "EulerAngle1",
+        "EulerAngle2",
+        "EulerAngle3"
+      ],
+      "values": [
+        23,
+        66,
+        44
+      ],
+      "units": [
+        "deg",
+        "deg",
+        "deg"
+      ],
+      "rate_names": [
+        "EulerAngleRate1",
+        "EulerAngleRate2",
+        "EulerAngleRate3"
+      ],
+      "rate_values": [
+        0.21000000000000002,
+        0.42000000000000004,
+        0.6299999999999999
+      ],
+      "matrix": [
+        [
+          -0.002101630873117988,
+          0.7537572401209772,
+          -0.6571496071009102
+        ],
+        [
+          -0.5411506673596902,
+          0.5517574269093382,
+          0.634601998946228
+        ],
+        [
+          0.8409230276094449,
+          0.35695064759094347,
+          0.4067366430758002
+        ]
+      ],
+      "angular_velocity_degrees": [
+        0.1537550981015877,
+        0.4353891359209416,
+        0.7154146950459179
+      ],
+      "invalid_field": "EulerAngle2",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "representations": [
+        {
+          "kind": "Quaternion",
+          "names": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "values": [
+            0.09925258074949955,
+            0.5355190040294218,
+            0.46289330494174896,
+            0.6993554959947088
+          ]
+        },
+        {
+          "kind": "DirectionCosineMatrix",
+          "names": [
+            "DCM11",
+            "DCM12",
+            "DCM13",
+            "DCM21",
+            "DCM22",
+            "DCM23",
+            "DCM31",
+            "DCM32",
+            "DCM33"
+          ],
+          "values": [
+            -0.002101630873117988,
+            0.7537572401209772,
+            -0.6571496071009102,
+            -0.5411506673596902,
+            0.5517574269093382,
+            0.634601998946228,
+            0.8409230276094449,
+            0.35695064759094347,
+            0.4067366430758002
+          ]
+        },
+        {
+          "kind": "MRPs",
+          "names": [
+            "MRP1",
+            "MRP2",
+            "MRP3"
+          ],
+          "values": [
+            0.058406013917295496,
+            0.31513065117429034,
+            0.2723934491828014
+          ]
+        },
+        {
+          "kind": "EulerAngles",
+          "names": [
+            "EulerAngle1",
+            "EulerAngle2",
+            "EulerAngle3"
+          ],
+          "values": [
+            23,
+            66,
+            44
+          ]
+        }
+      ],
+      "rate_representations": [
+        {
+          "kind": "AngularVelocity",
+          "names": [
+            "AngularVelocityX",
+            "AngularVelocityY",
+            "AngularVelocityZ"
+          ],
+          "values": [
+            0.1537550981015877,
+            0.4353891359209416,
+            0.7154146950459179
+          ]
+        },
+        {
+          "kind": "EulerAngleRates",
+          "names": [
+            "EulerAngleRate1",
+            "EulerAngleRate2",
+            "EulerAngleRate3"
+          ],
+          "values": [
+            0.2100000000000002,
+            0.4200000000000002,
+            0.6299999999999998
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Quaternion",
+      "representation": "Quaternion",
+      "sequence": "321",
+      "rate_representation": "AngularVelocity",
+      "names": [
+        "Q1",
+        "Q2",
+        "Q3",
+        "Q4"
+      ],
+      "values": [
+        0.10870494035972886,
+        0.21740988071945772,
+        0.32611482107918655,
+        0.9135454576426009
+      ],
+      "units": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "rate_names": [
+        "AngularVelocityX",
+        "AngularVelocityY",
+        "AngularVelocityZ"
+      ],
+      "rate_values": [
+        0.12,
+        0.23,
+        0.34
+      ],
+      "matrix": [
+        [
+          0.6927641344760826,
+          0.6431084831680896,
+          -0.32632703360408727
+        ],
+        [
+          -0.5485743706991919,
+          0.7636647188277559,
+          0.34041497768122675
+        ],
+        [
+          0.46812820230743374,
+          -0.05681264027453378,
+          0.8818323594138779
+        ]
+      ],
+      "angular_velocity_degrees": [
+        0.12,
+        0.23,
+        0.34
+      ],
+      "invalid_field": "Q1",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "representations": [
+        {
+          "kind": "Quaternion",
+          "names": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "values": [
+            0.10870494035972887,
+            0.2174098807194577,
+            0.32611482107918655,
+            0.9135454576426009
+          ]
+        },
+        {
+          "kind": "DirectionCosineMatrix",
+          "names": [
+            "DCM11",
+            "DCM12",
+            "DCM13",
+            "DCM21",
+            "DCM22",
+            "DCM23",
+            "DCM31",
+            "DCM32",
+            "DCM33"
+          ],
+          "values": [
+            0.6927641344760826,
+            0.6431084831680896,
+            -0.32632703360408727,
+            -0.5485743706991919,
+            0.7636647188277559,
+            0.34041497768122675,
+            0.46812820230743374,
+            -0.05681264027453378,
+            0.8818323594138779
+          ]
+        },
+        {
+          "kind": "MRPs",
+          "names": [
+            "MRP1",
+            "MRP2",
+            "MRP3"
+          ],
+          "values": [
+            0.05680813064856495,
+            0.11361626129712987,
+            0.1704243919456948
+          ]
+        },
+        {
+          "kind": "EulerAngles",
+          "names": [
+            "EulerAngle1",
+            "EulerAngle2",
+            "EulerAngle3"
+          ],
+          "values": [
+            42.87124163136825,
+            19.045992313497216,
+            21.10815391608491
+          ]
+        }
+      ],
+      "rate_representations": [
+        {
+          "kind": "AngularVelocity",
+          "names": [
+            "AngularVelocityX",
+            "AngularVelocityY",
+            "AngularVelocityZ"
+          ],
+          "values": [
+            0.12,
+            0.23,
+            0.34
+          ]
+        },
+        {
+          "kind": "EulerAngleRates",
+          "names": [
+            "EulerAngleRate1",
+            "EulerAngleRate2",
+            "EulerAngleRate3"
+          ],
+          "values": [
+            0.42318291316886075,
+            0.09212347174923297,
+            0.2580960247263303
+          ]
+        }
+      ]
+    },
+    {
+      "key": "DirectionCosineMatrix",
+      "representation": "DirectionCosineMatrix",
+      "sequence": "321",
+      "rate_representation": "AngularVelocity",
+      "names": [
+        "DCM11",
+        "DCM12",
+        "DCM13",
+        "DCM21",
+        "DCM22",
+        "DCM23",
+        "DCM31",
+        "DCM32",
+        "DCM33"
+      ],
+      "values": [
+        0.6739113925037412,
+        0.6963556153369567,
+        -0.24684467189379855,
+        -0.49568570303156656,
+        0.6739113925037412,
+        0.5478495403518836,
+        0.5478495403518836,
+        -0.24684467189379855,
+        0.7993300876946099
+      ],
+      "units": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "rate_names": [
+        "AngularVelocityX",
+        "AngularVelocityY",
+        "AngularVelocityZ"
+      ],
+      "rate_values": [
+        0.13999999999999999,
+        0.24000000000000002,
+        0.37
+      ],
+      "matrix": [
+        [
+          0.6739113925037412,
+          0.6963556153369567,
+          -0.24684467189379855
+        ],
+        [
+          -0.49568570303156656,
+          0.6739113925037412,
+          0.5478495403518836
+        ],
+        [
+          0.5478495403518836,
+          -0.24684467189379855,
+          0.7993300876946099
+        ]
+      ],
+      "angular_velocity_degrees": [
+        0.13999999999999999,
+        0.24000000000000002,
+        0.37
+      ],
+      "invalid_field": "DCM11",
+      "invalid": [
+        "2",
+        "nan",
+        "not-a-number"
+      ],
+      "representations": [
+        {
+          "kind": "Quaternion",
+          "names": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "values": [
+            0.22398097704123784,
+            0.22398097704123784,
+            0.3359714655618568,
+            0.8870108331782217
+          ]
+        },
+        {
+          "kind": "DirectionCosineMatrix",
+          "names": [
+            "DCM11",
+            "DCM12",
+            "DCM13",
+            "DCM21",
+            "DCM22",
+            "DCM23",
+            "DCM31",
+            "DCM32",
+            "DCM33"
+          ],
+          "values": [
+            0.6739113925037412,
+            0.6963556153369567,
+            -0.24684467189379855,
+            -0.49568570303156656,
+            0.6739113925037412,
+            0.5478495403518836,
+            0.5478495403518836,
+            -0.24684467189379855,
+            0.7993300876946099
+          ]
+        },
+        {
+          "kind": "MRPs",
+          "names": [
+            "MRP1",
+            "MRP2",
+            "MRP3"
+          ],
+          "values": [
+            0.11869617974794298,
+            0.11869617974794298,
+            0.1780442696219145
+          ]
+        },
+        {
+          "kind": "EulerAngles",
+          "names": [
+            "EulerAngle1",
+            "EulerAngle2",
+            "EulerAngle3"
+          ],
+          "values": [
+            45.93838956358965,
+            14.290874349761873,
+            34.42618820542367
+          ]
+        }
+      ],
+      "rate_representations": [
+        {
+          "kind": "AngularVelocity",
+          "names": [
+            "AngularVelocityX",
+            "AngularVelocityY",
+            "AngularVelocityZ"
+          ],
+          "values": [
+            0.13999999999999999,
+            0.24000000000000002,
+            0.37
+          ]
+        },
+        {
+          "kind": "EulerAngleRates",
+          "names": [
+            "EulerAngleRate1",
+            "EulerAngleRate2",
+            "EulerAngleRate3"
+          ],
+          "values": [
+            0.45495763352425755,
+            -0.01121206558822708,
+            0.2523038677728744
+          ]
+        }
+      ]
+    },
+    {
+      "key": "MRPs",
+      "representation": "MRPs",
+      "sequence": "321",
+      "rate_representation": "AngularVelocity",
+      "names": [
+        "MRP1",
+        "MRP2",
+        "MRP3"
+      ],
+      "values": [
+        0.1773773743696518,
+        0.1182515829131012,
+        0.1773773743696518
+      ],
+      "units": [
+        "",
+        "",
+        ""
+      ],
+      "rate_names": [
+        "AngularVelocityX",
+        "AngularVelocityY",
+        "AngularVelocityZ"
+      ],
+      "rate_values": [
+        0.16,
+        0.25,
+        0.4
+      ],
+      "matrix": [
+        [
+          0.68650592346439,
+          0.7094247516916214,
+          -0.1594557579254709
+        ],
+        [
+          -0.42004560412028913,
+          0.5659312786430015,
+          0.7094247516916214
+        ],
+        [
+          0.5935244792824694,
+          -0.42004560412028913,
+          0.68650592346439
+        ]
+      ],
+      "angular_velocity_degrees": [
+        0.16,
+        0.25,
+        0.4
+      ],
+      "invalid_field": "MRP1",
+      "invalid": [
+        "nan",
+        "inf",
+        "not-a-number"
+      ],
+      "representations": [
+        {
+          "kind": "Quaternion",
+          "names": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "values": [
+            0.3294194595637143,
+            0.2196129730424762,
+            0.3294194595637143,
+            0.8571673007021123
+          ]
+        },
+        {
+          "kind": "DirectionCosineMatrix",
+          "names": [
+            "DCM11",
+            "DCM12",
+            "DCM13",
+            "DCM21",
+            "DCM22",
+            "DCM23",
+            "DCM31",
+            "DCM32",
+            "DCM33"
+          ],
+          "values": [
+            0.68650592346439,
+            0.7094247516916214,
+            -0.1594557579254709,
+            -0.42004560412028913,
+            0.5659312786430015,
+            0.7094247516916214,
+            0.5935244792824694,
+            -0.42004560412028913,
+            0.68650592346439
+          ]
+        },
+        {
+          "kind": "MRPs",
+          "names": [
+            "MRP1",
+            "MRP2",
+            "MRP3"
+          ],
+          "values": [
+            0.1773773743696518,
+            0.11825158291310121,
+            0.1773773743696518
+          ]
+        },
+        {
+          "kind": "EulerAngles",
+          "names": [
+            "EulerAngle1",
+            "EulerAngle2",
+            "EulerAngle3"
+          ],
+          "values": [
+            45.94061559051932,
+            9.175307887027797,
+            45.94061559051932
+          ]
+        }
+      ],
+      "rate_representations": [
+        {
+          "kind": "AngularVelocity",
+          "names": [
+            "AngularVelocityX",
+            "AngularVelocityY",
+            "AngularVelocityZ"
+          ],
+          "values": [
+            0.16,
+            0.25,
+            0.4
+          ]
+        },
+        {
+          "kind": "EulerAngleRates",
+          "names": [
+            "EulerAngleRate1",
+            "EulerAngleRate2",
+            "EulerAngleRate3"
+          ],
+          "values": [
+            0.46374992729877823,
+            -0.11359688334654096,
+            0.23394759614530872
+          ]
+        }
+      ]
+    }
+  ],
+  "reference_sources": {
+    "doc/help/src/Resource_SpacecraftAttitude.xml": "450d809121cab05309a67578d1276c4e933bdc569eee4765fe6e90c0bf9fb6d2",
+    "doc/SystemDocs/MathematicalSpecification/AttitudeD5.tex": "b0be364ef2d5a012eddbf1a82a9549651e6d5b15c085e2c8f78e40f1181bd9ed"
+  },
+  "scope": "15 positive attitude/rate definitions: all12 Euler sequences and quaternion/DCM/MRP in Spinner/EarthMJ2000Eq. Independent matrix, angular velocity and60-second constant-spin checks; no singular/full-domain/all-model/frame/native-input qualification."
+}

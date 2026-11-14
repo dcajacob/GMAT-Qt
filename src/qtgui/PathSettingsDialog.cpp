@@ -41,7 +41,7 @@ PathSettingsDialog::PathSettingsDialog(PathSettings initial,QtMessageReceiver &r
    auto *read=new QPushButton("Read another startup file…",this); read->setObjectName("pathReadStartup");
    auto *save=new QPushButton("Export startup settings…",this); save->setObjectName("pathSaveStartup");
    startupButtons->addWidget(read); startupButtons->addWidget(save); startupButtons->addStretch(); layout->addLayout(startupButtons);
-   auto *note=new QLabel("Apply updates GMAT function and output paths in this session. Export writes a startup file. Python module paths require restarting GMAT with that exported file.",this); note->setWordWrap(true); layout->addWidget(note);
+   auto *note=new QLabel("Apply updates GMAT/MATLAB function and output paths in this session. Export writes a startup file. Python module paths require restarting GMAT with that exported file. Scientific data files also require exporting and restarting.",this); note->setWordWrap(true); layout->addWidget(note);
    auto *tabs=new QTabWidget(this); tabs->setObjectName("pathTabs"); layout->addWidget(tabs,1);
    auto *functionTab=new QWidget(tabs); auto *functionLayout=new QVBoxLayout(functionTab);
    auto *orderNote=new QLabel("Search order is top to bottom. The mission directory takes precedence when building a mission. Repeated equivalent directories appear once.",functionTab); orderNote->setWordWrap(true); functionLayout->addWidget(orderNote);
@@ -63,6 +63,29 @@ PathSettingsDialog::PathSettingsDialog(PathSettings initial,QtMessageReceiver &r
    output=new QLineEdit(outputTab); output->setObjectName("pathOutput"); auto *outputBrowse=new QPushButton("Browse…",outputTab); outputBrowse->setObjectName("pathOutputBrowse"); outputRow->addWidget(output,1); outputRow->addWidget(outputBrowse); outputLayout->addLayout(outputRow);
    auto *outputNote=new QLabel("Choose an existing writable directory for default reports and the log. Explicit mission filenames retain their own destinations.",outputTab); outputNote->setWordWrap(true); outputLayout->addWidget(outputNote); outputLayout->addStretch(); tabs->addTab(outputTab,"Output");
    preview=new QPlainTextEdit(tabs); preview->setObjectName("pathStartupPreview"); preview->setReadOnly(true); preview->setLineWrapMode(QPlainTextEdit::NoWrap); preview->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont)); tabs->addTab(preview,"Startup settings");
+   auto *dataTab=new QWidget(tabs); dataTab->setObjectName("pathScientificTab");
+   auto *dataLayout=new QVBoxLayout(dataTab);
+   auto *dataNote=new QLabel("Choose valid GMAT scientific data files. Export startup settings, then restart GMAT with that file to use them. Apply keeps this session's scientific data unchanged.",dataTab);
+   dataNote->setObjectName("pathScientificRestartNote"); dataNote->setWordWrap(true); dataLayout->addWidget(dataNote);
+   auto *dataForm=new QFormLayout; dataLayout->addLayout(dataForm); dataLayout->addStretch();
+   const QList<QPair<QString,QString>> dataFields{{"LEAP_SECS_FILE","Leap seconds (UTC/TAI)"},{"EOP_FILE","Earth orientation"},{"NUTATION_COEFF_FILE","Nutation coefficients"},{"LSK_FILE","SPICE leap-second kernel"}};
+   for (const auto &item:dataFields) {
+      auto *row=new QWidget(dataTab); auto *box=new QHBoxLayout(row); box->setContentsMargins(0,0,0,0);
+      auto *value=new QLineEdit(row); value->setObjectName("pathData_"+item.first); scientificFiles.insert(item.first,value);
+      auto *browse=new QPushButton("Browse…",row); browse->setObjectName("pathDataBrowse_"+item.first); box->addWidget(value,1); box->addWidget(browse); dataForm->addRow(item.second,row);
+      connect(value,&QLineEdit::textChanged,this,[this]{ preview->setPlainText(pathSettingsScript(pending())); });
+      connect(browse,&QPushButton::clicked,this,[this,value,item]{ const auto path=QFileDialog::getOpenFileName(this,item.second,value->text(),"All files (*)"); if (!path.isEmpty()) value->setText(path); });
+   }
+   tabs->addTab(dataTab,"Scientific data");
+   auto *matlabTab=new QWidget(tabs); matlabTab->setObjectName("pathMatlabTab"); auto *matlabLayout=new QVBoxLayout(matlabTab);
+   auto *matlabNote=new QLabel("Search order is top to bottom; the mission directory can take precedence. Apply updates the function search paths. Running MATLAB functions also requires the MATLAB interface.",matlabTab); matlabNote->setObjectName("pathMatlabNote"); matlabNote->setWordWrap(true); matlabLayout->addWidget(matlabNote);
+   matlabFunctions=new QListWidget(matlabTab); matlabFunctions->setObjectName("pathMatlabFunctions"); matlabLayout->addWidget(matlabFunctions,1);
+   auto *matlabDirectoryRow=new QHBoxLayout; matlabEntry=new QLineEdit(matlabTab); matlabEntry->setObjectName("pathMatlabEntry"); matlabDirectoryRow->addWidget(matlabEntry,1);
+   auto *matlabBrowse=new QPushButton("Browse…",matlabTab); matlabBrowse->setObjectName("pathMatlabBrowse"); matlabDirectoryRow->addWidget(matlabBrowse); matlabLayout->addLayout(matlabDirectoryRow);
+   auto *matlabOperations=new QHBoxLayout;
+   auto matlabButton=[&](const QString &text,const char *name) { auto *value=new QPushButton(text,matlabTab); value->setObjectName(name); matlabOperations->addWidget(value); return value; };
+   auto *matlabAdd=matlabButton("Add","pathMatlabAdd"),*matlabReplace=matlabButton("Replace","pathMatlabReplace"),*matlabRemove=matlabButton("Remove","pathMatlabRemove"),*matlabUp=matlabButton("Up","pathMatlabUp"),*matlabDown=matlabButton("Down","pathMatlabDown"); matlabOperations->addStretch(); matlabLayout->addLayout(matlabOperations); tabs->addTab(matlabTab,"MATLAB Function");
+
    status=new QLabel(this); status->setObjectName("pathStatus"); status->setWordWrap(true); layout->addWidget(status); saved=new QLabel(this); saved->setObjectName("pathSavedFile"); saved->setWordWrap(true); layout->addWidget(saved);
    auto *buttons=new QDialogButtonBox(QDialogButtonBox::Apply|QDialogButtonBox::Close,this); layout->addWidget(buttons);
    const auto refresh=[=] { preview->setPlainText(pathSettingsScript(pending())); };
@@ -90,6 +113,23 @@ PathSettingsDialog::PathSettingsDialog(PathSettings initial,QtMessageReceiver &r
    connect(pythonRemove,&QPushButton::clicked,this,[=] { delete pythonModules->takeItem(pythonModules->currentRow()); refresh(); });
    auto movePython=[=](int offset) { const int row=pythonModules->currentRow(); if (row<0 || row+offset<0 || row+offset>=pythonModules->count()) return; auto *item=pythonModules->takeItem(row); pythonModules->insertItem(row+offset,item); pythonModules->setCurrentRow(row+offset); refresh(); };
    connect(pythonUp,&QPushButton::clicked,this,[=] { movePython(-1); }); connect(pythonDown,&QPushButton::clicked,this,[=] { movePython(1); });
+   connect(matlabFunctions->model(),&QAbstractItemModel::rowsInserted,this,refresh); connect(matlabFunctions->model(),&QAbstractItemModel::rowsRemoved,this,refresh); connect(matlabFunctions->model(),&QAbstractItemModel::dataChanged,this,refresh);
+   connect(matlabFunctions,&QListWidget::currentTextChanged,matlabEntry,&QLineEdit::setText);
+   const auto matlabEnabled=[=] { const int row=matlabFunctions->currentRow(); matlabReplace->setEnabled(row>=0); matlabRemove->setEnabled(row>=0); matlabUp->setEnabled(row>0); matlabDown->setEnabled(row>=0 && row+1<matlabFunctions->count()); };
+   connect(matlabFunctions,&QListWidget::currentRowChanged,this,matlabEnabled); connect(matlabFunctions->model(),&QAbstractItemModel::rowsInserted,this,matlabEnabled); connect(matlabFunctions->model(),&QAbstractItemModel::rowsRemoved,this,matlabEnabled);
+   connect(matlabBrowse,&QPushButton::clicked,this,[=] { const auto path=QFileDialog::getExistingDirectory(this,"MATLAB function directory",matlabEntry->text()); if (!path.isEmpty()) matlabEntry->setText(path); });
+   auto putMatlab=[=](bool replacing) {
+      const auto path=normalizedDirectory(matlabEntry->text());
+      if (path.isEmpty() || !QFileInfo(path).isDir() || !QFileInfo(path).isReadable()) { status->setText("Choose an existing readable MATLAB function directory."); return; }
+      for (int i=0;i<matlabFunctions->count();++i) if ((!replacing || i!=matlabFunctions->currentRow()) && sameFile(path,matlabFunctions->item(i)->text())) { status->setText("That MATLAB function directory is already listed."); return; }
+      if (replacing && matlabFunctions->currentItem()) matlabFunctions->currentItem()->setText(path);
+      else { matlabFunctions->insertItem(0,path); matlabFunctions->setCurrentRow(0); }
+      status->clear(); refresh();
+   };
+   connect(matlabAdd,&QPushButton::clicked,this,[=] { putMatlab(false); }); connect(matlabEntry,&QLineEdit::returnPressed,matlabAdd,&QPushButton::click); connect(matlabReplace,&QPushButton::clicked,this,[=] { putMatlab(true); });
+   connect(matlabRemove,&QPushButton::clicked,this,[=] { delete matlabFunctions->takeItem(matlabFunctions->currentRow()); refresh(); });
+   auto moveMatlab=[=](int offset) { const int row=matlabFunctions->currentRow(); if (row<0 || row+offset<0 || row+offset>=matlabFunctions->count()) return; auto *item=matlabFunctions->takeItem(row); matlabFunctions->insertItem(row+offset,item); matlabFunctions->setCurrentRow(row+offset); refresh(); };
+   connect(matlabUp,&QPushButton::clicked,this,[=] { moveMatlab(-1); }); connect(matlabDown,&QPushButton::clicked,this,[=] { moveMatlab(1); });
    connect(outputBrowse,&QPushButton::clicked,this,[=] { const auto path=QFileDialog::getExistingDirectory(this,"Output directory",output->text()); if (!path.isEmpty()) output->setText(path); });
    auto put=[=](bool replacing) {
       const auto path=normalizedDirectory(entry->text());
@@ -105,7 +145,7 @@ PathSettingsDialog::PathSettingsDialog(PathSettings initial,QtMessageReceiver &r
    connect(up,&QPushButton::clicked,this,[=] { move(-1); }); connect(down,&QPushButton::clicked,this,[=] { move(1); });
    connect(read,&QPushButton::clicked,this,[this,&receiver] {
       const auto path=QFileDialog::getOpenFileName(this,"Read startup settings",settings.startupFile,"Startup files (*.txt);;All files (*)"); if (path.isEmpty()) return;
-      try { settings=readPathSettings(path,receiver); loadControls(); status->setText("Loaded as pending settings. Apply uses function/output paths; Python module paths require exporting startup settings and restarting with that file."); saved->clear(); }
+      try { settings=readPathSettings(path,receiver); loadControls(); status->setText("Loaded as pending settings. Apply uses GMAT/MATLAB function/output paths; Python module paths require exporting startup settings and restarting with that file. Scientific data files also require exporting and restarting."); saved->clear(); }
       catch (BaseException &error) { status->setText(QString::fromStdString(error.GetFullMessage())); }
       catch (const std::exception &error) { status->setText(QString::fromUtf8(error.what())); }
    });
@@ -113,11 +153,11 @@ PathSettingsDialog::PathSettingsDialog(PathSettings initial,QtMessageReceiver &r
       const auto settings=pending(); const auto error=validatePathSettings(settings); if (!error.isEmpty()) { status->setText(error); return; }
       const auto path=QFileDialog::getSaveFileName(this,"Save startup settings",settings.startupFile,"Startup files (*.txt);;All files (*)"); if (path.isEmpty()) return;
       const auto exportError=exportStartup(path); if (!exportError.isEmpty()) { status->setText(exportError); return; }
-      saved->setText("Saved: "+QFileInfo(path).absoluteFilePath()); status->setText("Startup settings exported. Restart GMAT with this file to use its Python module paths. Apply separately to use function/output paths now.");
+      saved->setText("Saved: "+QFileInfo(path).absoluteFilePath()); status->setText("Startup settings exported. Restart GMAT with this file to use its Python module paths. Apply separately to use function/output paths now. Scientific data files also require exporting and restarting.");
    });
-   connect(buttons->button(QDialogButtonBox::Apply),&QPushButton::clicked,this,[this,apply] { const auto candidate=pending(); const auto error=apply(candidate); if (error.isEmpty()) { settings=candidate; settings.startupText=pathSettingsScript(candidate); status->setText("Applied GMAT function and output paths. Rebuild the mission. Python module paths take effect only after exporting startup settings and restarting GMAT with that file."); } else status->setText(error); });
+   connect(buttons->button(QDialogButtonBox::Apply),&QPushButton::clicked,this,[this,apply] { const auto candidate=pending(); const auto error=apply(candidate); if (error.isEmpty()) { settings=candidate; settings.startupText=pathSettingsScript(candidate); status->setText("Applied GMAT/MATLAB function and output paths. Rebuild the mission. Python module paths take effect only after exporting startup settings and restarting GMAT with that file. Scientific data files also require exporting and restarting."); } else status->setText(error); });
    connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);
-   loadControls(); enabled(); pythonEnabled();
+   loadControls(); enabled(); pythonEnabled(); matlabEnabled();
 }
 QString PathSettingsDialog::exportStartup(const QString &path) const
 {
@@ -131,15 +171,20 @@ PathSettings PathSettingsDialog::pending() const
 {
    auto value=settings; value.output=normalizedDirectory(output->text()); value.functions.clear();
    for (int i=0;i<functions->count();++i) value.functions.append(functions->item(i)->text());
+   value.matlabFunctions.clear(); for (int i=0;i<matlabFunctions->count();++i) value.matlabFunctions.append(matlabFunctions->item(i)->text());
    value.pythonModules.clear(); for (int i=0;i<pythonModules->count();++i) value.pythonModules.append(pythonModules->item(i)->text());
+   for (auto it=scientificFiles.cbegin();it!=scientificFiles.cend();++it) value.scientificFiles.insert(it.key(),it.value()->text());
    return value;
 }
 void PathSettingsDialog::loadControls()
 {
+   for (auto it=scientificFiles.cbegin();it!=scientificFiles.cend();++it) it.value()->setText(settings.scientificFiles.value(it.key()));
    startup->setText(settings.startupFile); functions->clear();
    for (const auto &path:settings.functions) functions->addItem(QDir::cleanPath(path));
    if (functions->count()) functions->setCurrentRow(0);
    pythonModules->clear(); for (const auto &path:settings.pythonModules) pythonModules->addItem(QDir::cleanPath(path));
    if (pythonModules->count()) pythonModules->setCurrentRow(0);
+   matlabFunctions->clear(); for (const auto &path:settings.matlabFunctions) matlabFunctions->addItem(QDir::cleanPath(path));
+   if (matlabFunctions->count()) matlabFunctions->setCurrentRow(0);
    output->setText(QDir::cleanPath(settings.output)); preview->setPlainText(pathSettingsScript(pending()));
 }

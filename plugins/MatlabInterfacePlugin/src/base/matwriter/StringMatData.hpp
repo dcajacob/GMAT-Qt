@@ -38,6 +38,7 @@
 #include <string.h>
 #include <vector>
 #include "MatData.hpp"
+#include "MatlabValue.hpp"
 
 /**
  * Container for string data to write to .mat files
@@ -55,6 +56,7 @@ public:
    virtual void WriteData(MATFile *matfile, const std::string &objectName,
                           mxArray *mx_struct, mwIndex index = 0U);
    virtual bool WriteData();
+   MatlabValue ToMatlabValue() const; // Owned data; no vendor calls.
 
 protected:
    /// The data array to be written

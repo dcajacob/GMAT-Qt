@@ -378,8 +378,27 @@ const StringArray& UpdateDynamicData::GetStringArrayParameter(const std::string 
 //------------------------------------------------------------------------------
 bool UpdateDynamicData::InterpretAction()
 {
-   TextParser tp;
-   StringArray chunks = tp.SeparateSpaces(generatingString);
+   // Spaces and commas separate parameters, except within array indices.
+   // SeparateSpaces splits State(1,1) into two invalid parameter names.
+   StringArray chunks;
+   std::string token;
+   Integer depth = 0;
+   for (const char ch : generatingString)
+   {
+      if (ch == '(') ++depth;
+      else if (ch == ')' && --depth < 0)
+         throw CommandException("Unbalanced array indices in UpdateDynamicData");
+      const bool space = ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n';
+      if (depth == 0 && (space || ch == ','))
+      {
+         if (!token.empty()) { chunks.push_back(token); token.clear(); }
+      }
+      else if (!space)
+         token += ch;
+   }
+   if (depth != 0)
+      throw CommandException("Unbalanced array indices in UpdateDynamicData");
+   if (!token.empty()) chunks.push_back(token);
 
    // Clear the old data
    objects.clear();
@@ -538,5 +557,7 @@ bool UpdateDynamicData::Initialize()
 //------------------------------------------------------------------------------
 bool UpdateDynamicData::Execute()
 {
-   return dynamicData->UpdateData(dataToUpdate);
+   const bool completed = dynamicData->UpdateData(dataToUpdate);
+   BuildCommandSummary(completed);
+   return completed;
 }

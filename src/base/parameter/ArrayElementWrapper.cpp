@@ -35,6 +35,56 @@
 #include "GmatBase.hpp"
 #include "ArrayElementWrapper.hpp"
 #include "ParameterException.hpp"
+#include <set>
+
+namespace
+{
+struct IndexCopies
+{
+   std::unique_ptr<ElementWrapper> row, column;
+   bool shared = false;
+};
+
+IndexCopies CopyIndexExpressions(ElementWrapper *row, ElementWrapper *column,
+      ElementWrapper *previousRow = NULL, ElementWrapper *previousColumn = NULL)
+{
+   IndexCopies values;
+   values.row = ElementWrapper::CloneValue(row, previousRow);
+   if (values.row && (values.row.get() == column || values.row.get() == previousColumn))
+   {
+      values.row.release();
+      throw ParameterException("Index Clone returned an existing peer.\n");
+   }
+   values.shared = row == column;
+   if (!values.shared)
+   {
+      values.column = ElementWrapper::CloneValue(column, previousColumn);
+      if (values.column && (values.column.get() == row || values.column.get() == previousRow ||
+            values.column.get() == values.row.get()))
+      {
+         values.column.release();
+         throw ParameterException("Index Clone returned an existing peer.\n");
+      }
+   }
+   return values;
+}
+
+bool ContainsIndexExpression(ElementWrapper *root, ElementWrapper *target)
+{
+   std::set<ElementWrapper*> visited;
+   std::function<bool(ElementWrapper*)> find = [&](ElementWrapper *item)
+   {
+      if (!item) return false;
+      if (item == target) return true;
+      if (!visited.insert(item).second) return false;
+      auto *array = dynamic_cast<ArrayElementWrapper*>(item);
+      return array && (find(array->GetRowWrapper()) || find(array->GetColumnWrapper()));
+   };
+   return target && find(root);
+}
+}
+
+#include "ParameterException.hpp"
 #include "RealUtilities.hpp"
 #include "StringUtil.hpp"
 #include "UtilityException.hpp"
@@ -93,22 +143,16 @@ ArrayElementWrapper::ArrayElementWrapper() :
 //---------------------------------------------------------------------------
 ArrayElementWrapper::ArrayElementWrapper(const ArrayElementWrapper &aew) :
    ElementWrapper(aew),
-   array         (NULL),
-   arrayName     (aew.arrayName),
-   rowName       (aew.rowName),
-   columnName    (aew.columnName)
+   array(aew.array),
+   row(NULL),
+   column(NULL),
+   arrayName(aew.arrayName),
+   rowName(aew.rowName),
+   columnName(aew.columnName)
 {
-   if (aew.row != NULL)
-      row = aew.row->Clone();
-   else
-      row          = NULL;
-
-   if (aew.column != NULL)
-      column = aew.column->Clone();
-   else
-      column       = NULL;
-
-   SetupWrapper();
+   auto values = CopyIndexExpressions(aew.row, aew.column);
+   row = values.row.release();
+   column = values.shared ? row : values.column.release();
 }
 
 //---------------------------------------------------------------------------
@@ -122,31 +166,20 @@ ArrayElementWrapper::ArrayElementWrapper(const ArrayElementWrapper &aew) :
  * @return Reference to this object
  */
 //---------------------------------------------------------------------------
-const ArrayElementWrapper& ArrayElementWrapper::operator=(
-                             const ArrayElementWrapper &aew)
+const ArrayElementWrapper& ArrayElementWrapper::operator=(const ArrayElementWrapper &aew)
 {
-   if (&aew == this)
-      return *this;
-
+   if (&aew == this) return *this;
+   auto values = CopyIndexExpressions(aew.row, aew.column, row, column);
    ElementWrapper::operator=(aew);
-   array        = NULL;  //
-
-   if (aew.row != NULL)
-      row = aew.row->Clone();
-   else
-      row          = NULL;
-
-   if (aew.column != NULL)
-      column = aew.column->Clone();
-   else
-      column       = NULL;
-
-   arrayName    = aew.arrayName;
-   rowName      = aew.rowName;
-   columnName   = aew.columnName;
-
-   SetupWrapper();
-
+   arrayName = aew.arrayName;
+   rowName = aew.rowName;
+   columnName = aew.columnName;
+   ElementWrapper *previousRow = row, *previousColumn = column;
+   array = aew.array;
+   row = values.row.release();
+   column = values.shared ? row : values.column.release();
+   if (previousColumn != previousRow) delete previousColumn;
+   delete previousRow;
    return *this;
 }
 
@@ -159,25 +192,8 @@ const ArrayElementWrapper& ArrayElementWrapper::operator=(
 //---------------------------------------------------------------------------
 ArrayElementWrapper::~ArrayElementWrapper()
 {
-   if (row)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (row, row->GetDescription(), "ArrayElementWrapper::~ArrayElementWrapper()",
-          "deleting row");
-      #endif
-      delete row;
-   }
-   
-   if (column)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (column, column->GetDescription(), "ArrayElementWrapper::~ArrayElementWrapper()",
-          "deleting column");
-      #endif
-      delete column;
-   }
+   if (column != row) delete column;
+   delete row;
 }
 
 
@@ -194,6 +210,27 @@ ElementWrapper* ArrayElementWrapper::Clone() const
 {
    return new ArrayElementWrapper(*this);
 }
+
+void ArrayElementWrapper::RebindClonedReferences(const ElementWrapper &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   CheckCloneType(source);
+   const auto &original = static_cast<const ArrayElementWrapper&>(source);
+   auto *value = BindClonedReference(original.array, resolve);
+   if (original.row)
+   {
+      if (!row) throw ParameterException("Missing copied row expression.\n");
+      row->RebindClonedReferences(*original.row, resolve);
+   }
+   if (original.column)
+   {
+      if (!column) throw ParameterException("Missing copied column expression.\n");
+      if (column != row || original.column != original.row)
+         column->RebindClonedReferences(*original.column, resolve);
+   }
+   array = value;
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -564,12 +601,26 @@ ElementWrapper* ArrayElementWrapper::GetColumnWrapper()
 
 bool ArrayElementWrapper::SetRow(ElementWrapper* toWrapper)
 {
+   if (toWrapper == row) return true;
+   if (ContainsIndexExpression(toWrapper, this) ||
+         (toWrapper != column && (ContainsIndexExpression(toWrapper, column) ||
+          ContainsIndexExpression(column, toWrapper))) ||
+         (toWrapper != row && ContainsIndexExpression(row, toWrapper)))
+      throw ParameterException("Cyclic or multiply owned array index expression.\n");
+   if (row != column && !ContainsIndexExpression(toWrapper, row)) delete row;
    row = toWrapper;
    return true;
 }
 
 bool ArrayElementWrapper::SetColumn(ElementWrapper* toWrapper)
 {
+   if (toWrapper == column) return true;
+   if (ContainsIndexExpression(toWrapper, this) ||
+         (toWrapper != row && (ContainsIndexExpression(toWrapper, row) ||
+          ContainsIndexExpression(row, toWrapper))) ||
+         (toWrapper != column && ContainsIndexExpression(column, toWrapper)))
+      throw ParameterException("Cyclic or multiply owned array index expression.\n");
+   if (column != row && !ContainsIndexExpression(toWrapper, column)) delete column;
    column = toWrapper;
    return true;
 }

@@ -117,6 +117,7 @@ protected:
    Real                    Smooth(Real height, Integer index);
 
    virtual GmatBase*       Clone() const; // inherited from GmatBase
+   void Copy(const GmatBase *original) override;
 
    std::string parameterFileName;
 

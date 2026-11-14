@@ -105,8 +105,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>Depends on process noise model type; see remarks
-                    below</para>
+                    <para>km/s<superscript>3/2</superscript> for State Noise Compensation (SNC)</para>
                   </listitem>
                 </varlistentry>
 

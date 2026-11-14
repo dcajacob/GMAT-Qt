@@ -1,0 +1,397 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "InclinedApsis",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000,
+        0.2,
+        47,
+        359.99999999,
+        179.999999,
+        179.999999
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 11999.999999999993;\nSat.Y = -0.00028776921042486617;\nSat.Z = -0.00030634872551852879;\nSat.VX = 2.0304745655690891e-07;\nSat.VY = 3.5156577396371027;\nSat.VZ = 3.7700813551429313;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.Earth.TA",
+      "report": "R Sat.EarthMJ2000Eq.AOP Sat.EarthMJ2000Eq.RAAN Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        179.999999,
+        179.999999,
+        359.99999999,
+        179.999999,
+        11999.999999999993,
+        -0.0002877692104248662,
+        -0.0003063487255185288,
+        2.030474565569089e-07,
+        3.5156577396371027,
+        3.7700813551429313
+      ],
+      "scope": "Selected scalar angular convention/calculation read through Assignment and direct Report parameters with Cartesian witness;not all angle domains/frames."
+    },
+    {
+      "key": "NearPrograde",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000,
+        0.2,
+        1e-07,
+        112,
+        38,
+        143
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 4464.0483377095115;\nSat.Y = -10516.638837544537;\nSat.Z = -3.4800346082454554e-07;\nSat.VX = 5.2870622705484482;\nSat.VY = 1.4016660047631055;\nSat.VZ = -9.4721673195034538e-09;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.EarthMJ2000Eq.RAAN",
+      "report": "R Sat.EarthMJ2000Eq.AOP Sat.EarthMJ2000Eq.RAAN Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        112.0,
+        38.0,
+        112.0,
+        143.0,
+        4464.0483377095115,
+        -10516.638837544537,
+        -3.4800346082454554e-07,
+        5.287062270548448,
+        1.4016660047631055,
+        -9.472167319503454e-09
+      ],
+      "scope": "Selected scalar angular convention/calculation read through Assignment and direct Report parameters with Cartesian witness;not all angle domains/frames."
+    },
+    {
+      "key": "RetrogradeEquatorial",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000,
+        0.2,
+        180,
+        112,
+        38,
+        143
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 4094.3035576444445;\nSat.Y = -10666.025425556476;\nSat.Z = -2.4418391194899157e-14;\nSat.VX = -4.7768733408708473;\nSat.VY = -2.6644279173666634;\nSat.VZ = -6.6463444508038059e-16;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.EarthMJ2000Eq.AOP",
+      "report": "R Sat.EarthMJ2000Eq.AOP Sat.EarthMJ2000Eq.RAAN Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        286.0,
+        286.0,
+        0.0,
+        143.0,
+        4094.3035576444445,
+        -10666.025425556476,
+        -2.4418391194899157e-14,
+        -4.776873340870847,
+        -2.6644279173666634,
+        -6.646344450803806e-16
+      ],
+      "scope": "Selected scalar angular convention/calculation read through Assignment and direct Report parameters with Cartesian witness;not all angle domains/frames."
+    },
+    {
+      "key": "CircularInclined",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        9000,
+        0,
+        47,
+        112,
+        38,
+        143
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 3470.2682085034794;\nSat.Y = -8303.2549225930688;\nSat.Z = -114.87493845062707;\nSat.VX = 4.1640545211423934;\nSat.VY = 1.8076543518297272;\nSat.VZ = -4.8664128096277537;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.Earth.TA",
+      "report": "R Sat.EarthMJ2000Eq.AOP Sat.EarthMJ2000Eq.RAAN Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        181.0,
+        0.0,
+        112.0,
+        181.0,
+        3470.2682085034794,
+        -8303.254922593069,
+        -114.87493845062707,
+        4.164054521142393,
+        1.8076543518297272,
+        -4.866412809627754
+      ],
+      "scope": "Selected scalar angular convention/calculation read through Assignment and direct Report parameters with Cartesian witness;not all angle domains/frames."
+    },
+    {
+      "key": "CircularPrograde",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        9000,
+        0,
+        0,
+        112,
+        38,
+        143
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 3516.5801564034659;\nSat.Y = -8284.5436810719621;\nSat.Z = 0;\nSat.VX = 6.1259537790572614;\nSat.VY = 2.6003131044738663;\nSat.VZ = -0;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.EarthMJ2000Eq.RAAN",
+      "report": "R Sat.EarthMJ2000Eq.AOP Sat.EarthMJ2000Eq.RAAN Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        0.0,
+        0.0,
+        0.0,
+        293.0,
+        3516.580156403466,
+        -8284.543681071962,
+        0.0,
+        6.125953779057261,
+        2.6003131044738663,
+        -0.0
+      ],
+      "scope": "Selected scalar angular convention/calculation read through Assignment and direct Report parameters with Cartesian witness;not all angle domains/frames."
+    },
+    {
+      "key": "CircularRetrograde",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        9000,
+        0,
+        180,
+        112,
+        38,
+        143
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 3225.3115459077007;\nSat.Y = -8402.2238384748161;\nSat.Z = -1.9235730312754345e-14;\nSat.VX = -6.2129716321478474;\nSat.VY = -2.3849363602768445;\nSat.VZ = -8.1487751514021874e-16;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.Earth.TA",
+      "report": "R Sat.EarthMJ2000Eq.AOP Sat.EarthMJ2000Eq.RAAN Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        69.0,
+        0.0,
+        0.0,
+        69.0,
+        3225.3115459077007,
+        -8402.223838474816,
+        -1.9235730312754345e-14,
+        -6.212971632147847,
+        -2.3849363602768445,
+        -8.148775151402187e-16
+      ],
+      "scope": "Selected scalar angular convention/calculation read through Assignment and direct Report parameters with Cartesian witness;not all angle domains/frames."
+    },
+    {
+      "key": "ProgradeEquatorial",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000,
+        0.2,
+        0,
+        112,
+        38,
+        143
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 4464.0483377095115;\nSat.Y = -10516.638837544537;\nSat.Z = 0;\nSat.VX = 5.2870622705484482;\nSat.VY = 1.4016660047631055;\nSat.VZ = -0;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.EarthMJ2000Eq.AOP",
+      "report": "R Sat.EarthMJ2000Eq.AOP Sat.EarthMJ2000Eq.RAAN Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        150.0,
+        150.0,
+        0.0,
+        143.0,
+        4464.0483377095115,
+        -10516.638837544537,
+        0.0,
+        5.287062270548448,
+        1.4016660047631055,
+        -0.0
+      ],
+      "scope": "Selected scalar angular convention/calculation read through Assignment and direct Report parameters with Cartesian witness;not all angle domains/frames."
+    },
+    {
+      "key": "NearRetrograde",
+      "orbital_case": true,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000,
+        0.2,
+        179.9999999,
+        1e-08,
+        179.999999,
+        179.999999
+      ],
+      "setup": "Earth.Mu = 398600.44150000002;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 11999.999999999993;\nSat.Y = 0.00042097342017643357;\nSat.Z = -7.3108185109520895e-13;\nSat.VX = 2.0333356244940666e-07;\nSat.VY = -5.1549357674627361;\nSat.VZ = 8.9970606250513821e-09;\n",
+      "destination": "R",
+      "before": "0",
+      "expression": "Sat.Earth.TA",
+      "report": "R Sat.EarthMJ2000Eq.AOP Sat.EarthMJ2000Eq.RAAN Sat.Earth.TA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 0.0,
+      "column_absolute_tolerances": [
+        1e-08,
+        1e-08,
+        1e-08,
+        1e-08,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        179.999999,
+        179.999999,
+        1e-08,
+        179.999999,
+        11999.999999999993,
+        0.0004209734201764336,
+        -7.31081851095209e-13,
+        2.0333356244940666e-07,
+        -5.154935767462736,
+        8.997060625051382e-09
+      ],
+      "scope": "Selected scalar angular convention/calculation read through Assignment and direct Report parameters with Cartesian witness;not all angle domains/frames."
+    }
+  ]
+}

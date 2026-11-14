@@ -1,0 +1,475 @@
+{
+  "id": "08-electric-propulsion",
+  "title": "Electric Propulsion",
+  "guide": "doc/help/src/Tut_ElectricPropulsion.xml",
+  "guide_sha256": "5d2a6d035fb4d0d7ea26e161667edff2e0ae5ab794e16d3fc447ffa6edb26596",
+  "reference": "application/samples/Tut_ElectricPropulsionModelling.script",
+  "provenance": "Current Help sections Create a Thruster, Fuel Tank, and Solar Power System, attach hardware, create finite burn, and configure two-day mission. Typed values are transcribed from that chapter; no completed mission source is used. All construction uses native resource and command controls.",
+  "stages": [
+    {
+      "name": "Current Help hardware and finite-burn GUI workflow",
+      "input": null,
+      "actions": [
+        {
+          "action": "key",
+          "keys": "ESC"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+N"
+        },
+        {
+          "action": "window",
+          "state": "maximized"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Hardware",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ElectricThruster",
+          "target_role": "menu"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Hardware",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ElectricTank",
+          "target_role": "menu"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Hardware",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add SolarPowerSystem",
+          "target_role": "menu"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "SolarPowerSystem1",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Select",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_name": "resourceClearSelection"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "ElectricThruster1",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "value": "ConstantThrustAndIsp",
+          "target_name": "thruster_ThrustModel"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "thruster_ConstantThrust"
+        },
+        {
+          "action": "text",
+          "text": "5",
+          "target_name": "thruster_ConstantThrust"
+        },
+        {
+          "action": "click",
+          "target_text": "Advanced",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "target_name": "thrusterTankMixtures"
+        },
+        {
+          "action": "click",
+          "target_name": "tankMixtureAdd"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Fuel",
+          "target_role": "tab"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "text",
+          "text": "DecrementMass",
+          "target_name": "propertyFilter"
+        },
+        {
+          "action": "select",
+          "value": "true",
+          "field_hint": "DecrementMass"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-thruster-tank-and-performance"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "DefaultSC",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Orbit and hardware",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "field_button": "resource_Tanks"
+        },
+        {
+          "action": "click",
+          "target_text": "ElectricTank1",
+          "target_role": "list"
+        },
+        {
+          "action": "key",
+          "keys": "SPACE"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "field_button": "resource_Thrusters"
+        },
+        {
+          "action": "click",
+          "target_text": "ElectricThruster1",
+          "target_role": "list"
+        },
+        {
+          "action": "key",
+          "keys": "SPACE"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "select",
+          "value": "SolarPowerSystem1",
+          "target_name": "resource_PowerSystem"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-spacecraft-hardware-attached"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Burns",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add FiniteBurn",
+          "target_role": "menu"
+        },
+        {
+          "action": "click",
+          "target_text": "Select",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "ElectricThruster1",
+          "target_role": "list"
+        },
+        {
+          "action": "key",
+          "keys": "SPACE"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-finite-burn-created"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "count": 2,
+          "target_text": "Propagate",
+          "target_role": "tree"
+        },
+        {
+          "action": "select",
+          "value": "Days",
+          "target_name": "propagationUnits"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "2",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "Propagate Two Days",
+          "target_name": "commandName"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagate",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Insert before",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "value": "BeginFiniteBurn",
+          "target_name": "commandTemplate"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "StartTheManeuver",
+          "target_name": "commandName"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagate",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Insert after",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "value": "EndFiniteBurn",
+          "target_name": "commandTemplate"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "commandName"
+        },
+        {
+          "action": "text",
+          "text": "StopTheManeuver",
+          "target_name": "commandName"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-electric-mission-sequence"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+S"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial08-authored.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-electric-two-day-run"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+O"
+        },
+        {
+          "action": "key",
+          "keys": "CTRL+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/tutorial08-authored.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "ENTER"
+        },
+        {
+          "action": "screenshot",
+          "label": "own-electric-mission-reopened"
+        }
+      ],
+      "requires_run": true
+    }
+  ]
+}

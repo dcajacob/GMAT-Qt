@@ -25,6 +25,7 @@
 #include <iostream>
 #include <stdexcept>
 
+#undef near // Legacy Windows memory-model macro conflicts with the assertion helper.
 static void require(bool ok,const char *why) { if (!ok) throw std::runtime_error(why); }
 static void near(double actual,double expected,const char *why) { require(std::abs(actual-expected)<2e-5,why); }
 static PlotWidget *plot(QtPlotReceiver &receiver,const QString &name)
@@ -122,7 +123,10 @@ int main(int argc,char **argv)
       receiver.advanceSimulationClocks(10); group(0,true); // Legacy clamps without wrapping or automatically pausing.
       setRate(receiver,"Grandchild","0"); receiver.advanceSimulationClocks(10); group(0,true); near(state(receiver,"Child").rate,0,"Zero clock rate was rejected"); action(receiver,"Parent","plotReplayPlay")->trigger(); group(0,false);
       setRate(receiver,"Child","not a number"); near(state(receiver,"Parent").rate,0,"Invalid rate changed the clock"); require(plot(receiver,"Child")->findChild<QLineEdit *>("plotSimulationRate")->text()=="0","Invalid rate text was not restored");
-      setRate(receiver,"Parent","4"); choice(receiver,"Child","plotReplaySpeed")->setCurrentIndex(4); group(0,false,4.); setRate(receiver,"Grandchild","2"); group(0,false); near(state(receiver,"Parent").rate,2,"Rate edit failed to reset multiplier");
+      setRate(receiver,"Parent","4"); choice(receiver,"Child","plotReplaySpeed")->setCurrentIndex(choice(receiver,"Child","plotReplaySpeed")->findData(4.)); group(0,false,4.); choice(receiver,"Child","plotReplaySpeed")->setCurrentIndex(choice(receiver,"Child","plotReplaySpeed")->findData(.001)); group(0,false,.001);
+      action(receiver,"Parent","plotReplayPlay")->trigger(); receiver.advanceSimulationClocks(1); group(.004,true,.001);
+      action(receiver,"Parent","plotReplayPlay")->trigger(); action(receiver,"Parent","plotReplayStart")->trigger();
+      setRate(receiver,"Grandchild","2"); group(0,false); near(state(receiver,"Parent").rate,2,"Rate edit failed to reset multiplier");
       plot(receiver,"Child")->findChild<QSlider *>("plotTimeline")->setValue(500); group(10,false);
       require(histories(receiver)==original,"Playback controls mutated retained sample bytes");
       // Close a parent window while its descendants keep its state alive.

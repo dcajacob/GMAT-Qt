@@ -139,7 +139,9 @@
 
             <entry>
               <para>
-                The ModelFile field allows you to upload spacecraft models that are either in 3DS or POV format.
+                The ModelFile field loads spacecraft models. The Qt frontend
+                supports 3DS, OBJ and the static POV mesh/primitive subset
+                described below.
               </para>
               <variablelist>
                 <varlistentry>
@@ -157,7 +159,7 @@
 
                   <listitem>
                     <para>
-                      3DS or POV model formats
+                      3DS, OBJ or supported static POV models
                     </para>
                   </listitem>
                 </varlistentry>
@@ -328,9 +330,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>
-
-                    </para>
+                    <para>deg.</para>
                   </listitem>
                 </varlistentry>
 
@@ -2912,7 +2912,38 @@
 
             <entry>
               <para>
-                The ModelFile field allows you to upload any spacecraft model that is in 3DS or POV model format.
+                The Qt frontend loads 3DS, OBJ and supported static POV models.
+                The POV reader accepts triangle, smooth_triangle, mesh and mesh2
+                geometry; box, sphere, cylinder and cone primitives;
+                union/object instances; static declarations, numeric
+                expressions, solid RGB pigments, simple finishes and explicit
+                translate/rotate/scale/matrix transforms. Named objects retain
+                their instance transforms. POV Y-up coordinates are mapped to
+                GMAT Z-up. Boxes accept opposite corners in either order.
+                Cylinders and cones have closed ends unless open is specified;
+                either cone radius can be zero for a pointed end. Primitive
+                surfaces are tessellated for display, with smooth curved sides
+                and flat caps. Scalar vector shorthand is accepted, including
+                sphere {0,1} and box {0,1}. A zero scale component leaves that
+                axis unchanged, following POV syntax. Mesh indices, normals,
+                numbers and transforms are validated. #include filenames can
+                use string literals, declared strings or the supported string
+                functions concat, chr, str, vstr, substr, strlwr and strupr.
+                Includes can load supported declarations, objects or data
+                fragments. Relative includes search the including file's
+                directory, the main model directory, then the configured OSG
+                data search paths. Includes can nest ten levels; recursive
+                includes and unreadable files produce a source diagnostic.
+                Each file must contain valid UTF-8 text. #local definitions
+                belong to their include file; #declare updates the nearest
+                existing definition or creates a global definition, and #undef
+                removes the nearest definition. Supported declarations can
+                also appear inside object, mesh, material, transform and value
+                fields. Unsupported geometry, conditional directives, arrays,
+                macros, image or
+                procedural textures, layered textures and per-vertex texture
+                blending produce an import error. This model reader does not
+                invoke POV-Ray's external preprocessor or render its cameras/lights.
               </para>
               <variablelist>
                 <varlistentry>
@@ -2930,7 +2961,7 @@
 
                   <listitem>
                     <para>
-                      3DS or POV model formats
+                      3DS, OBJ or supported static POV models
                     </para>
                   </listitem>
                 </varlistentry>

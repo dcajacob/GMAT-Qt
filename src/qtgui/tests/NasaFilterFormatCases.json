@@ -1,0 +1,69 @@
+{
+  "cases": [
+    {
+      "key": "FilterOem",
+      "family": "Filter",
+      "format": "CCSDS-OEM",
+      "extension": "oem",
+      "allowed": false,
+      "diagnostic": "Writing to a CCSDS-OEM ephemeris file is disallowed in the ExtendedKalmanFilter and the Smoother"
+    },
+    {
+      "key": "FilterSpk",
+      "family": "Filter",
+      "format": "SPK",
+      "extension": "bsp",
+      "allowed": false,
+      "diagnostic": "Writing to an SPK ephemeris file is disallowed in the ExtendedKalmanFilter and the Smoother"
+    },
+    {
+      "key": "FilterCode500",
+      "family": "Filter",
+      "format": "Code-500",
+      "extension": "eph",
+      "allowed": false,
+      "diagnostic": "Writing to an ephemeris file with a fixed StepSize is not allowed inside an Estimator of type ExtendedKalmanFilter."
+    },
+    {
+      "key": "FilterStk",
+      "family": "Filter",
+      "format": "STK-TimePosVel",
+      "extension": "e",
+      "allowed": true,
+      "diagnostic": ""
+    },
+    {
+      "key": "SmootherOem",
+      "family": "Smoother",
+      "format": "CCSDS-OEM",
+      "extension": "oem",
+      "allowed": false,
+      "diagnostic": "Writing to a CCSDS-OEM ephemeris file is disallowed in the ExtendedKalmanFilter and the Smoother"
+    },
+    {
+      "key": "SmootherSpk",
+      "family": "Smoother",
+      "format": "SPK",
+      "extension": "bsp",
+      "allowed": false,
+      "diagnostic": "Writing to an SPK ephemeris file is disallowed in the ExtendedKalmanFilter and the Smoother"
+    },
+    {
+      "key": "SmootherCode500",
+      "family": "Smoother",
+      "format": "Code-500",
+      "extension": "eph",
+      "allowed": false,
+      "diagnostic": "Writing to an ephemeris file with a fixed StepSize is not allowed inside an Estimator of type Smoother."
+    },
+    {
+      "key": "SmootherStk",
+      "family": "Smoother",
+      "format": "STK-TimePosVel",
+      "extension": "e",
+      "allowed": true,
+      "diagnostic": ""
+    }
+  ],
+  "scope": "Selected normal-startup filter/smoother output-format boundaries from the shipped GPS_PosVec sample,shortened to10min/60s/noiseless simulation with original force/hardware/noise-model definitions. Actual format/write/dependency GUI,Cancel/Apply/history/Unicode. Code500 Smoother first runs its forward filter with Export toggled off,then toggles on before smoothing. Exact native forbidden-format rejection with completed simulator and absent continuation;STK supported controls inspect real command-local clones,finite native/report terminal equality,event-boundary presence and full output viewer. Native GPS/force/filter/smoothing outputs are not independent physical science or every-state covariance/update/segment accuracy. OEM testing-mode exception,all other inactive-writer combinations,other modes/frames/events/stop/error recovery,independent general measurement/time/frame/physics,OS-input/GPU/hardware/platform/stress/current-private NASA/full-build qualification remain open. Broad E406 stays uncredited."
+}

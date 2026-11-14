@@ -33,6 +33,9 @@
 #include "EstimationRootFinder.hpp"
 #include "MessageInterface.hpp"
 #include "GmatConstants.hpp"
+#include "SolverException.hpp"
+#include <memory>
+#include <typeinfo>
 
 
 //#define DEBUG_ROOT_SEARCH
@@ -47,7 +50,9 @@
  */
 //------------------------------------------------------------------------------
 EstimationRootFinder::EstimationRootFinder() :
-   propagator        (NULL)
+   propagator        (NULL),
+   maxAttempts       (0),
+   events            (NULL)
 {
 }
 
@@ -61,30 +66,17 @@ EstimationRootFinder::EstimationRootFinder() :
 //------------------------------------------------------------------------------
 EstimationRootFinder::~EstimationRootFinder()
 {
+   CleanUp();
 }
 
 
 void EstimationRootFinder::CleanUp()
 {
-   // clean up PropSetup *propagator;
-   if (propagator)
-   {
-      delete propagator;
-      propagator = NULL;
-   }
-
-   // clean up std::vector<Spacecraft *> satBuffer;
+   delete propagator;
+   propagator = nullptr;
    satBuffer.clear();
-
-   // clean up std::vector<FormationInterface *> formBuffer;
    formBuffer.clear();
-
-   //// clean up std::vector<Event*> *events
-   //if (events)
-   //{
-   //   events->clear();
-   //   delete events;
-   //}
+   events = nullptr; // Event lists belong to their measurement/manager owner.
 }
 
 //------------------------------------------------------------------------------
@@ -95,7 +87,10 @@ void EstimationRootFinder::CleanUp()
  */
 //------------------------------------------------------------------------------
 EstimationRootFinder::EstimationRootFinder(const EstimationRootFinder& rl)
+   : propagator(nullptr), maxAttempts(rl.maxAttempts), startState(rl.startState), events(nullptr)
 {
+   SetPropSetup(rl.propagator);
+   if (propagator) propagator->SetCloneSource(rl.propagator->GetCloneSource());
 }
 
 
@@ -114,7 +109,10 @@ EstimationRootFinder& EstimationRootFinder::operator =(const EstimationRootFinde
 {
    if (this != &rl)
    {
-      propagator = NULL;
+      SetPropSetup(rl.propagator);
+      if (propagator) propagator->SetCloneSource(rl.propagator->GetCloneSource());
+      maxAttempts = rl.maxAttempts;
+      startState = rl.startState;
    }
 
    return *this;
@@ -132,7 +130,31 @@ EstimationRootFinder& EstimationRootFinder::operator =(const EstimationRootFinde
 //------------------------------------------------------------------------------
 void EstimationRootFinder::SetPropSetup(PropSetup* ps)
 {
-   propagator = (PropSetup*)(ps->Clone());
+   std::unique_ptr<GmatBase> pending;
+   if (ps)
+   {
+      GmatBase::FunctionValueCopyGuard nativeCopy;
+      pending.reset(ps->Clone());
+      if (pending.get() == ps || pending.get() == propagator)
+      {
+         pending.release();
+         throw SolverException("Event locator Clone returned a borrowed setup.\n");
+      }
+      auto *copy = dynamic_cast<PropSetup*>(pending.get());
+      if (!copy || typeid(*copy) != typeid(*ps) || copy->GetTypeName() != ps->GetTypeName())
+         throw SolverException("Cannot clone the native event-location setup.\n");
+      copy->SetCloneSource(ps == propagator ? ps->GetCloneSource() : ps);
+      copy->SetCloneOwner(nullptr);
+      copy->SetCloneNotificationsEnabled(false);
+      copy->SetFunctionValueContext(ps->GetFunctionValueContext());
+      if (copy->GetPropagator() && ps->GetPropagator())
+         copy->GetPropagator()->SetFunctionValueContext(ps->GetPropagator()->GetFunctionValueContext());
+      if (copy->GetODEModel() && ps->GetODEModel())
+         copy->GetODEModel()->SetFunctionValueContext(ps->GetODEModel()->GetFunctionValueContext());
+   }
+   CleanUp();
+   propagator = static_cast<PropSetup*>(pending.release());
+
 
    #ifdef DEBUG_INITIALIZATION
       if (propagator != NULL)
@@ -144,6 +166,11 @@ void EstimationRootFinder::SetPropSetup(PropSetup* ps)
    #endif
 }
 
+
+void EstimationRootFinder::ClearPropSetup(PropSetup *source)
+{
+   if (propagator && propagator->GetCloneSource() == source) SetPropSetup(nullptr);
+}
 
 //-----------------------------------------------------------------------------
 // void EstimationRootFinder::FixState(Event *thisOne)

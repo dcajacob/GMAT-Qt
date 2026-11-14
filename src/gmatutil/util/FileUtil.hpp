@@ -78,6 +78,12 @@ namespace GmatFileUtil
       GetFunctionOutputTypes(std::istream *is, const StringArray &inputs,
                              const StringArray &outputs, std::string &errMsg,
                              IntegerArray &outputRows, IntegerArray &outputCols);
+
+   WrapperTypeArray GMATUTIL_API
+      GetFunctionOutputTypes(std::istream *is, const StringArray &inputs,
+                             const StringArray &outputs, std::string &errMsg,
+                             IntegerArray &outputRows, IntegerArray &outputCols,
+                             const StringArray &automaticGlobalObjects);
    
    StringArray GMATUTIL_API GetFileListFromDirectory(const std::string &dirName,
                                                  bool addPath = false);

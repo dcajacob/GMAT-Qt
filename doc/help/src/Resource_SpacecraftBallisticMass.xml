@@ -2186,6 +2186,8 @@
   <refsection>
     <title>Remarks</title>
 
+<para>Compatible native restoration retains the selected center-of-mass and moment-of-inertia interpolator objects and their table storage while restoring captured data and interpolation state. Native rollback also prepares these private caches when their captured presence or storage differs, including returning to a capture made before cache creation. Preparation uses captured data and does not load a mass-property file. Spacecraft component and environment checks remain in effect.</para>
+
     <refsection>
       <title>Configuring Area Properties for the Spherical Area Model</title>
 

@@ -1,0 +1,73 @@
+{
+  "guide_source": "doc/help/src/Resource_SpacecraftAttitude.xml",
+  "guide_source_sha256": "450d809121cab05309a67578d1276c4e933bdc569eee4765fe6e90c0bf9fb6d2",
+  "guide_contract": [
+    "DCM rotates inertial to body",
+    "CoordinateSystemFixed orientation and rates are completely determined by selected reference axes",
+    "Initial attitude and rate parameters have no effect for this model"
+  ],
+  "mu_km3_s2": 398600.4415,
+  "radius_km": 7000,
+  "epoch_a1_mjd": 21545,
+  "report_times_seconds": [
+    0,
+    60,
+    300,
+    600
+  ],
+  "matrix_absolute_bound": 2e-10,
+  "rate_absolute_bound_degrees_s": 5e-09,
+  "body_orientation": {
+    "reference_epoch_a1_mjd": 21545,
+    "pole_ra_degrees": 37,
+    "pole_dec_degrees": 53,
+    "prime_meridian_degrees": -40,
+    "rotation_rate_degrees_day": 73
+  },
+  "cases": [
+    {
+      "key": "Inertial",
+      "reference": "EarthMJ2000Eq",
+      "oracle": "identity"
+    },
+    {
+      "key": "Ecliptic",
+      "reference": "EclipticFrame",
+      "oracle": "ecliptic"
+    },
+    {
+      "key": "Translated",
+      "reference": "TranslatedFrame",
+      "oracle": "identity"
+    },
+    {
+      "key": "BodySpin",
+      "reference": "BodyFrame",
+      "oracle": "body",
+      "pole_rates_degrees_per_century": [
+        0,
+        0
+      ]
+    },
+    {
+      "key": "BodySweep",
+      "reference": "BodyFrame",
+      "oracle": "body",
+      "pole_rates_degrees_per_century": [
+        36525,
+        -18262.5
+      ]
+    },
+    {
+      "key": "OrbitRadial",
+      "reference": "OrbitFrame",
+      "oracle": "radial"
+    },
+    {
+      "key": "OrbitVelocity",
+      "reference": "OrbitFrame",
+      "oracle": "velocity"
+    }
+  ],
+  "scope": "Selected model/reference frame branches,not any coordinate system or arbitrary physical/input domain. Body-frame oracle shares native A1/TDB conversion but independently constructs all geometric axes and derivatives. The orbital oracle uses literal point-mass circular motion,not native frame/attitude utilities."
+}

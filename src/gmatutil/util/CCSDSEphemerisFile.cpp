@@ -223,15 +223,17 @@ bool CCSDSEphemerisFile::OpenForRead(const std::string &filename,
          for (Integer index = 0; index < numOfDataPoints; ++index)
          {
             // Get epoch and state from CCSDS segment
-            Real epoch;
+            GmatTime epoch;
             Rvector state;
             ccsdsSegment->GetEpochAndData(index, epoch, state);
             if (startEp == -1.0)
-               startEp = epoch;
+               startEp = epoch.GetMjd();
 
             // store epoch and state to Ephemeris' Segment
             EphemPoint point;
-            point.theEpoch = epoch;
+            point.theEpoch = epoch.GetMjd();
+         point.preciseEpoch = epoch;
+         point.hasPrecisionEpoch = true;
             point.posvel = Rvector6(state[0], state[1], state[2], state[3], state[4], state[5]);
             newsegment.points.push_back(point);
 
@@ -312,8 +314,8 @@ bool CCSDSEphemerisFile::GetInitialAndFinalStates(Real &initialA1Mjd, Real &fina
    {
       int numRecords = ephemRecords.size();
       
-      initialA1Mjd = scenarioEpochA1Mjd + ephemRecords[0].timeFromEpoch / GmatTimeConstants::SECS_PER_DAY;
-      finalA1Mjd = scenarioEpochA1Mjd + ephemRecords[numRecords - 1].timeFromEpoch / GmatTimeConstants::SECS_PER_DAY;
+      initialA1Mjd = a1StartEpoch;
+      finalA1Mjd = a1EndEpoch;
       initialState = ephemRecords[0].theState;
       finalState = ephemRecords[numRecords - 1].theState;
 
@@ -372,15 +374,17 @@ bool CCSDSEphemerisFile::ReadDataRecords(int logOption)
       for (Integer index = 0; index < numOfDataPoints; ++index)
       {
          // Get epoch and state from CCSDS segment
-         Real epoch;
+         GmatTime epoch;
          Rvector state;
          ccsdsSegment->GetEpochAndData(index, epoch, state);
          if (startEp == -1.0)
-            startEp = epoch;
+            startEp = epoch.GetMjd();
 
          // store epoch and state to Ephemeris' Segment
          EphemPoint point;
-         point.theEpoch = epoch;
+         point.theEpoch = epoch.GetMjd();
+         point.preciseEpoch = epoch;
+         point.hasPrecisionEpoch = true;
          point.posvel = Rvector6(state[0], state[1], state[2], state[3], state[4], state[5]);
          newsegment.points.push_back(point);
 

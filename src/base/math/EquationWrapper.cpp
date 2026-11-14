@@ -29,86 +29,95 @@
 //------------------------------------------------------------------------------
 
 #include "EquationWrapper.hpp"
+#include "ExpressionBinding.hpp"
 #include "MathTree.hpp"
 #include "MessageInterface.hpp"
+#include "StringUtil.hpp"
+#include "MathException.hpp"
+#include <memory>
+#include <typeinfo>
 
 
-#define DEBUG_INITALIZE
-#define DEBUG_EVALUATE
+//#define DEBUG_INITALIZE
+//#define DEBUG_EVALUATE
 
 
 EquationWrapper::EquationWrapper(const std::string &eq) :
-   ElementWrapper    (),
-   theEquation       (eq),
-   resultant         (NULL),
-   configObjectMap   (NULL),
-   hasEvaluated      (false)
+   ElementWrapper(), theEquation(eq), dataType(Gmat::UNKNOWN_PARAMETER_TYPE),
+   resultant(nullptr), configObjectMap(nullptr), hasEvaluated(false),
+   isEquationInitialized(false)
 {
-   #ifdef DEBUG_INITALIZE
-      MessageInterface::ShowMessage("Creating the EquationWrapper at "
-            "address %p\n", this);
-   #endif
-
    wrapperType = Gmat::EQUATION_WT;
-   if (theEquation == "")
-      // Default setting if no input equation string
-      dataType = Gmat::UNKNOWN_PARAMETER_TYPE;
-   else
-   {
-//      dataType = Gmat::REAL_TYPE;
-//      dataType = Gmat::RVECTOR_TYPE;
-//      dataType = Gmat::RMATRIX_TYPE;
-//      dataType = Gmat::STRING_TYPE;
-   }
+   description = eq;
 }
 
 
 EquationWrapper::~EquationWrapper()
 {
-   if (resultant)
-      delete resultant;
+   ClearResult();
+   // Newer definitions can borrow values from older ones. Retire dependents
+   // before their owners rather than relying on vector destruction order.
+   theTree.Reset();
+   while (!retainedDefinitions.empty()) retainedDefinitions.pop_back();
 }
 
 
 EquationWrapper::EquationWrapper(const EquationWrapper& ew) :
-   ElementWrapper    (),
-   theEquation       (ew.theEquation),
-   resultant         (NULL),
-   configObjectMap   (NULL),
-   hasEvaluated      (false)
+   ElementWrapper(ew), theEquation(ew.theEquation), dataType(ew.dataType),
+   theTree(ew.theTree), resultant(nullptr), refObjects(ew.refObjects),
+   configObjectMap(ew.configObjectMap), equationObjectMap(ew.equationObjectMap),
+   hasEvaluated(false), isEquationInitialized(false)
 {
+   ExpressionBindingScope definition(false, true);
+   for (const auto &previous : ew.retainedDefinitions)
+      retainedDefinitions.emplace_back(new RHSEquation(*previous));
+   BindActualReferences(ew, [](GmatBase *object) { return object; });
+   // Native copies retain cold definitions; explicit retained binding may
+   // preserve already prepared source association without initialization.
 }
 
 
 EquationWrapper& EquationWrapper::operator=(const EquationWrapper& ew)
 {
-   if (this != &ew)
-   {
-      ElementWrapper::operator=(ew);
-
-      theEquation     = ew.theEquation;
-      configObjectMap = NULL;
-      hasEvaluated    = false;
-      if (resultant)
-      {
-         delete resultant;
-         resultant = NULL;
-      }
-   }
-
+   if (this == &ew) return *this;
+   EquationWrapper prepared(ew);
+   ElementWrapper::operator=(ew);
+   theTree.Swap(prepared.theTree);
+   retainedDefinitions.swap(prepared.retainedDefinitions);
+   theEquation.swap(prepared.theEquation);
+   refObjects.swap(prepared.refObjects);
+   equationObjectMap.swap(prepared.equationObjectMap);
+   std::swap(configObjectMap, prepared.configObjectMap);
+   dataType = ew.dataType;
+   isEquationInitialized = false;
+   ClearResult();
    return *this;
 }
 
 
 ElementWrapper* EquationWrapper::Clone() const
 {
+   if (typeid(*this) != typeid(EquationWrapper))
+      throw MathException("Derived EquationWrapper must implement its native Clone.\n");
    return new EquationWrapper(*this);
 }
 
 
 void EquationWrapper::SetEquation(const std::string &eq)
 {
-   theEquation = eq;
+   if (eq == theEquation) return;
+   std::string expression = eq;
+   std::unique_ptr<RHSEquation> previous(new RHSEquation);
+   retainedDefinitions.reserve(retainedDefinitions.size() + 1);
+   isEquationInitialized = false;
+   ClearResult();
+   theTree.Swap(*previous);
+   retainedDefinitions.push_back(std::move(previous));
+   theEquation.swap(expression);
+   description = theEquation;
+   dataType = Gmat::UNKNOWN_PARAMETER_TYPE;
+   refObjects.clear();
+   refObjectNames.clear();
 }
 
 //------------------------------------------------------------------------------
@@ -129,97 +138,110 @@ void EquationWrapper::SetConfiguredObjectMap(ObjectMap *map)
 
 void EquationWrapper::ClearRefObjectNames()
 {
-
+   refObjects.clear();
+   refObjectNames.clear();
+   equationObjectMap.clear();
+   isEquationInitialized = false;
+   ClearResult();
 }
 
 const StringArray& EquationWrapper::GetRefObjectNames()
 {
+   ValidateOwnedWrapperGraph();
    refObjects.clear();
-
-   refObjects = theTree.GetWrapperObjectNames();
-
+   if (theEquation.empty()) return refObjects;
+   if (!theTree.GetMathTree(false) && !ConstructTree()) return refObjects;
+   theTree.GetWrapperObjectNames();
+   for (const auto &entry : theTree.GetMathWrapperMap())
+   {
+      const StringArray refs = entry.second ? entry.second->GetRefObjectNames() : StringArray{entry.first};
+      for (const std::string &name : refs)
+         if (std::find(refObjects.begin(), refObjects.end(), name) == refObjects.end())
+            refObjects.push_back(name);
+   }
    return refObjects;
 }
 
 bool EquationWrapper::SetRefObjectName(const std::string &name, Integer index)
 {
-   bool retval = false;
-   return retval;
+   const StringArray refs = GetRefObjectNames();
+   if (name.empty() || index < 0 || static_cast<size_t>(index) >= refs.size()) return false;
+   return refs[index] == name || RenameObject(refs[index], name);
 }
 
 GmatBase* EquationWrapper::GetRefObject(const std::string &name)
 {
-   GmatBase *retval = NULL;
-   return retval;
+   if (name.empty())
+      return equationObjectMap.size() == 1 ? equationObjectMap.begin()->second : nullptr;
+   const auto found = equationObjectMap.find(name);
+   if (found != equationObjectMap.end()) return found->second;
+   for (const auto &entry : theTree.GetMathWrapperMap())
+      if (entry.second)
+         for (const std::string &ref : entry.second->GetRefObjectNames())
+            if (ref == name) return entry.second->GetRefObject(name);
+   return nullptr;
 }
 
 bool EquationWrapper::SetRefObject(GmatBase *obj)
 {
-   bool retval = false;
-
-   if (obj)
+   if (!obj) return false;
+   const auto found = equationObjectMap.find(obj->GetName());
+   if (found == equationObjectMap.end() || found->second != obj)
    {
-      std::string name = obj->GetName();
-      if (equationObjectMap.find(name) == equationObjectMap.end())
-         equationObjectMap[name] = obj;
-      retval = true;
+      equationObjectMap[obj->GetName()] = obj;
+      isEquationInitialized = false;
+      ClearResult();
    }
-
-   return retval;
+   return true;
 }
 
 bool EquationWrapper::RenameObject(const std::string &oldName, const std::string &newName)
 {
-   bool retval = false;
-   return retval;
+   if (oldName.empty() || newName.empty()) return false;
+   if (oldName == newName) return true;
+   ObjectMap objects;
+   for (const auto &entry : equationObjectMap)
+      objects[GmatStringUtil::ReplaceName(entry.first, oldName, newName)] = entry.second;
+   const bool renamed = theTree.RenameRefObject(Gmat::UNKNOWN_OBJECT, oldName, newName);
+   theEquation = GmatStringUtil::ReplaceName(theEquation, oldName, newName);
+   description = GmatStringUtil::ReplaceName(description, oldName, newName);
+   equationObjectMap.swap(objects);
+   refObjects.clear();
+   refObjectNames.clear();
+   isEquationInitialized = false;
+   ClearResult();
+   return renamed;
 }
 
 
 
 bool EquationWrapper::Initialize(ObjectMap *objectMap, ObjectMap *globalObjectMap)
 {
-   bool retval = false;
-
-   if (theEquation != "")
-   {
-      retval = theTree.Initialize(objectMap, globalObjectMap);
-      Integer type, rows, cols;
-      theTree.GetMathTree(false)->GetOutputInfo(type, rows, cols);
-      dataType = (Gmat::ParameterType)type;
-   }
-
-   return retval;
+   ValidateOwnedWrapperGraph();
+   isEquationInitialized = false;
+   ClearResult();
+   if (theEquation.empty()) return false;
+   if (!theTree.GetMathTree(false) &&
+         !theTree.BuildExpression(theEquation, configObjectMap ? configObjectMap : objectMap, true))
+      return false;
+   theTree.GetWrapperObjectNames();
+   if (!theTree.Initialize(objectMap, globalObjectMap)) return false;
+   Integer type, rows, columns;
+   theTree.GetMathTree(false)->GetOutputInfo(type, rows, columns);
+   ObjectMap objects = equationObjectMap;
+   for (const auto &entry : theTree.GetMathWrapperMap())
+      if (entry.second)
+         for (const std::string &name : entry.second->GetRefObjectNames())
+            if (GmatBase *object = entry.second->GetRefObject(name)) objects[name] = object;
+   equationObjectMap.swap(objects);
+   dataType = static_cast<Gmat::ParameterType>(type);
+   isEquationInitialized = true;
+   return true;
 }
 
 bool EquationWrapper::Initialize()
 {
-   #ifdef DEBUG_INITALIZE
-      MessageInterface::ShowMessage("Initializing the EquationWrapper at "
-            "address %p\n", this);
-   #endif
-
-   bool retval = false;
-
-   // Validate that all references are set on the RHSEquation
-   if (theEquation != "")
-   {
-      retval = theTree.Initialize(&equationObjectMap, NULL);
-      Integer type, rows, cols;
-      theTree.GetMathTree(false)->GetOutputInfo(type, rows, cols);
-      dataType = (Gmat::ParameterType)type;
-
-      if (resultant)
-      {
-         delete resultant;
-         resultant = NULL;
-      }
-   }
-
-//*****   TODO: Analog of this code in Assignment:
-//*****   if (rhsEquation)
-//*****      rhsEquation->GetMathTree(false)->SetMathWrappers(&mathWrapperMap);
-
-   return retval;
+   return Initialize(&equationObjectMap, nullptr);
 }
 
 //------------------------------------------------------------------------------
@@ -233,7 +255,11 @@ bool EquationWrapper::Initialize()
 //------------------------------------------------------------------------------
 bool EquationWrapper::ConstructTree()
 {
-   return theTree.BuildExpression(theEquation, configObjectMap, true);
+   isEquationInitialized = false;
+   ClearResult();
+   const bool built = theTree.BuildExpression(theEquation, configObjectMap, true);
+   if (built) theTree.GetWrapperObjectNames();
+   return built;
 }
 
 //------------------------------------------------------------------------------
@@ -276,37 +302,8 @@ Gmat::ParameterType EquationWrapper::GetDataType() const
 //------------------------------------------------------------------------------
 bool EquationWrapper::EvaluateEquation()
 {
-   #ifdef DEBUG_EVALUATE
-      MessageInterface::ShowMessage("Evaluating the EquationWrapper at "
-            "address %p\n", this);
-   #endif
-
-   bool retval = false;
-
-   resultant = theTree.RunMathTree(NULL);
-   Gmat::ParameterType returnType = Gmat::UNKNOWN_PARAMETER_TYPE;
-   if (resultant)
-   {
-      returnType = resultant->GetDataType();
-
-      switch (dataType)
-      {
-      case Gmat::REAL_TYPE:
-         if (returnType == dataType)
-         {
-            hasEvaluated = true;
-            retval = true;
-         }
-         break;
-
-      default:
-         MessageInterface::ShowMessage("The equation \"%s\" could not be "
-               "evaluated\n", theEquation.c_str());
-         break;
-      }
-   }
-
-   return retval;
+   EvaluateCurrent();
+   return true;
 }
 
 
@@ -324,32 +321,9 @@ bool EquationWrapper::EvaluateEquation()
 //---------------------------------------------------------------------------
 Real EquationWrapper::EvaluateReal() const
 {
-   Real retval = 0.0;
-
-   #ifdef DEBUG_EVALUATE
-      MessageInterface::ShowMessage("Evaluating the Real value for %s\n",
-            theEquation.c_str());
-   #endif
-
-   if (theEquation != "")
-   {
-      if (resultant != NULL)
-      {
-         switch (dataType)
-         {
-         case Gmat::REAL_TYPE:
-            retval = resultant->EvaluateReal();
-            break;
-
-         default:
-            MessageInterface::ShowMessage("The equation \"%s\" does not "
-                  "evaluate to a real number\n", theEquation.c_str());
-            break;
-         }
-      }
-   }
-
-   return retval;
+   if (dataType != Gmat::REAL_TYPE)
+      throw MathException("Equation does not return a real number.\n");
+   return EvaluateCurrent().EvaluateRealForCalculation();
 }
 
 //---------------------------------------------------------------------------
@@ -372,6 +346,11 @@ bool EquationWrapper::SetReal(const Real toValue)
 
 const Rmatrix& EquationWrapper::EvaluateArray() const
 {
+   if (dataType != Gmat::RMATRIX_TYPE)
+      throw MathException("Equation does not return an array.\n");
+   const Rmatrix &value = EvaluateCurrent().EvaluateArray();
+   retMat.SetSize(value.GetNumRows(), value.GetNumColumns());
+   retMat = value;
    return retMat;
 }
 
@@ -384,11 +363,21 @@ bool EquationWrapper::SetArray(const Rmatrix &toValue)
 
 const Rvector& EquationWrapper::EvaluateRvector() const
 {
-   if (dataType != Gmat::RVECTOR_TYPE)
+   if (dataType != Gmat::RVECTOR_TYPE && dataType != Gmat::RMATRIX_TYPE)
+      throw MathException("Equation does not return a vector.\n");
+   ElementWrapper &result = EvaluateCurrent();
+   Rvector value;
+   if (result.GetDataType() == Gmat::RVECTOR_TYPE)
+      value = result.EvaluateRvector();
+   else
    {
-
+      const Rmatrix &matrix = result.EvaluateArray();
+      if (matrix.GetNumRows() != 1 && matrix.GetNumColumns() != 1)
+         throw MathException("Equation array is not a row or column vector.\n");
+      value = matrix.GetRowOrColumn();
    }
-
+   retVec.SetSize(value.GetSize());
+   retVec = value;
    return retVec;
 }
 
@@ -400,16 +389,6 @@ bool EquationWrapper::SetRvector(const Rvector &toValue)
 }
 
 
-//bool EquationWrapper::SetString(const std::string &toValue)
-//{
-//   bool retval = false;
-//   return retval;
-//}
-//
-//
-//std::string EquationWrapper::EvaluateString() const
-//{
-//}
 
 
 
@@ -428,5 +407,107 @@ bool EquationWrapper::SetRvector(const Rvector &toValue)
 //---------------------------------------------------------------------------
 void EquationWrapper::SetupWrapper()
 {
+   SetEquation(description);
+}
 
+void EquationWrapper::ClearResult() const
+{
+   delete resultant;
+   resultant = nullptr;
+   hasEvaluated = false;
+}
+
+ElementWrapper& EquationWrapper::EvaluateCurrent() const
+{
+   if (!isEquationInitialized)
+      throw MathException("Equation must be initialized before evaluation.\n");
+   ValidateOwnedWrapperGraph();
+   hasEvaluated = false;
+   std::unique_ptr<ElementWrapper> value(theTree.RunMathTree(nullptr));
+   if (!value || value->GetDataType() != dataType)
+      throw MathException("Equation result does not match its declared type.\n");
+   ClearResult();
+   resultant = value.release();
+   hasEvaluated = true;
+   return *resultant;
+}
+
+std::string EquationWrapper::EvaluateString() const
+{
+   if (dataType != Gmat::STRING_TYPE)
+      throw MathException("Equation does not return a string.\n");
+   return EvaluateCurrent().EvaluateString();
+}
+
+GmatBase* EquationWrapper::EvaluateObject() const
+{
+   if (dataType != Gmat::OBJECT_TYPE)
+      throw MathException("Equation does not return an object.\n");
+   // Valid until the next evaluation, definition/binding change or destruction.
+   return EvaluateCurrent().EvaluateObject();
+}
+
+void EquationWrapper::RebindClonedReferences(const ElementWrapper &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   CheckCloneType(source);
+   BindActualReferences(static_cast<const EquationWrapper&>(source), resolve);
+}
+
+void EquationWrapper::BindActualReferences(const EquationWrapper &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   isEquationInitialized = false;
+   ClearResult();
+   ValidateOwnedWrapperGraph();
+   ExpressionBindingScope binding;
+   ObjectArray originals, copies;
+   source.GetClonedOwnedObjects(*this, originals, copies);
+   auto actual = [&](GmatBase *object) -> GmatBase*
+   {
+      // The enclosing native owner/scene may have already chosen a canonical
+      // copy shared by several expressions. Preserve that choice before using
+      // this definition's own freshly cloned values.
+      GmatBase *mapped = resolve(object);
+      if (mapped && mapped != object) return mapped;
+      const auto found = std::find(originals.begin(), originals.end(), object);
+      return found == originals.end() ? mapped : copies[found - originals.begin()];
+   };
+   auto *configured = binding.scopes->CopyMap(source.configObjectMap, actual);
+   ObjectMap objects;
+   for (const auto &entry : source.equationObjectMap)
+      objects.emplace(entry.first, entry.second ? actual(entry.second) : nullptr);
+   for (size_t i = 0; i < retainedDefinitions.size(); ++i)
+      retainedDefinitions[i]->RebindClonedReferences(*source.retainedDefinitions[i], actual);
+   theTree.RebindClonedReferences(source.theTree, actual);
+   configObjectMap = configured;
+   equationObjectMap.swap(objects);
+   dataType = source.dataType;
+   isEquationInitialized = ExpressionBindingScope::preserveReadiness && source.isEquationInitialized;
+}
+
+std::vector<RHSEquation*> EquationWrapper::GetOwnedDefinitions() const
+{
+   std::vector<RHSEquation*> definitions{&theTree};
+   for (const auto &definition : retainedDefinitions) definitions.push_back(definition.get());
+   return definitions;
+}
+
+void EquationWrapper::GetClonedOwnedObjects(const EquationWrapper &target,
+      ObjectArray &originals, ObjectArray &copies) const
+{
+   GetClonedOwnedObjects(target, originals, copies, true);
+   GetClonedOwnedObjects(target, originals, copies, false);
+}
+
+void EquationWrapper::GetClonedOwnedObjects(const EquationWrapper &target,
+      ObjectArray &originals, ObjectArray &copies, bool sourceOwnedOnly) const
+{
+   ValidateOwnedWrapperGraph();
+   target.ValidateOwnedWrapperGraph();
+   const auto from = GetOwnedDefinitions();
+   const auto to = target.GetOwnedDefinitions();
+   if (from.size() != to.size()) throw MathException("Missing copied equation definition owners.\n");
+   for (size_t i = 0; i < from.size(); ++i)
+      from[i]->GetClonedOwnedObjects(*to[i], originals, copies, sourceOwnedOnly);
 }

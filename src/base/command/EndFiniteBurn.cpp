@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 
 #include "EndFiniteBurn.hpp"
+#include "ODEModel.hpp"
 #include "MessageInterface.hpp"
 
 //#define DEBUG_END_MANEUVER
@@ -474,19 +475,19 @@ bool EndFiniteBurn::Execute()
 
    // Only do this if the FiniteBurn is the one this command controls...
    bool forceActive = false;
+   PhysicalModel *forceToStop = NULL;
    for (std::vector<PhysicalModel*>::iterator j = transientForces->begin();
         j != transientForces->end(); ++j)
    {
-      if (((*j)->GetName()) == thrustName)
+      auto *candidate = dynamic_cast<FiniteThrust*>(*j);
+      if (candidate && candidate->UsesBurn(maneuver))
       {
-         // ... and if it is set for the right spacecraft
-         StringArray burnSatNames = (*j)->GetRefObjectNameArray(Gmat::SPACECRAFT);
-
+         // Match configured object identities, including function formal aliases.
          bool foundSats = false;
          UnsignedInt numberFound = 0;
          for (UnsignedInt i = 0; i < satNames.size(); ++i)
          {
-            if (find(burnSatNames.begin(), burnSatNames.end(), satNames[i]) != burnSatNames.end())
+            if (i < sats.size() && candidate->TargetsSpacecraft(sats[i]))
             {
                foundSats = true;
                ++numberFound;
@@ -500,6 +501,7 @@ bool EndFiniteBurn::Execute()
             #endif
 
             forceActive = true;
+            forceToStop = candidate;
 
             if (numberFound != satNames.size())
                MessageInterface::ShowMessage("*** WARNING *** Turning off the "
@@ -514,6 +516,7 @@ bool EndFiniteBurn::Execute()
    
    if (forceActive)
    {
+      ODEModel::SetTransientAccelerationContext(forceToStop, false);
       // Turn off all of the referenced thrusters
       for (std::vector<Thruster*>::iterator i = thrusters.begin();
            i != thrusters.end(); ++i)
@@ -552,7 +555,7 @@ bool EndFiniteBurn::Execute()
       for (std::vector<PhysicalModel*>::iterator j = transientForces->begin();
            j != transientForces->end(); ++j)
       {
-         if (((*j)->GetName()) == thrustName)
+         if (*j == forceToStop)
          {
             #ifdef DEBUG_TRANSIENT_FORCES
             MessageInterface::ShowMessage
@@ -569,7 +572,7 @@ bool EndFiniteBurn::Execute()
       {
          Real epoch = sats[0]->GetEpoch();
          publisher->SetManeuvering(this, false, epoch, satNames, "end of finite "
-               "maneuver");
+               "maneuver", ObjectArray(sats.begin(), sats.end()));
       }
 
       #ifdef DEBUG_END_MANEUVER_EXE

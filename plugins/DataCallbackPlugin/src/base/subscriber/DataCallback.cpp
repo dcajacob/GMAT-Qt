@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 
 #include "DataCallback.hpp"
+#include "SubscriberBindingState.hpp"
 
 #include "MessageInterface.hpp"
 #include "Parameter.hpp"
@@ -105,6 +106,8 @@ DataCallback::~DataCallback(void)
   mAllRefObjectNames = dc.mAllRefObjectNames;
 
   parameterCount = DataCallbackParamCount;
+   if (typeid(dc) == typeid(DataCallback)) ReconnectSubscriberCopy(dc);
+
 }
 
 //------------------------------------------------------------------------------
@@ -116,18 +119,22 @@ DataCallback::~DataCallback(void)
 //------------------------------------------------------------------------------
 DataCallback& DataCallback::operator=(const DataCallback& dc)
 {
-  if(this == &dc) return *this;
+   if (this == &dc) return *this;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = typeid(*this) == typeid(DataCallback) ? BeginSubscriberValueCopy(dc) : SubscriberValueCopyToken{};
+   {
+      FunctionValueCopyGuard nativeCopy;
+      Subscriber::operator=(dc);
 
-  Subscriber::operator=(dc);
-
-  mParams = dc.mParams;
-  mNumParams = dc.mNumParams;
-  mParamNames = dc.mParamNames;
-  mAllRefObjectNames = dc.mAllRefObjectNames;
-  mCallbackFcn = dc.mCallbackFcn;
-  mUserData = dc.mUserData;
-
-  return *this;
+     mParams = dc.mParams;
+     mNumParams = dc.mNumParams;
+     mParamNames = dc.mParamNames;
+     mAllRefObjectNames = dc.mAllRefObjectNames;
+     mCallbackFcn = dc.mCallbackFcn;
+     mUserData = dc.mUserData;
+   }
+   if (typeid(*this) == typeid(DataCallback)) CompleteSubscriberValueCopy(dc, transaction);
+   return *this;
 }
 
 //------------------------------------------------------------------------------
@@ -224,7 +231,15 @@ bool DataCallback::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* DataCallback::Clone() const
 {
-  return (new DataCallback(*this));
+   if (typeid(*this) != typeid(DataCallback))
+      throw GmatBaseException("A derived DataCallback must provide its complete Clone.\n");
+   std::unique_ptr<DataCallback> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new DataCallback(*this));
+   }
+   value->ReconnectSubscriberCopy(*this);
+   return value.release();
 }
 
 //---------------------------------------------------------------------------
@@ -236,9 +251,19 @@ GmatBase* DataCallback::Clone() const
  * @param orig The original that is being copied.
  */
 //---------------------------------------------------------------------------
-void DataCallback::Copy(const GmatBase* orig)
+void DataCallback::Copy(const GmatBase *original)
 {
-  operator=(*((DataCallback *)(orig)));
+   const auto *source = dynamic_cast<const DataCallback*>(original);
+   if (!source || typeid(*source) != typeid(*this) || !HasSubscriberValueReferenceProvider())
+      throw GmatBaseException("Cannot copy an incompatible DataCallback value.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = BeginSubscriberValueCopy(*source);
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   CompleteSubscriberValueCopy(*source, transaction);
 }
 
 //------------------------------------------------------------------------------
@@ -527,4 +552,36 @@ bool DataCallback::Distribute(const Real *dat, Integer len)
   }
 
   return true;
+}
+
+
+std::unique_ptr<FunctionInvocationState> DataCallback::SuspendFunctionBindings()
+{
+   auto native = std::make_shared<SubscriberBindingState>();
+   native->Capture(mParams);
+   native->Require([this, role0 = mParamNames]
+   {
+      return role0 == mParamNames;
+   });
+   return WrapFunctionBindings(std::move(native), Subscriber::SuspendFunctionBindings());
+}
+
+
+bool DataCallback::HasSubscriberValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(DataCallback);
+}
+
+
+void DataCallback::RebindSubscriberValueReferences(const Subscriber &original,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &source = dynamic_cast<const DataCallback&>(original);
+   std::vector<Parameter*> parameters;
+   parameters.reserve(source.mParams.size());
+   for (auto *parameter : source.mParams) parameters.push_back(MapSubscriberReference(parameter, resolve));
+   Subscriber::RebindSubscriberValueReferences(source, resolve);
+   mParams.swap(parameters);
+   // The existing C callback contract borrows its function and userdata from
+   // the host. Cloning does not take ownership of or copy opaque host storage.
 }

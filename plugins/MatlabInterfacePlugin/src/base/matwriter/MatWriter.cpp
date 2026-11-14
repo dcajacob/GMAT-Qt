@@ -33,6 +33,9 @@
 //
 
 #include "MatWriter.hpp"
+#ifdef GMAT_MATLAB_QT_ENGINE
+#include "MatlabLibraryExecutor.hpp"
+#endif
 #include "RealMatData.hpp"
 #include "StringMatData.hpp"
 
@@ -64,6 +67,9 @@ MatWriter::MatWriter() :
 //------------------------------------------------------------------------------
 MatWriter::~MatWriter()
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   ClearQtData();
+#endif
    // It looks like MATLAB manages the array; leaving this in case we need it
    // if (mat_struct != NULL)
    //    mxDestroyArray(mat_struct);
@@ -83,6 +89,10 @@ MatWriter::MatWriter(const MatWriter& mw) :
    mat_struct     (NULL),
    pmat           (NULL)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   allData.clear(); // The base copy is shallow; retain ownership in the source.
+   CopyQtData(mw);
+#endif
 }
 
 //------------------------------------------------------------------------------
@@ -99,10 +109,13 @@ MatWriter& MatWriter::operator=(const MatWriter &mw)
 {
     if (this != &mw)
     {
+#ifdef GMAT_MATLAB_QT_ENGINE
+       CopyQtData(mw);
+#else
        DataWriter::operator=(mw);
-
        allData = mw.allData;
        variable_names = mw.variable_names;
+#endif
     }
 
     return *this;
@@ -183,6 +196,9 @@ bool MatWriter::Initialize(const std::string &fname,  const std::string &mytype)
 //------------------------------------------------------------------------------
 bool MatWriter::OpenFile()
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   return OpenQtFile();
+#endif
     // check mat_file_rev
    if ( (format != "w4") && (format != "w6") &&
         (format != "w7") && (format != "w7.3") &&
@@ -222,6 +238,9 @@ bool MatWriter::OpenFile()
 //------------------------------------------------------------------------------
 bool MatWriter::WriteData(const std::string &obj_name)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   return WriteQtData(obj_name);
+#endif
    if (mat_struct == NULL)
       throw UtilityException("Cannot write MATLAB data: MAT Structure array "
               "not created");
@@ -247,6 +266,11 @@ bool MatWriter::WriteData(const std::string &obj_name)
 //------------------------------------------------------------------------------
 bool MatWriter::CloseFile()
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (qtOperationActive) throw UtilityException("Cannot close an active MATLAB writer");
+   qtFileOpen = false;
+   return true;
+#endif
    // close file
    if (pmat)
    {
@@ -288,6 +312,10 @@ bool MatWriter::DescribeData(const StringArray &variableList, UnsignedInt size)
 //------------------------------------------------------------------------------
 void MatWriter::SetMxArray(const StringArray &variable_list, mwSize size)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   DescribeQtData(variable_list, size);
+   return;
+#endif
    // get number of fields
    int number_of_fields = variable_list.size();
 
@@ -314,6 +342,11 @@ void MatWriter::SetMxArray(const StringArray &variable_list, mwSize size)
  */
  //------------------------------------------------------------------------------
 void MatWriter::UnsetMxArray() {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (qtOperationActive) throw UtilityException("Cannot clear an active MATLAB writer structure");
+   qtStructureReady = false; qtStructureSize = 0; qtStructureFields.clear();
+   return;
+#endif
    if (mat_struct) {
       mxDestroyArray(mat_struct);
       mat_struct = NULL;
@@ -329,6 +362,9 @@ void MatWriter::UnsetMxArray() {
  //-------------------------------------------------------------------------------------
 bool MatWriter::ClearData()
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   ClearQtData();
+#endif
    bool retval = DataWriter::ClearData();
    UnsetMxArray();
    return retval;

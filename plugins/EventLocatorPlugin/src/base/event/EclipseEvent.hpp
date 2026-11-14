@@ -49,6 +49,7 @@ public:
    /// Return computed quantities
    
    virtual std::string GetBodyName();
+   const std::string& GetEclipseType() const { return eclipseType; }
 
    // Get the report string
    virtual std::string  GetReportString();

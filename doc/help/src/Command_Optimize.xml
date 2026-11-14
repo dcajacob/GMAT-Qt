@@ -41,6 +41,14 @@
   <refsection>
     <title>Description</title>
 
+    <para><literal>EndTarget;</literal> is also accepted as the legacy NASA
+    worksheet spelling of an optimization terminator. It closes the innermost
+    open <literal>Optimize</literal> or <literal>Target</literal> block and retains
+    that spelling when saved. <literal>EndOptimize;</literal> remains supported
+    and is used for new optimization blocks created by the Qt GUI. An
+    <literal>EndOptimize</literal> cannot close a <literal>Target</literal> block;
+    other block terminators must still match their owning block.</para>
+
     <para>The <guilabel>Optimize</guilabel> command in GMAT allows you to
     solve optimization problems by using a solver object. Currently, you can
     choose from one of two available solvers, the
@@ -150,6 +158,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Boolean apply-corrections selection; no physical units.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -213,6 +225,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Exit-mode selection; no physical units.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -259,6 +275,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Boolean window selection; no physical units.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>
@@ -318,6 +338,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Solver-mode selection; no physical units.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -367,6 +391,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Solver object name; no physical units.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>
@@ -449,6 +477,34 @@
     <refsection>
       <title>Content of an Optimize/EndOptimize Sequence</title>
 
+      <para>A MATLAB-backed optimizer selects its own callback service while executing. Nested command scopes restore the preceding selection when they return. Initialization of another optimizer does not redirect an active evaluation. Inputs cannot be replaced while that same callback is executing.</para>
+
+      <para>With the current Qt MATLAB callback client, an optimization sequence can call MATLAB functions while MATLAB is waiting for a GMAT objective evaluation. Nested optimizer commands reuse the active callback session and restore the enclosing optimizer's constraint and iteration-history globals when they return. Closing or changing the waiting MATLAB session from its callback is not supported.</para>
+
+      <para>On Linux Qt builds, commands that produce MATLAB diagnostic files can also write during an optimizer callback. Each write completes before the command proceeds; writer copies retain their buffered values and do not inherit an open output session.</para>
+
+      <para>Optimizer objective callbacks remain distinct from MATLAB function calls. A MATLAB function invoked by a GMAT command cannot start another GMAT callback or rebuild/run a mission. This restriction does not prohibit native GMAT functions or commands inside the optimizer branch.</para>
+
+      <para>A child MATLAB optimizer preserves the enclosing driver's options, bounds, solution, objective, exit flag and iteration globals. GMAT reads the child exit flag before restoring the parent workspace. The legacy driver remains a script; its final solution callback cannot replace the parent exit flag with a child's result.</para>
+
+      <para>Iteration rollback restores captured spacecraft and formation values
+      into their original live objects, including the originally selected
+      formation members. Native formation membership and packed-state changes
+      are prepared and checked before values are applied. Propagation prepares
+      its bindings again when the restored layout requires it. Original
+      spacecraft targets must still exist, and compatible spacecraft component
+      graphs and original origin bindings remain required.</para>
+
+      <para>Iteration rollback also selects the captured active transient forces
+      and restores spacecraft maneuvering and thruster firing flags. The original
+      force objects and force-list context must remain alive; rollback does not
+      create a replacement burn. Propagation checks force identities and order,
+      including a changed selection with the same number of forces, before
+      reusing its prepared model. Publisher and subscriber maneuvering flags
+      return to their captured values without generating another begin/end
+      maneuver event. A subscriber added since capture receives the restored
+      scene's maneuvering flag; retired subscribers are not accessed.</para>
+
       <para>An <guilabel>O</guilabel><guilabel>ptimize/EndOptimize</guilabel>
       sequence must contain at least one <guilabel>Vary</guilabel> command and
       at least one of the following commands:
@@ -488,6 +544,23 @@
 
     <refsection>
       <title>Command Interactions</title>
+
+      <para>During initialization, <guilabel>Vary</guilabel>,
+      <guilabel>Minimize</guilabel>, and <guilabel>NonlinearConstraint</guilabel>
+      commands inside <guilabel>If</guilabel>, <guilabel>For</guilabel>, or
+      <guilabel>While</guilabel> branches are bound and counted in the enclosing
+      optimization sequence's scope. Controls belonging to a nested
+      <guilabel>Target</guilabel> or <guilabel>Optimize</guilabel> sequence are
+      handled by that sequence. Apply Corrections follows the same scope.
+      Before nominal or perturbation passes, the solver also registers the
+      fixed control, objective, and constraint metadata in script order for
+      both internal and external optimizers. This registration does not
+      evaluate branch conditions, initialize loop indices, or execute ordinary
+      statements in a branch. Metadata expressions must already have valid
+      values at registration time. Control flow must supply the same registered
+      variables, objective, and constraints consistently on subsequent
+      evaluation passes. A nested solver inside an ordinary branch starts
+      when that branch executes.</para>
 
       <informaltable colsep="0" frame="topbot">
         <tgroup cols="2">

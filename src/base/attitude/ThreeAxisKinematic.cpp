@@ -37,6 +37,9 @@
 //#define DEBUG_THREE_AXIS // use in main DCM and angular velocity computation
 
 #include "ThreeAxisKinematic.hpp"
+#include <memory>
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 
 #include "AttitudeException.hpp"
 #include "MessageInterface.hpp"
@@ -256,7 +259,9 @@ bool ThreeAxisKinematic::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* ThreeAxisKinematic::Clone() const
 {
-	return (new ThreeAxisKinematic(*this));
+	std::unique_ptr<ThreeAxisKinematic> value(new ThreeAxisKinematic(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //------------------------------------------------------------------------------
@@ -370,3 +375,17 @@ void ThreeAxisKinematic::ComputeCosineMatrixAndAngularVelocity(GmatTime &atTime)
 //  private methods
 //------------------------------------------------------------------------------
 // none 
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void ThreeAxisKinematic::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const ThreeAxisKinematic*>(original);
+   if (!source || typeid(*source) != typeid(ThreeAxisKinematic) ||
+       typeid(*this) != typeid(ThreeAxisKinematic))
+      throw GmatBaseException("Cannot copy incompatible object into ThreeAxisKinematic");
+   if (source == this)
+      return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
+}

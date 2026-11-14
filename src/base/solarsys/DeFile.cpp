@@ -45,6 +45,51 @@
 #include "TimeSystemConverter.hpp"
 #include "MessageInterface.hpp"
 #include <sstream>
+#include <cmath>
+
+namespace
+{
+Real DeEpochValue(Real epoch) { return epoch; }
+Real DeEpochValue(const A1Mjd &epoch) { return epoch.Get(); }
+Real DeEpochValue(const GmatTime &epoch) { return epoch.GetMjd(); }
+
+template <typename Epoch>
+void ValidateDeInputEpoch(const Epoch &epoch, const std::string &file)
+{
+   if (!std::isfinite(DeEpochValue(epoch)))
+      throw PlanetaryEphemException("Nonfinite epoch requested from DE file '" + file + "'.\n");
+}
+
+template <typename Epoch>
+void ValidateDeCoefficientEpoch(const Epoch &epoch, Real first, Real last,
+                                const std::string &file)
+{
+   ValidateDeInputEpoch(epoch, file);
+   if (!std::isfinite(first) || !std::isfinite(last) || first > last)
+      throw PlanetaryEphemException("Invalid time coverage in DE file '" + file + "'.\n");
+   if (epoch < first || epoch > last)
+   {
+      std::ostringstream message;
+      message.precision(17);
+      message << "Requested epoch " << DeEpochValue(epoch)
+              << " is not on the DE file '" << file
+              << "' (coefficient epochs " << first << " through " << last << ").\n";
+      throw PlanetaryEphemException(message.str());
+   }
+}
+
+int DeRecordCount(const GmatTime &distance, Real span)
+{
+   if (!std::isfinite(span) || span <= 0.0)
+      throw PlanetaryEphemException("Invalid coefficient record span in DE file.\n");
+   // Reduce whole days before testing the remainder. Converting a distant
+   // epoch difference to one double loses sub-microsecond boundary offsets.
+   const int whole = static_cast<int>(std::floor(distance.GetDays() / span));
+   const GmatTime remainder = distance - GmatTime(whole * span);
+   return whole + (remainder > GmatTime(0.0) ? 1 : 0);
+}
+}
+
 
 //#define __UNIT_TEST__
 
@@ -321,33 +366,10 @@ Real* DeFile::GetPosVel(Integer forBody, A1Mjd atTime, bool overrideTimeSystem)
        forBody, atTime.GetReal(), overrideTimeSystem, itsName.c_str());
    #endif
    
-   if (atTime.Get() < mA1FileBeg)
-   {
-	   std::stringstream ss;
-	   ss << "Attempting to read data for an epoch (" << atTime.Get()
-		   << ") earlier than the beginning of the current DE File (" << mA1FileBeg
-		   << "); exiting.\n";
-	   throw PlanetaryEphemException(ss.str());
-//      throw PlanetaryEphemException("Attempting to read data for an epoch "
-//            "earlier than the beginning of the current DE File; exiting.\n");
-   }
+   ValidateDeInputEpoch(atTime, theFileName);
 
    static Real      result[6];
 
-   // if we're asking for the Earth state, return 0.0 (since we're
-   // currently assuming Earth-Centered Equatorial
-   if (forBody == DeFile::EARTH_ID) // this should check for the J2000Body <<<<
-   {
-      result[0] = 0.0;
-      result[1] = 0.0;
-      result[2] = 0.0;
-      result[3] = 0.0;
-      result[4] = 0.0;
-      result[5] = 0.0;
-
-      return result;
-   }
-   
    stateType rv;
    double absJD = 0.0;
    if (overrideTimeSystem)
@@ -385,6 +407,22 @@ Real* DeFile::GetPosVel(Integer forBody, A1Mjd atTime, bool overrideTimeSystem)
    // if we're asking for the moon state, just get it and return it, as
    // it is supposed to be a geocentric state from the DE file  << should check for Moon w.r.t J2000Body here?
    
+   ValidateDeCoefficientEpoch(absJD, mFileBeg, R1.timeData[1] - baseEpoch, theFileName);
+
+   // if we're asking for the Earth state, return 0.0 (since we're
+   // currently assuming Earth-Centered Equatorial
+   if (forBody == DeFile::EARTH_ID) // this should check for the J2000Body <<<<
+   {
+      result[0] = 0.0;
+      result[1] = 0.0;
+      result[2] = 0.0;
+      result[3] = 0.0;
+      result[4] = 0.0;
+      result[5] = 0.0;
+
+      return result;
+   }
+
    // interpolate the data to get the state
    Interpolate_State(absJD, forBody, &rv);
    #ifdef DEBUG_DEFILE_GET
@@ -457,32 +495,9 @@ Real* DeFile::GetPosVel(Integer forBody, GmatTime atTime, bool overrideTimeSyste
       forBody, atTime.GetMjd(), overrideTimeSystem, itsName.c_str());
 #endif
 
-   if (atTime < mA1FileBeg)
-   {
-      std::stringstream ss;
-      ss << "Attempting to read data for an epoch (" << atTime.GetMjd()
-         << ") earlier than the beginning of the current DE File (" << mA1FileBeg
-         << "); exiting.\n";
-      throw PlanetaryEphemException(ss.str());
-      //      throw PlanetaryEphemException("Attempting to read data for an epoch "
-      //            "earlier than the beginning of the current DE File; exiting.\n");
-   }
-   
+   ValidateDeInputEpoch(atTime, theFileName);
+
    static Real      result[6];
-
-   // if we're asking for the Earth state, return 0.0 (since we're
-   // currently assuming Earth-Centered Equatorial
-   if (forBody == DeFile::EARTH_ID) // this should check for the J2000Body <<<<
-   {
-      result[0] = 0.0;
-      result[1] = 0.0;
-      result[2] = 0.0;
-      result[3] = 0.0;
-      result[4] = 0.0;
-      result[5] = 0.0;
-
-      return result;
-   }
 
    stateType rv;
    GmatTime absJD = 0.0;
@@ -520,6 +535,22 @@ Real* DeFile::GetPosVel(Integer forBody, GmatTime atTime, bool overrideTimeSyste
 
    // if we're asking for the moon state, just get it and return it, as
    // it is supposed to be a geocentric state from the DE file  << should check for Moon w.r.t J2000Body here?
+
+   ValidateDeCoefficientEpoch(absJD, mFileBeg, R1.timeData[1] - baseEpoch, theFileName);
+
+   // if we're asking for the Earth state, return 0.0 (since we're
+   // currently assuming Earth-Centered Equatorial
+   if (forBody == DeFile::EARTH_ID) // this should check for the J2000Body <<<<
+   {
+      result[0] = 0.0;
+      result[1] = 0.0;
+      result[2] = 0.0;
+      result[3] = 0.0;
+      result[4] = 0.0;
+      result[5] = 0.0;
+
+      return result;
+   }
 
    // interpolate the data to get the state
    Interpolate_State(absJD, forBody, &rv);
@@ -615,27 +646,10 @@ Real* DeFile::GetPosDelta(Integer forBody,
       forBody, atTime1.GetMjd(), atTime2.GetMjd(), overrideTimeSystem, itsName.c_str());
 #endif
 
-   if (atTime1 < mA1FileBeg)
-   {
-      std::stringstream ss;
-      ss << "Attempting to read data for an epoch (" << atTime1.GetMjd()
-         << ") earlier than the beginning of the current DE File (" << mA1FileBeg
-         << "); exiting.\n";
-      throw PlanetaryEphemException(ss.str());
-      //      throw PlanetaryEphemException("Attempting to read data for an epoch "
-      //            "earlier than the beginning of the current DE File; exiting.\n");
-   }
-   static Real      result[3];
-   // if we're asking for the Earth state, return 0.0 (since we're
-   // currently assuming Earth-Centered Equatorial
-   if (forBody == DeFile::EARTH_ID) // this should check for the J2000Body <<<<
-   {
-      result[0] = 0.0;
-      result[1] = 0.0;
-      result[2] = 0.0;
-      return result;
-   }
+   ValidateDeInputEpoch(atTime1, theFileName);
+   ValidateDeInputEpoch(atTime2, theFileName);
 
+   static Real      result[3];
    stateType rDelta;
    GmatTime absJD1 = 0.0;
    GmatTime absJD2 = 0.0;
@@ -681,6 +695,19 @@ Real* DeFile::GetPosDelta(Integer forBody,
 
    // if we're asking for the moon state, just get it and return it, as
    // it is supposed to be a geocentric state from the DE file  << should check for Moon w.r.t J2000Body here?
+
+   ValidateDeCoefficientEpoch(absJD1, mFileBeg, R1.timeData[1] - baseEpoch, theFileName);
+   ValidateDeCoefficientEpoch(absJD2, mFileBeg, R1.timeData[1] - baseEpoch, theFileName);
+
+   // if we're asking for the Earth state, return 0.0 (since we're
+   // currently assuming Earth-Centered Equatorial
+   if (forBody == DeFile::EARTH_ID) // this should check for the J2000Body <<<<
+   {
+      result[0] = 0.0;
+      result[1] = 0.0;
+      result[2] = 0.0;
+      return result;
+   }
 
    // interpolate the data to get the state
    Interpolate_State_Delta(absJD1, absJD2, forBody, &rDelta);
@@ -746,6 +773,7 @@ Real* DeFile::GetPosDelta(Integer forBody,
 void  DeFile::GetAnglesAndRates(A1Mjd atTime, Real* angles, Real* rates, 
                                 bool overrideTimeSystem)
 {
+   ValidateDeInputEpoch(atTime, theFileName);
    // assume Luna for now - check for name later
    double absJD = 0.0;
    if (overrideTimeSystem)
@@ -768,6 +796,7 @@ void  DeFile::GetAnglesAndRates(A1Mjd atTime, Real* angles, Real* rates,
       ("DeFile::GetAnglesAndRates() Calling Interpolate_Libration(%.9f)\n", absJD);
    #endif
    
+   ValidateDeCoefficientEpoch(absJD, mFileBeg, R1.timeData[1] - baseEpoch, theFileName);
    Interpolate_Libration(absJD, 12, angles, rates);
 }
 
@@ -775,6 +804,7 @@ void  DeFile::GetAnglesAndRates(A1Mjd atTime, Real* angles, Real* rates,
 void  DeFile::GetAnglesAndRates(const GmatTime &atTime, Real* angles, Real* rates, 
                                 bool overrideTimeSystem)
 {
+   ValidateDeInputEpoch(atTime, theFileName);
    // assume Luna for now - check for name later
    GmatTime absJD(0);
    if (overrideTimeSystem)
@@ -797,6 +827,7 @@ void  DeFile::GetAnglesAndRates(const GmatTime &atTime, Real* angles, Real* rate
       ("DeFile::GetAnglesAndRates() Calling Interpolate_Libration(%.9f)\n", absJD);
    #endif
    
+   ValidateDeCoefficientEpoch(absJD, mFileBeg, R1.timeData[1] - baseEpoch, theFileName);
    Interpolate_Libration(absJD, 12, angles, rates);
 }
 
@@ -929,8 +960,11 @@ void DeFile::InitializeDeFile(std::string fName, Gmat::DeFileFormat fileFmt)
    jdMjdOffset       = (double) DeFile::JD_MJD_OFFSET;
    
    // store file begin time
-   mFileBeg          = T_beg - baseEpoch;
-   mA1FileBeg        = T_beg;
+   mFileBeg          = T_beg;
+   ValidateDeCoefficientEpoch(T_beg, R1.timeData[0] - baseEpoch,
+      R1.timeData[1] - baseEpoch, theFileName);
+   mA1FileBeg = theTimeConverter->Convert(mFileBeg, TimeSystemConverter::TDBMJD,
+      TimeSystemConverter::A1MJD, GmatTimeConstants::JD_JAN_5_1941);
 
    #ifdef DEBUG_DEFILE_INIT
    MessageInterface::ShowMessage("   T_beg=%.9f, addr=%p\n", T_beg, &T_beg);
@@ -990,80 +1024,20 @@ void DeFile::InitializeDeFile(std::string fName, Gmat::DeFileFormat fileFmt)
 /**==========================================================================**/
 void DeFile::Read_Coefficients( double Time )
 {
-   #ifdef DEBUG_DEFILE_READ
-      MessageInterface::ShowMessage("DeFile::Read_Coefficients() Time=%.9f)\n", Time);
-      MessageInterface::ShowMessage(" DE filename = '%s'\n",theFileName.c_str());
-   #endif
-   
-   double  T_delta = 0.0;
-   int     Offset  =  0 ;
-
-   #ifdef DEBUG_DEFILE_READ
-      MessageInterface::ShowMessage
-         ("DeFile::Read_Coefficients() T_beg=%f, T_end=%f\n", T_beg, T_end);
-   #endif
-
-   /*--------------------------------------------------------------------------*/
-   /*  Find ephemeris data that record contains input time. Note that one, and */
-   /*  only one, of the following conditional statements will be true (if both */
-   /*  were false, this function would not have been called).                  */
-   /*--------------------------------------------------------------------------*/
-
-   if ( Time < T_beg )                    /* Compute backwards location offset */
-   {
-      T_delta = T_beg - Time;
-      Offset  = (int) - ceil(T_delta/T_span);
-   }
-
-   if ( Time > T_end )                    /* Compute forwards location offset */
-   {
-      T_delta = Time - T_end;
-      Offset  = (int) ceil(T_delta/T_span);
-   }
-
-   /*--------------------------------------------------------------------------*/
-   /*  Retrieve ephemeris data from new record.                                */
-   /*--------------------------------------------------------------------------*/
-
-   #ifdef DEBUG_DEFILE_READ
-      MessageInterface::ShowMessage
-         ("DeFile::Read_Coefficients() Offset=%d\n", Offset);
-   #endif
-
-   // if time is less than file begin time, do not update time info.
-   if (Time > mFileBeg) //loj: 9/15/05 Added
-   {
-      fseek(Ephemeris_File,(Offset-1)*arraySize*sizeof(double),SEEK_CUR);
-
-      // Intentionally get the return and then ignore it to move warning from
-      // system libraries to GMAT code base.  The "unused variable" warning here
-      // can be safely ignored.
-      size_t len = fread(&Coeff_Array,sizeof(double),arraySize,Ephemeris_File);
-      if ((Integer)len != arraySize)
-      {
-         // Write detaild message (LOJ: 2015.10.03)
-         //throw PlanetaryEphemException("Requested epoch is not on the DE file");
-         PlanetaryEphemException ex;
-         ex.SetDetails("Requested epoch %.9f is not on the DE file '%s'.\n", Time,
-                       theFileName.c_str());
-         throw ex;
-      }
-      
-      T_beg  = Coeff_Array[0] - baseEpoch;
-      T_end  = Coeff_Array[1] - baseEpoch;
-      T_span = T_end - T_beg;
-   }
+   ValidateDeCoefficientEpoch(Time, mFileBeg, R1.timeData[1] - baseEpoch, theFileName);
+   Read_Coefficients(GmatTime(Time));
 }
 
 
 void DeFile::Read_Coefficients(GmatTime Time)
 {
+   ValidateDeCoefficientEpoch(Time, mFileBeg, R1.timeData[1] - baseEpoch, theFileName);
+
 #ifdef DEBUG_DEFILE_READ
    MessageInterface::ShowMessage("DeFile::Read_Coefficients() Time=%.9f)\n", Time.GetMjd());
    MessageInterface::ShowMessage(" DE filename = '%s'\n", theFileName.c_str());
 #endif
 
-   double  T_delta = 0.0;
    int     Offset = 0;
 
 #ifdef DEBUG_DEFILE_READ
@@ -1079,14 +1053,12 @@ void DeFile::Read_Coefficients(GmatTime Time)
 
    if (Time < T_beg)                    /* Compute backwards location offset */
    {
-      T_delta = (GmatTime(T_beg) - Time).GetTimeInSec();
-      Offset = (int)-ceil(T_delta / (T_span*GmatTimeConstants::SECS_PER_DAY));
+      Offset = -DeRecordCount(GmatTime(T_beg) - Time, T_span);
    }
 
    if (Time > T_end)                    /* Compute forwards location offset */
    {
-      T_delta = (Time - GmatTime(T_end)).GetTimeInSec();
-      Offset = (int)ceil(T_delta / (T_span*GmatTimeConstants::SECS_PER_DAY));
+      Offset = DeRecordCount(Time - GmatTime(T_end), T_span);
    }
 
    /*--------------------------------------------------------------------------*/
@@ -1099,9 +1071,10 @@ void DeFile::Read_Coefficients(GmatTime Time)
 #endif
 
    // if time is less than file begin time, do not update time info.
-   if (Time > mFileBeg) //loj: 9/15/05 Added
+   if (Time >= mFileBeg) //loj: 9/15/05 Added
    {
-      fseek(Ephemeris_File, (Offset - 1)*arraySize*sizeof(double), SEEK_CUR);
+      if (fseek(Ephemeris_File, (Offset - 1)*arraySize*sizeof(double), SEEK_CUR) != 0)
+         throw PlanetaryEphemException("Cannot seek to requested record in DE file '" + theFileName + "'.\n");
 
       // Intentionally get the return and then ignore it to move warning from
       // system libraries to GMAT code base.  The "unused variable" warning here
@@ -1120,6 +1093,8 @@ void DeFile::Read_Coefficients(GmatTime Time)
       T_beg = Coeff_Array[0] - baseEpoch;
       T_end = Coeff_Array[1] - baseEpoch;
       T_span = T_end - T_beg;
+      if (Time < T_beg || Time > T_end)
+         throw PlanetaryEphemException("Selected coefficient record does not cover requested DE epoch.\n");
    }
 }
 
@@ -1305,7 +1280,7 @@ void DeFile::Interpolate_Libration( double Time , int Target ,
       for ( j=G ; j>0 ; j-- )
       {
          T_break = T_beg + ((double) j-1) * T_sub;
-         if ( Time > T_break )
+         if ( Time >= T_break )
          {
             T_seg  = T_break;
             offset = j-1;
@@ -1430,7 +1405,7 @@ void DeFile::Interpolate_Libration( const GmatTime &Time , int Target ,
       for ( j=G ; j>0 ; j-- )
       {
          T_break = T_beg + ((double) j-1) * T_sub;
-         if ( Time > T_break )
+         if ( Time >= T_break )
          {
             T_seg  = T_break;
             offset = j-1;
@@ -1553,7 +1528,7 @@ void DeFile::Interpolate_Nutation( double Time , int Target , double Nutation[2]
       for ( j=G ; j>0 ; j-- )
       {
          T_break = T_beg + ((double) j-1) * T_sub;
-         if ( Time > T_break )
+         if ( Time >= T_break )
          {
             T_seg  = T_break;
             offset = j-1;
@@ -1661,7 +1636,7 @@ void DeFile::Interpolate_Position( double Time , int Target , double Position[3]
       for ( j=G ; j>0 ; j-- )
       {
          T_break = T_beg + ((double) j-1) * T_sub;
-         if ( Time > T_break )
+         if ( Time >= T_break )
          {
             T_seg  = T_break;
             offset = j-1;
@@ -1785,7 +1760,7 @@ void DeFile::Interpolate_State(double Time , int Target, stateType *p)
       for ( j=G ; j>0 ; j-- )
       {
          T_break = T_beg + ((double) j-1) * T_sub;
-         if ( Time > T_break )
+         if ( Time >= T_break )
          {
             T_seg  = T_break;
             offset = j-1;
@@ -1931,7 +1906,7 @@ void DeFile::Interpolate_State(GmatTime Time, int Target, stateType *p)
       for (j = G; j>0; j--)
       {
          T_break = T_beg + ((double)j - 1) * T_sub;
-         if (Time > T_break)
+         if (Time >= T_break)
          {
             T_seg = T_break;
             offset = j - 1;
@@ -2088,6 +2063,8 @@ void DeFile::Interpolate_State_Delta(const GmatTime &Time, const GmatTime &Time2
       //dTc = 2.0*(Time - GmatTime(Time.GetMjd())).GetTimeInSec() / T_span / GmatTimeConstants::SECS_PER_DAY;
       //Tc = Tc + dTc;
       
+      T_seg = T_beg;
+      T_sub = T_span;
       Tc = 2.0*(Time - T_beg).GetMjd() / T_span - 1.0;
       Tc2 = 2.0*(Time2 - T_beg).GetMjd() / T_span - 1.0;
       dt = 2.0*(Time2 - Time).GetMjd() / T_span;
@@ -2100,7 +2077,7 @@ void DeFile::Interpolate_State_Delta(const GmatTime &Time, const GmatTime &Time2
       for (j = G; j>0; j--)
       {
          T_break = T_beg + ((double)j - 1) * T_sub;
-         if (Time > T_break)
+         if (Time >= T_break)
          {
             T_seg = T_break;
             offset = j - 1;
@@ -2122,6 +2099,68 @@ void DeFile::Interpolate_State_Delta(const GmatTime &Time, const GmatTime &Time2
    else                                   /* Something has gone terribly wrong */
    {
       //printf("\n Number of granules must be >= 1: check header data.\n");
+   }
+
+   if (Time2 < T_seg || Time2 > T_seg + T_sub)
+   {
+      // Each endpoint needs its own polynomial. Extrapolating the first
+      // endpoint's coefficients across granules or records is not a delta.
+      if (Time2 < T_beg || Time2 > T_end) Read_Coefficients(Time2);
+      long int secondC = R1.coeffPtr[Target][0] - 1;
+      const double secondWidth = T_span / static_cast<double>(G);
+      double secondStart = T_beg;
+      for (j = G; j > 0; --j)
+      {
+         const double boundary = T_beg + (j - 1) * secondWidth;
+         if (Time2 >= boundary)
+         {
+            secondStart = boundary;
+            secondC += 3 * (j - 1) * N;
+            break;
+         }
+      }
+      auto phase = [](const GmatTime &epoch, double start, double width)
+      {
+         const GmatTime relative = epoch - GmatTime(start);
+         const long double days = static_cast<long double>(relative.GetDays()) +
+            (relative.GetSec() + static_cast<long double>(relative.GetFracSec())) /
+            GmatTimeConstants::SECS_PER_DAY;
+         return 2.L * days / width - 1.L;
+      };
+      const long double x1 = phase(Time, T_seg, T_sub);
+      const long double x2 = phase(Time2, secondStart, secondWidth);
+      const long double dx = x2 - x1;
+      long double polynomial[50], difference[50];
+      polynomial[0] = 1.L;
+      polynomial[1] = x1;
+      difference[0] = 0.L;
+      difference[1] = dx;
+      for (j = 2; j < N; ++j)
+      {
+         polynomial[j] = 2.L * x1 * polynomial[j - 1] - polynomial[j - 2];
+         difference[j] = 2.L * x2 * difference[j - 1] +
+            2.L * dx * polynomial[j - 1] - difference[j - 2];
+      }
+      for (i = 0; i < 3; ++i)
+      {
+         long double sum = 0.L, correction = 0.L;
+         for (j = N - 1; j >= 0; --j)
+         {
+            const long double a = A[j + i * N];
+            const long double b = Coeff_Array[secondC + j + i * N];
+            // Difference the series before summation rather than subtracting
+            // two large rounded positions for a very short interval.
+            const long double term = (b - a) * polynomial[j] + b * difference[j];
+            const long double next = sum + term;
+            correction += std::abs(sum) >= std::abs(term) ?
+               (sum - next) + term : (term - next) + sum;
+            sum = next;
+         }
+         X.Position[i] = static_cast<double>(sum + correction);
+         X.Velocity[i] = 0.0;
+      }
+      *p = X;
+      return;
    }
 
    /*--------------------------------------------------------------------------*/

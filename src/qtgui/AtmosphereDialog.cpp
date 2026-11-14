@@ -42,10 +42,16 @@ QStringList atmosphereModels(const QString &body)
 }
 void validateWeather(DragForce &drag)
 {
-   if (drag.GetStringParameter("AtmosphereModel")=="Exponential") {
+   const auto type=drag.GetStringParameter("AtmosphereModel");
+   const bool marsGram=type=="MarsGRAM2005";
+   if (type=="Exponential" || marsGram) {
       const auto path=QString::fromStdString(drag.GetStringParameter("InputFile"));
       if (!path.isEmpty() && (!QFileInfo(path).isFile() || !QFileInfo(path).isReadable()))
          throw std::runtime_error("Choose a readable atmosphere input file.");
+      if (marsGram && path.isEmpty())
+         throw std::runtime_error("Choose a readable Mars-GRAM input namelist file.");
+      if (marsGram && !QStringList{"Mean","High","Low"}.contains(QString::fromStdString(drag.GetStringParameter("DensityModel"))))
+         throw std::runtime_error("Select a Mars-GRAM density model: Mean, High or Low.");
       if (path.isEmpty() && drag.GetBodyName()!="Earth" && drag.GetBodyName()!="Mars")
          throw std::runtime_error("Choose an atmosphere input file for this body.");
       return;
@@ -145,8 +151,9 @@ AtmosphereDialog::AtmosphereDialog(GmatBase &forceModel,const QMap<QString,QStri
    number("F107","Solar flux (F10.7)","sfu"); number("F107A","Average solar flux (F10.7A)","sfu"); number("MagneticIndex","Geomagnetic index (Kp)","0–9");
    choice(configurationForm,"SchattenErrorModel","Schatten error",{"Nominal","PlusTwoSigma","MinusTwoSigma"});
    choice(configurationForm,"SchattenTimingModel","Schatten timing",{"NominalCycle","EarlyCycle","LateCycle"});
+   choice(configurationForm,"DensityModel","Mars-GRAM density",{"Mean","High","Low"});
    auto *files=new QGroupBox("Input files",content); auto *fileForm=new QFormLayout(files); groups->addWidget(files);
-   auto *fileHelp=new QLabel("Both weather files must be valid, including when constant sources are selected.",files); fileHelp->setWordWrap(true); fileForm->addRow(fileHelp);
+   auto *fileHelp=new QLabel("For Mars-GRAM, choose its input namelist file. Earth weather models require both weather files, including with constant sources.",files); fileHelp->setWordWrap(true); fileForm->addRow(fileHelp);
    for (const auto &name:QStringList{"CSSISpaceWeatherFile","SchattenFile","InputFile"}) {
       auto *row=new QWidget(files); auto *line=new QHBoxLayout(row); line->setContentsMargins(0,0,0,0);
       auto *edit=new QLineEdit(pending.value("Drag."+name,QString::fromStdString(current->GetStringParameter(name.toStdString()))),row);
@@ -170,11 +177,13 @@ AtmosphereDialog::AtmosphereDialog(GmatBase &forceModel,const QMap<QString,QStri
       try {
          QMap<QString,QString> values={{"Drag.AtmosphereModel",model->currentText()},{"Drag.BodyName",body->currentText()}};
          const bool weather=model->currentText()!="None" && model->currentText()!="Exponential";
+         const bool marsGram=model->currentText()=="MarsGRAM2005";
          for (auto it=controls.cbegin();it!=controls.cend();++it) {
             if (it.key().startsWith("Browse_")) continue;
-            if (it.key()=="InputFile" && model->currentText()!="Exponential") continue;
-            if (it.key()!="InputFile" && it.key()!="DragModel" && !weather) continue;
-            if (body->currentText()!="Earth" && it.key()!="InputFile" && it.key()!="DragModel" && it.key()!="F107" && it.key()!="F107A" && it.key()!="MagneticIndex") continue;
+            if (it.key()=="InputFile" && model->currentText()!="Exponential" && !marsGram) continue;
+            if (it.key()=="DensityModel" && !marsGram) continue;
+            if (it.key()!="InputFile" && it.key()!="DensityModel" && it.key()!="DragModel" && !weather) continue;
+            if (body->currentText()!="Earth" && it.key()!="InputFile" && it.key()!="DensityModel" && it.key()!="DragModel" && it.key()!="F107" && it.key()!="F107A" && it.key()!="MagneticIndex") continue;
             if (auto *combo=qobject_cast<QComboBox *>(it.value())) values.insert("Drag."+it.key(),combo->currentText());
             else if (auto *edit=qobject_cast<QLineEdit *>(it.value())) values.insert("Drag."+it.key(),edit->text());
          }
@@ -206,5 +215,7 @@ void AtmosphereDialog::update()
    const auto predicted=qobject_cast<QComboBox *>(controls["PredictedWeatherSource"])->currentText();
    for (const auto &name:QStringList{"CSSISpaceWeatherFile","Browse_CSSISpaceWeatherFile","SchattenFile","Browse_SchattenFile"}) controls[name]->setEnabled(weather && earth);
    for (const auto &name:QStringList{"SchattenErrorModel","SchattenTimingModel"}) controls[name]->setEnabled(weather && earth && predicted=="SchattenFile");
-   for (const auto &name:QStringList{"InputFile","Browse_InputFile"}) controls[name]->setEnabled(active && model->currentText()=="Exponential");
+   const bool marsGram=model->currentText()=="MarsGRAM2005";
+   controls["DensityModel"]->setEnabled(marsGram);
+   for (const auto &name:QStringList{"InputFile","Browse_InputFile"}) controls[name]->setEnabled(active && (model->currentText()=="Exponential" || marsGram));
 }

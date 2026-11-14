@@ -71,6 +71,8 @@
 // **************************************************************************
 
 #include "PointMassForce.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "MessageInterface.hpp"
 #include "SolarSystem.hpp"
 #include "Rvector6.hpp"
@@ -206,11 +208,14 @@ PointMassForce& PointMassForce::operator= (const PointMassForce& pmf)
    if (&pmf == this)
       return *this;
       
+   const bool restoring = GmatBase::IsNativeRestorationCopy();
+   if (restoring && (satCount != pmf.satCount || isPrimaryBody != pmf.isPrimaryBody))
+      throw ODEModelException("Prepare point-mass spacecraft roles before restoring a changed force.");
    PhysicalModel::operator=(pmf);
    epoch            = pmf.epoch;
    mu               = pmf.mu;
    dimension        = pmf.dimension;
-   isInitialized    = false;
+   if (!restoring) isInitialized = false;
    elapsedTime      = pmf.elapsedTime;
    estimationMethod = pmf.estimationMethod;
    isPrimaryBody    = pmf.isPrimaryBody;
@@ -792,12 +797,22 @@ Real PointMassForce::EstimateError(Real * diffs, Real * answer) const
 //------------------------------------------------------------------------------
 Rvector6 PointMassForce::GetDerivativesForSpacecraft(Spacecraft *sc)
 {
-   Rvector6 dv;
+   return EvaluateCartesianAcceleration(sc->GetState().GetState(), sc->GetEpoch(), sc->GetEpochGT());
+}
 
-   Real *j2kState = sc->GetState().GetState();
+Rvector6 PointMassForce::GetDerivativesAtState(const Rvector6 &cartesian,
+      const GmatTime &atEpoch)
+{
+   Real copy[6];
+   for (Integer i=0;i<6;++i) copy[i]=cartesian[i];
+   return EvaluateCartesianAcceleration(copy, atEpoch.GetMjd(), atEpoch);
+}
+
+Rvector6 PointMassForce::EvaluateCartesianAcceleration(Real *j2kState,
+      Real now, const GmatTime &nowgt)
+{
+   Rvector6 dv;
    Real state[6];
-   Real now = sc->GetEpoch();
-   GmatTime nowgt = sc->GetEpochGT();
 
    if (hasPrecisionTime)
       BuildModelStateGT(nowgt, state, j2kState);
@@ -955,7 +970,7 @@ Gmat::ParameterType PointMassForce::GetParameterType(const Integer id) const
 std::string PointMassForce::GetParameterTypeString(const Integer id) const
 {
    if ((id >= PhysicalModelParamCount) && (id < PointMassParamCount))
-      return PARAMETER_TEXT[id - PhysicalModelParamCount];
+      return GmatBase::PARAM_TYPE_STRING[GetParameterType(id)];
    return PhysicalModel::GetParameterTypeString(id);
 }
 
@@ -1374,3 +1389,15 @@ void  PointMassForce::ShowDerivative(const std::string &header, Real *state,
    #endif
 }
 
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void PointMassForce::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const PointMassForce*>(original);
+   if (!source || typeid(*source) != typeid(PointMassForce) ||
+       typeid(*this) != typeid(PointMassForce))
+      throw GmatBaseException("Cannot copy incompatible object into PointMassForce");
+   if (source == this)
+      return;
+   operator=(*source);
+}

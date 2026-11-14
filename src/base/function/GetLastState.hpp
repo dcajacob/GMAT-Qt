@@ -37,6 +37,8 @@
 class GMAT_API GetLastState : public BuiltinGmatFunction
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = BuiltinGmatFunction::NativeValueProviderDepth + 1;
+
    GetLastState(const std::string &typeStr, const std::string &nomme);
    virtual ~GetLastState();
    GetLastState(const GetLastState &f);
@@ -55,6 +57,10 @@ public:
    // inherited from GmatBase
    virtual GmatBase*    Clone() const;
    virtual void         Copy(const GmatBase* orig);
+   bool HasFunctionValueReferenceProvider() const override;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+
    
 protected:
 };

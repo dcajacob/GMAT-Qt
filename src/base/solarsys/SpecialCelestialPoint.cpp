@@ -219,6 +219,7 @@ bool SpecialCelestialPoint::SetSource(Gmat::PosVelSource pvSrc)
 
    if (pvSrc == posVelSrc) return true;
    posVelSrc           = pvSrc;
+   NotifyEphemerisChange(true);
    return true;
 }
 

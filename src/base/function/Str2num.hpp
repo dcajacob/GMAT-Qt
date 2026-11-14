@@ -37,6 +37,8 @@
 class GMAT_API Str2num : public BuiltinGmatFunction
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = BuiltinGmatFunction::NativeValueProviderDepth + 1;
+
    Str2num(const std::string &typeStr, const std::string &name);
    virtual ~Str2num();
    Str2num(const Str2num &f);
@@ -55,6 +57,10 @@ public:
    // inherited from GmatBase
    virtual GmatBase*    Clone() const;
    virtual void         Copy(const GmatBase* orig);
+   bool HasFunctionValueReferenceProvider() const override;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+
 
 protected:
 

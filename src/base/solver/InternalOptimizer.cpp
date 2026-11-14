@@ -31,6 +31,10 @@
 
 
 #include "InternalOptimizer.hpp"
+#include "MessageInterface.hpp"
+#include "SolverException.hpp"
+#include <sstream>
+#include <iomanip>
 
 //-----------------------------------------
 // public methods
@@ -123,18 +127,54 @@ bool InternalOptimizer::Initialize()
 //------------------------------------------------------------------------------
 void InternalOptimizer::ReportProgress(const SolverState forState)
 {
-   SolverState stateBuffer = currentState;
-
-   if (forState != UNDEFINED_STATE)
-      currentState = forState;
-
-   if (currentState == CHECKINGRUN)
+   // The command requests this complete snapshot explicitly after refreshing
+   // physical reporting values. Provider callbacks retain their original text.
+   if (typeName != "VF13ad" || forState != CHECKINGRUN)
    {
-      // Update achieved values
+      Solver::ReportProgress(forState);
+      return;
    }
+   if (!showProgress || !isInitialized)
+      return;
 
-   currentState = stateBuffer;
-
-   Solver::ReportProgress(forState);
+   // The provider restores its nominal residuals before this callback. Use the
+   // same physical constraint reconstruction as the solver-window listener;
+   // the last finite-difference evaluation's achieved-value cache can be stale.
+   const RealArray equality = *GetSolverData("EqConstraints");
+   const RealArray inequality = *GetSolverData("IneqConstraints");
+   std::ostringstream report;
+   report << std::setprecision(17)
+          << "VF13ad iteration result " << iterationsTaken << "\n";
+   for (UnsignedInt i = 0; i < variableNames.size(); ++i)
+   {
+      report << "   Control " << variableNames[i] << " = " << unscaledVariable.at(i) << "\n";
+      if (textFileMode == "Verbose")
+         report << "   Scaled control " << variableNames[i] << " = " << variable.at(i) << "\n";
+   }
+   if (objectiveDefined)
+      report << "   Objective " << objectiveFnName << " = " << cost << "\n";
+   for (UnsignedInt i = 0; i < eqConstraintNames.size(); ++i)
+      report << "   Constraint " << eqConstraintNames[i] << " =; desired = "
+             << eqConstraintDesiredValues.at(i) << "; achieved = " << equality.at(i)
+             << "; residual = " << equality.at(i) - eqConstraintDesiredValues.at(i) << "\n";
+   for (UnsignedInt i = 0; i < ineqConstraintNames.size(); ++i)
+   {
+      const bool lower = ineqConstraintOp.at(i) == 1;
+      report << "   Constraint " << ineqConstraintNames[i] << (lower ? " >=" : " <=")
+             << "; desired = " << ineqConstraintDesiredValues.at(i)
+             << "; achieved = " << inequality.at(i) << "; residual = "
+             << (lower ? ineqConstraintDesiredValues.at(i) - inequality.at(i)
+                       : inequality.at(i) - ineqConstraintDesiredValues.at(i)) << "\n";
+   }
+   report << "End VF13ad iteration result " << iterationsTaken << "\n";
+   const std::string text = report.str();
+   MessageInterface::ShowMessage("%s", text.c_str());
+   if (textFile.is_open())
+   {
+      textFile << text;
+      textFile.flush();
+      if (!textFile)
+         throw SolverException("Cannot write VF13ad iteration results to " + solverTextFileFullPath);
+   }
 }
 

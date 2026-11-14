@@ -1,0 +1,2191 @@
+{
+  "input_state": [
+    7000,
+    -1200,
+    900,
+    1.5,
+    6.75,
+    -2
+  ],
+  "numeric_sentinel": 41,
+  "source_fixture": "AttitudeOffsetScopeCases.json",
+  "source_fixture_sha256": "af4e9b070a9487340e11ca3a4e6df3880f8759c4168c9557d0b008a3eb77648c",
+  "scope": "Offset boundaries and actual GUI rejection/atomic correction, conjoined with all 68 original source-permitted frame/origin cells. No credit alone.",
+  "invalid_inputs": [
+    "",
+    "0 0 0",
+    "0 0 0 1 2",
+    "0 0 0 0",
+    "0 0 0 1e-12",
+    "nan 0 0 1",
+    "inf 0 0 1",
+    "-inf 0 0 1",
+    "1e309 0 0 1",
+    "word 0 0 1"
+  ],
+  "invalid_expected_errors": [
+    "Keep the existing number of columns",
+    "Keep the existing number of columns",
+    "Keep the existing number of columns",
+    "OffsetQuaternion magnitude",
+    "OffsetQuaternion magnitude",
+    "Every cell must contain a finite number",
+    "Every cell must contain a finite number",
+    "Every cell must contain a finite number",
+    "Every cell must contain a finite number",
+    "Every cell must contain a finite number"
+  ],
+  "cases": [
+    {
+      "origin_requirement": "FRR!E432",
+      "axis_requirement": "FRR!E447",
+      "axis": "Topocentric",
+      "origin_class": "GroundStation",
+      "key": "Identity",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Preserve independent origin frame acceptance Δ\nEarth.Mu = 400000;\nLuna.Mu = 5000;\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@STATION@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 6400;\nProbe.Flattening = 0.01;\nProbe.OrientationEpoch = 21545;\nProbe.SpinAxisRAConstant = 270;\nProbe.SpinAxisRARate = 0;\nProbe.SpinAxisDECConstant = 90;\nProbe.SpinAxisDECRate = 0;\nProbe.RotationConstant = 30;\nProbe.RotationRate = 120;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate LibrationPoint LP;\nLP.Primary = Earth;\nLP.Secondary = Luna;\nLP.Point = L1;\nCreate GroundStation Site;\nSite.CentralBody = Probe;\nSite.StateType = Spherical;\nSite.HorizonReference = Sphere;\nSite.Location1 = 31.25;\nSite.Location2 = -81.5;\nSite.Location3 = 1.2;\nCreate CoordinateSystem Baseline;\nBaseline.Origin = Earth;\nBaseline.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Site;\nCreatedFrame.Axes = Topocentric;\n",
+      "reference": "CreatedFrame",
+      "matrix_bound": 2e-10,
+      "rate_bound_degrees_s": 5e-09,
+      "rate_convention": "Independent geometric basis derivative",
+      "frame_oracle_key": "Topocentric",
+      "samples": [
+        {
+          "epoch": 21545,
+          "frame_rows": [
+            [
+              0.32294394630111095,
+              -0.4059961833933271,
+              -0.8549118706729466
+            ],
+            [
+              0.7826081568524139,
+              0.6225146366376196,
+              0
+            ],
+            [
+              0.5321951525291571,
+              -0.6690610033786041,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              9.841625209367059e-06,
+              7.828382169914096e-06,
+              0
+            ],
+            [
+              -1.509018062664248e-05,
+              1.8970957069498397e-05,
+              0
+            ],
+            [
+              1.6218496396741037e-05,
+              1.290077454831558e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              0.32294394630111095,
+              -0.4059961833933271,
+              -0.8549118706729466
+            ],
+            [
+              0.7826081568524139,
+              0.6225146366376196,
+              0.0
+            ],
+            [
+              0.5321951525291571,
+              -0.6690610033786041,
+              0.5187732581605213
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            0.0,
+            0.0007205184141118352
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "frame_rows": [
+            [
+              0.5130749817818271,
+              0.0766795699783242,
+              -0.8549118706729466
+            ],
+            [
+              -0.14780941147625162,
+              0.989015863310111,
+              0
+            ],
+            [
+              0.8455214018276662,
+              0.12636402046822956,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.8587652293543809e-06,
+              1.2437288530142784e-05,
+              0
+            ],
+            [
+              -2.397442106835503e-05,
+              -3.583001244021782e-06,
+              0
+            ],
+            [
+              -3.063150296150156e-06,
+              2.04960171638483e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              0.5130749817818271,
+              0.0766795699783242,
+              -0.8549118706729466
+            ],
+            [
+              -0.14780941147625162,
+              0.989015863310111,
+              0.0
+            ],
+            [
+              0.8455214018276662,
+              0.12636402046822956,
+              0.5187732581605213
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            0.0,
+            0.0007205184141118352
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "frame_rows": [
+            [
+              -0.07667957024806611,
+              0.5130749817415139,
+              -0.8549118706729466
+            ],
+            [
+              -0.9890158632324023,
+              -0.1478094119962127,
+              0
+            ],
+            [
+              -0.12636402091275048,
+              0.8455214017612321,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.2437288529165566e-05,
+              -1.8587652358931093e-06,
+              0
+            ],
+            [
+              3.5830012566259943e-06,
+              -2.3974421066471317e-05,
+              0
+            ],
+            [
+              -2.0496017162237894e-05,
+              -3.0631503069256475e-06,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              -0.07667957024806611,
+              0.5130749817415139,
+              -0.8549118706729466
+            ],
+            [
+              -0.9890158632324023,
+              -0.1478094119962127,
+              0.0
+            ],
+            [
+              -0.12636402091275048,
+              0.8455214017612321,
+              0.5187732581605213
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            0.0,
+            0.0007205184141118352
+          ]
+        }
+      ],
+      "base_frame_case": "GroundStation_Topocentric",
+      "input_quaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "offset_quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "offset_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "serializes_offset": false,
+      "invalid_guards": false
+    },
+    {
+      "origin_requirement": "FRR!E432",
+      "axis_requirement": "FRR!E447",
+      "axis": "Topocentric",
+      "origin_class": "GroundStation",
+      "key": "Negative",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Preserve independent origin frame acceptance Δ\nEarth.Mu = 400000;\nLuna.Mu = 5000;\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@STATION@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 6400;\nProbe.Flattening = 0.01;\nProbe.OrientationEpoch = 21545;\nProbe.SpinAxisRAConstant = 270;\nProbe.SpinAxisRARate = 0;\nProbe.SpinAxisDECConstant = 90;\nProbe.SpinAxisDECRate = 0;\nProbe.RotationConstant = 30;\nProbe.RotationRate = 120;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate LibrationPoint LP;\nLP.Primary = Earth;\nLP.Secondary = Luna;\nLP.Point = L1;\nCreate GroundStation Site;\nSite.CentralBody = Probe;\nSite.StateType = Spherical;\nSite.HorizonReference = Sphere;\nSite.Location1 = 31.25;\nSite.Location2 = -81.5;\nSite.Location3 = 1.2;\nCreate CoordinateSystem Baseline;\nBaseline.Origin = Earth;\nBaseline.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Site;\nCreatedFrame.Axes = Topocentric;\n",
+      "reference": "CreatedFrame",
+      "matrix_bound": 2e-10,
+      "rate_bound_degrees_s": 5e-09,
+      "rate_convention": "Independent geometric basis derivative",
+      "frame_oracle_key": "Topocentric",
+      "samples": [
+        {
+          "epoch": 21545,
+          "frame_rows": [
+            [
+              0.32294394630111095,
+              -0.4059961833933271,
+              -0.8549118706729466
+            ],
+            [
+              0.7826081568524139,
+              0.6225146366376196,
+              0
+            ],
+            [
+              0.5321951525291571,
+              -0.6690610033786041,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              9.841625209367059e-06,
+              7.828382169914096e-06,
+              0
+            ],
+            [
+              -1.509018062664248e-05,
+              1.8970957069498397e-05,
+              0
+            ],
+            [
+              1.6218496396741037e-05,
+              1.290077454831558e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              0.5104223165127162,
+              0.15919186772419386,
+              -0.8450603576409648
+            ],
+            [
+              0.6596263898149267,
+              0.5579861963448234,
+              0.5035319558363329
+            ],
+            [
+              0.55169020715028,
+              -0.8144380602225801,
+              0.17980144992563873
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.001173694941168007,
+            0.0006993499386615736,
+            0.0002497242360078315
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "frame_rows": [
+            [
+              0.5130749817818271,
+              0.0766795699783242,
+              -0.8549118706729466
+            ],
+            [
+              -0.14780941147625162,
+              0.989015863310111,
+              0
+            ],
+            [
+              0.8455214018276662,
+              0.12636402046822956,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.8587652293543809e-06,
+              1.2437288530142784e-05,
+              0
+            ],
+            [
+              -2.397442106835503e-05,
+              -3.583001244021782e-06,
+              0
+            ],
+            [
+              -3.063150296150156e-06,
+              2.04960171638483e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              0.1173469565484861,
+              0.5216346266617397,
+              -0.8450603576409648
+            ],
+            [
+              -0.1534170263862089,
+              0.8502463087049837,
+              0.5035319558363329
+            ],
+            [
+              0.9811691535120847,
+              0.07055870464384258,
+              0.17980144992563873
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.001173694941168007,
+            0.0006993499386615736,
+            0.0002497242360078315
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "frame_rows": [
+            [
+              -0.07667957024806611,
+              0.5130749817415139,
+              -0.8549118706729466
+            ],
+            [
+              -0.9890158632324023,
+              -0.1478094119962127,
+              0
+            ],
+            [
+              -0.12636402091275048,
+              0.8455214017612321,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.2437288529165566e-05,
+              -1.8587652358931093e-06,
+              0
+            ],
+            [
+              3.5830012566259943e-06,
+              -2.3974421066471317e-05,
+              0
+            ],
+            [
+              -2.0496017162237894e-05,
+              -3.0631503069256475e-06,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              -0.5216346267234332,
+              0.11734695627424407,
+              -0.8450603576409648
+            ],
+            [
+              -0.8502463086243269,
+              -0.15341702683321387,
+              0.5035319558363329
+            ],
+            [
+              -0.07055870515967838,
+              0.9811691534749895,
+              0.17980144992563873
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.001173694941168007,
+            0.0006993499386615736,
+            0.0002497242360078315
+          ]
+        }
+      ],
+      "base_frame_case": "GroundStation_Topocentric",
+      "input_quaternion": [
+        -0.08258826568869311,
+        -0.16517653137738622,
+        -0.24776479706607932,
+        -0.9510565162951535
+      ],
+      "offset_quaternion": [
+        -0.08258826568869311,
+        -0.16517653137738622,
+        -0.24776479706607932,
+        -0.9510565162951536
+      ],
+      "offset_matrix": [
+        [
+          0.8226586376338798,
+          0.49855993603434684,
+          -0.2732595032341912
+        ],
+        [
+          -0.4439933629986175,
+          0.8635835674106768,
+          0.23894207605908802
+        ],
+        [
+          0.3551093627877851,
+          -0.07524235695190011,
+          0.9317917837053383
+        ]
+      ],
+      "serializes_offset": true,
+      "invalid_guards": false
+    },
+    {
+      "origin_requirement": "FRR!E432",
+      "axis_requirement": "FRR!E447",
+      "axis": "Topocentric",
+      "origin_class": "GroundStation",
+      "key": "Normalized",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Preserve independent origin frame acceptance Δ\nEarth.Mu = 400000;\nLuna.Mu = 5000;\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@STATION@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 6400;\nProbe.Flattening = 0.01;\nProbe.OrientationEpoch = 21545;\nProbe.SpinAxisRAConstant = 270;\nProbe.SpinAxisRARate = 0;\nProbe.SpinAxisDECConstant = 90;\nProbe.SpinAxisDECRate = 0;\nProbe.RotationConstant = 30;\nProbe.RotationRate = 120;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate LibrationPoint LP;\nLP.Primary = Earth;\nLP.Secondary = Luna;\nLP.Point = L1;\nCreate GroundStation Site;\nSite.CentralBody = Probe;\nSite.StateType = Spherical;\nSite.HorizonReference = Sphere;\nSite.Location1 = 31.25;\nSite.Location2 = -81.5;\nSite.Location3 = 1.2;\nCreate CoordinateSystem Baseline;\nBaseline.Origin = Earth;\nBaseline.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Site;\nCreatedFrame.Axes = Topocentric;\n",
+      "reference": "CreatedFrame",
+      "matrix_bound": 2e-10,
+      "rate_bound_degrees_s": 5e-09,
+      "rate_convention": "Independent geometric basis derivative",
+      "frame_oracle_key": "Topocentric",
+      "samples": [
+        {
+          "epoch": 21545,
+          "frame_rows": [
+            [
+              0.32294394630111095,
+              -0.4059961833933271,
+              -0.8549118706729466
+            ],
+            [
+              0.7826081568524139,
+              0.6225146366376196,
+              0
+            ],
+            [
+              0.5321951525291571,
+              -0.6690610033786041,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              9.841625209367059e-06,
+              7.828382169914096e-06,
+              0
+            ],
+            [
+              -1.509018062664248e-05,
+              1.8970957069498397e-05,
+              0
+            ],
+            [
+              1.6218496396741037e-05,
+              1.290077454831558e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              0.5104223165127164,
+              0.15919186772419391,
+              -0.8450603576409647
+            ],
+            [
+              0.6596263898149266,
+              0.5579861963448234,
+              0.503531955836333
+            ],
+            [
+              0.55169020715028,
+              -0.8144380602225801,
+              0.17980144992563868
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.0011736949411680067,
+            0.0006993499386615737,
+            0.00024972423600783144
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "frame_rows": [
+            [
+              0.5130749817818271,
+              0.0766795699783242,
+              -0.8549118706729466
+            ],
+            [
+              -0.14780941147625162,
+              0.989015863310111,
+              0
+            ],
+            [
+              0.8455214018276662,
+              0.12636402046822956,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.8587652293543809e-06,
+              1.2437288530142784e-05,
+              0
+            ],
+            [
+              -2.397442106835503e-05,
+              -3.583001244021782e-06,
+              0
+            ],
+            [
+              -3.063150296150156e-06,
+              2.04960171638483e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              0.11734695654848609,
+              0.5216346266617398,
+              -0.8450603576409647
+            ],
+            [
+              -0.1534170263862089,
+              0.8502463087049836,
+              0.503531955836333
+            ],
+            [
+              0.9811691535120847,
+              0.07055870464384259,
+              0.17980144992563868
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.0011736949411680067,
+            0.0006993499386615737,
+            0.00024972423600783144
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "frame_rows": [
+            [
+              -0.07667957024806611,
+              0.5130749817415139,
+              -0.8549118706729466
+            ],
+            [
+              -0.9890158632324023,
+              -0.1478094119962127,
+              0
+            ],
+            [
+              -0.12636402091275048,
+              0.8455214017612321,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.2437288529165566e-05,
+              -1.8587652358931093e-06,
+              0
+            ],
+            [
+              3.5830012566259943e-06,
+              -2.3974421066471317e-05,
+              0
+            ],
+            [
+              -2.0496017162237894e-05,
+              -3.0631503069256475e-06,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              -0.5216346267234333,
+              0.11734695627424406,
+              -0.8450603576409647
+            ],
+            [
+              -0.8502463086243268,
+              -0.15341702683321387,
+              0.503531955836333
+            ],
+            [
+              -0.0705587051596784,
+              0.9811691534749896,
+              0.17980144992563868
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.0011736949411680067,
+            0.0006993499386615737,
+            0.00024972423600783144
+          ]
+        }
+      ],
+      "base_frame_case": "GroundStation_Topocentric",
+      "input_quaternion": [
+        0.5781178598208517,
+        1.1562357196417035,
+        1.7343535794625553,
+        6.657395614066075
+      ],
+      "offset_quaternion": [
+        0.08258826568869311,
+        0.16517653137738622,
+        0.24776479706607937,
+        0.9510565162951536
+      ],
+      "offset_matrix": [
+        [
+          0.8226586376338797,
+          0.49855993603434695,
+          -0.2732595032341911
+        ],
+        [
+          -0.44399336299861764,
+          0.8635835674106767,
+          0.23894207605908804
+        ],
+        [
+          0.35510936278778515,
+          -0.0752423569519001,
+          0.9317917837053383
+        ]
+      ],
+      "serializes_offset": true,
+      "invalid_guards": true
+    },
+    {
+      "origin_requirement": "FRR!E432",
+      "axis_requirement": "FRR!E447",
+      "axis": "Topocentric",
+      "origin_class": "GroundStation",
+      "key": "HalfTurn",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Preserve independent origin frame acceptance Δ\nEarth.Mu = 400000;\nLuna.Mu = 5000;\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@STATION@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 6400;\nProbe.Flattening = 0.01;\nProbe.OrientationEpoch = 21545;\nProbe.SpinAxisRAConstant = 270;\nProbe.SpinAxisRARate = 0;\nProbe.SpinAxisDECConstant = 90;\nProbe.SpinAxisDECRate = 0;\nProbe.RotationConstant = 30;\nProbe.RotationRate = 120;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate LibrationPoint LP;\nLP.Primary = Earth;\nLP.Secondary = Luna;\nLP.Point = L1;\nCreate GroundStation Site;\nSite.CentralBody = Probe;\nSite.StateType = Spherical;\nSite.HorizonReference = Sphere;\nSite.Location1 = 31.25;\nSite.Location2 = -81.5;\nSite.Location3 = 1.2;\nCreate CoordinateSystem Baseline;\nBaseline.Origin = Earth;\nBaseline.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Site;\nCreatedFrame.Axes = Topocentric;\n",
+      "reference": "CreatedFrame",
+      "matrix_bound": 2e-10,
+      "rate_bound_degrees_s": 5e-09,
+      "rate_convention": "Independent geometric basis derivative",
+      "frame_oracle_key": "Topocentric",
+      "samples": [
+        {
+          "epoch": 21545,
+          "frame_rows": [
+            [
+              0.32294394630111095,
+              -0.4059961833933271,
+              -0.8549118706729466
+            ],
+            [
+              0.7826081568524139,
+              0.6225146366376196,
+              0
+            ],
+            [
+              0.5321951525291571,
+              -0.6690610033786041,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              9.841625209367059e-06,
+              7.828382169914096e-06,
+              0
+            ],
+            [
+              -1.509018062664248e-05,
+              1.8970957069498397e-05,
+              0
+            ],
+            [
+              1.6218496396741037e-05,
+              1.290077454831558e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              0.17487687049794762,
+              0.2391176233570557,
+              0.9551129997884634
+            ],
+            [
+              0.21303347674570317,
+              -0.9562717567101625,
+              0.20040225823103353
+            ],
+            [
+              0.9612672978680187,
+              0.16842532326978985,
+              -0.2181698708139711
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            0.0013265458330395327,
+            0.00027833646976532426,
+            -0.0003030137094638488
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "frame_rows": [
+            [
+              0.5130749817818271,
+              0.0766795699783242,
+              -0.8549118706729466
+            ],
+            [
+              -0.14780941147625162,
+              0.989015863310111,
+              0
+            ],
+            [
+              0.8455214018276662,
+              0.12636402046822956,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.8587652293543809e-06,
+              1.2437288530142784e-05,
+              0
+            ],
+            [
+              -2.397442106835503e-05,
+              -3.583001244021782e-06,
+              0
+            ],
+            [
+              -3.063150296150156e-06,
+              2.04960171638483e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              -0.11964350116578101,
+              0.271006624022138,
+              0.9551129997884634
+            ],
+            [
+              0.9346723727083439,
+              -0.2936434753091868,
+              0.20040225823103353
+            ],
+            [
+              0.3347730400204719,
+              0.9166945615331569,
+              -0.2181698708139711
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            0.0013265458330395327,
+            0.00027833646976532426,
+            -0.0003030137094638488
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "frame_rows": [
+            [
+              -0.07667957024806611,
+              0.5130749817415139,
+              -0.8549118706729466
+            ],
+            [
+              -0.9890158632324023,
+              -0.1478094119962127,
+              0
+            ],
+            [
+              -0.12636402091275048,
+              0.8455214017612321,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.2437288529165566e-05,
+              -1.8587652358931093e-06,
+              0
+            ],
+            [
+              3.5830012566259943e-06,
+              -2.3974421066471317e-05,
+              0
+            ],
+            [
+              -2.0496017162237894e-05,
+              -3.0631503069256475e-06,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              -0.2710066239592371,
+              -0.1196435013082589,
+              0.9551129997884634
+            ],
+            [
+              0.293643474817796,
+              0.9346723728627228,
+              0.20040225823103353
+            ],
+            [
+              -0.9166945617091591,
+              0.3347730395385327,
+              -0.2181698708139711
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            0.0013265458330395327,
+            0.00027833646976532426,
+            -0.0003030137094638488
+          ]
+        }
+      ],
+      "base_frame_case": "GroundStation_Topocentric",
+      "input_quaternion": [
+        1,
+        2,
+        3,
+        0
+      ],
+      "offset_quaternion": [
+        0.2672612419124244,
+        0.5345224838248488,
+        0.8017837257372732,
+        0.0
+      ],
+      "offset_matrix": [
+        [
+          -0.8571428571428572,
+          0.28571428571428575,
+          0.4285714285714286
+        ],
+        [
+          0.28571428571428575,
+          -0.4285714285714286,
+          0.8571428571428572
+        ],
+        [
+          0.4285714285714286,
+          0.8571428571428572,
+          0.2857142857142856
+        ]
+      ],
+      "serializes_offset": true,
+      "invalid_guards": false
+    },
+    {
+      "origin_requirement": "FRR!E429",
+      "axis_requirement": "FRR!E442",
+      "axis": "BodyFixed",
+      "origin_class": "CelestialBody",
+      "key": "HalfTurnBody",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Preserve independent origin frame acceptance Δ\nEarth.Mu = 400000;\nLuna.Mu = 5000;\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@STATION@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 6400;\nProbe.Flattening = 0.01;\nProbe.OrientationEpoch = 21545;\nProbe.SpinAxisRAConstant = 270;\nProbe.SpinAxisRARate = 0;\nProbe.SpinAxisDECConstant = 90;\nProbe.SpinAxisDECRate = 0;\nProbe.RotationConstant = 30;\nProbe.RotationRate = 120;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate LibrationPoint LP;\nLP.Primary = Earth;\nLP.Secondary = Luna;\nLP.Point = L1;\nCreate GroundStation Site;\nSite.CentralBody = Probe;\nSite.StateType = Spherical;\nSite.HorizonReference = Sphere;\nSite.Location1 = 31.25;\nSite.Location2 = -81.5;\nSite.Location3 = 1.2;\nCreate CoordinateSystem Baseline;\nBaseline.Origin = Earth;\nBaseline.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Probe;\nCreatedFrame.Axes = BodyFixed;\n",
+      "reference": "CreatedFrame",
+      "matrix_bound": 2e-10,
+      "rate_bound_degrees_s": 5e-09,
+      "rate_convention": "Independent prescribed inertial/geometric basis derivative",
+      "frame_oracle_key": "BodyFixed",
+      "samples": [
+        {
+          "epoch": 21545,
+          "frame_rows": [
+            [
+              0.8660254037844387,
+              0.49999999999999994,
+              0
+            ],
+            [
+              -0.49999999999999994,
+              0.8660254037844387,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.21203420277384e-05,
+              2.0993048197155302e-05,
+              0.0
+            ],
+            [
+              -2.0993048197155302e-05,
+              -1.21203420277384e-05,
+              -0.0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            0,
+            0,
+            0.001388888888888889
+          ],
+          "rows": [
+            [
+              -0.8660254037844387,
+              -0.49999999999999994,
+              0.0
+            ],
+            [
+              -0.49999999999999994,
+              0.8660254037844387,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            0.0,
+            0.0,
+            -0.001388888888888889
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "frame_rows": [
+            [
+              -3.5049068630367423e-10,
+              1.0,
+              0
+            ],
+            [
+              -1.0,
+              -3.5049068630367423e-10,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -2.4240684055476802e-05,
+              -8.496133991074598e-15,
+              0.0
+            ],
+            [
+              8.496133991074598e-15,
+              -2.4240684055476802e-05,
+              -0.0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            0,
+            0,
+            0.001388888888888889
+          ],
+          "rows": [
+            [
+              3.5049068630367423e-10,
+              -1.0,
+              0.0
+            ],
+            [
+              -1.0,
+              -3.5049068630367423e-10,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            0.0,
+            0.0,
+            -0.001388888888888889
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "frame_rows": [
+            [
+              -1.0,
+              -8.762265243307506e-10,
+              0
+            ],
+            [
+              8.762265243307506e-10,
+              -1.0,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              2.1240330337330283e-14,
+              -2.4240684055476802e-05,
+              0.0
+            ],
+            [
+              2.4240684055476802e-05,
+              2.1240330337330283e-14,
+              -0.0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            0,
+            0,
+            0.001388888888888889
+          ],
+          "rows": [
+            [
+              1.0,
+              8.762265243307506e-10,
+              0.0
+            ],
+            [
+              8.762265243307506e-10,
+              -1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            0.0,
+            0.0,
+            -0.001388888888888889
+          ]
+        }
+      ],
+      "base_frame_case": "CelestialBody_BodyFixed",
+      "input_quaternion": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "offset_quaternion": [
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "offset_matrix": [
+        [
+          -1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.0
+        ]
+      ],
+      "serializes_offset": true,
+      "invalid_guards": false
+    },
+    {
+      "origin_requirement": "FRR!E432",
+      "axis_requirement": "FRR!E447",
+      "axis": "Topocentric",
+      "origin_class": "GroundStation",
+      "key": "HugeFinite",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Preserve independent origin frame acceptance Δ\nEarth.Mu = 400000;\nLuna.Mu = 5000;\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@STATION@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 6400;\nProbe.Flattening = 0.01;\nProbe.OrientationEpoch = 21545;\nProbe.SpinAxisRAConstant = 270;\nProbe.SpinAxisRARate = 0;\nProbe.SpinAxisDECConstant = 90;\nProbe.SpinAxisDECRate = 0;\nProbe.RotationConstant = 30;\nProbe.RotationRate = 120;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate LibrationPoint LP;\nLP.Primary = Earth;\nLP.Secondary = Luna;\nLP.Point = L1;\nCreate GroundStation Site;\nSite.CentralBody = Probe;\nSite.StateType = Spherical;\nSite.HorizonReference = Sphere;\nSite.Location1 = 31.25;\nSite.Location2 = -81.5;\nSite.Location3 = 1.2;\nCreate CoordinateSystem Baseline;\nBaseline.Origin = Earth;\nBaseline.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Site;\nCreatedFrame.Axes = Topocentric;\n",
+      "reference": "CreatedFrame",
+      "matrix_bound": 2e-10,
+      "rate_bound_degrees_s": 5e-09,
+      "rate_convention": "Independent geometric basis derivative",
+      "frame_oracle_key": "Topocentric",
+      "samples": [
+        {
+          "epoch": 21545,
+          "frame_rows": [
+            [
+              0.32294394630111095,
+              -0.4059961833933271,
+              -0.8549118706729466
+            ],
+            [
+              0.7826081568524139,
+              0.6225146366376196,
+              0
+            ],
+            [
+              0.5321951525291571,
+              -0.6690610033786041,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              9.841625209367059e-06,
+              7.828382169914096e-06,
+              0
+            ],
+            [
+              -1.509018062664248e-05,
+              1.8970957069498397e-05,
+              0
+            ],
+            [
+              1.6218496396741037e-05,
+              1.290077454831558e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              -0.7826081568524139,
+              -0.6225146366376196,
+              0.0
+            ],
+            [
+              -0.5321951525291571,
+              0.6690610033786041,
+              -0.5187732581605213
+            ],
+            [
+              0.32294394630111095,
+              -0.4059961833933271,
+              -0.8549118706729466
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            0.0,
+            -0.0007205184141118352,
+            -0.0011873775981568705
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "frame_rows": [
+            [
+              0.5130749817818271,
+              0.0766795699783242,
+              -0.8549118706729466
+            ],
+            [
+              -0.14780941147625162,
+              0.989015863310111,
+              0
+            ],
+            [
+              0.8455214018276662,
+              0.12636402046822956,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.8587652293543809e-06,
+              1.2437288530142784e-05,
+              0
+            ],
+            [
+              -2.397442106835503e-05,
+              -3.583001244021782e-06,
+              0
+            ],
+            [
+              -3.063150296150156e-06,
+              2.04960171638483e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              0.14780941147625162,
+              -0.989015863310111,
+              0.0
+            ],
+            [
+              -0.8455214018276662,
+              -0.12636402046822956,
+              -0.5187732581605213
+            ],
+            [
+              0.5130749817818271,
+              0.0766795699783242,
+              -0.8549118706729466
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            0.0,
+            -0.0007205184141118352,
+            -0.0011873775981568705
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "frame_rows": [
+            [
+              -0.07667957024806611,
+              0.5130749817415139,
+              -0.8549118706729466
+            ],
+            [
+              -0.9890158632324023,
+              -0.1478094119962127,
+              0
+            ],
+            [
+              -0.12636402091275048,
+              0.8455214017612321,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.2437288529165566e-05,
+              -1.8587652358931093e-06,
+              0
+            ],
+            [
+              3.5830012566259943e-06,
+              -2.3974421066471317e-05,
+              0
+            ],
+            [
+              -2.0496017162237894e-05,
+              -3.0631503069256475e-06,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              0.9890158632324023,
+              0.1478094119962127,
+              0.0
+            ],
+            [
+              0.12636402091275048,
+              -0.8455214017612321,
+              -0.5187732581605213
+            ],
+            [
+              -0.07667957024806611,
+              0.5130749817415139,
+              -0.8549118706729466
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            0.0,
+            -0.0007205184141118352,
+            -0.0011873775981568705
+          ]
+        }
+      ],
+      "base_frame_case": "GroundStation_Topocentric",
+      "input_quaternion": [
+        1e+308,
+        -1e+308,
+        1e+308,
+        -1e+308
+      ],
+      "offset_quaternion": [
+        0.5,
+        -0.5,
+        0.5,
+        -0.5
+      ],
+      "offset_matrix": [
+        [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        [
+          1.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "serializes_offset": true,
+      "invalid_guards": false
+    },
+    {
+      "origin_requirement": "FRR!E432",
+      "axis_requirement": "FRR!E447",
+      "axis": "Topocentric",
+      "origin_class": "GroundStation",
+      "key": "ThresholdIdentity",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Preserve independent origin frame acceptance Δ\nEarth.Mu = 400000;\nLuna.Mu = 5000;\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@STATION@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 6400;\nProbe.Flattening = 0.01;\nProbe.OrientationEpoch = 21545;\nProbe.SpinAxisRAConstant = 270;\nProbe.SpinAxisRARate = 0;\nProbe.SpinAxisDECConstant = 90;\nProbe.SpinAxisDECRate = 0;\nProbe.RotationConstant = 30;\nProbe.RotationRate = 120;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate LibrationPoint LP;\nLP.Primary = Earth;\nLP.Secondary = Luna;\nLP.Point = L1;\nCreate GroundStation Site;\nSite.CentralBody = Probe;\nSite.StateType = Spherical;\nSite.HorizonReference = Sphere;\nSite.Location1 = 31.25;\nSite.Location2 = -81.5;\nSite.Location3 = 1.2;\nCreate CoordinateSystem Baseline;\nBaseline.Origin = Earth;\nBaseline.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Site;\nCreatedFrame.Axes = Topocentric;\n",
+      "reference": "CreatedFrame",
+      "matrix_bound": 2e-10,
+      "rate_bound_degrees_s": 5e-09,
+      "rate_convention": "Independent geometric basis derivative",
+      "frame_oracle_key": "Topocentric",
+      "samples": [
+        {
+          "epoch": 21545,
+          "frame_rows": [
+            [
+              0.32294394630111095,
+              -0.4059961833933271,
+              -0.8549118706729466
+            ],
+            [
+              0.7826081568524139,
+              0.6225146366376196,
+              0
+            ],
+            [
+              0.5321951525291571,
+              -0.6690610033786041,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              9.841625209367059e-06,
+              7.828382169914096e-06,
+              0
+            ],
+            [
+              -1.509018062664248e-05,
+              1.8970957069498397e-05,
+              0
+            ],
+            [
+              1.6218496396741037e-05,
+              1.290077454831558e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              0.32294394630111095,
+              -0.4059961833933271,
+              -0.8549118706729466
+            ],
+            [
+              0.7826081568524139,
+              0.6225146366376196,
+              0.0
+            ],
+            [
+              0.5321951525291571,
+              -0.6690610033786041,
+              0.5187732581605213
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            0.0,
+            0.0007205184141118352
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "frame_rows": [
+            [
+              0.5130749817818271,
+              0.0766795699783242,
+              -0.8549118706729466
+            ],
+            [
+              -0.14780941147625162,
+              0.989015863310111,
+              0
+            ],
+            [
+              0.8455214018276662,
+              0.12636402046822956,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.8587652293543809e-06,
+              1.2437288530142784e-05,
+              0
+            ],
+            [
+              -2.397442106835503e-05,
+              -3.583001244021782e-06,
+              0
+            ],
+            [
+              -3.063150296150156e-06,
+              2.04960171638483e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              0.5130749817818271,
+              0.0766795699783242,
+              -0.8549118706729466
+            ],
+            [
+              -0.14780941147625162,
+              0.989015863310111,
+              0.0
+            ],
+            [
+              0.8455214018276662,
+              0.12636402046822956,
+              0.5187732581605213
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            0.0,
+            0.0007205184141118352
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "frame_rows": [
+            [
+              -0.07667957024806611,
+              0.5130749817415139,
+              -0.8549118706729466
+            ],
+            [
+              -0.9890158632324023,
+              -0.1478094119962127,
+              0
+            ],
+            [
+              -0.12636402091275048,
+              0.8455214017612321,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.2437288529165566e-05,
+              -1.8587652358931093e-06,
+              0
+            ],
+            [
+              3.5830012566259943e-06,
+              -2.3974421066471317e-05,
+              0
+            ],
+            [
+              -2.0496017162237894e-05,
+              -3.0631503069256475e-06,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              -0.07667957024806611,
+              0.5130749817415139,
+              -0.8549118706729466
+            ],
+            [
+              -0.9890158632324023,
+              -0.1478094119962127,
+              0.0
+            ],
+            [
+              -0.12636402091275048,
+              0.8455214017612321,
+              0.5187732581605213
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            0.0,
+            0.0007205184141118352
+          ]
+        }
+      ],
+      "base_frame_case": "GroundStation_Topocentric",
+      "input_quaternion": [
+        0,
+        0,
+        0,
+        1e-10
+      ],
+      "offset_quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "offset_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "serializes_offset": false,
+      "invalid_guards": false
+    },
+    {
+      "origin_requirement": "FRR!E432",
+      "axis_requirement": "FRR!E447",
+      "axis": "Topocentric",
+      "origin_class": "GroundStation",
+      "key": "SmallAccepted",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Preserve independent origin frame acceptance Δ\nEarth.Mu = 400000;\nLuna.Mu = 5000;\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@STATION@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 6400;\nProbe.Flattening = 0.01;\nProbe.OrientationEpoch = 21545;\nProbe.SpinAxisRAConstant = 270;\nProbe.SpinAxisRARate = 0;\nProbe.SpinAxisDECConstant = 90;\nProbe.SpinAxisDECRate = 0;\nProbe.RotationConstant = 30;\nProbe.RotationRate = 120;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate LibrationPoint LP;\nLP.Primary = Earth;\nLP.Secondary = Luna;\nLP.Point = L1;\nCreate GroundStation Site;\nSite.CentralBody = Probe;\nSite.StateType = Spherical;\nSite.HorizonReference = Sphere;\nSite.Location1 = 31.25;\nSite.Location2 = -81.5;\nSite.Location3 = 1.2;\nCreate CoordinateSystem Baseline;\nBaseline.Origin = Earth;\nBaseline.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Site;\nCreatedFrame.Axes = Topocentric;\n",
+      "reference": "CreatedFrame",
+      "matrix_bound": 2e-10,
+      "rate_bound_degrees_s": 5e-09,
+      "rate_convention": "Independent geometric basis derivative",
+      "frame_oracle_key": "Topocentric",
+      "samples": [
+        {
+          "epoch": 21545,
+          "frame_rows": [
+            [
+              0.32294394630111095,
+              -0.4059961833933271,
+              -0.8549118706729466
+            ],
+            [
+              0.7826081568524139,
+              0.6225146366376196,
+              0
+            ],
+            [
+              0.5321951525291571,
+              -0.6690610033786041,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              9.841625209367059e-06,
+              7.828382169914096e-06,
+              0
+            ],
+            [
+              -1.509018062664248e-05,
+              1.8970957069498397e-05,
+              0
+            ],
+            [
+              1.6218496396741037e-05,
+              1.290077454831558e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              0.5104223165127164,
+              0.15919186772419391,
+              -0.8450603576409647
+            ],
+            [
+              0.6596263898149266,
+              0.5579861963448234,
+              0.503531955836333
+            ],
+            [
+              0.55169020715028,
+              -0.8144380602225801,
+              0.17980144992563868
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.0011736949411680067,
+            0.0006993499386615737,
+            0.00024972423600783144
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "frame_rows": [
+            [
+              0.5130749817818271,
+              0.0766795699783242,
+              -0.8549118706729466
+            ],
+            [
+              -0.14780941147625162,
+              0.989015863310111,
+              0
+            ],
+            [
+              0.8455214018276662,
+              0.12636402046822956,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.8587652293543809e-06,
+              1.2437288530142784e-05,
+              0
+            ],
+            [
+              -2.397442106835503e-05,
+              -3.583001244021782e-06,
+              0
+            ],
+            [
+              -3.063150296150156e-06,
+              2.04960171638483e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              0.11734695654848609,
+              0.5216346266617398,
+              -0.8450603576409647
+            ],
+            [
+              -0.1534170263862089,
+              0.8502463087049836,
+              0.503531955836333
+            ],
+            [
+              0.9811691535120847,
+              0.07055870464384259,
+              0.17980144992563868
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.0011736949411680067,
+            0.0006993499386615737,
+            0.00024972423600783144
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "frame_rows": [
+            [
+              -0.07667957024806611,
+              0.5130749817415139,
+              -0.8549118706729466
+            ],
+            [
+              -0.9890158632324023,
+              -0.1478094119962127,
+              0
+            ],
+            [
+              -0.12636402091275048,
+              0.8455214017612321,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.2437288529165566e-05,
+              -1.8587652358931093e-06,
+              0
+            ],
+            [
+              3.5830012566259943e-06,
+              -2.3974421066471317e-05,
+              0
+            ],
+            [
+              -2.0496017162237894e-05,
+              -3.0631503069256475e-06,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              -0.5216346267234333,
+              0.11734695627424406,
+              -0.8450603576409647
+            ],
+            [
+              -0.8502463086243268,
+              -0.15341702683321387,
+              0.503531955836333
+            ],
+            [
+              -0.0705587051596784,
+              0.9811691534749896,
+              0.17980144992563868
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.0011736949411680067,
+            0.0006993499386615737,
+            0.00024972423600783144
+          ]
+        }
+      ],
+      "base_frame_case": "GroundStation_Topocentric",
+      "input_quaternion": [
+        8.258826568869311e-11,
+        1.6517653137738623e-10,
+        2.4776479706607935e-10,
+        9.510565162951536e-10
+      ],
+      "offset_quaternion": [
+        0.08258826568869311,
+        0.16517653137738622,
+        0.24776479706607937,
+        0.9510565162951536
+      ],
+      "offset_matrix": [
+        [
+          0.8226586376338797,
+          0.49855993603434695,
+          -0.2732595032341911
+        ],
+        [
+          -0.44399336299861764,
+          0.8635835674106767,
+          0.23894207605908804
+        ],
+        [
+          0.35510936278778515,
+          -0.0752423569519001,
+          0.9317917837053383
+        ]
+      ],
+      "serializes_offset": true,
+      "invalid_guards": false
+    },
+    {
+      "origin_requirement": "FRR!E432",
+      "axis_requirement": "FRR!E447",
+      "axis": "Topocentric",
+      "origin_class": "GroundStation",
+      "key": "NegativeIdentity",
+      "setup": "Create CoordinateSystem CreatedFrame;\n% Preserve independent origin frame acceptance Δ\nEarth.Mu = 400000;\nLuna.Mu = 5000;\nCreate Asteroid Probe;\nProbe.NAIFId = 2000001;\nProbe.OrbitSpiceKernelName = {'@STATION@'};\nProbe.Mu = 63;\nProbe.EquatorialRadius = 6400;\nProbe.Flattening = 0.01;\nProbe.OrientationEpoch = 21545;\nProbe.SpinAxisRAConstant = 270;\nProbe.SpinAxisRARate = 0;\nProbe.SpinAxisDECConstant = 90;\nProbe.SpinAxisDECRate = 0;\nProbe.RotationConstant = 30;\nProbe.RotationRate = 120;\nCreate Barycenter Center;\nCenter.BodyNames = {Earth, Luna};\nCreate LibrationPoint LP;\nLP.Primary = Earth;\nLP.Secondary = Luna;\nLP.Point = L1;\nCreate GroundStation Site;\nSite.CentralBody = Probe;\nSite.StateType = Spherical;\nSite.HorizonReference = Sphere;\nSite.Location1 = 31.25;\nSite.Location2 = -81.5;\nSite.Location3 = 1.2;\nCreate CoordinateSystem Baseline;\nBaseline.Origin = Earth;\nBaseline.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.DisplayStateType = Cartesian;\nSat.X = 1000;\nSat.Y = -200;\nSat.Z = 300;\nSat.VX = 1.25;\nSat.VY = -0.5;\nSat.VZ = 0.75;\nCreatedFrame.Origin = Site;\nCreatedFrame.Axes = Topocentric;\n",
+      "reference": "CreatedFrame",
+      "matrix_bound": 2e-10,
+      "rate_bound_degrees_s": 5e-09,
+      "rate_convention": "Independent geometric basis derivative",
+      "frame_oracle_key": "Topocentric",
+      "samples": [
+        {
+          "epoch": 21545,
+          "frame_rows": [
+            [
+              0.32294394630111095,
+              -0.4059961833933271,
+              -0.8549118706729466
+            ],
+            [
+              0.7826081568524139,
+              0.6225146366376196,
+              0
+            ],
+            [
+              0.5321951525291571,
+              -0.6690610033786041,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              9.841625209367059e-06,
+              7.828382169914096e-06,
+              0
+            ],
+            [
+              -1.509018062664248e-05,
+              1.8970957069498397e-05,
+              0
+            ],
+            [
+              1.6218496396741037e-05,
+              1.290077454831558e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              0.32294394630111095,
+              -0.4059961833933271,
+              -0.8549118706729466
+            ],
+            [
+              0.7826081568524139,
+              0.6225146366376196,
+              0.0
+            ],
+            [
+              0.5321951525291571,
+              -0.6690610033786041,
+              0.5187732581605213
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            0.0,
+            0.0007205184141118352
+          ]
+        },
+        {
+          "epoch": 21545.5,
+          "frame_rows": [
+            [
+              0.5130749817818271,
+              0.0766795699783242,
+              -0.8549118706729466
+            ],
+            [
+              -0.14780941147625162,
+              0.989015863310111,
+              0
+            ],
+            [
+              0.8455214018276662,
+              0.12636402046822956,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.8587652293543809e-06,
+              1.2437288530142784e-05,
+              0
+            ],
+            [
+              -2.397442106835503e-05,
+              -3.583001244021782e-06,
+              0
+            ],
+            [
+              -3.063150296150156e-06,
+              2.04960171638483e-05,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              0.5130749817818271,
+              0.0766795699783242,
+              -0.8549118706729466
+            ],
+            [
+              -0.14780941147625162,
+              0.989015863310111,
+              0.0
+            ],
+            [
+              0.8455214018276662,
+              0.12636402046822956,
+              0.5187732581605213
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            0.0,
+            0.0007205184141118352
+          ]
+        },
+        {
+          "epoch": 21546.25,
+          "frame_rows": [
+            [
+              -0.07667957024806611,
+              0.5130749817415139,
+              -0.8549118706729466
+            ],
+            [
+              -0.9890158632324023,
+              -0.1478094119962127,
+              0
+            ],
+            [
+              -0.12636402091275048,
+              0.8455214017612321,
+              0.5187732581605213
+            ]
+          ],
+          "frame_basis_rates": [
+            [
+              -1.2437288529165566e-05,
+              -1.8587652358931093e-06,
+              0
+            ],
+            [
+              3.5830012566259943e-06,
+              -2.3974421066471317e-05,
+              0
+            ],
+            [
+              -2.0496017162237894e-05,
+              -3.0631503069256475e-06,
+              0
+            ]
+          ],
+          "frame_angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            -0.0,
+            0.0007205184141118352
+          ],
+          "rows": [
+            [
+              -0.07667957024806611,
+              0.5130749817415139,
+              -0.8549118706729466
+            ],
+            [
+              -0.9890158632324023,
+              -0.1478094119962127,
+              0.0
+            ],
+            [
+              -0.12636402091275048,
+              0.8455214017612321,
+              0.5187732581605213
+            ]
+          ],
+          "angular_velocity_degrees_s": [
+            -0.0011873775981568705,
+            0.0,
+            0.0007205184141118352
+          ]
+        }
+      ],
+      "base_frame_case": "GroundStation_Topocentric",
+      "input_quaternion": [
+        0,
+        0,
+        0,
+        -4
+      ],
+      "offset_quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "offset_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "serializes_offset": true,
+      "invalid_guards": false
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "guide_source": "doc/help/src/Resource_SpacecraftAttitude.xml",
+  "guide_source_sha256": "5c9e1d0b67554a50c4fc1c2d7763ccba3b12561d30ac678b9b86965fd6357d1a",
+  "guide_contract": [
+    "DCM rotates inertial to body",
+    "CoordinateSystemFixed follows the selected reference axes with a constant frame-to-body OffsetQuaternion; identity preserves aligned behavior",
+    "Original initial attitude and rate parameters have no effect for this model"
+  ],
+  "mu_km3_s2": 398600.4415,
+  "radius_km": 7000,
+  "epoch_a1_mjd": 21545,
+  "report_times_seconds": [
+    0,
+    60,
+    300,
+    600
+  ],
+  "matrix_absolute_bound": 2e-10,
+  "rate_absolute_bound_degrees_s": 5e-09,
+  "body_orientation": {
+    "reference_epoch_a1_mjd": 21545,
+    "pole_ra_degrees": 37,
+    "pole_dec_degrees": 53,
+    "prime_meridian_degrees": -40,
+    "rotation_rate_degrees_day": 73
+  },
+  "cases": [
+    {
+      "key": "Inertial",
+      "reference": "EarthMJ2000Eq",
+      "oracle": "identity"
+    },
+    {
+      "key": "Ecliptic",
+      "reference": "EclipticFrame",
+      "oracle": "ecliptic"
+    },
+    {
+      "key": "Translated",
+      "reference": "TranslatedFrame",
+      "oracle": "identity"
+    },
+    {
+      "key": "BodySpin",
+      "reference": "BodyFrame",
+      "oracle": "body",
+      "pole_rates_degrees_per_century": [
+        0,
+        0
+      ]
+    },
+    {
+      "key": "BodySweep",
+      "reference": "BodyFrame",
+      "oracle": "body",
+      "pole_rates_degrees_per_century": [
+        36525,
+        -18262.5
+      ]
+    },
+    {
+      "key": "OrbitRadial",
+      "reference": "OrbitFrame",
+      "oracle": "radial"
+    },
+    {
+      "key": "OrbitVelocity",
+      "reference": "OrbitFrame",
+      "oracle": "velocity"
+    }
+  ],
+  "scope": "Nonzero body-to-reference offset on seven initial frame witnesses. Whole FRR!E52 also requires all original FRR-35 axes/origin conjunctions and validation/lifetime guards; no row admission yet.",
+  "offset_quaternion": [
+    0.08258826568869311,
+    0.16517653137738622,
+    0.24776479706607932,
+    0.9510565162951535
+  ],
+  "offset_matrix": [
+    [
+      0.8226586376338798,
+      0.49855993603434684,
+      -0.2732595032341912
+    ],
+    [
+      -0.4439933629986175,
+      0.8635835674106768,
+      0.23894207605908802
+    ],
+    [
+      0.3551093627877851,
+      -0.07524235695190012,
+      0.9317917837053383
+    ]
+  ],
+  "offset_oracle": "Independent passive Rodrigues rotation: 36 degrees about normalized [1,2,3]; scalar-last quaternion."
+}

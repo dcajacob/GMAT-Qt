@@ -56,6 +56,7 @@ public:
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 

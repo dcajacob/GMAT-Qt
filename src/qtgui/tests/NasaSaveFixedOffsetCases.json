@@ -1,0 +1,947 @@
+{
+  "schema_version": 1,
+  "scope": "New fixed-offset Save state, exact source/export/native persistence and post-rebuild evaluation only; whole original FRC!E132 remains separate.",
+  "source_sha256": {
+    "src/qtgui/tests/NasaSaveAttitudeCases.json": "4644c9a559280ba0904d7bd180ac7b89e252776350485c9f2c3a9883250137e5",
+    "src/qtgui/tests/AttitudeOffsetScopeCases.json": "af4e9b070a9487340e11ca3a4e6df3880f8759c4168c9557d0b008a3eb77648c"
+  },
+  "physical_input_sha256": {
+    "src/qtgui/tests/frame-consumer-station-origin.bsp": "9acdc9616cd09fc65292af37b611a77df2d52194c2e1ac019fbb37c7bd3f2b9a"
+  },
+  "cases": [
+    {
+      "key": "Identity",
+      "setup": "Create Spacecraft Subject;\nSubject.NAIFId = -101101;\nSubject.NAIFIdReferenceFrame = -910101;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = CoordinateSystemFixed;\nSubject.AttitudeCoordinateSystem = EarthMJ2000Ec;\nSubject.OffsetQuaternion = [0 0 0 1];\nCreate Variable Sample;\nSample = 0;\n",
+      "selected": [
+        "Subject",
+        "Sample"
+      ],
+      "objects": [
+        "Subject",
+        "Sample"
+      ],
+      "filename": "Subject_Sample.data",
+      "definitions": [
+        "Create Spacecraft Subject;",
+        "Create Variable Sample"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AttitudeCoordinateSystem",
+          "type": "Object",
+          "expected": "EarthMJ2000Ec"
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "OffsetQuaternion",
+          "type": "Rvector",
+          "expected": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "object": "Sample",
+          "field": "Value",
+          "type": "Real",
+          "expected": 1.0
+        }
+      ],
+      "expected_attitude_model": "CoordinateSystemFixed",
+      "before_save": "Sample = Subject.DCM11;\n",
+      "reload_probe": "Sample = Subject.DCM11;\n",
+      "probe_witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AttitudeCoordinateSystem",
+          "type": "Object",
+          "expected": "EarthMJ2000Ec"
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "OffsetQuaternion",
+          "type": "Rvector",
+          "expected": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "object": "Sample",
+          "field": "Value",
+          "type": "Real",
+          "expected": 1.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM11",
+          "type": "Real",
+          "expected": 1.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM12",
+          "type": "Real",
+          "expected": 0.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM13",
+          "type": "Real",
+          "expected": 0.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AngularVelocityX",
+          "type": "Real",
+          "expected": 0.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM21",
+          "type": "Real",
+          "expected": 0.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM22",
+          "type": "Real",
+          "expected": 0.9174820620691818
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM23",
+          "type": "Real",
+          "expected": 0.3977771559319137
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AngularVelocityY",
+          "type": "Real",
+          "expected": 0.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM31",
+          "type": "Real",
+          "expected": 0.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM32",
+          "type": "Real",
+          "expected": -0.3977771559319137
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM33",
+          "type": "Real",
+          "expected": 0.9174820620691818
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AngularVelocityZ",
+          "type": "Real",
+          "expected": 0.0
+        }
+      ],
+      "expected_offset_quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "expected_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.9174820620691818,
+          0.3977771559319137
+        ],
+        [
+          0.0,
+          -0.3977771559319137,
+          0.9174820620691818
+        ]
+      ],
+      "expected_rate_degrees_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "offset_serialized": false
+    },
+    {
+      "key": "Named",
+      "setup": "Create CoordinateSystem SavedFrame;\nSavedFrame.Origin = Pluto;\nSavedFrame.Axes = MJ2000Eq;\nCreate Spacecraft Subject;\nSubject.NAIFId = -101101;\nSubject.NAIFIdReferenceFrame = -910101;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = CoordinateSystemFixed;\nSubject.AttitudeCoordinateSystem = SavedFrame;\nSubject.OffsetQuaternion = [0.08258826568869311 0.16517653137738622 0.24776479706607932 0.95105651629515353];\nCreate Variable Sample;\nSample = 0;\n",
+      "selected": [
+        "Subject",
+        "SavedFrame",
+        "Sample"
+      ],
+      "objects": [
+        "Subject",
+        "SavedFrame",
+        "Sample"
+      ],
+      "filename": "Subject_SavedFrame_Sample.data",
+      "definitions": [
+        "Create Spacecraft Subject;",
+        "Create CoordinateSystem SavedFrame;",
+        "Create Variable Sample"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AttitudeCoordinateSystem",
+          "type": "Object",
+          "expected": "SavedFrame"
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "OffsetQuaternion",
+          "type": "Rvector",
+          "expected": [
+            0.08258826568869311,
+            0.16517653137738622,
+            0.24776479706607932,
+            0.9510565162951536
+          ]
+        },
+        {
+          "object": "Sample",
+          "field": "Value",
+          "type": "Real",
+          "expected": 0.8226586376338798
+        },
+        {
+          "object": "SavedFrame",
+          "field": "Origin",
+          "type": "Object",
+          "expected": "Pluto"
+        },
+        {
+          "object": "SavedFrame",
+          "field": "Axes",
+          "type": "Object",
+          "expected": "MJ2000Eq"
+        }
+      ],
+      "expected_attitude_model": "CoordinateSystemFixed",
+      "before_save": "Sample = Subject.DCM11;\n",
+      "reload_probe": "Sample = Subject.DCM11;\n",
+      "probe_witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AttitudeCoordinateSystem",
+          "type": "Object",
+          "expected": "SavedFrame"
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "OffsetQuaternion",
+          "type": "Rvector",
+          "expected": [
+            0.08258826568869311,
+            0.16517653137738622,
+            0.24776479706607932,
+            0.9510565162951536
+          ]
+        },
+        {
+          "object": "Sample",
+          "field": "Value",
+          "type": "Real",
+          "expected": 0.8226586376338798
+        },
+        {
+          "object": "SavedFrame",
+          "field": "Origin",
+          "type": "Object",
+          "expected": "Pluto"
+        },
+        {
+          "object": "SavedFrame",
+          "field": "Axes",
+          "type": "Object",
+          "expected": "MJ2000Eq"
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM11",
+          "type": "Real",
+          "expected": 0.8226586376338798
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM12",
+          "type": "Real",
+          "expected": 0.49855993603434684
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM13",
+          "type": "Real",
+          "expected": -0.2732595032341912
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AngularVelocityX",
+          "type": "Real",
+          "expected": 0.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM21",
+          "type": "Real",
+          "expected": -0.4439933629986175
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM22",
+          "type": "Real",
+          "expected": 0.8635835674106768
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM23",
+          "type": "Real",
+          "expected": 0.23894207605908802
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AngularVelocityY",
+          "type": "Real",
+          "expected": 0.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM31",
+          "type": "Real",
+          "expected": 0.3551093627877851
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM32",
+          "type": "Real",
+          "expected": -0.07524235695190011
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM33",
+          "type": "Real",
+          "expected": 0.9317917837053383
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AngularVelocityZ",
+          "type": "Real",
+          "expected": 0.0
+        }
+      ],
+      "expected_offset_quaternion": [
+        0.08258826568869311,
+        0.16517653137738622,
+        0.24776479706607932,
+        0.9510565162951536
+      ],
+      "expected_matrix": [
+        [
+          0.8226586376338798,
+          0.49855993603434684,
+          -0.2732595032341912
+        ],
+        [
+          -0.4439933629986175,
+          0.8635835674106768,
+          0.23894207605908802
+        ],
+        [
+          0.3551093627877851,
+          -0.07524235695190011,
+          0.9317917837053383
+        ]
+      ],
+      "expected_rate_degrees_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "offset_serialized": true
+    },
+    {
+      "key": "Body",
+      "setup": "Create Asteroid AxisBody;\nAxisBody.NAIFId = 2000001;\nAxisBody.OrbitSpiceKernelName = {'/home/dan/GIT/GMAT-Qt/src/qtgui/tests/frame-consumer-station-origin.bsp'};\nAxisBody.Mu = 63;\nAxisBody.EquatorialRadius = 6400;\nAxisBody.Flattening = 0.01;\nAxisBody.OrientationEpoch = 21545;\nAxisBody.SpinAxisRAConstant = 270;\nAxisBody.SpinAxisRARate = 0;\nAxisBody.SpinAxisDECConstant = 90;\nAxisBody.SpinAxisDECRate = 0;\nAxisBody.RotationConstant = 30;\nAxisBody.RotationRate = 120;\nCreate CoordinateSystem SavedFrame;\nSavedFrame.Origin = AxisBody;\nSavedFrame.Axes = BodyFixed;\nCreate Spacecraft Subject;\nSubject.NAIFId = -101101;\nSubject.NAIFIdReferenceFrame = -910101;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = CoordinateSystemFixed;\nSubject.AttitudeCoordinateSystem = SavedFrame;\nSubject.OffsetQuaternion = [-0.57811785982085173 -1.1562357196417035 -1.7343535794625553 -6.6573956140660746];\nCreate Variable Sample;\nSample = 0;\n",
+      "selected": [
+        "Subject",
+        "SavedFrame",
+        "AxisBody",
+        "Sample"
+      ],
+      "objects": [
+        "Subject",
+        "SavedFrame",
+        "AxisBody",
+        "Sample"
+      ],
+      "filename": "Subject_SavedFrame_AxisBody_Sample.data",
+      "definitions": [
+        "Create Spacecraft Subject;",
+        "Create CoordinateSystem SavedFrame;",
+        "Create Asteroid AxisBody;",
+        "Create Variable Sample"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AttitudeCoordinateSystem",
+          "type": "Object",
+          "expected": "SavedFrame"
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "OffsetQuaternion",
+          "type": "Rvector",
+          "expected": [
+            -0.08258826568869311,
+            -0.16517653137738622,
+            -0.24776479706607937,
+            -0.9510565162951536
+          ]
+        },
+        {
+          "object": "Sample",
+          "field": "Value",
+          "type": "Real",
+          "expected": 0.46316331081646345
+        },
+        {
+          "object": "SavedFrame",
+          "field": "Origin",
+          "type": "Object",
+          "expected": "AxisBody"
+        },
+        {
+          "object": "SavedFrame",
+          "field": "Axes",
+          "type": "Object",
+          "expected": "BodyFixed"
+        }
+      ],
+      "expected_attitude_model": "CoordinateSystemFixed",
+      "before_save": "Sample = Subject.DCM11;\n",
+      "reload_probe": "Sample = Subject.DCM11;\n",
+      "probe_witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AttitudeCoordinateSystem",
+          "type": "Object",
+          "expected": "SavedFrame"
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "OffsetQuaternion",
+          "type": "Rvector",
+          "expected": [
+            -0.08258826568869311,
+            -0.16517653137738622,
+            -0.24776479706607937,
+            -0.9510565162951536
+          ]
+        },
+        {
+          "object": "Sample",
+          "field": "Value",
+          "type": "Real",
+          "expected": 0.46316331081646345
+        },
+        {
+          "object": "SavedFrame",
+          "field": "Origin",
+          "type": "Object",
+          "expected": "AxisBody"
+        },
+        {
+          "object": "SavedFrame",
+          "field": "Axes",
+          "type": "Object",
+          "expected": "BodyFixed"
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM11",
+          "type": "Real",
+          "expected": 0.46316331081646345
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM12",
+          "type": "Real",
+          "expected": 0.843094888731829
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM13",
+          "type": "Real",
+          "expected": -0.2732595032341911
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AngularVelocityX",
+          "type": "Real",
+          "expected": -0.00037952708782526545
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM21",
+          "type": "Real",
+          "expected": -0.816301315173827
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM22",
+          "type": "Real",
+          "expected": 0.5258886261691285
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM23",
+          "type": "Real",
+          "expected": 0.23894207605908804
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AngularVelocityY",
+          "type": "Real",
+          "expected": 0.00033186399452651117
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM31",
+          "type": "Real",
+          "expected": 0.3451549077718764
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM32",
+          "type": "Real",
+          "expected": 0.1123928888329304
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM33",
+          "type": "Real",
+          "expected": 0.9317917837053383
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AngularVelocityZ",
+          "type": "Real",
+          "expected": 0.0012941552551463033
+        }
+      ],
+      "expected_offset_quaternion": [
+        -0.08258826568869311,
+        -0.16517653137738622,
+        -0.24776479706607937,
+        -0.9510565162951536
+      ],
+      "expected_matrix": [
+        [
+          0.46316331081646345,
+          0.843094888731829,
+          -0.2732595032341911
+        ],
+        [
+          -0.816301315173827,
+          0.5258886261691285,
+          0.23894207605908804
+        ],
+        [
+          0.3451549077718764,
+          0.1123928888329304,
+          0.9317917837053383
+        ]
+      ],
+      "expected_rate_degrees_s": [
+        -0.00037952708782526545,
+        0.00033186399452651117,
+        0.0012941552551463033
+      ],
+      "offset_serialized": true,
+      "runtime_solar_system_probe": "Subject"
+    },
+    {
+      "key": "HalfTurn",
+      "setup": "Create Spacecraft Subject;\nSubject.NAIFId = -101101;\nSubject.NAIFIdReferenceFrame = -910101;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = CoordinateSystemFixed;\nSubject.AttitudeCoordinateSystem = EarthMJ2000Ec;\nSubject.OffsetQuaternion = [0 1 0 0];\nCreate Variable Sample;\nSample = 0;\n",
+      "selected": [
+        "Subject",
+        "Sample"
+      ],
+      "objects": [
+        "Subject",
+        "Sample"
+      ],
+      "filename": "Subject_Sample.data",
+      "definitions": [
+        "Create Spacecraft Subject;",
+        "Create Variable Sample"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AttitudeCoordinateSystem",
+          "type": "Object",
+          "expected": "EarthMJ2000Ec"
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "OffsetQuaternion",
+          "type": "Rvector",
+          "expected": [
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "object": "Sample",
+          "field": "Value",
+          "type": "Real",
+          "expected": -1.0
+        }
+      ],
+      "expected_attitude_model": "CoordinateSystemFixed",
+      "before_save": "Sample = Subject.DCM11;\n",
+      "reload_probe": "Sample = Subject.DCM11;\n",
+      "probe_witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AttitudeCoordinateSystem",
+          "type": "Object",
+          "expected": "EarthMJ2000Ec"
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "OffsetQuaternion",
+          "type": "Rvector",
+          "expected": [
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "object": "Sample",
+          "field": "Value",
+          "type": "Real",
+          "expected": -1.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM11",
+          "type": "Real",
+          "expected": -1.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM12",
+          "type": "Real",
+          "expected": 0.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM13",
+          "type": "Real",
+          "expected": 0.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AngularVelocityX",
+          "type": "Real",
+          "expected": 0.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM21",
+          "type": "Real",
+          "expected": 0.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM22",
+          "type": "Real",
+          "expected": 0.9174820620691818
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM23",
+          "type": "Real",
+          "expected": 0.3977771559319137
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AngularVelocityY",
+          "type": "Real",
+          "expected": 0.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM31",
+          "type": "Real",
+          "expected": 0.0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM32",
+          "type": "Real",
+          "expected": 0.3977771559319137
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "DCM33",
+          "type": "Real",
+          "expected": -0.9174820620691818
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AngularVelocityZ",
+          "type": "Real",
+          "expected": 0.0
+        }
+      ],
+      "expected_offset_quaternion": [
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "expected_matrix": [
+        [
+          -1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.9174820620691818,
+          0.3977771559319137
+        ],
+        [
+          0.0,
+          0.3977771559319137,
+          -0.9174820620691818
+        ]
+      ],
+      "expected_rate_degrees_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "offset_serialized": true
+    }
+  ]
+}

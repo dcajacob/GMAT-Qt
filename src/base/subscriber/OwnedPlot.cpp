@@ -48,7 +48,7 @@
 //---------------------------------
 
 const std::string
-OwnedPlot::PARAMETER_TEXT[OwnedPlotParamCount - GmatBaseParamCount] =
+OwnedPlot::PARAMETER_TEXT[OwnedPlotParamCount - SubscriberParamCount] =
 {
    "Add",
    "PlotTitle",
@@ -71,7 +71,7 @@ OwnedPlot::PARAMETER_TEXT[OwnedPlotParamCount - GmatBaseParamCount] =
 
 
 const Gmat::ParameterType
-OwnedPlot::PARAMETER_TYPE[OwnedPlotParamCount - GmatBaseParamCount] =
+OwnedPlot::PARAMETER_TYPE[OwnedPlotParamCount - SubscriberParamCount] =
 {
    Gmat::OBJECTARRAY_TYPE, // "Add",
    Gmat::STRING_TYPE,      // "PlotTitle",
@@ -183,12 +183,12 @@ OwnedPlot::OwnedPlot(const std::string &name, const std::string &plotTitle,
 //------------------------------------------------------------------------------
 OwnedPlot::OwnedPlot(const OwnedPlot &orig) :
    Subscriber              (orig),
-   mOldName                (orig.mOldName),
+   mOldName                (instanceName),
    mPlotTitle              (orig.mPlotTitle),
    mXAxisTitle             (orig.mXAxisTitle),
    mYAxisTitle             (orig.mYAxisTitle),
    mDrawGrid               (orig.mDrawGrid),
-   mIsOwnedPlotWindowSet   (orig.mIsOwnedPlotWindowSet),
+   mIsOwnedPlotWindowSet   (false),
    mDataCollectFrequency   (orig.mDataCollectFrequency),
    mUpdatePlotFrequency    (orig.mUpdatePlotFrequency),
    defaultColor            (orig.defaultColor),
@@ -199,7 +199,7 @@ OwnedPlot::OwnedPlot(const OwnedPlot &orig) :
    useLines                (orig.useLines),
    useMarkers              (orig.useMarkers),
    useHiLow                (orig.useHiLow),
-   active                  (true),
+   active                  (orig.active),
    showLegend              (orig.showLegend),
    isEndOfReceive          (false),
    isEndOfRun              (false),
@@ -211,6 +211,16 @@ OwnedPlot::OwnedPlot(const OwnedPlot &orig) :
    curveDataIDs      = orig.curveDataIDs;
    supportedData     = orig.supportedData;
    supportedObjects  = orig.supportedObjects;
+   curveColor = orig.curveColor;
+   curveLineWidth = orig.curveLineWidth;
+   curveLineStyle = orig.curveLineStyle;
+   curveMarker = orig.curveMarker;
+   curveMarkerSize = orig.curveMarkerSize;
+   curveUseLines = orig.curveUseLines;
+   curveUseMarkers = orig.curveUseMarkers;
+   curveUseHiLow = orig.curveUseHiLow;
+   if (typeid(orig) == typeid(OwnedPlot)) ReconnectSubscriberCopy(orig);
+
 }
 
 
@@ -225,40 +235,51 @@ OwnedPlot::OwnedPlot(const OwnedPlot &orig) :
 //------------------------------------------------------------------------------
 OwnedPlot& OwnedPlot::operator=(const OwnedPlot& orig)
 {
-   if (this == &orig)
-      return *this;
-   
-   Subscriber::operator=(orig);
-   
-   mOldName                = orig.mOldName;
-   mPlotTitle              = orig.mPlotTitle;
-   mXAxisTitle             = orig.mXAxisTitle;
-   mYAxisTitle             = orig.mYAxisTitle;
-   mDrawGrid               = orig.mDrawGrid;
-   mIsOwnedPlotWindowSet   = orig.mIsOwnedPlotWindowSet;
-   mDataCollectFrequency   = orig.mDataCollectFrequency;
-   mUpdatePlotFrequency    = orig.mUpdatePlotFrequency;
-   defaultColor            = orig.defaultColor;
-   markerSize              = orig.markerSize;
-   markerStyle             = orig.markerStyle;
-   lineWidth               = orig.lineWidth;
-   lineStyle               = orig.lineStyle;
-   useLines                = orig.useLines;
-   useMarkers              = orig.useMarkers;
-   useHiLow                = orig.useHiLow;
-   active                  = true;
-   showLegend              = orig.showLegend;
-   isEndOfReceive          = false;
-   isEndOfRun              = false;
-   isInitialized           = false;
-   mSolverIterations       = "All";
-   runstate                = Gmat::RUNNING;
-   
-   curveNames              = orig.curveNames;
-   curveDataIDs            = orig.curveDataIDs;
-   supportedData           = orig.supportedData;
-   supportedObjects        = orig.supportedObjects;
+   if (this == &orig) return *this;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = typeid(*this) == typeid(OwnedPlot) ? BeginSubscriberValueCopy(orig) : SubscriberValueCopyToken{};
+   {
+      FunctionValueCopyGuard nativeCopy;
+      Subscriber::operator=(orig);
 
+      // Preserve this output's pending native rename.
+      mPlotTitle              = orig.mPlotTitle;
+      mXAxisTitle             = orig.mXAxisTitle;
+      mYAxisTitle             = orig.mYAxisTitle;
+      mDrawGrid               = orig.mDrawGrid;
+      // Preserve the destination physical window.
+      mDataCollectFrequency   = orig.mDataCollectFrequency;
+      mUpdatePlotFrequency    = orig.mUpdatePlotFrequency;
+      defaultColor            = orig.defaultColor;
+      markerSize              = orig.markerSize;
+      markerStyle             = orig.markerStyle;
+      lineWidth               = orig.lineWidth;
+      lineStyle               = orig.lineStyle;
+      useLines                = orig.useLines;
+      useMarkers              = orig.useMarkers;
+      useHiLow                = orig.useHiLow;
+      active                  = orig.active;
+      showLegend              = orig.showLegend;
+      isEndOfReceive          = false;
+      isEndOfRun              = false;
+      isInitialized           = false;
+      mSolverIterations       = "All";
+      runstate                = Gmat::RUNNING;
+
+      curveNames              = orig.curveNames;
+      curveDataIDs            = orig.curveDataIDs;
+      supportedData           = orig.supportedData;
+      supportedObjects        = orig.supportedObjects;
+      curveColor = orig.curveColor;
+      curveLineWidth = orig.curveLineWidth;
+      curveLineStyle = orig.curveLineStyle;
+      curveMarker = orig.curveMarker;
+      curveMarkerSize = orig.curveMarkerSize;
+      curveUseLines = orig.curveUseLines;
+      curveUseMarkers = orig.curveUseMarkers;
+      curveUseHiLow = orig.curveUseHiLow;
+   }
+   if (typeid(*this) == typeid(OwnedPlot)) CompleteSubscriberValueCopy(orig, transaction);
    return *this;
 }
 
@@ -310,10 +331,10 @@ bool OwnedPlot::Initialize()
                ("OwnedPlot::Initialize() calling CreateOwnedPlotWindow()\n");
       #endif
       
-      PlotInterface::CreateXyPlotWindow(instanceName, mOldName, 0.0, 0.0, 0.0, 0.0, false, mPlotTitle,
+      PlotInterface::CreateXyPlotWindow(GetRuntimePlotName(), GetRuntimePlotName(mOldName), 0.0, 0.0, 0.0, 0.0, false, mPlotTitle,
             mXAxisTitle, mYAxisTitle, (mDrawGrid == "On"), false);
-      PlotInterface::TakeXYAction(instanceName, "AlwaysRedraw");
-      PlotInterface::SetXyPlotTitle(instanceName, mPlotTitle);
+      PlotInterface::TakeXYAction(GetRuntimePlotName(), "AlwaysRedraw");
+      PlotInterface::SetXyPlotTitle(GetRuntimePlotName(), mPlotTitle);
       mIsOwnedPlotWindowSet = true;
             
       #if DEBUG_OwnedPlot_INIT
@@ -328,7 +349,7 @@ bool OwnedPlot::Initialize()
                   "curveTitle = %s\n", curveNames[i].c_str());
          #endif
          
-         PlotInterface::AddXyPlotCurve(instanceName, i, curveNames[i], curveColor[i]);
+         PlotInterface::AddXyPlotCurve(GetRuntimePlotName(), i, curveNames[i], curveColor[i]);
 
          #ifdef DEBUG_ERROR_BARS
             MessageInterface::ShowMessage("In OwnedPlot::Initialize, "
@@ -336,12 +357,12 @@ bool OwnedPlot::Initialize()
                   (curveUseHiLow[i] == true ? "true" : "false"));
          #endif
 
-         PlotInterface::XyPlotCurveSettings(instanceName, curveUseLines[i],
+         PlotInterface::XyPlotCurveSettings(GetRuntimePlotName(), curveUseLines[i],
                curveLineWidth[i], curveLineStyle[i], curveUseMarkers[i],
                curveMarkerSize[i], curveMarker[i], curveUseHiLow[i], i);
       }
       
-      PlotInterface::ShowXyPlotLegend(instanceName);
+      PlotInterface::ShowXyPlotLegend(GetRuntimePlotName());
       status = true;
       
       #if DEBUG_OwnedPlot_INIT
@@ -349,7 +370,7 @@ bool OwnedPlot::Initialize()
                "ClearOwnedPlotData()\n");
       #endif
       
-      PlotInterface::ClearXyPlotData(instanceName);
+      PlotInterface::ClearXyPlotData(GetRuntimePlotName());
    }
    else
    {
@@ -357,7 +378,7 @@ bool OwnedPlot::Initialize()
       MessageInterface::ShowMessage("OwnedPlot::Initialize() DeleteOwnedPlot()\n");
       #endif
       
-      status =  PlotInterface::DeleteXyPlot(instanceName);
+      status =  PlotInterface::DeleteXyPlot(GetRuntimePlotName());
    }
    
    #if DEBUG_OwnedPlot_INIT
@@ -383,7 +404,15 @@ bool OwnedPlot::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* OwnedPlot::Clone() const
 {
-   return (new OwnedPlot(*this));
+   if (typeid(*this) != typeid(OwnedPlot))
+      throw GmatBaseException("A derived OwnedPlot must provide its complete Clone.\n");
+   std::unique_ptr<OwnedPlot> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new OwnedPlot(*this));
+   }
+   value->ReconnectSubscriberCopy(*this);
+   return value.release();
 }
 
 
@@ -396,9 +425,19 @@ GmatBase* OwnedPlot::Clone() const
  * @param orig The original that is being copied.
  */
 //---------------------------------------------------------------------------
-void OwnedPlot::Copy(const GmatBase* orig)
+void OwnedPlot::Copy(const GmatBase *original)
 {
-   operator=(*((OwnedPlot *)(orig)));
+   const auto *source = dynamic_cast<const OwnedPlot*>(original);
+   if (!source || typeid(*source) != typeid(*this) || !HasSubscriberValueReferenceProvider())
+      throw GmatBaseException("Cannot copy an incompatible OwnedPlot value.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = BeginSubscriberValueCopy(*source);
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   CompleteSubscriberValueCopy(*source, transaction);
 }
 
 
@@ -532,8 +571,8 @@ bool OwnedPlot::RenameRefObject(const UnsignedInt type,
 //------------------------------------------------------------------------------
 std::string OwnedPlot::GetParameterText(const Integer id) const
 {
-   if (id >= GmatBaseParamCount && id < OwnedPlotParamCount)
-      return PARAMETER_TEXT[id - GmatBaseParamCount];
+   if (id >= SubscriberParamCount && id < OwnedPlotParamCount)
+      return PARAMETER_TEXT[id - SubscriberParamCount];
    else
       return Subscriber::GetParameterText(id);
     
@@ -553,9 +592,9 @@ std::string OwnedPlot::GetParameterText(const Integer id) const
 //------------------------------------------------------------------------------
 Integer OwnedPlot::GetParameterID(const std::string &str) const
 {
-   for (int i=GmatBaseParamCount; i<OwnedPlotParamCount; i++)
+   for (int i=SubscriberParamCount; i<OwnedPlotParamCount; i++)
    {
-      if (str == PARAMETER_TEXT[i - GmatBaseParamCount])
+      if (str == PARAMETER_TEXT[i - SubscriberParamCount])
          return i;
    }
    
@@ -576,8 +615,8 @@ Integer OwnedPlot::GetParameterID(const std::string &str) const
 //------------------------------------------------------------------------------
 Gmat::ParameterType OwnedPlot::GetParameterType(const Integer id) const
 {
-   if (id >= GmatBaseParamCount && id < OwnedPlotParamCount)
-      return PARAMETER_TYPE[id - GmatBaseParamCount];
+   if (id >= SubscriberParamCount && id < OwnedPlotParamCount)
+      return PARAMETER_TYPE[id - SubscriberParamCount];
    else
       return Subscriber::GetParameterType(id);
 }
@@ -596,9 +635,8 @@ Gmat::ParameterType OwnedPlot::GetParameterType(const Integer id) const
 //------------------------------------------------------------------------------
 std::string OwnedPlot::GetParameterTypeString(const Integer id) const
 {
-   if (id >= GmatBaseParamCount && id < OwnedPlotParamCount)
-      return Subscriber::PARAM_TYPE_STRING[GetParameterType(id -
-            GmatBaseParamCount)];
+   if (id >= SubscriberParamCount && id < OwnedPlotParamCount)
+      return Subscriber::PARAM_TYPE_STRING[GetParameterType(id)];
    else
       return Subscriber::GetParameterTypeString(id);
 }
@@ -1239,7 +1277,7 @@ bool OwnedPlot::SetBooleanParameter(const Integer id, const bool value)
 //------------------------------------------------------------------------------
 bool OwnedPlot::Activate(bool)
 {
-   PlotInterface::ActivateXyPlot(instanceName);
+   PlotInterface::ActivateXyPlot(GetRuntimePlotName());
    return true;
 }
 
@@ -1259,7 +1297,7 @@ bool OwnedPlot::Activate(bool)
 //------------------------------------------------------------------------------
 bool OwnedPlot::Deactivate()
 {
-   PlotInterface::DeactivateXyPlot(instanceName);
+   PlotInterface::DeactivateXyPlot(GetRuntimePlotName());
    return true;
 }
 
@@ -1289,6 +1327,9 @@ bool OwnedPlot::Deactivate()
 void OwnedPlot::SetData(std::vector<RealArray*> &dataBlast,
       RealArray hiErrors, RealArray lowErrors)
 {
+   if (!active) return;
+   if (!EnsureFunctionValueOutput())
+      throw GmatBaseException("Cannot initialize copied OwnedPlot output.\n");
    #if DEBUG_OwnedPlot_UPDATE > 1
       MessageInterface::ShowMessage
          ("OwnedPlot::SetData() entered. isEndOfReceive=%d, active=%d, "
@@ -1324,7 +1365,7 @@ void OwnedPlot::SetData(std::vector<RealArray*> &dataBlast,
             lows[j] = his[j];
       }
 
-      PlotInterface::UpdateXyPlotData(instanceName, xval, yvals, his,
+      PlotInterface::UpdateXyPlotData(GetRuntimePlotName(), xval, yvals, his,
             lows);
    }
 }
@@ -1347,6 +1388,9 @@ void OwnedPlot::SetData(std::vector<RealArray*> &dataBlast,
 void OwnedPlot::SetCurveData(const Integer forCurve, RealArray *xData,
            RealArray *yData, const RealArray *yhis, const RealArray *ylows)
 {
+   if (!active) return;
+   if (!EnsureFunctionValueOutput())
+      throw GmatBaseException("Cannot initialize copied OwnedPlot output.\n");
    #if DEBUG_OwnedPlot_UPDATE > 1
       MessageInterface::ShowMessage
          ("OwnedPlot::SetData() entered. isEndOfReceive=%d, active=%d, "
@@ -1370,7 +1414,7 @@ void OwnedPlot::SetCurveData(const Integer forCurve, RealArray *xData,
          }
       }
 
-      PlotInterface::UpdateXyPlotCurve(instanceName, forCurve, (*xData)[i],
+      PlotInterface::UpdateXyPlotCurve(GetRuntimePlotName(), forCurve, (*xData)[i],
             (*yData)[i], hi, low);
    }
 }
@@ -1628,7 +1672,7 @@ bool OwnedPlot::RemoveYParameter(const std::string &name)
 //------------------------------------------------------------------------------
 bool OwnedPlot::ResetYParameters()
 {
-   PlotInterface::ClearXyPlotData(instanceName);
+   PlotInterface::ClearXyPlotData(GetRuntimePlotName());
    return true;
 }
 
@@ -1643,7 +1687,7 @@ bool OwnedPlot::ResetYParameters()
 //------------------------------------------------------------------------------
 bool OwnedPlot::PenUp()
 {
-   PlotInterface::XyPlotPenUp(instanceName);
+   PlotInterface::XyPlotPenUp(GetRuntimePlotName());
    return true;
 }
 
@@ -1658,7 +1702,7 @@ bool OwnedPlot::PenUp()
 //------------------------------------------------------------------------------
 bool OwnedPlot::PenDown()
 {
-   PlotInterface::XyPlotPenDown(instanceName);
+   PlotInterface::XyPlotPenDown(GetRuntimePlotName());
    return true;
 }
 
@@ -1674,7 +1718,7 @@ bool OwnedPlot::PenDown()
 //------------------------------------------------------------------------------
 bool OwnedPlot::RescaleData()
 {
-   PlotInterface::XyPlotRescale(instanceName);
+   PlotInterface::XyPlotRescale(GetRuntimePlotName());
    return true;
 }
 
@@ -1689,5 +1733,11 @@ bool OwnedPlot::RescaleData()
 void OwnedPlot::DeletePlotCurves()
 {
    // delete existing curves
-   PlotInterface::DeleteAllXyPlotCurves(instanceName, mOldName);
+   PlotInterface::DeleteAllXyPlotCurves(GetRuntimePlotName(), GetRuntimePlotName(mOldName));
+}
+
+
+bool OwnedPlot::HasSubscriberValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(OwnedPlot);
 }

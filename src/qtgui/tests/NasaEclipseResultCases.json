@@ -1,0 +1,704 @@
+{
+  "cases": [
+    {
+      "key": "Umbra",
+      "types": [
+        "Umbra"
+      ],
+      "target": "Sat",
+      "per_type": {
+        "Umbra": {
+          "count": 1,
+          "maximum": 2106.0931080579758,
+          "participants": [
+            "Sat/Earth"
+          ]
+        }
+      },
+      "radius": 7000,
+      "mu": 398600.4415,
+      "duration": 6500,
+      "initial_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "final_state": [
+        1299.9373202574714,
+        -6512.065760733014,
+        2214.3085808645924,
+        -0.46728157899613887,
+        2.340857765818517,
+        7.158558029409535
+      ],
+      "other_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "write_report": true,
+      "bounded": false,
+      "events": [
+        {
+          "start": 1861.277885735035,
+          "end": 3967.3709937930107,
+          "type": "Umbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 2106.0931080579758,
+          "total_duration": 2106.0931080579758
+        }
+      ],
+      "total_events": 1,
+      "maximum_duration": 2106.0931080579758,
+      "maximum_group": 1,
+      "time_tolerance": 0.02,
+      "duration_tolerance": 0.03
+    },
+    {
+      "key": "Penumbra",
+      "types": [
+        "Penumbra"
+      ],
+      "target": "Sat",
+      "per_type": {
+        "Penumbra": {
+          "count": 2,
+          "maximum": 8.820610642433167,
+          "participants": [
+            "Sat/Earth"
+          ]
+        }
+      },
+      "radius": 7000,
+      "mu": 398600.4415,
+      "duration": 6500,
+      "initial_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "final_state": [
+        1299.9373202574714,
+        -6512.065760733014,
+        2214.3085808645924,
+        -0.46728157899613887,
+        2.340857765818517,
+        7.158558029409535
+      ],
+      "other_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "write_report": true,
+      "bounded": false,
+      "events": [
+        {
+          "start": 1852.4572750926018,
+          "end": 1861.277885735035,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.820610642433167,
+          "total_duration": 8.820610642433167
+        },
+        {
+          "start": 3967.3709937930107,
+          "end": 3976.099087893963,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 2,
+          "duration": 8.728094100952148,
+          "total_duration": 8.728094100952148
+        }
+      ],
+      "total_events": 2,
+      "maximum_duration": 8.820610642433167,
+      "maximum_group": 1,
+      "time_tolerance": 0.02,
+      "duration_tolerance": 0.03
+    },
+    {
+      "key": "Mixed",
+      "types": [
+        "Umbra",
+        "Penumbra"
+      ],
+      "target": "Sat",
+      "per_type": {
+        "Umbra": {
+          "count": 1,
+          "maximum": 2106.0931080579758,
+          "participants": [
+            "Sat/Earth"
+          ]
+        },
+        "Penumbra": {
+          "count": 2,
+          "maximum": 8.820610642433167,
+          "participants": [
+            "Sat/Earth"
+          ]
+        }
+      },
+      "radius": 7000,
+      "mu": 398600.4415,
+      "duration": 6500,
+      "initial_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "final_state": [
+        1299.9373202574714,
+        -6512.065760733014,
+        2214.3085808645924,
+        -0.46728157899613887,
+        2.340857765818517,
+        7.158558029409535
+      ],
+      "other_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "write_report": true,
+      "bounded": false,
+      "events": [
+        {
+          "start": 1852.4572750926018,
+          "end": 1861.277885735035,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.820610642433167,
+          "total_duration": 2123.641812801361
+        },
+        {
+          "start": 1861.277885735035,
+          "end": 3967.3709937930107,
+          "type": "Umbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 2106.0931080579758,
+          "total_duration": 2123.641812801361
+        },
+        {
+          "start": 3967.3709937930107,
+          "end": 3976.099087893963,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.728094100952148,
+          "total_duration": 2123.641812801361
+        }
+      ],
+      "total_events": 1,
+      "maximum_duration": 2123.641812801361,
+      "maximum_group": 1,
+      "time_tolerance": 0.02,
+      "duration_tolerance": 0.03
+    },
+    {
+      "key": "AllTypes",
+      "types": [
+        "Umbra",
+        "Penumbra",
+        "Antumbra"
+      ],
+      "target": "Sat",
+      "per_type": {
+        "Umbra": {
+          "count": 1,
+          "maximum": 2106.0931080579758,
+          "participants": [
+            "Sat/Earth"
+          ]
+        },
+        "Penumbra": {
+          "count": 2,
+          "maximum": 8.820610642433167,
+          "participants": [
+            "Sat/Earth"
+          ]
+        },
+        "Antumbra": {
+          "count": 0,
+          "maximum": 0,
+          "participants": []
+        }
+      },
+      "radius": 7000,
+      "mu": 398600.4415,
+      "duration": 6500,
+      "initial_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "final_state": [
+        1299.9373202574714,
+        -6512.065760733014,
+        2214.3085808645924,
+        -0.46728157899613887,
+        2.340857765818517,
+        7.158558029409535
+      ],
+      "other_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "write_report": true,
+      "bounded": false,
+      "events": [
+        {
+          "start": 1852.4572750926018,
+          "end": 1861.277885735035,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.820610642433167,
+          "total_duration": 2123.641812801361
+        },
+        {
+          "start": 1861.277885735035,
+          "end": 3967.3709937930107,
+          "type": "Umbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 2106.0931080579758,
+          "total_duration": 2123.641812801361
+        },
+        {
+          "start": 3967.3709937930107,
+          "end": 3976.099087893963,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.728094100952148,
+          "total_duration": 2123.641812801361
+        }
+      ],
+      "total_events": 1,
+      "maximum_duration": 2123.641812801361,
+      "maximum_group": 1,
+      "time_tolerance": 0.02,
+      "duration_tolerance": 0.03
+    },
+    {
+      "key": "Antumbra",
+      "types": [
+        "Antumbra"
+      ],
+      "target": "Sat",
+      "per_type": {
+        "Antumbra": {
+          "count": 1,
+          "maximum": 4764.872806370258,
+          "participants": [
+            "Sat/Earth"
+          ]
+        }
+      },
+      "radius": 2000000.0,
+      "mu": 398600.4415,
+      "duration": 6500,
+      "initial_state": [
+        -360302.8507182417,
+        1804945.3778217845,
+        782530.5354068195,
+        0.034193525250917366,
+        -0.171293247416849,
+        0.4108401720502816
+      ],
+      "final_state": [
+        -360080.2136438452,
+        1803830.072301546,
+        785200.1719324831,
+        0.03431017793067969,
+        -0.1718776216862388,
+        0.4105863071314571
+      ],
+      "other_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "write_report": true,
+      "bounded": false,
+      "events": [
+        {
+          "start": 0.0,
+          "end": 4764.872806370258,
+          "type": "Antumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 4764.872806370258,
+          "total_duration": 4764.872806370258
+        }
+      ],
+      "total_events": 1,
+      "maximum_duration": 4764.872806370258,
+      "maximum_group": 1,
+      "time_tolerance": 0.02,
+      "duration_tolerance": 0.03
+    },
+    {
+      "key": "NoEvents",
+      "types": [
+        "Umbra",
+        "Penumbra",
+        "Antumbra"
+      ],
+      "target": "Sat",
+      "per_type": {
+        "Umbra": {
+          "count": 0,
+          "maximum": 0,
+          "participants": []
+        },
+        "Penumbra": {
+          "count": 0,
+          "maximum": 0,
+          "participants": []
+        },
+        "Antumbra": {
+          "count": 0,
+          "maximum": 0,
+          "participants": []
+        }
+      },
+      "radius": 7000,
+      "mu": 398600.4415,
+      "duration": 6500,
+      "initial_state": [
+        536.1521201849378,
+        -2685.866318315418,
+        6441.9455930766735,
+        -7.400054582424813,
+        -1.4771974788156204,
+        0.0
+      ],
+      "final_state": [
+        -4144.585045832766,
+        -2919.922272315381,
+        4826.641557179897,
+        -5.92729156589275,
+        0.8107758006921952,
+        -4.599214879541323
+      ],
+      "other_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "write_report": true,
+      "bounded": false,
+      "events": [],
+      "total_events": 0,
+      "maximum_duration": 0,
+      "maximum_group": 0,
+      "time_tolerance": 0.02,
+      "duration_tolerance": 0.03
+    },
+    {
+      "key": "Alternate",
+      "types": [
+        "Umbra",
+        "Penumbra"
+      ],
+      "target": "Other",
+      "per_type": {
+        "Umbra": {
+          "count": 1,
+          "maximum": 2106.0932314395905,
+          "participants": [
+            "Other/Earth"
+          ]
+        },
+        "Penumbra": {
+          "count": 2,
+          "maximum": 8.820610642433167,
+          "participants": [
+            "Other/Earth"
+          ]
+        }
+      },
+      "radius": 7000,
+      "mu": 398600.4415,
+      "duration": 6500,
+      "initial_state": [
+        1360.1860363152925,
+        -6813.883082887095,
+        849.0531663906328,
+        -0.17917417096752333,
+        0.8975771106673289,
+        7.490338587884389
+      ],
+      "final_state": [
+        909.0448469204596,
+        -4553.880968221618,
+        5237.919968227492,
+        -1.1053488816148067,
+        5.537270523322327,
+        5.005972354672395
+      ],
+      "other_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "write_report": true,
+      "bounded": false,
+      "events": [
+        {
+          "start": 1366.7402788996696,
+          "end": 1375.5608895421028,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.820610642433167,
+          "total_duration": 2123.641932606697
+        },
+        {
+          "start": 1375.5608895421028,
+          "end": 3481.6541209816933,
+          "type": "Umbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 2106.0932314395905,
+          "total_duration": 2123.641932606697
+        },
+        {
+          "start": 3481.6541209816933,
+          "end": 3490.3822115063667,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.728090524673462,
+          "total_duration": 2123.641932606697
+        }
+      ],
+      "total_events": 1,
+      "maximum_duration": 2123.641932606697,
+      "maximum_group": 1,
+      "time_tolerance": 0.02,
+      "duration_tolerance": 0.03
+    },
+    {
+      "key": "WriteOff",
+      "types": [
+        "Umbra",
+        "Penumbra"
+      ],
+      "target": "Sat",
+      "per_type": {
+        "Umbra": {
+          "count": 1,
+          "maximum": 2106.0931080579758,
+          "participants": [
+            "Sat/Earth"
+          ]
+        },
+        "Penumbra": {
+          "count": 2,
+          "maximum": 8.820610642433167,
+          "participants": [
+            "Sat/Earth"
+          ]
+        }
+      },
+      "radius": 7000,
+      "mu": 398600.4415,
+      "duration": 6500,
+      "initial_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "final_state": [
+        1299.9373202574714,
+        -6512.065760733014,
+        2214.3085808645924,
+        -0.46728157899613887,
+        2.340857765818517,
+        7.158558029409535
+      ],
+      "other_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "write_report": false,
+      "bounded": false,
+      "events": [
+        {
+          "start": 1852.4572750926018,
+          "end": 1861.277885735035,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.820610642433167,
+          "total_duration": 2123.641812801361
+        },
+        {
+          "start": 1861.277885735035,
+          "end": 3967.3709937930107,
+          "type": "Umbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 2106.0931080579758,
+          "total_duration": 2123.641812801361
+        },
+        {
+          "start": 3967.3709937930107,
+          "end": 3976.099087893963,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.728094100952148,
+          "total_duration": 2123.641812801361
+        }
+      ],
+      "total_events": 1,
+      "maximum_duration": 2123.641812801361,
+      "maximum_group": 1,
+      "time_tolerance": 0.02,
+      "duration_tolerance": 0.03
+    },
+    {
+      "key": "Bounded",
+      "types": [
+        "Umbra",
+        "Penumbra"
+      ],
+      "target": "Sat",
+      "per_type": {
+        "Umbra": {
+          "count": 1,
+          "maximum": 1000.0,
+          "participants": [
+            "Sat/Earth"
+          ]
+        },
+        "Penumbra": {
+          "count": 0,
+          "maximum": 0,
+          "participants": []
+        }
+      },
+      "radius": 7000,
+      "mu": 398600.4415,
+      "duration": 6500,
+      "initial_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "final_state": [
+        1299.9373202574714,
+        -6512.065760733014,
+        2214.3085808645924,
+        -0.46728157899613887,
+        2.340857765818517,
+        7.158558029409535
+      ],
+      "other_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "write_report": true,
+      "bounded": true,
+      "events": [
+        {
+          "start": 2500.0,
+          "end": 3500.0,
+          "type": "Umbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 1000.0,
+          "total_duration": 1000.0
+        }
+      ],
+      "total_events": 1,
+      "maximum_duration": 1000.0,
+      "maximum_group": 1,
+      "time_tolerance": 0.02,
+      "duration_tolerance": 0.03
+    }
+  ],
+  "physical_inputs": {
+    "tt0": 64.184,
+    "earth_radii": [
+      6378.1366,
+      6378.1366,
+      6356.7519
+    ],
+    "sun_radius": 695700.0,
+    "kernels": {
+      "application/data/time/SPICELeapSecondKernel.tls": "678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b",
+      "application/data/planetary_coeff/SPICEPlanetaryConstantsKernel.tpc": "3dff7b1dbeceaa01f25467767d3fa25816051c85d162d1edf04acb310ee28bb1",
+      "application/data/planetary_ephem/spk/DE421AllPlanets.bsp": "d6f02ca7f99bcea29c472e4955b52faccd026ae3d5dbc7bd6306979b5b57ea99",
+      "application/data/planetary_coeff/SPICEEarthPredictedKernel.bpc": "f5ed4d1f460dbcf40bf24f657ab9021718048e18fb723093bfd229066b4e3a49",
+      "application/data/planetary_coeff/SPICEEarthCurrentKernel.bpc": "6d899c83542e32dfd77f3b3b79383db88860adca59adf60f4823780760589a52",
+      "application/data/planetary_coeff/earth_latest_high_prec.bpc": "94b3cedf59698eedf429ed50e25a2c9cec3e916cbc1bc5ce405671ce11b3a527",
+      "application/data/icrf/ICRF_Table.txt": "e6b3969a7961c56cacd37a3daa2a98d1d7d765e8605699d5151db2a5bde44547"
+    }
+  },
+  "allowed_scientific_spice_calls": [
+    "str2et_c",
+    "unitim_c",
+    "spkezr_c",
+    "pxform_c",
+    "bodvrd_c"
+  ],
+  "scope": "Independent ray/ellipsoid geometry and bisection for selected prescribed circular Earth orbits; SPICE supplies shared ephemeris, shape, terrestrial orientation and time inputs only. FK5/ICRF conversion uses the shared hashed Euler-vector data with independent polynomial interpolation and Rodrigues rotation. No GMAT/event/GF function is called; independent frame/ephemeris truth, general light-time, arbitrary bodies/orbits, all annular geometries, native OS input/platform/stress and full current-build qualification remain open."
+}

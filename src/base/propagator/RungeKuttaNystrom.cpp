@@ -44,6 +44,7 @@
 //                            - All int types to Integer types
 // **************************************************************************
 
+#include "AcceptedStepHistory.hpp"
 #include "gmatdefs.hpp"
 #include "RungeKuttaNystrom.hpp"
 #include "MessageInterface.hpp"
@@ -334,6 +335,10 @@ bool RungeKuttaNystrom::Step()
    } while (!goodStepTaken);
 
    physicalModel->IncrementTime(stepTaken);
+   if (AcceptedStepHistory::IsCapturing())
+      AcceptedStepHistory::Record(this, physicalModel,
+         physicalModel->GetTime() - stepTaken, physicalModel->GetTime(),
+         outState, dimension);
    return true;
 }
 
@@ -351,19 +356,9 @@ bool RungeKuttaNystrom::Step()
 //------------------------------------------------------------------------------
 bool RungeKuttaNystrom::Step(double dt)
 {
-   bool stepFinished = false;
-   timeleft = dt;
-   do {
-      if (!Propagator::Step(timeleft)) {
-         throw PropagatorException("Propagator::Step(timeleft) failed in RKN");
-         return false;
-      }
-      if (timeleft == stepTaken)
-         stepFinished = true;
-      timeleft -= stepTaken;
-   } while (stepFinished == false);
-
-   return true;
+   // Share final-interval bounds, completion tolerance and attempt limits.
+   // The driver's virtual Step() still uses the Nystrom state algorithm.
+   return RungeKutta::Step(dt);
 }
 
 

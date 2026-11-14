@@ -30,6 +30,8 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ScriptStringLiteral.hpp"
+#include "ObjectScriptExportScope.hpp"
 #include "StringVar.hpp"
 #include "MessageInterface.hpp"
 
@@ -92,6 +94,7 @@ StringVar::StringVar(const std::string &name, const std::string &typeStr,
    blockCommandModeAssignment = false;
    mStringValue = ""; //       STRING_PARAMETER_UNDEFINED;
    mReturnType = Gmat::STRING_TYPE;
+   parameterCount = StringVarParamCount;
    // Don't set name to expression, but leave it blank if not set (LOJ: 2010.11.29)
    //mExpr = name;
 }
@@ -271,16 +274,16 @@ const std::string& StringVar::EvaluateString()
 //------------------------------------------------------------------------------
 GmatBase* StringVar::Clone() const
 {
-   return new StringVar(*this);
+   return CompleteParameterClone(new StringVar(*this));
 }
 
 
 //------------------------------------------------------------------------------
 // void Copy(const GmatBase* orig)
 //------------------------------------------------------------------------------
-void StringVar::Copy(const GmatBase* orig)
+void StringVar::Copy(const GmatBase *source)
 {
-   operator=(*((StringVar *)(orig)));
+   CopyParameterValue<StringVar>(source);
 }
 
 
@@ -298,6 +301,29 @@ Integer StringVar::GetParameterID(const std::string &str) const
    return Parameter::GetParameterID(str);
 }
 
+
+// Value already has an ID and getter/setter. Include the same descriptor in
+// enumeration, so its count, label and type agree with direct lookup.
+std::string StringVar::GetParameterText(const Integer id) const
+{
+   if (id >= ParameterParamCount && id < StringVarParamCount)
+      return PARAMETER_TEXT[id - ParameterParamCount];
+   return Parameter::GetParameterText(id);
+}
+
+Gmat::ParameterType StringVar::GetParameterType(const Integer id) const
+{
+   if (id >= ParameterParamCount && id < StringVarParamCount)
+      return PARAMETER_TYPE[id - ParameterParamCount];
+   return Parameter::GetParameterType(id);
+}
+
+std::string StringVar::GetParameterTypeString(const Integer id) const
+{
+   if (id >= ParameterParamCount && id < StringVarParamCount)
+      return PARAM_TYPE_STRING[GetParameterType(id)];
+   return Parameter::GetParameterTypeString(id);
+}
 
 //------------------------------------------------------------------------------
 // bool IsParameterCommandModeSettable(const Integer id) const
@@ -428,16 +454,23 @@ const std::string& StringVar::GetGeneratingString(Gmat::WriteMode mode,
    // @note
    // Do not write "Create name" since multiple Strings per line will be written from
    // the ScriptInterpreter
+   const bool explicitScriptExport = ObjectScriptExportScope::IsActive() &&
+      (mode == Gmat::SCRIPTING || mode == Gmat::OWNED_OBJECT ||
+       mode == Gmat::NO_COMMENTS || mode == Gmat::OBJECT_EXPORT ||
+       // Save uses SHOW_SCRIPT to retain empty runtime String snapshots.
+       // The scoped export must still encode bytes that are unsafe in quotes.
+       mode == Gmat::SHOW_SCRIPT);
    
    // Write value if it is not blank or blank and SHOW_SCRIPT mode
    if ( mExpr != "" ||
-       (mExpr == "" && mode == Gmat::SHOW_SCRIPT))
+       (mExpr == "" && mode == Gmat::SHOW_SCRIPT) || explicitScriptExport)
    {
       // if value is other StringVar object, do not put quotes
       if (mExpr != "" && mExpr == mDepObjectName)
          generatingString = GetName() + " = " + mExpr;
       else
-         generatingString = GetName() + " = '" + mExpr + "'";
+         generatingString = GetName() + " = " +
+            (explicitScriptExport ? GmatScriptString::Quote(mExpr) : "'" + mExpr + "'");
       
       bool writeGmatKeyword = GmatGlobal::Instance()->IsWritingGmatKeyword();
       if(writeGmatKeyword)

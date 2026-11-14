@@ -42,6 +42,8 @@ public:
    virtual ~LagrangeInterpolator();
    LagrangeInterpolator(const LagrangeInterpolator &li);
    LagrangeInterpolator& operator=(const LagrangeInterpolator &li);
+   void ValidateRestorationLayout(const LagrangeInterpolator &source) const;
+   void RestoreValues(const LagrangeInterpolator &source);
    
    // inherited from Interpolator
    virtual Integer      IsInterpolationFeasible(Real ind);

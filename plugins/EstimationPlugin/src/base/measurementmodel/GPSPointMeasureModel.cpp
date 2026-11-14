@@ -545,7 +545,7 @@ bool GPSPointMeasureModel::CalculateMeasurement(bool withEvents, bool withMediaC
    GmatTime forEpoch;
    if (forObservation)
    {
-      forEpoch = forObservation->epochGT;
+      forEpoch = forObservation->GetEpochInA1();
    }
    else // Grab epoch from the first SpaceObject in the participant data
    {

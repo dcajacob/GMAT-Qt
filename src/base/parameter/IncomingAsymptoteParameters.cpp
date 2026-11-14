@@ -125,7 +125,12 @@ bool IncAsymRadPer::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* IncAsymRadPer::Clone(void) const
 {
-   return new IncAsymRadPer(*this);
+   return CompleteParameterClone(new IncAsymRadPer(*this));
+}
+
+void IncAsymRadPer::Copy(const GmatBase *source)
+{
+   CopyParameterValue<IncAsymRadPer>(source);
 }
 
 
@@ -221,7 +226,12 @@ bool IncAsymC3Energy::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* IncAsymC3Energy::Clone(void) const
 {
-   return new IncAsymC3Energy(*this);
+   return CompleteParameterClone(new IncAsymC3Energy(*this));
+}
+
+void IncAsymC3Energy::Copy(const GmatBase *source)
+{
+   CopyParameterValue<IncAsymC3Energy>(source);
 }
 
 
@@ -319,7 +329,12 @@ bool IncAsymRHA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* IncAsymRHA::Clone(void) const
 {
-   return new IncAsymRHA(*this);
+   return CompleteParameterClone(new IncAsymRHA(*this));
+}
+
+void IncAsymRHA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<IncAsymRHA>(source);
 }
 
 
@@ -416,7 +431,12 @@ bool IncAsymDHA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* IncAsymDHA::Clone(void) const
 {
-   return new IncAsymDHA(*this);
+   return CompleteParameterClone(new IncAsymDHA(*this));
+}
+
+void IncAsymDHA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<IncAsymDHA>(source);
 }
 
 
@@ -513,7 +533,12 @@ bool IncAsymBVAZI::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* IncAsymBVAZI::Clone(void) const
 {
-   return new IncAsymBVAZI(*this);
+   return CompleteParameterClone(new IncAsymBVAZI(*this));
+}
+
+void IncAsymBVAZI::Copy(const GmatBase *source)
+{
+   CopyParameterValue<IncAsymBVAZI>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -577,5 +602,10 @@ bool IncAsymState::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* IncAsymState::Clone(void) const
 {
-   return new IncAsymState(*this);
+   return CompleteParameterClone(new IncAsymState(*this));
+}
+
+void IncAsymState::Copy(const GmatBase *source)
+{
+   CopyParameterValue<IncAsymState>(source);
 }

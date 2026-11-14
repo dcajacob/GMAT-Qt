@@ -1,4 +1,5 @@
 #include "BurnDialog.hpp"
+#include "VectorLineEdit.hpp"
 #include "ResourceProperties.hpp"
 #include "GmatBase.hpp"
 #include "Moderator.hpp"
@@ -83,9 +84,10 @@ BurnDialog::BurnDialog(GmatBase &burn,const QMap<QString,QString> &pending,QWidg
       auto *combo=new QComboBox(content); combo->setObjectName("burn_"+name); combo->addItems(fields.value(name).choices.isEmpty() ? fields.value(name).references : fields.value(name).choices);
       if (combo->findText(initial.value(name))<0) combo->addItem(initial.value(name)); combo->setCurrentText(initial.value(name)); choices.insert(name,combo); form->addRow(label,combo);
    };
-   auto number=[&](QFormLayout *form,const QString &name,const QString &label) { auto *edit=new QLineEdit(initial.value(name),content); edit->setObjectName("burn_"+name); numbers.insert(name,edit); form->addRow(label,edit); };
+   auto number=[&](QFormLayout *form,const QString &name,const QString &label) { auto *edit=new VectorLineEdit(initial.value(name),content); edit->setObjectName("burn_"+name); numbers.insert(name,edit); form->addRow(label,edit); };
    select(directionForm,"CoordinateSystem","Coordinate system"); select(directionForm,"Axes","Local axes"); select(directionForm,"Origin","Local origin");
    for (int i=1;i<=3;++i) number(directionForm,"Element"+QString::number(i),"Element "+QString::number(i)+" (km/s)");
+   VectorLineEdit::link({numbers.value("Element1"),numbers.value("Element2"),numbers.value("Element3")});
    auto updateFrame=[this] {
       const bool local=choices.value("CoordinateSystem")->currentText()=="Local"; const auto axes=choices.value("Axes")->currentText();
       choices.value("Axes")->setEnabled(local); choices.value("Origin")->setEnabled(local && axes!="MJ2000Eq" && axes!="SpacecraftBody");

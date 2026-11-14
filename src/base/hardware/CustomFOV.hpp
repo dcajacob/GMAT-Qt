@@ -34,7 +34,7 @@
 #include "Rmatrix.hpp"
 
 
-class CustomFOV : public FieldOfView
+class GMAT_API CustomFOV : public FieldOfView
 {
 public:
 
@@ -46,6 +46,7 @@ public:
 	
 	virtual bool Initialize();
 	virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
 
 	/// visibility methods
 	/// Check the target visibility given the input cone and clock angles:
@@ -92,6 +93,8 @@ public:
    DEFAULT_TO_NO_CLONES
   
 protected:
+
+   void WriteParameterValue(Integer id, std::stringstream &stream) override;
 
 	static void LineSegmentIntersect(const Rmatrix &XY1,const Rmatrix &XY2,
 		std::vector<IntegerArray>  &adjacency,

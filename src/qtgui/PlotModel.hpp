@@ -12,6 +12,7 @@
 #include <optional>
 #include <cmath>
 #include "StarCatalog.hpp"
+#include "GroundMapOverlays.hpp"
 
 enum class PlotReplayMode { PropagationSteps, InterpolatedSteps };
 struct PlotReplayCursor
@@ -28,6 +29,8 @@ struct PlotViewState
    double fieldOfView=50;
    QString camera;
    bool reset=false;
+   // Camera right, up and outward columns in the unrotated camera frame.
+   std::optional<std::array<double,9>> orbitRotation;
 };
 struct PlotPoint
 {
@@ -132,6 +135,8 @@ struct PlotSensorMask
 {
    QString name,source,hardware,label;
    bool automaticLength=true,drawEdges=true;
+   // Programmatic plot geometry uses km; engine Hardware offsets retain metres.
+   bool originInMetres=false;
    double length=1,sourceRadius=1;
    QColor color=Qt::white;
    std::array<double,3> origin{},axis{0,0,-1};
@@ -204,6 +209,8 @@ struct PlotModel
    QMap<int, PlotCurve> curves;
    QVector<PlotStation> stations;
    QImage map;
+   QString groundBody="Earth";
+   GroundMapOverlayOptions mapOverlays;
    bool grid = true, legend = true, labels = true, penDown = true, active = true;
    bool axes = true;
    bool axesLabels=true,frameLabel=false;

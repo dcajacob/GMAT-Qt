@@ -30,12 +30,33 @@
   <refsynopsisdiv>
     <title>Script Syntax</title>
 
-    <synopsis>&lt;incomplete&gt;</synopsis>
+    <synopsis>SaveMission 'filename';
+SaveMission 'filename' {ExecutionPolicy = Immediate};</synopsis>
   </refsynopsisdiv>
 
   <refsection>
     <title>Description</title>
 
-    <para>This reference page is incomplete at this time.</para>
+    <para>SaveMission exports the configured host mission to a script file.
+    It saves the host resources and main mission sequence, including when the
+    command is called from a GMAT function. It does not capture function-local
+    resources, the current function body, or an execution checkpoint.</para>
+
+    <para>The default <literal>ExecutionPolicy = LegacyTerminal</literal>
+    preserves the original behavior: export only when SaveMission is the final
+    main-sequence command, allowing trailing Script Event closing markers.
+    Commands inside functions or before another main-sequence command do not
+    export under this policy.</para>
+
+    <para>Select <literal>ExecutionPolicy = Immediate</literal> to export
+    whenever the command executes, including inside functions, loops and
+    branches. Repeated executions overwrite the selected destination. The
+    policy can be selected in the command editor after adding default options.</para>
+
+    <para>Filename is required. Enclose it in single quotes and double an
+    embedded apostrophe. A bare filename uses the configured OUTPUT_PATH;
+    filenames containing a directory use that path. If no extension is supplied,
+    .script is appended. Serialization, open, write and close failures stop the
+    command with an error.</para>
   </refsection>
 </refentry>

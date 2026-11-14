@@ -43,6 +43,163 @@
 #include <cerrno>
 #include <cstdio>
 #include <vector>
+#include <cmath>
+#include <atomic>
+#include <cstring>
+#include <filesystem>
+#include <limits>
+#include <algorithm>
+#include <set>
+
+namespace
+{
+std::atomic<std::uint64_t> kernelPoolRevision{1};
+
+void CheckKeeperError(const std::string &operation)
+{
+   if (!failed_c()) return;
+   SpiceChar message[MAX_LONG_MESSAGE_VALUE];
+   getmsg_c("LONG", MAX_LONG_MESSAGE_VALUE, message);
+   const std::string detail(message);
+   reset_c();
+   throw UtilityException(operation + ": " + detail + "\n");
+}
+
+struct KeeperEntry
+{
+   std::string file, source, type;
+};
+
+std::vector<KeeperEntry> ReadKeeperEntries(const std::string &kind)
+{
+   SpiceInt count = 0;
+   ktotal_c(kind.c_str(), &count);
+   CheckKeeperError("Cannot enumerate loaded SPICE kernels");
+   std::vector<KeeperEntry> result;
+   for (SpiceInt index = 0; index < count; ++index)
+   {
+      std::vector<SpiceChar> file(256), source(256);
+      SpiceChar type[16];
+      for (;;)
+      {
+         SpiceInt handle = 0;
+         SpiceBoolean found = SPICEFALSE;
+         kdata_c(index, kind.c_str(), static_cast<SpiceInt>(file.size()),
+               sizeof(type), static_cast<SpiceInt>(source.size()),
+               file.data(), type, source.data(), &handle, &found);
+         CheckKeeperError("Cannot inspect loaded SPICE kernel");
+         if (!found)
+            throw UtilityException("SPICE kernel table changed during enumeration.\n");
+         const bool fileFull = std::strlen(file.data()) + 1 == file.size();
+         const bool sourceFull = std::strlen(source.data()) + 1 == source.size();
+         if (!fileFull && !sourceFull) break;
+         const auto grow = [](std::vector<SpiceChar> &value)
+         {
+            if (value.size() > static_cast<size_t>(std::numeric_limits<SpiceInt>::max() / 2))
+               throw UtilityException("Loaded SPICE kernel name exceeds native capacity.\n");
+            value.resize(value.size() * 2);
+         };
+         if (fileFull) grow(file);
+         if (sourceFull) grow(source);
+      }
+      result.push_back({file.data(), source.data(), type});
+   }
+   return result;
+}
+
+bool KeeperEntryMatches(const KeeperEntry &left, const KeeperEntry &right)
+{
+   return left.file == right.file && left.source == right.source && left.type == right.type;
+}
+
+bool KeeperPrefixMatches(const std::vector<KeeperEntry> &actual,
+      const std::vector<KeeperEntry> &prefix)
+{
+   return actual.size() >= prefix.size() &&
+         std::equal(prefix.begin(), prefix.end(), actual.begin(), KeeperEntryMatches);
+}
+
+bool RestoreKeeperChildren(const std::vector<KeeperEntry> &wanted,
+      const std::vector<KeeperEntry> &prefix)
+{
+   if (wanted.empty() || !wanted.front().source.empty()) return false;
+   for (size_t index = 1; index < wanted.size(); ++index)
+      if (wanted[index].source != wanted.front().file) return false;
+   const auto actual = ReadKeeperEntries("ALL");
+   if (!KeeperPrefixMatches(actual, prefix) || actual.size() <= prefix.size() ||
+         !KeeperEntryMatches(actual[prefix.size()], wanted.front())) return false;
+
+   // Keep the original ordered child subsequence, including repeated files.
+   // Reintroduced children are removed before any later root is furnished.
+   std::vector<bool> keep(actual.size(), true);
+   size_t next = 1;
+   for (size_t index = prefix.size() + 1; index < actual.size(); ++index)
+   {
+      if (next < wanted.size() && KeeperEntryMatches(actual[index], wanted[next])) ++next;
+      else
+      {
+         if (actual[index].source != wanted.front().file) return false;
+         keep[index] = false;
+      }
+   }
+   if (next != wanted.size()) return false;
+
+   // UNLOAD removes the last matching filename. Never remove a retained
+   // later occurrence to reach an extra earlier one in an edited meta-file.
+   std::set<std::string> retainedLater;
+   for (size_t index = actual.size(); index > prefix.size();)
+   {
+      --index;
+      if (keep[index]) retainedLater.insert(actual[index].file);
+      else if (retainedLater.count(actual[index].file)) return false;
+   }
+   for (size_t index = actual.size(); index > prefix.size() + 1;)
+   {
+      --index;
+      if (keep[index]) continue;
+      SpiceInterface::NotifyKernelPoolChanged();
+      unload_c(actual[index].file.c_str());
+      CheckKeeperError("Cannot remove a replay-only SPICE child");
+   }
+   const auto restored = ReadKeeperEntries("ALL");
+   return restored.size() == prefix.size() + wanted.size() && KeeperPrefixMatches(restored, prefix) &&
+         std::equal(wanted.begin(), wanted.end(), restored.begin() + prefix.size(), KeeperEntryMatches);
+}
+
+bool DropReplayedRoot(const std::string &file, const std::vector<KeeperEntry> &prefix)
+{
+   const auto actual = ReadKeeperEntries("ALL");
+   if (!KeeperPrefixMatches(actual, prefix)) return false;
+   if (actual.size() == prefix.size()) return true; // Furnish failed before admission.
+   if (actual[prefix.size()].file != file || !actual[prefix.size()].source.empty()) return false;
+   SpiceInterface::NotifyKernelPoolChanged();
+   unload_c(file.c_str());
+   CheckKeeperError("Cannot retire an incomplete SPICE replay root");
+   const auto remaining = ReadKeeperEntries("ALL");
+   return remaining.size() == prefix.size() && KeeperPrefixMatches(remaining, prefix);
+}
+
+bool KeeperContains(const std::string &name)
+{
+   SpiceChar type[16], source[2];
+   SpiceInt handle = 0;
+   SpiceBoolean found = SPICEFALSE;
+   kinfo_c(name.c_str(), sizeof(type), sizeof(source), type, source, &handle, &found);
+   CheckKeeperError("Cannot inspect loaded SPICE kernel");
+   return found == SPICETRUE;
+}
+
+}
+
+std::uint64_t SpiceInterface::GetKernelPoolRevision() noexcept
+{
+   return kernelPoolRevision.load(std::memory_order_relaxed);
+}
+
+void SpiceInterface::NotifyKernelPoolChanged() noexcept
+{
+   kernelPoolRevision.fetch_add(1, std::memory_order_relaxed);
+}
 
 //#define DEBUG_SPK_LOADING
 //#define DEBUG_SPK_ISLOADED
@@ -333,18 +490,7 @@ bool SpiceInterface::LoadKernel(const std::string &fileName)
 //      MessageInterface::ShowMessage( "   and CURRENT PATH = %s\n", path);
    #endif
 
-   std::map<std::string, std::string>::iterator ii;
-   for (ii = loadedKernels.begin(); ii != loadedKernels.end(); ++ii)
-   {
-      if ((*ii).first == fileName)
-      {
-         #ifdef DEBUG_SPK_LOADING
-            MessageInterface::ShowMessage("SpiceInterface: kernel %s is ALREADY LOADED!!!\n",
-                        fileName.c_str());
-         #endif
-         return false;  // already loaded
-      }
-   }
+   if (IsLoaded(fileName)) return false;
    // SPICE expects forward slashes for directory separators
    std::string fName = FindKernel(fileName);
    if (fName == FILE_NOT_FOUND)
@@ -355,6 +501,7 @@ bool SpiceInterface::LoadKernel(const std::string &fileName)
    }
 
    kernelNameSPICE = fName.c_str();
+   NotifyKernelPoolChanged();
    furnsh_c(kernelNameSPICE);
    if (failed_c()) //  == SPICETRUE)
    {
@@ -430,19 +577,8 @@ bool SpiceInterface::LoadKernels(const StringArray &fileNames)
 //------------------------------------------------------------------------------
 bool SpiceInterface::UnloadKernel(const std::string &fileName)
 {
-   bool        found          = false;
-   std::string kernelToUnload = "";
-
-   std::map<std::string, std::string>::iterator ii;
-   for (ii = loadedKernels.begin(); ii != loadedKernels.end(); ++ii)
-   {
-      if ((*ii).first == fileName)
-      {
-         kernelToUnload = (*ii).second;
-         found          = true;
-      }
-   }
-   if (!found)
+   const std::string kernelToUnload = ResolveLoadedKernel(fileName);
+   if (kernelToUnload.empty())
    {
       #ifdef DEBUG_SPK_LOADING
          MessageInterface::ShowMessage(
@@ -452,6 +588,23 @@ bool SpiceInterface::UnloadKernel(const std::string &fileName)
       return false;
    }
 
+   // Capture actual furnish order before unload can partially rebuild KEEPER.
+   // The requested-name map is alphabetical and omits native/meta children.
+   const auto previousEntries = ReadKeeperEntries("ALL");
+   const auto previousRequests = loadedKernels;
+   size_t lastOccurrence = previousEntries.size();
+   for (size_t index = 0; index < previousEntries.size(); ++index)
+      if (previousEntries[index].file == kernelToUnload) lastOccurrence = index;
+   if (lastOccurrence == previousEntries.size())
+      throw UtilityException("SPICE kernel table changed before unload.\n");
+   const auto reconcileRequests = [&]
+   {
+      std::map<std::string, std::string> current;
+      for (const auto &request : previousRequests)
+         if (KeeperContains(request.second)) current.insert(request);
+      loadedKernels.swap(current);
+   };
+
    #ifdef DEBUG_SPK_LOADING
       MessageInterface::ShowMessage("Now attempting to unload kernel %s (%s)\n",
             fileName.c_str(), kernelToUnload.c_str());
@@ -459,6 +612,7 @@ bool SpiceInterface::UnloadKernel(const std::string &fileName)
 
    std::string fName = kernelToUnload;
    kernelNameSPICE = fName.c_str();
+   NotifyKernelPoolChanged();
    unload_c(kernelNameSPICE);
    if (failed_c())
    {
@@ -476,29 +630,66 @@ bool SpiceInterface::UnloadKernel(const std::string &fileName)
       reset_c();
 //      throw UtilityException(errmsg);
       MessageInterface::ShowMessage("%s", errmsg.c_str());
-      // A failed text-kernel unload may already have cleared/rebuilt part of
-      // CSPICE's pool. Reconstruct the remaining available kernels and rebuild
-      // our cache, so restored files will not be mistaken for loaded kernels.
-      const auto previous = loadedKernels;
-      UnloadAllKernels();
-      for (const auto &kernel : previous)
+      // Reconstruct each surviving root's observed child selection, including
+      // earlier child-only removals and the requested last child occurrence.
       {
-         if (kernel.first == fileName) continue;
-         try { LoadKernel(kernel.first); }
-         catch (BaseException &error)
+         UnloadAllKernels();
+         for (size_t index = 0; index < previousEntries.size(); ++index)
          {
-            MessageInterface::ShowMessage("*** WARNING *** %s", error.GetFullMessage().c_str());
+            const auto &entry = previousEntries[index];
+            if (index == lastOccurrence || !entry.source.empty()) continue;
+            size_t end = index + 1;
+            while (end < previousEntries.size() && !previousEntries[end].source.empty()) ++end;
+            std::vector<KeeperEntry> wanted;
+            for (size_t child = index; child < end; ++child)
+               if (child != lastOccurrence) wanted.push_back(previousEntries[child]);
+            const auto prefix = ReadKeeperEntries("ALL");
+            // Bypass the wrapper's already-loaded shortcut: repeated furnish
+            // calls and their order are part of native kernel priority.
+            NotifyKernelPoolChanged();
+            furnsh_c(entry.file.c_str());
+            bool furnished = true;
+            if (failed_c())
+            {
+               furnished = false;
+               SpiceChar detail[MAX_LONG_MESSAGE];
+               getmsg_c("LONG", MAX_LONG_MESSAGE, detail);
+               reset_c();
+               MessageInterface::ShowMessage("*** WARNING *** Cannot restore SPICE root %s: %s\n",
+                     entry.file.c_str(), detail);
+            }
+            bool restored = false;
+            if (furnished) try { restored = RestoreKeeperChildren(wanted, prefix); }
+            catch (BaseException &error)
+            {
+               MessageInterface::ShowMessage("*** WARNING *** %s", error.GetFullMessage().c_str());
+            }
+            if (!restored)
+            {
+               MessageInterface::ShowMessage("*** WARNING *** Removing incomplete SPICE replay root %s; its observed child selection could not be restored.\n", entry.file.c_str());
+               try
+               {
+                  if (!DropReplayedRoot(entry.file, prefix))
+                     MessageInterface::ShowMessage("*** WARNING *** SPICE replay root retirement did not restore the prior table prefix.\n");
+               }
+               catch (BaseException &error)
+               {
+                  MessageInterface::ShowMessage("*** WARNING *** %s", error.GetFullMessage().c_str());
+               }
+            }
          }
       }
-
+      reconcileRequests();
+      return false;
    }
 
    #ifdef DEBUG_SPK_LOADING
       MessageInterface::ShowMessage("Successfully UNloaded kernel %s (%s)\n",
             fileName.c_str(), kernelToUnload.c_str());
    #endif
-   // erase the unloaded file from the map (by key)
-   loadedKernels.erase(fileName);
+   // Retain records still loaded through another furnish and remove stale
+   // child/root bookkeeping after native meta-kernel unloads.
+   reconcileRequests();
    return true; 
 }
 
@@ -519,9 +710,10 @@ bool SpiceInterface::UnloadKernel(const std::string &fileName)
 //------------------------------------------------------------------------------
 bool SpiceInterface::UnloadKernels(const StringArray &fileNames)
 {
+   bool result = true;
    for (unsigned int ii = 0; ii < fileNames.size(); ii++)
-      UnloadKernel(fileNames.at(ii));
-   return true;
+      if (!UnloadKernel(fileNames.at(ii))) result = false;
+   return result;
 }
 
 //------------------------------------------------------------------------------
@@ -542,6 +734,7 @@ bool SpiceInterface::UnloadAllKernels()
    // This operation discards the entire pool, so use KEEPER's full reset.
    // https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/cspice/kclear_c.html
    reset_c();
+   NotifyKernelPoolChanged();
    kclear_c();
    if (failed_c())
    {
@@ -570,25 +763,7 @@ bool SpiceInterface::UnloadAllKernels()
 //------------------------------------------------------------------------------
 bool SpiceInterface::IsLoaded(const std::string &fileName)
 {
-   #ifdef DEBUG_SPK_ISLOADED
-      MessageInterface::ShowMessage("IsLoaded::Now attempting to find kernel name %s\n", fileName.c_str());
-   #endif
-
-   std::map<std::string, std::string>::iterator ii;
-   for (ii = loadedKernels.begin(); ii != loadedKernels.end(); ++ii)
-   {
-      if ((*ii).first == fileName)
-      {
-         #ifdef DEBUG_SPK_ISLOADED
-             MessageInterface::ShowMessage("IsLoaded::kernel name %s WAS INDEED ALREADY LOADED\n", fileName.c_str());
-         #endif
-         return true;
-      }
-   }
-   #ifdef DEBUG_SPK_ISLOADED
-      MessageInterface::ShowMessage("IsLoaded::kernel name %s NOT ALREADY LOADED\n", fileName.c_str());
-   #endif
-   return false;
+   return !ResolveLoadedKernel(fileName).empty();
 }
 
 
@@ -738,6 +913,65 @@ Real SpiceInterface::SpiceTimeToA1(SpiceDouble spiceTime)
  *
  */
 //------------------------------------------------------------------------------
+GmatTime SpiceInterface::SpiceTimeToA1GT(SpiceDouble spiceTime)
+{
+   if (!std::isfinite(spiceTime))
+      throw UtilityException("Cannot decode a nonfinite SPICE epoch.");
+   GmatTime target(j2000_c() - GmatTimeConstants::JD_JAN_5_1941);
+   target.AddSeconds(spiceTime);
+   GmatTime candidate = theTimeConverter->Convert(target,
+      TimeSystemConverter::TDBMJD, TimeSystemConverter::A1MJD,
+      GmatTimeConstants::JD_JAN_5_1941);
+   // The native TDB-to-A1 expression is an approximate inverse. Resolve its
+   // residual against the same A1-to-TDB clock used to query SPICE.
+   for (Integer i = 0; i < 4; ++i)
+   {
+      const GmatTime tdb = theTimeConverter->Convert(candidate,
+         TimeSystemConverter::A1MJD, TimeSystemConverter::TDBMJD,
+         GmatTimeConstants::JD_JAN_5_1941);
+      candidate.AddSeconds((target - tdb).GetTimeInSec());
+   }
+   return candidate;
+}
+
+SpiceDouble SpiceInterface::A1ToSpiceTime(const GmatTime &a1Time)
+{
+   const GmatTime tdbTime = theTimeConverter->Convert(a1Time,
+      TimeSystemConverter::A1MJD, TimeSystemConverter::TDBMJD,
+      GmatTimeConstants::JD_JAN_5_1941);
+   // Subtract the exact J2000 day origin before the one required conversion
+   // to SPICE double seconds. Do not round through an absolute MJD Real.
+   const GmatTime origin(j2000_c() - GmatTimeConstants::JD_JAN_5_1941);
+   return (tdbTime - origin).GetTimeInSec();
+}
+
+SpiceDouble SpiceInterface::A1ToSpiceTime(const GmatTime &a1Time,
+                                         GmatTime &canonicalEpoch)
+{
+   if (!std::isfinite(a1Time.GetFracSec()))
+      throw UtilityException("Cannot encode a nonfinite precise A1 epoch.");
+   const SpiceDouble encoded = A1ToSpiceTime(a1Time);
+   if (!std::isfinite(encoded))
+      throw UtilityException("Cannot encode a nonfinite SPICE epoch.");
+
+   // Build the target from seconds, without rounding through an absolute MJD.
+   GmatTime target(j2000_c() - GmatTimeConstants::JD_JAN_5_1941);
+   target.AddSeconds(encoded);
+   GmatTime candidate(a1Time);
+   // Invert the existing nonlinear clock locally. Its slope differs from one
+   // by about 1e-10, so four residual corrections resolve the double ET cell
+   // within GmatTime arithmetic. This does not substitute a linear TDB clock.
+   for (Integer i = 0; i < 4; ++i)
+   {
+      const GmatTime tdb = theTimeConverter->Convert(candidate,
+         TimeSystemConverter::A1MJD, TimeSystemConverter::TDBMJD,
+         GmatTimeConstants::JD_JAN_5_1941);
+      candidate.AddSeconds((target - tdb).GetTimeInSec());
+   }
+   canonicalEpoch = candidate;
+   return encoded;
+}
+
 SpiceDouble SpiceInterface::A1ToSpiceTime(Real a1Time)
 {
    SpiceDouble j2ET      = j2000_c();
@@ -775,6 +1009,7 @@ void SpiceInterface::InitializeInterface()
    if (numInstances == 0)
    {
       loadedKernels.clear();
+      NotifyKernelPoolChanged();
       kclear_c();  // clear all kernels from the pool
       // Set RETURN before configuring diagnostics: an unavailable diagnostic
       // destination must not abort the process or hide a kernel exception.
@@ -969,30 +1204,50 @@ std::string SpiceInterface::FindKernel(const std::string &withName)
 //------------------------------------------------------------------------------
 std::string SpiceInterface::GetFullKernelPath(const std::string &forKernel)
 {
-   #ifdef DEBUG_SPK_FULL_PATH
-      MessageInterface::ShowMessage(
-                     "IsLoaded::Now attempting to find kernel name %s\n",
-                     forKernel.c_str());
-   #endif
-   
-   std::map<std::string, std::string>::iterator ii;
-   for (ii = loadedKernels.begin(); ii != loadedKernels.end(); ++ii)
-   {
-      if ((*ii).first == forKernel)
-      {
-      #ifdef DEBUG_SPK_FULL_PATH
-         MessageInterface::ShowMessage(
-                  "IsLoaded::kernel name %s WAS INDEED ALREADY LOADED as %s\n",
-                  forKernel.c_str(), ((*ii).second).c_str());
-      #endif
-         return (*ii).second;
-      }
-   }
-   #ifdef DEBUG_SPK_FULL_PATH
-      MessageInterface::ShowMessage(
-                     "IsLoaded::kernel name %s NOT FOUND \n",
-                     forKernel.c_str());
-   #endif
-   return "";
+   return ResolveLoadedKernel(forKernel);
 }
 
+
+
+StringArray SpiceInterface::GetLoadedKernelNames(const std::string &kind)
+{
+   StringArray result;
+   for (const auto &entry : ReadKeeperEntries(kind)) result.push_back(entry.file);
+   return result;
+}
+
+std::string SpiceInterface::ResolveLoadedKernel(const std::string &fileName)
+{
+   if (fileName.empty()) return "";
+   StringArray candidates;
+   const auto cached = loadedKernels.find(fileName);
+   if (cached != loadedKernels.end()) candidates.push_back(cached->second);
+   const std::string requested = GmatStringUtil::Replace(fileName, "\\", "/");
+   if (std::find(candidates.begin(), candidates.end(), requested) == candidates.end())
+      candidates.push_back(requested);
+   for (const auto &candidate : candidates)
+      if (KeeperContains(candidate)) return candidate;
+   const std::string resolved = FindKernel(fileName);
+   if (!resolved.empty() && std::find(candidates.begin(), candidates.end(), resolved) == candidates.end())
+   {
+      candidates.push_back(resolved);
+      if (KeeperContains(resolved)) return resolved;
+   }
+   // Alternate filesystem spellings can refer to the same loaded file. Return
+   // KEEPER's spelling, so native coverage does not furnish another alias.
+   for (const auto &loaded : GetLoadedKernelNames("ALL"))
+      for (const auto &candidate : candidates)
+      {
+         std::error_code error;
+         if (std::filesystem::equivalent(loaded, candidate, error) && !error)
+            return loaded;
+      }
+   if (cached != loadedKernels.end())
+   {
+      // An external/native reset may have bypassed the wrapper map. Observed
+      // stale membership also invalidates other revision-based native caches.
+      loadedKernels.erase(cached);
+      NotifyKernelPoolChanged();
+   }
+   return "";
+}

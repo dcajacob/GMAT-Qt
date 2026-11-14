@@ -1,0 +1,1382 @@
+{
+  "mu": 398600.4418,
+  "radius": 1000000.0,
+  "reference_radius": 1200000.0,
+  "duration_seconds": 60.0,
+  "matrix_block_tolerances": [
+    2e-08,
+    2e-06,
+    2e-11,
+    2e-08
+  ],
+  "position_tolerance_km": 2e-05,
+  "velocity_tolerance_km_s": 2e-08,
+  "status": "frozen-before-execution",
+  "cases": [
+    {
+      "key": "SignedR01PP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "R",
+        "N",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          -1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR01PM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "R",
+        "-N",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR01MP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "-R",
+        "N",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR01MM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "-R",
+        "-N",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          -1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR02PM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "R",
+        "",
+        "-N"
+      ],
+      "coordinate_permutation": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR02MP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "-R",
+        "",
+        "N"
+      ],
+      "coordinate_permutation": [
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR02MM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "-R",
+        "",
+        "-N"
+      ],
+      "coordinate_permutation": [
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR10PP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "N",
+        "R",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR10PM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "-N",
+        "R",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          -1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR10MP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "N",
+        "-R",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          -1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR10MM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "-N",
+        "-R",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR12PP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "",
+        "R",
+        "N"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR12PM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "",
+        "R",
+        "-N"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR12MP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "",
+        "-R",
+        "N"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR12MM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "",
+        "-R",
+        "-N"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR20PP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "N",
+        "",
+        "R"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR20PM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "-N",
+        "",
+        "R"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR20MP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "N",
+        "",
+        "-R"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          -1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR20MM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "-N",
+        "",
+        "-R"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          -1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR21PP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "",
+        "N",
+        "R"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR21PM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "",
+        "-N",
+        "R"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR21MP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "",
+        "N",
+        "-R"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          -1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedR21MM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "axis_labels": [
+        "",
+        "-N",
+        "-R"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          -1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV01PP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "V",
+        "N",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          -1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV01PM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "V",
+        "-N",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV01MP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "-V",
+        "N",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV01MM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "-V",
+        "-N",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          -1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV02PM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "V",
+        "",
+        "-N"
+      ],
+      "coordinate_permutation": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV02MP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "-V",
+        "",
+        "N"
+      ],
+      "coordinate_permutation": [
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV02MM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "-V",
+        "",
+        "-N"
+      ],
+      "coordinate_permutation": [
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV10PP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "N",
+        "V",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV10PM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "-N",
+        "V",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          -1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV10MP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "N",
+        "-V",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          -1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV10MM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "-N",
+        "-V",
+        ""
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV12PP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "",
+        "V",
+        "N"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV12PM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "",
+        "V",
+        "-N"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV12MP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "",
+        "-V",
+        "N"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV12MM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "",
+        "-V",
+        "-N"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV20PP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "N",
+        "",
+        "V"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV20PM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "-N",
+        "",
+        "V"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV20MP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "N",
+        "",
+        "-V"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          -1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV20MM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "-N",
+        "",
+        "-V"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          -1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV21PP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "",
+        "N",
+        "V"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV21PM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "",
+        "-N",
+        "V"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV21MP",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "",
+        "N",
+        "-V"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          -1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    },
+    {
+      "key": "SignedV21MM",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "axis_labels": [
+        "",
+        "-N",
+        "-V"
+      ],
+      "coordinate_permutation": [
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          -1,
+          0,
+          0
+        ]
+      ],
+      "singular": false
+    }
+  ],
+  "expected_reads": 690,
+  "providers": [
+    "original",
+    "clone",
+    "copy"
+  ],
+  "scope": "The 46 missing signed R/N and V/N axis placements, with two matching source-versioned passes reused.",
+  "coarse_step_seconds": 0.1,
+  "fine_step_seconds": 0.05,
+  "refinement_state_bounds": [
+    1e-08,
+    1e-11
+  ],
+  "refinement_matrix_block_bounds": [
+    1e-10,
+    1e-08,
+    1e-13,
+    1e-10
+  ],
+  "pose_intervals": 60,
+  "transverse_offset_km": 30000.0,
+  "transverse_speed_km_s": 0.5,
+  "mass_kg": 1000.0,
+  "area_m2": 100000000.0,
+  "cr": 1.6,
+  "flux_w_m2": 1367.0,
+  "nominal_sun_km": 149597870.691,
+  "sun_radius_km": 695990.0,
+  "earth_radius_km": 6378.1363,
+  "illumination_domain": "full_sun",
+  "frame_input_mode": "propagated_native_matrix"
+}

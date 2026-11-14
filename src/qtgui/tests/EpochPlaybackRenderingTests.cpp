@@ -67,7 +67,13 @@ int main(int argc,char **argv)
          camera.eye={0,-300,0}; camera.target={0,0,0}; camera.up={0,0,1}; model->cameras.push_back(camera);
       }
       const auto original=raw(*model);
-      PlotCanvas canvas(model); canvas.resize(720,520); canvas.show(); canvas.scriptView(); app.processEvents();
+      PlotCanvas canvas(model);
+      // These masks measure scene geometry. LCD text antialiasing can put
+      // strongly red fringe pixels in the neutral footer, moving the red
+      // object's measured centroid by several pixels on offscreen platforms.
+      // Use grayscale text antialiasing without changing geometry or bounds.
+      auto font=canvas.font(); font.setStyleStrategy(QFont::NoSubpixelAntialias); canvas.setFont(font);
+      canvas.resize(720,520); canvas.show(); canvas.scriptView(); app.processEvents();
       if (native) {
          QEventLoop exposed; QTimer::singleShot(150,&exposed,&QEventLoop::quit); exposed.exec();
          auto *renderer=dynamic_cast<OrbitRenderer *>(canvas.findChild<QOpenGLWidget *>());
@@ -85,6 +91,11 @@ int main(int argc,char **argv)
       const auto first=capture(100,"100"),mid=capture(110,"110"),last=capture(120,"120");
       const auto a0=pixels(first,0),a1=pixels(mid,0),a2=pixels(last,0);
       const auto b0=pixels(first,1),b1=pixels(mid,1),b2=pixels(last,1);
+      for (const auto &image:{first,mid,last}) {
+         const auto footer=image.copy(0,image.height()-60,image.width(),60);
+         require(pixels(footer,0).count==0 && pixels(footer,1).count==0 && pixels(footer,2).count==0,
+            "Neutral footer contaminated scene color masks");
+      }
       for (const auto &group:{a0,a1,a2,b0,b1,b2}) require(group.count>25,"Absolute-epoch object missing from rendered pixels");
       const double scale=(a2.x-a0.x)/80.; require(scale>.5,"Recorded object movement too small to measure");
       // These coordinates follow independently specified linear fixtures; no

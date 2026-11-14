@@ -1,0 +1,1094 @@
+{
+  "schema_version": 1,
+  "obliquity_arcsec": 84381.448,
+  "oracle": "Retained NASA zonal model in EarthMJ2000Eq; independent periapsis/normal rotation for the mean ellipse; independent Kepler/Cartesian reconstruction.",
+  "reference_sha256": {
+    "prototype/StateConv/BROLYD.m": "4bba549178fd7a10da7506ba17d0aa6fa98afaeaa4de51682271a583833465f3",
+    "prototype/StateConv/BROLYD_short.m": "c0f3bd3b53cf2ba335530ccec054dd1fd19123326a86e3a11d51a2630960fa24",
+    "src/qtgui/tests/BrouwerPrototypeOracle.py": "3cd4c38046ffb90926c161fd744d37af4859f63d7f6cb336656ed3ac00ac5f5b",
+    "src/qtgui/tests/BrouwerFrameOracle.py": "85b9bd5d3c43bfb23f4cca6b46b0c533fa59a557aa01d7f0a358ba1fdf8363af"
+  },
+  "oracle_rows": [
+    {
+      "key": "BrouwerShortEclipticRead",
+      "mean_equatorial": [
+        10800,
+        0.17,
+        47.00000000000001,
+        111.99999999999999,
+        38.0,
+        143
+      ],
+      "mean_ecliptic": [
+        10800,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143
+      ],
+      "cartesian_equatorial": [
+        6031.350943417012,
+        -10648.8778118276,
+        -1720.1046956530852,
+        3.1072976657840257,
+        1.8248726086642781,
+        -3.823457159721604
+      ]
+    },
+    {
+      "key": "BrouwerShortEclipticWriteSMA",
+      "mean_equatorial": [
+        10830,
+        0.17,
+        47.00000000000001,
+        111.99999999999999,
+        38.0,
+        143
+      ],
+      "mean_ecliptic": [
+        10830,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143
+      ],
+      "cartesian_equatorial": [
+        6048.108692963062,
+        -10678.461637288836,
+        -1724.8793856167165,
+        3.1029908364539547,
+        1.8223404715750848,
+        -3.8181519263763146
+      ]
+    },
+    {
+      "key": "BrouwerShortEclipticWriteECC",
+      "mean_equatorial": [
+        10800,
+        0.18000000000000002,
+        47.00000000000001,
+        111.99999999999999,
+        38.0,
+        143
+      ],
+      "mean_ecliptic": [
+        10800,
+        0.18000000000000002,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143
+      ],
+      "cartesian_equatorial": [
+        6136.819028828857,
+        -10685.937934523423,
+        -1810.1533070233827,
+        3.0704123122533327,
+        1.8260126701830002,
+        -3.7872179159064774
+      ]
+    },
+    {
+      "key": "BrouwerShortEclipticWriteINC",
+      "mean_equatorial": [
+        10800,
+        0.17,
+        47.90393468862316,
+        112.58053589071558,
+        37.60742292037334,
+        143
+      ],
+      "mean_ecliptic": [
+        10800,
+        0.17,
+        59.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143
+      ],
+      "cartesian_equatorial": [
+        6068.338322112518,
+        -10633.919315432133,
+        -1683.4503411779792,
+        3.048442249976043,
+        1.8007083648043984,
+        -3.881773425110481
+      ]
+    },
+    {
+      "key": "BrouwerShortEclipticWriteRAAN",
+      "mean_equatorial": [
+        10800,
+        0.17,
+        46.26806686370388,
+        114.12937141094822,
+        37.57129747853662,
+        143
+      ],
+      "mean_ecliptic": [
+        10800,
+        0.17,
+        58.88601688709159,
+        129.62328006083038,
+        12.482622096025436,
+        143
+      ],
+      "cartesian_equatorial": [
+        6392.466678703553,
+        -10449.783513912444,
+        -1633.8579461254037,
+        3.1000735518484217,
+        1.92430267190741,
+        -3.7803955732276413
+      ]
+    },
+    {
+      "key": "BrouwerShortEclipticWriteAOP",
+      "mean_equatorial": [
+        10800,
+        0.17,
+        47.00000000000001,
+        111.99999999999999,
+        41.00000000000001,
+        143
+      ],
+      "mean_ecliptic": [
+        10800,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        15.482622096025436,
+        143
+      ],
+      "cartesian_equatorial": [
+        6378.566735183745,
+        -10357.909642606603,
+        -2182.094396931128,
+        2.9830657251528496,
+        2.0690157830799203,
+        -3.797969991174392
+      ]
+    },
+    {
+      "key": "BrouwerShortEclipticWriteMA",
+      "mean_equatorial": [
+        10800,
+        0.17,
+        47.00000000000001,
+        111.99999999999999,
+        38.0,
+        147
+      ],
+      "mean_ecliptic": [
+        10800,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        147
+      ],
+      "cartesian_equatorial": [
+        6407.097280995394,
+        -10405.286025459965,
+        -2191.2884209883155,
+        2.9453608087683456,
+        2.0989784128479614,
+        -3.772511907808346
+      ]
+    },
+    {
+      "key": "BrouwerLongEclipticRead",
+      "mean_equatorial": [
+        10800,
+        0.17,
+        47.00000000000001,
+        111.99999999999999,
+        38.0,
+        143
+      ],
+      "mean_ecliptic": [
+        10800,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143
+      ],
+      "cartesian_equatorial": [
+        6039.479131737584,
+        -10644.04234127387,
+        -1728.3444294068222,
+        3.105927475434816,
+        1.827318613682391,
+        -3.822751445418319
+      ]
+    },
+    {
+      "key": "BrouwerLongEclipticWriteSMA",
+      "mean_equatorial": [
+        10830,
+        0.17,
+        47.00000000000001,
+        111.99999999999999,
+        38.0,
+        143
+      ],
+      "mean_ecliptic": [
+        10830,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143
+      ],
+      "cartesian_equatorial": [
+        6056.233957490075,
+        -10673.628255494861,
+        -1733.117739864343,
+        3.101626721112289,
+        1.8247754679584938,
+        -3.8174491328521793
+      ]
+    },
+    {
+      "key": "BrouwerLongEclipticWriteECC",
+      "mean_equatorial": [
+        10800,
+        0.18000000000000002,
+        47.00000000000001,
+        111.99999999999999,
+        38.0,
+        143
+      ],
+      "mean_ecliptic": [
+        10800,
+        0.18000000000000002,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143
+      ],
+      "cartesian_equatorial": [
+        6145.034248005595,
+        -10680.976386877654,
+        -1818.39031952657,
+        3.0690392494332173,
+        1.8284364978066376,
+        -3.786486678048367
+      ]
+    },
+    {
+      "key": "BrouwerLongEclipticWriteINC",
+      "mean_equatorial": [
+        10800,
+        0.17,
+        47.90393468862316,
+        112.58053589071558,
+        37.60742292037334,
+        143
+      ],
+      "mean_ecliptic": [
+        10800,
+        0.17,
+        59.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143
+      ],
+      "cartesian_equatorial": [
+        6076.474820992067,
+        -10628.989108119535,
+        -1692.0363136198598,
+        3.047042470471009,
+        1.8032183611033936,
+        -3.881082596473688
+      ]
+    },
+    {
+      "key": "BrouwerLongEclipticWriteRAAN",
+      "mean_equatorial": [
+        10800,
+        0.17,
+        46.26806686370388,
+        114.12937141094822,
+        37.57129747853662,
+        143
+      ],
+      "mean_ecliptic": [
+        10800,
+        0.17,
+        58.88601688709159,
+        129.62328006083038,
+        12.482622096025436,
+        143
+      ],
+      "cartesian_equatorial": [
+        6400.412958106799,
+        -10444.729123674668,
+        -1641.8388708497023,
+        3.098655815136491,
+        1.9266746678827429,
+        -3.779730000341252
+      ]
+    },
+    {
+      "key": "BrouwerLongEclipticWriteAOP",
+      "mean_equatorial": [
+        10800,
+        0.17,
+        47.00000000000001,
+        111.99999999999999,
+        41.00000000000001,
+        143
+      ],
+      "mean_ecliptic": [
+        10800,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        15.482622096025436,
+        143
+      ],
+      "cartesian_equatorial": [
+        6386.479940691741,
+        -10352.809852129314,
+        -2190.244638280045,
+        2.981551845674074,
+        2.0712877201958415,
+        -3.7970578210767596
+      ]
+    },
+    {
+      "key": "BrouwerLongEclipticWriteMA",
+      "mean_equatorial": [
+        10800,
+        0.17,
+        47.00000000000001,
+        111.99999999999999,
+        38.0,
+        147
+      ],
+      "mean_ecliptic": [
+        10800,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        147
+      ],
+      "cartesian_equatorial": [
+        6415.044826218442,
+        -10400.159385491492,
+        -2199.42792695311,
+        2.9438246284471057,
+        2.1012217093150682,
+        -3.7716067661746884
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "key": "BrouwerShortEclipticRead",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 6031.3509434170119;\nSat.Y = -10648.877811827599;\nSat.Z = -1720.1046956530838;\nSat.VX = 3.1072976657840257;\nSat.VY = 1.8248726086642784;\nSat.VZ = -3.8234571597216025;\n",
+      "origin": "Earth",
+      "body_case": "Earth",
+      "expected_origin_type": "Planet",
+      "mu": 398600.4418,
+      "parameter": "BrouwerMeanShort",
+      "orbital_case": true,
+      "read_only": false,
+      "native_guard_checks": false,
+      "destination": "R",
+      "before": "3.25",
+      "expression": "1",
+      "report": "Sat.EarthMJ2000Ec.BrouwerShortSMA Sat.EarthMJ2000Ec.BrouwerShortECC Sat.EarthMJ2000Ec.BrouwerShortINC Sat.EarthMJ2000Ec.BrouwerShortRAAN Sat.EarthMJ2000Ec.BrouwerShortAOP Sat.EarthMJ2000Ec.BrouwerShortMA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "expected": [
+        10800,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143,
+        6031.350943417012,
+        -10648.8778118276,
+        -1720.1046956530852,
+        3.1072976657840257,
+        1.8248726086642781,
+        -3.823457159721604
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-06,
+        1e-09,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-09,
+        1e-09,
+        1e-09
+      ]
+    },
+    {
+      "key": "BrouwerShortEclipticWriteSMA",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 6031.3509434170119;\nSat.Y = -10648.877811827599;\nSat.Z = -1720.1046956530838;\nSat.VX = 3.1072976657840257;\nSat.VY = 1.8248726086642784;\nSat.VZ = -3.8234571597216025;\n",
+      "origin": "Earth",
+      "body_case": "Earth",
+      "expected_origin_type": "Planet",
+      "mu": 398600.4418,
+      "parameter": "BrouwerMeanShort",
+      "orbital_case": true,
+      "read_only": false,
+      "native_guard_checks": false,
+      "destination": "Sat.EarthMJ2000Ec.BrouwerShortSMA",
+      "before": "10800",
+      "expression": "10830",
+      "report": "Sat.EarthMJ2000Ec.BrouwerShortSMA Sat.EarthMJ2000Ec.BrouwerShortECC Sat.EarthMJ2000Ec.BrouwerShortINC Sat.EarthMJ2000Ec.BrouwerShortRAAN Sat.EarthMJ2000Ec.BrouwerShortAOP Sat.EarthMJ2000Ec.BrouwerShortMA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "expected": [
+        10830,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143,
+        6048.108692963062,
+        -10678.461637288836,
+        -1724.8793856167165,
+        3.1029908364539547,
+        1.8223404715750848,
+        -3.8181519263763146
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-06,
+        1e-09,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-09,
+        1e-09,
+        1e-09
+      ]
+    },
+    {
+      "key": "BrouwerShortEclipticWriteECC",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 6031.3509434170119;\nSat.Y = -10648.877811827599;\nSat.Z = -1720.1046956530838;\nSat.VX = 3.1072976657840257;\nSat.VY = 1.8248726086642784;\nSat.VZ = -3.8234571597216025;\n",
+      "origin": "Earth",
+      "body_case": "Earth",
+      "expected_origin_type": "Planet",
+      "mu": 398600.4418,
+      "parameter": "BrouwerMeanShort",
+      "orbital_case": true,
+      "read_only": false,
+      "native_guard_checks": false,
+      "destination": "Sat.EarthMJ2000Ec.BrouwerShortECC",
+      "before": "0.17000000000000001",
+      "expression": "0.18000000000000002",
+      "report": "Sat.EarthMJ2000Ec.BrouwerShortSMA Sat.EarthMJ2000Ec.BrouwerShortECC Sat.EarthMJ2000Ec.BrouwerShortINC Sat.EarthMJ2000Ec.BrouwerShortRAAN Sat.EarthMJ2000Ec.BrouwerShortAOP Sat.EarthMJ2000Ec.BrouwerShortMA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "expected": [
+        10800,
+        0.18000000000000002,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143,
+        6136.819028828857,
+        -10685.937934523423,
+        -1810.1533070233827,
+        3.0704123122533327,
+        1.8260126701830002,
+        -3.7872179159064774
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-06,
+        1e-09,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-09,
+        1e-09,
+        1e-09
+      ]
+    },
+    {
+      "key": "BrouwerShortEclipticWriteINC",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 6031.3509434170119;\nSat.Y = -10648.877811827599;\nSat.Z = -1720.1046956530838;\nSat.VX = 3.1072976657840257;\nSat.VY = 1.8248726086642784;\nSat.VZ = -3.8234571597216025;\n",
+      "origin": "Earth",
+      "body_case": "Earth",
+      "expected_origin_type": "Planet",
+      "mu": 398600.4418,
+      "parameter": "BrouwerMeanShort",
+      "orbital_case": true,
+      "read_only": false,
+      "native_guard_checks": false,
+      "destination": "Sat.EarthMJ2000Ec.BrouwerShortINC",
+      "before": "58.886016887091593",
+      "expression": "59.886016887091593",
+      "report": "Sat.EarthMJ2000Ec.BrouwerShortSMA Sat.EarthMJ2000Ec.BrouwerShortECC Sat.EarthMJ2000Ec.BrouwerShortINC Sat.EarthMJ2000Ec.BrouwerShortRAAN Sat.EarthMJ2000Ec.BrouwerShortAOP Sat.EarthMJ2000Ec.BrouwerShortMA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "expected": [
+        10800,
+        0.17,
+        59.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143,
+        6068.338322112518,
+        -10633.919315432133,
+        -1683.4503411779792,
+        3.048442249976043,
+        1.8007083648043984,
+        -3.881773425110481
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-06,
+        1e-09,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-09,
+        1e-09,
+        1e-09
+      ]
+    },
+    {
+      "key": "BrouwerShortEclipticWriteRAAN",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 6031.3509434170119;\nSat.Y = -10648.877811827599;\nSat.Z = -1720.1046956530838;\nSat.VX = 3.1072976657840257;\nSat.VY = 1.8248726086642784;\nSat.VZ = -3.8234571597216025;\n",
+      "origin": "Earth",
+      "body_case": "Earth",
+      "expected_origin_type": "Planet",
+      "mu": 398600.4418,
+      "parameter": "BrouwerMeanShort",
+      "orbital_case": true,
+      "read_only": false,
+      "native_guard_checks": false,
+      "destination": "Sat.EarthMJ2000Ec.BrouwerShortRAAN",
+      "before": "127.62328006083037",
+      "expression": "129.62328006083038",
+      "report": "Sat.EarthMJ2000Ec.BrouwerShortSMA Sat.EarthMJ2000Ec.BrouwerShortECC Sat.EarthMJ2000Ec.BrouwerShortINC Sat.EarthMJ2000Ec.BrouwerShortRAAN Sat.EarthMJ2000Ec.BrouwerShortAOP Sat.EarthMJ2000Ec.BrouwerShortMA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "expected": [
+        10800,
+        0.17,
+        58.88601688709159,
+        129.62328006083038,
+        12.482622096025436,
+        143,
+        6392.466678703553,
+        -10449.783513912444,
+        -1633.8579461254037,
+        3.1000735518484217,
+        1.92430267190741,
+        -3.7803955732276413
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-06,
+        1e-09,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-09,
+        1e-09,
+        1e-09
+      ]
+    },
+    {
+      "key": "BrouwerShortEclipticWriteAOP",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 6031.3509434170119;\nSat.Y = -10648.877811827599;\nSat.Z = -1720.1046956530838;\nSat.VX = 3.1072976657840257;\nSat.VY = 1.8248726086642784;\nSat.VZ = -3.8234571597216025;\n",
+      "origin": "Earth",
+      "body_case": "Earth",
+      "expected_origin_type": "Planet",
+      "mu": 398600.4418,
+      "parameter": "BrouwerMeanShort",
+      "orbital_case": true,
+      "read_only": false,
+      "native_guard_checks": false,
+      "destination": "Sat.EarthMJ2000Ec.BrouwerShortAOP",
+      "before": "12.482622096025436",
+      "expression": "15.482622096025436",
+      "report": "Sat.EarthMJ2000Ec.BrouwerShortSMA Sat.EarthMJ2000Ec.BrouwerShortECC Sat.EarthMJ2000Ec.BrouwerShortINC Sat.EarthMJ2000Ec.BrouwerShortRAAN Sat.EarthMJ2000Ec.BrouwerShortAOP Sat.EarthMJ2000Ec.BrouwerShortMA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "expected": [
+        10800,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        15.482622096025436,
+        143,
+        6378.566735183745,
+        -10357.909642606603,
+        -2182.094396931128,
+        2.9830657251528496,
+        2.0690157830799203,
+        -3.797969991174392
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-06,
+        1e-09,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-09,
+        1e-09,
+        1e-09
+      ]
+    },
+    {
+      "key": "BrouwerShortEclipticWriteMA",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 6031.3509434170119;\nSat.Y = -10648.877811827599;\nSat.Z = -1720.1046956530838;\nSat.VX = 3.1072976657840257;\nSat.VY = 1.8248726086642784;\nSat.VZ = -3.8234571597216025;\n",
+      "origin": "Earth",
+      "body_case": "Earth",
+      "expected_origin_type": "Planet",
+      "mu": 398600.4418,
+      "parameter": "BrouwerMeanShort",
+      "orbital_case": true,
+      "read_only": false,
+      "native_guard_checks": false,
+      "destination": "Sat.EarthMJ2000Ec.BrouwerShortMA",
+      "before": "143",
+      "expression": "147",
+      "report": "Sat.EarthMJ2000Ec.BrouwerShortSMA Sat.EarthMJ2000Ec.BrouwerShortECC Sat.EarthMJ2000Ec.BrouwerShortINC Sat.EarthMJ2000Ec.BrouwerShortRAAN Sat.EarthMJ2000Ec.BrouwerShortAOP Sat.EarthMJ2000Ec.BrouwerShortMA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "expected": [
+        10800,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        147,
+        6407.097280995394,
+        -10405.286025459965,
+        -2191.2884209883155,
+        2.9453608087683456,
+        2.0989784128479614,
+        -3.772511907808346
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-06,
+        1e-09,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-09,
+        1e-09,
+        1e-09
+      ]
+    },
+    {
+      "key": "BrouwerLongEclipticRead",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 6039.4791317375866;\nSat.Y = -10644.042341273873;\nSat.Z = -1728.3444294068195;\nSat.VX = 3.1059274754348158;\nSat.VY = 1.8273186136823907;\nSat.VZ = -3.8227514454183189;\n",
+      "origin": "Earth",
+      "body_case": "Earth",
+      "expected_origin_type": "Planet",
+      "mu": 398600.4418,
+      "parameter": "BrouwerMeanLong",
+      "orbital_case": true,
+      "read_only": false,
+      "native_guard_checks": false,
+      "destination": "R",
+      "before": "3.25",
+      "expression": "1",
+      "report": "Sat.EarthMJ2000Ec.BrouwerLongSMA Sat.EarthMJ2000Ec.BrouwerLongECC Sat.EarthMJ2000Ec.BrouwerLongINC Sat.EarthMJ2000Ec.BrouwerLongRAAN Sat.EarthMJ2000Ec.BrouwerLongAOP Sat.EarthMJ2000Ec.BrouwerLongMA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "expected": [
+        10800,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143,
+        6039.479131737584,
+        -10644.04234127387,
+        -1728.3444294068222,
+        3.105927475434816,
+        1.827318613682391,
+        -3.822751445418319
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-06,
+        1e-09,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-09,
+        1e-09,
+        1e-09
+      ]
+    },
+    {
+      "key": "BrouwerLongEclipticWriteSMA",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 6039.4791317375866;\nSat.Y = -10644.042341273873;\nSat.Z = -1728.3444294068195;\nSat.VX = 3.1059274754348158;\nSat.VY = 1.8273186136823907;\nSat.VZ = -3.8227514454183189;\n",
+      "origin": "Earth",
+      "body_case": "Earth",
+      "expected_origin_type": "Planet",
+      "mu": 398600.4418,
+      "parameter": "BrouwerMeanLong",
+      "orbital_case": true,
+      "read_only": false,
+      "native_guard_checks": false,
+      "destination": "Sat.EarthMJ2000Ec.BrouwerLongSMA",
+      "before": "10800",
+      "expression": "10830",
+      "report": "Sat.EarthMJ2000Ec.BrouwerLongSMA Sat.EarthMJ2000Ec.BrouwerLongECC Sat.EarthMJ2000Ec.BrouwerLongINC Sat.EarthMJ2000Ec.BrouwerLongRAAN Sat.EarthMJ2000Ec.BrouwerLongAOP Sat.EarthMJ2000Ec.BrouwerLongMA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "expected": [
+        10830,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143,
+        6056.233957490075,
+        -10673.628255494861,
+        -1733.117739864343,
+        3.101626721112289,
+        1.8247754679584938,
+        -3.8174491328521793
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-06,
+        1e-09,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-09,
+        1e-09,
+        1e-09
+      ]
+    },
+    {
+      "key": "BrouwerLongEclipticWriteECC",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 6039.4791317375866;\nSat.Y = -10644.042341273873;\nSat.Z = -1728.3444294068195;\nSat.VX = 3.1059274754348158;\nSat.VY = 1.8273186136823907;\nSat.VZ = -3.8227514454183189;\n",
+      "origin": "Earth",
+      "body_case": "Earth",
+      "expected_origin_type": "Planet",
+      "mu": 398600.4418,
+      "parameter": "BrouwerMeanLong",
+      "orbital_case": true,
+      "read_only": false,
+      "native_guard_checks": false,
+      "destination": "Sat.EarthMJ2000Ec.BrouwerLongECC",
+      "before": "0.17000000000000001",
+      "expression": "0.18000000000000002",
+      "report": "Sat.EarthMJ2000Ec.BrouwerLongSMA Sat.EarthMJ2000Ec.BrouwerLongECC Sat.EarthMJ2000Ec.BrouwerLongINC Sat.EarthMJ2000Ec.BrouwerLongRAAN Sat.EarthMJ2000Ec.BrouwerLongAOP Sat.EarthMJ2000Ec.BrouwerLongMA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "expected": [
+        10800,
+        0.18000000000000002,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143,
+        6145.034248005595,
+        -10680.976386877654,
+        -1818.39031952657,
+        3.0690392494332173,
+        1.8284364978066376,
+        -3.786486678048367
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-06,
+        1e-09,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-09,
+        1e-09,
+        1e-09
+      ]
+    },
+    {
+      "key": "BrouwerLongEclipticWriteINC",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 6039.4791317375866;\nSat.Y = -10644.042341273873;\nSat.Z = -1728.3444294068195;\nSat.VX = 3.1059274754348158;\nSat.VY = 1.8273186136823907;\nSat.VZ = -3.8227514454183189;\n",
+      "origin": "Earth",
+      "body_case": "Earth",
+      "expected_origin_type": "Planet",
+      "mu": 398600.4418,
+      "parameter": "BrouwerMeanLong",
+      "orbital_case": true,
+      "read_only": false,
+      "native_guard_checks": false,
+      "destination": "Sat.EarthMJ2000Ec.BrouwerLongINC",
+      "before": "58.886016887091593",
+      "expression": "59.886016887091593",
+      "report": "Sat.EarthMJ2000Ec.BrouwerLongSMA Sat.EarthMJ2000Ec.BrouwerLongECC Sat.EarthMJ2000Ec.BrouwerLongINC Sat.EarthMJ2000Ec.BrouwerLongRAAN Sat.EarthMJ2000Ec.BrouwerLongAOP Sat.EarthMJ2000Ec.BrouwerLongMA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "expected": [
+        10800,
+        0.17,
+        59.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        143,
+        6076.474820992067,
+        -10628.989108119535,
+        -1692.0363136198598,
+        3.047042470471009,
+        1.8032183611033936,
+        -3.881082596473688
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-06,
+        1e-09,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-09,
+        1e-09,
+        1e-09
+      ]
+    },
+    {
+      "key": "BrouwerLongEclipticWriteRAAN",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 6039.4791317375866;\nSat.Y = -10644.042341273873;\nSat.Z = -1728.3444294068195;\nSat.VX = 3.1059274754348158;\nSat.VY = 1.8273186136823907;\nSat.VZ = -3.8227514454183189;\n",
+      "origin": "Earth",
+      "body_case": "Earth",
+      "expected_origin_type": "Planet",
+      "mu": 398600.4418,
+      "parameter": "BrouwerMeanLong",
+      "orbital_case": true,
+      "read_only": false,
+      "native_guard_checks": false,
+      "destination": "Sat.EarthMJ2000Ec.BrouwerLongRAAN",
+      "before": "127.62328006083037",
+      "expression": "129.62328006083038",
+      "report": "Sat.EarthMJ2000Ec.BrouwerLongSMA Sat.EarthMJ2000Ec.BrouwerLongECC Sat.EarthMJ2000Ec.BrouwerLongINC Sat.EarthMJ2000Ec.BrouwerLongRAAN Sat.EarthMJ2000Ec.BrouwerLongAOP Sat.EarthMJ2000Ec.BrouwerLongMA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "expected": [
+        10800,
+        0.17,
+        58.88601688709159,
+        129.62328006083038,
+        12.482622096025436,
+        143,
+        6400.412958106799,
+        -10444.729123674668,
+        -1641.8388708497023,
+        3.098655815136491,
+        1.9266746678827429,
+        -3.779730000341252
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-06,
+        1e-09,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-09,
+        1e-09,
+        1e-09
+      ]
+    },
+    {
+      "key": "BrouwerLongEclipticWriteAOP",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 6039.4791317375866;\nSat.Y = -10644.042341273873;\nSat.Z = -1728.3444294068195;\nSat.VX = 3.1059274754348158;\nSat.VY = 1.8273186136823907;\nSat.VZ = -3.8227514454183189;\n",
+      "origin": "Earth",
+      "body_case": "Earth",
+      "expected_origin_type": "Planet",
+      "mu": 398600.4418,
+      "parameter": "BrouwerMeanLong",
+      "orbital_case": true,
+      "read_only": false,
+      "native_guard_checks": false,
+      "destination": "Sat.EarthMJ2000Ec.BrouwerLongAOP",
+      "before": "12.482622096025436",
+      "expression": "15.482622096025436",
+      "report": "Sat.EarthMJ2000Ec.BrouwerLongSMA Sat.EarthMJ2000Ec.BrouwerLongECC Sat.EarthMJ2000Ec.BrouwerLongINC Sat.EarthMJ2000Ec.BrouwerLongRAAN Sat.EarthMJ2000Ec.BrouwerLongAOP Sat.EarthMJ2000Ec.BrouwerLongMA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "expected": [
+        10800,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        15.482622096025436,
+        143,
+        6386.479940691741,
+        -10352.809852129314,
+        -2190.244638280045,
+        2.981551845674074,
+        2.0712877201958415,
+        -3.7970578210767596
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-06,
+        1e-09,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-09,
+        1e-09,
+        1e-09
+      ]
+    },
+    {
+      "key": "BrouwerLongEclipticWriteMA",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 6039.4791317375866;\nSat.Y = -10644.042341273873;\nSat.Z = -1728.3444294068195;\nSat.VX = 3.1059274754348158;\nSat.VY = 1.8273186136823907;\nSat.VZ = -3.8227514454183189;\n",
+      "origin": "Earth",
+      "body_case": "Earth",
+      "expected_origin_type": "Planet",
+      "mu": 398600.4418,
+      "parameter": "BrouwerMeanLong",
+      "orbital_case": true,
+      "read_only": false,
+      "native_guard_checks": false,
+      "destination": "Sat.EarthMJ2000Ec.BrouwerLongMA",
+      "before": "143",
+      "expression": "147",
+      "report": "Sat.EarthMJ2000Ec.BrouwerLongSMA Sat.EarthMJ2000Ec.BrouwerLongECC Sat.EarthMJ2000Ec.BrouwerLongINC Sat.EarthMJ2000Ec.BrouwerLongRAAN Sat.EarthMJ2000Ec.BrouwerLongAOP Sat.EarthMJ2000Ec.BrouwerLongMA Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ",
+      "expected": [
+        10800,
+        0.17,
+        58.88601688709159,
+        127.62328006083037,
+        12.482622096025436,
+        147,
+        6415.044826218442,
+        -10400.159385491492,
+        -2199.42792695311,
+        2.9438246284471057,
+        2.1012217093150682,
+        -3.7716067661746884
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-06,
+        1e-09,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-09,
+        1e-09,
+        1e-09
+      ]
+    }
+  ],
+  "scope": "Two mean models, one nonsingular orbit in two fixed inertial bases, six independent scalar writes each, actual GUI transactions and persistence. No all-frame/domain or independent physical averaging qualification."
+}

@@ -64,6 +64,9 @@ public:
    static const Real ATTITUDE_REAL_UNDEFINED;
    
 protected:
+   void RebindClonedParameterCaches(const RefData &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
+
 
    // The inherited methods from RefData
    virtual void InitializeRefObjects();

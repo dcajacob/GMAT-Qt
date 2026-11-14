@@ -56,6 +56,7 @@ public:
                                    bool resetLocalObjects = true);
    virtual bool         Execute(ObjectInitializer *objInit, bool reinitialize = false);
    virtual void         Finalize(bool cleanUp = false);
+   std::unique_ptr<FunctionInvocationState> SuspendInvocationState() override;
    
    // inherited from GmatBase
    virtual GmatBase*    Clone() const;
@@ -73,6 +74,7 @@ protected:
    bool InitializeLocalObjects(ObjectInitializer *objInit,
                                GmatCommand *current,
                                bool ignoreException);
+   void NotifyCloneOwners(GmatCommand *command, ObjectInitializer *initializer);
    void CreateSubscriberWrappers();
    bool SetGmatFunctionPath(const std::string &path);
    void BuildUnusedGlobalObjectList();

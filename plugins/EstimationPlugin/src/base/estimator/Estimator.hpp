@@ -54,6 +54,8 @@
 class ESTIMATION_API Estimator : public Solver
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = Solver::NativeValueProviderDepth + 1;
+
    Estimator(const std::string &type, const std::string &name);
    virtual ~Estimator() = 0;
    Estimator(const Estimator& est);
@@ -176,6 +178,16 @@ public:
    virtual void UpdateClonedObject(GmatBase *obj);
    virtual void UpdateClonedObjectParameter(GmatBase *obj,
          Integer updatedParameterId);
+   bool ApplyPropagationCloneUpdate(GmatBase *obj, Integer parameterId = -1);
+   const std::vector<PropSetup*> &GetOwnedPropagationDefinitions() const;
+   bool HasOwnedDefinitionSource(const GmatBase *source) const;
+   bool ApplyOwnedCloneUpdate(GmatBase *source, Integer parameterId = -1);
+   void PrepareClonedSolverValueImpl(const Solver &source);
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+   bool HasRefObjectTypeArray() override;
+
 
    virtual void        SetDelayInitialization(bool delay);
 

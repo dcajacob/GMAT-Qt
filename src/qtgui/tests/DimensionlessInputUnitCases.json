@@ -1,0 +1,532 @@
+{
+  "cases": [
+    {
+      "key": "SpacecraftRatios",
+      "group": "Scalars",
+      "object": "Probe",
+      "fixture": "Create Spacecraft Probe;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = 21545;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DisplayStateType = Keplerian;\nProbe.SMA = 9000;\nProbe.ECC = 0.2;\nProbe.INC = 30;\nProbe.RAAN = 40;\nProbe.AOP = 50;\nProbe.TA = 60;\n",
+      "route": "table",
+      "units": {
+        "Cd": "dimensionless",
+        "Cr": "dimensionless",
+        "CdSigma": "dimensionless",
+        "CrSigma": "dimensionless",
+        "AtmosDensityScaleFactor": "dimensionless",
+        "AtmosDensityScaleFactorSigma": "dimensionless",
+        "SPADDragScaleFactor": "dimensionless",
+        "SPADDragScaleFactorSigma": "dimensionless",
+        "SPADSRPScaleFactor": "dimensionless",
+        "SPADSRPScaleFactorSigma": "dimensionless",
+        "ModelScale": "dimensionless"
+      }
+    },
+    {
+      "key": "ViewScale",
+      "group": "Scalars",
+      "object": "Probe",
+      "fixture": "Create Spacecraft Sat;\nCreate OrbitView Probe;\nProbe.Add = {Sat, Earth};\n",
+      "route": "table",
+      "units": {
+        "ViewScaleFactor": "dimensionless"
+      }
+    },
+    {
+      "key": "ConicalFOVOpacity",
+      "group": "Scalars",
+      "object": "Probe",
+      "fixture": "Create ConicalFOV Probe;\n",
+      "route": "table",
+      "units": {
+        "Alpha": "dimensionless"
+      }
+    },
+    {
+      "key": "RectangularFOVOpacity",
+      "group": "Scalars",
+      "object": "Probe",
+      "fixture": "Create RectangularFOV Probe;\n",
+      "route": "table",
+      "units": {
+        "Alpha": "dimensionless"
+      }
+    },
+    {
+      "key": "CustomFOVOpacity",
+      "group": "Scalars",
+      "object": "Probe",
+      "fixture": "Create CustomFOV Probe;\n",
+      "route": "table",
+      "units": {
+        "Alpha": "dimensionless"
+      }
+    },
+    {
+      "key": "IntrusionPhase",
+      "group": "Scalars",
+      "object": "Probe",
+      "fixture": "Create IntrusionLocator Probe;\n",
+      "route": "table",
+      "units": {
+        "MinimumPhase": "dimensionless"
+      }
+    },
+    {
+      "key": "ThrustSegmentScales",
+      "group": "Scalars",
+      "object": "Probe",
+      "fixture": "Create ThrustSegment Probe;\n",
+      "route": "table",
+      "units": {
+        "ThrustScaleFactor": "dimensionless",
+        "ThrustScaleFactorSigma": "dimensionless",
+        "MassFlowScaleFactor": "dimensionless",
+        "ThrustAngleConstraintVector": "dimensionless"
+      }
+    },
+    {
+      "key": "ThrusterMixture",
+      "group": "Scalars",
+      "object": "Probe",
+      "fixture": "Create ChemicalTank TankA TankB;\nCreate Thruster Probe;\nProbe.Tank = {TankA, TankB};\nProbe.MixRatio = [1 2];\n",
+      "route": "table",
+      "units": {
+        "MixRatio": "dimensionless"
+      }
+    },
+    {
+      "key": "ChemicalThrusterMixture",
+      "group": "Scalars",
+      "object": "Probe",
+      "fixture": "Create ChemicalTank TankA TankB;\nCreate ChemicalThruster Probe;\nProbe.Tank = {TankA, TankB};\nProbe.MixRatio = [1 2];\n",
+      "route": "table",
+      "units": {
+        "MixRatio": "dimensionless"
+      }
+    },
+    {
+      "key": "ElectricThrusterMixture",
+      "group": "Scalars",
+      "object": "Probe",
+      "fixture": "Create ChemicalTank TankA TankB;\nCreate ElectricThruster Probe;\nProbe.Tank = {TankA, TankB};\nProbe.MixRatio = [1 2];\n",
+      "route": "table",
+      "units": {
+        "MixRatio": "dimensionless"
+      }
+    },
+    {
+      "key": "AntennaDirections",
+      "group": "Directions",
+      "object": "Probe",
+      "fixture": "Create Antenna Probe;\n",
+      "route": "table",
+      "units": {
+        "DirectionX": "dimensionless",
+        "DirectionY": "dimensionless",
+        "DirectionZ": "dimensionless",
+        "SecondDirectionX": "dimensionless",
+        "SecondDirectionY": "dimensionless",
+        "SecondDirectionZ": "dimensionless"
+      }
+    },
+    {
+      "key": "FuelTankDirections",
+      "group": "Directions",
+      "object": "Probe",
+      "fixture": "Create FuelTank Probe;\n",
+      "route": "table",
+      "units": {
+        "DirectionX": "dimensionless",
+        "DirectionY": "dimensionless",
+        "DirectionZ": "dimensionless",
+        "SecondDirectionX": "dimensionless",
+        "SecondDirectionY": "dimensionless",
+        "SecondDirectionZ": "dimensionless"
+      }
+    },
+    {
+      "key": "ChemicalTankDirections",
+      "group": "Directions",
+      "object": "Probe",
+      "fixture": "Create ChemicalTank Probe;\n",
+      "route": "table",
+      "units": {
+        "DirectionX": "dimensionless",
+        "DirectionY": "dimensionless",
+        "DirectionZ": "dimensionless",
+        "SecondDirectionX": "dimensionless",
+        "SecondDirectionY": "dimensionless",
+        "SecondDirectionZ": "dimensionless"
+      }
+    },
+    {
+      "key": "ElectricTankDirections",
+      "group": "Directions",
+      "object": "Probe",
+      "fixture": "Create ElectricTank Probe;\n",
+      "route": "table",
+      "units": {
+        "DirectionX": "dimensionless",
+        "DirectionY": "dimensionless",
+        "DirectionZ": "dimensionless",
+        "SecondDirectionX": "dimensionless",
+        "SecondDirectionY": "dimensionless",
+        "SecondDirectionZ": "dimensionless"
+      }
+    },
+    {
+      "key": "ImagerDirections",
+      "group": "Directions",
+      "object": "Probe",
+      "fixture": "Create Imager Probe;\n",
+      "route": "table",
+      "units": {
+        "DirectionX": "dimensionless",
+        "DirectionY": "dimensionless",
+        "DirectionZ": "dimensionless",
+        "SecondDirectionX": "dimensionless",
+        "SecondDirectionY": "dimensionless",
+        "SecondDirectionZ": "dimensionless"
+      }
+    },
+    {
+      "key": "ReceiverDirections",
+      "group": "Directions",
+      "object": "Probe",
+      "fixture": "Create Receiver Probe;\n",
+      "route": "table",
+      "units": {
+        "DirectionX": "dimensionless",
+        "DirectionY": "dimensionless",
+        "DirectionZ": "dimensionless",
+        "SecondDirectionX": "dimensionless",
+        "SecondDirectionY": "dimensionless",
+        "SecondDirectionZ": "dimensionless"
+      }
+    },
+    {
+      "key": "TransmitterDirections",
+      "group": "Directions",
+      "object": "Probe",
+      "fixture": "Create Transmitter Probe;\n",
+      "route": "table",
+      "units": {
+        "DirectionX": "dimensionless",
+        "DirectionY": "dimensionless",
+        "DirectionZ": "dimensionless",
+        "SecondDirectionX": "dimensionless",
+        "SecondDirectionY": "dimensionless",
+        "SecondDirectionZ": "dimensionless"
+      }
+    },
+    {
+      "key": "TransponderDirections",
+      "group": "Directions",
+      "object": "Probe",
+      "fixture": "Create Transponder Probe;\n",
+      "route": "table",
+      "units": {
+        "DirectionX": "dimensionless",
+        "DirectionY": "dimensionless",
+        "DirectionZ": "dimensionless",
+        "SecondDirectionX": "dimensionless",
+        "SecondDirectionY": "dimensionless",
+        "SecondDirectionZ": "dimensionless"
+      }
+    },
+    {
+      "key": "KeplerianElements",
+      "group": "Orbit",
+      "object": "Probe",
+      "fixture": "Create Spacecraft Probe;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = 21545;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DisplayStateType = Keplerian;\nProbe.SMA = 9000;\nProbe.ECC = 0.2;\nProbe.INC = 30;\nProbe.RAAN = 40;\nProbe.AOP = 50;\nProbe.TA = 60;\nProbe.DisplayStateType = Keplerian;\n",
+      "route": "table",
+      "units": {
+        "ECC": "dimensionless"
+      },
+      "roundtrip_representation": true
+    },
+    {
+      "key": "EquinoctialElements",
+      "group": "Orbit",
+      "object": "Probe",
+      "fixture": "Create Spacecraft Probe;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = 21545;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DisplayStateType = Keplerian;\nProbe.SMA = 9000;\nProbe.ECC = 0.2;\nProbe.INC = 30;\nProbe.RAAN = 40;\nProbe.AOP = 50;\nProbe.TA = 60;\nProbe.DisplayStateType = Equinoctial;\n",
+      "route": "table",
+      "units": {
+        "EquinoctialH": "dimensionless",
+        "EquinoctialK": "dimensionless",
+        "EquinoctialP": "dimensionless",
+        "EquinoctialQ": "dimensionless"
+      },
+      "roundtrip_representation": true
+    },
+    {
+      "key": "ModifiedEquinoctialElements",
+      "group": "Orbit",
+      "object": "Probe",
+      "fixture": "Create Spacecraft Probe;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = 21545;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DisplayStateType = Keplerian;\nProbe.SMA = 9000;\nProbe.ECC = 0.2;\nProbe.INC = 30;\nProbe.RAAN = 40;\nProbe.AOP = 50;\nProbe.TA = 60;\nProbe.DisplayStateType = ModifiedEquinoctial;\n",
+      "route": "table",
+      "units": {
+        "ModEquinoctialF": "dimensionless",
+        "ModEquinoctialG": "dimensionless",
+        "ModEquinoctialH": "dimensionless",
+        "ModEquinoctialK": "dimensionless"
+      },
+      "roundtrip_representation": true
+    },
+    {
+      "key": "AlternateEquinoctialElements",
+      "group": "Orbit",
+      "object": "Probe",
+      "fixture": "Create Spacecraft Probe;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = 21545;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DisplayStateType = Keplerian;\nProbe.SMA = 9000;\nProbe.ECC = 0.2;\nProbe.INC = 30;\nProbe.RAAN = 40;\nProbe.AOP = 50;\nProbe.TA = 60;\nProbe.DisplayStateType = AlternateEquinoctial;\n",
+      "route": "table",
+      "units": {
+        "EquinoctialH": "dimensionless",
+        "EquinoctialK": "dimensionless",
+        "AltEquinoctialP": "dimensionless",
+        "AltEquinoctialQ": "dimensionless"
+      },
+      "roundtrip_representation": true
+    },
+    {
+      "key": "BrouwerMeanShortElements",
+      "group": "Orbit",
+      "object": "Probe",
+      "fixture": "Create Spacecraft Probe;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = 21545;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DisplayStateType = Keplerian;\nProbe.SMA = 9000;\nProbe.ECC = 0.2;\nProbe.INC = 30;\nProbe.RAAN = 40;\nProbe.AOP = 50;\nProbe.TA = 60;\nProbe.DisplayStateType = BrouwerMeanShort;\n",
+      "route": "table",
+      "units": {
+        "BrouwerShortECC": "dimensionless"
+      },
+      "roundtrip_representation": true
+    },
+    {
+      "key": "BrouwerMeanLongElements",
+      "group": "Orbit",
+      "object": "Probe",
+      "fixture": "Create Spacecraft Probe;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = 21545;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DisplayStateType = Keplerian;\nProbe.SMA = 9000;\nProbe.ECC = 0.2;\nProbe.INC = 30;\nProbe.RAAN = 40;\nProbe.AOP = 50;\nProbe.TA = 60;\nProbe.DisplayStateType = BrouwerMeanLong;\n",
+      "route": "table",
+      "units": {
+        "BrouwerLongECC": "dimensionless"
+      },
+      "roundtrip_representation": true
+    },
+    {
+      "key": "NadirPointingVectors",
+      "group": "Attitude",
+      "object": "Probe",
+      "fixture": "Create Spacecraft Probe;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = 21545;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DisplayStateType = Keplerian;\nProbe.SMA = 9000;\nProbe.ECC = 0.2;\nProbe.INC = 30;\nProbe.RAAN = 40;\nProbe.AOP = 50;\nProbe.TA = 60;\nProbe.Attitude = NadirPointing;\n",
+      "route": "attitude",
+      "units": {
+        "BodyAlignmentVectorX": "dimensionless",
+        "BodyAlignmentVectorY": "dimensionless",
+        "BodyAlignmentVectorZ": "dimensionless",
+        "BodyConstraintVectorX": "dimensionless",
+        "BodyConstraintVectorY": "dimensionless",
+        "BodyConstraintVectorZ": "dimensionless"
+      }
+    },
+    {
+      "key": "PrecessingSpinnerVectors",
+      "group": "Attitude",
+      "object": "Probe",
+      "fixture": "Create Spacecraft Probe;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = 21545;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DisplayStateType = Keplerian;\nProbe.SMA = 9000;\nProbe.ECC = 0.2;\nProbe.INC = 30;\nProbe.RAAN = 40;\nProbe.AOP = 50;\nProbe.TA = 60;\nProbe.Attitude = PrecessingSpinner;\n",
+      "route": "attitude",
+      "units": {
+        "NutationReferenceVectorX": "dimensionless",
+        "NutationReferenceVectorY": "dimensionless",
+        "NutationReferenceVectorZ": "dimensionless",
+        "BodySpinAxisX": "dimensionless",
+        "BodySpinAxisY": "dimensionless",
+        "BodySpinAxisZ": "dimensionless"
+      }
+    },
+    {
+      "key": "SunBodyRatios",
+      "group": "Bodies",
+      "object": "Sun",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Flattening": "dimensionless",
+        "3DModelScale": "dimensionless"
+      }
+    },
+    {
+      "key": "MercuryBodyRatios",
+      "group": "Bodies",
+      "object": "Mercury",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Flattening": "dimensionless",
+        "3DModelScale": "dimensionless"
+      }
+    },
+    {
+      "key": "VenusBodyRatios",
+      "group": "Bodies",
+      "object": "Venus",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Flattening": "dimensionless",
+        "3DModelScale": "dimensionless"
+      }
+    },
+    {
+      "key": "EarthBodyRatios",
+      "group": "Bodies",
+      "object": "Earth",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Flattening": "dimensionless",
+        "3DModelScale": "dimensionless"
+      }
+    },
+    {
+      "key": "LunaBodyRatios",
+      "group": "Bodies",
+      "object": "Luna",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Flattening": "dimensionless",
+        "3DModelScale": "dimensionless"
+      }
+    },
+    {
+      "key": "MarsBodyRatios",
+      "group": "Bodies",
+      "object": "Mars",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Flattening": "dimensionless",
+        "3DModelScale": "dimensionless"
+      }
+    },
+    {
+      "key": "JupiterBodyRatios",
+      "group": "Bodies",
+      "object": "Jupiter",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Flattening": "dimensionless",
+        "3DModelScale": "dimensionless"
+      }
+    },
+    {
+      "key": "SaturnBodyRatios",
+      "group": "Bodies",
+      "object": "Saturn",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Flattening": "dimensionless",
+        "3DModelScale": "dimensionless"
+      }
+    },
+    {
+      "key": "UranusBodyRatios",
+      "group": "Bodies",
+      "object": "Uranus",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Flattening": "dimensionless",
+        "3DModelScale": "dimensionless"
+      }
+    },
+    {
+      "key": "NeptuneBodyRatios",
+      "group": "Bodies",
+      "object": "Neptune",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Flattening": "dimensionless",
+        "3DModelScale": "dimensionless"
+      }
+    },
+    {
+      "key": "PlutoBodyRatios",
+      "group": "Bodies",
+      "object": "Pluto",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Flattening": "dimensionless",
+        "3DModelScale": "dimensionless"
+      }
+    },
+    {
+      "key": "MoonBodyRatios",
+      "group": "Bodies",
+      "object": "UnitsMoon",
+      "fixture": "Create Moon UnitsMoon;\nUnitsMoon.CentralBody = Earth;\nUnitsMoon.NAIFId = 2000001;\nUnitsMoon.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nUnitsMoon.Mu = 63;\nUnitsMoon.EquatorialRadius = 470;\nUnitsMoon.SpinAxisDECConstant = 90;\n",
+      "route": "body",
+      "units": {
+        "Flattening": "dimensionless",
+        "3DModelScale": "dimensionless",
+        "ECC": "dimensionless"
+      }
+    },
+    {
+      "key": "PlanetBodyRatios",
+      "group": "Bodies",
+      "object": "UnitsPlanet",
+      "fixture": "Create Planet UnitsPlanet;\nUnitsPlanet.CentralBody = Sun;\nUnitsPlanet.NAIFId = 2000001;\nUnitsPlanet.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nUnitsPlanet.Mu = 63;\nUnitsPlanet.EquatorialRadius = 470;\nUnitsPlanet.SpinAxisDECConstant = 90;\n",
+      "route": "body",
+      "units": {
+        "Flattening": "dimensionless",
+        "3DModelScale": "dimensionless",
+        "ECC": "dimensionless"
+      }
+    },
+    {
+      "key": "CometBodyRatios",
+      "group": "Bodies",
+      "object": "UnitsComet",
+      "fixture": "Create Comet UnitsComet;\nUnitsComet.CentralBody = Sun;\nUnitsComet.NAIFId = 2000001;\nUnitsComet.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nUnitsComet.Mu = 63;\nUnitsComet.EquatorialRadius = 470;\nUnitsComet.SpinAxisDECConstant = 90;\n",
+      "route": "body",
+      "units": {
+        "Flattening": "dimensionless",
+        "3DModelScale": "dimensionless",
+        "ECC": "dimensionless"
+      }
+    },
+    {
+      "key": "AsteroidBodyRatios",
+      "group": "Bodies",
+      "object": "UnitsAsteroid",
+      "fixture": "Create Asteroid UnitsAsteroid;\nUnitsAsteroid.CentralBody = Sun;\nUnitsAsteroid.NAIFId = 2000001;\nUnitsAsteroid.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nUnitsAsteroid.Mu = 63;\nUnitsAsteroid.EquatorialRadius = 470;\nUnitsAsteroid.SpinAxisDECConstant = 90;\n",
+      "route": "body",
+      "units": {
+        "Flattening": "dimensionless",
+        "3DModelScale": "dimensionless",
+        "ECC": "dimensionless"
+      }
+    }
+  ],
+  "scope": "Supplementary actual GUI unit visibility for independently defined ratios, orbital nondimensional elements, reference vectors, model scales, mixing ratios and opacity/phase fractions. No mission or old passing scientific check reruns; native/source/history/file isolation required. No whole All Others!E13 credit until the complete input census and conditional meanings are reconciled.",
+  "quantity_definitions": {
+    "orbital_elements": "Eccentricity is a length ratio; equinoctial eccentricity components are e*sin/cos combinations and inclination components are tan(i/2) or sin(i/2) times sine/cosine.",
+    "direction_vectors": "Hardware and attitude direction/reference/constraint components specify directions; normalization removes arbitrary magnitude. They have no length/time unit.",
+    "model_scales": "Multiplicative rendering scale is a pure ratio; offsets and rotations are not included.",
+    "body_flattening": "Flattening=(equatorial radius-polar radius)/equatorial radius. User-body ECC is orbital eccentricity.",
+    "spacecraft_factors": "Cd/Cr are aerodynamic/radiation coefficients; density/SPAD correction factors and their sigmas are multiplicative ratios.",
+    "mixture": "Tank mixture entries are relative mass-flow weights; common scaling cancels.",
+    "thrust_segment": "Thrust/mass-flow scale factors and uncertainty are ratios; angle constraint vector is a direction, not the angle-coefficient array.",
+    "opacity": "Native Alpha is an integer opacity level0..255, not an angle or a0..1 assumption.",
+    "intrusion_phase": "Native phaseFraction=1-phaseAngle/pi is a dimensionless fraction."
+  },
+  "reference_sources": [
+    "doc/help/src/Resource_Spacecraft.xml",
+    "doc/help/src/Resource_CelestialBody.xml",
+    "doc/help/src/Resource_Antenna.xml",
+    "doc/help/src/Resource_Thruster.xml",
+    "src/base/attitude/Attitude.cpp",
+    "src/base/hardware/FieldOfView.cpp",
+    "plugins/EventLocatorPlugin/src/base/locator/IntrusionLocator.cpp"
+  ]
+}

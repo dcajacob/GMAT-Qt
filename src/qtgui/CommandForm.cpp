@@ -5,6 +5,11 @@
 #include "FindEvents.hpp"
 #include "Vary.hpp"
 #include "Achieve.hpp"
+#include "SaveMission.hpp"
+#include "RHSEquation.hpp"
+#include "Validator.hpp"
+#include "MathTree.hpp"
+#include "MathNode.hpp"
 #include <memory>
 #include <QFormLayout>
 #include <QLineEdit>
@@ -16,11 +21,13 @@
 #include "GmatBase.hpp"
 #include "DynamicDataDisplay.hpp"
 #include "ResourceProperties.hpp"
+#include "ParameterReferences.hpp"
 #include "BaseException.hpp"
 #include <stdexcept>
 #include <QPushButton>
 #include <QHBoxLayout>
 #include <QInputDialog>
+#include <QFileDialog>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QListWidget>
@@ -29,8 +36,8 @@
 #include <QLabel>
 #include <QSignalBlocker>
 
-CommandForm::CommandForm(std::function<void(const QString &)> callback,QWidget *parent)
-   : QGroupBox("Command settings",parent),layout(new QFormLayout(this)),changed(std::move(callback))
+CommandForm::CommandForm(std::function<void(const QString &)> callback,QWidget *parent,const QMap<QString,QString> &pending)
+   : QGroupBox("Command settings",parent),layout(new QFormLayout(this)),pendingFiniteResources(pending),changed(std::move(callback))
 {
    setObjectName("commandForm"); hide();
 }
@@ -65,7 +72,38 @@ void CommandForm::updateSource()
    synchronizing=true; changed(result); synchronizing=false;
 }
 
-QString CommandForm::validationError() const
+void CommandForm::updateUnits()
+{
+   const auto value=[this](const QString &name) {
+      auto *field=findChild<QLineEdit *>("commandField_"+name);
+      return field ? field->text().trimmed() : QString();
+   };
+   const auto show=[this](const QString &name,const QString &unit) {
+      if (auto *label=unitLabels.value(name)) label->setText(name+" ("+unit+")");
+   };
+   const auto literal=[](const QString &text) {bool ok=false;const auto v=text.toDouble(&ok);return ok && std::isfinite(v);};
+   if (title()=="Vary") {
+      const auto unit=parameterUnitDescription(value("Variable"));
+      for (const auto &name:{"Variable","Initial value","Perturbation","Lower","Upper","MaxStep","AdditiveScaleFactor"}) show(name,unit);
+      show("MultiplicativeScaleFactor",unit=="dimensionless" ? unit : "1/("+unit+")");
+   } else if (title()=="Achieve") {
+      const auto unit=parameterUnitDescription(value("Goal"));
+      for (const auto &name:{"Goal","Value","Tolerance"}) show(name,unit);
+   } else if (title()=="Assignment") {
+      const auto unit=parameterUnitDescription(value("Destination"));show("Destination",unit);
+      show("Expression",literal(value("Expression")) ? unit : parameterUnitDescription(value("Expression")));
+   } else if (title()=="Constraint") {
+      const auto left=value("Left side"),right=value("Right side");
+      show("Left side",parameterUnitDescription(literal(left) && !literal(right) ? right : left));
+      show("Right side",parameterUnitDescription(literal(right) && !literal(left) ? left : right));
+   } else if (title()=="Minimize") show("Objective",parameterUnitDescription(value("Objective")));
+   else if (title()=="For loop") {
+      const auto unit=parameterUnitDescription(value("Index"));
+      for (const auto &name:{"Index","Start","Step","End"}) show(name,unit);
+   }
+}
+
+QString CommandForm::validationError(bool deferGlobalReferences) const
 {
    if (fields.isEmpty()) return {};
    if (title()=="File thrust") {
@@ -79,6 +117,115 @@ QString CommandForm::validationError() const
       return {};
    }
    if (!Moderator::Instance()->IsInitialized()) return {};
+   const auto plotCommand=QRegularExpression(R"(^\s*(?:%[^\n]*\n\s*)*(ClearPlot|MarkPoint|PenUp|PenDown)\b)").match(original);
+   if (title()=="Plot output" && plotCommand.hasMatch()) {
+      const auto command=plotCommand.captured(1);
+      const bool xyOnly=command=="ClearPlot" || command=="MarkPoint";
+      const auto *input=findChild<QLineEdit *>("commandField_Subscribers");
+      const auto names=input ? input->text().split(QRegularExpression("\\s+"),Qt::SkipEmptyParts) : QStringList{};
+      if (names.isEmpty()) return "Select at least one "+QString(xyOnly ? "XYPlot":"plot")+" for "+command+".";
+      for (const auto &name:names) {
+         auto *object=Moderator::Instance()->GetConfiguredObject(name.toStdString());
+         if (!object || (!object->IsOfType("XYPlot") &&
+             (xyOnly || (!object->IsOfType("OrbitView") && !object->IsOfType("GroundTrack")))))
+            return command+" requires existing "+QString(xyOnly ? "XYPlot":"XYPlot, OrbitView or GroundTrack")+" names separated by spaces: "+name;
+      }
+      return {};
+   }
+   const auto finiteCommand=QRegularExpression(R"(^\s*(?:%[^\n]*\n\s*)*(BeginFiniteBurn|EndFiniteBurn)\b)").match(original);
+   if (title()=="Finite burn" && finiteCommand.hasMatch()) {
+      // Reject malformed references before a failed mission rebuild can retire
+      // the native command and leave this correction draft on a stale model.
+      const auto command=finiteCommand.captured(1);
+      const auto *burnInput=findChild<QLineEdit *>("commandField_Burn");
+      const auto *satInput=findChild<QLineEdit *>("commandField_Spacecraft");
+      const auto burn=burnInput ? burnInput->text().trimmed() : QString();
+      static const QRegularExpression identifier("^[A-Za-z][A-Za-z0-9_]*$");
+      const auto burnError=command+" requires an existing FiniteBurn name.";
+      if (!identifier.match(burn).hasMatch()) return burnError;
+      auto *resource=Moderator::Instance()->GetConfiguredObject(burn.toStdString());
+      if (resource ? !resource->IsOfType("FiniteBurn") : pendingFiniteResources.value(burn)!="FiniteBurn") return burnError;
+      const auto spacecraftText=satInput ? satInput->text().trimmed() : QString();
+      if (spacecraftText.isEmpty()) return command+" requires one spacecraft.";
+      static const QRegularExpression spacecraftList("^[A-Za-z][A-Za-z0-9_]*(?:\\s*,\\s*[A-Za-z][A-Za-z0-9_]*)*$");
+      if (!spacecraftList.match(spacecraftText).hasMatch()) return command+" requires spacecraft names separated by commas.";
+      auto satellites=spacecraftText.split(',');
+      for (auto &name:satellites) name=name.trimmed();
+      for (const auto &name:satellites) {
+         if (!identifier.match(name).hasMatch()) return command+" requires existing Spacecraft names: "+name;
+         auto *spacecraft=Moderator::Instance()->GetConfiguredObject(name.toStdString());
+         if (spacecraft ? !spacecraft->IsOfType("Spacecraft") : pendingFiniteResources.value(name)!="Spacecraft") return command+" requires existing Spacecraft names: "+name;
+      }
+      // Both native finite-burn commands deduplicate repeated references to
+      // the same spacecraft, but reject a second distinct spacecraft.
+      satellites.removeDuplicates();
+      if (satellites.size()!=1) return command+" supports one distinct spacecraft. Use separate commands for separate spacecraft.";
+      return {};
+   }
+   const auto objectCommand=QRegularExpression(R"(^\s*(?:%[^\n]*\n\s*)*(Global|Save)\b)").match(original);
+   if (title()=="Objects" && objectCommand.hasMatch()) {
+      const auto command=objectCommand.captured(1);
+      const bool save=command=="Save";
+      const auto *input=findChild<QLineEdit *>("commandField_Objects");
+      if (save) if (auto *style=findChild<QComboBox *>("commandSaveFilenameStyle"))
+         if (style->currentData().toString()!="Worksheet" && style->currentData().toString()!="LegacyData") return "Choose a default filename style.";
+      const auto names=input ? input->text().split(QRegularExpression("\\s+"),Qt::SkipEmptyParts):QStringList{};
+      if (names.isEmpty()) return "Select at least one existing object for "+command+".";
+      static const QRegularExpression identifier("^[A-Za-z][A-Za-z0-9_]*$");
+      for (const auto &name:names) {
+         auto *object=Moderator::Instance()->GetConfiguredObject(name.toStdString());
+         const bool solarSystem=save && name=="SolarSystem" && Moderator::Instance()->GetSolarSystemInUse();
+         // Global resolves dynamic/local names in Execute. Preserve that
+         // native contract for the raw script fallback, while typed selectors
+         // and every Save edit still require configured objects.
+         if (!identifier.match(name).hasMatch() ||
+             (!object && !solarSystem && (save || !deferGlobalReferences)))
+            return command+" requires existing object names separated by spaces: "+name;
+         if (save && object && object->IsOfType(Gmat::PARAMETER) &&
+             !object->IsOfType("Variable") && !object->IsOfType("Array") && !object->IsOfType("String"))
+            return "Save requires resources, variables, strings or arrays, not computed parameters: "+name;
+      }
+      return {};
+   }
+   if (title()=="Assignment") {
+      const auto *left=findChild<QLineEdit *>("commandField_Destination");
+      const auto *right=findChild<QLineEdit *>("commandField_Expression");
+      auto *moderator=Moderator::Instance();
+      auto *target=left ? moderator->GetConfiguredObject(left->text().trimmed().toStdString()) : nullptr;
+      // Whole-array expressions defer shape checks until mission initialization.
+      // Validate a temporary equation without executing it or committing its text.
+      // Parameter-dependent expressions retain their normal interpreter path.
+      // GetConfiguredObject also resolves indexed names to their parent Array.
+      // An indexed destination requires a scalar result, not the array shape.
+      const bool wholeArray=left && QRegularExpression(R"(^[A-Za-z][A-Za-z0-9_]*$)").match(left->text().trimmed()).hasMatch();
+      if (target && target->IsOfType("Array") && right &&
+          !QRegularExpression(R"([A-Za-z][A-Za-z0-9_]*\.)").match(right->text()).hasMatch()) {
+         auto *configured=moderator->GetConfiguredObjectMap();
+         ObjectMap local=*configured,global;
+         auto *validator=Validator::Instance();
+         struct RestoreMap { Validator *validator; ObjectMap *original; ~RestoreMap() { validator->SetObjectMap(original); } } restore{validator,configured};
+         validator->SetObjectMap(&local);
+         try {
+            RHSEquation expression;
+            if (!expression.BuildExpression(right->text().trimmed().toStdString(),&local,true)) return {};
+            // Function and property-dependent expressions need mission context.
+            // Never install a temporary command in the shared Validator.
+            if (!expression.GetFunctionNames().empty()) return {};
+            if (!validator->ValidateEquation(&expression) || !expression.Initialize(&local,&global))
+               return "The array expression is invalid. Check its operands and dimensions.";
+            if (auto *tree=expression.GetMathTree(false)) {
+               Integer type=0,rows=0,columns=0;
+               tree->GetTopNode()->GetOutputInfo(type,rows,columns);
+               const Integer requiredRows=wholeArray ? target->GetIntegerParameter("NumRows") : 1;
+               const Integer requiredColumns=wholeArray ? target->GetIntegerParameter("NumCols") : 1;
+               if (rows!=requiredRows || columns!=requiredColumns)
+                  return wholeArray ? "The array assignment result must match the destination dimensions."
+                                    : "An array element assignment requires a scalar result.";
+            }
+         } catch (BaseException &error) { return QString::fromStdString(error.GetFullMessage()); }
+         catch (const std::exception &error) { return QString::fromUtf8(error.what()); }
+      }
+   }
    QStringList operands;
    if (title()=="Constraint") operands={"Left side","Right side"};
    else if (title()=="Vary") operands={"Variable","Initial value","Perturbation","Lower","Upper","MaxStep","AdditiveScaleFactor","MultiplicativeScaleFactor"};
@@ -103,6 +250,20 @@ QString CommandForm::validationError() const
          return side+QString(" array indices must be within rows 1–%1 and columns 1–%2.").arg(rows).arg(columns);
    }
    if (title()=="Vary") {
+      for (const auto &field:fields) {
+         const auto name=field.input->objectName().mid(QString("commandField_").size());
+         if (!QStringList{"Initial value","Lower","Upper","AdditiveScaleFactor","MultiplicativeScaleFactor"}.contains(name) ||
+             field.input->text()==original.mid(field.start,field.length)) continue;
+         // Preserve expressions/references for native validation. Numeric
+         // literals must remain finite before any mission replacement occurs.
+         const auto text=field.input->text().trimmed();
+         bool valid=false;const auto value=text.toDouble(&valid);
+         static const QRegularExpression literal(R"(^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$)");
+         if ((valid && !std::isfinite(value)) || (!valid && literal.match(text).hasMatch()))
+            return name+" requires a finite numeric value or a valid reference/expression.";
+         if (name=="MultiplicativeScaleFactor" && valid && value<=0)
+            return "The multiplicative scale factor must be greater than zero.";
+      }
       // wx checks literal ranges when initial/bound fields change. Keep
       // untouched legacy settings and reference-valued ranges intact.
       bool rangeChanged=false;
@@ -128,7 +289,7 @@ void CommandForm::setStatement(const QString &statement)
 {
    if (synchronizing) return;
    while (layout->rowCount()) layout->removeRow(0);
-   fields.clear(); original=statement;
+   fields.clear(); unitLabels.clear(); original=statement;
    const QString prefix="^\\s*(?:%[^\\n]*\\n\\s*)*";
    const QString label="(?:'[^'\\n]*'\\s+)?";
    const QString name="([A-Za-z][A-Za-z0-9_]*)";
@@ -136,24 +297,27 @@ void CommandForm::setStatement(const QString &statement)
    // Solver scalars can be indexed array elements. Commas inside their
    // parentheses are operand text, not the separator before an option block.
    const QString scalar="((?:[^,;{}()\\n]|\\([^;{}()\\n]*\\))+?)";
+   const QString cost="((?:[^,;{}()<>=\\n]|\\([^;{}()<>=\\n]*\\))+?)";
    const QString pythonName="([A-Za-z_][A-Za-z0-9_]*)";
    const QString end="\\s*;?[ \\t]*(?:%[^\\n]*)?\\s*$";
    const QString branchEnd="\\s*;?[ \\t]*(?:%[^\\n]*)?(?:\\n[\\s\\S]*)?$";
    struct Spec { QString type,pattern; QStringList labels; };
    const QVector<Spec> specs={
       {"Maneuver","Maneuver\\s+"+label+"(?:BackProp\\s+)?"+name+"\\s*\\(\\s*"+name+"\\s*\\)"+end,{"Burn","Spacecraft"}},
-      {"Finite burn","(?:BeginFiniteBurn|EndFiniteBurn)\\s+"+label+name+"\\s*\\(\\s*"+expression+"\\s*\\)"+end,{"Burn","Spacecraft"}},
+      {"Finite burn","(?:BeginFiniteBurn|EndFiniteBurn)\\s+"+label+name+"\\s*\\(\\s*([^;{}\\n]+?)\\s*\\)"+end,{"Burn","Spacecraft"}},
       {"File thrust","(?:BeginFileThrust|EndFileThrust)\\s+"+label+name+"\\s*\\(\\s*([^;()\\n]+?)\\s*\\)"+end,{"Thrust history","Spacecraft"}},
       {"Vary","Vary\\s+"+label+name+"\\s*\\(\\s*"+scalar+"\\s*=\\s*"+scalar+"\\s*(?:,\\s*\\{([^{};]*)\\})?\\s*\\)"+end,{"Solver","Variable","Initial value"}},
       {"Achieve","Achieve\\s+"+label+name+"\\s*\\(\\s*"+scalar+"\\s*=\\s*"+scalar+"\\s*(?:,\\s*\\{([^{};]*)\\})?\\s*\\)"+end,{"Solver","Goal","Value"}},
       {"Minimize","Minimize\\s+"+label+name+"\\s*\\(\\s*"+scalar+"\\s*\\)"+end,{"Solver","Objective"}},
       {"Constraint","NonlinearConstraint\\s+"+label+name+"\\s*\\(\\s*([^;{}<>=\\n]+?)\\s*(<=|>=|=)\\s*([^;{}<>=\\n]+?)\\s*\\)"+end,{"Solver","Left side","Relation","Right side"}},
+      {"Minimize","NonlinearConstraint\\s+"+label+name+"\\s*\\(\\s*"+cost+"\\s*\\)"+end,{"Solver","Objective"}},
       {"Report","Report\\s+"+label+name+"\\s+([^;%\\n]+?)"+end,{"Report file","Parameters"}},
       {"Write","Write\\s+"+label+"([^;{}%\\n]+?)"+end,{"Parameters"}},
+      {"Mission save","SaveMission\\s+('(?:[^']|'')*'|[^;{}%\\n]+?)(?:\\s*\\{([^{};]*)\\})?"+end,{"Filename"}},
       {"Dynamic update","UpdateDynamicData\\s+"+label+name+"([^;%\\n]*?)"+end,{"Display","Parameters"}},
       {"File import","Set\\s+"+label+name+"\\s+"+name+"([ \\t]*(?:\\(\\s*Data\\s*=\\s*\\{[^{}();%\\n]*\\}\\s*\\))?)"+end,{"Target","Data source","Data"}},
       {"Measurement simulation","RunSimulator\\s+"+label+name+end,{"Simulator"}},
-      {"Orbit estimation","RunEstimator\\s+"+label+name+end,{"Estimator"}},
+      {"Orbit estimation","RunEstimator\\s+"+label+name+"(?:\\s*\\{([^{};]*)\\})?"+end,{"Estimator"}},
       {"Orbit smoothing","RunSmoother\\s+"+label+name+end,{"Smoother"}},
       {"Event search","FindEvents\\s+"+label+name+"(?:\\s*\\{([^{};]*)\\})?"+end,{"Locator"}},
       {"Python call",label+"(\\[[^\\];\\n]*\\]|[A-Za-z][A-Za-z0-9_]*)\\s*=\\s*Python\\."+pythonName+"\\."+pythonName+"\\s*\\(([^;\\n]*?)\\)"+end,{"Outputs","Module","Function","Inputs"}},
@@ -165,8 +329,10 @@ void CommandForm::setStatement(const QString &statement)
       {"Function call",label+"(\\[[^\\];\\n]*\\]|[A-Za-z][A-Za-z0-9_]*)\\s*=\\s*"+name+"()"+end,{"Outputs","Function","Inputs"}},
       {"Function call",label+name+"()"+end,{"Function","Inputs"}},
       {"Toggle","Toggle\\s+"+label+"([A-Za-z][A-Za-z0-9_]*(?:\\s+[A-Za-z][A-Za-z0-9_]*)*)\\s+(On|Off)"+end,{"Subscribers","State"}},
+      {"Plot output","(?:PenUp|PenDown|ClearPlot|MarkPoint)\\s+"+label+"([A-Za-z][A-Za-z0-9_]*(?:\\s+[A-Za-z][A-Za-z0-9_]*)*)"+end,{"Subscribers"}},
       {"Command echo","CommandEcho\\s+"+label+"(On|Off)"+end,{"State"}},
-      {"Objects","(?:Global|Clear|Save)\\s+"+label+"([^;%\\n]+?)"+end,{"Objects"}},
+      {"Objects","Save\\s+"+label+"([^;{}%\\n]+?)(?:\\s*\\{((?:[^{}']|'(?:[^']|'')*')*)\\})?"+end,{"Objects"}},
+      {"Objects","(?:Global|Clear)\\s+"+label+"([^;%\\n]+?)"+end,{"Objects"}},
       {"Assignment","(?:GMAT\\s+)?"+label+"([A-Za-z][A-Za-z0-9_.]*(?:\\([^;\\n]*?\\))?)\\s*=\\s*([^;\\n]+?)"+end,{"Destination","Expression"}},
       // Branch forms replace only header spans, never their nested commands.
       {"For loop","For\\s+"+label+name+"\\s*=\\s*([^:;%\\n]+?)\\s*:\\s*([^:;%\\n]+?)\\s*:\\s*([^;%\\n]+?)"+branchEnd,{"Index","Start","Step","End"}},
@@ -199,7 +365,23 @@ void CommandForm::setStatement(const QString &statement)
          else if (title()=="Achieve" || QRegularExpression(prefix+"Target\\b").match(statement).hasMatch()) resourceType="BoundaryValueSolver";
          else resourceType="Solver";
       }
-      if (title()=="Python call" && name=="Module") {
+      if (title()=="Mission save" && name=="Filename") {
+         auto *container=new QWidget(this); auto *row=new QHBoxLayout(container); row->setContentsMargins(0,0,0,0); row->addWidget(input);
+         auto *browse=new QPushButton("Browse…",container); browse->setObjectName("commandSaveMissionBrowse"); row->addWidget(browse); layout->addRow("Output script",container);
+         input->setToolTip("Filename for the configured host mission. Quote filenames containing spaces or special characters; double an embedded apostrophe.");
+         connect(browse,&QPushButton::clicked,this,[this,input] {
+            auto path=input->text().trimmed();
+            if (path.startsWith('\'') && path.endsWith('\'')) path=path.mid(1,path.size()-2).replace("''","'");
+            path=QFileDialog::getSaveFileName(this,"Save host mission",path,"GMAT scripts (*.script);;All files (*)");
+            if (!path.isEmpty()) input->setText("'"+path.replace("'","''")+"'");
+         });
+      } else if (title()=="Mission save" && name=="ExecutionPolicy") {
+         auto *choice=new QComboBox(this); choice->setObjectName("commandSaveMissionPolicy"); choice->addItems({"LegacyTerminal","Immediate"});
+         if (choice->findText(input->text())<0) choice->addItem(input->text());
+         choice->setCurrentText(input->text()); input->setParent(choice); input->hide(); layout->addRow("Execution policy",choice);
+         choice->setToolTip("LegacyTerminal exports only at the end of the main sequence. Immediate exports the configured host mission wherever executed, including a function; it does not export function-local objects.");
+         connect(choice,&QComboBox::currentTextChanged,input,&QLineEdit::setText);
+      } else if (title()=="Python call" && name=="Module") {
          auto *module=new QComboBox(this); module->setObjectName("commandPythonModule"); module->setEditable(true); module->addItems(pythonModuleNames()); module->setCurrentText(input->text());
          module->setToolTip("Python module name without .py, from configured search paths or the Python installation. Restart GMAT after changing imported module code."); input->hide(); layout->addRow(name,module);
          connect(module,&QComboBox::currentTextChanged,input,&QLineEdit::setText);
@@ -273,7 +455,8 @@ void CommandForm::setStatement(const QString &statement)
          });
       } else if ((title()=="Function call" || title()=="Python call") && (name=="Inputs" || name=="Outputs")) {
          auto *container=new QWidget(this); auto *row=new QHBoxLayout(container); row->setContentsMargins(0,0,0,0); row->addWidget(input);
-         auto *choose=new QPushButton("Select arguments…",container); choose->setObjectName("commandChoose_"+name); row->addWidget(choose); layout->addRow(name,container);
+         auto *choose=new QPushButton("Select arguments…",container); choose->setObjectName("commandChoose_"+name); row->addWidget(choose);
+         layout->addRow(name=="Inputs" ? "Inputs (numeric units defined by function)" : name,container);
          connect(choose,&QPushButton::clicked,this,[this,input,name] {
             auto text=input->text().trimmed(); const bool outputs=name=="Outputs";
             if (outputs && text.startsWith('[') && text.endsWith(']')) text=text.mid(1,text.size()-2);
@@ -294,17 +477,22 @@ void CommandForm::setStatement(const QString &statement)
             if (dialog.exec()!=QDialog::Accepted) return;
             const auto values=dialog.selection().join(", "); input->setText(outputs ? "["+values+"]" : values);
          });
-      } else if (title()=="Solver branch" && (name=="SolveMode" || name=="ExitMode")) {
+      } else if ((title()=="Solver branch" && (name=="SolveMode" || name=="ExitMode")) ||
+                 (title()=="Orbit estimation" && name=="SolveMode")) {
          Target prototype;
          auto *choice=new QComboBox(this); choice->setObjectName("commandChoice_"+name);
-         for (const auto &option:prototype.GetStringArrayParameter((name+"Options").toStdString())) choice->addItem(QString::fromStdString(option));
+         if (title()=="Orbit estimation")
+            choice->addItems({"Solve","RunInitialGuess"}); // RunEstimator guide; RunCorrected is not supported.
+         else
+            for (const auto &option:prototype.GetStringArrayParameter((name+"Options").toStdString())) choice->addItem(QString::fromStdString(option));
          if (choice->findText(input->text())<0) choice->addItem(input->text());
          choice->setCurrentText(input->text()); input->setParent(choice); input->hide(); layout->addRow(name,choice);
          connect(choice,&QComboBox::currentTextChanged,input,&QLineEdit::setText);
-      } else if ((name=="ShowProgressWindow" || name=="Append") && (input->text()=="true" || input->text()=="false")) {
+      } else if ((name=="ShowProgressWindow" || name=="Append" || name=="AllowConstantGoal") && (input->text()=="true" || input->text()=="false")) {
          auto *check=new QCheckBox(this); check->setObjectName("commandCheck_"+name); check->setChecked(input->text()=="true");
          input->setParent(check); input->hide(); layout->addRow(name,check);
          connect(check,&QCheckBox::toggled,input,[input](bool enabled) { input->setText(enabled ? "true" : "false"); });
+         if (name=="AllowConstantGoal") check->setToolTip("Permit a finite constant numeric goal. It does not change when solver controls change; an inconsistent constant target cannot be corrected by the solver.");
       } else if (title()=="Condition" && name=="Condition") {
          auto *container=new QWidget(this); auto *row=new QHBoxLayout(container); row->setContentsMargins(0,0,0,0); row->addWidget(input);
          auto *edit=new QPushButton("Edit conditions…",container); edit->setObjectName("commandChoose_Condition"); row->addWidget(edit); layout->addRow(name,container);
@@ -327,12 +515,15 @@ void CommandForm::setStatement(const QString &statement)
          state->setCurrentText(input->text()); input->setParent(state); input->hide(); layout->addRow(name,state);
          connect(state,&QComboBox::currentTextChanged,input,&QLineEdit::setText);
          connect(input,&QLineEdit::textChanged,state,&QComboBox::setCurrentText);
-      } else if ((title()=="Toggle" && name=="Subscribers") || (title()=="Objects" && name=="Objects")) {
-         const bool subscribers=title()=="Toggle";
+      } else if (((title()=="Toggle" || title()=="Plot output") && name=="Subscribers") || (title()=="Objects" && name=="Objects")) {
+         const bool subscribers=title()=="Toggle" || title()=="Plot output";
+         const bool plotsOnly=title()=="Plot output";
+         const bool xyOnly=QRegularExpression(prefix+"(?:ClearPlot|MarkPoint)\\b").match(statement).hasMatch();
          const bool global=QRegularExpression(prefix+"Global\\b").match(statement).hasMatch();
+         const bool save=QRegularExpression(prefix+"Save\\b").match(statement).hasMatch();
          auto *container=new QWidget(this); auto *row=new QHBoxLayout(container); row->setContentsMargins(0,0,0,0); row->addWidget(input);
          auto *choose=new QPushButton("Select…",container); choose->setObjectName("commandChoose_"+name); row->addWidget(choose); layout->addRow(name,container);
-         connect(choose,&QPushButton::clicked,this,[this,input,subscribers,global] {
+         connect(choose,&QPushButton::clicked,this,[this,input,subscribers,plotsOnly,xyOnly,global,save] {
             QDialog dialog(this); dialog.setObjectName(subscribers ? "toggleSubscriberDialog" : "commandObjectDialog"); dialog.setWindowTitle(subscribers ? "Select outputs" : "Select objects"); dialog.resize(400,350);
             auto *layout=new QVBoxLayout(&dialog); auto *list=new QListWidget(&dialog); list->setObjectName(subscribers ? "toggleSubscriberList" : "commandObjectList");
             list->setDragDropMode(QAbstractItemView::InternalMove); layout->addWidget(list);
@@ -346,12 +537,29 @@ void CommandForm::setStatement(const QString &statement)
             }
             for (const auto &name:candidates) {
                auto *object=moderator->GetConfiguredObject(name); if (!object) continue;
+               if (plotsOnly && !object->IsOfType("XYPlot") &&
+                   (xyOnly || (!object->IsOfType("OrbitView") && !object->IsOfType("GroundTrack")))) continue;
                if (global && object->IsAutomaticGlobal()) continue;
                if (!subscribers && object->IsOfType(Gmat::PARAMETER) && !object->IsOfType("Variable") &&
                   !object->IsOfType("Array") && !object->IsOfType("String")) continue;
                available.append(QString::fromStdString(name));
             }
+            // SolarSystem is supported by native Save but is not a configured
+            // resource or celestial body, so the ordinary lists omit it.
+            if (save && moderator->GetSolarSystemInUse()) available.append("SolarSystem");
             available.removeDuplicates();
+            if (plotsOnly) {
+               QStringList existing,unavailable;
+               for (const auto &name:names) {
+                  if (available.contains(name)) existing.append(name);
+                  else unavailable.append(name);
+               }
+               existing.removeDuplicates(); unavailable.removeDuplicates(); names=existing;
+               if (!unavailable.isEmpty()) {
+                  auto *note=new QLabel("Unavailable plot references: "+unavailable.join(", "),&dialog);
+                  note->setObjectName("unavailablePlotReferences"); note->setWordWrap(true); layout->insertWidget(0,note);
+               }
+            }
             if (global) {
                auto *note=new QLabel("Automatically global resources are omitted from new choices.",&dialog);
                note->setWordWrap(true); layout->insertWidget(0,note);
@@ -380,12 +588,21 @@ void CommandForm::setStatement(const QString &statement)
                  (title()=="For loop" && (name=="Start" || name=="Step" || name=="End"))) {
          auto *container=new QWidget(this); auto *row=new QHBoxLayout(container); row->setContentsMargins(0,0,0,0); row->addWidget(input);
          auto *choose=new QPushButton("Select parameter…",container); choose->setObjectName("commandChoose_"+name); row->addWidget(choose); layout->addRow(name,container);
-         const auto mode=title()=="Vary" ? ReportParameterDialog::Mode::WritableReal :
+         const auto mode=title()=="Vary" ? ReportParameterDialog::Mode::VaryControl :
             title()=="Assignment" ? ReportParameterDialog::Mode::Writable :
             title()=="Constraint" || (title()=="Achieve" && name!="Goal") ? ReportParameterDialog::Mode::NumericSingle :
             title()=="Minimize" || title()=="Achieve" ? ReportParameterDialog::Mode::NumericReference : ReportParameterDialog::Mode::Single;
-         connect(choose,&QPushButton::clicked,this,[this,input,mode] {
-            ReportParameterDialog dialog({input->text()},this,mode);
+         connect(choose,&QPushButton::clicked,this,[this,input,mode,name] {
+            auto selectionMode=mode;
+            if (title()=="Achieve" && name=="Goal") {
+               const auto *allow=findChild<QLineEdit *>("commandField_AllowConstantGoal");
+               if (allow && allow->text().trimmed()=="true") selectionMode=ReportParameterDialog::Mode::NumericSingle;
+            }
+            ReportParameterDialog dialog({input->text()},this,selectionMode);
+            if (title()=="Achieve" && (name=="Value" || name=="Tolerance"))
+               if (auto *goal=findChild<QLineEdit *>("commandField_Goal")) dialog.setProperty("unitContext",parameterUnitDescription(goal->text()));
+            if (title()=="Constraint")
+               if (auto *other=findChild<QLineEdit *>("commandField_"+QString(name=="Left side"?"Right side":"Left side"))) dialog.setProperty("unitContext",parameterUnitDescription(other->text()));
             if (dialog.exec()==QDialog::Accepted) input->setText(dialog.selection().first());
          });
       } else if (!resourceType.isEmpty() || ((title()=="Report" || title()=="Write") && name=="Parameters")) {
@@ -402,6 +619,8 @@ void CommandForm::setStatement(const QString &statement)
                   if (resourceType=="Solver" && !object->IsOfType("BoundaryValueSolver") && !object->IsOfType("Optimizer")) continue;
                   resources.append(QString::fromStdString(value));
                }
+               if (title()=="Finite burn") for (auto i=pendingFiniteResources.cbegin();i!=pendingFiniteResources.cend();++i)
+                  if (i.value()==resourceType && !resources.contains(i.key())) resources.append(i.key());
                resources.sort(); bool accepted=false;
                const auto chosen=QInputDialog::getItem(this,"Select "+name,name,resources,
                   std::max(0,static_cast<int>(resources.indexOf(input->text()))),false,&accepted);
@@ -412,17 +631,31 @@ void CommandForm::setStatement(const QString &statement)
             }
          });
       } else layout->addRow(name,input);
+      const bool showUnit=(title()=="Vary" && name!="Solver") ||
+         (title()=="Achieve" && QStringList{"Goal","Value","Tolerance"}.contains(name)) ||
+         (title()=="Constraint" && QStringList{"Left side","Right side"}.contains(name)) ||
+         (title()=="Minimize" && name=="Objective") || title()=="Assignment" || title()=="For loop";
+      if (showUnit) if (auto *item=layout->itemAt(layout->rowCount()-1,QFormLayout::LabelRole))
+         if (auto *caption=qobject_cast<QLabel *>(item->widget())) {caption->setObjectName("commandUnit_"+name);unitLabels[name]=caption;}
       fields.append({input,start,length});
-      connect(input,&QLineEdit::textChanged,this,[this] { updateSource(); });
+      connect(input,&QLineEdit::textChanged,this,[this] { updateUnits(); updateSource(); });
    };
    for (const auto &spec:specs) {
       const auto match=QRegularExpression(prefix+spec.pattern).match(statement);
       if (!match.hasMatch()) continue;
-      if (spec.type=="Function call" && match.captured(spec.labels.indexOf("Inputs")+1).isEmpty() &&
-          match.capturedStart(spec.labels.indexOf("Inputs")+1)==match.capturedEnd(spec.labels.indexOf("Function")+1)) {
+      // A parenthesized RHS can be a math expression or array element.
+      // Follow the interpreter's built-in function registry as well as
+      // configured Function objects; built-ins need no Create statement.
+      if (spec.type=="Function call") {
          auto *moderator=Moderator::Instance();
-         auto *function=moderator->IsInitialized() ? moderator->GetConfiguredObject(match.captured(spec.labels.indexOf("Function")+1).toStdString()) : nullptr;
-         if (!function || !function->IsOfType("Function")) continue;
+         const auto callee=match.captured(spec.labels.indexOf("Function")+1).toStdString();
+         auto *function=moderator->IsInitialized() ? moderator->GetConfiguredObject(callee) : nullptr;
+         bool builtin=false;
+         if (moderator->IsInitialized()) {
+            const auto &functions=moderator->GetListOfFactoryItems(Gmat::FUNCTION);
+            builtin=std::find(functions.begin(),functions.end(),callee)!=functions.end();
+         }
+         if ((!function || !function->IsOfType("Function")) && !builtin) continue;
       }
       setTitle(spec.type);
       if (spec.type=="Maneuver") {
@@ -440,31 +673,78 @@ void CommandForm::setStatement(const QString &statement)
          });
       }
       for (int i=0;i<spec.labels.size();++i) add(spec.labels[i],match.capturedStart(i+1),match.capturedLength(i+1));
+      if (spec.type=="Objects" && QRegularExpression(prefix+"Save\\b").match(statement).hasMatch()) {
+         const bool hasOptions=match.capturedStart(2)>=0;
+         const qsizetype start=hasOptions ? match.capturedStart(2)-1 : match.capturedEnd(1);
+         const qsizetype length=hasOptions ? match.capturedLength(2)+2 : 0;
+         auto *source=new QLineEdit(statement.mid(start,length),this);source->setObjectName("commandField_SaveOptions");source->hide();
+         fields.append({source,start,length});
+         QString style="Worksheet",filename;QStringList other,entries;const auto options=match.captured(2);
+         bool quoted=false;qsizetype first=0;
+         for (qsizetype i=0;i<options.size();++i) {
+            if (options[i]=='\'') {
+               if (quoted && i+1<options.size() && options[i+1]=='\'') {++i;continue;}
+               quoted=!quoted;
+            } else if (options[i]==',' && !quoted) {entries.append(options.mid(first,i-first));first=i+1;}
+         }
+         if (!options.trimmed().isEmpty()) entries.append(options.mid(first));
+         for (const auto &entry:entries) {
+            const auto equal=entry.indexOf('=');const auto key=entry.left(equal).trimmed();const auto value=entry.mid(equal+1).trimmed();
+            if (equal>=0 && key=="FilenameStyle") style=value;
+            else if (equal>=0 && key=="Filename") {
+               filename=value;
+               if (filename.size()>=2 && filename.front()=='\'' && filename.back()=='\'') filename=filename.mid(1,filename.size()-2).replace("''","'");
+            } else other.append(entry.trimmed());
+         }
+         auto *styleChoice=new QComboBox(this);styleChoice->setObjectName("commandSaveFilenameStyle");
+         styleChoice->addItem("ObjectName.ObjectType","Worksheet");styleChoice->addItem("Legacy .data","LegacyData");
+         int selected=styleChoice->findData(style);
+         if (selected<0) {styleChoice->addItem(style,style);selected=styleChoice->count()-1;}
+         styleChoice->setCurrentIndex(selected);layout->addRow("Default filenames",styleChoice);
+         auto *row=new QWidget(this);auto *box=new QHBoxLayout(row);box->setContentsMargins(0,0,0,0);
+         auto *file=new QLineEdit(filename,row);file->setObjectName("commandSaveFilename");file->setPlaceholderText("Use default filenames");box->addWidget(file);
+         auto *browse=new QPushButton("Browse…",row);browse->setObjectName("commandSaveFilenameBrowse");box->addWidget(browse);layout->addRow("Output file (optional)",row);
+         auto *note=new QLabel("An output file combines the selected objects. Leave it blank to use default filenames.",this);note->setWordWrap(true);layout->addRow(note);
+         const auto update=[source,styleChoice,file,other,hasOptions] {
+            auto values=other;values.append("FilenameStyle = "+styleChoice->currentData().toString());
+            auto filename=file->text();filename.replace("'","''");values.append("Filename = '"+filename+"'");
+            source->setText((hasOptions ? "{" : " {")+values.join(", ")+"}");
+            styleChoice->setEnabled(file->text().isEmpty());
+         };
+         styleChoice->setEnabled(filename.isEmpty());
+         connect(source,&QLineEdit::textChanged,this,[this] {updateSource();});
+         connect(styleChoice,&QComboBox::currentIndexChanged,this,[update] {update();});
+         connect(file,&QLineEdit::textChanged,this,[update] {update();});
+         connect(browse,&QPushButton::clicked,this,[this,file] {const auto path=QFileDialog::getSaveFileName(this,"Save resource snapshot",file->text());if (!path.isEmpty()) file->setText(path);});
+      }
       // Optional keyword values can occur in any order. Only recognized keys
       // become controls; all other option text is retained verbatim.
       const int options=spec.labels.size()+1;
       if (match.lastCapturedIndex()>=options && match.capturedStart(options)>=0) {
-         const QRegularExpression option("(?:^|,)\\s*(Perturbation|Lower|Upper|MaxStep|AdditiveScaleFactor|MultiplicativeScaleFactor|Tolerance|SolveMode|ExitMode|ShowProgressWindow|Append)\\s*=\\s*"+scalar+"\\s*(?=,|$)");
+         const QRegularExpression option("(?:^|,)\\s*(Perturbation|Lower|Upper|MaxStep|AdditiveScaleFactor|MultiplicativeScaleFactor|Tolerance|AllowConstantGoal|ExecutionPolicy|SolveMode|ExitMode|ShowProgressWindow|Append)\\s*=\\s*"+scalar+"\\s*(?=,|$)");
          auto matches=option.globalMatch(match.captured(options));
          while (matches.hasNext()) {
             const auto setting=matches.next();
             add(setting.captured(1),match.capturedStart(options)+setting.capturedStart(2),setting.capturedLength(2));
          }
       }
-      if (spec.type=="Solver branch" || spec.type=="Event search" || spec.type=="Vary" || spec.type=="Achieve") {
+      if (spec.type=="Solver branch" || spec.type=="Event search" || spec.type=="Vary" || spec.type=="Achieve" || spec.type=="Orbit estimation" || spec.type=="Mission save") {
          std::unique_ptr<GmatCommand> prototype;
          if (spec.type=="Event search") prototype=std::make_unique<FindEvents>();
          else if (spec.type=="Vary") prototype=std::make_unique<Vary>();
          else if (spec.type=="Achieve") prototype=std::make_unique<Achieve>();
+         else if (spec.type=="Mission save") prototype=std::make_unique<SaveMission>();
          else if (QRegularExpression(prefix+"Optimize\\b").match(statement).hasMatch()) prototype=std::make_unique<Optimize>();
          else prototype=std::make_unique<Target>();
          QStringList missing;
          const QStringList keys=spec.type=="Event search" ? QStringList{"Append"} :
+            spec.type=="Mission save" ? QStringList{"ExecutionPolicy"} :
+            spec.type=="Orbit estimation" ? QStringList{"SolveMode"} :
             spec.type=="Vary" ? QStringList{"Perturbation","Lower","Upper","MaxStep","AdditiveScaleFactor","MultiplicativeScaleFactor"} :
-            spec.type=="Achieve" ? QStringList{"Tolerance"} : QStringList{"SolveMode","ExitMode","ShowProgressWindow"};
+            spec.type=="Achieve" ? QStringList{"Tolerance","AllowConstantGoal"} : QStringList{"SolveMode","ExitMode","ShowProgressWindow"};
          for (const auto &key:keys) {
             if (findChild<QLineEdit *>("commandField_"+key)) continue;
-            const auto value=(key=="ShowProgressWindow" || key=="Append") ? (prototype->GetBooleanParameter(key.toStdString()) ? QString("true") : QString("false")) :
+            const auto value=(key=="ShowProgressWindow" || key=="Append" || key=="AllowConstantGoal") ? (prototype->GetBooleanParameter(key.toStdString()) ? QString("true") : QString("false")) :
                QString::fromStdString(prototype->GetStringParameter(key.toStdString()));
             missing.append(key+" = "+value);
          }
@@ -503,7 +783,7 @@ void CommandForm::setStatement(const QString &statement)
          connect(solverField,&QLineEdit::textChanged,this,[refreshCapabilities] { refreshCapabilities(); });
          refreshCapabilities();
       }
-      show(); return;
+      updateUnits(); show(); return;
    }
    hide();
 }

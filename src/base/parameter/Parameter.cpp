@@ -30,6 +30,21 @@
 //------------------------------------------------------------------------------
 #include "gmatdefs.hpp"
 #include "Parameter.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration parameterValueProvider({
+   Parameter::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Parameter*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<Parameter*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
+#include "RefData.hpp"
 #include "ParameterException.hpp"
 #include "ParameterInfo.hpp"
 #include "MessageInterface.hpp"
@@ -209,6 +224,7 @@ Parameter::Parameter(const Parameter &copy)
    mInitialValue = copy.mInitialValue;
    mParameterClassType = copy.mParameterClassType;
    mOwnerType = copy.mOwnerType;
+   mOwnedObjectType = copy.mOwnedObjectType;
    mReturnType = copy.mReturnType;
    mDepObj = copy.mDepObj;
    mCycleType = copy.mCycleType;
@@ -252,11 +268,13 @@ Parameter& Parameter::operator= (const Parameter& right)
    mExpr = right.mExpr;
    mDesc = right.mDesc;
    mUnit = right.mUnit;
+   mOwnerName = right.mOwnerName;
    mDepObjectName = right.mDepObjectName;
    mCommentLine2 = right.mCommentLine2;
    mInitialValue = right.mInitialValue;
    mParameterClassType = right.mParameterClassType;
    mOwnerType = right.mOwnerType;
+   mOwnedObjectType = right.mOwnedObjectType;
    mReturnType = right.mReturnType;
    mDepObj = right.mDepObj;
    mCycleType = right.mCycleType;
@@ -445,6 +463,10 @@ bool Parameter::IsReportable() const
 //------------------------------------------------------------------------------
 bool Parameter::IsSettable() const
 {
+   if (mIsSettable && mOwner && mOwner->IsOfType("Spacecraft") &&
+       (typeName == "RMAG" || typeName == "SemilatusRectum") &&
+       mOwner->GetStringParameter("OrbitParameterAccess") == "Worksheet")
+      return false;
    return mIsSettable;
 }
 
@@ -1081,6 +1103,57 @@ bool Parameter::Initialize()
    return true; // do nothing here
 }
 
+bool Parameter::RebindFunctionValueReferencesImpl(const GmatBase &source,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *parameter = dynamic_cast<const Parameter*>(&source);
+   if (!parameter || parameter->GetTypeName() != GetTypeName())
+      throw ParameterException("Incompatible retained Parameter value.\n");
+   GmatBase *owner = parameter->mOwner ? resolve(parameter->mOwner) : NULL;
+   if (parameter->mOwner && (!owner || (parameter->mOwnerType != Gmat::UNKNOWN_OBJECT &&
+         !owner->IsOfType(parameter->mOwnerType))))
+      throw ParameterException("Invalid owner in retained Parameter value.\n");
+   auto *data = dynamic_cast<RefData*>(this);
+   const auto *original = dynamic_cast<const RefData*>(parameter);
+   if (data && !original)
+      throw ParameterException("Incompatible retained Parameter reference data.\n");
+   if (data) data->RebindClonedParameterReferences(*original, *this, resolve);
+   mOwner = owner;
+   // User parameters without RefData retain their public reference contract.
+   return data != NULL;
+}
+
+void Parameter::RetirePrototypeReferences()
+{
+   isInitialized = false;
+   mOwner = nullptr;
+   if (auto *data = dynamic_cast<RefData*>(this))
+      data->RetireParameterPrototype(*this);
+   else if (mKey == GmatParam::SYSTEM_PARAM)
+      throw ParameterException("Automatic Parameter provider must retire its prototype references.\n");
+}
+
+GmatBase *Parameter::CompleteParameterClone(GmatBase *copy) const
+{
+   if (copy == this)
+      throw ParameterException("Parameter Clone returned its source.\n");
+   std::unique_ptr<GmatBase> value(copy);
+   if (!value || value->GetTypeName() != GetTypeName() || typeid(*value) != typeid(*this))
+      throw ParameterException("Cannot clone Parameter with its native type.\n");
+   static_cast<Parameter*>(value.get())->CompleteParameterCopy(*this);
+   return value.release();
+}
+
+void Parameter::CompleteParameterCopy(const Parameter &source)
+{
+   // RefData's metadata pointer normally refers to its own Parameter. Update
+   // that self-reference after the complete derived object exists, including
+   // ordinary native copies that have no retained function context.
+   auto *data = dynamic_cast<RefData*>(this);
+   if (data && data->GetParameter() == &source) data->SetParameter(this);
+   RebindFunctionValueContext(source);
+}
+
 //------------------------------------------------------------------------------
 // virtual bool Evaluate()
 //------------------------------------------------------------------------------
@@ -1169,7 +1242,13 @@ bool Parameter::SetName(const std::string &who, const std::string &oldName)
 //------------------------------------------------------------------------------
 void Parameter::Copy(const GmatBase* orig)
 {
-   operator=(*((Parameter *)(orig)));
+   const auto *source = dynamic_cast<const Parameter*>(orig);
+   if (!source || typeid(*source) != typeid(*this))
+      throw ParameterException("Cannot copy incompatible Parameter metadata.\n");
+   if (source == this) return;
+   const auto previous = GetFunctionValueContext();
+   operator=(*source);
+   CompleteParameterCopy(*source);
 }
 
 

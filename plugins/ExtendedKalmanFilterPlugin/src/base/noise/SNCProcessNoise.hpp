@@ -52,6 +52,7 @@ public:
 
    // Override from GmatBase
    virtual GmatBase*    Clone(void) const;
+   void Copy(const GmatBase *original) override;
 
    virtual Gmat::ParameterType
                         GetParameterType(const Integer id) const;
@@ -82,6 +83,10 @@ public:
                                          const Real value);
 
    
+   const std::string&       GetGeneratingString(Gmat::WriteMode mode = Gmat::SCRIPTING,
+                                  const std::string &prefix = "",
+                                  const std::string &useName = "") override;
+
    virtual GmatTime         GetGmatTimeParameter(const Integer id) const;
    virtual GmatTime         SetGmatTimeParameter(const Integer id,
                                              const GmatTime value);

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "tests": {
+    "QtAcceptance.SpecializedComparatorContracts": {
+      "earliest_build_date": null,
+      "latest_build_date": null,
+      "requirements": [
+        "All Others!E306",
+        "All Others!E308"
+      ],
+      "author": "Codex",
+      "truth_data": [
+        {
+          "kind": "file",
+          "path": "src/qtgui/tests/AcceptanceSpecializedCompareTests.py",
+          "sha256": "7afd8412accfe96739449442af7774519aea4166d76627a8ef6651728a4bae17"
+        }
+      ],
+      "tolerances": {
+        "absolute": 0,
+        "relative": 0
+      },
+      "comparator": "independent-literal-TDM-and-polynomial-native-SPK-contract",
+      "extensions": {
+        "execution_kind": "backend-support",
+        "truth_role": "Literal exact decimal TDM records and analytic constant-acceleration trajectories encoded as real type8/type13 SPKs. Tolerances belong to these contract fixtures only."
+      },
+      "comments": "Explicit sampled-state comparator; no continuous SPK bound, GMAT mission or full standard validation.",
+      "creation_date": "2026-11-01",
+      "platform_dependencies": [
+        "Linux",
+        "CSPICE exports in current libGmatBase and libGmatUtil"
+      ],
+      "test_type": "Acceptance"
+    }
+  }
+}

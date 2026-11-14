@@ -40,7 +40,7 @@
 * Constructor
 */
 //------------------------------------------------------------------------------
-GmatProblemInterface::GmatProblemInterface()
+GmatProblemInterface::GmatProblemInterface() : optimizerData(NULL)
 {
    conFunctions.SetSize(0);
 }
@@ -58,8 +58,8 @@ GmatProblemInterface::GmatProblemInterface()
 void GmatProblemInterface::GetNLPInfo(Integer &totalNumVars,
                                       Integer &totalNumCons)
 {
-   totalNumVars = optimizerData->registeredVariableCount;
-   totalNumCons = optimizerData->registeredComponentCount;
+   totalNumVars = RequireOptimizer().registeredVariableCount;
+   totalNumCons = RequireOptimizer().registeredComponentCount;
 }
 
 //------------------------------------------------------------------------------
@@ -73,7 +73,7 @@ void GmatProblemInterface::GetNLPInfo(Integer &totalNumVars,
 //------------------------------------------------------------------------------
 Rvector GmatProblemInterface::GetStartingPoint()
 {
-   Rvector initialDecVec = optimizerData->variable;
+   Rvector initialDecVec = RequireOptimizer().variable;
    return initialDecVec;
 }
 
@@ -96,38 +96,22 @@ void GmatProblemInterface::GetBoundsInfo(Integer numVars, Integer numCons,
                                          Rvector &varUpperBounds,
                                          Rvector &conLB, Rvector &conUB)
 {
-   varLowerBounds.SetSize(optimizerData->variableMinimum.size());
-   varLowerBounds = optimizerData->variableMinimum;
-   varUpperBounds.SetSize(optimizerData->variableMaximum.size());
-   varUpperBounds = optimizerData->variableMaximum;
-   conLB.SetSize(optimizerData->eqConstraintCount +
-      optimizerData->ineqConstraintCount);
-   conUB.SetSize(optimizerData->eqConstraintCount +
-      optimizerData->ineqConstraintCount);
+   varLowerBounds.SetSize(RequireOptimizer().variableMinimum.size());
+   varLowerBounds = RequireOptimizer().variableMinimum;
+   varUpperBounds.SetSize(RequireOptimizer().variableMaximum.size());
+   varUpperBounds = RequireOptimizer().variableMaximum;
+   conLB.SetSize(RequireOptimizer().eqConstraintCount +
+      RequireOptimizer().ineqConstraintCount);
+   conUB.SetSize(RequireOptimizer().eqConstraintCount +
+      RequireOptimizer().ineqConstraintCount);
+   // NonlinearConstraint supplies signed residuals and their derivatives:
+   // equality is lhs-rhs == 0; either inequality is represented as g(x) <= 0.
+   // Keep the same representation here. Freezing a potentially variable RHS
+   // as an NLP bound loses its derivative and makes the result probe-dependent.
    for (Integer i = 0; i < conLB.GetSize(); ++i)
    {
-      if (i < optimizerData->eqConstraintCount)
-      {
-         conLB[i] = optimizerData->eqConstraintDesiredValues[i];
-         conUB[i] = optimizerData->eqConstraintDesiredValues[i];
-      }
-      else
-      {
-         conLB[i] = -inf;
-         conUB[i] = inf;
-         if (optimizerData->ineqConstraintOp[i -
-            optimizerData->eqConstraintCount] == 1)
-         {
-            conLB[i] = optimizerData->ineqConstraintDesiredValues[i -
-               optimizerData->eqConstraintCount];
-         }
-         else if (optimizerData->ineqConstraintOp[i -
-            optimizerData->eqConstraintCount] == -1)
-         {
-            conUB[i] = optimizerData->ineqConstraintDesiredValues[i -
-               optimizerData->eqConstraintCount];
-         }
-      }
+      conLB[i] = (i < RequireOptimizer().eqConstraintCount ? 0.0 : -inf);
+      conUB[i] = 0.0;
    }
 
    conLowerBounds = conLB;
@@ -151,7 +135,7 @@ void GmatProblemInterface::GetBoundsInfo(Integer numVars, Integer numCons,
 Real GmatProblemInterface::EvaluateCostFunc(Integer numVars, Rvector decVector,
                                             bool isNewX)
 {
-   return optimizerData->cost;
+   return RequireOptimizer().cost;
 }
 
 //------------------------------------------------------------------------------
@@ -171,10 +155,10 @@ Real GmatProblemInterface::EvaluateCostFunc(Integer numVars, Rvector decVector,
 Rvector GmatProblemInterface::EvaluateCostJac(Integer numVars,
                                               Rvector decVector, bool isNewX)
 {
-   Rvector costJacobian(optimizerData->variableCount);
+   Rvector costJacobian(RequireOptimizer().variableCount);
    for (Integer i = 0; i < costJacobian.GetSize(); ++i)
    {
-      costJacobian[i] = optimizerData->gradient[i];
+      costJacobian[i] = RequireOptimizer().gradient[i];
    }
 
 
@@ -218,32 +202,18 @@ Rvector GmatProblemInterface::EvaluateConFunc(Integer numVars,
 Rmatrix GmatProblemInterface::EvaluateConJac(Integer numVars,
                                              Rvector decVector, bool isNewX)
 {
-   Rmatrix conJac(optimizerData->eqConstraintCount +
-      optimizerData->ineqConstraintCount, optimizerData->variableCount);
+   Rmatrix conJac(RequireOptimizer().eqConstraintCount +
+      RequireOptimizer().ineqConstraintCount, RequireOptimizer().variableCount);
 
-   for (Integer i = 0; i < optimizerData->variableCount; ++i)
+   for (Integer i = 0; i < RequireOptimizer().variableCount; ++i)
    {
-      for (Integer j = 0; j < optimizerData->eqConstraintCount +
-         optimizerData->ineqConstraintCount; ++j)
+      for (Integer j = 0; j < RequireOptimizer().eqConstraintCount +
+         RequireOptimizer().ineqConstraintCount; ++j)
       {
-         if (j < optimizerData->eqConstraintCount)
-         {
-            conJac(j, i) =
-               optimizerData->jacobian.at(i + optimizerData->variableCount * j);
-         }
-         else
-         {
-            if (conLowerBounds[j] > -inf)
-            {
-               conJac(j, i) =
-                  -optimizerData->jacobian.at(i + optimizerData->variableCount * j);
-            }
-            else
-            {
-               conJac(j, i) =
-                  optimizerData->jacobian.at(i + optimizerData->variableCount * j);
-            }
-         }
+         // The finite-difference Jacobian already differentiates g(x),
+         // including both operands and the >= sign convention.
+         conJac(j, i) =
+            RequireOptimizer().jacobian.at(i + RequireOptimizer().variableCount * j);
       }
    }
 
@@ -270,8 +240,8 @@ void GmatProblemInterface::EvaluateConJacDimensions(Integer numVariables,
                                                     Integer &rowCount,
                                                     Integer &colCount)
 {
-   rowCount = optimizerData->eqConstraintCount + optimizerData->ineqConstraintCount;
-   colCount = optimizerData->variableCount;
+   rowCount = RequireOptimizer().eqConstraintCount + RequireOptimizer().ineqConstraintCount;
+   colCount = RequireOptimizer().variableCount;
 }
 
 //------------------------------------------------------------------------------
@@ -285,7 +255,7 @@ void GmatProblemInterface::EvaluateConJacDimensions(Integer numVariables,
 //------------------------------------------------------------------------------
 std::vector <Real> GmatProblemInterface::GetMaxVarStepSize()
 {
-   return optimizerData->variableMaximumStep;
+   return RequireOptimizer().variableMaximumStep;
 }
 
 //------------------------------------------------------------------------------
@@ -299,7 +269,22 @@ std::vector <Real> GmatProblemInterface::GetMaxVarStepSize()
 //------------------------------------------------------------------------------
 void GmatProblemInterface::SetPointerToOptimizer(Yukonad *inputDataPointer)
 {
+   const auto identity = inputDataPointer ? inputDataPointer->GetLifetimeToken() :
+         std::weak_ptr<const void>{};
+   optimizerIdentity = identity;
    optimizerData = inputDataPointer;
+}
+
+Yukonad* GmatProblemInterface::GetOptimizer() const
+{
+   return optimizerData && !optimizerIdentity.expired() ? optimizerData : NULL;
+}
+
+Yukonad& GmatProblemInterface::RequireOptimizer() const
+{
+   Yukonad *owner = GetOptimizer();
+   if (!owner) throw UtilityException("The Yukon problem optimizer has retired.\n");
+   return *owner;
 }
 
 //------------------------------------------------------------------------------
@@ -315,12 +300,12 @@ void GmatProblemInterface::SetConFunction(Integer conIdx, Real value,
 {
    if (conFunctions.GetSize() == 0)
    {
-      conFunctions.SetSize(optimizerData->eqConstraintCount +
-         optimizerData->ineqConstraintCount);
+      conFunctions.SetSize(RequireOptimizer().eqConstraintCount +
+         RequireOptimizer().ineqConstraintCount);
    }
 
    if (conType == "EqCon")
       conFunctions[conIdx] = value;
    else
-      conFunctions[conIdx + optimizerData->eqConstraintCount] = value;
+      conFunctions[conIdx + RequireOptimizer().eqConstraintCount] = value;
 }

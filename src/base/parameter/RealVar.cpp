@@ -297,6 +297,15 @@ Integer RealVar::GetParameterID(const std::string &str) const
 }
 
 
+// Enumerating RealVarParamCount includes Value. Expose its existing label
+// symmetrically with GetParameterID, rather than falling through to Parameter.
+std::string RealVar::GetParameterText(const Integer id) const
+{
+   if (id >= ParameterParamCount && id < RealVarParamCount)
+      return PARAMETER_TEXT[id - ParameterParamCount];
+   return Parameter::GetParameterText(id);
+}
+
 //------------------------------------------------------------------------------
 // std::string GetParameterTypeString(const Integer id) const
 //------------------------------------------------------------------------------

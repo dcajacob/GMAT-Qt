@@ -50,6 +50,8 @@
 #include "GmatType.hpp"
 
 #include <algorithm>                    // Required by GCC 4.3 for find
+#include <memory>
+#include <functional>
 
 
 // Forward reference
@@ -57,6 +59,16 @@ class SolarSystem;
 class CoordinateSystem;
 class GmatWidget;
 class RHSEquation;
+class FunctionValueContext;
+
+// Prepared native owner changes allocate before Apply; Apply itself cannot
+// allocate, initialize services or throw.
+class GMAT_API NativeRestorationPlan
+{
+public:
+   virtual ~NativeRestorationPlan() = default;
+   virtual void Apply() noexcept = 0;
+};
 
 
 // The allocation size used to construct estimation object parameter IDs
@@ -87,6 +99,8 @@ class GMAT_API GmatBase
 {
 // Class methods and data for the GMAT API
 public:
+   static constexpr unsigned int NativeValueProviderDepth = 0;
+
    virtual std::string  Help(const std::string &forItem = "");
    virtual void         SetField(const Integer id, const Integer value);
    virtual void         SetField(const Integer id, const Real value);
@@ -146,6 +160,65 @@ public:
    virtual ~GmatBase() = 0;
    GmatBase(const GmatBase &a);
    GmatBase&            operator=(const GmatBase &a);
+
+   // Non-owning identity survives value assignment and expires on destruction.
+   // Validation compares the live registry entry, so retaining an old token
+   // cannot make a reused address identify the old object.
+   std::weak_ptr<const void> GetLifetimeToken() const;
+   static bool IsLiveReference(const GmatBase *object, const std::weak_ptr<const void> &token);
+   // Native owned-clone notifications follow actual live declarations, not names.
+   // Assignment keeps the destination relation; construction inherits only the
+   // source edge and the containing owner registers its new child separately.
+   using CloneUpdateOwners = std::vector<std::pair<GmatBase*, std::weak_ptr<const void>>>;
+   const GmatBase *GetCloneSource() const;
+   GmatBase *GetCloneOwner() const;
+   void SetCloneSource(const GmatBase *source);
+   void SetCloneOwner(GmatBase *owner);
+   // Data snapshots keep relations but receive no live notifications until
+   // their native owner is activated as a scene resource.
+   void SetCloneNotificationsEnabled(bool enabled);
+   bool IsCloneOf(const GmatBase &source) const;
+   static CloneUpdateOwners GetCloneUpdateOwners(const GmatBase &source);
+   static void RetargetCloneSources(const GmatBase &retired, const GmatBase &replacement);
+
+   // A frozen restoration value records its actual destination separately
+   // from live definition notifications. Assignment never turns an ordinary
+   // resource into a restoration snapshot.
+   bool HasRestorationTarget() const;
+   GmatBase *GetRestorationTarget() const;
+   void SetRestorationTarget(GmatBase *target);
+
+   std::shared_ptr<const FunctionValueContext> GetFunctionValueContext() const;
+   void SetFunctionValueContext(const std::shared_ptr<const FunctionValueContext> &context);
+   // A context-owned dependency can expose its enclosing value graph without
+   // retaining its owner. A detached native copy acquires an ordinary lease.
+   void SetBorrowedFunctionValueContext(const std::shared_ptr<const FunctionValueContext> &context);
+   void RebindFunctionValueContext(const GmatBase &source);
+   static bool IsNativeFunctionValueCopy();
+   static bool IsNativeRestorationCopy();
+   class GMAT_API NativeRestorationGuard
+   {
+   public:
+      NativeRestorationGuard();
+      ~NativeRestorationGuard();
+      NativeRestorationGuard(const NativeRestorationGuard&) = delete;
+      NativeRestorationGuard& operator=(const NativeRestorationGuard&) = delete;
+   };
+   // Owner construction copies native children before the complete parent can
+   // reconnect their graph. Keep inherited leases, defer completed-root hooks.
+   class GMAT_API FunctionValueCopyGuard
+   {
+   public:
+      FunctionValueCopyGuard();
+      ~FunctionValueCopyGuard();
+      FunctionValueCopyGuard(const FunctionValueCopyGuard&) = delete;
+      FunctionValueCopyGuard& operator=(const FunctionValueCopyGuard&) = delete;
+   };
+   // Native buffer assignment can retain destination pointers while copying
+   // source data. Keep only the old contexts that own those actual references.
+   void RetainFunctionValueReferences(
+         const std::shared_ptr<const FunctionValueContext> &previous,
+         const ObjectArray &references);
 
    // Access methods called on the base class
    virtual UnsignedInt  GetType() const;
@@ -259,6 +332,10 @@ public:
 
    // required method for all subclasses that can be copied in a script
    virtual void         Copy(const GmatBase*);
+   // The selected GmatBase-owned graph is already validated. Prepare only
+   // private native storage, preserving that owned-node correspondence.
+   std::unique_ptr<NativeRestorationPlan> PrepareRestoration(
+         const GmatBase &source);
 
    virtual bool         Validate();
    virtual bool         Initialize();
@@ -651,6 +728,24 @@ public:
                                  const StringArray &parameters);
    Integer                 GetScriptLineNumber() const;
    void                    SetScriptLineNumber(Integer val);
+
+   // Native value components, independent of script serialization ownership.
+   // Exclude runtime products that native preparation regenerates. The order
+   // and null slots must correspond between a definition and its native copy.
+   ObjectArray GetFunctionValueOwnedObjects() const;
+
+   // A provider can bind actual references or snapshot borrowed non-object
+   // state that its public name/setter APIs cannot represent. Return true when
+   // all provider-specific binding is complete; false uses generic references.
+   // This is passive value construction, not model execution/initialization.
+   bool RebindFunctionValueReferences(const GmatBase &source,
+         SolarSystem *solarSystem,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+
+   ObjectArray GetFunctionValueOwnedObjectsDefault() const;
+   bool RebindFunctionValueReferencesDefault(const GmatBase &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+   std::unique_ptr<NativeRestorationPlan> PrepareRestorationDefault(const GmatBase &source);
 
 protected:
 

@@ -40,12 +40,18 @@
 class ESTIMATION_API AcceptFilter : public DataFilter
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = DataFilter::NativeValueProviderDepth + 1;
+
    AcceptFilter(const std::string &ofType, std::string name);
    virtual ~AcceptFilter();
    AcceptFilter(const AcceptFilter& af);
    AcceptFilter& operator=(const AcceptFilter& af);
 
    virtual GmatBase* Clone() const;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source,
+         SolarSystem *solarSystem,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+   void Copy(const GmatBase *original) override;
    virtual bool Initialize();
    virtual bool CleanUp();
    

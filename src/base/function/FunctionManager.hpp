@@ -34,6 +34,7 @@
 #define FunctionManager_hpp
 
 
+#include <memory>
 #include <map>              // for mapping between object names and types
 #include <stack>            // for objectMap and caller stacks
 #include <algorithm>        // for find()
@@ -55,9 +56,16 @@
  * CallFunction command or from a FunctionRunner Math Node.
  *
  */
+struct ExpressionScopeCopies;
+
+struct FunctionBuiltinOutputResources;
+class Subscriber;
+
 class GMAT_API FunctionManager
 {
 public:
+   static void RebindSubscriberCopy(const Subscriber &source, Subscriber &target,
+         SolarSystem *system);
    // class constructor
    FunctionManager();
    // class destructor
@@ -90,12 +98,24 @@ public:
    virtual bool         SetPassedInput(Integer index, GmatBase *obj, bool &inputAdded);
    virtual WrapperArray& GetWrappersToDelete();
    
+   bool OwnsExpressionMap(const ObjectMap *map) const;
+   // Passive detachment, including during reentrant invocation cleanup. Keeps
+   // the callee identity and invocation ownership until Cleanup finishes.
+   void RetireExpressionContext();
+   // Runtime call-site binding must not rename the shared callee definition.
+   void SetExpressionFunctionName(const std::string &name);
+   void SetExpressionEnvironment(Function *function, ObjectMap *local, ObjectMap *global);
+   void RebindExpressionContext(const FunctionManager &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve,
+         ObjectMap *local, ObjectMap *global);
+
    // Sequence methods
    bool                 PrepareObjectMap();
    virtual bool         Initialize();
    virtual bool         Execute(FunctionManager *callingFM = NULL);
    virtual Real         Evaluate(FunctionManager *callingFM = NULL);
    virtual Rmatrix      MatrixEvaluate(FunctionManager *callingFM = NULL);
+   virtual Rvector      VectorEvaluate(FunctionManager *callingFM = NULL);
    virtual GmatBase*    EvaluateObject(FunctionManager *callingFM = NULL);
    virtual void         Finalize();
    bool                 IsFinalized();
@@ -106,7 +126,46 @@ public:
                                      const StringArray &callingNames);
 
 protected:
+   // Reentry uses another manager with its own complete native runtime state.
+   // These activation fields are never copied with a call definition.
+   std::unique_ptr<FunctionManager> reentrantInvocation;
+   std::unique_ptr<FunctionManager> completedInvocation;
+   bool executing = false;
+   bool reentrantPrepared = false;
+   bool finalizationRequested = false;
+   bool contextRetirementRequested = false;
+   bool deferredFunctionName = false;
+   WrapperArray stagedWrapperDeletions;
+   FunctionManager& ReentrantInvocation();
+   void PrepareCallSetup();
+   void RetireCompletedInvocation();
+   bool HasInstalledInvocation() const;
+   void BindFunctionServices();
+   bool IsActiveCallerStore(const ObjectMap *store) const;
+   void ReleaseStagedWrappers() noexcept;
+   bool PrepareObjectMapCore();
+   bool InitializeCore();
+   template<class Callback> auto InvokeReentrant(Callback &&call)
+   {
+      ReentrantInvocation();
+      auto frame = std::move(reentrantInvocation);
+      reentrantPrepared = false;
+      auto result = call(*frame);
+      // The running frame lives on this C++ stack. Call setup during it can
+      // prepare a distinct next frame, and object results retain an owner.
+      completedInvocation = std::move(frame);
+      return result;
+   }
    
+   std::shared_ptr<ExpressionScopeCopies> expressionBindings;
+   std::shared_ptr<FunctionBuiltinOutputResources> builtinOutputResources;
+   std::weak_ptr<FunctionBuiltinOutputResources> functionStoreOwner;
+   std::weak_ptr<const void> functionStoreIdentity;
+   bool functionStoreIsManaged = false;
+   void BindFunctionStore(ObjectMap *store);
+   void ForgetRetiredFunctionStore();
+   bool RefreshBuiltinOutputObjects();
+
    /// Publisher for data generation
    Publisher            *publisher;
    /// Object store for the Function 
@@ -129,6 +188,8 @@ protected:
    /// the function that this FunctionManager manages
    ////old Function             *currentFunction;
    ObjectManagedFunction    *currentFunction;
+   std::weak_ptr<const void> currentFunctionIdentity;
+   bool HasLiveFunction() const;
    /// the list of passing input strings for this call of the function
    StringArray          passedIns;
    /// the list of passing output strings for this call of the function
@@ -156,12 +217,17 @@ protected:
    // Created objects that need to be reevaluated each time (i.e. they are based on
    // current values of some object (e.g. an array element))
    ObjectMap            createdOthers;
+   // Evaluated math-node arguments transfer ownership here, by position. They
+   // are consumed by the same capture phase as ordinary script arguments.
+   std::map<Integer, std::unique_ptr<GmatBase>> pendingInputValues;
    /// Real value output
    Real                 realResult;
    /// Rmatrix value output
    Rmatrix              matResult;
-   /// Object output
+   /// Borrowed result view, valid until the next invocation or finalization.
    GmatBase             *objectResult;
+   /// Snapshot of a function-owned object before caller-frame restoration.
+   std::unique_ptr<GmatBase> ownedObjectResult;
    /// Flag indicating whether or not there is one nameless result (i.e. called from FunctionRunner)
    bool                 blankResult;
    /// Which type of output was saved last - real or rmatrix?
@@ -174,6 +240,22 @@ protected:
    GmatCommand          *fcs;
    /// Call stack of FOSs for nested/recursive function calls
    ObjectMapStack       callStack;
+   // Ordinary nested calls preserve a live caller and use private child stores.
+   // Explicit legacy shared-map frames still save local values; globals and
+   // execution handles retain their identity outside those value snapshots.
+   struct LocalObjectState
+   {
+      std::map<std::string, std::unique_ptr<GmatBase>> objects;
+      std::shared_ptr<const void> epoch;
+      std::map<const GmatBase*, std::string> bindingNames;
+      // A running caller keeps its actual objects and command cursors. Only
+      // explicit outputs may update it; an idle legacy API frame saves values.
+      bool preserveLiveCaller = false;
+      bool managedStore = false;
+      std::weak_ptr<const void> storeIdentity;
+   };
+   void PushToStack(bool preserveLiveCaller);
+   std::stack<LocalObjectState> savedLocalObjectStates;
    /// Call stack of LOSs for nested/recursive function calls
    ObjectMapStack       losStack;
    /// pointers to the calling function of this function (needs to be a stack 
@@ -183,7 +265,12 @@ protected:
    FunctionManager      *callingFunction;
    void                 PrepareExecution(FunctionManager *callingFM = NULL);
    bool                 ValidateFunctionArguments();
-   bool                 CreatePassingArgWrappers();
+   bool                 CreatePassingArgWrappers(LocalObjectState *captured = NULL);
+   LocalObjectState     CaptureInputObjects();
+   void                 BindCapturedValue(GmatBase *value, GmatBase *source,
+                           ObjectMap *scene, const std::shared_ptr<const void> &epoch);
+   void                 RebindCapturedObjects(const LocalObjectState &captured,
+                           const ObjectMap &targets);
    void                 RefreshFOS();
    void                 RefreshFormalInputObjects();
    GmatBase*            FindObject(const std::string &name, bool arrayElementsAllowed = false);
@@ -192,9 +279,24 @@ protected:
                            const std::string &outName,
                            Gmat::WrapperDataType wType, 
                            Integer numRows, Integer numCols);
-   void                 AssignResult();
-   bool                 HandleCallStack();
-   void                 SaveLastResult();
+   struct OutputObjectValues
+   {
+      std::map<std::string, std::unique_ptr<GmatBase>> objects;
+      std::shared_ptr<const void> epoch;
+      std::map<const GmatBase*, GmatBase*> bindings;
+      std::map<const GmatBase*, std::string> bindingNames;
+      std::map<std::string, std::unique_ptr<ElementWrapper>> wrappers;
+   };
+   void                 PrepareOutputObjects(OutputObjectValues &values);
+   void                 BindReturnedValue(GmatBase *value, GmatBase *source,
+                           const OutputObjectValues *bindings = NULL);
+   void                 BindReturnedEphemeris(GmatBase *value, GmatBase *source,
+                           const OutputObjectValues *bindings = NULL);
+   void                 AssignResult(const OutputObjectValues *values = NULL);
+   bool                 HandleCallStack(const OutputObjectValues *values = NULL);
+   void                 SaveLastResult(const OutputObjectValues *values = NULL);
+   bool                 PopFromStack(ObjectMap* cloned, const StringArray &outNames,
+                           const StringArray &callingNames, const OutputObjectValues *values);
    
    void                 Cleanup();
    void                 DeleteObject(GmatBase *obj);

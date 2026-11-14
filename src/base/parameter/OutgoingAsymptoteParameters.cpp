@@ -125,7 +125,12 @@ bool OutAsymRadPer::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* OutAsymRadPer::Clone(void) const
 {
-   return new OutAsymRadPer(*this);
+   return CompleteParameterClone(new OutAsymRadPer(*this));
+}
+
+void OutAsymRadPer::Copy(const GmatBase *source)
+{
+   CopyParameterValue<OutAsymRadPer>(source);
 }
 
 
@@ -221,7 +226,12 @@ bool OutAsymC3Energy::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* OutAsymC3Energy::Clone(void) const
 {
-   return new OutAsymC3Energy(*this);
+   return CompleteParameterClone(new OutAsymC3Energy(*this));
+}
+
+void OutAsymC3Energy::Copy(const GmatBase *source)
+{
+   CopyParameterValue<OutAsymC3Energy>(source);
 }
 
 
@@ -318,7 +328,12 @@ bool OutAsymRHA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* OutAsymRHA::Clone(void) const
 {
-   return new OutAsymRHA(*this);
+   return CompleteParameterClone(new OutAsymRHA(*this));
+}
+
+void OutAsymRHA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<OutAsymRHA>(source);
 }
 
 
@@ -415,7 +430,12 @@ bool OutAsymDHA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* OutAsymDHA::Clone(void) const
 {
-   return new OutAsymDHA(*this);
+   return CompleteParameterClone(new OutAsymDHA(*this));
+}
+
+void OutAsymDHA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<OutAsymDHA>(source);
 }
 
 
@@ -512,7 +532,12 @@ bool OutAsymBVAZI::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* OutAsymBVAZI::Clone(void) const
 {
-   return new OutAsymBVAZI(*this);
+   return CompleteParameterClone(new OutAsymBVAZI(*this));
+}
+
+void OutAsymBVAZI::Copy(const GmatBase *source)
+{
+   CopyParameterValue<OutAsymBVAZI>(source);
 }
 
 
@@ -581,5 +606,10 @@ bool OutAsymState::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* OutAsymState::Clone(void) const
 {
-   return new OutAsymState(*this);
+   return CompleteParameterClone(new OutAsymState(*this));
+}
+
+void OutAsymState::Copy(const GmatBase *source)
+{
+   CopyParameterValue<OutAsymState>(source);
 }

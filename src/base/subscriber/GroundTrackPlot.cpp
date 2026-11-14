@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 
 #include "GroundTrackPlot.hpp"
+#include "SubscriberBindingState.hpp"
 #include "PlotInterface.hpp"       // for UpdateGlPlot()
 #include "SubscriberException.hpp" // for SubscriberException()
 #include "FileManager.hpp"         // for GetFullPathname()
@@ -134,6 +135,8 @@ GroundTrackPlot::GroundTrackPlot(const GroundTrackPlot &plot)
    textureMapFileName = plot.textureMapFileName;
    textureMapFullPath = plot.textureMapFullPath;
    footPrintOption    = plot.footPrintOption;
+   if (typeid(plot) == typeid(GroundTrackPlot)) ReconnectSubscriberCopy(plot);
+
 }
 
 
@@ -146,18 +149,21 @@ GroundTrackPlot::GroundTrackPlot(const GroundTrackPlot &plot)
 //------------------------------------------------------------------------------
 GroundTrackPlot& GroundTrackPlot::operator=(const GroundTrackPlot& plot)
 {
-   if (this == &plot)
-      return *this;
-   
-   OrbitPlot::operator=(plot);
-   
-   centralBody        = plot.centralBody;
-   centralBodyName    = plot.centralBodyName;
-   footPrints         = plot.footPrints;
-   textureMapFileName = plot.textureMapFileName;
-   textureMapFullPath = plot.textureMapFullPath;
-   footPrintOption    = plot.footPrintOption;
-   
+   if (this == &plot) return *this;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = typeid(*this) == typeid(GroundTrackPlot) ? BeginSubscriberValueCopy(plot) : SubscriberValueCopyToken{};
+   {
+      FunctionValueCopyGuard nativeCopy;
+      OrbitPlot::operator=(plot);
+
+      centralBody        = plot.centralBody;
+      centralBodyName    = plot.centralBodyName;
+      footPrints         = plot.footPrints;
+      textureMapFileName = plot.textureMapFileName;
+      textureMapFullPath = plot.textureMapFullPath;
+      footPrintOption    = plot.footPrintOption;
+   }
+   if (typeid(*this) == typeid(GroundTrackPlot)) CompleteSubscriberValueCopy(plot, transaction);
    return *this;
 }
 
@@ -250,7 +256,7 @@ bool GroundTrackPlot::Initialize()
       PlotInterface::SetViewType(GmatPlot::GROUND_TRACK_PLOT);
       
       if (PlotInterface::CreateGlPlotWindow
-          (instanceName, mOldName, mPlotUpperLeft[0], mPlotUpperLeft[1],
+          (GetRuntimePlotName(), GetRuntimePlotName(mOldName), mPlotUpperLeft[0], mPlotUpperLeft[1],
            mPlotSize[0], mPlotSize[1], isMaximized, mNumPointsToRedraw))
       {         
          //--------------------------------------------------------
@@ -294,7 +300,7 @@ bool GroundTrackPlot::Initialize()
          #endif
          
          // set SolarSystem
-         PlotInterface::SetGlSolarSystem(instanceName, theSolarSystem);
+         PlotInterface::SetGlSolarSystem(GetRuntimePlotName(), theSolarSystem);
          
          #if DBGLVL_INIT
          MessageInterface::ShowMessage
@@ -308,10 +314,10 @@ bool GroundTrackPlot::Initialize()
          //--------------------------------------------------------
          // set max data points to plot
          //--------------------------------------------------------
-         PlotInterface::SetMaxGlDataPoints(instanceName, mMaxData);
+         PlotInterface::SetMaxGlDataPoints(GetRuntimePlotName(), mMaxData);
 
          // Set all object array and pointers
-         PlotInterface::SetGlObject(instanceName, mObjectNameArray, mObjectArray);
+         PlotInterface::SetGlObject(GetRuntimePlotName(), mObjectNameArray, mObjectArray);
          
          //--------------------------------------------------------
          // set CoordinateSystem
@@ -328,7 +334,7 @@ bool GroundTrackPlot::Initialize()
                 NULL, theInternalCoordSystem->GetJ2000Body(), theSolarSystem);
          }
          
-         PlotInterface::SetGlCoordSystem(instanceName, theInternalCoordSystem,
+         PlotInterface::SetGlCoordSystem(GetRuntimePlotName(), theInternalCoordSystem,
                                          mViewCoordSystem, mViewCoordSystem);
          
          
@@ -346,7 +352,7 @@ bool GroundTrackPlot::Initialize()
          // Pass textureMapFullPath instead of textureMapFileName
          // PlotInterface::SetGl2dDrawingOption(instanceName, centralBodyName,
          //                                     textureMapFileName, (Integer)footPrintOption);
-         PlotInterface::SetGl2dDrawingOption(instanceName, centralBodyName,
+         PlotInterface::SetGl2dDrawingOption(GetRuntimePlotName(), centralBodyName,
                                              textureMapFullPath, (Integer)footPrintOption);
          
          //--------------------------------------------------------
@@ -357,18 +363,18 @@ bool GroundTrackPlot::Initialize()
             ("   calling PlotInterface::SetGlViewOption()\n");
          #endif
          
-         PlotInterface::SetGlUpdateFrequency(instanceName, mUpdatePlotFrequency);
+         PlotInterface::SetGlUpdateFrequency(GetRuntimePlotName(), mUpdatePlotFrequency);
          
          //--------------------------------------------------------
          // set drawing object flag
          //--------------------------------------------------------
-         PlotInterface::SetGlDrawOrbitFlag(instanceName, mDrawOrbitArray);
-         PlotInterface::SetGlShowObjectFlag(instanceName, mDrawObjectArray);
+         PlotInterface::SetGlDrawOrbitFlag(GetRuntimePlotName(), mDrawOrbitArray);
+         PlotInterface::SetGlShowObjectFlag(GetRuntimePlotName(), mDrawObjectArray);
          
          //--------------------------------------------------------
          // initialize GL
          //--------------------------------------------------------
-         PlotInterface::InitializeGlPlot(instanceName);
+         PlotInterface::InitializeGlPlot(GetRuntimePlotName());
          
          isInitialized = true;
          retval = true;
@@ -391,7 +397,7 @@ bool GroundTrackPlot::Initialize()
       // We still need to delete non-active plots so that plot persistency works,
       // so uncommented (loj: 2011.09.23)
       if (!active)
-         retval =  PlotInterface::DeleteGlPlot(instanceName);
+         retval =  PlotInterface::DeleteGlPlot(GetRuntimePlotName());
    }
    
    #if DBGLVL_INIT
@@ -414,7 +420,15 @@ bool GroundTrackPlot::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* GroundTrackPlot::Clone() const
 {
-   return (new GroundTrackPlot(*this));
+   if (typeid(*this) != typeid(GroundTrackPlot))
+      throw GmatBaseException("A derived GroundTrackPlot must provide its complete Clone.\n");
+   std::unique_ptr<GroundTrackPlot> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new GroundTrackPlot(*this));
+   }
+   value->ReconnectSubscriberCopy(*this);
+   return value.release();
 }
 
 
@@ -427,9 +441,19 @@ GmatBase* GroundTrackPlot::Clone() const
  * @param orig The original that is being copied.
  */
 //---------------------------------------------------------------------------
-void GroundTrackPlot::Copy(const GmatBase* orig)
+void GroundTrackPlot::Copy(const GmatBase *original)
 {
-   operator=(*((GroundTrackPlot *)(orig)));
+   const auto *source = dynamic_cast<const GroundTrackPlot*>(original);
+   if (!source || typeid(*source) != typeid(*this) || !HasSubscriberValueReferenceProvider())
+      throw GmatBaseException("Cannot copy an incompatible GroundTrackPlot value.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = BeginSubscriberValueCopy(*source);
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   CompleteSubscriberValueCopy(*source, transaction);
 }
 
 
@@ -1017,11 +1041,11 @@ bool GroundTrackPlot::UpdateSolverData()
       #endif
       
       // Just buffer data up to last point - 1
-      PlotInterface::TakeGlAction(instanceName, "SetDataProvider:" + mCurrProviderArray[i]);
+      PlotInterface::TakeGlAction(GetRuntimePlotName(), "SetDataProvider:" + mCurrProviderArray[i]);
       if (i<static_cast<int>(mCurrDataAvailabilityArray.size()) && !mCurrDataAvailabilityArray[i].empty())
-         PlotInterface::TakeGlAction(instanceName,mCurrDataAvailabilityArray[i]);
+         PlotInterface::TakeGlAction(GetRuntimePlotName(),mCurrDataAvailabilityArray[i]);
       PlotInterface::
-         UpdateGlPlot(instanceName, mOldName, mCurrScArray[i],
+         UpdateGlPlot(GetRuntimePlotName(), GetRuntimePlotName(mOldName), mCurrScArray[i],
                       mCurrEpochArray[i], mCurrXArray[i], mCurrYArray[i],
                       mCurrZArray[i], mCurrVxArray[i], mCurrVyArray[i],
                       mCurrVzArray[i], mCurrentOrbitColorMap, mCurrentTargetColorMap,
@@ -1029,11 +1053,11 @@ bool GroundTrackPlot::UpdateSolverData()
    }
    
    // Buffer last point and Update the plot
-   PlotInterface::TakeGlAction(instanceName, "SetDataProvider:" + mCurrProviderArray[last]);
+   PlotInterface::TakeGlAction(GetRuntimePlotName(), "SetDataProvider:" + mCurrProviderArray[last]);
    if (last<static_cast<int>(mCurrDataAvailabilityArray.size()) && !mCurrDataAvailabilityArray[last].empty())
-      PlotInterface::TakeGlAction(instanceName,mCurrDataAvailabilityArray[last]);
+      PlotInterface::TakeGlAction(GetRuntimePlotName(),mCurrDataAvailabilityArray[last]);
    PlotInterface::
-      UpdateGlPlot(instanceName, mOldName, mCurrScArray[last],
+      UpdateGlPlot(GetRuntimePlotName(), GetRuntimePlotName(mOldName), mCurrScArray[last],
                    mCurrEpochArray[last], mCurrXArray[last], mCurrYArray[last],
                    mCurrZArray[last], mCurrVxArray[last], mCurrVyArray[last],
                    mCurrVzArray[last], mCurrentOrbitColorMap, mCurrentTargetColorMap,
@@ -1053,7 +1077,7 @@ bool GroundTrackPlot::UpdateSolverData()
    
    if (runstate == Gmat::SOLVING)
    {
-      PlotInterface::TakeGlAction(instanceName, "ClearSolverData");
+      PlotInterface::TakeGlAction(GetRuntimePlotName(), "ClearSolverData");
    }
    return true;
 }
@@ -1108,9 +1132,9 @@ bool GroundTrackPlot::Distribute(const Real *dat, Integer len)
    if (isDataStateChanged)
    {
       if (isDataOn)
-         PlotInterface::TakeGlAction(instanceName, "PenDown");
+         PlotInterface::TakeGlAction(GetRuntimePlotName(), "PenDown");
       else
-         PlotInterface::TakeGlAction(instanceName, "PenUp");
+         PlotInterface::TakeGlAction(GetRuntimePlotName(), "PenUp");
       
       isDataStateChanged = false;
    }
@@ -1121,7 +1145,7 @@ bool GroundTrackPlot::Distribute(const Real *dat, Integer len)
    // test isEndOfRun first
    if (isEndOfRun)
    {
-      return PlotInterface::SetGlEndOfRun(instanceName);
+      return PlotInterface::SetGlEndOfRun(GetRuntimePlotName());
    }
    
    if (isEndOfReceive)
@@ -1133,7 +1157,7 @@ bool GroundTrackPlot::Distribute(const Real *dat, Integer len)
       }
       else
       {
-         return PlotInterface::RefreshGlPlot(instanceName);
+         return PlotInterface::RefreshGlPlot(GetRuntimePlotName());
       }
    }
    
@@ -1278,4 +1302,37 @@ bool GroundTrackPlot::SetTextureMapFileName(const std::string &fileName,
    #endif
    
    return retval;
+}
+
+
+std::unique_ptr<FunctionInvocationState> GroundTrackPlot::SuspendFunctionBindings()
+{
+   auto native = std::make_shared<SubscriberBindingState>();
+   native->Capture(centralBody);
+   native->Require([this, role0 = centralBodyName]
+   {
+      return role0 == centralBodyName;
+   });
+   return WrapFunctionBindings(std::move(native), OrbitPlot::SuspendFunctionBindings());
+}
+
+
+bool GroundTrackPlot::HasSubscriberValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(GroundTrackPlot);
+}
+
+
+void GroundTrackPlot::RebindSubscriberValueReferences(const Subscriber &original,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &source = dynamic_cast<const GroundTrackPlot&>(original);
+   auto *body = MapSubscriberReference(source.centralBody, resolve);
+   OrbitPlot::RebindSubscriberValueReferences(source, resolve);
+   centralBody = body;
+}
+
+bool GroundTrackPlot::HasNativeSubscriberBindings() const
+{
+   return OrbitPlot::HasNativeSubscriberBindings() && centralBody;
 }

@@ -31,6 +31,7 @@
 
 
 #include "Plate.hpp"
+#include <memory>
 #include "MessageInterface.hpp"
 #include "Rmatrix.hpp"
 #include "Rmatrix33.hpp"
@@ -51,6 +52,22 @@
 
 
 #define EPSILON      1.0e-10
+
+namespace
+{
+std::unique_ptr<NPlateHistoryFileReader> CopyPlateHistory(const NPlateHistoryFileReader *source)
+{
+   if (!source) return {};
+   std::unique_ptr<NPlateHistoryFileReader> value(source->Clone());
+   if (value.get() == source)
+   {
+      value.release();
+      throw GmatBaseException("Plate history reader Clone returned its source.");
+   }
+   if (!value) throw GmatBaseException("Cannot copy Plate history reader.");
+   return value;
+}
+}
 
 //---------------------------------
 // static data
@@ -146,6 +163,8 @@ Plate::Plate(UnsignedInt typeId, const std::string &typeStr,
    allowedSolveFors.push_back("DiffuseFraction");
 
    scInertialCS = NULL;
+   historyCoordinateSystem = NULL;
+   requireBoundHistoryCoordinateSystem = false;
 
    location[0] = 0.0;
    location[1] = 0.0;
@@ -193,12 +212,14 @@ Plate::Plate(const Plate& pl) :
    errorSelection    (pl.errorSelection),
    runningCommandFlag (pl.runningCommandFlag)
 {
-   if (pl.faceNormalFile)
-      faceNormalFile = pl.faceNormalFile->Clone();
-   else
-      faceNormalFile = NULL;
-   
+   auto prepared = CopyPlateHistory(pl.faceNormalFile);
+   historyCoordinateSystemRole = pl.historyCoordinateSystemRole;
    scInertialCS = pl.scInertialCS;
+   inertialCoordinateSystemToken = pl.inertialCoordinateSystemToken;
+   historyCoordinateSystem = pl.historyCoordinateSystem;
+   historyCoordinateSystemToken = pl.historyCoordinateSystemToken;
+   requireBoundHistoryCoordinateSystem = pl.requireBoundHistoryCoordinateSystem;
+   faceNormalFile = prepared.release();
 
    location[0] = pl.location[0];
    location[1] = pl.location[1];
@@ -222,6 +243,13 @@ Plate& Plate::operator=(const Plate& pl)
    if (this == &pl)
       return *this;
       
+   const bool restoring = GmatBase::IsNativeRestorationCopy();
+   if (restoring && (plateType != pl.plateType || historyFileName != pl.historyFileName ||
+       historyCoordinateSystemRole != pl.historyCoordinateSystemRole ||
+       (faceNormalFile == nullptr) != (pl.faceNormalFile == nullptr)))
+      throw GmatBaseException("Prepare plate history bindings before changing an active restoration graph.");
+   auto prepared = restoring ? std::unique_ptr<NPlateHistoryFileReader>() : CopyPlateHistory(pl.faceNormalFile);
+   std::string historyRole = pl.historyCoordinateSystemRole;
    GmatBase::operator=(pl);
 
    plateType         = pl.plateType;
@@ -237,15 +265,19 @@ Plate& Plate::operator=(const Plate& pl)
    diffuseFracSigma  = pl.diffuseFracSigma;
    allowedSolveFors = pl.allowedSolveFors;
 
-   if (faceNormalFile)
+   if (!restoring)
+   {
       delete faceNormalFile;
-   if (pl.faceNormalFile)
-      faceNormalFile = pl.faceNormalFile->Clone();
-   else
-      faceNormalFile = NULL;
+      faceNormalFile = prepared.release();
+      historyCoordinateSystem = pl.historyCoordinateSystem;
+      historyCoordinateSystemToken = pl.historyCoordinateSystemToken;
+      requireBoundHistoryCoordinateSystem = pl.requireBoundHistoryCoordinateSystem;
+      historyCoordinateSystemRole.swap(historyRole);
+
+   }
 
    errorSelection = pl.errorSelection;
-   runningCommandFlag = pl.runningCommandFlag;
+   if (!restoring) runningCommandFlag = pl.runningCommandFlag;
 
    location[0] = pl.location[0];
    location[1] = pl.location[1];
@@ -267,7 +299,9 @@ Plate& Plate::operator=(const Plate& pl)
 //------------------------------------------------------------------------------
 GmatBase* Plate::Clone() const
 {
-   Plate *clone = new Plate(*this);
+   std::unique_ptr<Plate> owner(new Plate(*this));
+   Plate *clone = owner.get();
+   clone->RebindFunctionValueContext(*this);
 
 #ifdef DEBUG_PLATE
    MessageInterface::ShowMessage
@@ -275,12 +309,18 @@ GmatBase* Plate::Clone() const
       instanceName.c_str(), clone, clone->GetName().c_str());
 #endif
 
-   return clone;
+   return owner.release();
 }
 
 void Plate::Copy(const GmatBase* plate)
 {
-   operator=(*((Plate*)plate));
+   const auto *source = dynamic_cast<const Plate*>(plate);
+   if (!source || source->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Incompatible Plate value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -308,16 +348,16 @@ bool Plate::Initialize()
       ///@todo: add initialize code here
       if (plateType == "File")
       {
-         //Read face normal history data from file
-         if (faceNormalFile)
-            delete faceNormalFile;
-
-         faceNormalFile = new NPlateHistoryFileReader();
-         faceNormalFile->SetFile(historyFileName);
-         faceNormalFile->Initialize();
+         PrepareHistoryReader();
       }
       else
+      {
+         delete faceNormalFile;
          faceNormalFile = NULL;
+         historyCoordinateSystem = NULL;
+         historyCoordinateSystemToken.reset();
+         historyCoordinateSystemRole.clear();
+      }
 
       // Set value for Plate's covariance
       for (Integer i = 0; i < solveForList.size(); ++i)
@@ -449,6 +489,12 @@ bool Plate::SetStringParameter(const Integer id, const std::string &value)
       if ((value != "FixedInBody") && (value != "SunFacing") && (value != "File"))
          throw GmatBaseException("Error: " + GetName() + ".Type parameter has invalid value ('" + value + "'). Allow value has to be 'FixedInBody', 'SunFacing', or 'File'.\n");
 
+      if (plateType != value)
+      {
+         isInitialized = false;
+         delete faceNormalFile;
+         faceNormalFile = NULL;
+      }
       plateType = value;
       return true;
    }
@@ -460,7 +506,14 @@ bool Plate::SetStringParameter(const Integer id, const std::string &value)
       if (!GmatStringUtil::IsValidFullFileName(value, error))
          throw InterfaceException("Error: '" + value + "' set to " + GetName() + ".PlateNormalHistoryFile is an invalid file name.\n");
 
-      historyFileName = value; 
+      std::string replacement(value);
+      if (historyFileName != value)
+      {
+         isInitialized = false;
+         delete faceNormalFile;
+         faceNormalFile = NULL;
+      }
+      historyFileName.swap(replacement); 
       return true;
    }
 
@@ -1664,31 +1717,10 @@ std::vector<Rvector3> Plate::GetReflectanceDerivativeWRTSpacecraftState(const Rv
       }
    }
 
-   Rmatrix33 dnHatdsHat;
-   Rmatrix33 dsHatdnHat;
-   for (Integer i = 0; i < 3; ++i)
-   {
-      for (Integer j = 0; j < 3; ++j)
-      {
-         if (plateType == "FixedInBody")
-         {
-            dnHatdsHat(i, j) = 0.0;                      // nHat and sHat are independent variables when plateType is "FixedInBody" so dnHatdsHat is [0]3x3 matrix
-            dsHatdnHat(i, j) = 0.0;                      // nHat and sHat are independent variables when plateType is "FixedInBody" so dsHatdnHat is [0]3x3 matrix
-         }
-         if (plateType == "SunFacing")
-         {
-            dnHatdsHat(i, j) = ((i == j) ? 1.0 : 0.0);         // nHat and sHat are dependent with constraint nHat = sHat. Therefore, dnHat/dsHat = [I]3x3
-            dsHatdnHat(i, j) = ((i == j) ? 1.0 : 0.0);         // nHat and sHat are dependent with constraint nHat = sHat. Therefore, dsHat/dnHat = [I]3x3
-         }
-         else if (plateType == "File")
-         {
-            // vector nHat get from NPlate history file depends on time only but spacecraft's state X. Therefore, dnHat/dX = [0] 
-         }
-      }
-   }
-
-   Rmatrix33 dCdsHat = I*(1 - rho) + (ninj * rho + dnHatdsHat*(delta / 3.0 + rho * D))*2.0;      // Eq.32 SRP N-Plates MathSpec
-   Rmatrix33 dCdnHat = dsHatdnHat*(1 - rho) + (sinj*rho + I*(delta / 3.0 + rho * D))*2.0;        // Eq.33 SRP N-Plates MathSpec
+   // These partial derivatives hold the other direction independent.
+   // The final chain rule applies their shared state dependence once.
+   Rmatrix33 dCdsHat = I*(1 - rho) + ninj * (2.0 * rho);
+   Rmatrix33 dCdnHat = (sinj*rho + I*(delta / 3.0 + rho * D))*2.0;
 
    Rmatrix33 dAdsHat = (CdDdsHat + dCdsHat * D) * A;                                             // Eq.28 SRP N-Plates MathSpec
    Rmatrix33 dAdnHat = (CdDdnHat + dCdnHat * D) * A;                                             // Eq.29 SRP N-Plates MathSpec
@@ -1823,6 +1855,8 @@ Rvector3 Plate::GetReflectanceDerivativeWRTLitFrac(Rvector3 &sHat, GmatTime &epo
 //------------------------------------------------------------------------------------------
 Rvector3 Plate::GetFaceNormalI(const GmatTime &epochGT, Rmatrix33 &MT)
 {
+   if (!IsInitialized() && !Initialize())
+      throw GmatBaseException("Cannot initialize Plate normal history.");
    if (faceNormalFile == NULL)
    {
       std::stringstream ss;
@@ -1839,25 +1873,9 @@ Rvector3 Plate::GetFaceNormalI(const GmatTime &epochGT, Rmatrix33 &MT)
       return MT*nHat;                // nHatI = MT * nHat. Where: nHat presents unit normal vector in B-frame
    else
    {
-      GmatBase *obj = NULL;
-      try
-      {
-         obj = GetConfiguredObject(csName);
-      }
-      catch (BaseException &be)
-      {
-         std::stringstream ss;
-         ss << "Error: Plate NormalHistoryFile coordinate system '" << csName << "' is not defined.\n";
-         throw GmatBaseException(ss.str());
-      }
-
-      if (obj->IsOfType(Gmat::COORDINATE_SYSTEM) == false)
-      {
-         std::stringstream ss;
-         ss << "Error: Plate NormalHistoryFile coordinate system '" << csName << "' is not defined.\n";
-         throw GmatBaseException(ss.str());
-      }
-      CoordinateSystem *historyCS = (CoordinateSystem*)obj;
+      CoordinateSystem *historyCS = ResolveHistoryCoordinateSystem();
+      if (!GmatBase::IsLiveReference(scInertialCS, inertialCoordinateSystemToken))
+         throw GmatBaseException("Plate normal history requires its current inertial coordinate system.");
 
       // Convert face normal unit to spacecraft body fixed coordinate system
       // Get rotation matrix from coordinate system defined in history data file to spacecraft's coordinate system
@@ -1877,6 +1895,8 @@ Rvector3 Plate::GetFaceNormalI(const GmatTime &epochGT, Rmatrix33 &MT)
 
 Rvector3 Plate::GetFaceNormal(const GmatTime &epochGT, Rmatrix33 &MT)
 {
+   if (!IsInitialized() && !Initialize())
+      throw GmatBaseException("Cannot initialize Plate normal history.");
    if (faceNormalFile == NULL)
    {
       std::stringstream ss;
@@ -1893,26 +1913,10 @@ Rvector3 Plate::GetFaceNormal(const GmatTime &epochGT, Rmatrix33 &MT)
       return nHat;
    else
    {
-      GmatBase *obj = NULL;
-      try 
-      {
-         obj = GetConfiguredObject(csName);
-      }
-      catch (BaseException &be)
-      {
-         std::stringstream ss;
-         ss << "Error: Plate NormalHistoryFile coordinate system '" << csName << "' is not defined.\n";
-         throw GmatBaseException(ss.str());
-      }
+      CoordinateSystem *historyCS = ResolveHistoryCoordinateSystem();
+      if (!GmatBase::IsLiveReference(scInertialCS, inertialCoordinateSystemToken))
+         throw GmatBaseException("Plate normal history requires its current inertial coordinate system.");
 
-      if (obj->IsOfType(Gmat::COORDINATE_SYSTEM) == false)
-      {
-         std::stringstream ss;
-         ss << "Error: Plate NormalHistoryFile coordinate system '" << csName << "' is not defined.\n";
-         throw GmatBaseException(ss.str());
-      }
-      CoordinateSystem *historyCS = (CoordinateSystem*)obj;
-      
       // Convert face normal unit to spacecraft body fixed coordinate system
       // Get rotation matrix from coordinate system defined in history data file to spacecraft's coordinate system
       Rvector6 inState(1.0, 2.0, 3.0, 4.0, 5.0, 6.0);
@@ -2030,33 +2034,9 @@ std::vector<Rvector3> Plate::GetReflectanceDerivativeWRTSpacecraftStateI(const R
       }
    }
 
-   Rmatrix33 dnHatIdsHatI;
-   Rmatrix33 dsHatIdnHatI;
-   for (Integer i = 0; i < 3; ++i)
-   {
-      for (Integer j = 0; j < 3; ++j)
-      {
-         if (plateType == "FixedInBody")
-         {
-            dnHatIdsHatI(i, j) = 0.0;                             // nHatI and sHatI are independent variables when plateType is "FixedInBody" so dnHatIdsHatI is [0]3x3 matrix
-            dsHatIdnHatI(i, j) = 0.0;                             // nHatI and sHatI are independent variables when plateType is "FixedInBody" so dsHatIdnHatI is [0]3x3 matrix
-         }
-         if (plateType == "SunFacing")
-         {
-            dnHatIdsHatI(i, j) = ((i == j) ? 1.0 : 0.0);         // nHatI and sHatI are dependent with constraint nHatI = sHatI. Therefore, dnHatI/dsHatI = [I]3x3
-            dsHatIdnHatI(i, j) = ((i == j) ? 1.0 : 0.0);         // nHatI and sHatI are dependent with constraint nHatI = sHatI. Therefore, dsHatI/dnHatI = [I]3x3
-         }
-         else if (plateType == "File")
-         {
-            // vector nHat get from NPlate history file depends on time only but the Sun unit vector sHat. Therefore, dnHat/dsHat = [0] 
-            dnHatIdsHatI(i, j) = 0.0;
-            dsHatIdnHatI(i, j) = 0.0;
-         }
-      }
-   }
-
-   Rmatrix33 dCdsHatI = I * (1 - rho) + (ninj * rho + dnHatIdsHatI * (delta / 3.0 + rho * D))*2.0;      // Eq.32 SRP N-Plates MathSpec
-   Rmatrix33 dCdnHatI = dsHatIdnHatI * (1 - rho) + (nisj*rho + I * (delta / 3.0 + rho * D))*2.0;        // Eq.33 SRP N-Plates MathSpec
+   // The final chain rule already includes both direction derivatives.
+   Rmatrix33 dCdsHatI = I * (1 - rho) + ninj * (2.0 * rho);
+   Rmatrix33 dCdnHatI = (nisj*rho + I * (delta / 3.0 + rho * D))*2.0;
 
    Rmatrix33 dAdsHatI = (CdDdsHatI + dCdsHatI * D) * A;                                                 // Eq.28 SRP N-Plates MathSpec
    Rmatrix33 dAdnHatI = (CdDdnHatI + dCdnHatI * D) * A;                                                 // Eq.29 SRP N-Plates MathSpec
@@ -2180,7 +2160,8 @@ Rvector3 Plate::GetReflectanceDerivativeWRTLitFracI(Rvector3 &sHatI, GmatTime &e
 
 void Plate::StoreSpacecraftInertialCoordinateSystem(CoordinateSystem* inertialCS) 
 {
-   scInertialCS = inertialCS; 
+   scInertialCS = inertialCS;
+   inertialCoordinateSystemToken = inertialCS ? inertialCS->GetLifetimeToken() : std::weak_ptr<const void>(); 
 }
 
 
@@ -2221,3 +2202,112 @@ Integer Plate::SetRunningCommandFlag(Integer runningCommand)
    return temp;
 };
 
+
+std::string Plate::GetHistoryCoordinateSystemName() const
+{
+   return plateType == "File" && faceNormalFile ? faceNormalFile->GetCoordinateSystemName() : "";
+}
+
+void Plate::BindHistoryCoordinateSystem(CoordinateSystem *frame, bool scoped)
+{
+   const std::string name = GetHistoryCoordinateSystemName();
+   requireBoundHistoryCoordinateSystem = scoped || GetFunctionValueContext() != nullptr;
+   if (name.empty() || name == "FixedInBody")
+   {
+      historyCoordinateSystem = NULL;
+      historyCoordinateSystemToken.reset();
+      historyCoordinateSystemRole.clear();
+      return;
+   }
+   if (!frame) throw GmatBaseException("Unresolved Plate history coordinate system '" + name + "'.");
+   const auto token = frame->GetLifetimeToken();
+   historyCoordinateSystem = frame;
+   historyCoordinateSystemToken = token;
+   historyCoordinateSystemRole = name;
+}
+
+CoordinateSystem *Plate::ResolveHistoryCoordinateSystem()
+{
+   const std::string name = GetHistoryCoordinateSystemName();
+   if (historyCoordinateSystem && historyCoordinateSystemRole == name)
+   {
+      if (!GmatBase::IsLiveReference(historyCoordinateSystem, historyCoordinateSystemToken))
+         throw GmatBaseException("Expired Plate history coordinate system '" + name + "'.");
+      return historyCoordinateSystem;
+   }
+   // Private owned children deliberately do not keep a strong parent context.
+   // Preserve their binding policy even after that child lease is cleared.
+   if (requireBoundHistoryCoordinateSystem || GetFunctionValueContext())
+      throw GmatBaseException("Unresolved retained Plate history coordinate system '" + name + "'.");
+   auto *frame = dynamic_cast<CoordinateSystem*>(GetConfiguredObject(name));
+   if (!frame) throw GmatBaseException("Plate history coordinate system '" + name + "' is not defined.");
+   BindHistoryCoordinateSystem(frame);
+   return historyCoordinateSystem;
+}
+
+void Plate::RebindClonedReferences(const Plate &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve,
+      const std::function<CoordinateSystem*(const std::string&)> &resolveName)
+{
+   if (&source == this) return;
+   // Capture the history declaration without normalizing or changing the
+   // copied numeric definition/readiness. Native use initializes it later.
+   if (!InitializeClonedResource()) throw GmatBaseException("Cannot prepare copied Plate definition.");
+   if (source.scInertialCS && !GmatBase::IsLiveReference(source.scInertialCS, source.inertialCoordinateSystemToken))
+      throw GmatBaseException("Expired retained Plate inertial coordinate system.");
+   auto *inertial = dynamic_cast<CoordinateSystem*>(resolve(source.scInertialCS));
+   if (source.scInertialCS && !inertial)
+      throw GmatBaseException("Incompatible retained Plate inertial coordinate system.");
+   const std::string name = GetHistoryCoordinateSystemName();
+   CoordinateSystem *history = NULL;
+   if (!name.empty() && name != "FixedInBody")
+   {
+      if (source.historyCoordinateSystem && source.historyCoordinateSystemRole == name)
+      {
+         if (!GmatBase::IsLiveReference(source.historyCoordinateSystem, source.historyCoordinateSystemToken))
+            throw GmatBaseException("Expired retained Plate history coordinate system.");
+         history = dynamic_cast<CoordinateSystem*>(resolve(source.historyCoordinateSystem));
+      }
+      else history = resolveName(name);
+      if (!history) throw GmatBaseException("Unresolved retained Plate history coordinate system '" + name + "'.");
+   }
+   const auto inertialToken = inertial ? inertial->GetLifetimeToken() : std::weak_ptr<const void>();
+   const auto historyToken = history ? history->GetLifetimeToken() : std::weak_ptr<const void>();
+   scInertialCS = inertial;
+   inertialCoordinateSystemToken = inertialToken;
+   historyCoordinateSystem = history;
+   historyCoordinateSystemToken = historyToken;
+   historyCoordinateSystemRole = history ? name : "";
+   requireBoundHistoryCoordinateSystem = true;
+}
+
+CoordinateSystem *Plate::GetBoundHistoryCoordinateSystem() const
+{
+   return historyCoordinateSystemRole == GetHistoryCoordinateSystemName() &&
+         GmatBase::IsLiveReference(historyCoordinateSystem, historyCoordinateSystemToken) ? historyCoordinateSystem : NULL;
+}
+
+void Plate::PrepareHistoryReader()
+{
+   if (faceNormalFile) return;
+   std::unique_ptr<NPlateHistoryFileReader> prepared(new NPlateHistoryFileReader());
+   if (!prepared->SetFile(historyFileName))
+      throw GmatBaseException("Cannot set Plate normal history '" + historyFileName + "'.");
+   prepared->Initialize(); // Errors are exceptions; this native method is void.
+   if (historyCoordinateSystemRole != prepared->GetCoordinateSystemName())
+   {
+      historyCoordinateSystem = NULL;
+      historyCoordinateSystemToken.reset();
+      historyCoordinateSystemRole.clear();
+   }
+   faceNormalFile = prepared.release();
+}
+
+bool Plate::InitializeClonedResource()
+{
+   // File definitions can be copied before the filename is supplied. Once a
+   // file is declared, capture its header/owned data for reference binding.
+   // Initialization of numeric fields/covariance remains the normal use path.
+   if (plateType == "File" && !historyFileName.empty()) PrepareHistoryReader();
+   return true;
+}

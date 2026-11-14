@@ -48,6 +48,7 @@ public:
    FileInterface operator=(const FileInterface& fi);
 
    virtual GmatBase *Clone() const;
+   void Copy(const GmatBase *original) override;
 
    // Access methods derived classes can override
    virtual std::string  GetParameterText(const Integer id) const;

@@ -37,6 +37,7 @@
 #include "MessageInterface.hpp"
 
 #include <sstream>
+#include <memory>
 
 //#define TEST_HERMITE_INTERP
 
@@ -311,48 +312,99 @@ void Ephemeris::GetInterpolationInfoFromSegment(Integer segmentNo)
 //------------------------------------------------------------------------------
 Rvector6 Ephemeris::InterpolatePoint(const GmatEpoch forEpoch)
 {
-   Rvector6 retval;
+   GmatTime query(forEpoch);
+   const Integer segment = FindSegment(forEpoch);
+   if (segment >= 0 && !theEphem[segment].points.empty())
+   {
+      // Preserve a Real caller's rounded endpoint identity. Precise callers
+      // retain their supplied clock, including sub-MJD-ulp outside queries.
+      const auto &points = theEphem[segment].points;
+      if (forEpoch == points.front().theEpoch)
+         query = points.front().GetEpoch();
+      else if (forEpoch == points.back().theEpoch)
+         query = points.back().GetEpoch();
+   }
+   return InterpolatePoint(query);
+}
 
-   Integer segNo = FindSegment(forEpoch);
+Rvector6 Ephemeris::InterpolatePoint(const GmatTime &forEpoch)
+{
+   Rvector6 retval;
+   Integer segNo = -1;
+   for (UnsignedInt i = 0; i < theEphem.size(); ++i)
+   {
+      const auto &segment = theEphem[i];
+      if (segment.points.empty())
+         continue;
+      const auto &first = segment.points.front();
+      const auto &last = segment.points.back();
+      const GmatTime start = first.theEpoch == segment.segStart ?
+            first.GetEpoch() : GmatTime(segment.segStart);
+      const GmatTime end = last.theEpoch == segment.segEnd ?
+            last.GetEpoch() : GmatTime(segment.segEnd);
+      if (start <= forEpoch && (forEpoch < end ||
+            (forEpoch == end && (start == end || i + 1 == theEphem.size()))))
+      {
+         segNo = i;
+         break;
+      }
+   }
    if (segNo == -1)
    {
       std::stringstream msg;
       msg.precision(15);
       msg << "**** ERROR **** Attempting to interpolate outside of the span of the ephemeris; "
-          << "Requested epoch is " << forEpoch << " and ephemeris span is from "
+          << "Requested epoch is " << forEpoch.ToString() << " and ephemeris span is from "
           << a1StartEpoch << " to " << a1EndEpoch;
       throw UtilityException(msg.str());
    }
 
-   Integer index = IndexInSegment(segNo, forEpoch);
+   Integer index = -1;
+   Real distance = 9e99;
+   for (UnsignedInt i = 0; i < theEphem[segNo].points.size(); ++i)
+   {
+      const Real delta = GmatMathUtil::Abs(
+            (theEphem[segNo].points[i].GetEpoch() - forEpoch).GetTimeInSec());
+      if (delta < distance)
+      {
+         distance = delta;
+         index = i;
+      }
+   }
    if (index == -1)
    {
       std::stringstream msg;
       msg.precision(15);
-      msg << "**** ERROR **** Unable to find the epoch " << forEpoch << " in the ephemeris span from "
+      msg << "**** ERROR **** Unable to find the epoch " << forEpoch.ToString() << " in the ephemeris span from "
           << a1StartEpoch << " to " << a1EndEpoch;
       throw UtilityException(msg.str());
    }
 
    GetInterpolationInfoFromSegment(segNo);
+   if (distance == 0.0)
+      return theEphem[segNo].points[index].posvel;
 
    Integer maxOrder = theEphem[segNo].points.size() - 1;
    if (maxOrder > order)
       maxOrder = order;
 
-   if (currentOrder != maxOrder)
+   if (currentOrder != maxOrder || !interp ||
+         (useHermite != (dynamic_cast<HermiteInterpolator*>(interp) != NULL)))
    {
       #ifdef DEBUG_INTERPOLATION
          MessageInterface::ShowMessage("Setting interpolator of order %d\n",
                maxOrder);
       #endif
 
-      if (interp != NULL)
-         delete interp;
+      std::unique_ptr<Interpolator> incoming;
       if (useHermite)
-         interp = new HermiteInterpolator("", 6, maxOrder);
+         incoming.reset(new HermiteInterpolator("", 6, maxOrder));
       else
-         interp = new LagrangeInterpolator("", 6, maxOrder);
+         incoming.reset(new LagrangeInterpolator("", 6, maxOrder));
+      // Keep the previous cache intact if native construction/allocation
+      // fails. The new type and order become visible together.
+      delete interp;
+      interp = incoming.release();
       currentOrder = maxOrder;
    }
 
@@ -365,15 +417,25 @@ Rvector6 Ephemeris::InterpolatePoint(const GmatEpoch forEpoch)
       warnInterpolationDegradation = false;
    }
 
-   Integer startIndex = index - Integer(currentOrder / 2);
+   // An odd-order stencil is centered on the enclosing interval. Selecting
+   // only the closest node puts an order-one stencil entirely after a query
+   // just past the interval midpoint, where interpolation is then infeasible.
+   Integer center = index;
+   if (currentOrder % 2 != 0 && forEpoch < theEphem[segNo].points[index].GetEpoch())
+      --center;
+   Integer startIndex = center - Integer(currentOrder / 2);
    if (startIndex < 0)
       startIndex = 0;
    if (startIndex + currentOrder + 1 > theEphem[segNo].points.size())
       startIndex = theEphem[segNo].points.size() - currentOrder - 1;
 
+   // Local seconds retain file/query precision and avoid subtracting two
+   // large, rounded MJD doubles inside the interpolator.
+   const GmatTime anchor = theEphem[segNo].points[startIndex].GetEpoch();
+   const Real query = (forEpoch - anchor).GetTimeInSec();
    interp->Clear();
    for (UnsignedInt i = 0; i <= currentOrder; ++i)
-      interp->AddPoint(theEphem[segNo].points[startIndex+i].theEpoch,
+      interp->AddPoint((theEphem[segNo].points[startIndex+i].GetEpoch() - anchor).GetTimeInSec(),
             theEphem[segNo].points[startIndex+i].posvel.GetDataVector());
 
    // Use derivative data for problems with lower than 7th order polynomials
@@ -385,30 +447,26 @@ Rvector6 Ephemeris::InterpolatePoint(const GmatEpoch forEpoch)
          const Real *v = theEphem[segNo].points[startIndex+i].posvel.GetDataVector();
          for (Integer j = 0; j < 3; ++j)
          {
-            // Since independent variable is in days, scale velocity the same
-            vel[j] = v[j+3] * GmatTimeConstants::SECS_PER_DAY;
+            // The independent variable is seconds, matching file velocity.
+            vel[j] = v[j+3];
             vel[j+3] = -9.999999999e99;
          }
          ((HermiteInterpolator*)interp)->AddDerivative(
-               theEphem[segNo].points[startIndex+i].theEpoch, vel);
+               (theEphem[segNo].points[startIndex+i].GetEpoch() - anchor).GetTimeInSec(), vel);
       }
    }
 
    Real interpolents[6];
 
+   bool interpolated;
    if (useHermite)
    {
-      if (((HermiteInterpolator*)interp)->InterpolateCartesianState(forEpoch, interpolents))
-      {
-         for (Integer i = 3; i < 6; ++i)
-            interpolents[i] /= GmatTimeConstants::SECS_PER_DAY;
-         retval.Set(interpolents);
-      }
+      interpolated = ((HermiteInterpolator*)interp)->InterpolateCartesianState(query, interpolents);
    }
    else
-   {
-      if (interp->Interpolate(forEpoch, interpolents))
-         retval.Set(interpolents);
-   }
+      interpolated = interp->Interpolate(query, interpolents);
+   if (!interpolated)
+      throw UtilityException("Unable to interpolate the ephemeris at the requested epoch " + forEpoch.ToString());
+   retval.Set(interpolents);
    return retval;
 }

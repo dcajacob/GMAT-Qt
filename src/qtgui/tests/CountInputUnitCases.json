@@ -1,0 +1,214 @@
+{
+  "scope": "Explicit meanings of integer iteration, cadence, capacity and formatting counts; no physical conversion, no mission, no identifier or dimensional-tolerance inference.",
+  "cases": [
+    {
+      "key": "BatchEstimator",
+      "group": "CountLimits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create BatchEstimator Probe;\n",
+      "units": {
+        "FreezeIteration": "iteration number",
+        "ILSEMaximumIterations": "iterations",
+        "MaxConsecutiveDivergences": "iterations",
+        "MaximumIterations": "iterations"
+      },
+      "visible_units": {
+        "FreezeIteration": "iteration number",
+        "ILSEMaximumIterations": "iterations",
+        "MaxConsecutiveDivergences": "iterations",
+        "MaximumIterations": "iterations"
+      }
+    },
+    {
+      "key": "BatchEstimatorInv",
+      "group": "CountLimits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create BatchEstimatorInv Probe;\n",
+      "units": {
+        "FreezeIteration": "iteration number",
+        "ILSEMaximumIterations": "iterations",
+        "MaxConsecutiveDivergences": "iterations",
+        "MaximumIterations": "iterations"
+      },
+      "visible_units": {
+        "FreezeIteration": "iteration number",
+        "ILSEMaximumIterations": "iterations",
+        "MaxConsecutiveDivergences": "iterations",
+        "MaximumIterations": "iterations"
+      }
+    },
+    {
+      "key": "DifferentialCorrector",
+      "group": "CountLimits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create DifferentialCorrector Probe;\n",
+      "units": {
+        "MaximumIterations": "iterations"
+      },
+      "visible_units": {
+        "MaximumIterations": "iterations"
+      }
+    },
+    {
+      "key": "PropSetup",
+      "group": "CountLimits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Propagator Probe;\n",
+      "units": {
+        "MaxStepAttempts": "attempts"
+      },
+      "visible_units": {
+        "MaxStepAttempts": "attempts"
+      }
+    },
+    {
+      "key": "EphemerisFile",
+      "group": "CountLimits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Spacecraft Sat;\nCreate EphemerisFile Probe;\nProbe.Spacecraft = Sat;\n",
+      "units": {
+        "InterpolationOrder": "order"
+      },
+      "visible_units": {
+        "InterpolationOrder": "order"
+      }
+    },
+    {
+      "key": "VF13ad",
+      "group": "CountLimits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create VF13ad Probe;\n",
+      "units": {
+        "MaximumIterations": "iterations",
+        "MaximumLineSearches": "searches"
+      },
+      "visible_units": {
+        "MaximumIterations": "iterations",
+        "MaximumLineSearches": "searches"
+      }
+    },
+    {
+      "key": "Yukon",
+      "group": "CountLimits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Yukon Probe;\n",
+      "units": {
+        "MaximumFunctionEvals": "evaluations",
+        "MaximumIterations": "iterations"
+      },
+      "visible_units": {
+        "MaximumFunctionEvals": "evaluations",
+        "MaximumIterations": "iterations"
+      }
+    },
+    {
+      "key": "GroundTrack",
+      "group": "CountPresentation",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Spacecraft Sat;\nCreate GroundTrack Probe;\nProbe.Add = {Sat};\n",
+      "units": {
+        "DataCollectFrequency": "samples",
+        "MaxPlotPoints": "points",
+        "NumPointsToRedraw": "segments",
+        "UpdatePlotFrequency": "samples"
+      },
+      "visible_units": {
+        "DataCollectFrequency": "samples",
+        "MaxPlotPoints": "points",
+        "NumPointsToRedraw": "segments",
+        "UpdatePlotFrequency": "samples"
+      }
+    },
+    {
+      "key": "GroundTrackPlot",
+      "group": "CountPresentation",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Spacecraft Sat;\nCreate GroundTrackPlot Probe;\nProbe.Add = {Sat};\n",
+      "units": {
+        "DataCollectFrequency": "samples",
+        "MaxPlotPoints": "points",
+        "NumPointsToRedraw": "segments",
+        "UpdatePlotFrequency": "samples"
+      },
+      "visible_units": {
+        "DataCollectFrequency": "samples",
+        "MaxPlotPoints": "points",
+        "NumPointsToRedraw": "segments",
+        "UpdatePlotFrequency": "samples"
+      }
+    },
+    {
+      "key": "OrbitView",
+      "group": "CountPresentation",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Spacecraft Sat;\nCreate OrbitView Probe;\nProbe.Add = {Sat};\n",
+      "units": {
+        "DataCollectFrequency": "samples",
+        "MaxPlotPoints": "points",
+        "NumPointsToRedraw": "segments",
+        "UpdatePlotFrequency": "samples",
+        "StarCount": "stars"
+      },
+      "visible_units": {
+        "DataCollectFrequency": "samples",
+        "MaxPlotPoints": "points",
+        "NumPointsToRedraw": "segments",
+        "UpdatePlotFrequency": "samples",
+        "StarCount": "Star count"
+      }
+    },
+    {
+      "key": "ContactLocator",
+      "group": "CountPresentation",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create ContactLocator Probe;\n",
+      "units": {
+        "ReportPrecision": "digits"
+      },
+      "visible_units": {
+        "ReportPrecision": "digits"
+      }
+    },
+    {
+      "key": "ReportFile",
+      "group": "CountPresentation",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create ReportFile Probe;\n",
+      "units": {
+        "ColumnWidth": "characters",
+        "Precision": "digits"
+      },
+      "visible_units": {
+        "ColumnWidth": "characters",
+        "Precision": "digits"
+      }
+    },
+    {
+      "key": "TextEphemFile",
+      "group": "CountPresentation",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create TextEphemFile Probe;\n",
+      "units": {
+        "ColumnWidth": "characters",
+        "Precision": "digits"
+      },
+      "visible_units": {
+        "ColumnWidth": "characters",
+        "Precision": "digits"
+      }
+    }
+  ]
+}

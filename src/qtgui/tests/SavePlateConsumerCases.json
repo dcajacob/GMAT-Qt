@@ -1,0 +1,127 @@
+{
+  "cases": [
+    {
+      "key": "StandalonePlate",
+      "setup": "Create Plate Subject;\nSubject.Type = FixedInBody;\nSubject.PlateNormal = [-1 0 0];\nSubject.Area = 3.5;\nSubject.SpecularFraction = 0.25;\nSubject.DiffuseFraction = 0.375;\nSubject.LitFraction = 0.875;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create Plate Subject"
+      ],
+      "filename": "Subject.Plate.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Type",
+          "type": "Enumeration",
+          "expected": "FixedInBody"
+        },
+        {
+          "object": "Subject",
+          "field": "PlateNormal",
+          "type": "Rvector",
+          "expected": [
+            -1,
+            0,
+            0
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Area",
+          "type": "Real",
+          "expected": 3.5
+        },
+        {
+          "object": "Subject",
+          "field": "SpecularFraction",
+          "type": "Real",
+          "expected": 0.25
+        },
+        {
+          "object": "Subject",
+          "field": "DiffuseFraction",
+          "type": "Real",
+          "expected": 0.375
+        },
+        {
+          "object": "Subject",
+          "field": "LitFraction",
+          "type": "Real",
+          "expected": 0.875
+        }
+      ]
+    },
+    {
+      "key": "AttachedPlate",
+      "setup": "Create Plate Subject;\nSubject.Type = FixedInBody;\nSubject.PlateNormal = [-1 0 0];\nSubject.Area = 3.5;\nSubject.SpecularFraction = 0.25;\nSubject.DiffuseFraction = 0.375;\nSubject.LitFraction = 0.875;\nCreate Spacecraft Sat;\nSat.NAIFId = -101161;\nSat.NAIFIdReferenceFrame = -910161;\nSat.AddPlates = {Subject};\n",
+      "selected": [
+        "Sat"
+      ],
+      "objects": [
+        "Subject",
+        "Sat"
+      ],
+      "definitions": [
+        "Create Plate Subject",
+        "Create Spacecraft Sat"
+      ],
+      "filename": "Sat.Spacecraft.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Type",
+          "type": "Enumeration",
+          "expected": "FixedInBody"
+        },
+        {
+          "object": "Subject",
+          "field": "PlateNormal",
+          "type": "Rvector",
+          "expected": [
+            -1,
+            0,
+            0
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "Area",
+          "type": "Real",
+          "expected": 3.5
+        },
+        {
+          "object": "Subject",
+          "field": "SpecularFraction",
+          "type": "Real",
+          "expected": 0.25
+        },
+        {
+          "object": "Subject",
+          "field": "DiffuseFraction",
+          "type": "Real",
+          "expected": 0.375
+        },
+        {
+          "object": "Subject",
+          "field": "LitFraction",
+          "type": "Real",
+          "expected": 0.875
+        },
+        {
+          "object": "Sat",
+          "field": "AddPlates",
+          "type": "ObjectArray",
+          "expected": [
+            "Subject"
+          ]
+        }
+      ]
+    }
+  ],
+  "scope": "Missing named script-only Plate resource and automatic spacecraft-owned Plate dependency through actual Save picker/reload. No factory-only credit."
+}

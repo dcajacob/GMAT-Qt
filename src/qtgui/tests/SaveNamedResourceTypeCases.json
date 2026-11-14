@@ -1,0 +1,417 @@
+{
+  "cases": [
+    {
+      "key": "PointMassForce",
+      "setup": "Create PointMassForce Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create PointMassForce Subject"
+      ],
+      "filename": "Subject.PointMassForce.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "String",
+          "expected": "Earth"
+        }
+      ],
+      "expected_native_type": "PointMassForce",
+      "source_seed_type": "PointMassForce"
+    },
+    {
+      "key": "GravityField",
+      "setup": "Create GravityField Subject;\nSubject.Degree = 2;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create GravityField Subject"
+      ],
+      "filename": "Subject.GravityField.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Degree",
+          "type": "Integer",
+          "expected": 2
+        }
+      ],
+      "expected_native_type": "GravityField",
+      "source_seed_type": "GravityField"
+    },
+    {
+      "key": "SolarRadiationPressure",
+      "setup": "Create SolarRadiationPressure Subject;\nSubject.Flux = 1300;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create SolarRadiationPressure Subject"
+      ],
+      "filename": "Subject.SolarRadiationPressure.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Flux",
+          "type": "Real",
+          "expected": 1300.0
+        }
+      ],
+      "expected_native_type": "SolarRadiationPressure",
+      "source_seed_type": "SolarRadiationPressure"
+    },
+    {
+      "key": "DragForce",
+      "setup": "Create DragForce Subject;\nSubject.F107 = 130;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create DragForce Subject"
+      ],
+      "filename": "Subject.DragForce.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "F107",
+          "type": "Real",
+          "expected": 130.0
+        }
+      ],
+      "expected_native_type": "DragForce",
+      "source_seed_type": "DragForce"
+    },
+    {
+      "key": "FiniteThrust",
+      "setup": "Create FiniteThrust Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create FiniteThrust Subject"
+      ],
+      "filename": "Subject.FiniteThrust.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "String",
+          "expected": "Earth"
+        }
+      ],
+      "expected_native_type": "FiniteThrust",
+      "source_seed_type": "FiniteThrust"
+    },
+    {
+      "key": "RelativisticCorrection",
+      "setup": "Create RelativisticCorrection Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create RelativisticCorrection Subject"
+      ],
+      "filename": "Subject.RelativisticCorrection.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "String",
+          "expected": "Earth"
+        }
+      ],
+      "expected_native_type": "RelativisticCorrection",
+      "source_seed_type": "RelativisticCorrection"
+    },
+    {
+      "key": "ExternalModel",
+      "setup": "Create ExternalModel Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create ExternalModel Subject"
+      ],
+      "filename": "Subject.ExternalModel.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "String",
+          "expected": "Earth"
+        }
+      ],
+      "expected_native_type": "ExternalModel",
+      "source_seed_type": "ExternalModel"
+    },
+    {
+      "key": "PolyhedronGravityModel",
+      "setup": "Create PolyhedronGravityModel Subject;\nSubject.BodyDensity = 1500;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create PolyhedronGravityModel Subject"
+      ],
+      "filename": "Subject.PolyhedronGravityModel.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyDensity",
+          "type": "Real",
+          "expected": 1500.0
+        }
+      ],
+      "expected_native_type": "PolyhedronGravityModel",
+      "source_seed_type": "PolyhedronGravityModel"
+    },
+    {
+      "key": "Exponential",
+      "setup": "Create Exponential Subject;\nSubject.F107 = 130;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create Exponential Subject"
+      ],
+      "filename": "Subject.Exponential.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "F107",
+          "type": "Real",
+          "expected": 130.0
+        }
+      ],
+      "expected_native_type": "Exponential",
+      "source_seed_type": "Exponential"
+    },
+    {
+      "key": "MSISE90",
+      "setup": "Create MSISE90 Subject;\nSubject.F107 = 130;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create MSISE90 Subject"
+      ],
+      "filename": "Subject.MSISE90.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "F107",
+          "type": "Real",
+          "expected": 130.0
+        }
+      ],
+      "expected_native_type": "MSISE90",
+      "source_seed_type": "MSISE90"
+    },
+    {
+      "key": "JacchiaRoberts",
+      "setup": "Create JacchiaRoberts Subject;\nSubject.F107 = 130;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create JacchiaRoberts Subject"
+      ],
+      "filename": "Subject.JacchiaRoberts.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "F107",
+          "type": "Real",
+          "expected": 130.0
+        }
+      ],
+      "expected_native_type": "JacchiaRoberts",
+      "source_seed_type": "JacchiaRoberts"
+    },
+    {
+      "key": "MSISE86",
+      "setup": "Create MSISE86 Subject;\nSubject.F107 = 130;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create MSISE86 Subject"
+      ],
+      "filename": "Subject.MSISE86.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "F107",
+          "type": "Real",
+          "expected": 130.0
+        }
+      ],
+      "expected_native_type": "MSISE86",
+      "source_seed_type": "MSISE86"
+    },
+    {
+      "key": "NRLMSISE00",
+      "setup": "Create NRLMSISE00 Subject;\nSubject.F107 = 130;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create NRLMSISE00 Subject"
+      ],
+      "filename": "Subject.NRLMSISE00.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "F107",
+          "type": "Real",
+          "expected": 130.0
+        }
+      ],
+      "expected_native_type": "NRLMSISE00",
+      "source_seed_type": "NRLMSISE00"
+    },
+    {
+      "key": "StopCondition",
+      "setup": "Create StopCondition Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create StopCondition Subject"
+      ],
+      "filename": "Subject.StopCondition.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Repeat",
+          "type": "Integer",
+          "expected": 1
+        }
+      ],
+      "expected_native_type": "StopCondition",
+      "source_seed_type": "StopCondition"
+    },
+    {
+      "key": "OwnedPlot",
+      "setup": "Create OwnedPlot Subject;\nSubject.Grid = On;\nSubject.ShowPlot = false;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create OwnedPlot Subject"
+      ],
+      "filename": "Subject.OwnedPlot.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Grid",
+          "type": "OnOff",
+          "expected": "On"
+        }
+      ],
+      "expected_native_type": "OwnedPlot",
+      "source_seed_type": "OwnedPlot"
+    },
+    {
+      "key": "StateNoiseCompensation",
+      "setup": "Create StateNoiseCompensation Subject;\nSubject.AccelNoiseSigma = [0.1 0.2 0.3];\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create StateNoiseCompensation Subject"
+      ],
+      "filename": "Subject.SNCProcessNoise.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "AccelNoiseSigma",
+          "type": "Rvector",
+          "expected": [
+            0.1,
+            0.2,
+            0.3
+          ]
+        }
+      ],
+      "expected_native_type": "SNCProcessNoise",
+      "source_seed_type": "StateNoiseCompensation"
+    },
+    {
+      "key": "FirstOrderGaussMarkov",
+      "setup": "Create FirstOrderGaussMarkov Subject;\nSubject.HalfLife = 300;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create FirstOrderGaussMarkov Subject"
+      ],
+      "filename": "Subject.FirstOrderGaussMarkov.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "HalfLife",
+          "type": "Real",
+          "expected": 300.0
+        }
+      ],
+      "expected_native_type": "FirstOrderGaussMarkov",
+      "source_seed_type": "FirstOrderGaussMarkov"
+    }
+  ],
+  "scope": "Only 17 additional named script Resources proven eligible by the current native interpreter; the two OrbitView aliases reuse its actual persistence evidence."
+}

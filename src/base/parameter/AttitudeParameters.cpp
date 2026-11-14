@@ -118,7 +118,12 @@ void DCM11::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* DCM11::Clone(void) const
 {
-   return new DCM11(*this);
+   return CompleteParameterClone(new DCM11(*this));
+}
+
+void DCM11::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DCM11>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -186,7 +191,12 @@ void DCM12::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* DCM12::Clone(void) const
 {
-   return new DCM12(*this);
+   return CompleteParameterClone(new DCM12(*this));
+}
+
+void DCM12::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DCM12>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -254,7 +264,12 @@ void DCM13::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* DCM13::Clone(void) const
 {
-   return new DCM13(*this);
+   return CompleteParameterClone(new DCM13(*this));
+}
+
+void DCM13::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DCM13>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -322,7 +337,12 @@ void DCM21::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* DCM21::Clone(void) const
 {
-   return new DCM21(*this);
+   return CompleteParameterClone(new DCM21(*this));
+}
+
+void DCM21::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DCM21>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -390,7 +410,12 @@ void DCM22::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* DCM22::Clone(void) const
 {
-   return new DCM22(*this);
+   return CompleteParameterClone(new DCM22(*this));
+}
+
+void DCM22::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DCM22>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -458,7 +483,12 @@ void DCM23::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* DCM23::Clone(void) const
 {
-   return new DCM23(*this);
+   return CompleteParameterClone(new DCM23(*this));
+}
+
+void DCM23::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DCM23>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -526,7 +556,12 @@ void DCM31::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* DCM31::Clone(void) const
 {
-   return new DCM31(*this);
+   return CompleteParameterClone(new DCM31(*this));
+}
+
+void DCM31::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DCM31>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -594,7 +629,12 @@ void DCM32::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* DCM32::Clone(void) const
 {
-   return new DCM32(*this);
+   return CompleteParameterClone(new DCM32(*this));
+}
+
+void DCM32::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DCM32>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -662,7 +702,12 @@ void DCM33::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* DCM33::Clone(void) const
 {
-   return new DCM33(*this);
+   return CompleteParameterClone(new DCM33(*this));
+}
+
+void DCM33::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DCM33>(source);
 }
 
 
@@ -717,7 +762,12 @@ bool DirectionCosineMatrix::Evaluate()
 
 GmatBase* DirectionCosineMatrix::Clone(void) const
 {
-   return new DirectionCosineMatrix(*this);
+   return CompleteParameterClone(new DirectionCosineMatrix(*this));
+}
+
+void DirectionCosineMatrix::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DirectionCosineMatrix>(source);
 }
 
 
@@ -793,7 +843,12 @@ void EulerAngle1::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* EulerAngle1::Clone(void) const
 {
-   return new EulerAngle1(*this);
+   return CompleteParameterClone(new EulerAngle1(*this));
+}
+
+void EulerAngle1::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EulerAngle1>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -863,7 +918,12 @@ void EulerAngle2::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* EulerAngle2::Clone(void) const
 {
-   return new EulerAngle2(*this);
+   return CompleteParameterClone(new EulerAngle2(*this));
+}
+
+void EulerAngle2::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EulerAngle2>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -933,7 +993,12 @@ void EulerAngle3::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* EulerAngle3::Clone(void) const
 {
-   return new EulerAngle3(*this);
+   return CompleteParameterClone(new EulerAngle3(*this));
+}
+
+void EulerAngle3::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EulerAngle3>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -1000,7 +1065,12 @@ void BodyAlignmentVectorX::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* BodyAlignmentVectorX::Clone(void) const
 {
-   return new BodyAlignmentVectorX(*this);
+   return CompleteParameterClone(new BodyAlignmentVectorX(*this));
+}
+
+void BodyAlignmentVectorX::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BodyAlignmentVectorX>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -1061,7 +1131,12 @@ void BodyAlignmentVectorY::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* BodyAlignmentVectorY::Clone(void) const
 {
-   return new BodyAlignmentVectorY(*this);
+   return CompleteParameterClone(new BodyAlignmentVectorY(*this));
+}
+
+void BodyAlignmentVectorY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BodyAlignmentVectorY>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -1122,7 +1197,12 @@ void BodyAlignmentVectorZ::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* BodyAlignmentVectorZ::Clone(void) const
 {
-   return new BodyAlignmentVectorZ(*this);
+   return CompleteParameterClone(new BodyAlignmentVectorZ(*this));
+}
+
+void BodyAlignmentVectorZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BodyAlignmentVectorZ>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -1188,7 +1268,12 @@ void BodyConstraintVectorX::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* BodyConstraintVectorX::Clone(void) const
 {
-   return new BodyConstraintVectorX(*this);
+   return CompleteParameterClone(new BodyConstraintVectorX(*this));
+}
+
+void BodyConstraintVectorX::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BodyConstraintVectorX>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -1249,7 +1334,12 @@ void BodyConstraintVectorY::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* BodyConstraintVectorY::Clone(void) const
 {
-   return new BodyConstraintVectorY(*this);
+   return CompleteParameterClone(new BodyConstraintVectorY(*this));
+}
+
+void BodyConstraintVectorY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BodyConstraintVectorY>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -1310,7 +1400,12 @@ void BodyConstraintVectorZ::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* BodyConstraintVectorZ::Clone(void) const
 {
-   return new BodyConstraintVectorZ(*this);
+   return CompleteParameterClone(new BodyConstraintVectorZ(*this));
+}
+
+void BodyConstraintVectorZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BodyConstraintVectorZ>(source);
 }
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -1371,7 +1466,12 @@ void AttitudeParam::SetString(std::string val)
 //------------------------------------------------------------------------------
 GmatBase* AttitudeParam::Clone(void) const
 {
-   return new AttitudeParam(*this);
+   return CompleteParameterClone(new AttitudeParam(*this));
+}
+
+void AttitudeParam::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AttitudeParam>(source);
 }
 
 
@@ -1429,7 +1529,12 @@ void AttitudeReferenceBody::SetString(std::string val)
 //------------------------------------------------------------------------------
 GmatBase* AttitudeReferenceBody::Clone(void) const
 {
-   return new AttitudeReferenceBody(*this);
+   return CompleteParameterClone(new AttitudeReferenceBody(*this));
+}
+
+void AttitudeReferenceBody::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AttitudeReferenceBody>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -1486,7 +1591,12 @@ void AttitudeConstraintType::SetString(std::string val)
 //------------------------------------------------------------------------------
 GmatBase* AttitudeConstraintType::Clone(void) const
 {
-   return new AttitudeConstraintType(*this);
+   return CompleteParameterClone(new AttitudeConstraintType(*this));
+}
+
+void AttitudeConstraintType::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AttitudeConstraintType>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -1557,7 +1667,12 @@ void MRP1::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* MRP1::Clone(void) const
 {
-   return new MRP1(*this);
+   return CompleteParameterClone(new MRP1(*this));
+}
+
+void MRP1::Copy(const GmatBase *source)
+{
+   CopyParameterValue<MRP1>(source);
 }
 
 
@@ -1624,7 +1739,12 @@ void MRP2::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* MRP2::Clone(void) const
 {
-   return new MRP2(*this);
+   return CompleteParameterClone(new MRP2(*this));
+}
+
+void MRP2::Copy(const GmatBase *source)
+{
+   CopyParameterValue<MRP2>(source);
 }
 
 
@@ -1691,7 +1811,12 @@ void MRP3::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* MRP3::Clone(void) const
 {
-   return new MRP3(*this);
+   return CompleteParameterClone(new MRP3(*this));
+}
+
+void MRP3::Copy(const GmatBase *source)
+{
+   CopyParameterValue<MRP3>(source);
 }
 
 
@@ -1755,7 +1880,12 @@ bool Quat1::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* Quat1::Clone(void) const
 {
-   return new Quat1(*this);
+   return CompleteParameterClone(new Quat1(*this));
+}
+
+void Quat1::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Quat1>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -1811,7 +1941,12 @@ bool Quat2::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* Quat2::Clone(void) const
 {
-   return new Quat2(*this);
+   return CompleteParameterClone(new Quat2(*this));
+}
+
+void Quat2::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Quat2>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -1867,7 +2002,12 @@ bool Quat3::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* Quat3::Clone(void) const
 {
-   return new Quat3(*this);
+   return CompleteParameterClone(new Quat3(*this));
+}
+
+void Quat3::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Quat3>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -1923,7 +2063,12 @@ bool Quat4::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* Quat4::Clone(void) const
 {
-   return new Quat4(*this);
+   return CompleteParameterClone(new Quat4(*this));
+}
+
+void Quat4::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Quat4>(source);
 }
 
 
@@ -1986,7 +2131,12 @@ void Quaternion::SetRvector(const Rvector &val)
 //------------------------------------------------------------------------------
 GmatBase* Quaternion::Clone(void) const
 {
-   return new Quaternion(*this);
+   return CompleteParameterClone(new Quaternion(*this));
+}
+
+void Quaternion::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Quaternion>(source);
 }
 
 
@@ -2065,7 +2215,12 @@ void AngularVelocityX::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* AngularVelocityX::Clone(void) const
 {
-   return new AngularVelocityX(*this);
+   return CompleteParameterClone(new AngularVelocityX(*this));
+}
+
+void AngularVelocityX::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AngularVelocityX>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -2133,7 +2288,12 @@ void AngularVelocityY::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* AngularVelocityY::Clone(void) const
 {
-   return new AngularVelocityY(*this);
+   return CompleteParameterClone(new AngularVelocityY(*this));
+}
+
+void AngularVelocityY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AngularVelocityY>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -2201,7 +2361,12 @@ void AngularVelocityZ::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* AngularVelocityZ::Clone(void) const
 {
-   return new AngularVelocityZ(*this);
+   return CompleteParameterClone(new AngularVelocityZ(*this));
+}
+
+void AngularVelocityZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AngularVelocityZ>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -2274,7 +2439,12 @@ void EulerAngleRate1::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* EulerAngleRate1::Clone(void) const
 {
-   return new EulerAngleRate1(*this);
+   return CompleteParameterClone(new EulerAngleRate1(*this));
+}
+
+void EulerAngleRate1::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EulerAngleRate1>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -2342,7 +2512,12 @@ void EulerAngleRate2::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* EulerAngleRate2::Clone(void) const
 {
-   return new EulerAngleRate2(*this);
+   return CompleteParameterClone(new EulerAngleRate2(*this));
+}
+
+void EulerAngleRate2::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EulerAngleRate2>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -2410,6 +2585,11 @@ void EulerAngleRate3::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* EulerAngleRate3::Clone(void) const
 {
-   return new EulerAngleRate3(*this);
+   return CompleteParameterClone(new EulerAngleRate3(*this));
+}
+
+void EulerAngleRate3::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EulerAngleRate3>(source);
 }
 

@@ -41,12 +41,15 @@
 class ESTIMATION_API DataFilter : public GmatBase
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = GmatBase::NativeValueProviderDepth + 1;
+
    DataFilter(const std::string &ofType, std::string name);
    virtual ~DataFilter();
    DataFilter(const DataFilter& df);
    DataFilter& operator=(const DataFilter& df);
 
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *source) override;
    virtual bool Initialize();
    virtual bool CleanUp();
 
@@ -105,6 +108,10 @@ public:
                                      const std::string & name, const Integer index);
    virtual ObjectArray& GetRefObjectArray(const std::string & typeString);
    virtual ObjectArray& GetRefObjectArray(const UnsignedInt type);
+
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source,
+         SolarSystem *solarSystem,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
 
 
 

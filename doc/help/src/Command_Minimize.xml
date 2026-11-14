@@ -39,6 +39,16 @@
     Optimization sequence to define the objective function that you want to
     minimize.</para>
 
+    <para>The compatible spelling
+    <literal>NonlinearConstraint OptimizerName(ObjectiveFunction)</literal>
+    also defines the objective when no comparison operator is present. It uses
+    the same objective evaluation and single-objective rule. A comparison form
+    of NonlinearConstraint continues to define a constraint.</para>
+
+    <para>During nominal and perturbation passes, the objective must evaluate
+    successfully to a finite real value. A missing objective or a failed
+    parameter evaluation stops the command with an error.</para>
+
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="Vary"/>, <xref linkend="NonlinearConstraint"/>, <xref
     linkend="Optimize"/></para>
@@ -110,6 +120,10 @@
                     <para>GUI, script</para>
                   </listitem>
                 </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Units of the selected objective expression or parameter. GMAT does not assign a new unit to a user-defined objective.</para></listitem>
+                </varlistentry>
               </variablelist></entry>
           </row>
 
@@ -159,6 +173,10 @@
                   <listitem>
                     <para>GUI, script</para>
                   </listitem>
+                </varlistentry>
+              <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>Optimizer object name; no physical units.</para></listitem>
                 </varlistentry>
               </variablelist></entry>
           </row>

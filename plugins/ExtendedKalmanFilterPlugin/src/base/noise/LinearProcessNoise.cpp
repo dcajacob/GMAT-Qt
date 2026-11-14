@@ -154,7 +154,21 @@ Rmatrix66 LinearProcessNoise::GetProcessNoise(const GmatEpoch elapsedTime, const
 //------------------------------------------------------------------------------
 GmatBase* LinearProcessNoise::Clone(void) const
 {
-   return (new LinearProcessNoise(*this));
+   std::unique_ptr<LinearProcessNoise> value(new LinearProcessNoise(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
+}
+
+void LinearProcessNoise::Copy(const GmatBase *source)
+{
+   const auto *noise = dynamic_cast<const LinearProcessNoise*>(source);
+   if (!noise || typeid(*noise) != typeid(LinearProcessNoise) ||
+         typeid(*this) != typeid(LinearProcessNoise))
+      throw GmatBaseException("Cannot copy incompatible object into LinearProcessNoise");
+   if (noise == this) return;
+   const auto previous = GetFunctionValueContext();
+   operator=(*noise);
+   RebindFunctionValueContext(*noise);
 }
 
 

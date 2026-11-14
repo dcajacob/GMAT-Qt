@@ -30,9 +30,11 @@
  */
 //------------------------------------------------------------------------------
 
+#include <memory>
 #include "Rvector.hpp"
 #include "Rmatrix.hpp"
 #include "PropagationStateManager.hpp"
+#include "OrbitStmContext.hpp"
 #include "GmatBase.hpp"
 #include "Spacecraft.hpp"
 #include "MessageInterface.hpp"
@@ -254,7 +256,13 @@ bool PropagationStateManager::RemoveObject(GmatBase* theObject)
       if (*i == theObject)
       {
          objects.erase(i);
-         elements.erase(theObject);
+         const auto properties = elements.find(theObject);
+         if (properties != elements.end())
+         {
+            delete properties->second;
+            elements.erase(properties);
+         }
+         ResetPreparedMappings();
          if (epid != epochIDs.end())
             epochIDs.erase(epid);
          if (objects.size() > 0)
@@ -519,6 +527,11 @@ bool PropagationStateManager::BuildState()
 //------------------------------------------------------------------------------
 bool PropagationStateManager::MapObjectsToVector()
 {
+   std::set<Spacecraft*> stmOwners;
+   for (auto *item : stateMap)
+      if (item->elementName == "STM")
+         if (auto *owner = dynamic_cast<Spacecraft*>(item->object))
+            if (stmOwners.insert(owner).second) OrbitStmContext::Ensure(owner, true);
    #ifdef DEBUG_OBJECT_UPDATES
 		MessageInterface::ShowMessage("Mapping objects to vector\n");
 
@@ -795,6 +808,12 @@ bool PropagationStateManager::MapVectorToObjects()
       else
          objects[i]->SetGmatTimeParameter(epochIDs[i], GmatTime(theEpoch));
    }
+
+   std::set<Spacecraft*> stmOwners;
+   for (auto *item : stateMap)
+      if (item->elementName == "STM")
+         if (auto *owner = dynamic_cast<Spacecraft*>(item->object))
+            if (stmOwners.insert(owner).second) OrbitStmContext::Advanced(owner);
 
    #ifdef DEBUG_OBJECT_UPDATES
 		// Look at object data after
@@ -1113,7 +1132,7 @@ Integer PropagationStateManager::SortVector()
    #endif
    
    // Next build the state
-   stateMap.clear();
+   ClearStateMap();
    for (Integer i = 0; i < stateSize; ++i)
    {
       #ifdef DEBUG_STATE_CONSTRUCTION
@@ -1122,14 +1141,18 @@ Integer PropagationStateManager::SortVector()
                property[order[i]].c_str());
       #endif
 
-      newItem = new ListItem;
+      std::unique_ptr<ListItem> pendingStateItem(new ListItem);
+      newItem = pendingStateItem.get();
       newItem->objectName  = owners[order[i]]->GetName();
 		newItem->objectFullName = owners[order[i]]->GetFullName();
       newItem->elementName = property[order[i]];
       if (owners[order[i]]->HasAssociatedStateObjects())
          newItem->associateName = owners[order[i]]->GetAssociateName(val);
       else
-         newItem->associateName = owners[order[i]]->GetName();
+         // Self-associations use the same key as associateMap. Function input
+         // aliases can differ from the retained full object name; using the
+         // alias here silently associates their STM with state index zero.
+         newItem->associateName = owners[order[i]]->GetFullName();
       newItem->object      = owners[order[i]];
       newItem->elementID   = idList[order[i]];
       newItem->subelement  = ++val;
@@ -1215,6 +1238,7 @@ Integer PropagationStateManager::SortVector()
          val = 0;
       
       stateMap.push_back(newItem);
+      pendingStateItem.release();
    }
 
    #ifdef DEBUG_STATE_CONSTRUCTION
@@ -1865,4 +1889,27 @@ std::string PropagationStateManager::GetSTMParameterName(Integer index)
 {
    std::string retval = stmRowMapObj[index]->GetParameterText(stmRowMapID[index]);
    return retval;
+}
+
+void PropagationStateManager::ResetPreparedMappings()
+{
+   ClearStateMap();
+   hasPostSuperpositionMember = false;
+   completionIndexList.clear();
+   completionSizeList.clear();
+   stmRowMapID.clear();
+   stmRowMapObj.clear();
+   covPropStorageMap.clear();
+   timeBeforeLastUpdate = timeAtLastUpdate = 0.0;
+   timeBeforeLastUpdateGT = GmatTime(0.0);
+   timeAtLastUpdateGT = GmatTime(0.0);
+}
+
+void PropagationStateManager::RebindClonedReferences(
+      const PropagationStateManager &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve, bool bindObjects)
+{
+   if (bindObjects) StateManager::RebindClonedObjectReferences(source, resolve);
+   else StateManager::operator=(source);
+   ResetPreparedMappings();
 }

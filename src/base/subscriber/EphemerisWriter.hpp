@@ -52,6 +52,10 @@ public:
    void  SetDataCoordSystem(CoordinateSystem *dataCS);
    void  SetOutCoordSystem(CoordinateSystem *outCS);
    void  SetAccelModel(ODEModel* am);
+   // Normalize an incoming sample before it enters this writer's retained
+   // interpolation frame. Existing buffered samples keep that frame.
+   void  RebaseOrbitData(CoordinateSystem *source, Real epochInDays,
+            Real state[6], Real covariance[21], Real acceleration[3]);
    void  SetInitialData(const std::string &iniEpoch, const std::string &finEpoch,
                         const std::string &stpSize, Real stepInSecs,
                         bool useFixedStep, const std::string &interpName,
@@ -271,6 +275,11 @@ protected:
    
    // General data handling
    void         ClearOrbitData();
+   // Configuration copies start without a live output session or samples.
+   void         ResetDetachedSession();
+   // Exchange prepared values and buffer ownership; both text streams must
+   // already be closed. Live streams are never transferred by this helper.
+   void         SwapState(EphemerisWriter &other);
    virtual void FindNextOutputEpoch(Real reqEpochInSecs, Real &outEpochInSecs, 
                                     Real stateToWrite[6], Real covToWrite[21], Real accelToWrite[3]);
    void         WriteOrbitData(Real reqEpochInSecs, const Real state[6], const Real cov[21], const Real quat[4], const Real accel[3]);
@@ -279,6 +288,10 @@ protected:
    void         ConvertState(Real epochInDays, const Real inState[6],
                              Real outState[6], const Real inCov[21],
                              Real outCov[21], const Real inAccel[3], Real outAccel[3]);
+   void         ConvertStateBetweenFrames(Real epochInDays, const Real inState[6],
+                             Real outState[6], const Real inCov[21], Real outCov[21],
+                             const Real inAccel[3], Real outAccel[3],
+                             CoordinateSystem *source, CoordinateSystem *target);
    
    // Time formatting
    std::string  ToUtcGregorian(Real epoch, bool inDays = false, Integer format = 2);

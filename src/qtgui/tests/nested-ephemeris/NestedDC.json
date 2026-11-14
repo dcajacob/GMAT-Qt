@@ -1,0 +1,11 @@
+{
+  "key": "NestedDC",
+  "outer": "Target",
+  "mission": "Target 'Final solution only' DC {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary DC(U = 0, {Perturbation = 0.0001, Lower = -2, Upper = 4, MaxStep = 1});\nTarget 'Inner solve' Inner {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary Inner(V = 0, {Perturbation = 0.0001, Lower = -2, Upper = 5, MaxStep = 2});\nRadius = 7000 + 100*U + 10*V;\nSat.X = Radius;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = sqrt(398600.4415/Radius);\nSat.VZ = 0;\nReport 'Pass enter' Trials U V;\nPropagate 'Trial or final circle' PropA(Sat) {Sat.ElapsedSecs = 120};\nReport 'Pass state' Trials U V Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ;\nAchieve Inner(V = 3, {Tolerance = 0.0000000001});\nEndTarget;\nAchieve DC(U = 2, {Tolerance = 0.0000000001});\nEndTarget;\n",
+  "fixture_origin": "src/qtgui/tests/NasaSolverEphemerisCases.json",
+  "fixture_origin_sha256": "700d2358ad45e31957d3b092d5f31c75aba50f9cb3fe7a2d9113ca7304d37d40",
+  "reference_radius": 7230.0,
+  "duration": 120,
+  "mu": 398600.4415,
+  "scope": "All emitted OEM states must belong to the sole globally accepted nested-solver trajectory; local accepted/outer trial states are forbidden."
+}

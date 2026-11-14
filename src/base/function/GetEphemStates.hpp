@@ -34,10 +34,16 @@
 #define _GetEphemStates_hpp
 
 #include "BuiltinGmatFunction.hpp"
+#include <memory>
+#include <vector>
+
+struct EphemerisFunctionFrameOwner;
 
 class GMAT_API GetEphemStates : public BuiltinGmatFunction
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = BuiltinGmatFunction::NativeValueProviderDepth + 1;
+
    GetEphemStates(const std::string &typeStr, const std::string &nomme);
    virtual ~GetEphemStates();
    GetEphemStates(const GetEphemStates &f);
@@ -56,6 +62,14 @@ public:
    // inherited from GmatBase
    virtual GmatBase*    Clone() const;
    virtual void         Copy(const GmatBase* orig);
+   std::unique_ptr<FunctionInvocationState> SuspendInvocationState() override;
+   bool HasFunctionValueReferenceProvider() const override;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
+   void GetClonedOwnedObjects(const Function &target,
+         ObjectArray &sources, ObjectArray &copies) const override;
+
    
 protected:
    Spacecraft*          inSat;
@@ -69,6 +83,14 @@ protected:
    Real                 ephemFinalA1Mjd;
    Rvector6             ephemInitialState;
    Rvector6             ephemFinalState;
+
+   // Lifetime leases do not change which frame is this function's component.
+   mutable std::shared_ptr<EphemerisFunctionFrameOwner> fileFrameOwner;
+   mutable std::vector<std::shared_ptr<EphemerisFunctionFrameOwner>> retainedFileFrames;
+
+   std::shared_ptr<EphemerisFunctionFrameOwner> OwnFileFrame() const;
+   void ReplaceFileFrame(std::unique_ptr<CoordinateSystem> frame);
+   void RetireFileFrames() noexcept;
    
    bool                 ReadSpiceEphemerisFile();
    bool                 ReadCode500EphemerisFile();

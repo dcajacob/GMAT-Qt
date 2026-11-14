@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "status": "Newfixtures use unchanged NasaCommandMechanismTests assertions;finite no-propagation panel capability only,Save output serialization not qualified here.",
+  "cases": [
+    {
+      "key": "Save",
+      "recipe_key": "Save",
+      "legacy_object": "Save",
+      "guide": "Command_Save.xml",
+      "guide_sha256": "b1e39bc07569c5cadeaa49025ddc208a4ec98871ec5838dfb1913a7bea48531e",
+      "page": "Save",
+      "title": "Save",
+      "control": "commandField_Objects",
+      "valid": "i",
+      "edit": "typed",
+      "invalid": [
+        "MissingObject",
+        "V,,i",
+        "Sat.X"
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          0,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "inline_recipe": {
+        "template": "Objects",
+        "before": "Save 'NASA original' V;",
+        "after": "Save 'NASA original' i;",
+        "wrapper": "",
+        "footer": ""
+      }
+    },
+    {
+      "key": "BeginFiniteBurn",
+      "recipe_key": "BeginFiniteBurn",
+      "legacy_object": "BeginFiniteBurn",
+      "guide": "Command_BeginFiniteBurn.xml",
+      "guide_sha256": "9d06703511283a502bab184d65e29692d9e3434f34f1baf14f7405df976c6ddc",
+      "page": "BeginFiniteBurn",
+      "title": "BeginFiniteBurn",
+      "control": "commandField_Burn",
+      "valid": "OtherFB",
+      "edit": "typed",
+      "invalid": [
+        "MissingFiniteBurn",
+        "Burn",
+        "Sat"
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "Create ChemicalTank Fuel;\nFuel.FuelMass = 1;\nCreate ChemicalThruster Engine;\nEngine.Tank = {Fuel};\nEngine.DecrementMass = false;\nSat.Tanks = {Fuel};\nSat.Thrusters = {Engine};\nFB.Thrusters = {Engine};\nOtherFB.Thrusters = {Engine};\n",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          0,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "inline_recipe": {
+        "template": "Finite burn",
+        "before": "BeginFiniteBurn 'NASA original' FB(Sat);",
+        "after": "BeginFiniteBurn 'NASA original' OtherFB(Sat);",
+        "wrapper": "",
+        "footer": "EndFiniteBurn OtherFB(Sat);\n"
+      }
+    },
+    {
+      "key": "EndFiniteBurn",
+      "recipe_key": "EndFiniteBurn",
+      "legacy_object": "EndFiniteBurn",
+      "guide": "Command_EndFiniteBurn.xml",
+      "guide_sha256": "7e0b699c984b20df027f806c1fb6626dd849db7e32bf2ad98ca63838bbfeb2ad",
+      "page": "EndFiniteBurn",
+      "title": "EndFiniteBurn",
+      "control": "commandField_Burn",
+      "valid": "OtherFB",
+      "edit": "typed",
+      "invalid": [
+        "MissingFiniteBurn",
+        "Burn",
+        "Sat"
+      ],
+      "wrapper_prefix": "",
+      "footer_prefix": "",
+      "setup": "Create ChemicalTank Fuel;\nFuel.FuelMass = 1;\nCreate ChemicalThruster Engine;\nEngine.Tank = {Fuel};\nEngine.DecrementMass = false;\nSat.Tanks = {Fuel};\nSat.Thrusters = {Engine};\nFB.Thrusters = {Engine};\nOtherFB.Thrusters = {Engine};\n",
+      "report_parameters": "V i",
+      "expected": [
+        [
+          0,
+          7
+        ]
+      ],
+      "absolute_tolerance": 1e-12,
+      "inline_recipe": {
+        "template": "Finite burn",
+        "before": "EndFiniteBurn 'NASA original' FB(Sat);",
+        "after": "EndFiniteBurn 'NASA original' OtherFB(Sat);",
+        "wrapper": "BeginFiniteBurn OtherFB(Sat);\n",
+        "footer": ""
+      }
+    }
+  ]
+}

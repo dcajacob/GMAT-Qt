@@ -37,9 +37,14 @@
 #include "MessageInterface.hpp"
 #include "FileUtil.hpp"
 #include <sstream>                   // for <<, std::endl
+#include <exception>
+#include <memory>
+#include <utility>
 
 #ifdef __USE_SPICE__
 #include "SpiceAttitudeKernelWriter.hpp"
+#include "SpiceKernelFileRetirement.hpp"
+#include <filesystem>
 #endif
 
 //#define DEBUG_EPHEMFILE_INSTANCE
@@ -66,6 +71,69 @@
 // static data
 //---------------------------------
 
+namespace
+{
+// Called only from a catch handler. Logging must not interrupt destruction.
+void ReportCKRetirementFailure(const std::string &name,
+                              const std::string &clock) noexcept
+{
+   try { throw; }
+   catch (BaseException &error)
+   {
+      try { MessageInterface::ShowMessage("*** WARNING *** CK retirement failed for %s; pending clock %s: %s\n", name.c_str(), clock.c_str(), error.GetFullMessage().c_str()); } catch (...) {}
+   }
+   catch (const std::exception &error)
+   {
+      try { MessageInterface::ShowMessage("*** WARNING *** CK retirement failed for %s; pending clock %s: %s\n", name.c_str(), clock.c_str(), error.what()); } catch (...) {}
+   }
+   catch (...)
+   {
+      try { MessageInterface::ShowMessage("*** WARNING *** CK retirement failed for %s; pending clock %s\n", name.c_str(), clock.c_str()); } catch (...) {}
+   }
+}
+
+#ifdef __USE_SPICE__
+void ReserveCKClock(std::string &clock, std::string &ownedDirectory)
+{
+   namespace fs = std::filesystem;
+   const fs::path root = fs::u8path(GmatFileUtil::GetTemporaryDirectory());
+   const std::string stamp = GmatTimeUtil::FormatCurrentTime(4);
+   for (UnsignedInt attempt = 0; attempt < 10000; ++attempt)
+   {
+      const fs::path path = root / ("gmat_ck_" + stamp + "_" + std::to_string(attempt));
+      // Prepare both strings before acquiring the directory. Publication after
+      // create_directory succeeds cannot allocate and lose the acquired path.
+      std::string directory = path.u8string();
+      std::string file = (path / "clock.tsc").u8string();
+      std::error_code error;
+      if (fs::create_directory(path, error))
+      {
+         clock.swap(file);
+         ownedDirectory.swap(directory);
+         return;
+      }
+      if (error && error != std::errc::file_exists)
+         throw SubscriberException("Cannot reserve CK clock directory \"" + directory + "\": " + error.message() + "\n");
+   }
+   throw SubscriberException("Cannot reserve a unique CK clock directory.\n");
+}
+
+void RetireCKClock(SpiceInterface *reader, const std::string &clock,
+                   const std::string &ownedDirectory)
+{
+   GmatSpiceKernelFiles::Retire(reader, clock);
+   if (!ownedDirectory.empty())
+   {
+      std::error_code error;
+      // Only the owned empty directory may be removed. Unexpected contents
+      // remain in place and make retirement fail; never remove recursively.
+      std::filesystem::remove(std::filesystem::u8path(ownedDirectory), error);
+      if (error && error != std::errc::no_such_file_or_directory)
+         throw SubscriberException("Cannot retire CK clock directory \"" + ownedDirectory + "\": " + error.message() + "\n");
+   }
+}
+#endif
+}
 
 //------------------------------------------------------------------------------
 // AttitudeWriterCK(const std::string &name, const std::string &type = "AttitudeWriterCK")
@@ -75,13 +143,15 @@
  */
  //------------------------------------------------------------------------------
 AttitudeWriterCK::AttitudeWriterCK(const std::string& name, const std::string& type) :
-   EphemerisWriter(type, name),
+   EphemerisWriter(name, type),
    ckWriter(NULL),
    sclkFileName(""),
+   sclkDirectory(""),
    ckWriteFailed(false),
    numCKSegmentsWritten(0)
 {
    fileType = CK_ATTITUDE;
+   stateType = "Quaternion";
 
 #ifdef DEBUG_EPHEMFILE_INSTANCE
    MessageInterface::ShowMessage
@@ -104,35 +174,28 @@ AttitudeWriterCK::~AttitudeWriterCK()
    ("AttitudeWriterCK::~AttitudeWriterCK() <%p>'%s' entered\n", this, ephemName.c_str());
 #endif
 
+   try { RetireWriter(); }
+   catch (...)
+   {
+      ReportCKRetirementFailure(ephemName, sclkFileName);
 #ifdef __USE_SPICE__
-#ifdef DEBUG_EPHEMFILE_SPICE
-   MessageInterface::ShowMessage
-   ("   ckWriter=<%p>, ckWriteFailed=%s\n", ckWriter, (ckWriteFailed ? "true" : "false"));
-#endif
-   if (ckWriter != NULL)
-   {
-      if (!ckWriteFailed)
-         FinalizeCKFile();
-
-      ckWriter->UnloadKernel(sclkFileName.c_str());
-
+      if (ckWriter)
+      {
+         // Retain the clock path after any uncertainty. Try to release the
+         // native handle without emitting more samples before destroying it.
+         try { ckWriter->AbortKernel(); }
+         catch (...) { ReportCKRetirementFailure(ephemName, sclkFileName); }
 #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-      (ckWriter, "CK writer", "AttitudeWriterCK::~AttitudeWriterCK()()",
-         "deleting local CK writer");
+         MemoryTracker::Instance()->Remove
+         (ckWriter, "CK writer", "AttitudeWriterCK::~AttitudeWriterCK()",
+            "deleting local CK writer after retirement failure");
 #endif
-      delete ckWriter;
-   }
-   else
-   {
-      // Create a temporary spice interface to unload SCLK
-      SpiceInterface* tempSpice = new SpiceInterface();
-      tempSpice->UnloadKernel(sclkFileName.c_str());
-      delete tempSpice;
-   }
-
-   remove(sclkFileName.c_str());
+         delete ckWriter;
+         ckWriter = NULL;
+      }
 #endif
+   }
+   ClearOrbitData();
 
 #ifdef DEBUG_EPHEMFILE_INSTANCE
    MessageInterface::ShowMessage
@@ -151,10 +214,12 @@ AttitudeWriterCK::~AttitudeWriterCK()
 AttitudeWriterCK::AttitudeWriterCK(const AttitudeWriterCK& ef) :
    EphemerisWriter(ef),
    ckWriter(NULL),
-   sclkFileName(ef.sclkFileName),
-   ckWriteFailed(ef.ckWriteFailed),
-   numCKSegmentsWritten(ef.numCKSegmentsWritten)
+   sclkFileName(""), // This detached copy does not own the source's clock file.
+   sclkDirectory(""),
+   ckWriteFailed(false),
+   numCKSegmentsWritten(0)
 {
+   ResetDetachedSession();
 }
 
 
@@ -170,12 +235,17 @@ AttitudeWriterCK& AttitudeWriterCK::operator=(const AttitudeWriterCK& ef)
    if (this == &ef)
       return *this;
 
-   EphemerisWriter::operator=(ef);
-
-   ckWriter = NULL;
-   sclkFileName = ef.sclkFileName;
-   ckWriteFailed = ef.ckWriteFailed;
-   numCKSegmentsWritten = ef.numCKSegmentsWritten;
+   // All allocation/copying precedes retirement of the current session. The
+   // prepared writer has configuration values, no samples, handles or clock.
+   AttitudeWriterCK prepared(ef);
+   RetireWriter();
+   SwapState(prepared);
+   using std::swap;
+   swap(ckWriter, prepared.ckWriter);
+   sclkFileName.swap(prepared.sclkFileName);
+   sclkDirectory.swap(prepared.sclkDirectory);
+   swap(ckWriteFailed, prepared.ckWriteFailed);
+   swap(numCKSegmentsWritten, prepared.numCKSegmentsWritten);
 
    return *this;
 }
@@ -183,6 +253,50 @@ AttitudeWriterCK& AttitudeWriterCK::operator=(const AttitudeWriterCK& ef)
 //---------------------------------
 // methods for this class
 //---------------------------------
+
+void AttitudeWriterCK::RetireWriter()
+{
+   // A failed retirement must not leave the previous session advertised as
+   // ready. Its native owner and pending clock paths remain available to retry.
+   isInitialized = isEphemFileOpened = canFinalize = false;
+#ifdef __USE_SPICE__
+   if (ckWriter)
+   {
+      if (ckWriteFailed) ckWriter->AbortKernel();
+      else FinalizeCKFile();
+   }
+#endif
+   if (dstream.is_open())
+   {
+      dstream.flush();
+      if (!dstream)
+         throw SubscriberException("Cannot flush the previous CK text output.\n");
+      dstream.close();
+      if (dstream.fail())
+         throw SubscriberException("Cannot close the previous CK text output.\n");
+   }
+#ifdef __USE_SPICE__
+   if (ckWriter)
+   {
+      RetireCKClock(ckWriter, sclkFileName, sclkDirectory);
+#ifdef DEBUG_MEMORY
+      MemoryTracker::Instance()->Remove
+      (ckWriter, "CK writer", "AttitudeWriterCK::RetireWriter()",
+         "deleting retired local CK writer");
+#endif
+      delete ckWriter; // Already finalized or aborted; cannot reload its clock.
+      ckWriter = NULL;
+   }
+   else if (!sclkFileName.empty() || !sclkDirectory.empty())
+   {
+      SpiceInterface cleanup;
+      RetireCKClock(&cleanup, sclkFileName, sclkDirectory);
+   }
+#endif
+   sclkFileName.clear();
+   sclkDirectory.clear();
+   isFinalized = true;
+}
 
 //------------------------------------------------------------------------------
 // virtual bool Initialize()
@@ -319,8 +433,10 @@ void AttitudeWriterCK::CreateEphemerisFile(bool useDefaultFileName,
 
    EphemerisWriter::CreateEphemerisFile(useDefaultFileName, stType, outFormat, covFormat);
 
-   CreateSpiceKernelWriter();
-   isEphemFileOpened = true;
+   isEphemFileOpened = false;
+   try { CreateSpiceKernelWriter(); }
+   catch (...) { isInitialized = false; throw; }
+   isEphemFileOpened = (ckWriter != NULL);
 
 #ifdef DEBUG_EPHEMFILE_CREATE
    MessageInterface::ShowMessage
@@ -365,10 +481,16 @@ void AttitudeWriterCK::CreateSpiceKernelWriter()
       std::string centerName = outCoordSystem->GetOriginName();
       Integer objNAIFId = spacecraft->GetIntegerParameter("NAIFId");
       Integer centerNAIFId = (outCoordSystem->GetOrigin())->GetIntegerParameter("NAIFId");
-      std::stringstream ss("");
-      ss << "tmp_" << name << "SCLK" << "_" << GmatTimeUtil::FormatCurrentTime(4);
-      ss << ".tsc";
-      sclkFileName = GmatFileUtil::GetTemporaryDirectory() + ss.str();
+      // A failed constructor may leave a generated clock pending retirement.
+      // Do not overwrite its ownership record when this creation is retried.
+      if (!sclkFileName.empty() || !sclkDirectory.empty())
+      {
+         SpiceInterface cleanup;
+         RetireCKClock(&cleanup, sclkFileName, sclkDirectory);
+         sclkFileName.clear();
+         sclkDirectory.clear();
+      }
+      ReserveCKClock(sclkFileName, sclkDirectory);
 
 #ifdef DEBUG_EPHEMFILE_CREATE
       MessageInterface::ShowMessage
@@ -1059,8 +1181,13 @@ void AttitudeWriterCK::FinalizeCKFile(bool done, bool writeMetaData)
 #endif
             // Save last data to become first data of next segment - since we may start up
             // a new CK file after this one
-            A1Mjd* a1mjd = new A1Mjd(*a1MjdArray.back());
-            Rvector* rv = new Rvector(*quatArray.back());
+            std::unique_ptr<A1Mjd> a1mjd;
+            std::unique_ptr<Rvector> rv;
+            if (!done)
+            {
+               a1mjd.reset(new A1Mjd(*a1MjdArray.back()));
+               rv.reset(new Rvector(*quatArray.back()));
+            }
 
             // Write a segment and delete data array pointers
             WriteCKAttitudeDataSegment();
@@ -1068,8 +1195,9 @@ void AttitudeWriterCK::FinalizeCKFile(bool done, bool writeMetaData)
             // Add saved data to arrays if we are not done yet
             if (!done)
             {
-               a1MjdArray.push_back(a1mjd);
-               quatArray.push_back(rv);
+               // ClearOrbitData retained capacity for these existing samples.
+               a1MjdArray.push_back(a1mjd.release());
+               quatArray.push_back(rv.release());
             }
             insufficientDataPoints = false;
 #ifdef DEBUG_EPHEMFILE_SPICE

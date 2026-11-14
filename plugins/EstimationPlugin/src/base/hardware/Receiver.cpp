@@ -27,6 +27,23 @@
 //------------------------------------------------------------------------------
 
 #include "Receiver.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration receiverValueProvider({
+   Receiver::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Receiver*>(object) != nullptr; },
+   [](const GmatBase *object) { return dynamic_cast<const Receiver*>(object)->GetFunctionValueOwnedObjectsImpl(); },
+   nullptr,
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
+#include "NativeRestoration.hpp"
+#include <set>
+#include <memory>
 #include "HardwareException.hpp"
 #include "MessageInterface.hpp"
 
@@ -69,6 +86,43 @@ Receiver::PARAMETER_TYPE[ReceiverParamCount - RFHardwareParamCount] =
  *
  * @param name The name for the receiver
  */
+namespace
+{
+struct ReceiverModelCopies
+{
+   ObjectArray values;
+   std::vector<std::unique_ptr<GmatBase>> owners;
+   explicit ReceiverModelCopies(const ObjectArray &source)
+   {
+      GmatBase::FunctionValueCopyGuard nativeChildren;
+      std::set<GmatBase*> sourceObjects(source.begin(), source.end()), adopted;
+      values.reserve(source.size());
+      owners.reserve(source.size());
+      for (GmatBase *object : source)
+      {
+         std::unique_ptr<GmatBase> value(object ? object->Clone() : NULL);
+         if (value && (sourceObjects.count(value.get()) || adopted.count(value.get())))
+         {
+            value.release();
+            throw GmatBaseException("Receiver model Clone returned a borrowed identity.");
+         }
+         if (object && (!value || value->GetTypeName() != object->GetTypeName()))
+            throw GmatBaseException("Incompatible receiver-owned error model.");
+         if (value) adopted.insert(value.get());
+         values.push_back(value.get());
+         owners.push_back(std::move(value));
+      }
+   }
+   void Adopt(ObjectArray &destination)
+   {
+      for (GmatBase *object : destination) delete object;
+      destination.swap(values);
+      values.clear();
+      for (auto &owner : owners) owner.release();
+   }
+};
+}
+
 //------------------------------------------------------------------------------
 
 Receiver::Receiver(const std::string &ofType, const std::string &name) :
@@ -133,16 +187,10 @@ Receiver::Receiver(const Receiver& recei):
 {
    //MessageInterface::ShowMessage("Receiver copy constructor <%p,%s>: copy from <%p,%s>\n", this, GetName().c_str(), &recei, recei.GetName().c_str());
 
-   for (UnsignedInt i = 0; i < recei.errorModels.size(); ++i)
-   {
-      if (recei.errorModels[i])
-         errorModels.push_back(recei.errorModels[i]->Clone());
-      else
-         errorModels.push_back(NULL);
-   }
-
+   ReceiverModelCopies models(recei.errorModels);
    for (Integer i = RFHardwareParamCount; i < ReceiverParamCount; ++i)
       parameterWriteOrder.push_back(i);
+   models.Adopt(errorModels);
 }
 
 //------------------------------------------------------------------------------
@@ -162,6 +210,28 @@ Receiver& Receiver::operator=(const Receiver& recei)
 
    if (this != &recei)
    {
+      if (GmatBase::IsNativeRestorationCopy())
+      {
+         if (errorModelNames != recei.errorModelNames)
+            throw HardwareException("Restoration cannot change active receiver error-model declarations.");
+         NativeRestoration::Validate(recei.GetFunctionValueOwnedObjects(), GetFunctionValueOwnedObjects());
+         const bool ready = isInitialized;
+         try
+         {
+            RFHardware::operator=(recei);
+            frequencyModel = recei.frequencyModel;
+            centerFrequency = recei.centerFrequency;
+            bandwidth = recei.bandwidth;
+            receiverId = recei.receiverId;
+            NativeRestoration::Copy(recei.errorModels, errorModels);
+            NativeRestoration::RebindCovariance(*this, recei.GetFunctionValueOwnedObjects(),
+                  GetFunctionValueOwnedObjects());
+            isInitialized = ready;
+         }
+         catch (...) { isInitialized = false; throw; }
+         return *this;
+      }
+      ReceiverModelCopies models(recei.errorModels);
       RFHardware::operator=(recei);
 
       frequencyModel  = recei.frequencyModel;
@@ -170,20 +240,7 @@ Receiver& Receiver::operator=(const Receiver& recei)
       receiverId      = recei.receiverId;
       errorModelNames = recei.errorModelNames;
 
-      for (UnsignedInt i = 0; i < errorModels.size(); ++i)
-      {
-         if (errorModels[i])
-            delete errorModels[i];
-      }
-      errorModels.clear();
-
-      for (UnsignedInt i = 0; i < recei.errorModels.size(); ++i)
-      {
-         if (recei.errorModels[i])
-            errorModels.push_back(recei.errorModels[i]->Clone());
-         else
-            errorModels.push_back(NULL);
-      }
+      models.Adopt(errorModels);
 
    }
 
@@ -201,7 +258,9 @@ Receiver& Receiver::operator=(const Receiver& recei)
 //------------------------------------------------------------------------------
 GmatBase* Receiver::Clone() const
 {
-   return new Receiver(*this);
+   std::unique_ptr<Receiver> value(new Receiver(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -216,7 +275,13 @@ GmatBase* Receiver::Clone() const
 //---------------------------------------------------------------------------
 void Receiver::Copy(const GmatBase* orig)
 {
-   operator=(*((Receiver *)(orig)));
+   const auto *source = dynamic_cast<const Receiver*>(orig);
+   if (!source || source->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Incompatible Receiver value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -1025,3 +1090,10 @@ bool Receiver::SetSignal(Signal* s,Integer whichOne)
    return RFHardware::SetSignal(s);
 }
 
+
+ObjectArray Receiver::GetFunctionValueOwnedObjectsImpl() const
+{
+   ObjectArray result = Imager::GetFunctionValueOwnedObjectsImpl();
+   result.insert(result.end(), errorModels.begin(), errorModels.end());
+   return result;
+}

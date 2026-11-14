@@ -1,0 +1,216 @@
+{
+  "scope": "Supplementary GUI display units for hardware origin and tank physical quantities; no runtime dynamics qualification or whole-row credit.",
+  "cases": [
+    {
+      "key": "AntennaOrigins",
+      "group": "HardwareOrigins",
+      "object": "Probe",
+      "fixture": "Create Antenna Probe;\n",
+      "route": "table",
+      "units": {
+        "HWOriginInBCSX": "m",
+        "HWOriginInBCSY": "m",
+        "HWOriginInBCSZ": "m"
+      }
+    },
+    {
+      "key": "FuelTankOrigins",
+      "group": "HardwareOrigins",
+      "object": "Probe",
+      "fixture": "Create FuelTank Probe;\n",
+      "route": "table",
+      "units": {
+        "HWOriginInBCSX": "m",
+        "HWOriginInBCSY": "m",
+        "HWOriginInBCSZ": "m"
+      }
+    },
+    {
+      "key": "ChemicalTankOrigins",
+      "group": "HardwareOrigins",
+      "object": "Probe",
+      "fixture": "Create ChemicalTank Probe;\n",
+      "route": "table",
+      "units": {
+        "HWOriginInBCSX": "m",
+        "HWOriginInBCSY": "m",
+        "HWOriginInBCSZ": "m"
+      }
+    },
+    {
+      "key": "ElectricTankOrigins",
+      "group": "HardwareOrigins",
+      "object": "Probe",
+      "fixture": "Create ElectricTank Probe;\n",
+      "route": "table",
+      "units": {
+        "HWOriginInBCSX": "m",
+        "HWOriginInBCSY": "m",
+        "HWOriginInBCSZ": "m"
+      }
+    },
+    {
+      "key": "ImagerOrigins",
+      "group": "HardwareOrigins",
+      "object": "Probe",
+      "fixture": "Create Imager Probe;\n",
+      "route": "table",
+      "units": {
+        "HWOriginInBCSX": "m",
+        "HWOriginInBCSY": "m",
+        "HWOriginInBCSZ": "m"
+      }
+    },
+    {
+      "key": "ReceiverOrigins",
+      "group": "HardwareOrigins",
+      "object": "Probe",
+      "fixture": "Create Receiver Probe;\n",
+      "route": "table",
+      "units": {
+        "HWOriginInBCSX": "m",
+        "HWOriginInBCSY": "m",
+        "HWOriginInBCSZ": "m"
+      }
+    },
+    {
+      "key": "TransmitterOrigins",
+      "group": "HardwareOrigins",
+      "object": "Probe",
+      "fixture": "Create Transmitter Probe;\n",
+      "route": "table",
+      "units": {
+        "HWOriginInBCSX": "m",
+        "HWOriginInBCSY": "m",
+        "HWOriginInBCSZ": "m"
+      }
+    },
+    {
+      "key": "TransponderOrigins",
+      "group": "HardwareOrigins",
+      "object": "Probe",
+      "fixture": "Create Transponder Probe;\n",
+      "route": "table",
+      "units": {
+        "HWOriginInBCSX": "m",
+        "HWOriginInBCSY": "m",
+        "HWOriginInBCSZ": "m"
+      }
+    },
+    {
+      "key": "ChemicalThrusterOrigins",
+      "group": "HardwareOrigins",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create ChemicalThruster Probe;\nProbe.DecrementMass = false;\n",
+      "units": {
+        "HWOriginInBCSX": "m",
+        "HWOriginInBCSY": "m",
+        "HWOriginInBCSZ": "m"
+      }
+    },
+    {
+      "key": "ElectricThrusterOrigins",
+      "group": "HardwareOrigins",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create ElectricThruster Probe;\nProbe.DecrementMass = false;\n",
+      "units": {
+        "HWOriginInBCSX": "m",
+        "HWOriginInBCSY": "m",
+        "HWOriginInBCSZ": "m"
+      }
+    },
+    {
+      "key": "ThrusterOrigins",
+      "group": "HardwareOrigins",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Thruster Probe;\nProbe.DecrementMass = false;\n",
+      "units": {
+        "HWOriginInBCSX": "m",
+        "HWOriginInBCSY": "m",
+        "HWOriginInBCSZ": "m"
+      }
+    },
+    {
+      "key": "FuelTankPhysical",
+      "group": "TankPhysical",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create FuelTank Probe;\n",
+      "units": {
+        "FuelMass": "kg",
+        "FuelCenterOfMassX": "m",
+        "FuelCenterOfMassY": "m",
+        "FuelCenterOfMassZ": "m",
+        "FuelMomentOfInertiaXX": "kg-m^2",
+        "FuelMomentOfInertiaXY": "kg-m^2",
+        "FuelMomentOfInertiaXZ": "kg-m^2",
+        "FuelMomentOfInertiaYY": "kg-m^2",
+        "FuelMomentOfInertiaYZ": "kg-m^2",
+        "FuelMomentOfInertiaZZ": "kg-m^2",
+        "FuelDensity": "kg/m^3",
+        "Pressure": "kPa",
+        "RefTemperature": "C",
+        "Temperature": "C",
+        "Volume": "m^3"
+      }
+    },
+    {
+      "key": "ChemicalTankPhysical",
+      "group": "TankPhysical",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create ChemicalTank Probe;\n",
+      "units": {
+        "FuelMass": "kg",
+        "FuelCenterOfMassX": "m",
+        "FuelCenterOfMassY": "m",
+        "FuelCenterOfMassZ": "m",
+        "FuelMomentOfInertiaXX": "kg-m^2",
+        "FuelMomentOfInertiaXY": "kg-m^2",
+        "FuelMomentOfInertiaXZ": "kg-m^2",
+        "FuelMomentOfInertiaYY": "kg-m^2",
+        "FuelMomentOfInertiaYZ": "kg-m^2",
+        "FuelMomentOfInertiaZZ": "kg-m^2",
+        "FuelDensity": "kg/m^3",
+        "Pressure": "kPa",
+        "RefTemperature": "C",
+        "Temperature": "C",
+        "Volume": "m^3"
+      }
+    },
+    {
+      "key": "ElectricTankPhysical",
+      "group": "TankPhysical",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create ElectricTank Probe;\n",
+      "units": {
+        "FuelMass": "kg",
+        "FuelCenterOfMassX": "m",
+        "FuelCenterOfMassY": "m",
+        "FuelCenterOfMassZ": "m",
+        "FuelMomentOfInertiaXX": "kg-m^2",
+        "FuelMomentOfInertiaXY": "kg-m^2",
+        "FuelMomentOfInertiaXZ": "kg-m^2",
+        "FuelMomentOfInertiaYY": "kg-m^2",
+        "FuelMomentOfInertiaYZ": "kg-m^2",
+        "FuelMomentOfInertiaZZ": "kg-m^2"
+      }
+    },
+    {
+      "key": "OriginPilot",
+      "group": "HardwareOriginPilot",
+      "object": "Probe",
+      "fixture": "Create Antenna Probe;\n",
+      "route": "table",
+      "units": {
+        "HWOriginInBCSX": "m",
+        "HWOriginInBCSY": "m",
+        "HWOriginInBCSZ": "m"
+      }
+    }
+  ]
+}

@@ -54,16 +54,30 @@ public:
                                    bool resetLocalObjects = true);
    virtual bool         Execute(ObjectInitializer *objInit, bool reinitialize = false);
    virtual void         Finalize(bool cleanUp = false);
+   std::unique_ptr<FunctionInvocationState> SuspendInvocationState() override;
+   void RetireInvocationInterfaces() noexcept override;
    
    virtual void         SetFunctionObjectMap(ObjectMap *objMap);
    virtual ObjectMap*   GetFunctionObjectStore();
+   void RetireFunctionObjectStore(ObjectMap *store) noexcept;
+   void RetireArgumentWrappers(const WrapperMap &inputs,
+         const WrapperArray &outputs) noexcept;
    virtual void         SetGlobalObjectMap(ObjectMap *objMap);
+   // Active binding, or the last bound global view while its actual registered
+   // owner is alive. A retained view does not keep invocation resources alive.
+   const ObjectMap*     GetGlobalObjectStore() const;
+   // Completed-call observation only; both the actual scope owner and solar
+   // system must still be alive. This never reinstalls an invocation service.
+   const SolarSystem*   GetObservedSolarSystem() const;
+   void                 ClearObservedSolarSystem();
    
    virtual bool         SetInputElementWrapper(const std::string &forName,
                                                ElementWrapper *wrapper);
    virtual ElementWrapper* GetOutputArgument(Integer argNumber);
    virtual ElementWrapper* GetOutputArgument(const std::string &byName);
    virtual WrapperArray&   GetWrappersToDelete();
+   // Release owned outputs once, retaining formal names and borrowed inputs.
+   void                 ClearOutputWrappers() noexcept;
    virtual void            ClearInOutArgMaps(bool deleteInputs, bool deleteOutputs);
 
    virtual void            SetChangingInputType(bool hasChangingInput);
@@ -86,6 +100,12 @@ public:
    DEFAULT_TO_NO_REFOBJECTS
 
 protected:
+   // Sandbox and manager-registered maps have actual weak owners. An empty predicate
+   // denotes an unregistered map whose lifetime remains the caller's contract.
+   static std::function<bool()> CaptureObjectStoreLifetime(ObjectMap *store);
+
+   void RebindObjectManagedFunctionValue(const ObjectManagedFunction &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
    
    /// Function input name and element wrapper map
    WrapperMap           inputArgMap;
@@ -99,6 +119,10 @@ protected:
    WrapperArray         wrappersToDelete;
    /// Whether object store has changing input types
    bool                 changingInputType;
+
+   std::shared_ptr<ExpressionScopeCopies> objectBindings;
+   std::vector<ElementWrapper::InvocationLease> invocationWrapperLeases;
+   void PruneInvocationWrapperLeases() noexcept;
   
    // for debug
    void ShowObjectMap(ObjectMap *objMap, const std::string &title = "",

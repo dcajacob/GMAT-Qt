@@ -1,0 +1,9 @@
+{
+  "case": "Guard",
+  "matlab_function": "function y = MatGuard(x)\nep = jsondecode(getenv('GMAT_QT_MATLAB_CALLBACK'));\nc = tcpclient('127.0.0.1', ep.port, 'Timeout', 10);\nconfigureTerminator(c, 'LF');\nrequest = ['{\"token\":\"', ep.token, '\",\"op\":\"evaluate\",\"x\":[2],\"id\":1}', newline];\nwrite(c, uint8(request));\nreply = jsondecode(char(readline(c)));\nassert(~reply.ok && contains(reply.error, 'GMAT-called MATLAB function cannot'), 'Expected GMAT reentry restriction');\ny = 3*x + 2;\nend\n",
+  "expected_output": 14,
+  "expected_successor": 42,
+  "expected_callback_dispatches_during_matlab": 0,
+  "expected_callback_dispatches_after_return": 1,
+  "scope": "Only missing real licensed MATLAB to authenticated Qt socket restriction/recovery. Existing native guard matrix reused."
+}

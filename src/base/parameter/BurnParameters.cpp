@@ -191,7 +191,12 @@ void ImpBurnElements::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* ImpBurnElements::Clone(void) const
 {
-   return new ImpBurnElements(*this);
+   return CompleteParameterClone(new ImpBurnElements(*this));
+}
+
+void ImpBurnElements::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ImpBurnElements>(source);
 }
 
 
@@ -218,7 +223,7 @@ GmatBase* ImpBurnElements::Clone(void) const
 TotalMassFlowRate::TotalMassFlowRate(const std::string &type, const std::string &name,
                                  GmatBase *obj)
    : BurnReal(name, type, Gmat::FINITE_BURN, obj, "Finite Burn " + type,
-              "Km/s", GmatParam::NO_DEP, true)
+              "kg/s", GmatParam::NO_DEP, false)
 {
    #ifdef USE_PREDEFINED_COLORS
       mColor = GmatColor::BLUE32;
@@ -327,7 +332,12 @@ void TotalMassFlowRate::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* TotalMassFlowRate::Clone(void) const
 {
-   return new TotalMassFlowRate(*this);
+   return CompleteParameterClone(new TotalMassFlowRate(*this));
+}
+
+void TotalMassFlowRate::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TotalMassFlowRate>(source);
 }
 
 
@@ -354,7 +364,7 @@ GmatBase* TotalMassFlowRate::Clone(void) const
 TotalAcceleration::TotalAcceleration(const std::string &type, const std::string &name,
                                      GmatBase *obj)
    : BurnReal(name, type, Gmat::FINITE_BURN, obj, "Finite Burn " + type,
-              "Km/s", GmatParam::NO_DEP, true)
+              "km/s^2", GmatParam::NO_DEP, false)
 {
    #ifdef USE_PREDEFINED_COLORS
       mColor = GmatColor::RED32;
@@ -480,7 +490,12 @@ void TotalAcceleration::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* TotalAcceleration::Clone(void) const
 {
-   return new TotalAcceleration(*this);
+   return CompleteParameterClone(new TotalAcceleration(*this));
+}
+
+void TotalAcceleration::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TotalAcceleration>(source);
 }
 
 
@@ -507,7 +522,7 @@ GmatBase* TotalAcceleration::Clone(void) const
 TotalThrust::TotalThrust(const std::string &type, const std::string &name,
                          GmatBase *obj)
    : BurnReal(name, type, Gmat::FINITE_BURN, obj, "Finite Burn " + type,
-              "Km/s", GmatParam::NO_DEP, true)
+              "N", GmatParam::NO_DEP, false)
 {
    #ifdef USE_PREDEFINED_COLORS
       mColor = GmatColor::RED32;
@@ -633,7 +648,12 @@ void TotalThrust::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* TotalThrust::Clone(void) const
 {
-   return new TotalThrust(*this);
+   return CompleteParameterClone(new TotalThrust(*this));
+}
+
+void TotalThrust::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TotalThrust>(source);
 }
 
 

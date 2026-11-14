@@ -61,6 +61,28 @@
 // ***************************************************************************
 
 #include "ODEModel.hpp"
+#include "OrbitStmForceGradient.hpp"
+#include "OrbitStmContext.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration oDEModelValueProvider({
+   ODEModel::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const ODEModel*>(object) != nullptr; },
+   [](const GmatBase *object) { return dynamic_cast<const ODEModel*>(object)->GetFunctionValueOwnedObjectsImpl(); },
+   nullptr,
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
+#include "NativeRestoration.hpp"
+#include <typeinfo>
+#include <memory>
+#include "PlotOriginScope.hpp"
+#include "PointMassForce.hpp"
+#include "GravityField.hpp"
 #include "MessageInterface.hpp"
 #include "PropagationStateManager.hpp"
 #include "TextParser.hpp"
@@ -78,6 +100,355 @@
 #include <string.h> 
 #include <algorithm>    // for find()
 #include <sstream>
+#include <set>
+#include <mutex>
+#include <cmath>
+#include <utility>
+#include "CoordinateSystem.hpp"
+
+namespace {
+struct CopiedForceList
+{
+   std::vector<PhysicalModel*> references;
+   std::map<PhysicalModel*, std::unique_ptr<PhysicalModel>> owners;
+};
+
+CopiedForceList CopyForceList(const std::vector<PhysicalModel*> &source)
+{
+   CopiedForceList result;
+   for (PhysicalModel *original : source)
+   {
+      if (!original) throw ODEModelException("Cannot copy a null force.\n");
+      std::unique_ptr<GmatBase> value(original->Clone());
+      if (std::find(source.begin(), source.end(), value.get()) != source.end() ||
+          result.owners.find(dynamic_cast<PhysicalModel*>(value.get())) != result.owners.end())
+      {
+         value.release();
+         throw ODEModelException("Force Clone returned an existing force object.\n");
+      }
+      auto *copy = dynamic_cast<PhysicalModel*>(value.get());
+      if (!copy || typeid(*copy) != typeid(*original) || copy->GetTypeName() != original->GetTypeName())
+         throw ODEModelException("Cannot copy force with its native type.\n");
+      std::unique_ptr<PhysicalModel> owned(copy);
+      value.release();
+      result.references.push_back(copy);
+      result.owners.emplace(copy, std::move(owned));
+   }
+   return result;
+}
+
+struct FrameAccelerationBinding
+{
+   ODEModel *active=nullptr;
+   ODEModel *pendingActive=nullptr;
+   std::set<ODEModel *> models;
+   std::set<ODEModel *> acceptedModels;
+   bool querying=false;
+   std::string retiredReason;
+};
+struct FrameAccelerationContexts
+{
+   std::recursive_mutex mutex;
+   std::map<Spacecraft *,FrameAccelerationBinding> spacecraft;
+   std::map<PhysicalModel*,std::weak_ptr<const void>> activeThrust;
+};
+FrameAccelerationContexts &frameAccelerationContexts()
+{
+   // Keep the registry alive through native singleton destruction. Entries
+   // are removed by spacecraft destruction and provider references by models.
+   static auto *contexts=new FrameAccelerationContexts;
+   return *contexts;
+}
+void bindFrameAccelerationModel(ODEModel *model,Spacecraft *spacecraft,bool activate,bool engineRegistration)
+{
+   if (!spacecraft) throw ODEModelException("Cannot bind a null spacecraft acceleration context.");
+   auto &contexts=frameAccelerationContexts();
+   std::lock_guard<std::recursive_mutex> lock(contexts.mutex);
+   auto found=contexts.spacecraft.find(spacecraft);
+   if (found==contexts.spacecraft.end())
+      found=contexts.spacecraft.emplace(spacecraft,FrameAccelerationBinding{}).first;
+   auto &binding=found->second;const bool first=binding.models.empty();binding.models.insert(model);
+   if (engineRegistration) binding.acceptedModels.insert(model);
+   if (activate || first || (engineRegistration && binding.pendingActive==model))
+   {
+      binding.active=model;binding.pendingActive=nullptr;binding.retiredReason.clear();
+   }
+}
+void retireFrameAccelerationModel(ODEModel *model,const std::string &reason)
+{
+   auto &contexts=frameAccelerationContexts();
+   std::lock_guard<std::recursive_mutex> lock(contexts.mutex);
+   for (auto &entry:contexts.spacecraft)
+   {
+      entry.second.models.erase(model);
+      entry.second.acceptedModels.erase(model);
+      if (reason=="model destruction" && entry.second.pendingActive==model) entry.second.pendingActive=nullptr;
+      if (entry.second.active==model)
+      {
+         entry.second.active=nullptr;entry.second.retiredReason=reason;
+         entry.second.pendingActive=reason=="model destruction" ? nullptr:model;
+      }
+   }
+}
+// Differentiate ephemeris relative velocity, in MJ2000Eq axes. This is used
+// only for frame-origin translation, never as a spacecraft force surrogate.
+Rvector3 frameOriginAcceleration(SpacePoint *point,SpacePoint *origin,const GmatTime &epoch)
+{
+   if (!point || !origin)
+      throw ODEModelException("Frame-origin acceleration requires resolved origins.");
+   if (point==origin) return Rvector3(0,0,0);
+   const auto hasNativeAcceleration=[](SpacePoint *value) {
+      return value->IsOfType(Gmat::CELESTIAL_BODY) || value->IsOfType("Barycenter") ||
+             value->IsOfType("LibrationPoint") || value->IsOfType(Gmat::BODY_FIXED_POINT);
+   };
+   if (hasNativeAcceleration(point) && hasNativeAcceleration(origin))
+   {
+      if (point->GetJ2000BodyName()!=origin->GetJ2000BodyName())
+         throw ODEModelException("Frame-origin acceleration requires a common J2000 reference body.");
+      // Native body/calculated-point providers bypass ephemeris caches during
+      // derivative queries; analytic bodies and barycenters use their dynamics.
+      return point->GetMJ2000Acceleration(epoch)-origin->GetMJ2000Acceleration(epoch);
+   }
+   auto velocity=[&](Real seconds) {
+      GmatTime at=epoch;at.AddSeconds(seconds);
+      return point->GetMJ2000Velocity(at)-origin->GetMJ2000Velocity(at);
+   };
+   auto restore=[&] { point->GetMJ2000Velocity(epoch);origin->GetMJ2000Velocity(epoch); };
+   try
+   {
+      const auto m2=velocity(-2),m1=velocity(-1),p1=velocity(1),p2=velocity(2);
+      restore();return (8*(p1-m1)-(p2-m2))/12;
+   }
+   catch (...)
+   {
+      try { restore(); } catch (...) {}
+      throw;
+   }
+}
+}
+
+void ODEModel::BindAccelerationContext(Spacecraft *spacecraft,bool activate)
+{
+   // Initialization visits later Propagate commands too. The earliest model
+   // serves initial reports; actual command execution explicitly selects its
+   // model, including repeated commands and handoffs.
+   bindFrameAccelerationModel(this,spacecraft,activate,false);
+}
+void ODEModel::SetTransientAccelerationContext(PhysicalModel *force, bool active)
+{
+   if (!force || !force->IsTransient())
+      throw ODEModelException("Transient acceleration context requires a transient force.");
+   auto &contexts = frameAccelerationContexts();
+   std::lock_guard<std::recursive_mutex> lock(contexts.mutex);
+   if (active)
+      contexts.activeThrust[force] = force->GetLifetimeToken();
+   else
+      contexts.activeThrust.erase(force);
+}
+void ODEModel::ActivateAccelerationContext()
+{
+   auto &contexts=frameAccelerationContexts();
+   std::lock_guard<std::recursive_mutex> lock(contexts.mutex);
+   for (auto &entry:contexts.spacecraft)
+      if (entry.second.models.count(this))
+      {
+         entry.second.active=this;entry.second.pendingActive=nullptr;entry.second.retiredReason.clear();
+         OrbitStmContext::FillAccelerations(entry.first);
+      }
+}
+void ODEModel::ForgetAccelerationContext(Spacecraft *spacecraft)
+{
+   auto &contexts=frameAccelerationContexts();
+   std::lock_guard<std::recursive_mutex> lock(contexts.mutex);
+   contexts.spacecraft.erase(spacecraft);
+}
+void ODEModel::SuspendAccelerationContext(Spacecraft *spacecraft)
+{
+   if (!spacecraft) throw ODEModelException("Cannot suspend a null spacecraft acceleration context.");
+   auto &contexts=frameAccelerationContexts();
+   std::lock_guard<std::recursive_mutex> lock(contexts.mutex);
+   contexts.spacecraft[spacecraft].active=nullptr;
+   contexts.spacecraft[spacecraft].pendingActive=nullptr;
+   contexts.spacecraft[spacecraft].retiredReason="non-numerical propagation";
+}
+bool ODEModel::GetBoundRelativeAcceleration(SpacePoint *secondary,
+      SpacePoint *primary,const A1Mjd &atEpoch,Rvector3 &acceleration)
+{
+   if (!secondary || !primary) throw ODEModelException("Object-frame acceleration requires both reference objects.");
+   GmatTime stmEpoch;
+   auto *secondarySpacecraft = dynamic_cast<Spacecraft*>(secondary);
+   auto *primarySpacecraft = dynamic_cast<Spacecraft*>(primary);
+   if (OrbitStmContext::Scope::EpochFor(secondarySpacecraft, atEpoch.Get(), stmEpoch) ||
+         OrbitStmContext::Scope::EpochFor(primarySpacecraft, atEpoch.Get(), stmEpoch))
+   {
+      SpacePoint *reference = nullptr;
+      const auto source = secondarySpacecraft ? secondarySpacecraft : primarySpacecraft;
+      OrbitStmContext::Scope::AccelerationOf(source, reference);
+      auto relative = [&](SpacePoint *point) {
+         if (auto *spacecraft = dynamic_cast<Spacecraft*>(point))
+         {
+            SpacePoint *origin = nullptr;
+            const auto acceleration = OrbitStmContext::Scope::AccelerationOf(spacecraft, origin);
+            if (origin != reference) throw ODEModelException("STM frame acceleration references have different J2000 origins.\n");
+            return acceleration;
+         }
+         return frameOriginAcceleration(point, reference, stmEpoch);
+      };
+      acceleration = relative(secondary) - relative(primary);
+      return true;
+   }
+   auto &contexts=frameAccelerationContexts();
+   std::lock_guard<std::recursive_mutex> lock(contexts.mutex);
+   auto secondaryBinding=contexts.spacecraft.find(dynamic_cast<Spacecraft *>(secondary));
+   auto primaryBinding=contexts.spacecraft.find(dynamic_cast<Spacecraft *>(primary));
+   if (secondaryBinding==contexts.spacecraft.end() && primaryBinding==contexts.spacecraft.end())
+      return false;
+   auto selected=secondaryBinding!=contexts.spacecraft.end() ? secondaryBinding:primaryBinding;
+   if (!selected->second.active)
+      throw ODEModelException("The object-frame acceleration provider is no longer available: "+selected->second.retiredReason);
+   auto *reference=selected->second.active->forceOrigin;
+   if (!reference) throw ODEModelException("The object-frame force origin is unavailable.");
+   GmatTime epoch(atEpoch.Get());
+   const bool sampled=PlotOriginScope::Epoch(selected->first,atEpoch.Get(),epoch);
+   if (!sampled)
+   {
+      if (selected->first->GetEpoch()!=atEpoch.Get())
+         throw ODEModelException("Object-frame acceleration requires the accepted spacecraft epoch.");
+      if (selected->first->GetState().HasPrecisionTime()) epoch=selected->first->GetEpochGT();
+   }
+   auto relative=[&](SpacePoint *point)->Rvector3
+   {
+      auto *spacecraft=dynamic_cast<Spacecraft *>(point);
+      if (!spacecraft) return frameOriginAcceleration(point,reference,epoch);
+      auto found=contexts.spacecraft.find(spacecraft);
+      if (found==contexts.spacecraft.end() || !found->second.active)
+         throw ODEModelException("No live object-frame acceleration provider for "+spacecraft->GetName());
+      auto &binding=found->second;auto *model=binding.active;
+      if (binding.querying) throw ODEModelException("Recursive attitude/force acceleration query for "+spacecraft->GetName());
+      const auto *snapshot=sampled ? PlotOriginScope::Find(spacecraft,epoch) : nullptr;
+      if ((sampled && !snapshot) || (!sampled && (spacecraft->GetEpoch()!=atEpoch.Get() ||
+          (spacecraft->GetState().HasPrecisionTime() && spacecraft->GetEpochGT()!=epoch))))
+         throw ODEModelException("Object-frame acceleration requires coeval accepted spacecraft states.");
+      auto *internal=spacecraft->GetInternalCoordSystem();
+      if (!model->isInitialized || !model->forceOrigin || !internal ||
+          internal->GetBaseSystem()!="FK5" || !internal->GetAxisSystem() ||
+          internal->GetAxisSystem()->GetTypeName()!="MJ2000Eq" || !model->j2kBody ||
+          internal->GetOrigin()!=model->j2kBody || spacecraft->GetJ2000Body()!=model->j2kBody)
+         throw ODEModelException("Object-frame acceleration requires an initialized force model with matching MJ2000Eq state origin and axes.");
+      ObjectArray owned;
+      if (model->psm) model->psm->GetStateObjects(owned,Gmat::SPACEOBJECT);
+      std::set<GmatBase *> checked;
+      auto contains=[&](auto &&self,GmatBase *object)->bool
+      {
+         if (object==spacecraft) return true;
+         if (!object || !checked.insert(object).second) return false;
+         if (object->IsOfType(Gmat::FORMATION))
+            for (auto *member:object->GetRefObjectArray("SpaceObject"))
+               if (self(self,member)) return true;
+         return false;
+      };
+      // SetupSpacecraftData supplies the engine's exact spacecraft identities
+      // before the PSM publishes its final object list. A public/manual binding
+      // has no such admission and must match that list (copies cannot qualify
+      // merely by sharing a name or state).
+      bool actual=binding.acceptedModels.count(model)!=0;
+      for (auto *object:owned) actual=actual || contains(contains,object);
+      if (!actual) throw ODEModelException("Object-frame acceleration requires the actual accepted spacecraft identity.");
+      struct Guard { bool &active;explicit Guard(bool &value):active(value) {active=true;} ~Guard() {active=false;} } guard(binding.querying);
+      if (model->forceList.empty()) throw ODEModelException("The object-frame force model has no acceleration providers.");
+      Rvector3 result(0,0,0);
+      auto *gradientQuery = OrbitStmContext::GradientQuery::For(spacecraft);
+      bool gradientAvailable = gradientQuery != nullptr;
+      if (gradientQuery)
+         for (Integer i=0;i<3;++i) for (Integer j=0;j<6;++j) gradientQuery->value(i,j)=0;
+      std::vector<PhysicalModel*> frameForces(model->forceList);
+      for (auto entry = contexts.activeThrust.begin(); entry != contexts.activeThrust.end();)
+      {
+         if (!GmatBase::IsLiveReference(entry->first, entry->second))
+         {
+            entry = contexts.activeThrust.erase(entry);
+            continue;
+         }
+         if (entry->first->TargetsSpacecraft(spacecraft) &&
+             std::find(frameForces.begin(), frameForces.end(), entry->first) == frameForces.end())
+            frameForces.push_back(entry->first);
+         ++entry;
+      }
+      for (auto *force:frameForces)
+      {
+         OrbitStmForceGradient::Request fieldGradient(gradientAvailable ? force : nullptr);
+         // A Cartesian endpoint and epoch determine point-mass and harmonic
+         // gravity acceleration with the configured field/body inputs.
+         // Other force laws may also depend on mass, attitude, or hardware; do
+         // not silently read those inputs from the later live spacecraft.
+         Rvector6 derivative;
+         if (snapshot)
+         {
+            auto *pointMass=dynamic_cast<PointMassForce*>(force);
+            auto *gravity=dynamic_cast<GravityField*>(force);
+            if (pointMass && force->GetTypeName()=="PointMassForce")
+               derivative=pointMass->GetDerivativesAtState(*snapshot,epoch);
+            else if (gravity && force->GetTypeName()=="GravityField")
+               derivative=gravity->GetDerivativesAtState(*snapshot,epoch);
+            else
+            {
+               bool live=spacecraft->GetEpoch()==atEpoch.Get() &&
+                  (!spacecraft->GetState().HasPrecisionTime() || spacecraft->GetEpochGT()==epoch);
+               for (Integer i=0; i<6 && live; ++i)
+                  live=(*snapshot)[i]==spacecraft->GetState()[i];
+               if (!live)
+                  throw ODEModelException("Sampled object-frame acceleration is unavailable for force "+force->GetTypeName());
+               derivative=force->GetDerivativesForSpacecraft(spacecraft);
+            }
+         }
+         else derivative=force->GetDerivativesForSpacecraft(spacecraft);
+         if (gradientAvailable)
+         {
+            // Retain the actual point-mass field's Cartesian derivative at
+            // this endpoint. The indirect/body-origin acceleration is fixed
+            // with respect to the spacecraft state and contributes no term.
+            auto *pointMass = dynamic_cast<PointMassForce*>(force);
+            auto *body = pointMass ? pointMass->GetBody() : nullptr;
+            auto *anchor = spacecraft->GetJ2000Body();
+            if (fieldGradient.available)
+            {
+               for (Integer i=0;i<3;++i) for (Integer j=0;j<6;++j)
+                  gradientQuery->value(i,j) += fieldGradient.value(i,j);
+            }
+            else if (!pointMass || force->GetTypeName() != "PointMassForce" || !body || !anchor ||
+                  (body != anchor && body->GetJ2000BodyName() != anchor->GetName()))
+               gradientAvailable = false;
+            else
+            {
+               Rvector6 offset(0,0,0,0,0,0);
+               if (body != anchor) offset = body->GetMJ2000State(epoch)-anchor->GetMJ2000State(epoch);
+               long double r[3], r2=0;
+               for (Integer i=0;i<3;++i) { r[i]=spacecraft->GetState()[i]-offset[i]; r2+=r[i]*r[i]; }
+               if (!(r2>0) || !std::isfinite(r2)) gradientAvailable=false;
+               else
+               {
+                  const long double mu=pointMass->GetRealParameter(pointMass->GetParameterID("GravConst"));
+                  const long double factor=mu/(r2*std::sqrt(r2));
+                  for (Integer i=0;i<3;++i) for (Integer j=0;j<3;++j)
+                     gradientQuery->value(i,j)+=static_cast<Real>(factor*(3*r[i]*r[j]/r2-(i==j?1:0)));
+               }
+            }
+         }
+         for (Integer i=0;i<3;++i)
+         {
+            if (!std::isfinite(derivative[i+3]))
+               throw ODEModelException("Nonfinite object-frame acceleration from "+force->GetName());
+            result[i]+=derivative[i+3];
+         }
+      }
+      if (gradientQuery) gradientQuery->available=gradientAvailable;
+      return result+frameOriginAcceleration(model->forceOrigin,reference,epoch);
+   };
+   const auto result=relative(secondary)-relative(primary);
+   for (Integer i=0;i<3;++i)
+      if (!std::isfinite(result[i])) throw ODEModelException("Nonfinite relative object-frame acceleration.");
+   acceleration=result;return true;
+}
 
 
 //#define DEBUG_ODEMODEL
@@ -340,6 +711,7 @@ ODEModel::ODEModel(const std::string &modelName, const std::string typeName) :
 //------------------------------------------------------------------------------
 ODEModel::~ODEModel()
 {
+   retireFrameAccelerationModel(this,"model destruction");
    #ifdef DEBUG_ODEMODEL
       MessageInterface::ShowMessage
          ("ODEModel destructor entered, this=<%p>'%s', has %d forces\n",
@@ -385,7 +757,7 @@ ODEModel::~ODEModel()
 //------------------------------------------------------------------------------
 ODEModel::ODEModel(const ODEModel& fdf) :
    PhysicalModel              (fdf),
-//   previousState              (fdf.previousState),
+   previousState              (fdf.previousState),
    state                      (NULL),
    estimationMethod           (fdf.estimationMethod),
    normType                   (fdf.normType),
@@ -393,13 +765,13 @@ ODEModel::ODEModel(const ODEModel& fdf) :
    centralBodyName            (fdf.centralBodyName),
    coverageStartDetermined    (fdf.coverageStartDetermined),
    forceMembersNotInitialized (true),
-   satCount                   (0),
+   satCount                   (fdf.satCount),
    constrainCd                (fdf.constrainCd),
    constrainCr                (fdf.constrainCr),
    stateStart                 (fdf.stateStart),
    stateEnd                   (fdf.stateEnd),
-   cartStateSize              (0),
-   dynamicProperties          (false),
+   cartStateSize              (fdf.cartStateSize),
+   dynamicProperties          (fdf.dynamicProperties),
    isInitializedForParameters (false),
    warnedOnceForParameters    (false),
    warnFFOriginOnce           (false),
@@ -411,13 +783,12 @@ ODEModel::ODEModel(const ODEModel& fdf) :
    finiteDifferencingTimeJac  (fdf.finiteDifferencingTimeJac),
    nonAnalyticTimeDerivs      (NULL)
 {
+   GmatBase::FunctionValueCopyGuard nativeChildren;
    #ifdef DEBUG_ODEMODEL
    MessageInterface::ShowMessage("ODEModel copy constructor (from <'%s',%p> to <'%s',%p>) entered\n", fdf.GetName().c_str(), &fdf, GetName().c_str(), &(*this));
    #endif
 
-   satIds[0] = satIds[1] = satIds[2] = satIds[3] = satIds[4] =
-   satIds[5] = satIds[6] = satIds[7] = satIds[8] =
-   satIds[9] = satIds[10] = -1;
+   std::copy_n(fdf.satIds, 11, satIds);
 
    numForces           = fdf.numForces;
    stateSize           = fdf.stateSize;
@@ -429,7 +800,7 @@ ODEModel::ODEModel(const ODEModel& fdf) :
    transientForceNames = fdf.transientForceNames;
    forceReferenceNames = fdf.forceReferenceNames;
    
-   parameterCount = ODEModelParamCount;
+   parameterCount = fdf.parameterCount;
    
 //   spacecraft.clear();
 
@@ -437,26 +808,25 @@ ODEModel::ODEModel(const ODEModel& fdf) :
    // forceList.clear();
 
    internalCoordinateSystems.clear();
-   muMap.clear();
+   muMap = fdf.muMap;
+   dynamicsIndex = fdf.dynamicsIndex;
+   dynamicObjects = fdf.dynamicObjects;
+   dynamicIDs = fdf.dynamicIDs;
+   stateObjects = fdf.stateObjects;
    
-   // Copy the forces.  May not work -- the copy constructors need to be checked
-   for (std::vector<PhysicalModel *>::const_iterator pm = fdf.forceList.begin();
-        pm != fdf.forceList.end(); ++pm)
-   {
-      #ifdef DEBUG_ODEMODEL
-      GmatBase *obj = (*pm);
-      MessageInterface::ShowMessage
-         ("   Cloning PhysicalModel <%p><%s>'%s'\n", obj, obj->GetTypeName().c_str(),
-          obj->GetName().c_str());
-      #endif
-      PhysicalModel *newPm = (PhysicalModel*)(*pm)->Clone();
-      forceList.push_back(newPm);
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (newPm, newPm->GetName(), "ODEModel::ODEModel(copy)",
-          "*newPm = (*pm)->Clone()", this);
-      #endif
-   }
+   auto copied = CopyForceList(fdf.forceList);
+   forceList.swap(copied.references);
+   copiedForceOwners.swap(copied.owners);
+   #ifdef DEBUG_MEMORY
+   for (const auto &force : copiedForceOwners)
+      MemoryTracker::Instance()->Add(force.first, force.first->GetName(),
+            "ODEModel force value copy", "independent force clone", this);
+   #endif
+   numForces = ownedObjectCount = forceList.size();
+   transientCount = std::count_if(forceList.begin(), forceList.end(),
+         [](PhysicalModel *force) {return force->IsTransient();});
+   isInitialized = false;
+   CopySolveForValues(fdf);
 
    nomDerivs.clear();
    for (Integer i = 0; i < fdf.nomDerivs.size(); ++i)
@@ -490,13 +860,75 @@ ODEModel::ODEModel(const ODEModel& fdf) :
 //------------------------------------------------------------------------------
 ODEModel& ODEModel::operator=(const ODEModel& fdf)
 {
+   GmatBase::FunctionValueCopyGuard nativeChildren;
+   if (&fdf == this) return *this;
+   if (GmatBase::IsNativeRestorationCopy())
+   {
+      const bool ready = isInitialized;
+      bool complete = false;
+      const auto onFailure = [&](void*) { if (!complete) isInitialized = false; };
+      const std::unique_ptr<void, decltype(onFailure)> restorationStatus(this, onFailure);
+      std::map<const GmatBase*, const GmatBase*> pairs, reverse;
+      NativeRestoration::Validate(fdf.GetFunctionValueOwnedObjects(), GetFunctionValueOwnedObjects(), pairs, reverse);
+      ValidateRestorationLayout(fdf);
+      previousState.ValidateRestorationLayout(fdf.previousState);
+      if (numForces != fdf.numForces || stateSize != fdf.stateSize || satCount != fdf.satCount ||
+          exclusiveForce != fdf.exclusiveForce || forceTypeNames != fdf.forceTypeNames ||
+          transientForceNames != fdf.transientForceNames || forceReferenceNames != fdf.forceReferenceNames ||
+          centralBodyName != fdf.centralBodyName || j2kBodyName != fdf.j2kBodyName ||
+          stateStart != fdf.stateStart || stateEnd != fdf.stateEnd || cartStateSize != fdf.cartStateSize ||
+          dynamicProperties != fdf.dynamicProperties || dynamicsIndex != fdf.dynamicsIndex ||
+          dynamicObjects != fdf.dynamicObjects || dynamicIDs != fdf.dynamicIDs || stateObjects != fdf.stateObjects ||
+          solveForNames != fdf.solveForNames || solveForMap.size() != fdf.solveForMap.size() ||
+          nomDerivs.size() != fdf.nomDerivs.size() || transientCount != fdf.transientCount ||
+          (nonAnalyticTimeDerivs == nullptr) != (fdf.nonAnalyticTimeDerivs == nullptr) ||
+          (state && fdf.state && state != fdf.state) || (j2kBody && fdf.j2kBody && j2kBody != fdf.j2kBody))
+         throw ODEModelException("Prepare the force model before restoring changed forces or propagation roles.");
+      for (Integer i = 0; i < 11; ++i)
+         if (satIds[i] != fdf.satIds[i])
+            throw ODEModelException("Restoration cannot change active spacecraft parameter roles.");
+      for (const auto &entry : solveForMap)
+      {
+         const auto source = fdf.solveForMap.find(entry.first);
+         if (source == fdf.solveForMap.end() || source->second.solveForId != entry.second.solveForId)
+            throw ODEModelException("Restoration cannot change active force solve-for slots.");
+         const auto mapped = pairs.find(source->second.solveForHolder);
+         const auto *holder = source->second.solveForHolder == &fdf ? this :
+               (mapped == pairs.end() ? source->second.solveForHolder : mapped->second);
+         if (holder != entry.second.solveForHolder)
+            throw ODEModelException("Restoration cannot replace an active force solve-for holder.");
+      }
+      isInitialized = false;
+      PhysicalModel::operator=(fdf);
+      NativeRestoration::Copy(fdf.GetFunctionValueOwnedObjects(), GetFunctionValueOwnedObjects());
+      NativeRestoration::RebindCovariance(*this, fdf.GetFunctionValueOwnedObjects(), GetFunctionValueOwnedObjects());
+      previousState.RestoreValues(fdf.previousState);
+      constrainCd = fdf.constrainCd;
+      constrainCr = fdf.constrainCr;
+      currentForce = fdf.currentForce;
+      estimationMethod = fdf.estimationMethod;
+      normType = fdf.normType;
+      coverageStartDetermined = fdf.coverageStartDetermined;
+      finiteDifferencingTimeJac = fdf.finiteDifferencingTimeJac;
+      muMap = fdf.muMap;
+      std::copy(fdf.nomDerivs.begin(), fdf.nomDerivs.end(), nomDerivs.begin());
+      if (nonAnalyticTimeDerivs) std::copy_n(fdf.nonAnalyticTimeDerivs, dimension, nonAnalyticTimeDerivs);
+      for (auto &entry : solveForMap) entry.second.value = fdf.solveForMap.at(entry.first).value;
+      // Keep current state/PSM, force owners/subscriptions, frames, acceleration
+      // registry and prepared parameter/dynamic associations selected.
+      isInitialized = ready;
+      complete = true;
+      return *this;
+   }
+
+   // Clone all components before retiring the destination or changing its
+   // definition. A rejected/failed Clone leaves its existing force owners live.
+   auto copied = CopyForceList(fdf.forceList);
+   retireFrameAccelerationModel(this,"model assignment");
    #ifdef DEBUG_ODEMODEL
       MessageInterface::ShowMessage("ODEModel <'%s',%p> Assignment Operator "
             "entered\n", GetName(), this);
    #endif
-
-   if (&fdf == this)
-        return *this;
 
    PhysicalModel::operator=(fdf);
 
@@ -525,7 +957,7 @@ ODEModel& ODEModel::operator=(const ODEModel& fdf)
    exclusiveForce      = fdf.exclusiveForce;
    forceTypeNames      = fdf.forceTypeNames;
 //   previousTime        = fdf.previousTime;
-//   previousState       = fdf.previousState;
+   previousState = fdf.previousState;
    estimationMethod    = fdf.estimationMethod;
    normType            = fdf.normType;
    transientForceNames = fdf.transientForceNames;
@@ -533,7 +965,7 @@ ODEModel& ODEModel::operator=(const ODEModel& fdf)
    parametersSetOnce   = false;
 //   modelEpochId        = -1;
    
-   parameterCount      = ODEModelParamCount;
+   parameterCount = fdf.parameterCount;
    centralBodyName     = fdf.centralBodyName;
    j2kBodyName         = fdf.j2kBodyName;
    
@@ -542,7 +974,7 @@ ODEModel& ODEModel::operator=(const ODEModel& fdf)
    /// @note: Since the next three are global objects or reset by the Sandbox, 
    ///assignment works
    j2kBody             = fdf.j2kBody;
-   forceMembersNotInitialized = fdf.forceMembersNotInitialized;
+   forceMembersNotInitialized = true;
    transientCount      = fdf.transientCount;
 
    finiteDifferencingTimeJac = fdf.finiteDifferencingTimeJac;
@@ -553,27 +985,19 @@ ODEModel& ODEModel::operator=(const ODEModel& fdf)
    
 //   spacecraft.clear();
 
-   // Clean up forceList
-   for (Integer i = 0; i < forceList.size(); ++i)
-   {
-      if (forceList[i] && forceList[i]->AllowODEDelete())
-         delete forceList[i];
-   }
-   forceList.clear();
-   
-   // Copy the forces.  May not work -- the copy constructors need to be checked
-   for (std::vector<PhysicalModel *>::const_iterator pm = fdf.forceList.begin();
-        pm != fdf.forceList.end(); ++pm)
-   {
-      PhysicalModel *newPm = (PhysicalModel*)(*pm)->Clone();
-      forceList.push_back(newPm);
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (newPm, newPm->GetName(), "ODEModel::operator=",
-          "*newPm = (*pm)->Clone()", this);
-      #endif
-   }
+   forceList.swap(copied.references);
+   copiedForceOwners.swap(copied.owners);
+   #ifdef DEBUG_MEMORY
+   for (const auto &force : copiedForceOwners)
+      MemoryTracker::Instance()->Add(force.first, force.first->GetName(),
+            "ODEModel force value copy", "independent force clone", this);
+   #endif
+   numForces = ownedObjectCount = forceList.size();
+   transientCount = std::count_if(forceList.begin(), forceList.end(),
+         [](PhysicalModel *force) {return force->IsTransient();});
+   isInitialized = false;
    muMap = fdf.muMap;
+   CopySolveForValues(fdf);
    
    nomDerivs.clear();
    for (Integer i = 0; i < fdf.nomDerivs.size(); ++i)
@@ -637,6 +1061,8 @@ void ODEModel::AddForce(PhysicalModel *pPhysicalModel)
    if (pPhysicalModel == NULL)
       throw ODEModelException("Attempting to add a NULL force to " +
          instanceName);
+   if (std::find(forceList.begin(), forceList.end(), pPhysicalModel) != forceList.end())
+      return; // Re-adding an owned unique force must not delete that same object.
 
    #ifdef DEBUG_ODEMODEL_INIT
       // Break into 2 pieces in case pPhysicalModel is out of scope
@@ -780,8 +1206,7 @@ void ODEModel::AddForce(PhysicalModel *pPhysicalModel)
                         toBeReplaced->GetRealParameter(toBeReplaced->GetParameterID("MagneticIndex")));
                }
 
-               if (toBeReplaced->AllowODEDelete())
-                  delete toBeReplaced;
+               ReleaseForce(toBeReplaced, true);
                break;
             }
          }
@@ -809,30 +1234,23 @@ void ODEModel::AddForce(PhysicalModel *pPhysicalModel)
          {
             if (forceList[i]->IsTransient())
             {
+               auto *existing = dynamic_cast<FiniteThrust*>(forceList[i]);
+               auto *incoming = dynamic_cast<FiniteThrust*>(pPhysicalModel);
+               const StringArray priorNames = forceList[i]->GetRefObjectNameArray(Gmat::SPACECRAFT);
+               const StringArray newNames = pPhysicalModel->GetRefObjectNameArray(Gmat::SPACECRAFT);
+               const bool sameTargets = existing && incoming ? existing->SharesTargets(*incoming) :
+                     (!priorNames.empty() && !newNames.empty() && priorNames.front() == newNames.front());
+               if (!sameTargets) skipAdd = true;
                #ifdef DEBUG_TRANSIENT_FORCES
-                  MessageInterface::ShowMessage("*** Found transient %s with "
-                        "sat %s\n*** Addend is for sat %s\n",
-                        forceList[i]->GetTypeName().c_str(),
-                        forceList[i]->GetRefObjectNameArray(Gmat::SPACECRAFT)[0].c_str(),
-                        (pPhysicalModel->GetRefObjectNameArray(Gmat::SPACECRAFT))[0].c_str());
-               #endif
-               if (forceList[i]->GetRefObjectNameArray(Gmat::SPACECRAFT)[0] !=
-                     pPhysicalModel->GetRefObjectNameArray(Gmat::SPACECRAFT)[0])
-                  skipAdd = true;
-               #ifdef DEBUG_TRANSIENT_FORCES
-                  else
-                     MessageInterface::ShowMessage("*** Did not find sat %s "
-                           "for transient force %s\n",
-                           forceList[i]->GetRefObjectNameArray(Gmat::SPACECRAFT)[0].c_str(),
-                           forceList[i]->GetTypeName().c_str());
-
+                  MessageInterface::ShowMessage("Transient %s and addend %s share a target: %s\n",
+                        forceList[i]->GetName().c_str(), pPhysicalModel->GetName().c_str(),
+                        sameTargets ? "true" : "false");
                #endif
             }
          }
 
          if (!skipAdd)
          {
-            ++transientCount;
             if (psm != NULL)
                pPhysicalModel->SetPropStateManager(psm);
          }
@@ -847,14 +1265,46 @@ void ODEModel::AddForce(PhysicalModel *pPhysicalModel)
 //                  "prop(sat2)\"\nexiting");
       }
 
-      // Full field models come first to facilitate setting their parameters
-      if (pPhysicalModel->IsOfType("GravityBase"))
-         forceList.insert(forceList.begin(), pPhysicalModel);
-      else if (!skipAdd)
-         forceList.push_back(pPhysicalModel);
+      // Register before insertion; failed vector growth leaves no subscription.
+      // Value-copy forces are already owned by this model and never enter here.
+      if (!skipAdd)
+      {
+         // A whole-model value can contain an owned snapshot of an active
+         // burn. A newly attached live force supersedes that overlapping
+         // snapshot, rather than applying the same engine twice. Stage the
+         // comparison before insertion; ordinary borrowed forces stay native.
+         std::vector<PhysicalModel*> copiedOverlaps;
+         if (auto *incoming = dynamic_cast<FiniteThrust*>(pPhysicalModel))
+            for (PhysicalModel *force : forceList)
+               if (copiedForceOwners.find(force) != copiedForceOwners.end())
+                  if (auto *existing = dynamic_cast<FiniteThrust*>(force))
+                     if (*existing == *incoming) copiedOverlaps.push_back(force);
+         pPhysicalModel->RegisterODEBorrower(this);
+         try
+         {
+            // Full field models come first for their parameter setup.
+            if (pPhysicalModel->IsOfType("GravityBase"))
+               forceList.insert(forceList.begin(), pPhysicalModel);
+            else
+               forceList.push_back(pPhysicalModel);
+         }
+         catch (...)
+         {
+            pPhysicalModel->UnregisterODEBorrower(this);
+            throw;
+         }
+         for (PhysicalModel *force : copiedOverlaps)
+         {
+            const auto item = std::find(forceList.begin(), forceList.end(), force);
+            if (item != forceList.end()) forceList.erase(item);
+            ReleaseForce(force);
+         }
+      }
    }
 
    numForces = forceList.size();
+   transientCount = std::count_if(forceList.begin(), forceList.end(),
+         [](PhysicalModel *force) {return force->IsTransient();});
    
    // Update owned object count
    ownedObjectCount = numForces;
@@ -920,20 +1370,8 @@ void ODEModel::DeleteForce(const std::string &name)
          PhysicalModel* pm = *force;
          forceList.erase(force);
          
-         if (!pm->IsTransient())
-         {
-            if (pm->AllowODEDelete())
-            {
-               #ifdef DEBUG_MEMORY
-               MemoryTracker::Instance()->Remove
-                  (pm, pm->GetName(), "ODEModel::DeleteForce()",
-                   "deleting non-transient force of " + pm->GetTypeName(), this);
-               #endif
-               delete pm;
-            }
-         }
-         else
-            --transientCount;
+         if (pm->IsTransient()) --transientCount;
+         ReleaseForce(pm);
 
          numForces = forceList.size();
          ownedObjectCount = numForces;
@@ -967,20 +1405,8 @@ void ODEModel::DeleteForce(PhysicalModel *pPhysicalModel)
          PhysicalModel *pm = *force;
          forceList.erase(force);
          
-         if (!pm->IsTransient())
-         {
-            if (pm->AllowODEDelete())
-            {
-               #ifdef DEBUG_MEMORY
-               MemoryTracker::Instance()->Remove
-                  (pm, pm->GetName(), "ODEModel::DeleteForce()",
-                   "deleting non-transient force of " + pm->GetTypeName(), this);
-               #endif
-               delete pm;
-            }
-         }
-         else
-            --transientCount;
+         if (pm->IsTransient()) --transientCount;
+         ReleaseForce(pm);
 
          numForces = forceList.size();
          ownedObjectCount = numForces;
@@ -1213,6 +1639,13 @@ void ODEModel::UpdateSpaceObject(Real newEpoch)
    
    state->SetEpoch(newepoch);
    psm->MapVectorToObjects();
+
+   if (centralBodyName != j2kBodyName)
+      for (Integer i = 0; i < cartesianCount && i < (Integer)scObjs.size(); ++i)
+         if (Spacecraft *sc = dynamic_cast<Spacecraft*>(scObjs[i]))
+            sc->SetOriginRelativeState(forceOrigin, sc->GetEpochGT(),
+               Rvector6(modelState + cartesianStart + i * 6));
+
    // Add to pass back propagated covariance information from psm to rawstate
    if (psm->SatHasCovariance())
    {
@@ -1276,6 +1709,13 @@ void ODEModel::UpdateSpaceObjectGT(GmatTime newEpoch)
 
    state->SetEpochGT(newepoch);
    psm->MapVectorToObjects();
+
+   if (centralBodyName != j2kBodyName)
+      for (Integer i = 0; i < cartesianCount && i < (Integer)scObjs.size(); ++i)
+         if (Spacecraft *sc = dynamic_cast<Spacecraft*>(scObjs[i]))
+            sc->SetOriginRelativeState(forceOrigin, sc->GetEpochGT(),
+               Rvector6(modelState + cartesianStart + i * 6));
+
 
    // Update elements for each Formation
    for (UnsignedInt i = 0; i < stateObjects.size(); ++i)
@@ -2097,8 +2537,52 @@ bool ODEModel::Initialize()
 
 
 //------------------------------------------------------------------------------
-// void ClearForceList()
+// void ReleaseForce(PhysicalModel *force, bool deleteTransient)
 //------------------------------------------------------------------------------
+void ODEModel::ReleaseForce(PhysicalModel *force, bool deleteTransient)
+{
+   if (!force) return;
+   force->UnregisterODEBorrower(this);
+   const auto copied = copiedForceOwners.find(force);
+   if (copied != copiedForceOwners.end() ||
+       (force->AllowODEDelete() && (deleteTransient || !force->IsTransient())))
+   {
+      #ifdef DEBUG_MEMORY
+      MemoryTracker::Instance()->Remove(force, force->GetName(),
+            "ODEModel::ReleaseForce()", "releasing owned force", this);
+      #endif
+      if (copied != copiedForceOwners.end()) copiedForceOwners.erase(copied);
+      else delete force;
+   }
+}
+
+// A force owned by a command/provider can retire while this model is cached.
+// The callback only uses the pointer as an identity; its derived body is gone.
+void ODEModel::RetireForceReference(PhysicalModel *force, bool wasTransient) noexcept
+{
+   const auto item = std::find(forceList.begin(), forceList.end(), force);
+   if (item == forceList.end()) return;
+   forceList.erase(item);
+   // Normally absent: native value copies own their clones and do not subscribe
+   // to themselves. Avoid a second deletion if an externally retired force was
+   // also adopted explicitly by this model.
+   const auto owned = copiedForceOwners.find(force);
+   if (owned != copiedForceOwners.end())
+   {
+      owned->second.release();
+      copiedForceOwners.erase(owned);
+   }
+   if (wasTransient && transientCount > 0) --transientCount;
+   numForces = ownedObjectCount = forceList.size();
+   forceTypeNames.clear();
+   forceMembersNotInitialized = true;
+   parametersSetOnce = false;
+   isInitializedForParameters = false;
+   isInitialized = false;
+}
+
+// Borrowed transients remain under Sandbox ownership. Value-copy components,
+// including transients, are explicitly owned by copiedForceOwners instead.
 void ODEModel::ClearForceList(bool deleteTransient)
 {
    #ifdef DEBUG_ODEMODEL_CLEAR
@@ -2134,26 +2618,17 @@ void ODEModel::ClearForceList(bool deleteTransient)
                pm);
       #endif
       
-      // Transient forces are managed in the Sandbox.
+      // Update the transient count before a copied component can be deleted.
       if (pm->IsTransient())
          --transientCount;
 
-      if (!pm->IsTransient()) // || (deleteTransient && pm->IsTransient()))
-      {
-         if (pm->AllowODEDelete())
-         {
-            #ifdef DEBUG_MEMORY
-               MemoryTracker::Instance()->Remove
-                  (pm, pm->GetName(), "ODEModel::~ODEModel()",
-                   "deleting non-transient \"" + pm->GetTypeName() +
-                   "\" PhysicalModel", this);
-            #endif
-            delete pm;
-         }
-      }
+      ReleaseForce(pm); // only explicitly owned copies include transients
       ppm = forceList.begin();
    }
    
+   numForces = ownedObjectCount = 0;
+   transientCount = 0;
+
    #ifdef DEBUG_ODEMODEL_CLEAR
       MessageInterface::ShowMessage("ODEModel::ClearForceList() exit\n");
    #endif
@@ -2472,37 +2947,23 @@ void ODEModel::UpdateInitialData(bool dynamicOnly, bool updateEpoch)
             (dynamicOnly ? "true" : "false"));
    #endif
 
-   PhysicalModel *current; // = forceList[cf];  // waw: added 06/04/04
-
    if (psm == NULL)
       throw ODEModelException("ODEModel::UpdateInitialData():  Cannot "
          "update the model " + instanceName + ": PropStateManager is NULL");
 
-   // Variables used to set spacecraft parameters
-   std::string parmName, stringParm;
-   std::vector<SpaceObject *>::iterator sat;
-   for (std::vector<PhysicalModel*>::iterator i = forceList.begin();
-        i != forceList.end(); ++i)
+   stateObjects.clear();
+   psm->GetStateObjects(stateObjects, Gmat::SPACEOBJECT);
+   if (dynamicOnly)
+      UpdateDynamicSpacecraftData(&stateObjects, 0);
+   else
    {
-      stateObjects.clear();
-      psm->GetStateObjects(stateObjects, Gmat::SPACEOBJECT);
-		
-      if (dynamicOnly)
-      {
-         UpdateDynamicSpacecraftData(&stateObjects, 0);
-      }
-      else
-      {
-         current = (*i);
-         if (!parametersSetOnce)
-         {
-            current->ClearSatelliteParameters();
-         }
-
-         SetupSpacecraftData(&stateObjects, 0, updateEpoch);
-      }
+      // SetupSpacecraftData already visits every force. Clear each force
+      // first, then populate the complete spacecraft/member layout once.
+      if (!parametersSetOnce)
+         for (PhysicalModel *force : forceList) force->ClearSatelliteParameters();
+      SetupSpacecraftData(&stateObjects, 0, updateEpoch);
    }
-	
+
    if (!dynamicOnly)
       psm->MapObjectsToVector();
 	
@@ -2660,6 +3121,8 @@ Integer ODEModel::SetupSpacecraftData(ObjectArray *sats, Integer i, bool updateE
       std::string dragShapeModel = GetShapeModel("DragForce");
 	
       sat = *j;
+      if (auto *spacecraft=dynamic_cast<Spacecraft *>(sat))
+         bindFrameAccelerationModel(this,spacecraft,false,true);
 
       #ifdef DEBUG_SPACECRAFT_PROPERTIES
          MessageInterface::ShowMessage("   Looking at %s\n",
@@ -2962,6 +3425,22 @@ Integer ODEModel::UpdateDynamicSpacecraftData(ObjectArray *sats, Integer i)
         j != sats->end(); ++j)
    {
       sat = *j;
+      if (sat->GetType() == Gmat::FORMATION)
+      {
+         const ObjectArray elements = sat->GetRefObjectArray("SpaceObject");
+         ObjectArray members;
+         for (GmatBase *member : elements)
+         {
+            if (!member || !member->IsOfType(Gmat::SPACEOBJECT))
+               throw ODEModelException("Invalid member in Formation " + sat->GetName());
+            members.push_back(member);
+         }
+         // Recursion returns the next flattened spacecraft slot. Advancing
+         // only one slot here overwrites data for later objects/formations.
+         i = UpdateDynamicSpacecraftData(&members, i);
+         continue;
+      }
+
 
       if (satIds[1] < 0)
          throw ODEModelException("Epoch parameter undefined on object " +
@@ -3040,21 +3519,6 @@ Integer ODEModel::UpdateDynamicSpacecraftData(ObjectArray *sats, Integer i)
             parm = sat->GetRealParameter(satIds[10]);
             pm->SetSatelliteParameter(i, satIds[10], parm);
 
-         }
-         else if (sat->GetType() == Gmat::FORMATION)
-         {
-            ObjectArray formSats;
-            ObjectArray elements = sat->GetRefObjectArray("SpaceObject");
-            for (ObjectArray::iterator n = elements.begin(); n != elements.end();
-                 ++n)
-            {
-               if ((*n)->IsOfType(Gmat::SPACEOBJECT))
-                  formSats.push_back((SpaceObject *)(*n));
-               else
-                  throw ODEModelException("Object \"" + sat->GetName() +
-                                          "\" is not a SpaceObject.");
-            }
-            UpdateDynamicSpacecraftData(&formSats, i);
          }
          else
             throw ODEModelException(
@@ -3894,19 +4358,9 @@ bool ODEModel::TakeAction(const std::string &action, const std::string &actionDa
          PhysicalModel *oldForce = *oldIter;
          forceList.erase(oldIter);
          
-         if (oldForce->AllowODEDelete())
-         {
-            #ifdef DEBUG_DEFAULT_FORCE
-            MessageInterface::ShowMessage
-               ("ODEModel::TakeAction() deleting default force <%p>\n", oldForce);
-            #endif
-            #ifdef DEBUG_MEMORY
-            MemoryTracker::Instance()->Remove
-               (oldForce, oldForce->GetName(), "ODEModel::DeleteForce()",
-                "deleting non-transient force of " + oldForce->GetTypeName(), this);
-            #endif
-            delete oldForce;
-         }
+         if (oldForce->IsTransient()) --transientCount;
+         ReleaseForce(oldForce, true);
+         numForces = ownedObjectCount = forceList.size();
       }
    }
    
@@ -3937,14 +4391,14 @@ bool ODEModel::TakeAction(const std::string &action, const std::string &actionDa
          if (item != forceList.end())
             forceList.erase(item);
          // deleting it
-         if (deleteList[i]->AllowODEDelete())
-            delete deleteList[i];
+         if (deleteList[i]->IsTransient()) --transientCount;
+         ReleaseForce(deleteList[i], true);
       }
+      numForces = ownedObjectCount = forceList.size();
    }
 
    if (action == "UpdateSpacecraftParameters")
    {
-      UpdateDynamicSpacecraftData(&stateObjects, 0);
       UpdateDynamicSpacecraftData(&stateObjects, 0);
    }
 
@@ -3969,14 +4423,118 @@ bool ODEModel::TakeAction(const std::string &action, const std::string &actionDa
 
 
 //------------------------------------------------------------------------------
+// Reporting-model dependencies and initialization
+//------------------------------------------------------------------------------
+const std::vector<CoordinateSystem*>& ODEModel::GetInternalCoordinateSystems() const
+{
+   return internalCoordinateSystems;
+}
+
+void ODEModel::RebindClonedReportingReferences(const ODEModel &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve,
+      const std::function<void(const ObjectArray&, const ObjectArray&)> &owned)
+{
+   RebindClonedForceReferences(source, resolve, owned, true);
+}
+
+void ODEModel::RebindClonedReferences(const ODEModel &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve,
+      const std::function<void(const ObjectArray&, const ObjectArray&)> &owned)
+{
+   RebindClonedForceReferences(source, resolve, owned, false);
+}
+
+void ODEModel::RebindClonedForceReferences(const ODEModel &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve,
+      const std::function<void(const ObjectArray&, const ObjectArray&)> &owned, bool reporting)
+{
+   if (this == &source) return;
+   // Only a detached ephemeris scene replaces frozen transients with the
+   // caller's live vector. Ordinary whole-model values retain all components.
+   if (reporting)
+   {
+      std::vector<PhysicalModel*> transientCopies;
+      for (PhysicalModel *force : forceList)
+         if (force->IsTransient()) transientCopies.push_back(force);
+      for (PhysicalModel *force : transientCopies) DeleteForce(force);
+   }
+   ObjectArray originals, values;
+   for (PhysicalModel *force : source.forceList)
+      if (!reporting || !force->IsTransient()) originals.push_back(force);
+   for (PhysicalModel *force : forceList) values.push_back(force);
+   if (originals.size() != values.size())
+      throw ODEModelException("Copied force model changed its component collection.\n");
+   RebindClonedBodyReferences(source, resolve);
+   auto *newJ2000 = dynamic_cast<CelestialBody*>(resolve(source.j2kBody));
+   if (source.j2kBody && !newJ2000)
+      throw ODEModelException("Incompatible J2000 body in copied force model.\n");
+   j2kBody = newJ2000;
+   if (newJ2000) j2kBodyName = newJ2000->GetName();
+   if (forceOrigin) centralBodyName = forceOrigin->GetName();
+   owned(originals, values);
+   auto solveFors = source.solveForMap;
+   for (auto &entry : solveFors)
+   {
+      auto *original = entry.second.solveForHolder;
+      auto *mapped = original == &source ? this : resolve(original);
+      if (original && (!mapped || typeid(*original) != typeid(*mapped)))
+         throw ODEModelException("Incompatible retained force solve-for holder.");
+      entry.second.solveForHolder = mapped;
+   }
+   solveForMap.swap(solveFors);
+   solveForNames = source.solveForNames;
+   parameterCount = source.parameterCount;
+   isInitializedForParameters = false;
+   forceMembersNotInitialized = true;
+}
+
+bool ODEModel::InitializeForParameters()
+{
+   if (isInitializedForParameters) return true;
+   if (!solarSystem)
+      throw ODEModelException("Cannot initialize force model parameters without a SolarSystem.\n");
+   if (!j2kBody && !j2kBodyName.empty())
+   {
+      j2kBody = solarSystem->GetBody(j2kBodyName);
+      if (!j2kBody)
+         throw ODEModelException("ODEModel J2000 body (" + j2kBodyName +
+               ") was not found in the solar system");
+   }
+   if (!forceOrigin)
+   {
+      forceOrigin = solarSystem->GetBody(centralBodyName);
+      if (!forceOrigin)
+         throw ODEModelException("Force model origin (" + centralBodyName +
+               ") was not found in the solar system");
+   }
+   for (PhysicalModel *force : forceList)
+   {
+      force->SetSolarSystem(solarSystem);
+      if (!force->GetForceOrigin()) force->SetForceOrigin(forceOrigin);
+      if (force->IsOfType("HarmonicField"))
+      {
+         SetInternalCoordinateSystem("InputCoordinateSystem", force);
+         SetInternalCoordinateSystem("FixedCoordinateSystem", force);
+         SetInternalCoordinateSystem("TargetCoordinateSystem", force);
+         if (!body) body = solarSystem->GetBody(centralBodyName);
+      }
+      if (force->IsOfType("DragForce"))
+         SetInternalCoordinateSystem("FixedCoordinateSystem", force);
+      if (!force->Initialize())
+         throw ODEModelException("Cannot initialize force '" + force->GetName() +
+               "' for parameter reporting.\n");
+   }
+   isInitializedForParameters = true;
+   return true;
+}
+
+//------------------------------------------------------------------------------
 // Rvector6 GetDerivativesForSpacecraft(Spacecraft *sc)
 //------------------------------------------------------------------------------
 /**
- * Calculates the Cartesian state vector derivatives for a single spacecraft
- *
- * @param sc The Spacecraft
- *
- * @return The [CartesianVelocity CartesianAcceleration] 6-vector
+ * Calculates Cartesian velocity and acceleration for one spacecraft.
+ * @param sc The spacecraft whose derivatives are requested.
+ * @return The [CartesianVelocity CartesianAcceleration] 6-vector.
  */
 //------------------------------------------------------------------------------
 Rvector6 ODEModel::GetDerivativesForSpacecraft(Spacecraft *sc)
@@ -3985,32 +4543,7 @@ Rvector6 ODEModel::GetDerivativesForSpacecraft(Spacecraft *sc)
       throw ODEModelException("Derivative information cannot be computed; the "
             "Spacecraft in the call to GetDerivativesForSpacecraft() is NULL");
 
-   if (!isInitializedForParameters)
-   {
-      #ifdef DEBUG_PARAMETER_INITIALIZATION
-         MessageInterface::ShowMessage("Initializing %s for parameters\n",
-               instanceName.c_str());
-      #endif
-
-      for (std::vector<PhysicalModel *>::iterator i = forceList.begin();
-            i != forceList.end(); ++i)
-      {
-         (*i)->SetSolarSystem(solarSystem);
-
-         if ((*i)->IsOfType("HarmonicField"))
-         {
-            SetInternalCoordinateSystem("InputCoordinateSystem", (*i));
-            SetInternalCoordinateSystem("FixedCoordinateSystem", (*i));
-            SetInternalCoordinateSystem("TargetCoordinateSystem", (*i));
-
-            if (body == NULL)
-               body = solarSystem->GetBody(centralBodyName);
-         }
-
-         (*i)->Initialize();
-      }
-      isInitializedForParameters = true;
-   }
+   InitializeForParameters();
 
    Rvector6 dv, component;
    dv[0] = sc->GetRealParameter("CartesianVX");
@@ -4123,21 +4656,7 @@ PhysicalModel* ODEModel::GetForceOfType(const std::string& forceType,
       }
    }
 
-   // Make sure the model is initialized by init'ing them all if any needed
-   if ((theModel != NULL) && !isInitializedForParameters)
-   {
-      #ifdef DEBUG_PARAMETER_INITIALIZATION
-         MessageInterface::ShowMessage("Initializing %s for parameters\n",
-               instanceName.c_str());
-      #endif
-      for (std::vector<PhysicalModel *>::iterator i = forceList.begin();
-            i != forceList.end(); ++i)
-      {
-         (*i)->SetSolarSystem(solarSystem);
-         (*i)->Initialize();
-      }
-      isInitializedForParameters = true;
-   }
+   if (theModel) InitializeForParameters();
 
    return theModel;
 }
@@ -4178,7 +4697,9 @@ bool ODEModel::RenameRefObject(const UnsignedInt type,
 //------------------------------------------------------------------------------
 GmatBase* ODEModel::Clone() const
 {
-   return (new ODEModel(*this));
+   std::unique_ptr<ODEModel> value(new ODEModel(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -4193,7 +4714,12 @@ GmatBase* ODEModel::Clone() const
 //---------------------------------------------------------------------------
 void ODEModel::Copy(const GmatBase* orig)
 {
-   operator=(*((ODEModel *)(orig)));
+   const auto *source = dynamic_cast<const ODEModel*>(orig);
+   if (!source) throw GmatBaseException("Incompatible ODEModel value copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -5478,6 +6004,9 @@ bool ODEModel::SetEpoch(const GmatEpoch newEpoch)
 //------------------------------------------------------------------------------
 void ODEModel::SetPropStateManager(PropagationStateManager *sm)
 {
+   // Rebinding aggregate vector storage does not replace this live force
+   // provider. Frame queries use their engine-registered spacecraft identity
+   // and current accepted state, not the PSM's temporary state vector.
    PhysicalModel::SetPropStateManager(sm);
    for (UnsignedInt i = 0; i < forceList.size(); ++i)
       forceList[i]->SetPropStateManager(psm);
@@ -5932,6 +6461,19 @@ void ODEModel::MoveToOrigin(Real newEpoch)
          {
             modelState[i6 + j] = rawState[i6 + j] - delta[j];
          }
+         if (i < (Integer)scObjs.size())
+            if (Spacecraft *sc = dynamic_cast<Spacecraft*>(scObjs[i]))
+            {
+               bool sameBacking = sc->GetEpoch() == now;
+               for (Integer j = 0; j < 6 && sameBacking; ++j)
+                  sameBacking = (rawState[i6 + j] == sc->GetState()[j]);
+               Rvector6 localState;
+               if (sameBacking && sc->GetOriginRelativeState(forceOrigin,
+                     sc->GetEpochGT(), localState))
+                  for (Integer j = 0; j < 6; ++j)
+                     modelState[i6 + j] = localState[j];
+            }
+
 
          #ifdef DEBUG_REORIGIN
             MessageInterface::ShowMessage(
@@ -6016,6 +6558,19 @@ void ODEModel::MoveToOriginGT(GmatTime newEpoch)
          {
             modelState[i6 + j] = rawState[i6 + j] - delta[j];
          }
+         if (i < (Integer)scObjs.size())
+            if (Spacecraft *sc = dynamic_cast<Spacecraft*>(scObjs[i]))
+            {
+               bool sameBacking = sc->GetEpochGT() == now;
+               for (Integer j = 0; j < 6 && sameBacking; ++j)
+                  sameBacking = (rawState[i6 + j] == sc->GetState()[j]);
+               Rvector6 localState;
+               if (sameBacking && sc->GetOriginRelativeState(forceOrigin,
+                     sc->GetEpochGT(), localState))
+                  for (Integer j = 0; j < 6; ++j)
+                     modelState[i6 + j] = localState[j];
+            }
+
 
 #ifdef DEBUG_REORIGIN
          MessageInterface::ShowMessage(
@@ -6061,6 +6616,46 @@ void ODEModel::MoveToOriginGT(GmatTime newEpoch)
  * coordinate system.
  */
 //------------------------------------------------------------------------------
+RealArray ODEModel::GetJ2KStateSnapshot(const RealArray &local,
+   const GmatTime &atEpoch) const
+{
+   if (local.size() != static_cast<size_t>(dimension) || cartesianStart < 0 ||
+       cartesianCount < 0 || static_cast<size_t>(cartesianStart) > local.size() ||
+       static_cast<size_t>(cartesianCount) > (local.size() - cartesianStart) / 6)
+      throw ODEModelException("Captured state does not match the native Cartesian layout.");
+   RealArray result(local);
+   if (centralBodyName != j2kBodyName)
+   {
+      if (!forceOrigin || !j2kBody)
+         throw ODEModelException("Captured state has unresolved origin references.");
+      const Rvector6 delta = j2kBody->GetState(atEpoch) - forceOrigin->GetState(atEpoch);
+      for (Integer i = 0; i < cartesianCount; ++i)
+         for (Integer j = 0; j < 6; ++j)
+            result[cartesianStart + i * 6 + j] -= delta[j];
+   }
+   return result;
+}
+
+RealArray ODEModel::GetJ2KStateSnapshot(const RealArray &local, Real atEpoch) const
+{
+   if (local.size() != static_cast<size_t>(dimension) || cartesianStart < 0 ||
+       cartesianCount < 0 || static_cast<size_t>(cartesianStart) > local.size() ||
+       static_cast<size_t>(cartesianCount) > (local.size() - cartesianStart) / 6)
+      throw ODEModelException("Captured state does not match the native Cartesian layout.");
+   RealArray result(local);
+   if (centralBodyName != j2kBodyName)
+   {
+      if (!forceOrigin || !j2kBody)
+         throw ODEModelException("Captured state has unresolved origin references.");
+      // Match ReturnFromOrigin for spacecraft using the native Real clock.
+      const Rvector6 delta = j2kBody->GetState(atEpoch) - forceOrigin->GetState(atEpoch);
+      for (Integer i = 0; i < cartesianCount; ++i)
+         for (Integer j = 0; j < 6; ++j)
+            result[cartesianStart + i * 6 + j] -= delta[j];
+   }
+   return result;
+}
+
 void ODEModel::ReturnFromOrigin(Real newEpoch)
 {
    #ifdef DEBUG_REORIGIN
@@ -6713,4 +7308,26 @@ GmatBase* ODEModel::GetStmObject(const std::string &rowName)
                      GetRefObject(Gmat::SPACECRAFT, "");
 
    return retval;
+}
+
+ObjectArray ODEModel::GetFunctionValueOwnedObjectsImpl() const
+{
+   return ObjectArray(forceList.begin(), forceList.end());
+}
+
+void ODEModel::CopySolveForValues(const ODEModel &source)
+{
+   std::map<const GmatBase*, const GmatBase*> pairs, reverse;
+   NativeRestoration::Validate(source.GetFunctionValueOwnedObjects(), GetFunctionValueOwnedObjects(), pairs, reverse);
+   auto values = source.solveForMap;
+   auto names = source.solveForNames;
+   for (auto &entry : values)
+   {
+      const auto mapped = pairs.find(entry.second.solveForHolder);
+      if (entry.second.solveForHolder == &source) entry.second.solveForHolder = this;
+      else if (mapped != pairs.end()) entry.second.solveForHolder = const_cast<GmatBase*>(mapped->second);
+   }
+   solveForMap.swap(values);
+   solveForNames.swap(names);
+   NativeRestoration::RebindCovariance(*this, source.GetFunctionValueOwnedObjects(), GetFunctionValueOwnedObjects());
 }

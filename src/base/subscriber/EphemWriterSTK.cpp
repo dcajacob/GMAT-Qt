@@ -747,6 +747,7 @@ void EphemWriterSTK::FinishUpWritingSTK()
       {
          // Attempt to lower the order required to write data if needed
          Integer numPoints = interpolator->GetPointCount();
+         RequireInterpolationData(numPoints,"interpolation input samples");
 
          if (numPoints < (interpolationOrder + 1))
             MessageInterface::ShowMessage("WARNING: Not enough points provided to "

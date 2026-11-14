@@ -38,6 +38,7 @@
 #include <vector>
 #include "gmatdefs.hpp"
 #include "MatData.hpp"
+#include "MatlabValue.hpp"
 
 /*
  * Container for real data to be written to .mat files
@@ -55,6 +56,7 @@ public:
    virtual void WriteData(MATFile *pmat, const std::string &obj_name,
         mxArray *mat_struct, mwIndex index = 0U);
    virtual bool WriteData();
+   MatlabValue ToMatlabValue() const; // Owned data; no vendor calls.
 
 protected:
    /// The data array to be written

@@ -53,6 +53,9 @@ public:
    virtual ~StringObjectWrapper();
    
    virtual ElementWrapper*     Clone() const;
+   void RebindClonedReferences(const ElementWrapper &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
+   bool OwnsRefObject() const override;
    virtual std::string         ToString();
    virtual Gmat::ParameterType GetDataType() const;
    
@@ -73,6 +76,7 @@ protected:
 
    /// pointer to the String object
    StringVar       *stringVar;
+   bool ownsString;
    
    /// name of the array
    std::string     stringName;

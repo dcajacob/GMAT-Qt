@@ -22,7 +22,27 @@
   </refnamediv>
 
   <refsection>
+    <title>Root refinement</title>
+    <para><literal>RootFindingMethod</literal> selects <literal>SPICE</literal>
+    (the default) or <literal>Brent</literal>. Brent refines field-of-view,
+    phase-angle, occultation and transit boundaries before their windows are
+    combined. Circular, elliptical and simple polygon fields of view are
+    supported, including concave polygons and point or ellipsoidal targets.
+    <literal>RootTolerance</literal> is a positive finite time tolerance in TDB
+    seconds, defaulting to 1e-6. Tolerances below the representable epoch
+    resolution are rejected. <literal>StepSize</literal> still controls event
+    discovery. Clipped search endpoints are retained. An interior boundary
+    without a continuous sign-changing geometry bracket reports an error.</para>
+  </refsection>
+
+  <refsection>
     <title>Description</title>
+
+    <para>Generated frame and instrument kernels must be unloaded before
+    their files are deleted. Failed retirement reports an error and retains
+    the pending filenames and reader for retry during reinitialization or
+    reference rebinding. Cleanup during destruction reports failures and
+    retains files whose native unloading could not be confirmed.</para>
 
     <note>
       <para><guilabel>IntrusionLocator</guilabel> is a SPICE-based subsystem
@@ -534,7 +554,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>N/A</para>
+                    <para>Dimensionless illuminated fraction (0 to 1)</para>
                   </listitem>
                 </varlistentry>
 

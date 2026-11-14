@@ -58,6 +58,7 @@ public:
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 private:
@@ -84,6 +85,7 @@ public:
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 private:
@@ -110,6 +112,7 @@ public:
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 private:
@@ -136,6 +139,7 @@ public:
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 private:
@@ -162,6 +166,7 @@ public:
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 private:
@@ -188,6 +193,7 @@ public:
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 private:
@@ -214,6 +220,7 @@ public:
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 private:
@@ -240,6 +247,7 @@ public:
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 private:
@@ -266,6 +274,7 @@ public:
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 private:
@@ -293,6 +302,7 @@ public:
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 private:
@@ -319,6 +329,7 @@ public:
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
 protected:
 private:
@@ -344,6 +355,7 @@ public:
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
    virtual Gmat::ParameterType GetParameterType(const Integer id) const;
    virtual std::string GetParameterTypeString(const Integer id) const;
@@ -391,6 +403,7 @@ public:
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
    virtual Gmat::ParameterType GetParameterType(const Integer id) const;
    virtual std::string GetParameterTypeString(const Integer id) const;
@@ -437,6 +450,7 @@ public:
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
    
    virtual Gmat::ParameterType GetParameterType(const Integer id) const;
    virtual std::string GetParameterTypeString(const Integer id) const;
@@ -484,6 +498,7 @@ public:
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone(void) const;
+   void Copy(const GmatBase *source) override;
       
    virtual Gmat::ParameterType GetParameterType(const Integer id) const;
    virtual std::string GetParameterTypeString(const Integer id) const;

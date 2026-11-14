@@ -30,9 +30,30 @@
 **/
 //------------------------------------------------------------------------------
 #include "PlanetographicRegion.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration planetographicRegionValueProvider({
+   PlanetographicRegion::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const PlanetographicRegion*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<PlanetographicRegion*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "FileUtil.hpp"
 #include "StringUtil.hpp"
 #include "APIFunctions.hpp"
+#include "AssetException.hpp"
+#include "ObjectScriptExportScope.hpp"
+#include <algorithm>
+#include <cmath>
+#include <memory>
+#include <typeinfo>
+#include <limits>
 
 //---------------------------------
 // static data
@@ -87,6 +108,7 @@ PlanetographicRegion::PlanetographicRegion(const PlanetographicRegion& regionToC
    latitudeList = regionToCopy.latitudeList;
    longitudeList = regionToCopy.longitudeList;
    filename = regionToCopy.filename;
+   vertices = regionToCopy.vertices;
 }
 
 //------------------------------------------------------------------------------
@@ -109,6 +131,7 @@ PlanetographicRegion & PlanetographicRegion::operator=(const PlanetographicRegio
    latitudeList = regionToCopy.latitudeList;
    longitudeList = regionToCopy.longitudeList;
    filename = regionToCopy.filename;
+   vertices = regionToCopy.vertices;
    return *this;
 }
 
@@ -135,7 +158,32 @@ PlanetographicRegion::~PlanetographicRegion()
  //------------------------------------------------------------------------------
 GmatBase * PlanetographicRegion::Clone() const
 {
-   return (new PlanetographicRegion(*this));
+   auto value = std::make_unique<PlanetographicRegion>(*this);
+   value->RebindFunctionValueContext(*this);
+   return value.release();
+}
+
+void PlanetographicRegion::Copy(const GmatBase *source)
+{
+   const auto *region = dynamic_cast<const PlanetographicRegion*>(source);
+   if (!region || typeid(*region) != typeid(PlanetographicRegion) ||
+         typeid(*this) != typeid(PlanetographicRegion))
+      throw AssetException("Cannot copy incompatible PlanetographicRegion.\n");
+   if (region == this) return;
+   const auto previous = GetFunctionValueContext();
+   operator=(*region);
+   RebindFunctionValueContext(*region);
+}
+
+bool PlanetographicRegion::RebindFunctionValueReferencesImpl(const GmatBase &source,
+      SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *region = dynamic_cast<const PlanetographicRegion*>(&source);
+   if (!region || typeid(*region) != typeid(PlanetographicRegion) ||
+         typeid(*this) != typeid(PlanetographicRegion))
+      throw AssetException("Incompatible PlanetographicRegion function value.\n");
+   RebindClonedBodyReferences(*region, system, resolve);
+   return true;
 }
 
 //------------------------------------------------------------------------------
@@ -195,6 +243,59 @@ const Rvector& PlanetographicRegion::GetRvectorParameter(const Integer id) const
 }
 
 
+void PlanetographicRegion::InvalidatePolygon()
+{
+   vertices.clear();
+   isInitialized = false;
+}
+
+const Rvector &PlanetographicRegion::SetRvectorParameter(const std::string &label,
+      const Rvector &value)
+{
+   return SetRvectorParameter(GetParameterID(label), value);
+}
+
+const Rvector &PlanetographicRegion::SetRvectorParameter(const Integer id,
+      const Rvector &value)
+{
+   if (id != LATITUDE && id != LONGITUDE)
+      return BodyFixedPoint::SetRvectorParameter(id, value);
+   if (!filename.empty()) DuplicateDefinitionError();
+   RealArray next;
+   next.reserve(value.GetSize());
+   Real minimum = 0.0, maximum = 0.0;
+   for (Integer i = 0; i < value.GetSize(); ++i)
+   {
+      const Real coordinate = value[i];
+      if (!std::isfinite(coordinate))
+         throw AssetException("PlanetographicRegion coordinates must be finite.");
+      if (id == LATITUDE && (coordinate < -90.0 || coordinate > 90.0))
+         throw AssetException("PlanetographicRegion latitude must be between -90 and 90 Degrees.");
+      if (i == 0) minimum = maximum = coordinate;
+      else { minimum = std::min(minimum, coordinate); maximum = std::max(maximum, coordinate); }
+      next.push_back(coordinate);
+   }
+   if (id == LONGITUDE && !next.empty() && maximum - minimum >= 360.0)
+      throw AssetException("All PlanetographicRegion longitudes must be within 360 Dg of each other.");
+   if (id == LATITUDE) latitudeList.swap(next);
+   else longitudeList.swap(next);
+   InvalidatePolygon();
+   return GetRvectorParameter(id);
+}
+
+void PlanetographicRegion::WriteParameters(Gmat::WriteMode mode,
+      std::string &prefix, std::stringstream &stream)
+{
+   if (ObjectScriptExportScope::IsActive() &&
+         (mode == Gmat::SCRIPTING || mode == Gmat::OWNED_OBJECT ||
+          mode == Gmat::NO_COMMENTS || mode == Gmat::OBJECT_EXPORT))
+      stream << prefix << "AreaFileName = '';\n"
+             << prefix << "Latitude = [];\n"
+             << prefix << "Longitude = [];\n";
+   BodyFixedPoint::WriteParameters(mode, prefix, stream);
+}
+
+
 //------------------------------------------------------------------------------
 // bool SetStringParameter(const Integer id, const std::string & value)
 //------------------------------------------------------------------------------
@@ -209,31 +310,26 @@ const Rvector& PlanetographicRegion::GetRvectorParameter(const Integer id) const
  //------------------------------------------------------------------------------
 bool PlanetographicRegion::SetStringParameter(const Integer id, const std::string &value)
 {
-#ifdef DEBUG_FM_SET
-   MessageInterface::ShowMessage
-   ("ODEModel::SetStringParameter() entered, id=%d, value='%s'\n",
-      id, value.c_str());
-#endif
-
-   switch (id)
+   if (id != FILENAME) return BodyFixedPoint::SetStringParameter(id, value);
+   std::string next = GmatFileUtil::ConvertToOsFileName(value);
+   if (next.empty())
    {
-   case FILENAME:
-      filename = GmatFileUtil::ConvertToOsFileName(value);
-
-      std::string theFile = GmatFileUtil::FindFile(filename);
-
-      if (theFile == "")
-      {
-         std::string message = "File: " + value + " in PlanetographicRegion: " + instanceName + " does not exist.";
-         throw GmatBaseException(message);
-      }
-      if (latitudeList.size() > 0 || longitudeList.size() > 0)
-      {
-         DuplicateDefinitionError();
-      }
+      if (filename.empty()) return true;
+      // Existing file-derived coordinates become an explicit inline value.
+      filename.clear();
+      InvalidatePolygon();
       return true;
    }
-   return BodyFixedPoint::SetStringParameter(id, value);
+   if (GmatFileUtil::FindFile(next).empty())
+      throw GmatBaseException("File: " + value + " in PlanetographicRegion: " +
+            instanceName + " does not exist.");
+   if (filename.empty() && (!latitudeList.empty() || !longitudeList.empty()))
+      DuplicateDefinitionError();
+   filename.swap(next);
+   latitudeList.clear();
+   longitudeList.clear();
+   InvalidatePolygon();
+   return true;
 }
 
 
@@ -253,7 +349,7 @@ bool PlanetographicRegion::SetStringParameter(const std::string & field, const s
 {
    for (int i = BodyFixedPointParamCount; i < PlanetographicRegionParamCount; ++i)
    {
-      if (field == PARAMETER_TEXT[i])
+      if (field == PARAMETER_TEXT[i - BodyFixedPointParamCount])
       {
          return SetStringParameter(i, value);
       }
@@ -277,7 +373,7 @@ std::string PlanetographicRegion::GetStringParameter(const std::string& field) c
 {
    for (int i = BodyFixedPointParamCount; i < PlanetographicRegionParamCount; ++i)
    {
-      if (field == PARAMETER_TEXT[i])
+      if (field == PARAMETER_TEXT[i - BodyFixedPointParamCount])
       {
          return GetStringParameter(i);
       }
@@ -339,7 +435,7 @@ Real PlanetographicRegion::GetRealParameter(const std::string& field) const
 {
    for (int i = BodyFixedPointParamCount; i < PlanetographicRegionParamCount; ++i)
    {
-      if (field == PARAMETER_TEXT[i])
+      if (field == PARAMETER_TEXT[i - BodyFixedPointParamCount])
       {
          return GetRealParameter(i);
       }
@@ -437,7 +533,7 @@ Real PlanetographicRegion::SetRealParameter(const std::string& field, const Real
 {
    for (int i = BodyFixedPointParamCount; i < PlanetographicRegionParamCount; ++i)
    {
-      if (field == PARAMETER_TEXT[i])
+      if (field == PARAMETER_TEXT[i - BodyFixedPointParamCount])
       {
          return SetRealParameter(i, value);
       }
@@ -482,56 +578,21 @@ bool PlanetographicRegion::SetRefObject(GmatBase * obj, const UnsignedInt type, 
 Real PlanetographicRegion::SetRealParameter(const Integer id, const Real value,
    const Integer index)
 {
-   std::string indexString = std::to_string(index);
-
-   if (id == LATITUDE)
-   {
-      if (filename.size() > 0)
-         DuplicateDefinitionError();
-
-      std::string name = "Latitude[" + indexString + "]";
-      if (value > 90.0 || value < -90.0)
-      {
-         std::string message = "The latitude:  " + std::to_string(value) + " in " + instanceName + " is invalid.  The number must be between -90 and 90 Degrees.";
-         throw GmatBaseException(message);
-      }
-      latitudeList.push_back(value);
-      return value;
-   }
-   else if (id == LONGITUDE)
-   {
-      if (filename.size() > 0)
-         DuplicateDefinitionError();
-
-      std::string name = "Longitude[" + indexString + "]";
-
-      Real compare = 0.0;
-      if (longitudeList.size() > 0)
-      {
-         Real minimum = longitudeList[0];
-         Real maximum = longitudeList[0];
-         for (Integer i = 1; i < longitudeList.size(); ++i)
-         {
-            if (longitudeList[i] < minimum)
-               minimum = longitudeList[i];
-
-            if (longitudeList[i] > maximum)
-               maximum = longitudeList[i];
-         }
-         if ((value - minimum) >= 360.0 || (maximum - value) >= 360.0)
-         {
-            std::string message = "The longitude:  " + std::to_string(value) + " in " + instanceName + " is invalid.  All longitudes must be within 360 Dg of each other.";
-            throw GmatBaseException(message);
-         }
-         compare = longitudeList[longitudeList.size() - 1];
-      }
-      longitudeList.push_back(value);
-      return value;
-   }
-   else
-   {
+   if (id != LATITUDE && id != LONGITUDE)
       return BodyFixedPoint::SetRealParameter(id, value);
-   }
+   if (!filename.empty()) DuplicateDefinitionError();
+   const RealArray &current = id == LATITUDE ? latitudeList : longitudeList;
+   if (index < 0 || static_cast<size_t>(index) > current.size())
+      throw AssetException("PlanetographicRegion coordinate index is out of range.");
+   const size_t limit = static_cast<size_t>(std::numeric_limits<Integer>::max());
+   if (current.size() > limit ||
+         (current.size() == limit && static_cast<size_t>(index) == current.size()))
+      throw AssetException("PlanetographicRegion coordinate vector exceeds its native integer size.");
+   Rvector next(static_cast<Integer>(current.size()) + (static_cast<size_t>(index) == current.size() ? 1 : 0));
+   for (size_t i = 0; i < current.size(); ++i) next[static_cast<Integer>(i)] = current[i];
+   next[index] = value;
+   SetRvectorParameter(id, next);
+   return value;
 }
 
 
@@ -545,10 +606,24 @@ Real PlanetographicRegion::SetRealParameter(const Integer id, const Real value,
  //---------------------------------------------------------------------------
 bool PlanetographicRegion::Initialize()
 {
-   BodyFixedPoint::Initialize();
-   InterpolateTheCoordinates();
-   FinalizeCreation();
-   return true;
+   const Real previousFlattening = flattening;
+   const Real previousRadius = meanEquatorialRadius;
+   isInitialized = false;
+   try
+   {
+      if (!BodyFixedPoint::Initialize()) return false;
+      if (previousFlattening != flattening || previousRadius != meanEquatorialRadius)
+         vertices.clear();
+      InterpolateTheCoordinates();
+      FinalizeCreation();
+      return true;
+   }
+   catch (...)
+   {
+      vertices.clear();
+      isInitialized = false;
+      throw;
+   }
 }
 
 
@@ -978,6 +1053,11 @@ std::string PlanetographicRegion::GetParameterTypeString(const Integer id) const
  //---------------------------------------------------------------------------
 bool PlanetographicRegion::IsParameterReadOnly(const Integer id) const
 {
+   // File initialization populates these lists for computation. They are
+   // derived in file mode, whose setters reject a simultaneous explicit list.
+   if ((id == LATITUDE || id == LONGITUDE) && !filename.empty())
+      return true;
+
    if ((id == LOCATION_1) || (id == LOCATION_2) || (id == LOCATION_3) || 
       (id == HORIZON_REFERENCE) || (id == STATE_TYPE) || (id == ORBIT_COLOR) || (id == TARGET_COLOR))
       return true;
@@ -999,11 +1079,7 @@ bool PlanetographicRegion::IsParameterReadOnly(const Integer id) const
  //---------------------------------------------------------------------------
 bool PlanetographicRegion::IsParameterReadOnly(const std::string &label) const
 {
-   if ((label == PARAMETER_TEXT[LATITUDE - BodyFixedPointParamCount]) ||
-      (label == PARAMETER_TEXT[LONGITUDE - BodyFixedPointParamCount]))
-      return false;
-
-   return BodyFixedPoint::IsParameterReadOnly(label);
+   return IsParameterReadOnly(GetParameterID(label));
 }
 
 bool PlanetographicRegion::IsValidID(const std::string & id)
@@ -1070,6 +1146,9 @@ const Rvector3 PlanetographicRegion::GetMJ2000Velocity(const GmatTime & atTime)
  //---------------------------------------------------------------------------
 bool PlanetographicRegion::isWithin(Real lat, Real lon, Real height, Real & minDistance)
 {
+   if (!isInitialized && !Initialize())
+      throw AssetException("Cannot initialize PlanetographicRegion geometry.");
+
    //Takes a lat lon pos of an object and says whether or not it is within the region.
    //Draws a line segment along the same latitude to 180 longitude and checks the number of times 
    //that line segment intersects the regions line segments.
@@ -1352,7 +1431,10 @@ bool PlanetographicRegion::DoLinesIntersect(Real a[2], Real b[2], Real c[2], Rea
       doesIntersect = false;
 
    // Calculate the distance from point C to line segment ab
-   distance = fabs(acab / sqrt(ab[0] * ab[0] + ab[1] * ab[1]));
+   const Real length=std::hypot(ab[0],ab[1]);
+   const Real projection=length>0 ?
+         std::max(0.0,std::min(1.0,(ac[0]/length)*(ab[0]/length)+(ac[1]/length)*(ab[1]/length))) : 0.0;
+   distance=std::hypot(ac[0]-projection*ab[0],ac[1]-projection*ab[1]);
 
    return doesIntersect;
 }

@@ -58,16 +58,40 @@ public:
    
    /// Initialize the CSFixed attitude
    virtual bool Initialize();
+   bool Validate() override;
+
+   using Kinematic::GetRealParameter;
+   using Kinematic::SetRealParameter;
+   using Kinematic::GetRvectorParameter;
+   using Kinematic::SetRvectorParameter;
+   using Kinematic::SetStringParameter;
+   using Kinematic::IsParameterReadOnly;
+   using Kinematic::IsParameterCloaked;
+   std::string GetParameterText(const Integer id) const override;
+   Integer GetParameterID(const std::string &label) const override;
+   Gmat::ParameterType GetParameterType(const Integer id) const override;
+   bool IsParameterReadOnly(const Integer id) const override;
+   bool IsParameterCloaked(const Integer id) const override;
+   const Rvector& GetRvectorParameter(const Integer id) const override;
+   const Rvector& SetRvectorParameter(const Integer id, const Rvector &value) override;
+   bool SetStringParameter(const Integer id, const std::string &value) override;
+   Real GetRealParameter(const Integer id, const Integer index) const override;
+   Real SetRealParameter(const Integer id, const Real value, const Integer index) override;
 
    /// inherited from GmatBase
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
 
 
 protected:
    enum 
    {
-       CSFixedParamCount = KinematicParamCount,
+       OFFSET_QUATERNION = KinematicParamCount,
+       CSFixedParamCount,
    };
+
+   // Constant reference-frame to body rotation, scalar-last (x,y,z,w).
+   Rvector offsetQuaternion;
    
    virtual void ComputeCosineMatrixAndAngularVelocity(Real atTime);
    virtual void ComputeCosineMatrixAndAngularVelocity(GmatTime &atTime);

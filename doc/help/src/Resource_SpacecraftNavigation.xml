@@ -439,10 +439,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>For Cartesian elements: covariance matrix where
-                    position is specified in km and velocity in km/s. (Thus,
-                    first three diagonal elements have units km^2 and last
-                    three diagonal elements have units (km/s)^2)</para>
+                    <para>Element (i,j) has the product of state-component units i and j. Cartesian order [X,Y,Z,VX,VY,VZ] uses [km,km,km,km/s,km/s,km/s]. Keplerian order [SMA,ECC,INC,RAAN,AOP,MA] uses [km,dimensionless,deg,deg,deg,deg]. Diagonals square those units; off-diagonals use their products. See Remarks for the covariance representation required by each use.</para>
 
                     <para>For Keplerian elements: covariance matrix in km and
                     degrees (For example, the SMA element of the matrix has

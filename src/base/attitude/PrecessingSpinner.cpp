@@ -33,6 +33,7 @@
 //------------------------------------------------------------------------------
 
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <iomanip>
 #include "Attitude.hpp"
@@ -41,6 +42,8 @@
 #include "AttitudeConversionUtility.hpp"
 
 #include "PrecessingSpinner.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 
 
 //#define DEBUG_PRECESSING_SPINNER
@@ -159,7 +162,9 @@ bool PrecessingSpinner::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* PrecessingSpinner::Clone() const
 {
-	return (new PrecessingSpinner(*this)); //???(Yeerang Lim)
+	std::unique_ptr<PrecessingSpinner> value(new PrecessingSpinner(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release(); //???(Yeerang Lim)
 }
 
 //------------------------------------------------------------------------------
@@ -319,3 +324,17 @@ void PrecessingSpinner::ComputeCosineMatrixAndAngularVelocity(GmatTime &atTime)
 //  private methods
 //------------------------------------------------------------------------------
 // none 
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void PrecessingSpinner::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const PrecessingSpinner*>(original);
+   if (!source || typeid(*source) != typeid(PrecessingSpinner) ||
+       typeid(*this) != typeid(PrecessingSpinner))
+      throw GmatBaseException("Cannot copy incompatible object into PrecessingSpinner");
+   if (source == this)
+      return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
+}

@@ -1,0 +1,331 @@
+{
+  "cases": [
+    {
+      "key": "None",
+      "target": "Sat",
+      "observers": [
+        "North",
+        "Dark"
+      ],
+      "occulting_bodies": [],
+      "events": {
+        "North": [
+          {
+            "start": 0.0,
+            "end": 24000.0,
+            "duration": 24000.0
+          }
+        ],
+        "Dark": []
+      },
+      "initial_state": [
+        2500.0,
+        0.0,
+        0.0,
+        -0.0,
+        1.4003999428734637,
+        0.0
+      ],
+      "other_state": [
+        1.5308084989341916e-13,
+        2500.0,
+        0.0,
+        -1.4003999428734637,
+        8.574976537830618e-17,
+        0.0
+      ],
+      "final_state": [
+        1597.7499165750783,
+        1922.8091959641574,
+        0.0,
+        -1.0770807552739108,
+        0.8949955567591285,
+        0.0
+      ],
+      "mu": 398600.4415,
+      "orbit_mu": 4902.8,
+      "duration": 24000,
+      "start": 0.0,
+      "end": 24000,
+      "bounded": false,
+      "write_report": true,
+      "time_tolerance": 0.002,
+      "duration_tolerance": 0.002
+    },
+    {
+      "key": "Luna",
+      "target": "Sat",
+      "observers": [
+        "North",
+        "Dark"
+      ],
+      "occulting_bodies": [
+        "Luna"
+      ],
+      "events": {
+        "North": [
+          {
+            "start": 0.0,
+            "end": 5623.0538484454155,
+            "duration": 5623.0538484454155
+          },
+          {
+            "start": 8316.60588234663,
+            "end": 16868.06591540575,
+            "duration": 8551.46003305912
+          },
+          {
+            "start": 19555.42166084051,
+            "end": 24000.0,
+            "duration": 4444.578339159489
+          }
+        ],
+        "Dark": []
+      },
+      "initial_state": [
+        2500.0,
+        0.0,
+        0.0,
+        -0.0,
+        1.4003999428734637,
+        0.0
+      ],
+      "other_state": [
+        1.5308084989341916e-13,
+        2500.0,
+        0.0,
+        -1.4003999428734637,
+        8.574976537830618e-17,
+        0.0
+      ],
+      "final_state": [
+        1597.7499165750783,
+        1922.8091959641574,
+        0.0,
+        -1.0770807552739108,
+        0.8949955567591285,
+        0.0
+      ],
+      "mu": 398600.4415,
+      "orbit_mu": 4902.8,
+      "duration": 24000,
+      "start": 0.0,
+      "end": 24000,
+      "bounded": false,
+      "write_report": true,
+      "time_tolerance": 0.002,
+      "duration_tolerance": 0.002
+    },
+    {
+      "key": "Mars",
+      "target": "Sat",
+      "observers": [
+        "North",
+        "Dark"
+      ],
+      "occulting_bodies": [
+        "Mars"
+      ],
+      "events": {
+        "North": [
+          {
+            "start": 0.0,
+            "end": 24000.0,
+            "duration": 24000.0
+          }
+        ],
+        "Dark": []
+      },
+      "initial_state": [
+        2500.0,
+        0.0,
+        0.0,
+        -0.0,
+        1.4003999428734637,
+        0.0
+      ],
+      "other_state": [
+        1.5308084989341916e-13,
+        2500.0,
+        0.0,
+        -1.4003999428734637,
+        8.574976537830618e-17,
+        0.0
+      ],
+      "final_state": [
+        1597.7499165750783,
+        1922.8091959641574,
+        0.0,
+        -1.0770807552739108,
+        0.8949955567591285,
+        0.0
+      ],
+      "mu": 398600.4415,
+      "orbit_mu": 4902.8,
+      "duration": 24000,
+      "start": 0.0,
+      "end": 24000,
+      "bounded": false,
+      "write_report": true,
+      "time_tolerance": 0.002,
+      "duration_tolerance": 0.002
+    },
+    {
+      "key": "Both",
+      "target": "Sat",
+      "observers": [
+        "North",
+        "Dark"
+      ],
+      "occulting_bodies": [
+        "Luna",
+        "Mars"
+      ],
+      "events": {
+        "North": [
+          {
+            "start": 0.0,
+            "end": 5623.0538484454155,
+            "duration": 5623.0538484454155
+          },
+          {
+            "start": 8316.60588234663,
+            "end": 16868.06591540575,
+            "duration": 8551.46003305912
+          },
+          {
+            "start": 19555.42166084051,
+            "end": 24000.0,
+            "duration": 4444.578339159489
+          }
+        ],
+        "Dark": []
+      },
+      "initial_state": [
+        2500.0,
+        0.0,
+        0.0,
+        -0.0,
+        1.4003999428734637,
+        0.0
+      ],
+      "other_state": [
+        1.5308084989341916e-13,
+        2500.0,
+        0.0,
+        -1.4003999428734637,
+        8.574976537830618e-17,
+        0.0
+      ],
+      "final_state": [
+        1597.7499165750783,
+        1922.8091959641574,
+        0.0,
+        -1.0770807552739108,
+        0.8949955567591285,
+        0.0
+      ],
+      "mu": 398600.4415,
+      "orbit_mu": 4902.8,
+      "duration": 24000,
+      "start": 0.0,
+      "end": 24000,
+      "bounded": false,
+      "write_report": true,
+      "time_tolerance": 0.002,
+      "duration_tolerance": 0.002
+    }
+  ],
+  "stations": [
+    {
+      "name": "North",
+      "latitude": -11.47667644724497,
+      "longitude": 253.58762840453085,
+      "height": 0.0,
+      "minimum_elevation": 0.0,
+      "fixed_position": [
+        -1766.3353261096788,
+        -5996.711706926285,
+        -1260.723122039362
+      ],
+      "up": [
+        -0.2768992517224163,
+        -0.9400734729685387,
+        -0.19896901722739682
+      ]
+    },
+    {
+      "name": "Dark",
+      "latitude": 11.47667644724497,
+      "longitude": 73.58762840453085,
+      "height": 0.0,
+      "minimum_elevation": 0.0,
+      "fixed_position": [
+        1766.335326109681,
+        5996.711706926285,
+        1260.723122039362
+      ],
+      "up": [
+        0.27689925172241664,
+        0.9400734729685386,
+        0.19896901722739682
+      ]
+    },
+    {
+      "name": "Unused",
+      "latitude": -80.0,
+      "longitude": 80.0,
+      "height": 1.0,
+      "minimum_elevation": 15.0,
+      "fixed_position": [
+        192.9818969511986,
+        1094.4547236946703,
+        -6260.527360405465
+      ],
+      "up": [
+        0.03015368960704583,
+        0.1710100716628344,
+        -0.984807753012208
+      ]
+    }
+  ],
+  "physical_inputs": {
+    "tt0": 64.184,
+    "earth_radii": [
+      6378.1366,
+      6378.1366,
+      6356.7519
+    ],
+    "sun_radius": 695700.0,
+    "kernels": {
+      "application/data/time/SPICELeapSecondKernel.tls": "678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b",
+      "application/data/planetary_coeff/SPICEPlanetaryConstantsKernel.tpc": "3dff7b1dbeceaa01f25467767d3fa25816051c85d162d1edf04acb310ee28bb1",
+      "application/data/planetary_ephem/spk/DE421AllPlanets.bsp": "d6f02ca7f99bcea29c472e4955b52faccd026ae3d5dbc7bd6306979b5b57ea99",
+      "application/data/planetary_coeff/SPICEEarthPredictedKernel.bpc": "f5ed4d1f460dbcf40bf24f657ab9021718048e18fb723093bfd229066b4e3a49",
+      "application/data/planetary_coeff/SPICEEarthCurrentKernel.bpc": "6d899c83542e32dfd77f3b3b79383db88860adca59adf60f4823780760589a52",
+      "application/data/planetary_coeff/earth_latest_high_prec.bpc": "94b3cedf59698eedf429ed50e25a2c9cec3e916cbc1bc5ce405671ce11b3a527",
+      "application/data/icrf/ICRF_Table.txt": "e6b3969a7961c56cacd37a3daa2a98d1d7d765e8605699d5151db2a5bde44547",
+      "application/data/planetary_coeff/SPICELunaCurrentKernel.bpc": "656f90616403d75a75f0cd6c8830fc5b44f8cb4facb5ccb8915e752b397520cf",
+      "application/data/planetary_coeff/SPICELunaFrameKernel.tf": "78732477b96f9863e7b0d65bcee3c22b8707ca5ed0db56d1173319cb2e8c7993"
+    },
+    "moon_radii": [
+      1737.4,
+      1737.4,
+      1737.4
+    ],
+    "mars_outer_radius": 3396.19,
+    "orbit_mu": 4902.8,
+    "orbit_radius": 2500.0,
+    "orbit_frame": "MoonIcrf",
+    "ephemeris_source": "SPICE",
+    "ephemeris_update_interval": 0
+  },
+  "equatorial_radius": 6378.1366,
+  "flattening": 0.0033528131084554717,
+  "oracle_controls": {
+    "analytic_segment_checks": 10,
+    "removed_contact_seconds": 5380.907779335976,
+    "sampled_mars_clearance_min_km": 276699309.123176
+  },
+  "scope": "One prescribed 24000s Moon-centered ICRF point-mass circle, Earth ellipsoid stations, geometric DE421 translations, finite-segment spherical lunar occultation and distant Mars outer-sphere exclusion. None/Mars and Luna/Luna+Mars compare selected-body suppression and unselected-body isolation. Shared hashed SPICE inputs only; no GMAT/GF/occultation truth. No light-time/stellar, arbitrary ellipsoids/user bodies/trajectories, terrain/FOV, rise-only/set-only selection, native OS input/hardware/platform/stress/current-private NASA or full newest-build qualification."
+}

@@ -53,6 +53,8 @@ public:
    virtual ~ArrayElementWrapper();
    
    virtual ElementWrapper*     Clone() const;
+   void RebindClonedReferences(const ElementWrapper &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
 
    virtual std::string         ToString();
    virtual Gmat::ParameterType GetDataType() const;

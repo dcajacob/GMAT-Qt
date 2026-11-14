@@ -377,5 +377,6 @@ bool OdeReal::NeedsForces() const
 //------------------------------------------------------------------------------
 void OdeReal::SetTransientForces(std::vector<PhysicalModel*>* tf)
 {
+   if (tf != retainedTransientValues.get()) retainedTransientValues.reset();
    transients = tf;
 }

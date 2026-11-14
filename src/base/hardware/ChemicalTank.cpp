@@ -28,6 +28,7 @@
 
 
 #include "ChemicalTank.hpp"
+#include <memory>
 #include "StringUtil.hpp"          // for GmatStringUtil
 #include "HardwareException.hpp"
 #include "MessageInterface.hpp"
@@ -748,7 +749,9 @@ const StringArray& ChemicalTank::GetPropertyEnumStrings(const std::string &label
 //---------------------------------------------------------------------------
 GmatBase* ChemicalTank::Clone() const
 {
-   return new ChemicalTank(*this);
+   std::unique_ptr<ChemicalTank> value(new ChemicalTank(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -763,7 +766,13 @@ GmatBase* ChemicalTank::Clone() const
 //---------------------------------------------------------------------------
 void ChemicalTank::Copy(const GmatBase* orig)
 {
-   operator=(*((ChemicalTank *)(orig)));
+   const auto *source = dynamic_cast<const ChemicalTank*>(orig);
+   if (!source || source->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Incompatible ChemicalTank value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 

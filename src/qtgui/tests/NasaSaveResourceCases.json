@@ -1,0 +1,1349 @@
+{
+  "schema_version": 1,
+  "scope": "Missing-family native Save pilots; no complete any-Resource claim.",
+  "cases": [
+    {
+      "key": "DefaultFrame",
+      "setup": "",
+      "selected": [
+        "EarthICRF"
+      ],
+      "objects": [
+        "EarthICRF"
+      ],
+      "filename": "EarthICRF.CoordinateSystem.data",
+      "definitions": [
+        "Create CoordinateSystem EarthICRF"
+      ],
+      "witnesses": [
+        {
+          "object": "EarthICRF",
+          "field": "Origin",
+          "type": "Object",
+          "expected": "Earth"
+        },
+        {
+          "object": "EarthICRF",
+          "field": "Axes",
+          "type": "Object",
+          "expected": "ICRF"
+        }
+      ]
+    },
+    {
+      "key": "CustomFrame",
+      "setup": "Create CoordinateSystem Frame;\nFrame.Origin = Mars;\nFrame.Axes = MJ2000Ec;\n",
+      "selected": [
+        "Frame"
+      ],
+      "objects": [
+        "Frame"
+      ],
+      "filename": "Frame.CoordinateSystem.data",
+      "definitions": [
+        "Create CoordinateSystem Frame"
+      ],
+      "witnesses": [
+        {
+          "object": "Frame",
+          "field": "Origin",
+          "type": "Object",
+          "expected": "Mars"
+        },
+        {
+          "object": "Frame",
+          "field": "Axes",
+          "type": "Object",
+          "expected": "MJ2000Ec"
+        }
+      ]
+    },
+    {
+      "key": "ElectricTank",
+      "setup": "Create ElectricTank Subject;\nSubject.FuelMass = 31.5;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.ElectricTank.data",
+      "definitions": [
+        "Create ElectricTank Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FuelMass",
+          "type": "Real",
+          "expected": 31.5
+        }
+      ]
+    },
+    {
+      "key": "SolarPowerSystem",
+      "setup": "Create SolarPowerSystem Subject;\nSubject.InitialMaxPower = 22.5;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.SolarPowerSystem.data",
+      "definitions": [
+        "Create SolarPowerSystem Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "InitialMaxPower",
+          "type": "Real",
+          "expected": 22.5
+        }
+      ]
+    },
+    {
+      "key": "NuclearPowerSystem",
+      "setup": "Create NuclearPowerSystem Subject;\nSubject.InitialMaxPower = 6.5;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.NuclearPowerSystem.data",
+      "definitions": [
+        "Create NuclearPowerSystem Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "InitialMaxPower",
+          "type": "Real",
+          "expected": 6.5
+        }
+      ]
+    },
+    {
+      "key": "RectangularFOV",
+      "setup": "Create RectangularFOV Subject;\nSubject.AngleWidth = 20.0;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.RectangularFOV.data",
+      "definitions": [
+        "Create RectangularFOV Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "AngleWidth",
+          "type": "Real",
+          "expected": 20.0
+        }
+      ]
+    },
+    {
+      "key": "ConicalFOV",
+      "setup": "Create ConicalFOV Subject;\nSubject.FieldOfViewAngle = 25.0;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.ConicalFOV.data",
+      "definitions": [
+        "Create ConicalFOV Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FieldOfViewAngle",
+          "type": "Real",
+          "expected": 25.0
+        }
+      ]
+    },
+    {
+      "key": "ElectricThruster",
+      "setup": "Create ElectricTank Fuel;\nFuel.FuelMass = 31.5;\nCreate ElectricThruster Engine;\nEngine.DutyCycle = 0.4;\nEngine.Tank = {Fuel};\n",
+      "selected": [
+        "Engine",
+        "Fuel"
+      ],
+      "objects": [
+        "Engine",
+        "Fuel"
+      ],
+      "filename": "Engine_Fuel.data",
+      "definitions": [
+        "Create ElectricThruster Engine",
+        "Create ElectricTank Fuel"
+      ],
+      "witnesses": [
+        {
+          "object": "Engine",
+          "field": "DutyCycle",
+          "type": "Real",
+          "expected": 0.4
+        },
+        {
+          "object": "Engine",
+          "field": "Tank",
+          "type": "ObjectArray",
+          "expected": [
+            "Fuel"
+          ]
+        },
+        {
+          "object": "Fuel",
+          "field": "FuelMass",
+          "type": "Real",
+          "expected": 31.5
+        }
+      ]
+    },
+    {
+      "key": "DefaultEarthMJ2000Eq",
+      "setup": "",
+      "selected": [
+        "EarthMJ2000Eq"
+      ],
+      "objects": [
+        "EarthMJ2000Eq"
+      ],
+      "filename": "EarthMJ2000Eq.CoordinateSystem.data",
+      "definitions": [
+        "Create CoordinateSystem EarthMJ2000Eq"
+      ],
+      "witnesses": [
+        {
+          "object": "EarthMJ2000Eq",
+          "field": "Origin",
+          "type": "Object",
+          "expected": "Earth"
+        },
+        {
+          "object": "EarthMJ2000Eq",
+          "field": "Axes",
+          "type": "Object",
+          "expected": "MJ2000Eq"
+        }
+      ]
+    },
+    {
+      "key": "DefaultEarthMJ2000Ec",
+      "setup": "",
+      "selected": [
+        "EarthMJ2000Ec"
+      ],
+      "objects": [
+        "EarthMJ2000Ec"
+      ],
+      "filename": "EarthMJ2000Ec.CoordinateSystem.data",
+      "definitions": [
+        "Create CoordinateSystem EarthMJ2000Ec"
+      ],
+      "witnesses": [
+        {
+          "object": "EarthMJ2000Ec",
+          "field": "Origin",
+          "type": "Object",
+          "expected": "Earth"
+        },
+        {
+          "object": "EarthMJ2000Ec",
+          "field": "Axes",
+          "type": "Object",
+          "expected": "MJ2000Ec"
+        }
+      ]
+    },
+    {
+      "key": "DefaultEarthFixed",
+      "setup": "",
+      "selected": [
+        "EarthFixed"
+      ],
+      "objects": [
+        "EarthFixed"
+      ],
+      "filename": "EarthFixed.CoordinateSystem.data",
+      "definitions": [
+        "Create CoordinateSystem EarthFixed"
+      ],
+      "witnesses": [
+        {
+          "object": "EarthFixed",
+          "field": "Origin",
+          "type": "Object",
+          "expected": "Earth"
+        },
+        {
+          "object": "EarthFixed",
+          "field": "Axes",
+          "type": "Object",
+          "expected": "BodyFixed"
+        }
+      ]
+    },
+    {
+      "key": "SolarPowerSystemGregorian",
+      "setup": "Create SolarPowerSystem Subject;\nSubject.InitialMaxPower = 22.5;\nSubject.EpochFormat = 'UTCGregorian';\nSubject.InitialEpoch = '02 Jan 2000 12:00:00.000';\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.SolarPowerSystem.data",
+      "definitions": [
+        "Create SolarPowerSystem Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "InitialMaxPower",
+          "type": "Real",
+          "expected": 22.5
+        },
+        {
+          "object": "Subject",
+          "field": "InitialEpoch",
+          "type": "String",
+          "expected": "02 Jan 2000 12:00:00.000"
+        }
+      ]
+    },
+    {
+      "key": "SolarPowerSystemModJulian",
+      "setup": "Create SolarPowerSystem Subject;\nSubject.InitialMaxPower = 22.5;\nSubject.EpochFormat = 'A1ModJulian';\nSubject.InitialEpoch = '21546.25';\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.SolarPowerSystem.data",
+      "definitions": [
+        "Create SolarPowerSystem Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "InitialMaxPower",
+          "type": "Real",
+          "expected": 22.5
+        },
+        {
+          "object": "Subject",
+          "field": "InitialEpoch",
+          "type": "String",
+          "expected": "21546.25"
+        }
+      ]
+    },
+    {
+      "key": "NuclearPowerSystemGregorian",
+      "setup": "Create NuclearPowerSystem Subject;\nSubject.InitialMaxPower = 6.5;\nSubject.EpochFormat = 'UTCGregorian';\nSubject.InitialEpoch = '02 Jan 2000 12:00:00.000';\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.NuclearPowerSystem.data",
+      "definitions": [
+        "Create NuclearPowerSystem Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "InitialMaxPower",
+          "type": "Real",
+          "expected": 6.5
+        },
+        {
+          "object": "Subject",
+          "field": "InitialEpoch",
+          "type": "String",
+          "expected": "02 Jan 2000 12:00:00.000"
+        }
+      ]
+    },
+    {
+      "key": "NuclearPowerSystemModJulian",
+      "setup": "Create NuclearPowerSystem Subject;\nSubject.InitialMaxPower = 6.5;\nSubject.EpochFormat = 'A1ModJulian';\nSubject.InitialEpoch = '21546.25';\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.NuclearPowerSystem.data",
+      "definitions": [
+        "Create NuclearPowerSystem Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "InitialMaxPower",
+          "type": "Real",
+          "expected": 6.5
+        },
+        {
+          "object": "Subject",
+          "field": "InitialEpoch",
+          "type": "String",
+          "expected": "21546.25"
+        }
+      ]
+    },
+    {
+      "key": "Transmitter",
+      "setup": "Create Transmitter Subject;\nSubject.Frequency = 2300;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Transmitter.data",
+      "definitions": [
+        "Create Transmitter Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Frequency",
+          "type": "Real",
+          "expected": 2300.0
+        }
+      ]
+    },
+    {
+      "key": "Transponder",
+      "setup": "Create Transponder Subject;\nSubject.HardwareDelay = 0.2;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Transponder.data",
+      "definitions": [
+        "Create Transponder Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "HardwareDelay",
+          "type": "Real",
+          "expected": 0.2
+        }
+      ]
+    },
+    {
+      "key": "Receiver",
+      "setup": "Create Receiver Subject;\nSubject.Id = '2';\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Receiver.data",
+      "definitions": [
+        "Create Receiver Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Id",
+          "type": "String",
+          "expected": "2"
+        }
+      ]
+    },
+    {
+      "key": "Antenna",
+      "setup": "Create ConicalFOV Cone2;\nCreate Antenna Subject;\nSubject.FieldOfView = Cone2;\n",
+      "selected": [
+        "Subject",
+        "Cone2"
+      ],
+      "objects": [
+        "Subject",
+        "Cone2"
+      ],
+      "filename": "Subject_Cone2.data",
+      "definitions": [
+        "Create Antenna Subject",
+        "Create ConicalFOV Cone2"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FieldOfView",
+          "type": "Object",
+          "expected": "Cone2"
+        }
+      ]
+    },
+    {
+      "key": "GroundStation",
+      "setup": "Create GroundStation Subject;\nSubject.MinimumElevationAngle = 10;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.GroundStation.data",
+      "definitions": [
+        "Create GroundStation Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "MinimumElevationAngle",
+          "type": "Real",
+          "expected": 10.0
+        }
+      ]
+    },
+    {
+      "key": "ImpulsiveBurn",
+      "setup": "Create ImpulsiveBurn Subject;\nSubject.Element1 = 0.2;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.ImpulsiveBurn.data",
+      "definitions": [
+        "Create ImpulsiveBurn Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Element1",
+          "type": "Real",
+          "expected": 0.2
+        }
+      ]
+    },
+    {
+      "key": "FiniteBurn",
+      "setup": "Create ChemicalThruster Engine Engine2;\nCreate FiniteBurn Subject;\nSubject.Thrusters = {Engine,Engine2};\n",
+      "selected": [
+        "Subject",
+        "Engine",
+        "Engine2"
+      ],
+      "objects": [
+        "Subject",
+        "Engine",
+        "Engine2"
+      ],
+      "filename": "Subject_Engine_Engine2.data",
+      "definitions": [
+        "Create FiniteBurn Subject;",
+        "Create ChemicalThruster Engine;",
+        "Create ChemicalThruster Engine2;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Thrusters",
+          "type": "ObjectArray",
+          "expected": [
+            "Engine",
+            "Engine2"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Barycenter",
+      "setup": "Create Barycenter Subject;\nSubject.BodyNames = {Earth,Luna};\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Barycenter.data",
+      "definitions": [
+        "Create Barycenter Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyNames",
+          "type": "ObjectArray",
+          "expected": [
+            "Earth",
+            "Luna"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "LibrationPoint",
+      "setup": "Create LibrationPoint Subject;\nSubject.Secondary = Mars;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.LibrationPoint.data",
+      "definitions": [
+        "Create LibrationPoint Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Secondary",
+          "type": "Object",
+          "expected": "Mars"
+        }
+      ]
+    },
+    {
+      "key": "DifferentialCorrector",
+      "setup": "Create DifferentialCorrector Subject;\nSubject.MaximumIterations = 30;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.DifferentialCorrector.data",
+      "definitions": [
+        "Create DifferentialCorrector Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "MaximumIterations",
+          "type": "Integer",
+          "expected": 30
+        }
+      ]
+    },
+    {
+      "key": "BatchEstimator",
+      "setup": "Create BatchEstimator Subject;\nSubject.MaximumIterations = 8;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.BatchEstimator.data",
+      "definitions": [
+        "Create BatchEstimator Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "MaximumIterations",
+          "type": "Integer",
+          "expected": 8
+        }
+      ]
+    },
+    {
+      "key": "ExtendedKalmanFilter",
+      "setup": "Create ExtendedKalmanFilter Subject;\nSubject.ScaledResidualThreshold = 5;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.ExtendedKalmanFilter.data",
+      "definitions": [
+        "Create ExtendedKalmanFilter Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "ScaledResidualThreshold",
+          "type": "Real",
+          "expected": 5.0
+        }
+      ]
+    },
+    {
+      "key": "Simulator",
+      "setup": "Create Spacecraft Sat;\nSat.NAIFId = -101019;\nSat.NAIFIdReferenceFrame = -910019;\nCreate GroundStation Station;\nCreate TrackingFileSet Data;\nData.AddTrackingConfig = {{Station,Sat,Station},'Range_Skin'};\nData.UseLightTime = false;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nCreate Simulator Subject;\nSubject.MeasurementTimeStep = 90;\nSubject.Propagator = Prop;\nSubject.AddData = {Data};\nData.FileName = {'unused-Save-acceptance.gmd'};\n",
+      "selected": [
+        "Subject",
+        "Prop",
+        "FM",
+        "Sat",
+        "Station",
+        "Data"
+      ],
+      "objects": [
+        "Subject",
+        "Prop",
+        "FM",
+        "Sat",
+        "Station",
+        "Data"
+      ],
+      "filename": "Subject_Prop_FM_Sat_Station_Data.data",
+      "definitions": [
+        "Create Simulator Subject",
+        "Create Propagator Prop;",
+        "Create ForceModel FM;",
+        "Create Spacecraft Sat;",
+        "Create GroundStation Station;",
+        "Create TrackingFileSet Data;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "MeasurementTimeStep",
+          "type": "Real",
+          "expected": 90.0
+        }
+      ]
+    },
+    {
+      "key": "XYPlot",
+      "setup": "Create XYPlot Subject;\nSubject.SolverIterations = None;\nSubject.ShowPlot = false;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.XYPlot.data",
+      "definitions": [
+        "Create XYPlot Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "SolverIterations",
+          "type": "Enumeration",
+          "expected": "None"
+        }
+      ]
+    },
+    {
+      "key": "OrbitView",
+      "setup": "Create OrbitView Subject;\nSubject.NumPointsToRedraw = 20;\nSubject.ShowPlot = false;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.OrbitView.data",
+      "definitions": [
+        "Create OrbitView Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "NumPointsToRedraw",
+          "type": "Integer",
+          "expected": 20
+        }
+      ]
+    },
+    {
+      "key": "ReportFile",
+      "setup": "Create ReportFile Subject;\nSubject.Precision = 14;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.ReportFile.data",
+      "definitions": [
+        "Create ReportFile Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Precision",
+          "type": "Integer",
+          "expected": 14
+        }
+      ]
+    },
+    {
+      "key": "Yukon",
+      "setup": "Create Yukon Subject;\nSubject.MaximumIterations = 30;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Yukon.data",
+      "definitions": [
+        "Create Yukon Subject"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "MaximumIterations",
+          "type": "Integer",
+          "expected": 30
+        }
+      ]
+    },
+    {
+      "key": "OrbitViewPopulated",
+      "setup": "Create OrbitView Subject;\nSubject.NumPointsToRedraw = 20;\nSubject.ShowPlot = false;\nSubject.Add = {Earth,Luna};\nSubject.DrawObject = [false true];\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.OrbitView.data",
+      "definitions": [
+        "Create OrbitView Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "NumPointsToRedraw",
+          "type": "Integer",
+          "expected": 20
+        },
+        {
+          "object": "Subject",
+          "field": "DrawObject",
+          "type": "BooleanArray",
+          "expected": [
+            false,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "key": "GroundTrackPlotPopulated",
+      "setup": "Create GroundTrackPlot Subject;\nSubject.NumPointsToRedraw = 20;\nSubject.ShowPlot = false;\nSubject.Add = {Earth,Luna};\nSubject.ShowName = [false true];\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.GroundTrack.data",
+      "definitions": [
+        "Create GroundTrack Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "NumPointsToRedraw",
+          "type": "Integer",
+          "expected": 20
+        },
+        {
+          "object": "Subject",
+          "field": "ShowName",
+          "type": "BooleanArray",
+          "expected": [
+            false,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "key": "PropagatorWithModel",
+      "setup": "Create ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nProp.InitialStepSize = 120;\n",
+      "selected": [
+        "Prop",
+        "FM"
+      ],
+      "objects": [
+        "Prop",
+        "FM"
+      ],
+      "filename": "Prop_FM.data",
+      "definitions": [
+        "Create ForceModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Prop",
+          "field": "FM",
+          "type": "Object",
+          "expected": "FM"
+        }
+      ]
+    },
+    {
+      "key": "ModelBeforePropagator",
+      "setup": "Create ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nProp.InitialStepSize = 120;\n",
+      "selected": [
+        "FM",
+        "Prop"
+      ],
+      "objects": [
+        "Prop",
+        "FM"
+      ],
+      "filename": "FM_Prop.data",
+      "definitions": [
+        "Create ForceModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Prop",
+          "field": "FM",
+          "type": "Object",
+          "expected": "FM"
+        }
+      ]
+    },
+    {
+      "key": "PropagatorOnly",
+      "setup": "Create ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nProp.InitialStepSize = 120;\n",
+      "selected": [
+        "Prop"
+      ],
+      "objects": [
+        "Prop",
+        "FM"
+      ],
+      "filename": "Prop.PropSetup.data",
+      "definitions": [
+        "Create ForceModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Prop",
+          "field": "FM",
+          "type": "Object",
+          "expected": "FM"
+        }
+      ]
+    },
+    {
+      "key": "PropagatorRungeKutta68",
+      "setup": "Create ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nProp.Type = RungeKutta68;\nProp.InitialStepSize = 120;\nProp.Accuracy = 1e-10;\nProp.MaxStepAttempts = 17;\nProp.StopIfAccuracyIsViolated = false;\n",
+      "selected": [
+        "Prop"
+      ],
+      "objects": [
+        "Prop",
+        "FM"
+      ],
+      "filename": "Prop.PropSetup.data",
+      "definitions": [
+        "Create ForceModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Prop",
+          "field": "FM",
+          "type": "Object",
+          "expected": "FM"
+        },
+        {
+          "object": "Prop",
+          "field": "Accuracy",
+          "type": "Real",
+          "expected": 1e-10
+        },
+        {
+          "object": "Prop",
+          "field": "MaxStepAttempts",
+          "type": "Integer",
+          "expected": 17
+        },
+        {
+          "object": "Prop",
+          "field": "StopIfAccuracyIsViolated",
+          "type": "Boolean",
+          "expected": false
+        }
+      ]
+    },
+    {
+      "key": "PropagatorRungeKutta56",
+      "setup": "Create ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nProp.Type = RungeKutta56;\nProp.InitialStepSize = 120;\nProp.Accuracy = 1e-10;\nProp.MaxStepAttempts = 17;\nProp.StopIfAccuracyIsViolated = false;\n",
+      "selected": [
+        "Prop"
+      ],
+      "objects": [
+        "Prop",
+        "FM"
+      ],
+      "filename": "Prop.PropSetup.data",
+      "definitions": [
+        "Create ForceModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Prop",
+          "field": "FM",
+          "type": "Object",
+          "expected": "FM"
+        },
+        {
+          "object": "Prop",
+          "field": "Accuracy",
+          "type": "Real",
+          "expected": 1e-10
+        },
+        {
+          "object": "Prop",
+          "field": "MaxStepAttempts",
+          "type": "Integer",
+          "expected": 17
+        },
+        {
+          "object": "Prop",
+          "field": "StopIfAccuracyIsViolated",
+          "type": "Boolean",
+          "expected": false
+        }
+      ]
+    },
+    {
+      "key": "PropagatorPrinceDormand45",
+      "setup": "Create ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nProp.Type = PrinceDormand45;\nProp.InitialStepSize = 120;\nProp.Accuracy = 1e-10;\nProp.MaxStepAttempts = 17;\nProp.StopIfAccuracyIsViolated = false;\n",
+      "selected": [
+        "Prop"
+      ],
+      "objects": [
+        "Prop",
+        "FM"
+      ],
+      "filename": "Prop.PropSetup.data",
+      "definitions": [
+        "Create ForceModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Prop",
+          "field": "FM",
+          "type": "Object",
+          "expected": "FM"
+        },
+        {
+          "object": "Prop",
+          "field": "Accuracy",
+          "type": "Real",
+          "expected": 1e-10
+        },
+        {
+          "object": "Prop",
+          "field": "MaxStepAttempts",
+          "type": "Integer",
+          "expected": 17
+        },
+        {
+          "object": "Prop",
+          "field": "StopIfAccuracyIsViolated",
+          "type": "Boolean",
+          "expected": false
+        }
+      ]
+    },
+    {
+      "key": "PropagatorPrinceDormand78",
+      "setup": "Create ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nProp.Type = PrinceDormand78;\nProp.InitialStepSize = 120;\nProp.Accuracy = 1e-10;\nProp.MaxStepAttempts = 17;\nProp.StopIfAccuracyIsViolated = false;\n",
+      "selected": [
+        "Prop"
+      ],
+      "objects": [
+        "Prop",
+        "FM"
+      ],
+      "filename": "Prop.PropSetup.data",
+      "definitions": [
+        "Create ForceModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Prop",
+          "field": "FM",
+          "type": "Object",
+          "expected": "FM"
+        },
+        {
+          "object": "Prop",
+          "field": "Accuracy",
+          "type": "Real",
+          "expected": 1e-10
+        },
+        {
+          "object": "Prop",
+          "field": "MaxStepAttempts",
+          "type": "Integer",
+          "expected": 17
+        },
+        {
+          "object": "Prop",
+          "field": "StopIfAccuracyIsViolated",
+          "type": "Boolean",
+          "expected": false
+        }
+      ]
+    },
+    {
+      "key": "PropagatorAdamsBashforthMoulton",
+      "setup": "Create ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nProp.Type = AdamsBashforthMoulton;\nProp.InitialStepSize = 120;\nProp.Accuracy = 1e-10;\nProp.MaxStepAttempts = 17;\nProp.StopIfAccuracyIsViolated = false;\n",
+      "selected": [
+        "Prop"
+      ],
+      "objects": [
+        "Prop",
+        "FM"
+      ],
+      "filename": "Prop.PropSetup.data",
+      "definitions": [
+        "Create ForceModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Prop",
+          "field": "FM",
+          "type": "Object",
+          "expected": "FM"
+        },
+        {
+          "object": "Prop",
+          "field": "Accuracy",
+          "type": "Real",
+          "expected": 1e-10
+        },
+        {
+          "object": "Prop",
+          "field": "MaxStepAttempts",
+          "type": "Integer",
+          "expected": 17
+        },
+        {
+          "object": "Prop",
+          "field": "StopIfAccuracyIsViolated",
+          "type": "Boolean",
+          "expected": false
+        }
+      ]
+    },
+    {
+      "key": "PropagatorBulirschStoer",
+      "setup": "Create ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nProp.Type = BulirschStoer;\nProp.InitialStepSize = 120;\nProp.Accuracy = 1e-10;\nProp.MaxStepAttempts = 17;\nProp.StopIfAccuracyIsViolated = false;\n",
+      "selected": [
+        "Prop"
+      ],
+      "objects": [
+        "Prop",
+        "FM"
+      ],
+      "filename": "Prop.PropSetup.data",
+      "definitions": [
+        "Create ForceModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Prop",
+          "field": "FM",
+          "type": "Object",
+          "expected": "FM"
+        },
+        {
+          "object": "Prop",
+          "field": "Accuracy",
+          "type": "Real",
+          "expected": 1e-10
+        },
+        {
+          "object": "Prop",
+          "field": "MaxStepAttempts",
+          "type": "Integer",
+          "expected": 17
+        },
+        {
+          "object": "Prop",
+          "field": "StopIfAccuracyIsViolated",
+          "type": "Boolean",
+          "expected": false
+        }
+      ]
+    },
+    {
+      "key": "PropagatorRungeKutta4",
+      "setup": "Create ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nProp.Type = RungeKutta4;\nProp.InitialStepSize = 120;\nProp.Accuracy = 1e-10;\nProp.MaxStepAttempts = 17;\nProp.StopIfAccuracyIsViolated = false;\n",
+      "selected": [
+        "Prop"
+      ],
+      "objects": [
+        "Prop",
+        "FM"
+      ],
+      "filename": "Prop.PropSetup.data",
+      "definitions": [
+        "Create ForceModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Prop",
+          "field": "FM",
+          "type": "Object",
+          "expected": "FM"
+        },
+        {
+          "object": "Prop",
+          "field": "Accuracy",
+          "type": "Real",
+          "expected": 1e-10
+        },
+        {
+          "object": "Prop",
+          "field": "MaxStepAttempts",
+          "type": "Integer",
+          "expected": 17
+        },
+        {
+          "object": "Prop",
+          "field": "StopIfAccuracyIsViolated",
+          "type": "Boolean",
+          "expected": false
+        }
+      ]
+    },
+    {
+      "key": "PropagatorPrinceDormand853",
+      "setup": "Create ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nProp.Type = PrinceDormand853;\nProp.InitialStepSize = 120;\nProp.Accuracy = 1e-10;\nProp.MaxStepAttempts = 17;\nProp.StopIfAccuracyIsViolated = false;\n",
+      "selected": [
+        "Prop"
+      ],
+      "objects": [
+        "Prop",
+        "FM"
+      ],
+      "filename": "Prop.PropSetup.data",
+      "definitions": [
+        "Create ForceModel FM;",
+        "Create Propagator Prop;"
+      ],
+      "witnesses": [
+        {
+          "object": "Prop",
+          "field": "InitialStepSize",
+          "type": "Real",
+          "expected": 120
+        },
+        {
+          "object": "Prop",
+          "field": "FM",
+          "type": "Object",
+          "expected": "FM"
+        },
+        {
+          "object": "Prop",
+          "field": "Accuracy",
+          "type": "Real",
+          "expected": 1e-10
+        },
+        {
+          "object": "Prop",
+          "field": "MaxStepAttempts",
+          "type": "Integer",
+          "expected": 17
+        },
+        {
+          "object": "Prop",
+          "field": "StopIfAccuracyIsViolated",
+          "type": "Boolean",
+          "expected": false
+        }
+      ]
+    }
+  ]
+}

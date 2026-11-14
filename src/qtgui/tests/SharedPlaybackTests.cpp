@@ -3,6 +3,8 @@
 #include "PlotPlaybackControls.hpp"
 #include "PlotWidget.hpp"
 #include "TestSettings.hpp"
+#include "AcceptancePlatform.hpp"
+#include "AcceptanceView.hpp"
 #include <QApplication>
 #include <QAction>
 #include <QComboBox>
@@ -15,6 +17,13 @@
 #include <QTableWidget>
 #include <QTimer>
 #include <QToolBar>
+#include <QToolButton>
+#include <QElapsedTimer>
+#include <QThread>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <limits>
 #include <iostream>
 #include <stdexcept>
 
@@ -28,9 +37,81 @@ static PlotWidget *plot(QtPlotReceiver &receiver,const QString &name)
       if (window->property("plotName")==name) return dynamic_cast<PlotWidget *>(window->widget());
    throw std::runtime_error("Missing plot widget");
 }
+static void sharedPlaybackButtonChecks(MainWindow &window)
+{
+   auto &receiver=*window.plotReceiver(); receiver.clear();
+   auto *controls=dynamic_cast<PlotPlaybackControls *>(window.findChild<QWidget *>("allPlotPlaybackControls")); require(controls,"Shared playback controls missing");
+   auto button=[&](const char *name) { auto *value=controls->findChild<QToolButton *>(name); require(value && value->isVisible(),"Shared playback button missing or hidden"); return value; };
+   auto *slider=controls->findChild<QSlider *>("allPlotTimeline"); auto *speed=controls->findChild<QComboBox *>("allPlotReplaySpeed");
+   auto *mode=controls->findChild<QComboBox *>("allPlotReplayMode"); auto *timer=controls->findChild<QTimer *>("allPlotReplayTimer");
+   require(slider && speed && mode && timer,"Shared playback state controls missing");
+   receiver.CreateGlPlotWindow("ButtonOrbit","",0,0,0,0,false,0); receiver.SetGlObject("ButtonOrbit",{"Vehicle"},{});
+   receiver.CreateGroundTrackWindow("ButtonGround","","Ground",0,0,0,0,false);
+   receiver.CreateXyPlotWindow("ButtonXY","",0,0,0,0,false,"XY","x","y"); receiver.AddXyPlotCurve("ButtonXY",0,"Curve",0xff0000);
+   for (int i=0;i<20;++i) receiver.UpdateGlPlot("ButtonOrbit","",{"Vehicle"},21545.+i,{7000.},{double(i)*100},{0.},{},{},{},{},{},false,0,true,true,false);
+   for (int i=0;i<30;++i) { double point[]={double(i)*4-60,double(i)-15}; receiver.UpdateGroundTrackData("ButtonGround",21545.+i,point,1); }
+   for (int i=0;i<40;++i) receiver.UpdateXyPlotCurve("ButtonXY",0,i,i*i);
+   receiver.missionFinished(); QApplication::processEvents(); acceptanceView(*controls);
+   require(controls->isEnabled(),"Retained data did not enable shared playback");
+   mode->setCurrentIndex(0); speed->setCurrentIndex(speed->findData(1.));
+   auto position=[&](int value) {
+      require(receiver.replayPosition() && qRound(*receiver.replayPosition())==value && slider->value()==value,"Shared button did not set expected percentage");
+      for (const auto &name:{"ButtonOrbit","ButtonGround","ButtonXY"}) {
+         require(plot(receiver,name)->findChild<QSlider *>("plotTimeline")->value()==value,"Child timeline did not follow the shared button");
+         require(!plot(receiver,name)->findChild<QTimer *>("plotReplayTimer")->isActive(),"Shared button left a competing local timer");
+      }
+   };
+   button("allPlotReplayFaster")->click(); require(speed->currentData().toDouble()==2.,"Faster widget did not increase speed");
+   button("allPlotReplaySlower")->click(); require(speed->currentData().toDouble()==1.,"Slower widget did not decrease speed");
+   button("allPlotReplayLatest")->click(); position(1000);
+   const auto latest=plot(receiver,"ButtonXY")->canvas()->captureImage(); require(!latest.isNull(),"Latest XY image unavailable");
+   button("allPlotReplayStart")->click(); position(0);
+   const auto first=plot(receiver,"ButtonXY")->canvas()->captureImage(); require(!first.isNull() && first!=latest,"Start widget did not change the displayed XY history");
+   slider->setValue(500); position(500);
+   require(plot(receiver,"ButtonOrbit")->canvas()->frame()==10 && plot(receiver,"ButtonGround")->canvas()->frame()==15 && plot(receiver,"ButtonXY")->canvas()->frame()==20,"Shared scrub did not map unequal history lengths");
+   speed->setCurrentIndex(0); require(!button("allPlotReplaySlower")->isEnabled(),"Minimum speed still permits Slower");
+   speed->setCurrentIndex(speed->findData(.25));
+   button("allPlotReplayStart")->click(); button("allPlotReplayPlay")->click(); require(timer->isActive(),"Play widget did not start the real timer");
+   QElapsedTimer deadline; deadline.start();
+   while (slider->value()<20 && deadline.elapsed()<2000) { QApplication::processEvents(); QThread::msleep(5); }
+   require(slider->value()>=20 && slider->value()<1000,"Real playback timer did not advance retained data");
+   button("allPlotReplayPlay")->click(); require(!timer->isActive(),"Pause widget did not stop playback");
+   const auto paused=slider->value(); position(paused); const auto pausedImage=plot(receiver,"ButtonXY")->canvas()->captureImage();
+   deadline.restart(); while (deadline.elapsed()<100) { QApplication::processEvents(); QThread::msleep(5); }
+   require(slider->value()==paused && plot(receiver,"ButtonXY")->canvas()->captureImage()==pausedImage,"Paused display advanced without a timer");
+   button("allPlotReplayLatest")->click(); position(1000);
+   require(!timer->isActive() && !button("allPlotReplayPlay")->isChecked(),"Latest widget left shared playback running");
+   // Latest follows all retained data, represented by an unbounded frame sentinel.
+   require(plot(receiver,"ButtonXY")->canvas()->frame()==std::numeric_limits<quint64>::max() && plot(receiver,"ButtonXY")->canvas()->captureImage()==latest,"Latest widget did not restore the full retained XY image");
+   mode->setCurrentIndex(1); require(receiver.replayMode()==PlotReplayMode::InterpolatedSteps,"Interpolated mode did not reach receiver");
+   mode->setCurrentIndex(0); require(receiver.replayMode()==PlotReplayMode::PropagationSteps,"Retained-step mode did not return");
+   require(receiver.model("ButtonOrbit")->curves[0].points.size()==20 && receiver.model("ButtonGround")->curves[0].points.size()==30 && receiver.model("ButtonXY")->curves[0].points.size()==40,"Playback widgets mutated retained history lengths");
+   const auto retained=receiver.model("ButtonXY");
+   const auto curve=retained->curves.constFind(0);
+   require(curve!=retained->curves.cend()&&!curve->points.empty(),"Retained XY sample missing");
+   const auto &last=curve->points.back(); require(last.x==39 && last.y==1521,"Playback widgets mutated the final XY sample");
+   receiver.clear(); require(!controls->isEnabled() && !timer->isActive(),"Clear did not disable and stop shared transport");
+   const QJsonObject proof{{"kind","shared-playback-buttons"},{"outcome","passed"},{"controls",QJsonArray{"allPlotReplayStart","allPlotReplayPlay","allPlotReplayLatest","allPlotReplaySlower","allPlotReplayFaster"}},
+      {"checks",QJsonArray{"widget-clicks","known-frames","unequal-histories","real-timer","paused-image","speed","mode","preserved-samples","clear"}}};
+   std::cout<<"GUI_ROUTE_CHECK "<<QJsonDocument(proof).toJson(QJsonDocument::Compact).constData()<<std::endl;
+}
 int main(int argc,char **argv)
 {
    QApplication app(argc,argv);
+   // The existing regression below remains offscreen, including its original
+   // guard and every assertion. Only this bounded companion uses a visible
+   // software-rendered acceptance display; it does not qualify host hardware.
+   if (argc==3 && QString::fromLocal8Bit(argv[2])=="--buttons") {
+      try {
+         require(acceptanceWidgetPlatform(),"Playback companion requires offscreen or supported acceptance widgets");
+         if (qEnvironmentVariable("GMAT_QT_ACCEPTANCE_MODE")=="visible") require(QGuiApplication::platformName()=="xcb" && qEnvironmentVariable("LIBGL_ALWAYS_SOFTWARE")=="1","Visible playback companion requires software-rendered X11 acceptance");
+         require(argc>=2 && argc<=3,"Playback startup argument missing");
+         QApplication::setOrganizationName("GMATTests"); QApplication::setApplicationName("SharedPlaybackVisible"); TestSettings settings;
+         const auto startup=QFileInfo(argv[1]).absoluteFilePath(); QDir::setCurrent(QFileInfo(startup).absolutePath());
+         MainWindow window; require(window.initialize(startup),"Visible playback initialization failed"); window.show();
+         sharedPlaybackButtonChecks(window); return 0;
+      } catch (const std::exception &error) { std::cerr<<error.what()<<'\n'; return 1; }
+   }
    // Desktop qualification is suspended after the recorded compositor crash.
    if (QGuiApplication::platformName()!="offscreen") return 2;
    if (argc<2 || argc>3) return 2;
@@ -74,11 +155,11 @@ int main(int argc,char **argv)
       for (int i=0;i<10;++i) receiver.UpdateXyPlotCurve("XY",0,i,i*i);
       receiver.missionFinished(); app.processEvents();
       require(controls->isEnabled(),"Plot transport disabled");
-      faster->trigger(); require(speed->currentIndex()==3,"Faster button did not increase playback speed");
-      slower->trigger(); require(speed->currentIndex()==2,"Slower button did not decrease playback speed");
+      faster->trigger(); require(speed->currentData().toDouble()==2.,"Faster button did not increase playback speed");
+      slower->trigger(); require(speed->currentData().toDouble()==1.,"Slower button did not decrease playback speed");
       speed->setCurrentIndex(0); require(!slower->isEnabled() && faster->isEnabled(),"Minimum-speed button state incorrect");
-      speed->setCurrentIndex(4); require(!faster->isEnabled() && slower->isEnabled(),"Maximum-speed button state incorrect");
-      speed->setCurrentIndex(2);
+      speed->setCurrentIndex(speed->findData(4.)); require(!faster->isEnabled() && slower->isEnabled(),"Maximum-speed button state incorrect");
+      speed->setCurrentIndex(speed->findData(1.));
       for (const auto &name:{"Orbit","Ground","XY"}) require(!receiver.model(name)->curves[0].points.empty(),"Synthetic plot has no history");
       auto checkPosition=[&](int value) {
          require(receiver.replayPosition()==value,"Receiver lost shared position");
@@ -96,15 +177,26 @@ int main(int argc,char **argv)
       require(plot(receiver,"Orbit")->canvas()->frame()==10 && plot(receiver,"Ground")->canvas()->frame()==20 && plot(receiver,"XY")->canvas()->frame()==5,"Unequal histories mapped incorrectly");
       play->trigger(); require(timer->isActive() && play->isChecked(),"Master playback did not start");
       QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection); checkPosition(510);
-      speed->setCurrentIndex(4); QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection); checkPosition(550);
+      speed->setCurrentIndex(speed->findData(4.)); QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection); checkPosition(550);
       play->trigger(); require(!timer->isActive(),"Master pause failed");
       play->trigger(); require(slider->value()==550,"Resume reset position"); play->trigger();
       slider->setValue(990); play->trigger(); QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection);
       checkPosition(1000); require(!timer->isActive() && !play->isChecked(),"Playback did not finish at Latest");
       play->trigger(); checkPosition(0); play->trigger();
-      speed->setCurrentIndex(0); play->trigger();
-      QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection); checkPosition(2);
+      speed->setCurrentIndex(speed->findData(.25)); play->trigger();
+      QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection);
+      require(receiver.replayPosition()==2.5 && slider->value()==3,"Quarter-speed fraction was rounded away");
       QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection); checkPosition(5); play->trigger();
+      mode->setCurrentIndex(1); start->trigger();
+      speed->setCurrentIndex(speed->findData(.001));
+      require(speed->currentIndex()>=0,"Slow shared rate missing");
+      play->trigger();
+      for (int i=0;i<25;++i) QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection);
+      require(std::abs(*receiver.replayPosition()-.25)<1e-9 && slider->value()==0,"Slow shared progress lost sub-slider precision");
+      require(receiver.model("Orbit")->replayCursor && receiver.model("Orbit")->replayCursor->fraction>0,"Slow shared playback did not interpolate between slider positions");
+      play->trigger(); play->trigger(); QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection);
+      require(std::abs(*receiver.replayPosition()-.26)<1e-9,"Slow shared resume snapped to slider position");
+      play->trigger(); mode->setCurrentIndex(0);
       slider->setValue(750);
       auto *closed=dynamic_cast<QMdiSubWindow *>(plot(receiver,"Orbit")->parentWidget());
       require(closed && closed->close(),"Plot close failed"); app.processEvents();

@@ -353,6 +353,8 @@ protected:
                          const std::string &value,
                          const Integer index = -1, const Integer colIndex = -1);
    bool SetGeneric(GmatBase *obj, const Integer id, const std::string &value);
+   bool TrySetNavigationCollectionLiteral(GmatBase *obj, const Integer id,
+         const std::string &value, const Integer index, bool &handled);
    bool SetPropertyObjectValue(GmatBase *obj, const Integer id,
                                const Gmat::ParameterType type,
                                const std::string &value,

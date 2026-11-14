@@ -28,6 +28,9 @@
 #ifndef EphemerisFile_hpp
 #define EphemerisFile_hpp
 
+#include <memory>
+#include <functional>
+
 #include "Subscriber.hpp"
 #include "Spacecraft.hpp"
 #include "EphemerisWriter.hpp"
@@ -40,6 +43,7 @@
 class GMAT_API EphemerisFile : public Subscriber
 {
 public:
+   std::unique_ptr<FunctionInvocationState> SuspendFunctionBindings() override;
    EphemerisFile(const std::string &name, const std::string &type = "EphemerisFile");
    virtual ~EphemerisFile();
    EphemerisFile(const EphemerisFile &);
@@ -52,6 +56,18 @@ public:
                                           bool saveFileName);
    
    virtual void         SetBackgroundGeneration(bool inBackground);
+
+   // Detached function results retain private frames independently of the
+   // callee's object store. The owner also retains their point/frame closure.
+   void RetainFunctionCoordinateSystems(
+         const std::function<CoordinateSystem*(CoordinateSystem*)> &resolve,
+         const std::shared_ptr<const ObjectArray> &owners);
+   std::shared_ptr<const ObjectArray> GetFunctionCoordinateSystemOwners() const;
+   void RetainFunctionSpacecraft(const std::function<GmatBase*(GmatBase*)> &resolve,
+         const std::shared_ptr<const ObjectArray> &owners);
+   void RetainFunctionDynamics(const std::function<GmatBase*(GmatBase*)> &resolve,
+         std::vector<PhysicalModel*> *runtimeForces,
+         const std::shared_ptr<const ObjectArray> &owners);
    
    // Need to be able to close background SPKs and leave ready for appending
    // Finalization
@@ -59,6 +75,7 @@ public:
    virtual bool         InsufficientDataPoints();
    
    // methods inherited from Subscriber
+   virtual void         SetRunState(Gmat::RunState state) override;
    virtual void         SetProvider(GmatBase *provider, Real epochInMjd = -999.999);
    
    // methods inherited from GmatBase
@@ -150,6 +167,8 @@ protected:
    std::string covFormat;
    std::string formatVersion;
    std::string accelModelName;
+   std::string outputTimeSystem;
+   std::string insufficientDataAction;
    bool        writeEphemeris;
    bool        usingDefaultFileName;
    bool        generateInBackground;
@@ -158,6 +177,8 @@ protected:
    /// for propagator change
    std::string prevPropName;
    std::string currPropName;
+   std::weak_ptr<const void> previousPropagatorIdentity;
+   bool previousPropagatorIdentified = false;
    
    Integer     interpolationOrder;
    Integer     toggleStatus;
@@ -184,6 +205,10 @@ protected:
    bool        checkForLargeTimeGap;
    bool        isEphemFileOpened;
    bool        canFinalize;
+   /// Configuration at trial entry, detached from its writer. A value copy
+   /// never acquires another object's live output or trial snapshot.
+   std::unique_ptr<EphemerisFile> trialEntryConfiguration;
+   std::shared_ptr<const ObjectArray> functionCoordinateSystemOwners;
    
    FileType    fileType;
    
@@ -199,6 +224,7 @@ protected:
    static StringArray fileFormatList;   
    /// Available epoch format list
    static StringArray epochFormatList;   
+   static const StringArray outputTimeSystemList;
    /// Available initial epoch list
    static StringArray initialEpochList;
    /// Available final epoch list
@@ -227,6 +253,12 @@ protected:
    Real         ConvertInitialAndFinalEpoch();
    void         InitializeData(bool saveEpochInfo = false);
    void         SetFileName();
+   void         RetireEphemerisWriter();
+   bool         ShouldSuppressTrialOutput(Gmat::RunState state) const;
+   void         RestoreTrialOutputState();
+   EphemerisFile& AssignResourceState(const EphemerisFile &source);
+   void         ApplyConfigurationPreservingOutput(const EphemerisFile &source);
+   void         SwapOutputState(EphemerisFile &other);
    void         CreateEphemerisFile();
    void         CreateEphemerisWriter();
    
@@ -275,6 +307,8 @@ protected:
                                   const StringArray &satNames,
                                   const std::string &desc);
    void         HandlePropagatorChange(GmatBase *provider, Real epochInMjd);
+   void         HandlePropagatorIdentity(const std::string &name, Real epochInMjd,
+                   const std::weak_ptr<const void> &identity, bool identified);
    void         HandleSpacecraftPropertyChange(GmatBase *originator, Real epoch,
                                                const std::string &satName,
                                                const std::string &desc);
@@ -300,6 +334,8 @@ protected:
       INCLUDE_EVENT_BOUNDARIES,
       FORMAT_VERSION,
       ACCELERATION_MODEL,
+      OUTPUT_TIME_SYSTEM,
+      INSUFFICIENT_DATA_ACTION,
       EphemerisFileParamCount   // Count of the parameters for this class
    };
    

@@ -10,7 +10,7 @@ class QCheckBox;
 class QLabel;
 class QLineEdit;
 class QListWidget;
-QSet<QString> applyEventLocatorProperties(GmatBase &object,const QMap<QString,QString> &values);
+QSet<QString> applyEventLocatorProperties(GmatBase &object,const QMap<QString,QString> &values,bool creating=false);
 class EventLocatorDialog final : public QDialog
 {
 public:

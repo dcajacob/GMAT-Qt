@@ -1,4 +1,5 @@
 #include "ThrusterDialog.hpp"
+#include "VectorLineEdit.hpp"
 #include "BurnDialog.hpp"
 #include "ResourceProperties.hpp"
 #include "GmatBase.hpp"
@@ -48,9 +49,14 @@ ThrusterDialog::ThrusterDialog(GmatBase &thruster,const QMap<QString,QString> &p
       auto *combo=new QComboBox(content); combo->setObjectName("thruster_"+name); combo->addItems(fields.value(name).choices.isEmpty() ? fields.value(name).references : fields.value(name).choices);
       if (combo->findText(initial.value(name))<0) combo->addItem(initial.value(name)); combo->setCurrentText(initial.value(name)); choices.insert(name,combo); form->addRow(label,combo);
    };
-   auto number=[&](QFormLayout *form,const QString &name,const QString &label) { auto *edit=new QLineEdit(initial.value(name),content); edit->setObjectName("thruster_"+name); numbers.insert(name,edit); form->addRow(label,edit); };
+   auto number=[&](QFormLayout *form,const QString &name,const QString &label) {
+      auto *edit=new VectorLineEdit(initial.value(name),content); edit->setObjectName("thruster_"+name); numbers.insert(name,edit);
+      const auto caption=fields.value(name).unit=="dimensionless" ? label+" (dimensionless)" : label;
+      form->addRow(caption,edit);
+   };
    select(directionForm,"CoordinateSystem","Coordinate system"); select(directionForm,"Axes","Local axes"); select(directionForm,"Origin","Local origin");
    for (int i=1;i<=3;++i) number(directionForm,"ThrustDirection"+QString::number(i),"Direction "+QString::number(i));
+   VectorLineEdit::link({numbers.value("ThrustDirection1"),numbers.value("ThrustDirection2"),numbers.value("ThrustDirection3")});
    auto updateFrame=[this] {
       const bool local=choices.value("CoordinateSystem")->currentText()=="Local";
       const auto axes=choices.value("Axes")->currentText(); choices.value("Axes")->setEnabled(local);

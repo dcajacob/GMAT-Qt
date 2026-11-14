@@ -29,6 +29,10 @@
 //------------------------------------------------------------------------------
 
 #include "HermiteInterpolator.hpp"
+#include <algorithm>
+#include <array>
+#include <memory>
+#include <typeinfo>
 #include "InterpolatorException.hpp"
 #include "MessageInterface.hpp"
 
@@ -76,7 +80,10 @@ HermiteInterpolator::~HermiteInterpolator()
 HermiteInterpolator::HermiteInterpolator(const HermiteInterpolator &hi) :
    Interpolator            (hi),
    pointsWanted            (hi.pointsWanted),
-   interpolateNewtonian    (hi.interpolateNewtonian)
+   interpolateNewtonian    (hi.interpolateNewtonian),
+   derivatives             (hi.derivatives),
+   qCoeffs                 (hi.qCoeffs),
+   tValues                 (hi.tValues)
 {
 }
 
@@ -96,12 +103,13 @@ HermiteInterpolator& HermiteInterpolator::operator=(const HermiteInterpolator &h
 {
    if (this != &hi)
    {
+      auto nextDerivatives = hi.derivatives;
+      auto nextCoefficients = hi.qCoeffs;
+      auto nextTimes = hi.tValues;
       Interpolator::operator=(hi);
-
       pointsWanted         = hi.pointsWanted;
       interpolateNewtonian = hi.interpolateNewtonian;
-
-      CleanupArrays();
+      derivatives.swap(nextDerivatives); qCoeffs.swap(nextCoefficients); tValues.swap(nextTimes);
    }
 
    return *this;
@@ -623,3 +631,42 @@ Real HermiteInterpolator::EvaluateDerivativeIndependentTerm(const Real ind,
 //{
 //
 //}
+
+namespace
+{
+bool SameHermiteShape(const Real &, const Real &) { return true; }
+template<class Value>
+bool SameHermiteShape(const std::vector<Value> &left, const std::vector<Value> &right)
+{
+   if (left.size() != right.size()) return false;
+   for (size_t i = 0; i < left.size(); ++i)
+      if (!SameHermiteShape(left[i], right[i])) return false;
+   return true;
+}
+void RestoreHermiteArrays(Real &target, const Real &source) { target = source; }
+template<class Value>
+void RestoreHermiteArrays(std::vector<Value> &target, const std::vector<Value> &source)
+{
+   for (size_t i = 0; i < target.size(); ++i) RestoreHermiteArrays(target[i], source[i]);
+}
+}
+
+void HermiteInterpolator::ValidateRestorationLayout(const HermiteInterpolator &source) const
+{
+   if (typeid(*this) != typeid(HermiteInterpolator) || pointsWanted != source.pointsWanted)
+      throw InterpolatorException("A changed Hermite interpolator needs native preparation.");
+   ValidateTableRestoration(source);
+   if (!SameHermiteShape(derivatives, source.derivatives) || !SameHermiteShape(qCoeffs, source.qCoeffs) ||
+       !SameHermiteShape(tValues, source.tValues))
+      throw InterpolatorException("Prepare changed Hermite derivative/cache layouts before restoration.");
+}
+
+void HermiteInterpolator::RestoreValues(const HermiteInterpolator &source)
+{
+   if (&source == this) return;
+   ValidateRestorationLayout(source);
+   RestoreTableValues(source);
+   RestoreHermiteArrays(derivatives, source.derivatives);
+   RestoreHermiteArrays(qCoeffs, source.qCoeffs); RestoreHermiteArrays(tValues, source.tValues);
+   interpolateNewtonian = source.interpolateNewtonian;
+}

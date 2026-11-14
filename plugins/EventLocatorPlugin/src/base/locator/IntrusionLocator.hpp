@@ -57,6 +57,8 @@
 class LOCATOR_API IntrusionLocator : public EventLocator
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = EventLocator::NativeValueProviderDepth + 1;
+
    IntrusionLocator(const std::string &name);
    virtual ~IntrusionLocator();
    IntrusionLocator(const IntrusionLocator& el);
@@ -68,6 +70,7 @@ public:
    virtual Gmat::ParameterType
       GetParameterType(const Integer id) const;
    virtual std::string  GetParameterTypeString(const Integer id) const;
+   virtual bool         IsParameterCloaked(const Integer id) const;
 
    virtual std::string  GetStringParameter(const Integer id) const;
    virtual bool         SetStringParameter(const Integer id,
@@ -144,6 +147,11 @@ public:
    virtual bool         Initialize();
    virtual bool         ReportEventData(const std::string &reportNotice = "");
 
+   bool HasEventLocatorValueReferenceProvider() const override;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source,
+         SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+
    DEFAULT_TO_NO_CLONES
 
 protected:
@@ -175,6 +183,9 @@ protected:
    std::string scFKFileName;
    /// Filename of the instrument kernels to be created
    StringArray ikFileNames;
+   /// Optional continuous time-boundary refinement after SPICE discovery
+   std::string rootFindingMethod = "SPICE";
+   Real rootTolerance = 1.0e-6;
 
    void WriteFixedGridSPK(const std::string &sensorName, const std::string &frameName, 
       const Integer centerID, const Integer gridId, const RealArray gridPosition);
@@ -189,6 +200,8 @@ protected:
       MINIMUM_PHASE,
       REPORT_COORDINATES,
       SPICE_GRID_FRAME_FILE,
+      ROOT_FINDING_METHOD,
+      ROOT_TOLERANCE,
       IntrusionLocatorParamCount
    };
 

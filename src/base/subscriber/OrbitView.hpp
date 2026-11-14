@@ -39,6 +39,8 @@
 class GMAT_API OrbitView : public OrbitPlot
 {
 public:
+   bool HasSubscriberValueReferenceProvider() const override;
+   std::unique_ptr<FunctionInvocationState> SuspendFunctionBindings() override;
    OrbitView(const std::string &name);
    OrbitView(const OrbitView &ogl);
    OrbitView& operator=(const OrbitView&);
@@ -139,6 +141,9 @@ public:
                                              UnsignedInt orbitColor);
    
 protected:
+   bool HasNativeSubscriberBindings() const override;
+   void RebindSubscriberValueReferences(const Subscriber &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
 
    void     PutRvector3Value(Rvector3 &rvec3, Integer id,
                              const std::string &sval, Integer index = -1);

@@ -101,7 +101,12 @@ bool EquinSma::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* EquinSma::Clone(void) const
 {
-   return new EquinSma(*this);
+   return CompleteParameterClone(new EquinSma(*this));
+}
+
+void EquinSma::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EquinSma>(source);
 }
 
 
@@ -178,7 +183,12 @@ bool SMADot::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SMADot::Clone() const
 {
-   return new SMADot(*this);
+   return CompleteParameterClone(new SMADot(*this));
+}
+
+void SMADot::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SMADot>(source);
 }
 
 
@@ -240,7 +250,12 @@ bool EquinEy::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* EquinEy::Clone(void) const
 {
-   return new EquinEy(*this);
+   return CompleteParameterClone(new EquinEy(*this));
+}
+
+void EquinEy::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EquinEy>(source);
 }
 
 
@@ -317,7 +332,12 @@ bool EquinEyDot::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* EquinEyDot::Clone() const
 {
-   return new EquinEyDot(*this);
+   return CompleteParameterClone(new EquinEyDot(*this));
+}
+
+void EquinEyDot::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EquinEyDot>(source);
 }
 
 
@@ -380,7 +400,12 @@ bool EquinEx::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* EquinEx::Clone(void) const
 {
-   return new EquinEx(*this);
+   return CompleteParameterClone(new EquinEx(*this));
+}
+
+void EquinEx::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EquinEx>(source);
 }
 
 
@@ -457,7 +482,12 @@ bool EquinExDot::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* EquinExDot::Clone() const
 {
-   return new EquinExDot(*this);
+   return CompleteParameterClone(new EquinExDot(*this));
+}
+
+void EquinExDot::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EquinExDot>(source);
 }
 
 
@@ -519,7 +549,12 @@ bool EquinNy::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* EquinNy::Clone(void) const
 {
-   return new EquinNy(*this);
+   return CompleteParameterClone(new EquinNy(*this));
+}
+
+void EquinNy::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EquinNy>(source);
 }
 
 
@@ -596,7 +631,12 @@ bool EquinNyDot::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* EquinNyDot::Clone() const
 {
-   return new EquinNyDot(*this);
+   return CompleteParameterClone(new EquinNyDot(*this));
+}
+
+void EquinNyDot::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EquinNyDot>(source);
 }
 
 
@@ -658,7 +698,12 @@ bool EquinNx::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* EquinNx::Clone(void) const
 {
-   return new EquinNx(*this);
+   return CompleteParameterClone(new EquinNx(*this));
+}
+
+void EquinNx::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EquinNx>(source);
 }
 
 
@@ -736,7 +781,12 @@ bool EquinNxDot::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* EquinNxDot::Clone() const
 {
-   return new EquinNxDot(*this);
+   return CompleteParameterClone(new EquinNxDot(*this));
+}
+
+void EquinNxDot::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EquinNxDot>(source);
 }
 
 
@@ -798,7 +848,12 @@ bool EquinMlong::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* EquinMlong::Clone(void) const
 {
-   return new EquinMlong(*this);
+   return CompleteParameterClone(new EquinMlong(*this));
+}
+
+void EquinMlong::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EquinMlong>(source);
 }
 
 
@@ -875,7 +930,12 @@ bool EquinTlongDot::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* EquinTlongDot::Clone() const
 {
-   return new EquinTlongDot(*this);
+   return CompleteParameterClone(new EquinTlongDot(*this));
+}
+
+void EquinTlongDot::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EquinTlongDot>(source);
 }
 
 
@@ -943,6 +1003,11 @@ bool EquinState::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* EquinState::Clone(void) const
 {
-   return new EquinState(*this);
+   return CompleteParameterClone(new EquinState(*this));
+}
+
+void EquinState::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EquinState>(source);
 }
 

@@ -32,6 +32,7 @@
 #define OrbitPlot_hpp
 
 #include "Subscriber.hpp"
+#include "IntegrationStepSampler.hpp"
 #include "SpacePoint.hpp"
 #include "CoordinateSystem.hpp"
 #include <map>
@@ -39,6 +40,8 @@
 class GMAT_API OrbitPlot : public Subscriber
 {
 public:
+   bool HasSubscriberValueReferenceProvider() const override;
+   std::unique_ptr<FunctionInvocationState> SuspendFunctionBindings() override;
    virtual void SetRunState(Gmat::RunState state);
    OrbitPlot(const std::string &type, const std::string &name);
    OrbitPlot(const OrbitPlot &op);
@@ -149,6 +152,15 @@ public:
                         GetPropertyObjectType(const Integer id) const;
    
 protected:
+   bool HasNativeSubscriberBindings() const override;
+   void RebindSubscriberValueReferences(const Subscriber &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
+   Integer integrationStepsToSkip = -1;
+   IntegrationStepSampler integrationSampler;
+   StringArray stepSkipped;
+   StringArray stepArcStarts; // Scoped to the compact endpoint packet under collection.
+   virtual void WriteParameterValue(Integer id, std::stringstream &stream) override;
+
    
    CoordinateSystem *mViewCoordSystem;
    
@@ -226,9 +238,15 @@ protected:
    std::map<std::string, Real> mScInitialEpochMap;
    
    /// Calls PlotInterface for plotting non-solver data  
+   SpacePoint*          GetPlottedObject(const std::string &role) const;
+   bool                 GetCartesianIndices(const std::string &role,
+                           const Real *dat, Integer len, Integer indices[6]);
+   CoordinateSystem*    GetPublishedFrame(const std::string &role,
+                           const Real *dat, Integer len);
    void                 PublishArcMetadata(const Real *dat, Integer len);
    std::string          DataAvailabilityAction(const Real *dat, Integer len);
    virtual bool         UpdateData(const Real *dat, Integer len);
+   bool                 CollectSample(const Real *dat, Integer len);
    
    /// Calls PlotInterface for plotting solver data
    virtual bool         UpdateSolverData();
@@ -278,6 +296,7 @@ protected:
       NUM_POINTS_TO_REDRAW,
       SHOW_PLOT,
       MAX_DATA,
+      INTEGRATION_STEPS_TO_SKIP,
       OrbitPlotParamCount
    };
    

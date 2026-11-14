@@ -30,6 +30,22 @@
 //------------------------------------------------------------------------------
 
 #include "BatchEstimator.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration batchEstimatorValueProvider({
+   BatchEstimator::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const BatchEstimator*>(object) != nullptr; },
+   nullptr,
+   nullptr,
+   nullptr,
+   [](const GmatBase *object) { return dynamic_cast<const BatchEstimator*>(object)->HasSolverValueReferenceProviderImpl(); },
+   [](GmatBase *object, const Solver &source) { dynamic_cast<BatchEstimator*>(object)->PrepareClonedSolverValueImpl(source); }
+});
+}
+#include "NavigationMeasurementCopies.hpp"
+#include "SolverException.hpp"
 #include "MessageInterface.hpp"
 #include "EstimatorException.hpp"
 #include <sstream>
@@ -186,7 +202,9 @@ BatchEstimator& BatchEstimator::operator=(const BatchEstimator& est)
 //------------------------------------------------------------------------------
 GmatBase* BatchEstimator::Clone() const
 {
-   return new BatchEstimator(*this);
+   std::unique_ptr<BatchEstimator> value(new BatchEstimator(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -201,7 +219,13 @@ GmatBase* BatchEstimator::Clone() const
 //---------------------------------------------------------------------------
 void  BatchEstimator::Copy(const GmatBase* orig)
 {
-   operator=(*((BatchEstimator*)(orig)));
+   const auto *source = dynamic_cast<const BatchEstimator*>(orig);
+   if (!source || typeid(*source) != typeid(BatchEstimator) || typeid(*this) != typeid(BatchEstimator))
+      throw SolverException("Incompatible native BatchEstimator copy.\n");
+   if (source == this) return;
+   const auto previous = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 //------------------------------------------------------------------------------
@@ -1765,6 +1789,13 @@ void BatchEstimator::SolveNormalEquations(const Rmatrix &infMatrix, Rmatrix &cov
    }
    else
    {
+      // Internal inversion can return finite values for a rank-deficient
+      // normal matrix. Use the same positive-definiteness check as Schur
+      // before accepting a covariance; retain the requested inversion below.
+      Rmatrix testMatrix = reducedInfMatrix;
+      CholeskyFactorization cf;
+      cf.Invert(testMatrix);
+
       try
       {
          reducedCovMatrix = reducedInfMatrix.Inverse();
@@ -2039,4 +2070,17 @@ void BatchEstimator::EstimationPartials(std::vector<RealArray> &hMeas)
          hMeas.size());
       #endif
    }
+}
+
+bool BatchEstimator::HasSolverValueReferenceProviderImpl() const
+{
+   return typeid(*this) == typeid(BatchEstimator);
+}
+
+void BatchEstimator::PrepareClonedSolverValueImpl(const Solver &source)
+{
+   Estimator::PrepareClonedSolverValueImpl(source);
+   hasInitialized = false; finalPass = false; advanceToEstimationEpoch = false;
+   estimationStatus = UNKNOWN;
+   iterationsTakenIL = 0; estimationStatusIL = IL_UNKNOWN;
 }

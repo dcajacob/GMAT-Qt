@@ -45,6 +45,7 @@ public:
    RejectFilter& operator=(const RejectFilter& rf);
 
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
    virtual bool Initialize();
    
    // Access methods derived classes can override

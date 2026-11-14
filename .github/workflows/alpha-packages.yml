@@ -1,0 +1,86 @@
+name: Alpha packages
+
+on:
+  push:
+    branches: ['codex/alpha-0.1.0']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux-x86_64
+          - runner: windows-2022
+            platform: windows-x64
+          - runner: macos-15
+            platform: macos-arm64
+          - runner: macos-15-intel
+            platform: macos-x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 210
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Identify production inputs
+        id: source
+        shell: bash
+        run: |
+          python -c "import sys; sys.path.insert(0, 'tools/preview'); from BuildPreviewPackage import production_tree; print('tree=' + production_tree())" >> "$GITHUB_OUTPUT"
+      - name: Restore Windows graphics SDK
+        if: matrix.platform == 'windows-x64'
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/preview-package/deps/osg
+            C:\vcpkg\installed
+          key: gmat-qt-preview-windows-2022-osg365-sdk-v1
+      - name: Restore matching compiled application
+        id: native
+        uses: actions/cache@v4
+        with:
+          path: build/preview-package/native-inputs-${{ matrix.platform }}.tar.gz
+          key: gmat-alpha-native-v1-${{ matrix.platform }}-${{ steps.source.outputs.tree }}
+      - name: Prepare compiled inputs for packaging retry
+        if: steps.native.outputs.cache-hit == 'true'
+        shell: bash
+        run: |
+          mkdir -p build/preview-package/reuse-native
+          cp build/preview-package/native-inputs-${{ matrix.platform }}.tar.gz build/preview-package/reuse-native/
+      - name: Install Linux native dependencies
+        if: matrix.platform == 'linux-x86_64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenscenegraph-dev libxerces-c-dev libgl1-mesa-dev libglu1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-render-util0 libxcb-image0 libfontconfig1 xvfb xauth
+      - name: Build and verify alpha package
+        run: python tools/preview/BuildPreviewPackage.py --platform ${{ matrix.platform }} --version 0.1.0-alpha.1
+      - name: Preserve diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-${{ matrix.platform }}
+          path: build/preview-package/logs/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Preserve compiled inputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-inputs-${{ matrix.platform }}
+          path: build/preview-package/native-inputs-*.tar.gz
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Upload verified alpha package
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha-${{ matrix.platform }}
+          path: build/preview-package/dist/*
+          if-no-files-found: error
+          retention-days: 30

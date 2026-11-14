@@ -124,6 +124,14 @@ ElementWrapper* NumberWrapper::Clone() const
    return new NumberWrapper(*this);
 }
 
+void NumberWrapper::RebindClonedReferences(const ElementWrapper &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   CheckCloneType(source);
+   (void)resolve;
+}
+
+
 //------------------------------------------------------------------------------
 // std::string ToString()
 //------------------------------------------------------------------------------

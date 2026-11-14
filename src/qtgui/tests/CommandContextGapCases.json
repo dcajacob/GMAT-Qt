@@ -1,0 +1,196 @@
+{
+  "status": "frozen-independent-expectations-before-execution",
+  "scope": "Missing command-context witnesses only; not a regression or whole-row qualification",
+  "cases": [
+    {
+      "key": "TargetNestedConstraint",
+      "script": "Create Variable A B Cost Keep;\nA = 1;\nB = 1;\nCost = 0;\nKeep = 41;\nCreate DifferentialCorrector DC;\nDC.ShowProgress = false;\nDC.ReportFile = '@OUTPUT@/DC.txt';\nCreate Yukon Opt;\nOpt.ShowProgress = false;\nOpt.ReportFile = '@OUTPUT@/Opt.txt';\nOpt.FeasibilityTolerance = 1e-9;\nOpt.OptimalityTolerance = 1e-9;\nOpt.FunctionTolerance = 1e-9;\nCreate ReportFile Values;\nValues.Filename = '@OUTPUT@/values.csv';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nBeginMissionSequence;\nTarget DC {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary DC(A = 1, {Perturbation = 1e-6, Lower = -10, Upper = 10, MaxStep = 10});\nOptimize Opt {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary Opt(B = 1, {Perturbation = 1e-6, Lower = -10, Upper = 10, MaxStep = 10});\nCost = (B - 3)^2;\nNonlinearConstraint Opt(B >= 4);\nMinimize Opt(Cost);\nEndOptimize;\nAchieve DC(A = 5, {Tolerance = 1e-9});\nEndTarget;\nKeep = Keep + 1;\nReport Values A B Cost Keep;\n",
+      "files": {},
+      "required_types": [
+        "Target",
+        "Optimize",
+        "Vary",
+        "Achieve",
+        "Minimize",
+        "NonlinearConstraint",
+        "EndOptimize",
+        "EndTarget"
+      ],
+      "expected_files": {
+        "values.csv": [
+          [
+            5,
+            4,
+            1,
+            42
+          ]
+        ]
+      },
+      "tolerance": 2e-06
+    },
+    {
+      "key": "FunctionToggleWrite",
+      "files": {
+        "Probe.gmf": "function [answer] = Probe()\nCreate Variable answer;\nGlobal Trace Counter Message Sat P Control;\nBeginMissionSequence;\nToggle Trace Off;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nCounter = Counter + 7;\nToggle Trace On;\nPropagate P(Sat) {Sat.ElapsedSecs = 10};\nWrite Message {Style = Concise};\nanswer = Counter;\n"
+      },
+      "script": "Create Spacecraft Sat;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = 7.5;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.Drag = None;\nFM.SRP = Off;\nCreate Propagator P;\nP.FM = FM;\nP.InitialStepSize = 5;\nP.MinStep = 5;\nP.MaxStep = 5;\nP.Accuracy = 1e-12;\nCreate Variable Keep Counter Out;\nKeep = 41;\nCounter = 3;\nOut = -1;\nCreate String Message;\nMessage = 'COMMAND_FUNCTION_WRITE_WITNESS';\nCreate ReportFile Values;\nValues.Filename = '@OUTPUT@/values.csv';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nCreate ReportFile Trace Control;\nControl.Filename = '@OUTPUT@/control.csv';\nControl.WriteHeaders = false;\nControl.FixedWidth = false;\nControl.Precision = 17;\nControl.Add = {Sat.ElapsedSecs};\nTrace.Filename = '@OUTPUT@/trace.csv';\nTrace.WriteHeaders = false;\nTrace.FixedWidth = false;\nTrace.Precision = 17;\nTrace.Add = {Sat.ElapsedSecs};\nCreate GmatFunction Probe;\nProbe.FunctionPath = '@OUTPUT@/Probe.gmf';\nBeginMissionSequence;\nGlobal Trace Counter Message Sat P Control;\n[Out] = Probe();\n[Out] = Probe();\nKeep = Keep + 1;\nReport Values Out Counter Keep;\n",
+      "required_types": [
+        "Toggle",
+        "Write",
+        "CallGmatFunction",
+        "Report",
+        "Global",
+        "GMAT",
+        "Propagate"
+      ],
+      "expected_files": {
+        "values.csv": [
+          [
+            17,
+            17,
+            42
+          ]
+        ]
+      },
+      "message_contains": [
+        "COMMAND_FUNCTION_WRITE_WITNESS"
+      ],
+      "tolerance": 0,
+      "time_files": {
+        "trace.csv": {
+          "allowed_intervals": [
+            [
+              10,
+              20
+            ],
+            [
+              30,
+              40
+            ]
+          ],
+          "required_times": [
+            15,
+            35
+          ],
+          "tolerance": 0.0001
+        },
+        "control.csv": {
+          "allowed_intervals": [
+            [
+              0,
+              40
+            ]
+          ],
+          "required_times": [
+            5,
+            15,
+            25,
+            35
+          ],
+          "tolerance": 0.0001
+        }
+      }
+    },
+    {
+      "key": "LateCreateTarget",
+      "files": {},
+      "script": "Create Variable A B Cost Keep;\nA = 1;\nB = 1;\nCost = 0;\nKeep = 41;\nCreate DifferentialCorrector DC;\nDC.ShowProgress = false;\nDC.ReportFile = '@OUTPUT@/DC.txt';\nCreate Yukon Opt;\nOpt.ShowProgress = false;\nOpt.ReportFile = '@OUTPUT@/Opt.txt';\nOpt.FeasibilityTolerance = 1e-9;\nOpt.OptimalityTolerance = 1e-9;\nOpt.FunctionTolerance = 1e-9;\nCreate ReportFile Values;\nValues.Filename = '@OUTPUT@/values.csv';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nBeginMissionSequence;\nTarget DC;\nCreate Variable Late;\nEndTarget;\n",
+      "reject": true,
+      "diagnostic_contains": [
+        "all objects are created before the mission sequence begins",
+        "Create Variable Late"
+      ]
+    },
+    {
+      "key": "LateCreateOptimize",
+      "files": {},
+      "script": "Create Variable A B Cost Keep;\nA = 1;\nB = 1;\nCost = 0;\nKeep = 41;\nCreate DifferentialCorrector DC;\nDC.ShowProgress = false;\nDC.ReportFile = '@OUTPUT@/DC.txt';\nCreate Yukon Opt;\nOpt.ShowProgress = false;\nOpt.ReportFile = '@OUTPUT@/Opt.txt';\nOpt.FeasibilityTolerance = 1e-9;\nOpt.OptimalityTolerance = 1e-9;\nOpt.FunctionTolerance = 1e-9;\nCreate ReportFile Values;\nValues.Filename = '@OUTPUT@/values.csv';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nBeginMissionSequence;\nOptimize Opt;\nCreate Variable Late;\nEndOptimize;\n",
+      "reject": true,
+      "diagnostic_contains": [
+        "all objects are created before the mission sequence begins",
+        "Create Variable Late"
+      ]
+    },
+    {
+      "key": "LateCreateFunction",
+      "files": {
+        "Probe.gmf": "function [answer] = Probe()\nCreate Variable answer;\nGlobal A Cost DC Opt;\nBeginMissionSequence;\nCreate Variable Late;\nanswer = 3;\n"
+      },
+      "script": "Create Variable A B Cost Keep;\nA = 1;\nB = 1;\nCost = 0;\nKeep = 41;\nCreate DifferentialCorrector DC;\nDC.ShowProgress = false;\nDC.ReportFile = '@OUTPUT@/DC.txt';\nCreate Yukon Opt;\nOpt.ShowProgress = false;\nOpt.ReportFile = '@OUTPUT@/Opt.txt';\nOpt.FeasibilityTolerance = 1e-9;\nOpt.OptimalityTolerance = 1e-9;\nOpt.FunctionTolerance = 1e-9;\nCreate ReportFile Values;\nValues.Filename = '@OUTPUT@/values.csv';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nCreate GmatFunction Probe;\nProbe.FunctionPath = '@OUTPUT@/Probe.gmf';\nBeginMissionSequence;\nGlobal A Cost DC Opt;\n[A] = Probe();\nReport Values A;\n",
+      "reject": true,
+      "diagnostic_contains": [
+        "Create command is not allowed",
+        "command mode"
+      ]
+    },
+    {
+      "key": "FunctionMisplacedAchieve",
+      "files": {
+        "Probe.gmf": "function [answer] = Probe()\nCreate Variable answer;\nGlobal A Cost DC Opt;\nBeginMissionSequence;\nAchieve DC(A = 5);\nanswer = 3;\n"
+      },
+      "script": "Create Variable A B Cost Keep;\nA = 1;\nB = 1;\nCost = 0;\nKeep = 41;\nCreate DifferentialCorrector DC;\nDC.ShowProgress = false;\nDC.ReportFile = '@OUTPUT@/DC.txt';\nCreate Yukon Opt;\nOpt.ShowProgress = false;\nOpt.ReportFile = '@OUTPUT@/Opt.txt';\nOpt.FeasibilityTolerance = 1e-9;\nOpt.OptimalityTolerance = 1e-9;\nOpt.FunctionTolerance = 1e-9;\nCreate ReportFile Values;\nValues.Filename = '@OUTPUT@/values.csv';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nCreate GmatFunction Probe;\nProbe.FunctionPath = '@OUTPUT@/Probe.gmf';\nBeginMissionSequence;\nGlobal A Cost DC Opt;\n[A] = Probe();\nReport Values A;\n",
+      "reject": true,
+      "diagnostic_contains": [
+        "Achieve",
+        "Target"
+      ]
+    },
+    {
+      "key": "FunctionMisplacedMinimize",
+      "files": {
+        "Probe.gmf": "function [answer] = Probe()\nCreate Variable answer;\nGlobal A Cost DC Opt;\nBeginMissionSequence;\nMinimize Opt(Cost);\nanswer = 3;\n"
+      },
+      "script": "Create Variable A B Cost Keep;\nA = 1;\nB = 1;\nCost = 0;\nKeep = 41;\nCreate DifferentialCorrector DC;\nDC.ShowProgress = false;\nDC.ReportFile = '@OUTPUT@/DC.txt';\nCreate Yukon Opt;\nOpt.ShowProgress = false;\nOpt.ReportFile = '@OUTPUT@/Opt.txt';\nOpt.FeasibilityTolerance = 1e-9;\nOpt.OptimalityTolerance = 1e-9;\nOpt.FunctionTolerance = 1e-9;\nCreate ReportFile Values;\nValues.Filename = '@OUTPUT@/values.csv';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nCreate GmatFunction Probe;\nProbe.FunctionPath = '@OUTPUT@/Probe.gmf';\nBeginMissionSequence;\nGlobal A Cost DC Opt;\n[A] = Probe();\nReport Values A;\n",
+      "reject": true,
+      "diagnostic_contains": [
+        "Minimize",
+        "Optimize"
+      ]
+    },
+    {
+      "key": "FunctionDuplicateBegin",
+      "files": {
+        "Probe.gmf": "function [answer] = Probe()\nCreate Variable answer;\nGlobal A Cost DC Opt;\nBeginMissionSequence;\nBeginMissionSequence;\nanswer = 3;\n"
+      },
+      "script": "Create Variable A B Cost Keep;\nA = 1;\nB = 1;\nCost = 0;\nKeep = 41;\nCreate DifferentialCorrector DC;\nDC.ShowProgress = false;\nDC.ReportFile = '@OUTPUT@/DC.txt';\nCreate Yukon Opt;\nOpt.ShowProgress = false;\nOpt.ReportFile = '@OUTPUT@/Opt.txt';\nOpt.FeasibilityTolerance = 1e-9;\nOpt.OptimalityTolerance = 1e-9;\nOpt.FunctionTolerance = 1e-9;\nCreate ReportFile Values;\nValues.Filename = '@OUTPUT@/values.csv';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nCreate GmatFunction Probe;\nProbe.FunctionPath = '@OUTPUT@/Probe.gmf';\nBeginMissionSequence;\nGlobal A Cost DC Opt;\n[A] = Probe();\nReport Values A;\n",
+      "required_types": [
+        "CallGmatFunction",
+        "BeginMissionSequence"
+      ],
+      "expected_files": {
+        "values.csv": [
+          [
+            3
+          ]
+        ]
+      },
+      "tolerance": 0
+    },
+    {
+      "key": "FunctionDuplicatePrepare",
+      "files": {
+        "Probe.gmf": "function [answer] = Probe()\nCreate Variable answer;\nGlobal A Cost DC Opt;\nBeginMissionSequence;\nPrepareMissionSequence;\nanswer = 3;\n"
+      },
+      "script": "Create Variable A B Cost Keep;\nA = 1;\nB = 1;\nCost = 0;\nKeep = 41;\nCreate DifferentialCorrector DC;\nDC.ShowProgress = false;\nDC.ReportFile = '@OUTPUT@/DC.txt';\nCreate Yukon Opt;\nOpt.ShowProgress = false;\nOpt.ReportFile = '@OUTPUT@/Opt.txt';\nOpt.FeasibilityTolerance = 1e-9;\nOpt.OptimalityTolerance = 1e-9;\nOpt.FunctionTolerance = 1e-9;\nCreate ReportFile Values;\nValues.Filename = '@OUTPUT@/values.csv';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nCreate GmatFunction Probe;\nProbe.FunctionPath = '@OUTPUT@/Probe.gmf';\nBeginMissionSequence;\nGlobal A Cost DC Opt;\n[A] = Probe();\nReport Values A;\n",
+      "required_types": [
+        "CallGmatFunction",
+        "BeginMissionSequence",
+        "PrepareMissionSequence"
+      ],
+      "expected_files": {
+        "values.csv": [
+          [
+            3
+          ]
+        ]
+      },
+      "tolerance": 0
+    }
+  ],
+  "recovery_script": "Create Variable Keep;\nKeep = 41;\nBeginMissionSequence;\nKeep = Keep + 1;\n",
+  "revision_notes": [
+    "Main mission late-Create and function late-Create use distinct native diagnostics; require the correct source-attributed wording.",
+    "Sequence markers in functions are permitted no-ops: assert successful continuation, preserving normal native grammar.",
+    "Report commands intentionally bypass automatic subscriber activation. Use automatic propagation publications to witness Toggle On/Off; preserve the original failed expectation."
+  ]
+}

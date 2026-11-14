@@ -31,6 +31,23 @@
 
 
 #include "Estimator.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration estimatorValueProvider({
+   Estimator::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Estimator*>(object) != nullptr; },
+   [](const GmatBase *object) { return dynamic_cast<const Estimator*>(object)->GetFunctionValueOwnedObjectsImpl(); },
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<Estimator*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   [](GmatBase *object, const Solver &source) { dynamic_cast<Estimator*>(object)->PrepareClonedSolverValueImpl(source); }
+});
+}
+#include "ObjectScriptExportScope.hpp"
+#include "NavigationPropagationCopies.hpp"
+#include "NavigationMeasurementCopies.hpp"
 //#include "GmatState.hpp"
 //#include "GmatGlobal.hpp"
 //#include "PropagationStateManager.hpp"
@@ -226,6 +243,8 @@ Estimator::Estimator(const std::string &type, const std::string &name) :
    theTimeConverter = TimeSystemConverter::Instance();
 
    delayInitialization = true;
+   measManager.SetOwner(this);
+   SetCloneNotificationsEnabled(true);
 }
 
 //------------------------------------------------------------------------------
@@ -377,6 +396,7 @@ Estimator::Estimator(const Estimator& est) :
    measurementNames     (est.measurementNames),
    modelNames           (est.modelNames),
    solveForStrings      (est.solveForStrings),
+   considerStrings      (est.considerStrings),
    propagatorNames      (est.propagatorNames),
    propagatorSatMap     (est.propagatorSatMap),
    resetState           (false),
@@ -416,14 +436,16 @@ Estimator::Estimator(const Estimator& est) :
    MessageInterface::ShowMessage("Estimator::Estimator() enter: <%p,%s> copy constructor from <%p,%s>\n", this, GetName().c_str(), &est, est.GetName().c_str());  
 #endif
 
-   if (est.propagators.size() > 0)
-      for (UnsignedInt i = 0; i < est.propagators.size(); ++i)
-         propagators.push_back((PropSetup*)(est.propagators[i]->Clone()));
+   auto pendingDefinitions = NavigationPropagationCopies::CloneAll(est.propagators, *this);
+   auto pendingFilters = NavigationMeasurementCopies::CloneValues(est.dataFilterObjs, this);
+   propagators = NavigationPropagationCopies::Borrow(pendingDefinitions);
+   dataFilterObjs = NavigationMeasurementCopies::BorrowValues(pendingFilters);
 
    measManager = est.measManager;
    esm         = est.esm;
    addedPlots  = est.addedPlots;
    esm.SetMeasurementManager(&measManager);
+   esm.RebindMeasurementReferences(est.esm, measManager);
    theTimeConverter = TimeSystemConverter::Instance();
 
    needsSatPropMap = (propagatorSatMap.size() > 0);
@@ -434,6 +456,10 @@ Estimator::Estimator(const Estimator& est) :
 #ifdef DEBUG_CONSTRUCTION
    MessageInterface::ShowMessage("Estimator::Estimator() exit: <%p,%s> copy constructor from <%p,%s>\n", this, GetName().c_str(), &est, est.GetName().c_str());  
 #endif
+   measManager.SetOwner(this);
+   measManager.SetPropagators(&propagators, &propagatorSatMap);
+   NavigationPropagationCopies::Release(pendingDefinitions);
+   NavigationMeasurementCopies::ReleaseValues(pendingFilters);
 }
 
 
@@ -452,6 +478,8 @@ Estimator& Estimator::operator=(const Estimator& est)
 {
    if (this != &est)
    {
+      auto pendingDefinitions = NavigationPropagationCopies::CloneAll(est.propagators, *this, propagators);
+      auto pendingFilters = NavigationMeasurementCopies::CloneValues(est.dataFilterObjs, this, dataFilterObjs);
       Solver::operator=(est);
 
       solarSystem = est.solarSystem;
@@ -459,6 +487,7 @@ Estimator& Estimator::operator=(const Estimator& est)
       measurementNames = est.measurementNames;
       modelNames       = est.modelNames;
       solveForStrings  = est.solveForStrings;
+      considerStrings  = est.considerStrings;
 
       propagatorNames   = est.propagatorNames;
       propagatorSatMap  = est.propagatorSatMap;
@@ -466,19 +495,15 @@ Estimator& Estimator::operator=(const Estimator& est)
 
       transientForces   = NULL;
 
-      // clear old PropSetups
-      for (UnsignedInt i = 0; i < propagators.size(); ++i)
-         if (propagators[i])
-            delete propagators[i];
-      propagators.clear();
-
-      if (est.propagators.size() > 0)
-         for (UnsignedInt i = 0; i < est.propagators.size(); ++i)
-            propagators.push_back((PropSetup*)(est.propagators[i]->Clone()));
+      NavigationPropagationCopies::Publish(propagators, pendingDefinitions);
+      satPropMap.clear();
 
       measManager          = est.measManager;
+      measManager.SetOwner(this);
+      measManager.SetPropagators(&propagators, &propagatorSatMap);
       esm                  = est.esm;
       esm.SetMeasurementManager(&measManager);
+      esm.RebindMeasurementReferences(est.esm, measManager);
 
       estEpochFormat       = est.estEpochFormat;
       estEpoch             = est.estEpoch;
@@ -490,7 +515,7 @@ Estimator& Estimator::operator=(const Estimator& est)
       isPredicting         = est.isPredicting;
       addPredictToMatlab   = est.addPredictToMatlab;
       stm                  = NULL;
-      covariance           = NULL;
+      stateCovariance      = NULL;
       estimationState      = NULL;
       stateSize            = 0;
       cf                   = est.cf;
@@ -521,6 +546,13 @@ Estimator& Estimator::operator=(const Estimator& est)
       dataFileStyle = est.dataFileStyle;
 
       matDeprecatedFlag = false;
+      for (auto &entry : vnbFrames) delete entry.second;
+      vnbFrames.clear();
+      for (auto *plot : residualPlots) delete plot;
+      residualPlots.clear();
+      hiLowData.clear(); activeEvents.clear(); forceDerivativeCache.clear();
+      currentPropagator.clear(); locatingEvent = false;
+      NavigationMeasurementCopies::PublishValues(dataFilterObjs, pendingFilters);
    }
 
    return *this;
@@ -562,6 +594,7 @@ bool Estimator::Initialize()
    if (isInitialized)
       return true;
 
+   NavigationPropagationCopies::Validate(propagators);
    bool retval = Solver::Initialize();
 
    if (retval)
@@ -697,32 +730,36 @@ bool Estimator::Initialize()
       measNames.clear();
       pms.clear();                // Thrust Scale Factor Solve For
 
-      // Set estimation data filter objects
-      ObjectMap objMap = GetConfiguredObjectMap();
-      for (UnsignedInt i = 0; i < dataFilterStrings.size(); ++i)
+      // Declared filter slots can already hold actual function-scope bindings.
+      // A repeated initialization must not treat those owned values as duplicate
+      // declarations or replace them with unrelated global same-name objects.
+      ObjectMap configured = GetConfiguredObjectMap();
+      ObjectArray selected;
+      std::set<std::string> declared;
+      for (const auto &name : dataFilterStrings)
       {
-         for (UnsignedInt j = 0; j < dataFilterObjs.size(); ++j)
-         {
-            if (dataFilterStrings[i] == dataFilterObjs[j]->GetName())
+         if (!declared.insert(name).second)
+            throw EstimatorException("Duplicate estimation data-filter declaration '" + name + "'.\n");
+         GmatBase *filter = nullptr;
+         for (auto *owned : dataFilterObjs)
+            if (owned && owned->GetName() == name)
             {
-               throw EstimatorException("Error: Cannot initialize estimator '"
-                  + GetName() + "';  in the estimation data filter list, estimation data filter '" 
-                  + dataFilterStrings[i] + "' object is duplicated.\n");
+               if (filter) throw EstimatorException("Ambiguous owned estimation data filter.\n");
+               filter = owned;
             }
-         }
-
-         GmatBase* obj = objMap[dataFilterStrings[i]];
-         if (obj == NULL)
-            throw EstimatorException("Error: Cannot initialize estimator '"
-            + GetName() + "'; Estimation data filter '" + dataFilterStrings[i] +
-            "' object is not defined in script.\n");
-         else
+         if (!filter)
          {
-            GmatBase* obj1 = obj->Clone();
-            obj1->Initialize();
-            dataFilterObjs.push_back(obj1);
+            const auto found = configured.find(name);
+            if (found != configured.end()) filter = found->second;
          }
+         if (!filter || !filter->IsOfType(Gmat::DATA_FILTER))
+            throw EstimatorException("Unresolved estimation data filter '" + name + "'.\n");
+         selected.push_back(filter);
       }
+      auto filters = NavigationMeasurementCopies::CloneValues(selected, this, dataFilterObjs);
+      for (auto &filter : filters)
+         if (!filter->Initialize()) return false;
+      NavigationMeasurementCopies::PublishValues(dataFilterObjs, filters);
 
       if (matFileName != "")
       {
@@ -1300,6 +1337,24 @@ bool Estimator::SetStringParameter(const Integer id,
 {
    if (id == PROPAGATOR)
    {
+      if (value == "{}")
+      {
+         // A complete definition reset retires owned PropSetup clones through
+         // the same native publisher used for definition replacement.
+         isInitialized = false;
+         currentState = INITIALIZING;
+         needsSatPropMap = true;
+         currentPropagator.clear();
+         propagatorNames.clear();
+         propagatorSatMap.clear();
+         satPropMap.clear();
+         forceDerivativeCache.clear();
+         delayInitialization = true;
+         NavigationPropagationCopies::Values empty;
+         NavigationPropagationCopies::Publish(propagators, empty);
+         measManager.SetPropagators(&propagators, &propagatorSatMap);
+         return true;
+      }
       if (!GmatStringUtil::IsValidIdentity(value))
          throw EstimatorException("Error: '" + value + "' set to " +
                instanceName + ".Propagator is an invalid GMAT object name.\n");
@@ -1339,7 +1394,9 @@ bool Estimator::SetStringParameter(const Integer id,
       if (value == "FromParticipants")
       {
          estimationEpochGT = 0.0;
-         estEpoch = "";
+         // Keep the symbolic epoch value stable across an explicit format
+         // assignment and script reload. No numerical epoch is selected here.
+         estEpoch = "FromParticipants";
       }
 
       return retVal;
@@ -1411,8 +1468,7 @@ bool Estimator::SetStringParameter(const Integer id,
       //MessageInterface::ShowMessage("%s.DataFilters = %s\n", GetName().c_str(), value.c_str());
       if (GmatStringUtil::Trim(GmatStringUtil::RemoveOuterString(value, "{", "}")) == "")
       {
-         dataFilterStrings.clear();
-         return true;
+         return SetStringParameter(id, "", -1);
       }
    }
 
@@ -1547,6 +1603,18 @@ bool Estimator::SetStringParameter(const Integer id, const std::string &value,
       // an empty list is set to Measurements parameter when index == -1
       if (index == -1)
       {
+         isInitialized = false;
+         currentState = INITIALIZING;
+         delayInitialization = true;
+         stm = nullptr; stateCovariance = nullptr; estimationState = nullptr;
+         stateSize = 0;
+         forceDerivativeCache.clear(); activeEvents.clear();
+         locatingEvent = false; resetState = false;
+         satPropMap.clear(); needsSatPropMap = true;
+         esm.InvalidateObjectBindings();
+         for (auto *plot : residualPlots) delete plot;
+         residualPlots.clear(); hiLowData.clear();
+         measManager.ClearMeasurements();
          measurementNames.clear();
          return true;
       }
@@ -1580,33 +1648,47 @@ bool Estimator::SetStringParameter(const Integer id, const std::string &value,
       // an empty list is set to SolveFors parameter when index == -1
       if (index == -1)
       {
-         measurementNames.clear();
+         isInitialized = false;
+         currentState = INITIALIZING;
+         delayInitialization = true;
+         stm = nullptr; stateCovariance = nullptr; estimationState = nullptr;
+         stateSize = 0;
+         forceDerivativeCache.clear(); activeEvents.clear();
+         locatingEvent = false; resetState = false;
+         satPropMap.clear(); needsSatPropMap = true;
+         esm.ClearSolveForProperties();
+         solveForStrings.clear();
          return true;
       }
 
       Integer sz = (Integer) solveForStrings.size();
-      if (index == sz) // needs to be added to the end of the list
-         solveForStrings.push_back(value);
-      else if ((index) < 0 || (index > sz)) // out of bounds
-      {
-         std::string errmsg = "Estimator::SetStringParameter error - index "
-               "into measurement array is out of bounds.\n";
-         throw EstimatorException(errmsg);
-      }
-      else // is in bounds
-         solveForStrings.at(index) = value;
+      if (index < 0 || index > sz)
+         throw EstimatorException("Estimator::SetStringParameter error - index "
+               "into measurement array is out of bounds.\n");
+      StringArray selected(solveForStrings);
+      if (index == sz) selected.push_back(value);
+      else selected.at(index) = value;
 
-      // Load the string into the ESM so that the object list can be built
+      // Validate and stage native roles before publishing the public selection.
       esm.SetProperty(value, index);
+      solveForStrings.swap(selected);
 
       return true;
    }
 
    if (id == ADD_RESIDUAL_PLOT)
    {
-      // Nothing to do when an empty list is added to AddResualPlot parameter
+      // Explicit clearing retires generated plots as well as the selection.
       if (index == -1)
+      {
+         isInitialized = false;
+         currentState = INITIALIZING;
+         delayInitialization = true;
+         for (auto *plot : residualPlots) delete plot;
+         residualPlots.clear(); hiLowData.clear();
+         addedPlots.clear();
          return true;
+      }
 
       Integer sz = (Integer)addedPlots.size();
       if (index == sz) // needs to be added to the end of the list
@@ -1625,9 +1707,17 @@ bool Estimator::SetStringParameter(const Integer id, const std::string &value,
 
    if (id == DATA_FILTERS)
    {
-      // Nothing to do when an empty list is added to DataFilters parameter
+      // Filter definitions belong to the estimator, not the declaration map.
       if (index == -1)
+      {
+         isInitialized = false;
+         currentState = INITIALIZING;
+         delayInitialization = true;
+         dataFilterStrings.clear();
+         NavigationMeasurementCopies::DeleteOwned(dataFilterObjs);
+         editedRecords.clear();
          return true;
+      }
 
       Integer sz = (Integer)dataFilterStrings.size();
       if (index == sz) // needs to be added to the end of the list
@@ -2191,9 +2281,15 @@ bool Estimator::SetRefObjectName(const UnsignedInt type,
  * @return The array
  */
 //------------------------------------------------------------------------------
+bool Estimator::HasRefObjectTypeArray() { return true; }
+
 const ObjectTypeArray& Estimator::GetRefObjectTypeArray()
 {
-   return Solver::GetRefObjectTypeArray();
+   refObjectTypes = Solver::GetRefObjectTypeArray();
+   for (UnsignedInt type : {Gmat::PROP_SETUP, Gmat::MEASUREMENT_MODEL, Gmat::DATA_FILTER})
+      if (std::find(refObjectTypes.begin(), refObjectTypes.end(), type) == refObjectTypes.end())
+         refObjectTypes.push_back(type);
+   return refObjectTypes;
 }
 
 //------------------------------------------------------------------------------
@@ -2261,6 +2357,10 @@ const StringArray& Estimator::GetRefObjectNameArray(const UnsignedInt type)
       refObjectList = Solver::GetRefObjectNameArray(type);
    }
 
+   if (type == Gmat::UNKNOWN_OBJECT || type == Gmat::DATA_FILTER)
+      for (const auto &name : dataFilterStrings)
+         if (std::find(refObjectList.begin(), refObjectList.end(), name) == refObjectList.end())
+            refObjectList.push_back(name);
    return refObjectList;
 }
 
@@ -2301,11 +2401,17 @@ GmatBase* Estimator::GetRefObject(const UnsignedInt type,
    {
       for (UnsignedInt i = 0; i < propagators.size(); ++i)
       {
-         if (propagators[i]->GetName() == name)
+         if (propagators[i] && propagators[i]->GetName() == name)
             return propagators[i];
       }
    }
 
+   if (type == Gmat::DATA_FILTER)
+      for (auto *filter : dataFilterObjs)
+         if (filter && filter->GetName() == name) return filter;
+   if (type == Gmat::MEASUREMENT_MODEL)
+      for (auto *tracking : measManager.GetAllTrackingFileSets())
+         if (tracking && tracking->GetName() == name) return tracking;
    return Solver::GetRefObject(type, name);
 }
 
@@ -2349,6 +2455,36 @@ GmatBase* Estimator::GetRefObject(const UnsignedInt type,
 bool Estimator::SetRefObject(GmatBase *obj, const UnsignedInt type,
       const std::string & name)
 {
+   if (!obj) return false;
+   if (type == Gmat::DATA_FILTER || obj->IsOfType(Gmat::DATA_FILTER))
+   {
+      if (!obj->IsOfType(Gmat::DATA_FILTER))
+         throw EstimatorException("An estimation filter reference requires a DataFilter.\n");
+      const auto role = name.empty() ? obj->GetName() : name;
+      if (std::find(dataFilterStrings.begin(), dataFilterStrings.end(), role) == dataFilterStrings.end())
+         return false;
+      auto value = NavigationMeasurementCopies::Clone(*obj, this, true, dataFilterObjs);
+      auto replacement = dataFilterObjs;
+      GmatBase *retired = nullptr;
+      for (auto &filter : replacement)
+         if (filter && filter->GetName() == role)
+         {
+            if (retired) throw EstimatorException("Ambiguous estimation filter attachment.\n");
+            retired = filter;
+            filter = value.get();
+         }
+      value->SetName(role);
+      if (retired == obj) value->SetCloneSource(obj->GetCloneSource());
+      if (!retired) replacement.push_back(value.get());
+      if (retired) GmatBase::RetargetCloneSources(*retired, *value);
+      dataFilterObjs.swap(replacement);
+      value.release();
+      delete retired;
+      isInitialized = false;
+      return true;
+   }
+
+   if (!obj) return false;
    #ifdef DEBUG_ESTIMATOR_INITIALIZATION
       MessageInterface::ShowMessage("Setting ref object %s with type %s\n",
             name.c_str(), obj->GetTypeName().c_str());
@@ -2360,24 +2496,29 @@ bool Estimator::SetRefObject(GmatBase *obj, const UnsignedInt type,
       {
          if (type == Gmat::PROP_SETUP)
          {
-            PropSetup *propagator = (PropSetup*)obj->Clone();
-            if (propagators.size() <= i)
-               propagators.push_back(propagator);
-            else
-            {
-               PropSetup *oldProp = propagators[i];
-               propagators[i] = propagator;
-               delete oldProp;
-            }
-
-            // Set the spacecraft - propagator name map
-            if (propagatorSatMap.find(name) != propagatorSatMap.end())
-            {
-               StringArray propSats = propagatorSatMap[name];
-               for (UnsignedInt i = 0; i < propSats.size(); ++i)
-                  satPropMap[propSats[i]] = propagator;
-            }
-
+            auto *definition = dynamic_cast<PropSetup*>(obj);
+            if (!definition) throw SolverException("A navigation propagator reference requires a PropSetup.\n");
+            PropSetup *oldProp = i < propagators.size() ? propagators[i] : nullptr;
+            std::set<GmatBase*> forbidden{this};
+            for (auto *value : propagators) forbidden.insert(value);
+            auto pending = NavigationPropagationCopies::Clone(*definition, *this,
+                  definition != oldProp, forbidden);
+            auto replacement = propagators;
+            replacement.resize(std::max(replacement.size(), static_cast<size_t>(i + 1)), nullptr);
+            replacement[i] = pending.get();
+            auto replacementMap = satPropMap;
+            for (auto &entry : replacementMap)
+               if (oldProp && entry.second == oldProp) entry.second = pending.get();
+            const auto configured = propagatorSatMap.find(name);
+            if (configured != propagatorSatMap.end())
+               for (const auto &satellite : configured->second) replacementMap[satellite] = pending.get();
+            isInitialized = false;
+            needsSatPropMap = true;
+            if (oldProp) NavigationPropagationCopies::Retarget(*oldProp, *pending);
+            propagators.swap(replacement);
+            satPropMap.swap(replacementMap);
+            pending.release();
+            delete oldProp;
             measManager.SetPropagators(&propagators, &propagatorSatMap);
             return true;
          }
@@ -2396,7 +2537,13 @@ bool Estimator::SetRefObject(GmatBase *obj, const UnsignedInt type,
          #endif
 
          modelNames.push_back(obj->GetName());
-         measManager.AddMeasurement((TrackingFileSet *)obj);
+         auto *definition = dynamic_cast<TrackingFileSet*>(obj);
+         if (!definition) throw SolverException("A tracking reference requires a TrackingFileSet.\n");
+         measManager.SetOwner(this);
+         measManager.BindMeasurement(definition, name);
+         esm.RebindMeasurementReferences(esm, measManager);
+         measManager.ReleaseRetiredDefinitions();
+         isInitialized = false;
          return true;
       }
    }
@@ -2463,6 +2610,7 @@ bool Estimator::SetRefObject(GmatBase *obj, const UnsignedInt type,
 //------------------------------------------------------------------------------
 ObjectArray & Estimator::GetRefObjectArray(const UnsignedInt type)
 {
+   if (type == Gmat::DATA_FILTER) return dataFilterObjs;
    if (type == Gmat::EVENT)
    {
       activeEvents.clear();
@@ -2710,38 +2858,39 @@ bool Estimator::HasLocalClones()
 //------------------------------------------------------------------------------
 void Estimator::UpdateClonedObject(GmatBase *obj)
 {
-   if (obj->IsOfType("Spacecraft"))
-      return;
-   if (obj->IsOfType("Parameter"))
-      return;
-   throw EstimatorException("To do: implement Estimator::UpdateClonedObject "
-         "for " + obj->GetTypeName() + " objects");
+   ApplyOwnedCloneUpdate(obj);
 }
 
-//------------------------------------------------------------------------------
-// void UpdateClonedObjectParameter(GmatBase *obj, Integer updatedParameterId)
-//------------------------------------------------------------------------------
-/**
- * Added method to remove message in the Message window.
- *
- * The current implementation needs to be updated to actually process parameters
- * when they are updated in the system.  For now, it is just overriding the base
- * class "do nothing" method so that the message traffic is not shown to the
- * user.
- *
- * Turn on the debug to figure out the updates being requested.
- *
- * @param obj The master object holding the new parameter value
- * @param updatedParameterId The ID of the updated parameter
- */
-//------------------------------------------------------------------------------
-void Estimator::UpdateClonedObjectParameter(GmatBase *obj, Integer updatedParameterId)
+void Estimator::UpdateClonedObjectParameter(GmatBase *obj, Integer parameterId)
 {
-#ifdef DEBUG_CLONED_PARAMETER_UPDATES
-   MessageInterface::ShowMessage("Estimator updating parameter %d (%s) using "
-         "object %s\n", updatedParameterId, obj->GetParameterText(updatedParameterId).c_str(),
-         obj->GetName().c_str());
-#endif
+   if (parameterId >= 0) ApplyOwnedCloneUpdate(obj, parameterId);
+}
+
+bool Estimator::ApplyPropagationCloneUpdate(GmatBase *obj, Integer parameterId)
+{
+   if (!obj) return false;
+   bool changed = false;
+   try
+   {
+      changed = NavigationPropagationCopies::Apply(propagators, obj, parameterId);
+   }
+   catch (...)
+   {
+      isInitialized = false;
+      needsSatPropMap = true;
+      throw;
+   }
+   if (changed)
+   {
+      isInitialized = false;
+      needsSatPropMap = true;
+   }
+   return changed;
+}
+
+const std::vector<PropSetup*> &Estimator::GetOwnedPropagationDefinitions() const
+{
+   return propagators;
 }
 
 
@@ -3908,10 +4057,6 @@ Rmatrix Estimator::GetCovarianceVNB(const Rmatrix& inCov)
    esm.GetStateObjects(satArray, Gmat::SPACECRAFT);
    UnsignedInt satArraySize = satArray.size();
    UnsignedInt matSize = satArraySize*6;
-   Rvector outState(stateSize);
-   Rvector inState(stateSize);
-   inState.Set(estimationState->GetState(), stateSize);
-
    Rmatrix transform(matSize, matSize);
    UnsignedIntArray satStartIdxs; // Start index of the S/C Cartesian states in the esm
    const std::vector<ListItem*> *map = esm.GetStateMap();
@@ -3937,9 +4082,10 @@ Rmatrix Estimator::GetCovarianceVNB(const Rmatrix& inCov)
       UnsignedInt offsetIdx = satStartIdxs.size() * 6;
       satStartIdxs.push_back(satIdx);
 
-      cc.Convert(currentEpochGT, inState, ((Spacecraft*)satArray[idx])->GetInternalCoordSystem(), outState, vnbFrames[satArray[idx]], true, false);
-
-      Rmatrix33 vnbRot = cc.GetLastRotationMatrix();
+      // This covariance convention rotates the two 3-vectors independently;
+      // it does not use the six-state conversion's frame-rate terms.
+      Rmatrix33 vnbRot = cc.GetRotationMatrixOnly(currentEpochGT,
+         ((Spacecraft*)satArray[idx])->GetInternalCoordSystem(), vnbFrames[satArray[idx]]);
 
       for (UnsignedInt ii = 0; ii < 3U; ii++)
       {
@@ -10560,14 +10706,24 @@ void Estimator::WriteReportFileSummaryPart3(Solver::SolverState sState)
    textFile3 << "\n";
    
 
-   // 8. Calculate matrix [dK/dS]
-   Rmatrix dK_dS = solv2KeplMatrix.Inverse();     // GTDS MathSpec 8-45, 8-46a, and 8-46b
+   // Classical Keplerian elements can have a singular conversion at a
+   // circular/equatorial state. This derived report must not abort a valid
+   // Cartesian estimation or manufacture zero uncertainties for that case.
+   bool keplerianCovarianceAvailable = true;
+   Rmatrix keplerianCovar(informationInverse.GetNumRows(),
+                         informationInverse.GetNumColumns());
+   try
+   {
+      Rmatrix dK_dS = solv2KeplMatrix.Inverse();
+      keplerianCovar = dK_dS * informationInverse * dK_dS.Transpose();
+   }
+   catch (Rmatrix::IsSingular &)
+   {
+      keplerianCovarianceAvailable = false;
+      textFile3 << "Keplerian uncertainties unavailable: singular orbital-element conversion.\n";
+   }
 
-   
-   // 9. Write Keplerian state
-   // 9.1. Calculate Keplerian covariance matrix
-   //Rmatrix keplerianCovar = convmatrix * covar * convmatrix.Transpose();                 // Equation 8-49 GTDS MathSpec
-   Rmatrix keplerianCovar = dK_dS * informationInverse * dK_dS.Transpose();                // Equation 8-49 GTDS MathSpec
+   // 9. Write Keplerian states; unavailable uncertainties are explicitly N/A.
 
    // 9.2. Write Keplerian apriori, previous, current states
    std::vector<std::string> nameList;
@@ -10611,7 +10767,7 @@ void Estimator::WriteReportFileSummaryPart3(Solver::SolverState sState)
 
       for (UnsignedInt j = 0; j < 6; ++j)
       {
-         if (keplerianCovar(k, k) >= 0.0)
+         if (keplerianCovarianceAvailable && keplerianCovar(k, k) >= 0.0)
          {
             stdArr.push_back(GmatMathUtil::Sqrt(keplerianCovar(k, k)));
          }
@@ -10822,8 +10978,19 @@ void Estimator::WriteReportFileSummaryPart4(Solver::SolverState sState)
    textFile4 << WriteMatrixReport(finalCorrelation);
 
 
-   // 3. Calculate converison derivative matrix [dK/dS] from solve-for state to Keplerian state
-   Rmatrix convmatrix = solv2KeplMatrix.Inverse();                            // GTDS MathSpec Eq 8-45, 8-46a, and 8-46b
+   // Cartesian covariance/correlation above remain valid when classical
+   // Keplerian coordinates have no nonsingular covariance conversion.
+   Rmatrix convmatrix;
+   try
+   {
+      convmatrix = solv2KeplMatrix.Inverse();
+   }
+   catch (Rmatrix::IsSingular &)
+   {
+      textFile4 << "Keplerian covariance and correlation unavailable: singular orbital-element conversion.\n\n";
+      textFile4.flush();
+      return;
+   }
 
    // 4. Write final covariance and correlation matrix for Keplerian coordinate system:
    // 4.1. Calculate covariance matrix w.r.t. Cr_Epsilon and Cd_Epsilon
@@ -12000,6 +12167,7 @@ std::map<GmatBase*, RealArray> Estimator::CalculateAncillaryElements(const std::
 //------------------------------------------------------------------------------
 void Estimator::BuildSatPropMap()
 {
+   NavigationPropagationCopies::Validate(propagators);
    satPropMap.clear();
    
    if (propagatorSatMap.size() == 1)
@@ -12063,6 +12231,7 @@ void Estimator::BuildSatPropMap()
  //------------------------------------------------------------------------------
 bool Estimator::DoesSatUseEphemerisPropagator(std::string satName)
 {
+   NavigationPropagationCopies::Validate(propagators);
    //if only one propagator, just check that
    if (propagators.size() == 1)
       if (propagators[0]->GetPropagator()->IsOfType("EphemerisPropagator"))
@@ -12118,6 +12287,10 @@ void Estimator::WriteStringArrayValue(Gmat::WriteMode mode, std::string &prefix,
 {
    if (id == PROPAGATOR)
    {
+      if (ObjectScriptExportScope::IsActive() &&
+            (mode == Gmat::SCRIPTING || mode == Gmat::OWNED_OBJECT ||
+             mode == Gmat::NO_COMMENTS || mode == Gmat::OBJECT_EXPORT))
+         stream << prefix << GetParameterText(id) << " = {};\n";
       std::stringstream propstr;
 
       if (mode != Gmat::OBJECT_EXPORT)
@@ -12257,4 +12430,152 @@ std::map<std::string, StringArray> Estimator::GetPropSatMap()
 std::map<std::string, PropSetup*> Estimator::GetSatPropMap()
 {
    return satPropMap;
+}
+
+bool Estimator::HasOwnedDefinitionSource(const GmatBase *source) const
+{
+   if (!source) return false;
+   if (measManager.HasDefinitionSource(source)) return true;
+   for (auto *setup : propagators)
+   {
+      if (!setup) continue;
+      if (setup == source || setup->IsCloneOf(*source)) return true;
+      for (GmatBase *child : {static_cast<GmatBase*>(setup->GetPropagator()),
+                             static_cast<GmatBase*>(setup->GetODEModel())})
+         if (child && (child == source || child->IsCloneOf(*source))) return true;
+   }
+   if (IsOfType("Smoother"))
+   {
+      auto *filter = dynamic_cast<Estimator*>(const_cast<Estimator*>(this)->GetRefObject(GmatType::GetTypeId("SeqEstimator"), ""));
+      if (filter && (filter == source || filter->IsCloneOf(*source) || filter->HasOwnedDefinitionSource(source))) return true;
+   }
+   return false;
+}
+
+bool Estimator::ApplyOwnedCloneUpdate(GmatBase *source, Integer parameterId)
+{
+   if (!source) return false;
+   bool changed = false;
+   try
+   {
+      changed = ApplyPropagationCloneUpdate(source, parameterId);
+      if (measManager.ApplyDefinitionUpdate(source, parameterId))
+      {
+         esm.RebindMeasurementReferences(esm, measManager);
+         measManager.ReleaseRetiredDefinitions();
+         changed = true;
+      }
+      if (IsOfType("Smoother"))
+      {
+         auto *filter = dynamic_cast<Estimator*>(GetRefObject(GmatType::GetTypeId("SeqEstimator"), ""));
+         if (filter && filter != this)
+         {
+            if (filter == source || filter->IsCloneOf(*source))
+            {
+               if (typeid(*filter) != typeid(*source) || filter->GetTypeName() != source->GetTypeName())
+                  throw SolverException("Incompatible owned smoother filter definition.\n");
+               GmatBase::FunctionValueCopyGuard nativeCopy;
+               if (filter != source)
+               {
+                  if (parameterId < 0) filter->Copy(source);
+                  else filter->CopyParameter(*source, parameterId);
+                  NavigationMeasurementCopies::KeepReferences(*filter, *source, parameterId < 0);
+               }
+               changed = true;
+            }
+            else changed |= filter->ApplyOwnedCloneUpdate(source, parameterId);
+         }
+      }
+   }
+   catch (...)
+   {
+      isInitialized = false;
+      throw;
+   }
+   if (changed) isInitialized = false;
+   return changed;
+}
+
+ObjectArray Estimator::GetFunctionValueOwnedObjectsImpl() const
+{
+   ObjectArray result(propagators.begin(), propagators.end());
+   const auto &tracking = measManager.GetAllTrackingFileSets();
+   result.insert(result.end(), tracking.begin(), tracking.end());
+   result.insert(result.end(), dataFilterObjs.begin(), dataFilterObjs.end());
+   const ObjectArray physical = esm.GetFunctionValueOwnedObjects();
+   result.insert(result.end(), physical.begin(), physical.end());
+   return result;
+}
+
+void Estimator::PrepareClonedSolverValueImpl(const Solver &original)
+{
+   CheckSolverValueType(original);
+   const auto &source = dynamic_cast<const Estimator&>(original);
+   if (GetFunctionValueOwnedObjects().size() != source.GetFunctionValueOwnedObjects().size())
+      throw EstimatorException("Incompatible retained estimator definition collections.\n");
+   CopySolverValueData(source);
+   currentState = INITIALIZING;
+   stm = nullptr; stateCovariance = nullptr; estimationState = nullptr;
+   stateSize = 0; locatingEvent = false; resetState = false;
+   activeEvents.clear(); satPropMap.clear(); forceDerivativeCache.clear();
+   currentPropagator.clear();
+   delayInitialization = true;
+   isInitialized = false;
+}
+
+bool Estimator::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const Estimator*>(&original);
+   if (!source) throw EstimatorException("Incompatible retained estimator reference source.\n");
+   CheckSolverValueType(*source);
+   const ObjectArray from = source->Estimator::GetFunctionValueOwnedObjectsImpl();
+   const ObjectArray to = Estimator::GetFunctionValueOwnedObjectsImpl();
+   if (from.size() != to.size()) throw EstimatorException("Incompatible estimator owned definition shape.\n");
+   for (size_t i = 0; i < from.size(); ++i)
+      if ((from[i] == nullptr) != (to[i] == nullptr) || (from[i] && resolve(from[i]) != to[i]))
+         throw EstimatorException("Estimator ownership was not registered before binding.\n");
+   NavigationMeasurementCopies::Aliases setups, participants, models, filters;
+   for (size_t i = 0; i < source->propagators.size(); ++i)
+      if (source->propagators[i]) setups.Add(*source->propagators[i], *propagators.at(i));
+   const auto &tracking = source->measManager.GetAllTrackingFileSets();
+   const auto &mappedTracking = measManager.GetAllTrackingFileSets();
+   for (size_t i = 0; i < tracking.size(); ++i)
+   {
+      models.Add(*tracking[i], *mappedTracking.at(i));
+      const ObjectArray references = tracking[i]->GetRefObjectArray(Gmat::SPACE_POINT);
+      for (auto *reference : references)
+      {
+         auto *value = reference ? resolve(reference) : nullptr;
+         if (!value) throw EstimatorException("Unresolved retained estimator participant.\n");
+         participants.Add(*reference, *value);
+      }
+   }
+   for (size_t i = 0; i < source->dataFilterObjs.size(); ++i)
+      filters.Add(*source->dataFilterObjs[i], *dataFilterObjs.at(i));
+   auto roles = NavigationMeasurementCopies::MapPropagationRoles(source->propagatorSatMap, setups, participants);
+   auto propagationNames = source->propagatorNames;
+   auto measurements = source->measurementNames;
+   auto modelList = source->modelNames;
+   auto filterNames = source->dataFilterStrings;
+   auto solveFors = source->solveForStrings;
+   auto considers = source->considerStrings;
+   for (auto &name : propagationNames) name = setups.Map(name);
+   for (auto &name : measurements) name = models.Map(name);
+   for (auto &name : modelList) name = models.Map(name);
+   for (auto &name : filterNames) name = filters.Map(name);
+   for (auto &name : solveFors) name = participants.MapProperty(name);
+   for (auto &name : considers) name = participants.MapProperty(name);
+   esm.RebindFunctionValueReferences(source->esm, measManager, resolve,
+         [&](const std::string &name) { return participants.MapProperty(name); });
+   propagatorSatMap.swap(roles); propagatorNames.swap(propagationNames);
+   measurementNames.swap(measurements); modelNames.swap(modelList);
+   dataFilterStrings.swap(filterNames); solveForStrings.swap(solveFors); considerStrings.swap(considers);
+   solarSystem = system;
+   measManager.SetOwner(this);
+   measManager.SetPropagators(&propagators, &propagatorSatMap);
+   needsSatPropMap = !propagatorSatMap.empty();
+   transientForces = nullptr;
+   isInitialized = false;
+   return true;
 }

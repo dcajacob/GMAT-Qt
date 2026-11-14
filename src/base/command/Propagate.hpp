@@ -34,6 +34,7 @@
 #define Propagate_hpp
 
 #include "PropagationEnabledCommand.hpp"
+#include "AcceptedStepHistory.hpp"
 #include "ElementWrapper.hpp"
 #include <list>
 
@@ -120,6 +121,11 @@ public:
    virtual Gmat::ParameterType
                         GetParameterType(const Integer id) const;
    virtual std::string  GetParameterTypeString(const Integer id) const;
+   virtual const StringArray& GetPropertyEnumStrings(const Integer id) const;
+   virtual bool         IsParameterCommandModeSettable(const Integer id) const;
+   // Count configured setups before their per-group runtime clones are made.
+   static std::string   EphemerisPolicyError(const std::string &policy,
+                                            const std::vector<PropSetup*> &setups);
    
    virtual Integer      GetIntegerParameter(const Integer id) const;
    virtual Integer      SetIntegerParameter(const Integer id,
@@ -177,6 +183,8 @@ public:
    
    // Methods used for running the command
    virtual bool         Initialize();
+   virtual void         UpdateClonedObject(GmatBase *object);
+   virtual void         UpdateClonedObjectParameter(GmatBase *object, Integer parameterId);
    virtual void         FillFormation(SpaceObject *so, StringArray& owners,
                                       StringArray& elements);
    virtual GmatCommand* GetNext();
@@ -185,12 +193,19 @@ public:
    virtual GmatBase*    GetClone(Integer cloneIndex = 0);
    
 protected:
+   bool InitializeForPropagation(bool selectAccelerationContext);
+   bool TakeAStepWithJournal(Real propStep,
+      std::vector<AcceptedStepHistory::Step> &records);
+   bool PublishIntegrationSteps(const std::vector<AcceptedStepHistory::Step> &records,
+      Real propDir, bool initial = false);
    /// Name of the propagator setup(s) used in this command
    StringArray                  propName;
    /// The spacecraft associated with this propagation, grouped by propagator
    std::vector<StringArray *>   satName;
    /// Flag used to determine if the spacecraft are propagated coupled
    std::string                  currentPropMode;
+   std::string                  ephemerisPolicy;
+   bool                         ephemerisPolicySpecified;
    /// Frequency used to check for user interrupts of the run
    Integer                      interruptCheckFrequency;
    /// Flag that specifies if we are rejoining a run in progress
@@ -319,6 +334,7 @@ protected:
       CALC_ALL_AMATRIX,
       CALC_ALL_COVARIANCE,
       ORBIT_COLOR,
+      EPHEMERIS_POLICY,
       PropagateCommandParamCount,
    };
 

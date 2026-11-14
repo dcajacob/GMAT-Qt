@@ -1,0 +1,843 @@
+{
+  "cases": [
+    {
+      "key": "BurnPrimary",
+      "type": "ImpulsiveBurn",
+      "object": "Probe",
+      "prefix": "burn_",
+      "fixture": "Create ChemicalTank Fuel;\nCreate ImpulsiveBurn Probe;\nProbe.DecrementMass = true;\nProbe.Tank = {Fuel};\n",
+      "units": {
+        "Element1": "km/s",
+        "Element2": "km/s",
+        "Element3": "km/s",
+        "Isp": "s",
+        "GravitationalAccel": "m/s\u00b2"
+      }
+    },
+    {
+      "key": "ChemicalPrimary",
+      "type": "ChemicalThruster",
+      "object": "Probe",
+      "prefix": "thruster_",
+      "fixture": "Create ChemicalThruster Probe;\nProbe.DecrementMass = false;\n",
+      "units": {
+        "GravitationalAccel": "m/s\u00b2"
+      }
+    },
+    {
+      "key": "ElectricPrimary",
+      "type": "ElectricThruster",
+      "object": "Probe",
+      "prefix": "thruster_",
+      "fixture": "Create ElectricThruster Probe;\nProbe.DecrementMass = false;\nProbe.ThrustModel = ConstantThrustAndIsp;\n",
+      "units": {
+        "GravitationalAccel": "m/s\u00b2",
+        "MinimumUsablePower": "kW",
+        "MaximumUsablePower": "kW",
+        "Isp": "s",
+        "ConstantThrust": "N"
+      }
+    },
+    {
+      "key": "ChemicalCoefficients",
+      "type": "ChemicalThruster",
+      "object": "Probe",
+      "fixture": "Create ChemicalThruster Probe;\nProbe.DecrementMass = false;\n",
+      "units": {
+        "C1": "N",
+        "C2": "N/kPa",
+        "C3": "N",
+        "C4": "N/kPa",
+        "C5": "N/kPa^2",
+        "C6": "N/kPa^C7",
+        "C7": "None",
+        "C8": "N/kPa^C9",
+        "C9": "None",
+        "C10": "N/kPa^C11",
+        "C11": "None",
+        "C12": "N",
+        "C13": "None",
+        "C14": "1/kPa",
+        "C15": "None",
+        "C16": "1/kPa",
+        "K1": "s",
+        "K2": "s/kPa",
+        "K3": "s",
+        "K4": "s/kPa",
+        "K5": "s/kPa^2",
+        "K6": "s/kPa^K7",
+        "K7": "None",
+        "K8": "s/kPa^K9",
+        "K9": "None",
+        "K10": "s/kPa^K11",
+        "K11": "None",
+        "K12": "s",
+        "K13": "None",
+        "K14": "1/kPa",
+        "K15": "None",
+        "K16": "1/kPa"
+      }
+    }
+  ],
+  "guide_sources": {
+    "ImpulsiveBurn": {
+      "path": "doc/help/src/Resource_ImpulsiveBurn.xml",
+      "sha256": "f5565ebe6a695faed43ff182a9894dc47918a7f03b685506ec2410072f9accf0",
+      "fields": {
+        "Axes": {
+          "Data Type": "String",
+          "Allowed Values": "VNB, LVLH, MJ2000Eq, SpacecraftBody",
+          "Access": "set",
+          "Default Value": "VNB",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "B": {
+          "Data Type": "Real",
+          "Allowed Values": "Real",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "km/s",
+          "Interfaces": "GUI, script"
+        },
+        "CoordinateSystem": {
+          "Data Type": "Reference Array",
+          "Allowed Values": "Local, EarthMJ2000Eq, EarthMJ2000Ec, EarthFixed, or any user defined system",
+          "Access": "set",
+          "Default Value": "Local",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "DecrementMass": {
+          "Data Type": "String",
+          "Allowed Values": "true, false",
+          "Access": "set",
+          "Default Value": "false",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "Element1": {
+          "Data Type": "Real",
+          "Allowed Values": "Real",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "km/s",
+          "Interfaces": "GUI, script"
+        },
+        "Element2": {
+          "Data Type": "Real",
+          "Allowed Values": "Real",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "km/s",
+          "Interfaces": "GUI, script"
+        },
+        "Element3": {
+          "Data Type": "Real",
+          "Allowed Values": "Real",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "km/s",
+          "Interfaces": "GUI, script"
+        },
+        "GravitationalAccel": {
+          "Data Type": "Real",
+          "Allowed Values": "Real > 0",
+          "Access": "set, get",
+          "Default Value": "9.81",
+          "Units": "m/s^2",
+          "Interfaces": "GUI, script"
+        },
+        "Isp": {
+          "Data Type": "Real",
+          "Allowed Values": "Real",
+          "Access": "set, get",
+          "Default Value": "300",
+          "Units": "s",
+          "Interfaces": "GUI, script"
+        },
+        "N": {
+          "Data Type": "Real",
+          "Allowed Values": "Real",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "km/s",
+          "Interfaces": "GUI, script"
+        },
+        "Origin": {
+          "Data Type": "Reference Array",
+          "Allowed Values": "Sun, Mercury, Venus, Earth, Luna, Mars,Jupiter, Saturn, Uranus, Neptune, Pluto",
+          "Access": "set",
+          "Default Value": "Earth",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "Tank": {
+          "Data Type": "Reference Array",
+          "Allowed Values": "User defined list of ChemicalTanks",
+          "Access": "set",
+          "Default Value": "N/A",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "V": {
+          "Data Type": "Real",
+          "Allowed Values": "Real",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "km/s",
+          "Interfaces": "GUI, script"
+        },
+        "VectorFormat": {
+          "Data Type": "Enumeration",
+          "Allowed Values": "Cartesian, Spherical",
+          "Access": "set",
+          "Default Value": "Cartesian",
+          "Units": "N/A",
+          "Interfaces": "script"
+        }
+      }
+    },
+    "Thruster": {
+      "path": "doc/help/src/Resource_Thruster.xml",
+      "sha256": "fcf907eadeff4e39fa205c09acad663978ce7a4a9e55f632b3bcfa64678d937b",
+      "fields": {
+        "Axes": {
+          "Data Type": "Reference Array",
+          "Allowed Values": "VNB, LVLH, MJ2000Eq, SpacecraftBody",
+          "Access": "set",
+          "Default Value": "VNB",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "CoordinateSystem": {
+          "Data Type": "Reference Array",
+          "Allowed Values": "Local, EarthMJ2000Eq, EarthMJ2000Ec, EarthFixed, or any user defined system",
+          "Access": "set",
+          "Default Value": "Local",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "C1": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "10",
+          "Units": "N",
+          "Interfaces": "GUI, script"
+        },
+        "C2": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "N/kPa",
+          "Interfaces": "GUI, script"
+        },
+        "C3": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "N",
+          "Interfaces": "GUI, script"
+        },
+        "C4": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "N/kPa",
+          "Interfaces": "GUI, script"
+        },
+        "C5": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "N/kPa2",
+          "Interfaces": "GUI, script"
+        },
+        "C6": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "N/kPaC7",
+          "Interfaces": "GUI, script"
+        },
+        "C7": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "None",
+          "Interfaces": "GUI, script"
+        },
+        "C8": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "N/kPaC9",
+          "Interfaces": "GUI, script"
+        },
+        "C9": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "None",
+          "Interfaces": "GUI, script"
+        },
+        "C10": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "N/kPaC11",
+          "Interfaces": "GUI, script"
+        },
+        "C11": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "None",
+          "Interfaces": "GUI, script"
+        },
+        "C12": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "N",
+          "Interfaces": "GUI, script"
+        },
+        "C13": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "None",
+          "Interfaces": "GUI, script"
+        },
+        "C14": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "1/kPa",
+          "Interfaces": "GUI, script"
+        },
+        "C15": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "None",
+          "Interfaces": "GUI, script"
+        },
+        "C16": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "1/kPa",
+          "Interfaces": "GUI, script"
+        },
+        "DecrementMass": {
+          "Data Type": "Boolean",
+          "Allowed Values": "true, false",
+          "Access": "set",
+          "Default Value": "false",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "DutyCycle": {
+          "Data Type": "Real Number",
+          "Allowed Values": "0 <= Real <= 1",
+          "Access": "set, get",
+          "Default Value": "1",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "GravitationalAccel": {
+          "Data Type": "Real Number",
+          "Allowed Values": "Real > 0",
+          "Access": "set, get",
+          "Default Value": "9.81",
+          "Units": "m/s2",
+          "Interfaces": "GUI, script"
+        },
+        "HWOriginInBCSX": {
+          "Data Type": "Real",
+          "Allowed Values": "Real",
+          "Access": "set",
+          "Default Value": "0",
+          "Units": "meters",
+          "Interfaces": "script"
+        },
+        "HWOriginInBCSY": {
+          "Data Type": "Real",
+          "Allowed Values": "Real",
+          "Access": "set",
+          "Default Value": "0",
+          "Units": "meters",
+          "Interfaces": "script"
+        },
+        "HWOriginInBCSZ": {
+          "Data Type": "Real",
+          "Allowed Values": "Real",
+          "Access": "set",
+          "Default Value": "0",
+          "Units": "meters",
+          "Interfaces": "script"
+        },
+        "K1": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "300",
+          "Units": "s",
+          "Interfaces": "GUI, script"
+        },
+        "K2": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "s/kPa",
+          "Interfaces": "GUI, script"
+        },
+        "K3": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "s",
+          "Interfaces": "GUI, script"
+        },
+        "K4": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "s/kPa",
+          "Interfaces": "GUI, script"
+        },
+        "K5": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "s/kPa2",
+          "Interfaces": "GUI, script"
+        },
+        "K6": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "s/kPaC7",
+          "Interfaces": "GUI, script"
+        },
+        "K7": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "None",
+          "Interfaces": "GUI, script"
+        },
+        "K8": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "s/kPaC9",
+          "Interfaces": "GUI, script"
+        },
+        "K9": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "None",
+          "Interfaces": "GUI, script"
+        },
+        "K10": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "s/kPaC11",
+          "Interfaces": "GUI, script"
+        },
+        "K11": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "None",
+          "Interfaces": "GUI, script"
+        },
+        "K12": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "s",
+          "Interfaces": "GUI, script"
+        },
+        "K13": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "None",
+          "Interfaces": "GUI, script"
+        },
+        "K14": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "1/kPa",
+          "Interfaces": "GUI, script"
+        },
+        "K15": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "None",
+          "Interfaces": "GUI, script"
+        },
+        "K16": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "1/kPa",
+          "Interfaces": "GUI, script"
+        },
+        "MixRatio": {
+          "Data Type": "Array",
+          "Allowed Values": "Array of real numbers with same length as number of tanks in the Tank array",
+          "Access": "set",
+          "Default Value": "[1]",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "Origin": {
+          "Data Type": "Reference Array",
+          "Allowed Values": "Sun, Mercury, Venus, Earth, Luna, Mars,Jupiter, Saturn, Uranus, Neptune, Pluto",
+          "Access": "set",
+          "Default Value": "Earth",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "Tank": {
+          "Data Type": "Reference Array",
+          "Allowed Values": "User defined list of tank(s).",
+          "Access": "set",
+          "Default Value": "N/A",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "ThrustDirection1": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "1",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "ThrustDirection2": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "ThrustDirection3": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "ThrustScaleFactor": {
+          "Data Type": "Real Number",
+          "Allowed Values": "Real >= 0",
+          "Access": "set, get",
+          "Default Value": "1",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        }
+      }
+    },
+    "ElectricThruster": {
+      "path": "doc/help/src/Resource_ElectricThruster.xml",
+      "sha256": "929b8537c7b6b5ad39803f4daed4037aa8f9d468cbba4bea3bf154810d1545e8",
+      "fields": {
+        "Axes": {
+          "Data Type": "Reference Array",
+          "Allowed Values": "VNB, LVLH, MJ2000Eq, SpacecraftBody",
+          "Access": "set",
+          "Default Value": "VNB",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "ConstantThrust": {
+          "Data Type": "Real",
+          "Allowed Values": "Real > 0",
+          "Access": "set, get",
+          "Default Value": "0.237",
+          "Units": "N",
+          "Interfaces": "GUI, script"
+        },
+        "CoordinateSystem": {
+          "Data Type": "Reference Array",
+          "Allowed Values": "Local, EarthMJ2000Eq, EarthMJ2000Ec, EarthFixed, or any user defined system",
+          "Access": "set",
+          "Default Value": "Local",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "DecrementMass": {
+          "Data Type": "Boolean",
+          "Allowed Values": "true, false",
+          "Access": "set",
+          "Default Value": "false",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "DutyCycle": {
+          "Data Type": "Real Number",
+          "Allowed Values": "0 <= Real <= 1",
+          "Access": "set, get",
+          "Default Value": "1",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "FixedEfficiency": {
+          "Data Type": "Real",
+          "Allowed Values": "Real > 0",
+          "Access": "set, get",
+          "Default Value": "0.7",
+          "Units": "Decimal Percent",
+          "Interfaces": "GUI, script"
+        },
+        "GravitationalAccel": {
+          "Data Type": "Real Number",
+          "Allowed Values": "Real > 0",
+          "Access": "set, get",
+          "Default Value": "9.81",
+          "Units": "m/s2",
+          "Interfaces": "GUI, script"
+        },
+        "HWOriginInBCSX": {
+          "Data Type": "Real",
+          "Allowed Values": "Real",
+          "Access": "set",
+          "Default Value": "0",
+          "Units": "meters",
+          "Interfaces": "script"
+        },
+        "HWOriginInBCSY": {
+          "Data Type": "Real",
+          "Allowed Values": "Real",
+          "Access": "set",
+          "Default Value": "0",
+          "Units": "meters",
+          "Interfaces": "script"
+        },
+        "HWOriginInBCSZ": {
+          "Data Type": "Real",
+          "Allowed Values": "Real",
+          "Access": "set",
+          "Default Value": "0",
+          "Units": "meters",
+          "Interfaces": "script"
+        },
+        "Isp": {
+          "Data Type": "Real",
+          "Allowed Values": "Real > 0",
+          "Access": "set, get",
+          "Default Value": "4200",
+          "Units": "seconds",
+          "Interfaces": "GUI, script"
+        },
+        "MassFlowCoeff1": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "-0.004776",
+          "Units": "See",
+          "Interfaces": "GUI, script"
+        },
+        "MassFlowCoeff2": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0.05717",
+          "Units": "See",
+          "Interfaces": "GUI, script"
+        },
+        "MassFlowCoeff3": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "-0.09956",
+          "Units": "See",
+          "Interfaces": "GUI, script"
+        },
+        "MassFlowCoeff4": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0.03211",
+          "Units": "See",
+          "Interfaces": "GUI, script"
+        },
+        "MassFlowCoeff5": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "2.13781",
+          "Units": "See",
+          "Interfaces": "GUI, script"
+        },
+        "MaximumUsablePower": {
+          "Data Type": "Real",
+          "Allowed Values": "Real > 0, Real < MinimumUsablePower",
+          "Access": "set, get",
+          "Default Value": "7.266",
+          "Units": "kW",
+          "Interfaces": "GUI, script"
+        },
+        "MinimumUsablePower": {
+          "Data Type": "Real",
+          "Allowed Values": "Real > 0, Real > MinimumUsablePower",
+          "Access": "set, get",
+          "Default Value": "0.638",
+          "Units": "kW",
+          "Interfaces": "GUI, script"
+        },
+        "MixRatio": {
+          "Data Type": "Array",
+          "Allowed Values": "Array of real numbers with same length as number of tanks in the Tank array",
+          "Access": "set",
+          "Default Value": "[1]",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "Origin": {
+          "Data Type": "Reference Array",
+          "Allowed Values": "Sun, Mercury, Venus, Earth, Luna, Mars,Jupiter, Saturn, Uranus, Neptune, Pluto",
+          "Access": "set",
+          "Default Value": "Earth",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "Tanks": {
+          "Data Type": "Reference Array",
+          "Allowed Values": "User defined list of FuelTank(s).",
+          "Access": "set",
+          "Default Value": "N/A",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "ThrustCoeff1": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "-5.19082",
+          "Units": "See",
+          "Interfaces": "GUI, script"
+        },
+        "ThrustCoeff2": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "2.96519",
+          "Units": "See",
+          "Interfaces": "GUI, script"
+        },
+        "ThrustCoeff3": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "-14.41789",
+          "Units": "See",
+          "Interfaces": "GUI, script"
+        },
+        "ThrustCoeff4": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "54.05382",
+          "Units": "See",
+          "Interfaces": "GUI, script"
+        },
+        "ThrustCoeff5": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "-0.00100092",
+          "Units": "See",
+          "Interfaces": "GUI, script"
+        },
+        "ThrustDirection1": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "1",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "ThrustDirection2": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "1",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "ThrustDirection3": {
+          "Data Type": "Real",
+          "Allowed Values": "Real Number",
+          "Access": "set, get",
+          "Default Value": "0",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "ThrustModel": {
+          "Data Type": "String",
+          "Allowed Values": "ThrustMassPolynomial, ConstantThrustAndIsp,FixedEfficiency",
+          "Access": "set, get",
+          "Default Value": "ThrustMassPolynomial",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        },
+        "ThrustScaleFactor": {
+          "Data Type": "Real Number",
+          "Allowed Values": "Real >= 0",
+          "Access": "set, get",
+          "Default Value": "1",
+          "Units": "N/A",
+          "Interfaces": "GUI, script"
+        }
+      }
+    }
+  },
+  "coefficient_unit_source": {
+    "path": "src/base/hardware/ChemicalThruster.cpp",
+    "sha256": "1542887762fd0d549fa61a99071e0f94d7e043fae13a17441c092f54f78bfbae"
+  },
+  "scope": "Explicit primary scalar unit labels and all32advanced/dialog chemical coefficient unit strings in current NASA native metadata. No every-resource unit completeness,independent dimensional derivation,polynomial science,native OS input,platform/stress or private NASA corpus qualification. Current guide K6/K8/K10 text uses C-exponent names while native units use corresponding K names;the coefficient oracle pins native legacy GUI strings and does not resolve that documentation discrepancy."
+}

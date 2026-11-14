@@ -28,6 +28,26 @@
 //------------------------------------------------------------------------------
 
 #include "TrackingFileSet.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration trackingFileSetValueProvider({
+   TrackingFileSet::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const TrackingFileSet*>(object) != nullptr; },
+   [](const GmatBase *object) { return dynamic_cast<const TrackingFileSet*>(object)->GetFunctionValueOwnedObjectsImpl(); },
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<TrackingFileSet*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
+#include "NavigationMeasurementCopies.hpp"
+#include "ObjectScriptExportScope.hpp"
+#include "DataFilter.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
+#include <limits>
 #include "TFSMagicNumbers.hpp"
 #include "MeasurementException.hpp"
 #include "MessageInterface.hpp"
@@ -60,6 +80,34 @@
 #include "RangeSkinAdapter.hpp"
 #include "PropSetup.hpp"
 #include "PhysicalSignal.hpp"
+
+namespace
+{
+using TrackingFilters = std::vector<std::unique_ptr<DataFilter>>;
+TrackingFilters PrepareTrackingFilters(const ObjectArray &source, GmatBase &owner,
+      ObjectArray forbidden)
+{
+   forbidden.insert(forbidden.end(), source.begin(), source.end());
+   TrackingFilters result;
+   result.reserve(source.size());
+   for (auto *object : source)
+   {
+      auto *filter = dynamic_cast<DataFilter*>(object);
+      if (!filter) throw MeasurementException("A tracking data filter is unresolved or incompatible.\n");
+      auto value = NavigationMeasurementCopies::Clone(*filter, &owner, false, forbidden);
+      forbidden.push_back(value.get());
+      result.push_back(std::move(value));
+   }
+   return result;
+}
+ObjectArray TrackingFilterPointers(const TrackingFilters &values)
+{
+   ObjectArray result;
+   result.reserve(values.size());
+   for (const auto &value : values) result.push_back(value.get());
+   return result;
+}
+}
 
 //#define DEBUG_CONSTRUCTION
 //#define DEBUG_INITIALIZATION
@@ -168,6 +216,7 @@ TrackingFileSet::TrackingFileSet(const std::string &name) :
    objectTypes.push_back(GmatType::GetTypeId("TrackingFileSet"));
    objectTypeNames.push_back("TrackingFileSet");
    parameterCount = TrackingFileSetParamCount;
+   SetCloneNotificationsEnabled(true);
 }
 
 
@@ -263,7 +312,9 @@ TrackingFileSet::TrackingFileSet(const TrackingFileSet& tfs) :
    horpOblate                (tfs.horpOblate),
    horpHeight                (tfs.horpHeight),
    horpAngle                 (tfs.horpAngle),
-   dataFilterNames           (tfs.dataFilterNames)
+   dataFilterNames           (tfs.dataFilterNames),
+   propvec                   (tfs.propvec),
+   spm                       (tfs.spm)
 
 {
 #ifdef DEBUG_CONSTRUCTION
@@ -272,20 +323,21 @@ TrackingFileSet::TrackingFileSet(const TrackingFileSet& tfs) :
    
    for (UnsignedInt i = 0; i < tfs.trackingConfigs.size(); ++i)
       trackingConfigs.push_back(tfs.trackingConfigs[i]);
+   openBracketCount = tfs.openBracketCount; start = tfs.start;
+
+   if (tfs.thePropagators == &tfs.propvec) thePropagators = &propvec;
+   if (tfs.satPropagatorMap == &tfs.spm) satPropagatorMap = &spm;
 
    // Each tracking file set contains a set of filters in which they have their own thinning frequency counters.
    // Therefore, it needs to have seperate set of data filter objects for each tracking file set object. 
    // Note that: If 2 different tracking file set objects share the same set of data filter objects, values 
    // of frequency counters are mixed up by both tracking file set objects. 
-   for (UnsignedInt i = 0; i < tfs.dataFilters.size(); ++i)
-   {
-      if (tfs.dataFilters[i])
-      {
-         GmatBase* cloneObj = tfs.dataFilters[i]->Clone();
-         dataFilters.push_back(cloneObj);
-         createdObjects.push_back(cloneObj);        // It needs to bookkeeping for delete
-      }
-   }
+   auto filters = PrepareTrackingFilters(tfs.dataFilters, *this, createdObjects);
+   auto pointers = TrackingFilterPointers(filters);
+   createdObjects.reserve(createdObjects.size() + pointers.size());
+   createdObjects.insert(createdObjects.end(), pointers.begin(), pointers.end());
+   dataFilters.swap(pointers);
+   for (auto &filter : filters) filter.release();
 
    isInitialized = false;
 }
@@ -310,15 +362,11 @@ TrackingFileSet& TrackingFileSet::operator=(const TrackingFileSet& tfs)
 
    if (this != &tfs)
    {
+      auto filters = PrepareTrackingFilters(tfs.dataFilters, *this, createdObjects);
+      auto pointers = TrackingFilterPointers(filters);
+      ObjectArray preparedCreated(pointers);
+      isInitialized = false;
       MeasurementModelBase::operator=(tfs);
-
-      // clean up TrackingDataAdapter objects
-      for (UnsignedInt i = 0; i < measurements.size(); ++i)
-      {
-         if (measurements[i])
-            delete measurements[i];
-      }
-      measurements.clear();
 
       // clean up trackingConfigs
       for (Integer i = 0; i < trackingConfigs.size(); ++i)
@@ -337,6 +385,7 @@ TrackingFileSet& TrackingFileSet::operator=(const TrackingFileSet& tfs)
 
       for (UnsignedInt i = 0; i < tfs.trackingConfigs.size(); ++i)
          trackingConfigs.push_back(tfs.trackingConfigs[i]);
+      openBracketCount = tfs.openBracketCount; start = tfs.start;
 
       filenames                     = tfs.filenames;
       rampedTablenames              = tfs.rampedTablenames;
@@ -345,6 +394,10 @@ TrackingFileSet& TrackingFileSet::operator=(const TrackingFileSet& tfs)
       thePropagators                = tfs.thePropagators;
       satPropagatorMap              = tfs.satPropagatorMap;
       references                    = tfs.references;
+      propvec = tfs.propvec;
+      spm = tfs.spm;
+      if (tfs.thePropagators == &tfs.propvec) thePropagators = &propvec;
+      if (tfs.satPropagatorMap == &tfs.spm) satPropagatorMap = &spm;
       useRelativityCorrection       = tfs.useRelativityCorrection;
       useETminusTAICorrection       = tfs.useETminusTAICorrection;
       aberrationCorrection          = tfs.aberrationCorrection;
@@ -366,24 +419,14 @@ TrackingFileSet& TrackingFileSet::operator=(const TrackingFileSet& tfs)
       dataFilterNames              = tfs.dataFilterNames;
       
 
-      // Remove all dataFilters
-      //for(UnsignedInt i = 0; i < dataFilters.size(); ++i)
-      //{
-      //   if (dataFilters[i])
-      //      delete dataFilters[i];
-      //}
-      dataFilters.clear();
-
-      // Create clones of data filters
-      for(UnsignedInt i = 0; i < tfs.dataFilters.size(); ++i)
-      {
-         if (tfs.dataFilters[i])
-         {
-            GmatBase* clonedObj = tfs.dataFilters[i]->Clone();
-            dataFilters.push_back(clonedObj);
-            createdObjects.push_back(clonedObj);
-         }
-      }
+      ObjectArray retired;
+      retired.swap(createdObjects);
+      measurements.clear();
+      dataFilters.swap(pointers);
+      createdObjects.swap(preparedCreated);
+      for (auto &filter : filters) filter.release();
+      ionosphereCache.clear();
+      NavigationMeasurementCopies::DeleteOwned(retired);
 
       isInitialized = false;
    }
@@ -407,7 +450,9 @@ GmatBase* TrackingFileSet::Clone() const
    MessageInterface::ShowMessage("TrackingFileSet<%s,%p>::Clone() \n", GetName().c_str(), this);
 #endif
 
-   return new TrackingFileSet(*this);
+   std::unique_ptr<TrackingFileSet> value(new TrackingFileSet(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -898,6 +943,14 @@ bool TrackingFileSet::SetStringParameter(const Integer id,
             "value = '%s') called\n", GetName().c_str(), this, id, value.c_str());
    #endif
 
+   if ((id == TRACKINGCONFIG || id == FILENAME || id == RAMPED_TABLENAME ||
+         id == DATA_FILTERS || id == TDRS_SERVICE_ACCESS) &&
+         GmatStringUtil::RemoveSpaceInBrackets(value, "{}") == "{}")
+   {
+      ClearCollection(id);
+      return true;
+   }
+
    if (id == TRACKINGCONFIG)
    {
       throw MeasurementException("Error: '" + value + "' set to " + GetName() + ".AddTrackingConfig parameter has a syntax error.\n");
@@ -905,13 +958,6 @@ bool TrackingFileSet::SetStringParameter(const Integer id,
 
    if (id == FILENAME)
    {
-      // if it is an empty list, then clear file name list
-      if (GmatStringUtil::RemoveSpaceInBrackets(value, "{}") == "{}")
-      {
-         filenames.clear();
-         return true;
-      }
-
       // check for a valid file name
       Integer err = 0;
       if (!GmatStringUtil::IsValidFullFileName(value, err))
@@ -929,13 +975,6 @@ bool TrackingFileSet::SetStringParameter(const Integer id,
 
    if (id == RAMPED_TABLENAME)
    {
-      // if it is an empty list, then clear ramp table name list
-      if (GmatStringUtil::RemoveSpaceInBrackets(value, "{}") == "{}")
-      {
-         rampedTablenames.clear();
-         return true;
-      }
-
       // check for a valid file name
       Integer err = 0;
       if (!GmatStringUtil::IsValidFullFileName(value, err))
@@ -963,13 +1002,7 @@ bool TrackingFileSet::SetStringParameter(const Integer id,
    
    if (id == DATA_FILTERS)
    {
-      // if it is an empty list, then set clear the list
-      if (GmatStringUtil::RemoveSpaceInBrackets(value, "{}") == "{}")
-      {
-         dataFilterNames.clear();
-         return true;
-      }
-      else if (!GmatStringUtil::IsValidIdentity(value))
+      if (!GmatStringUtil::IsValidIdentity(value))
          throw MeasurementException("Error: '" + value + " set to " + GetName() + ".DataFilters parameter is an invalid object name.\n");
 
       if (find(dataFilterNames.begin(), dataFilterNames.end(), value) == dataFilterNames.end())
@@ -1081,7 +1114,8 @@ std::string TrackingFileSet::GetStringParameter(const Integer id,
 * @return                     true if a valid participant name, false otherwise
 */
 //------------------------------------------------------------------------------
-bool TrackingFileSet::AddToSignalPath(std::string participantName, Integer configIndex, Integer strandIndex)
+bool TrackingFileSet::AddToSignalPath(std::string participantName, Integer configIndex,
+      Integer strandIndex, std::vector<MeasurementDefinition> &definitions)
 {
    // validate participant name
    if (GmatStringUtil::IsValidExtendedIdentity(participantName) == false)        // It is for GPS Point Solution
@@ -1091,8 +1125,8 @@ bool TrackingFileSet::AddToSignalPath(std::string participantName, Integer confi
       throw MeasurementException("Error: Syntax error when setting value to " + GetName() + ".AddTrackingConfig parameter. In current version, GMAT does not allow two or more participant lists in tracking configuration.\n");
    
    StringArray names = GmatStringUtil::ParseName(participantName);
-   trackingConfigs[configIndex].strands[strandIndex].push_back(names[0]);
-   trackingConfigs[configIndex].sensors[strandIndex].push_back(names[1]);
+   definitions[configIndex].strands[strandIndex].push_back(names[0]);
+   definitions[configIndex].sensors[strandIndex].push_back(names[1]);
    names.clear();
 
    return true;
@@ -1144,7 +1178,8 @@ bool TrackingFileSet::AddToSignalPath(std::string participantName, Integer confi
 //}
 
 
-bool TrackingFileSet::ParseTrackingConfig(std::string value, Integer& configIndex, bool& start)
+bool TrackingFileSet::ParseTrackingConfig(std::string value, Integer &configIndex,
+      bool &newDefinition, std::vector<MeasurementDefinition> &definitions)
 {
    // case 1: parse a strand {part1, ..., partn}
    // case 2: parse a tracking config syntax: {{part1, ..., partn}, ..., {part1, ..., partn}, datatype1, ..., datatypem}
@@ -1160,6 +1195,8 @@ bool TrackingFileSet::ParseTrackingConfig(std::string value, Integer& configInde
 
    // Remove opened and closed curly brackets at the begin and end of string
    std::string value1 = GmatStringUtil::Trim(value.substr(1, value.size() - 2));
+   if (value1.empty())
+      throw MeasurementException("Error: Empty tracking configuration in " + GetName() + ".AddTrackingConfig.\n");
 
    // Specify the syntax is a strand or a tracking config
    if (value1.at(0) == '{')
@@ -1180,24 +1217,26 @@ bool TrackingFileSet::ParseTrackingConfig(std::string value, Integer& configInde
 
             // Add a slot to strands array in order to store a new strand 
             StringArray trackList, sensorList;
-            trackingConfigs[configIndex].strands.push_back(trackList);
-            trackingConfigs[configIndex].sensors.push_back(sensorList);
-            Integer strandIndex = trackingConfigs[configIndex].strands.size() - 1;
+            definitions[configIndex].strands.push_back(trackList);
+            definitions[configIndex].sensors.push_back(sensorList);
+            Integer strandIndex = definitions[configIndex].strands.size() - 1;
 
             // clean up
             trackList.clear();
             sensorList.clear();
 
             // Parse the strand
-            retval = ParseStrand(strand, configIndex, strandIndex);
+            retval = ParseStrand(strand, configIndex, strandIndex, definitions);
             if (retval == false)
                return retval;
 
             // Get the remain unparsed string
             value1 = GmatStringUtil::Trim(value1.substr(pos+1));
-            if (value1.at(0) != ',')
+            if (value1.empty() || value1.at(0) != ',')
                throw MeasurementException("Error: syntax error - missing ',' after '" + strand + "'.\n");
             value1 = GmatStringUtil::Trim(value1.substr(1));
+            if (value1.empty())
+               throw MeasurementException("Error: Missing tracking measurement type in " + GetName() + ".AddTrackingConfig.\n");
          }
       }
 
@@ -1228,12 +1267,12 @@ bool TrackingFileSet::ParseTrackingConfig(std::string value, Integer& configInde
          }
          else
          {
-            if ((!trackingConfigs[configIndex].types.empty()) &&
-               (find(trackingConfigs[configIndex].types.begin(), trackingConfigs[configIndex].types.end(), datatype) != trackingConfigs[configIndex].types.end()))
+            if ((!definitions[configIndex].types.empty()) &&
+               (find(definitions[configIndex].types.begin(), definitions[configIndex].types.end(), datatype) != definitions[configIndex].types.end()))
                throw MeasurementException("Error: Duplicate measurement type in tracking configuration in " + GetName() + ".AddTrackingConfig parameter.\n");
             else
             {
-               trackingConfigs[configIndex].types.push_back(datatype);
+               definitions[configIndex].types.push_back(datatype);
             }
          }
 
@@ -1263,33 +1302,33 @@ bool TrackingFileSet::ParseTrackingConfig(std::string value, Integer& configInde
       }
       else
       {
-         if ((!trackingConfigs[configIndex].types.empty()) &&
-            (find(trackingConfigs[configIndex].types.begin(), trackingConfigs[configIndex].types.end(), datatype) != trackingConfigs[configIndex].types.end()))
+         if ((!definitions[configIndex].types.empty()) &&
+            (find(definitions[configIndex].types.begin(), definitions[configIndex].types.end(), datatype) != definitions[configIndex].types.end()))
             throw MeasurementException("Error: Duplicate measurement type in tracking configuration in " + GetName() + ".AddTrackingConfig parameter.\n");
          else
          {
-            trackingConfigs[configIndex].types.push_back(datatype);
+            definitions[configIndex].types.push_back(datatype);
          }
       }
 
-      // start a new tracking config
-      start = true;
+      // Start a new tracking config
+      newDefinition = true;
    }
    else
    {
       //case 1: parse a strand syntax: part1, ..., partn
       // Add a slot to strands array in order to store a new strand 
       StringArray trackList, sensorList;
-      trackingConfigs[configIndex].strands.push_back(trackList);
-      trackingConfigs[configIndex].sensors.push_back(sensorList);
-      Integer strandIndex = trackingConfigs[configIndex].strands.size() - 1;
+      definitions[configIndex].strands.push_back(trackList);
+      definitions[configIndex].sensors.push_back(sensorList);
+      Integer strandIndex = definitions[configIndex].strands.size() - 1;
 
       // clean up
       trackList.clear();
       sensorList.clear();
 
       // Parse the strand
-      return ParseStrand(value, configIndex, strandIndex);
+      return ParseStrand(value, configIndex, strandIndex, definitions);
    }
    
    // clean up
@@ -1310,7 +1349,8 @@ bool TrackingFileSet::ParseTrackingConfig(std::string value, Integer& configInde
 * @return         true if no syntax error, false otherwise
 */
 //------------------------------------------------------------------------------
-bool TrackingFileSet::ParseStrand(std::string value, Integer configIndex, Integer strandIndex)
+bool TrackingFileSet::ParseStrand(std::string value, Integer configIndex,
+      Integer strandIndex, std::vector<MeasurementDefinition> &definitions)
 {
    // Remove open and close curly brackets at the begin and end of string
    value = value.substr(1, value.size() - 2);
@@ -1321,7 +1361,7 @@ bool TrackingFileSet::ParseStrand(std::string value, Integer configIndex, Intege
    while (pos != std::string::npos)
    {
       participantName = GmatStringUtil::Trim(value.substr(0, pos));
-      if (AddToSignalPath(participantName, configIndex, strandIndex) == false)
+      if (AddToSignalPath(participantName, configIndex, strandIndex, definitions) == false)
          return false;
 
       value = value.substr(pos + 1);
@@ -1329,7 +1369,7 @@ bool TrackingFileSet::ParseStrand(std::string value, Integer configIndex, Intege
    }
 
    participantName = GmatStringUtil::Trim(value);
-   return AddToSignalPath(participantName, configIndex, strandIndex);
+   return AddToSignalPath(participantName, configIndex, strandIndex, definitions);
 }
 
 
@@ -1342,154 +1382,25 @@ bool TrackingFileSet::SetStringParameter(const Integer id,
             "'%s', %d) called\n", GetName().c_str(), this, id, value.c_str(), index);
    #endif
 
+   if (index == -1 && (id == TRACKINGCONFIG || id == FILENAME ||
+         id == RAMPED_TABLENAME || id == DATA_FILTERS || id == TDRS_SERVICE_ACCESS))
+   {
+      ClearCollection(id);
+      return true;
+   }
+
    if (id == TRACKINGCONFIG)
    {
-      // Nothing was set to tracking configuration when an empty list was set to AddTrackingConfig parameter
-      if (index == -1)
-         return true;
-
-      if (value == "")
-         throw MeasurementException("Error:: Syntax error when GMAT sets value to " + GetName() + ".AddTrackingConfig parameter.\n");
-
-
-      // Get all known measurement types
-      StringArray knownTypes;                                                                  // GMT-5701
-      TFSMagicNumbers *mn = TFSMagicNumbers::Instance();                                       // GMT-5701
-      knownTypes = mn->GetAvailableTypes();                                                    // GMT-5701
-
-
-      // Create a new tracking config
-      if (index == 0)                    // it starts a tracking configuration when index = 0
-      {
-         // reset open bracket count and new strand flag
-         openBracketCount = 0;
-         start = true;
-      }
-
-      if (start)
-      {
-         // Starting a new definition
-         MeasurementDefinition newDef;
-         trackingConfigs.push_back(newDef);
-         start = false;
-      }
-      Integer defIndex = trackingConfigs.size() - 1;
-
-      if ((value.size() > 1) && (value.c_str()[0] == '{') && (value.c_str()[value.size() - 1] == '}'))
-      {
-         // parsing syntax for: 
-         // case1: {part1,..., partn}
-         // case2: {{part1,..., partn}, datatype1,...,datatypem}
-         if (openBracketCount != 0)
-            throw MeasurementException("Error:: Syntax error when GMAT sets value to " + GetName() + ".AddTrackingConfig parameter.\n");
-
-         return ParseTrackingConfig(value, defIndex, start);
-      }
-      else
-      {
-         // parsing the follwoing cases:
-         // case 3: '{<part>'
-         // case 4: '<part>}'
-         // case 5: '<part>'
-         // case 6: '<typename>'
-
-         std::string rawName = GmatStringUtil::Trim(value);
-         if (rawName.size() == 0)
-            throw MeasurementException("Error:: Syntax error when GMAT sets value to " + GetName() + ".AddTrackingConfig parameter.\n");
-
-         // case 3: '{<part>'
-         if (rawName.at(0) == '{')
-         {
-            if (openBracketCount != 0)
-               throw MeasurementException("Error:: Syntax error when GMAT sets value to " + GetName() + ".AddTrackingConfig parameter.\n");
-
-            ++openBracketCount;
-            rawName = GmatStringUtil::Trim(rawName.substr(1));                          // trim open curly bracket and all white space
-            
-            StringArray trackList, sensorList;
-            trackingConfigs[defIndex].strands.push_back(trackList);
-            trackingConfigs[defIndex].sensors.push_back(trackList);
-            Integer strandIndex = trackingConfigs[defIndex].strands.size() - 1;
-            AddToSignalPath(rawName, defIndex, strandIndex);
-
-            // clean up
-            trackList.clear();
-            sensorList.clear();
-
-            return true;
-         }
-
-
-         // case 4: '<part>}'
-         if (rawName.at(rawName.size() - 1) == '}')
-         {
-            if (openBracketCount == 0)
-               throw MeasurementException("Error:: Syntax error when GMAT sets value to " + GetName() + ".AddTrackingConfig parameter.\n");
-
-            --openBracketCount;
-            rawName = GmatStringUtil::Trim(rawName.substr(0, rawName.size() - 1));
-            Integer strandIndex = trackingConfigs[defIndex].strands.size() - 1;
-            AddToSignalPath(rawName, defIndex, strandIndex);
-
-            return true;
-         }
-
-         // case 5: '<part>'
-         if (openBracketCount > 0)
-         {
-            Integer strandIndex = trackingConfigs[defIndex].strands.size() - 1;
-            AddToSignalPath(rawName, defIndex, strandIndex);
-            
-            return true;
-         }
-
-         // case 6:
-         //// Check deplicated types
-         //rawName = CheckTypeDeprecation(rawName);
-
-         if (find(knownTypes.begin(), knownTypes.end(), rawName) == knownTypes.end())
-         {
-            std::stringstream ss;
-            ss << "Error: In current version, GMAT does not have measurement type '" + rawName + "'.\n This is a list of all available types:\n";
-            for (Integer i = 0; i < knownTypes.size(); ++i)
-            {
-               if (i < knownTypes.size() - 1)
-                  ss << " " << knownTypes[i] << ",";
-               else
-                  ss << " " << knownTypes[i] << ".\n";
-            }
-            throw MeasurementException(ss.str());
-         }
-         else
-         {
-            if ((!trackingConfigs[defIndex].types.empty()) &&
-                (find(trackingConfigs[defIndex].types.begin(), trackingConfigs[defIndex].types.end(), rawName) != trackingConfigs[defIndex].types.end()))
-               throw MeasurementException("Error: Duplicate measurement type in tracking configuration in " + GetName() + ".AddTrackingConfig parameter.\n");
-            else
-            {
-               trackingConfigs[defIndex].types.push_back(rawName);
-               return true;
-            }
-         }
-      }
-
-      // clean up
-      knownTypes.clear();
-
-      #ifdef DEBUG_INITIALIZATION
-         MessageInterface::ShowMessage("%d members in config:\n",
-               trackingConfigs.size());
-         for (UnsignedInt i = 0; i < trackingConfigs.size(); ++i)
-            MessageInterface::ShowMessage("   %s\n", trackingConfigs[i].GetDefinitionString().c_str());
-      #endif
+      auto definitions = trackingConfigs;
+      Integer depth = openBracketCount;
+      bool next = start;
+      if (!ParseConfigToken(value, index, definitions, depth, next)) return false;
+      PublishTrackingConfigs(definitions, depth, next);
       return true;
    }
 
    if (id == FILENAME)
    {
-      // throw an error message when it is an empty list
-      if (index == -1)
-         throw MeasurementException("Error: No file name was set to " + GetName() + ".Filenames parameter.\n");
 
       if ((!filenames.empty())&&
           (find (filenames.begin(), filenames.end(), value) != filenames.end()))
@@ -1515,11 +1426,6 @@ bool TrackingFileSet::SetStringParameter(const Integer id,
    if (id == RAMPED_TABLENAME)
    {
       // an empty list is set to RampTables parameter when index == -1
-      if (index == -1)
-      {
-         rampedTablenames.clear();
-         return true;
-      }
 
       if ((!rampedTablenames.empty())&&
           (find(rampedTablenames.begin(), rampedTablenames.end(), value) != rampedTablenames.end()))
@@ -1544,12 +1450,6 @@ bool TrackingFileSet::SetStringParameter(const Integer id,
 
    if (id == DATA_FILTERS)
    {
-      // return true when it is an empty list
-      if (index == -1)
-      {
-         dataFilterNames.clear();
-         return true;
-      }
 
       if ((!dataFilterNames.empty())&&
           (find(dataFilterNames.begin(), dataFilterNames.end(), value) != dataFilterNames.end()))
@@ -1574,12 +1474,6 @@ bool TrackingFileSet::SetStringParameter(const Integer id,
 
    if (id == TDRS_SERVICE_ACCESS)
    {
-      // an empty list is set to TDARSServiceAccess parameter when index == -1
-      if (index == -1)
-      {
-         tdrsServiceAccessList.clear();
-         return true;
-      }
 
       if ((!tdrsServiceAccessList.empty()) &&
          (find(tdrsServiceAccessList.begin(), tdrsServiceAccessList.end(), value) != tdrsServiceAccessList.end()))
@@ -2248,51 +2142,25 @@ GmatBase* TrackingFileSet::GetRefObject(const UnsignedInt type,
 bool TrackingFileSet::SetRefObject(GmatBase* obj, const UnsignedInt type,
       const std::string& name)
 {
-   #ifdef DEBUG_INITIALIZATION
-      MessageInterface::ShowMessage("Called TrackingFileSet<%s,%p>::"
-            "SetRefObject(obj = %p, type = %d, name = '%s')\n", GetName().c_str(), this, obj, type, name.c_str());
-   #endif
-
-
-   bool retval = false;
-
-   if (obj->IsOfType(Gmat::DATA_FILTER))
+   if (!obj) return false;
+   if (type == Gmat::DATA_FILTER || obj->IsOfType(Gmat::DATA_FILTER))
    {
-      bool found = false;
-      for(UnsignedInt i = 0; i < dataFilters.size(); ++i)
-      {
-         if (obj->GetName() == dataFilters[i]->GetName())
+      for (size_t i = 0; i < dataFilters.size(); ++i)
+         if (dataFilters[i] && dataFilters[i]->GetName() == obj->GetName())
          {
-            found = true;
-            break;
+            if (dataFilters[i] == obj || dataFilters[i]->GetCloneSource() == obj) return true;
+            return SetRefObject(obj, Gmat::DATA_FILTER, name, static_cast<Integer>(i));
          }
-      }
-
-      if (!found)
-      {
-         #ifdef DEBUG_INITIALIZATION
-            MessageInterface::ShowMessage("Adding data filter %s\n", name.c_str());
-         #endif
-            GmatBase* clonedObj = obj->Clone();
-            dataFilters.push_back(clonedObj);
-            createdObjects.push_back(clonedObj);
-            return true;
-      }
+      return SetRefObject(obj, Gmat::DATA_FILTER, name, static_cast<Integer>(dataFilters.size()));
    }
-   else
+   if (find(references.begin(), references.end(), obj) == references.end())
    {
-      if (find(references.begin(), references.end(), obj) == references.end())
-      {
-         #ifdef DEBUG_INITIALIZATION
-            MessageInterface::ShowMessage("Adding node %s\n", name.c_str());
-         #endif
-         references.push_back(obj);
-         return true;
-      }
+      references.push_back(obj);
+      return true;
    }
-
-   return (retval || MeasurementModelBase::SetRefObject(obj, type, name));
+   return MeasurementModelBase::SetRefObject(obj, type, name);
 }
+
 
 //------------------------------------------------------------------------------
 // bool SetRefObject(GmatBase* obj, const UnsignedInt type,
@@ -2312,42 +2180,39 @@ bool TrackingFileSet::SetRefObject(GmatBase* obj, const UnsignedInt type,
 bool TrackingFileSet::SetRefObject(GmatBase* obj, const UnsignedInt type,
       const std::string& name, const Integer index)
 {
-   #ifdef DEBUG_INITIALIZATION
-      MessageInterface::ShowMessage("Called TrackingFileSet<%s,%p>::"
-            "SetRefObject(obj = %p, type = %d, name = '%s', index = %d)\n", GetName().c_str(), this, obj, type, name.c_str(), index);
-   #endif
-
-   bool retval = false;
-
+   if (!obj) return false;
    if (type == Gmat::DATA_FILTER)
    {
-      if ((index < (Integer)dataFilters.size()) && (index >= 0))
-      {
-         // The delete of DataFilter objects is handled when delete createdObjects
-         //if (dataFilters[index])
-         //   delete dataFilters[index];
-
-         // The new one has to be cloned object to avoid error in destructor
-         GmatBase* clonedObj = obj->Clone();
-         dataFilters[index] = clonedObj;
-         createdObjects.push_back(clonedObj);
-         retval = true;
-      }
+      if (index < 0 || index > static_cast<Integer>(dataFilters.size())) return false;
+      auto *source = dynamic_cast<DataFilter*>(obj);
+      if (!source) throw MeasurementException("A tracking filter reference requires a DataFilter.\n");
+      GmatBase *old = index < static_cast<Integer>(dataFilters.size()) ? dataFilters[index] : nullptr;
+      auto value = NavigationMeasurementCopies::Clone(*source, this, old != obj, createdObjects);
+      auto preparedFilters = dataFilters;
+      if (index == static_cast<Integer>(preparedFilters.size())) preparedFilters.push_back(value.get());
+      else preparedFilters[index] = value.get();
+      ObjectArray preparedCreated;
+      preparedCreated.reserve(createdObjects.size() + 1);
+      for (auto *owned : createdObjects)
+         if (owned != old && !dynamic_cast<TrackingDataAdapter*>(owned)) preparedCreated.push_back(owned);
+      preparedCreated.push_back(value.get());
+      ClearGeneratedModels();
+      if (old) GmatBase::RetargetCloneSources(*old, *value);
+      dataFilters.swap(preparedFilters);
+      createdObjects.swap(preparedCreated);
+      value.release();
+      delete old;
+      isInitialized = false;
+      return true;
    }
-   else
+   if (find(references.begin(), references.end(), obj) == references.end())
    {
-      if (find(references.begin(), references.end(), obj) == references.end())
-      {
-         #ifdef DEBUG_INITIALIZATION
-            MessageInterface::ShowMessage("Adding node %s\n", name.c_str());
-         #endif
-         references.push_back(obj);
-         retval = true;
-      }
+      references.push_back(obj);
+      return true;
    }
-
-   return (retval || MeasurementModelBase::SetRefObject(obj,type,name,index));
+   return MeasurementModelBase::SetRefObject(obj, type, name, index);
 }
+
 
 //------------------------------------------------------------------------------
 // ObjectArray& GetRefObjectArray(const UnsignedInt type)
@@ -2536,6 +2401,10 @@ bool TrackingFileSet::Initialize()
    if (this->IsInitialized())
       return true;
 
+   bool preparedSuccessfully = false;
+   const auto onFailure = [&](void*) { if (!preparedSuccessfully) isInitialized = false; };
+   std::unique_ptr<void, decltype(onFailure)> guard(this, onFailure);
+   ClearGeneratedModels();
    bool retval = false;
    if (MeasurementModelBase::Initialize())
    {
@@ -2771,7 +2640,7 @@ bool TrackingFileSet::Initialize()
       
       // Initialize data filters
       for (UnsignedInt i = 0; i < dataFilters.size(); ++i)
-         dataFilters[i]->Initialize();
+         retval = dataFilters[i]->Initialize() && retval;
 
       // Verify referent objects setting
       StringArray nameList = GetRefObjectNameArray(Gmat::UNKNOWN_OBJECT);
@@ -2795,7 +2664,7 @@ bool TrackingFileSet::Initialize()
       nameList.clear();
       objList.clear();
 
-      isInitialized = true;
+      isInitialized = retval;
    }
    
    #ifdef DEBUG_INITIALIZE
@@ -2806,6 +2675,7 @@ bool TrackingFileSet::Initialize()
       MessageInterface::ShowMessage("Exit TrackingFileSet::Initialize() <%s,%p>\n", GetName().c_str(), this);
    #endif
 
+   preparedSuccessfully = retval;
    return retval;
 }
 
@@ -3307,14 +3177,20 @@ bool TrackingFileSet::GenerateTrackingConfigs(std::vector<StringArray> strandsLi
    if (strandsList.empty())
       return true;
 
+   if (sensorsList.size() != strandsList.size() || typesList.size() != strandsList.size())
+      throw MeasurementException("Tracking configuration input list sizes do not match.");
+   for (size_t i = 0; i < strandsList.size(); ++i)
+      if (sensorsList[i].size() != strandsList[i].size())
+         throw MeasurementException("Tracking participant and sensor list sizes do not match.");
+   auto definitions = trackingConfigs;
+
    // Generate a list of tracking configs
    MessageInterface::ShowMessage("Total of %d tracking configurations are generated for tracking file set %s:\n", strandsList.size(), GetName().c_str());
    for(UnsignedInt i = 0; i < strandsList.size(); ++i)
    {
       MeasurementDefinition md;
       md.SetDefinitionString(strandsList[i], sensorsList[i], typesList[i]);
-      trackingConfigs.push_back(md);
-      trackingConfigs[i].GetDefinitionString();
+      definitions.push_back(md);
       
       std::string measType = typesList[i];
       std::string trackingConfigLog = md.GetDefinitionString();
@@ -3327,8 +3203,8 @@ bool TrackingFileSet::GenerateTrackingConfigs(std::vector<StringArray> strandsLi
       MessageInterface::ShowMessage("   Tracking config %d: %s\n", i, trackingConfigLog.c_str());
    }
 
-   isInitialized = false;
-   
+   PublishTrackingConfigs(definitions, 0, true);
+
    return Initialize();
 }
 
@@ -3685,4 +3561,382 @@ Integer TrackingFileSet::FrequencyBand(Real frequency)
    }
 
    return freqBand;
+}
+// Reset/copy through the inherited polymorphic contract without slicing.
+void TrackingFileSet::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const TrackingFileSet*>(original);
+   if (!source || typeid(*source) != typeid(TrackingFileSet) ||
+       typeid(*this) != typeid(TrackingFileSet))
+      throw GmatBaseException("Cannot copy incompatible object into TrackingFileSet");
+   if (source == this)
+      return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
+}
+
+const ObjectArray &TrackingFileSet::GetOwnedDataFilters() const
+{
+   return dataFilters;
+}
+
+void TrackingFileSet::ClearGeneratedModels()
+{
+   ObjectArray retained, retired;
+   retained.reserve(createdObjects.size());
+   retired.reserve(createdObjects.size());
+   for (auto *value : createdObjects)
+      if (dynamic_cast<TrackingDataAdapter*>(value)) retired.push_back(value);
+      else retained.push_back(value);
+   createdObjects.swap(retained);
+   measurements.clear();
+   ionosphereCache.clear();
+   NavigationMeasurementCopies::DeleteOwned(retired);
+}
+
+bool TrackingFileSet::HasDefinitionSource(const GmatBase *source) const
+{
+   if (!source) return false;
+   if (source == this || IsCloneOf(*source)) return true;
+   for (auto *filter : dataFilters)
+      if (filter && (filter == source || filter->IsCloneOf(*source))) return true;
+   return false;
+}
+
+bool TrackingFileSet::ApplyDefinitionUpdate(GmatBase *source, Integer parameterId,
+      GmatBase *mappedTarget)
+{
+   if (!source) return false;
+   GmatBase *target = nullptr;
+   if (mappedTarget == this || source == this || IsCloneOf(*source)) target = this;
+   else
+      for (auto *filter : dataFilters)
+         if (filter && (filter == mappedTarget || filter == source || filter->IsCloneOf(*source)))
+         {
+            if (target) throw MeasurementException("Ambiguous owned tracking-filter update.\n");
+            target = filter;
+         }
+   if (!target) return false;
+   if (typeid(*target) != typeid(*source) || target->GetTypeName() != source->GetTypeName())
+      throw MeasurementException("Incompatible native tracking definition update.\n");
+   isInitialized = false;
+   GmatBase::FunctionValueCopyGuard nativeCopy;
+   if (target != source)
+   {
+      if (parameterId < 0) target->Copy(source);
+      else target->CopyParameter(*source, parameterId);
+      NavigationMeasurementCopies::KeepReferences(*target, *source, parameterId < 0);
+   }
+   ClearGeneratedModels();
+   return true;
+}
+
+bool TrackingFileSet::HasLocalClones() { return true; }
+void TrackingFileSet::UpdateClonedObject(GmatBase *source)
+{
+   ApplyDefinitionUpdate(source, -1);
+}
+void TrackingFileSet::UpdateClonedObjectParameter(GmatBase *source, Integer parameterId)
+{
+   if (parameterId >= 0) ApplyDefinitionUpdate(source, parameterId);
+}
+
+void TrackingFileSet::ResetPreparedMeasurements()
+{
+   ClearGeneratedModels();
+   isInitialized = false;
+}
+
+ObjectArray TrackingFileSet::GetFunctionValueOwnedObjectsImpl() const
+{
+   return dataFilters;
+}
+
+bool TrackingFileSet::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const TrackingFileSet*>(&original);
+   if (!source || source == this || typeid(*this) != typeid(TrackingFileSet) ||
+       typeid(*source) != typeid(TrackingFileSet) || dataFilters.size() != source->dataFilters.size())
+      throw MeasurementException("Incompatible retained TrackingFileSet value.\n");
+   for (size_t i = 0; i < dataFilters.size(); ++i)
+      if (!dataFilters[i] || !source->dataFilters[i] ||
+          resolve(source->dataFilters[i]) != dataFilters[i])
+         throw MeasurementException("Tracking filter ownership was not registered before binding.\n");
+
+   NavigationMeasurementCopies::Aliases participants, setups;
+   ObjectArray mappedReferences;
+   mappedReferences.reserve(source->references.size());
+   for (auto *reference : source->references)
+   {
+      auto *value = reference ? resolve(reference) : nullptr;
+      if (!value) throw MeasurementException("Unresolved retained tracking participant.\n");
+      participants.Add(*reference, *value);
+      mappedReferences.push_back(value);
+   }
+   const auto &fromSetups = source->thePropagators ? *source->thePropagators : source->propvec;
+   std::vector<PropSetup*> mappedSetups;
+   mappedSetups.reserve(fromSetups.size());
+   for (auto *reference : fromSetups)
+   {
+      auto *value = reference ? dynamic_cast<PropSetup*>(resolve(reference)) : nullptr;
+      if (reference && !value) throw MeasurementException("Unresolved retained tracking propagator.\n");
+      if (reference) setups.Add(*reference, *value);
+      mappedSetups.push_back(value);
+   }
+   const auto &fromRoles = source->satPropagatorMap ? *source->satPropagatorMap : source->spm;
+   auto mappedRoles = NavigationMeasurementCopies::MapPropagationRoles(fromRoles, setups, participants);
+   auto configs = source->trackingConfigs;
+   for (auto &config : configs)
+      for (auto &strand : config.strands)
+         for (auto &name : strand) name = participants.Map(name);
+
+   ClearGeneratedModels();
+   references.swap(mappedReferences);
+   propvec.swap(mappedSetups);
+   spm.swap(mappedRoles);
+   trackingConfigs.swap(configs);
+   thePropagators = &propvec;
+   satPropagatorMap = &spm;
+   solarsystem = system;
+   isInitialized = false;
+   return true;
+}
+
+
+void TrackingFileSet::ClearCollection(Integer id)
+{
+   if (id != TRACKINGCONFIG && id != FILENAME && id != RAMPED_TABLENAME &&
+         id != DATA_FILTERS && id != TDRS_SERVICE_ACCESS)
+      throw MeasurementException("Unsupported tracking collection reset.");
+   ObjectArray retained, retired;
+   retained.reserve(createdObjects.size());
+   retired.reserve(createdObjects.size());
+   for (auto *value : createdObjects)
+   {
+      const bool filter = id == DATA_FILTERS &&
+            std::find(dataFilters.begin(), dataFilters.end(), value) != dataFilters.end();
+      if (dynamic_cast<TrackingDataAdapter*>(value) || filter) retired.push_back(value);
+      else retained.push_back(value);
+   }
+   // Partition ownership before changing a declaration or releasing borrowers.
+   isInitialized = false;
+   createdObjects.swap(retained);
+   measurements.clear(); ionosphereCache.clear();
+   tdrsMeasurementFrequencies.clear(); tdrsMeasurementFrequencyBands.clear();
+   if (id == TRACKINGCONFIG)
+   {
+      trackingConfigs.clear(); references.clear();
+      openBracketCount = 0; start = true;
+   }
+   else if (id == FILENAME) filenames.clear();
+   else if (id == RAMPED_TABLENAME) rampedTablenames.clear();
+   else if (id == TDRS_SERVICE_ACCESS) tdrsServiceAccessList.clear();
+   else { dataFilterNames.clear(); dataFilters.clear(); }
+   NavigationMeasurementCopies::DeleteOwned(retired);
+}
+
+void TrackingFileSet::WriteStringArrayValue(Gmat::WriteMode mode,
+      std::string &prefix, Integer id, bool writeQuotes, std::stringstream &stream)
+{
+   const bool snapshot = ObjectScriptExportScope::IsActive() &&
+         (mode == Gmat::SCRIPTING || mode == Gmat::OWNED_OBJECT ||
+          mode == Gmat::NO_COMMENTS || mode == Gmat::OBJECT_EXPORT);
+   if (snapshot && id == TRACKINGCONFIG)
+   {
+      stream << prefix << GetParameterText(id) << " = {};\n";
+      for (const auto &definition : trackingConfigs)
+         stream << prefix << GetParameterText(id) << " = "
+                << definition.GetDefinitionString() << ";\n";
+      return;
+   }
+   MeasurementModelBase::WriteStringArrayValue(mode, prefix, id, writeQuotes, stream);
+}
+
+
+bool TrackingFileSet::AddToSignalPath(std::string participantName, Integer configIndex, Integer strandIndex)
+{
+   return AddToSignalPath(participantName, configIndex, strandIndex, trackingConfigs);
+}
+
+bool TrackingFileSet::ParseStrand(std::string value, Integer configIndex, Integer strandIndex)
+{
+   return ParseStrand(value, configIndex, strandIndex, trackingConfigs);
+}
+
+bool TrackingFileSet::ParseTrackingConfig(std::string value, Integer& configIndex, bool& start)
+{
+   return ParseTrackingConfig(value, configIndex, start, trackingConfigs);
+}
+
+
+bool TrackingFileSet::ParseConfigToken(const std::string &value, Integer index,
+      std::vector<MeasurementDefinition> &definitions, Integer &depth, bool &newDefinition)
+{
+      if (index < 0)
+         throw MeasurementException("Tracking configuration token index cannot be negative.");
+
+
+      if (value == "")
+         throw MeasurementException("Error:: Syntax error when GMAT sets value to " + GetName() + ".AddTrackingConfig parameter.\n");
+
+      // Get all known measurement types
+      StringArray knownTypes;                                                                  // GMT-5701
+      TFSMagicNumbers *mn = TFSMagicNumbers::Instance();                                       // GMT-5701
+      knownTypes = mn->GetAvailableTypes();                                                    // GMT-5701
+
+      // Create a new tracking config
+      if (index == 0)                    // it starts a tracking configuration when index = 0
+      {
+         // reset open bracket count and new strand flag
+         depth = 0;
+         newDefinition = true;
+      }
+
+      if (newDefinition)
+      {
+         // Starting a new definition
+         MeasurementDefinition newDef;
+         definitions.push_back(newDef);
+         newDefinition = false;
+      }
+      Integer defIndex = definitions.size() - 1;
+
+      if ((value.size() > 1) && (value.c_str()[0] == '{') && (value.c_str()[value.size() - 1] == '}'))
+      {
+         // parsing syntax for:
+         // case1: {part1,..., partn}
+         // case2: {{part1,..., partn}, datatype1,...,datatypem}
+         if (depth != 0)
+            throw MeasurementException("Error:: Syntax error when GMAT sets value to " + GetName() + ".AddTrackingConfig parameter.\n");
+
+         return ParseTrackingConfig(value, defIndex, newDefinition, definitions);
+      }
+      else
+      {
+         // parsing the follwoing cases:
+         // case 3: '{<part>'
+         // case 4: '<part>}'
+         // case 5: '<part>'
+         // case 6: '<typename>'
+
+         std::string rawName = GmatStringUtil::Trim(value);
+         if (rawName.size() == 0)
+            throw MeasurementException("Error:: Syntax error when GMAT sets value to " + GetName() + ".AddTrackingConfig parameter.\n");
+
+         // case 3: '{<part>'
+         if (rawName.at(0) == '{')
+         {
+            if (depth != 0)
+               throw MeasurementException("Error:: Syntax error when GMAT sets value to " + GetName() + ".AddTrackingConfig parameter.\n");
+
+            ++depth;
+            rawName = GmatStringUtil::Trim(rawName.substr(1));                          // trim open curly bracket and all white space
+
+            StringArray trackList, sensorList;
+            definitions[defIndex].strands.push_back(trackList);
+            definitions[defIndex].sensors.push_back(trackList);
+            Integer strandIndex = definitions[defIndex].strands.size() - 1;
+            AddToSignalPath(rawName, defIndex, strandIndex, definitions);
+
+            // clean up
+            trackList.clear();
+            sensorList.clear();
+
+            return true;
+         }
+
+         // case 4: '<part>}'
+         if (rawName.at(rawName.size() - 1) == '}')
+         {
+            if (depth == 0)
+               throw MeasurementException("Error:: Syntax error when GMAT sets value to " + GetName() + ".AddTrackingConfig parameter.\n");
+
+            --depth;
+            rawName = GmatStringUtil::Trim(rawName.substr(0, rawName.size() - 1));
+            Integer strandIndex = definitions[defIndex].strands.size() - 1;
+            AddToSignalPath(rawName, defIndex, strandIndex, definitions);
+
+            return true;
+         }
+
+         // case 5: '<part>'
+         if (depth > 0)
+         {
+            Integer strandIndex = definitions[defIndex].strands.size() - 1;
+            AddToSignalPath(rawName, defIndex, strandIndex, definitions);
+
+            return true;
+         }
+
+         // case 6:
+         //// Check deplicated types
+         //rawName = CheckTypeDeprecation(rawName);
+
+         if (find(knownTypes.begin(), knownTypes.end(), rawName) == knownTypes.end())
+         {
+            std::stringstream ss;
+            ss << "Error: In current version, GMAT does not have measurement type '" + rawName + "'.\n This is a list of all available types:\n";
+            for (Integer i = 0; i < knownTypes.size(); ++i)
+            {
+               if (i < knownTypes.size() - 1)
+                  ss << " " << knownTypes[i] << ",";
+               else
+                  ss << " " << knownTypes[i] << ".\n";
+            }
+            throw MeasurementException(ss.str());
+         }
+         else
+         {
+            if ((!definitions[defIndex].types.empty()) &&
+                (find(definitions[defIndex].types.begin(), definitions[defIndex].types.end(), rawName) != definitions[defIndex].types.end()))
+               throw MeasurementException("Error: Duplicate measurement type in tracking configuration in " + GetName() + ".AddTrackingConfig parameter.\n");
+            else
+            {
+               definitions[defIndex].types.push_back(rawName);
+               return true;
+            }
+         }
+      }
+
+      // clean up
+      knownTypes.clear();
+
+      #ifdef DEBUG_INITIALIZATION
+         MessageInterface::ShowMessage("%d members in config:\n",
+               definitions.size());
+         for (UnsignedInt i = 0; i < definitions.size(); ++i)
+            MessageInterface::ShowMessage("   %s\n", definitions[i].GetDefinitionString().c_str());
+      #endif
+      return true;
+   }
+
+void TrackingFileSet::PublishTrackingConfigs(std::vector<MeasurementDefinition> &definitions,
+      Integer depth, bool newDefinition)
+{
+   const bool previousReady = isInitialized;
+   isInitialized = false;
+   try { ClearGeneratedModels(); }
+   catch (...) { isInitialized = previousReady; throw; }
+   trackingConfigs.swap(definitions);
+   openBracketCount = depth; start = newDefinition;
+   tdrsMeasurementFrequencies.clear(); tdrsMeasurementFrequencyBands.clear();
+}
+
+void TrackingFileSet::SetField(const Integer id, const StringArray &value)
+{
+   if (id != TRACKINGCONFIG) { MeasurementModelBase::SetField(id, value); return; }
+   if (value.empty()) { ClearCollection(id); return; }
+   if (value.size() > static_cast<size_t>(std::numeric_limits<Integer>::max()))
+      throw MeasurementException("Tracking configuration exceeds native token capacity.");
+   auto definitions = trackingConfigs;
+   Integer depth = 0;
+   bool next = true;
+   for (Integer i = 0; i < static_cast<Integer>(value.size()); ++i)
+      if (!ParseConfigToken(value[i], i, definitions, depth, next))
+         throw MeasurementException("Cannot parse tracking configuration for " + GetName() + ".");
+   if (depth != 0)
+      throw MeasurementException("Tracking configuration has an unclosed participant strand.");
+   PublishTrackingConfigs(definitions, depth, next);
 }

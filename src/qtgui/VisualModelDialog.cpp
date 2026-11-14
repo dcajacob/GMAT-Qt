@@ -1,6 +1,8 @@
 #include "VisualModelDialog.hpp"
+#include "VectorLineEdit.hpp"
 #include "PlotWidget.hpp"
 #include "OrbitRenderer.hpp"
+#include "PovModelLoad.hpp"
 #include "GmatDefaults.hpp"
 #include "RgbColor.hpp"
 #include "BaseException.hpp"
@@ -8,11 +10,13 @@
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QListView>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QSlider>
@@ -46,7 +50,7 @@ VisualModelDialog::VisualModelDialog(const QMap<QString,QString> &initial,Normal
    auto *scroll=new QScrollArea(splitter); scroll->setWidgetResizable(true); scroll->setFrameShape(QFrame::NoFrame);
    auto *controls=new QWidget; scroll->setWidget(controls); auto *left=new QVBoxLayout(controls);
    auto makeField=[&](const QString &name,QWidget *parent) {
-      auto *edit=new QLineEdit(initial.value(name),parent); edit->setObjectName("visual_"+name); fields.insert(name,edit); return edit;
+      auto *edit=new VectorLineEdit(initial.value(name),parent); edit->setObjectName("visual_"+name); fields.insert(name,edit); return edit;
    };
    auto *fileGroup=new QGroupBox("Model file",controls); auto *fileLayout=new QHBoxLayout(fileGroup);
    auto *file=makeField("ModelFile",fileGroup); auto *browse=new QPushButton("Browse…",fileGroup); browse->setObjectName("visualBrowseModel");
@@ -54,7 +58,14 @@ VisualModelDialog::VisualModelDialog(const QMap<QString,QString> &initial,Normal
    connect(browse,&QPushButton::clicked,this,[this,file] {
       QFileDialog picker(this,"Choose spacecraft model",file->text()); picker.setObjectName("visualModelFileDialog");
       picker.setFileMode(QFileDialog::ExistingFile);
-      picker.setNameFilters({"Spacecraft models (*.3ds *.3DS *.obj *.OBJ)","All files (*)"});
+      picker.setNameFilters({"Spacecraft models (*.3ds *.3DS *.obj *.OBJ *.pov *.POV)","All files (*)"});
+      // A typed replacement must take precedence over the old file-view
+      // selection. Otherwise Qt can return both names in ExistingFile mode.
+      if (auto *name=picker.findChild<QLineEdit *>("fileNameEdit"))
+         if (auto *view=picker.findChild<QListView *>("listView"))
+            connect(name,&QLineEdit::textEdited,&picker,[view] {
+               if (auto *selection=view->selectionModel()) selection->clearSelection();
+            });
       if (picker.exec()==QDialog::Accepted && !picker.selectedFiles().isEmpty()) {
          file->setText(picker.selectedFiles().first());
          // Match wx's new-model selection: reset its pose, retaining colors.
@@ -74,6 +85,11 @@ VisualModelDialog::VisualModelDialog(const QMap<QString,QString> &initial,Normal
          if (group=="Offset") slider->setRange(-350,350);
          auto *edit=makeField(name,row); edit->setMaximumWidth(115);
          line->addWidget(slider,1); line->addWidget(edit); if (group=="Rotation") line->addWidget(new QLabel("deg",row));
+         else if(group=="Offset") {
+            auto *unit=new QLabel("model units",row);
+            unit->setToolTip("Local model coordinates, before scale and rotation.");line->addWidget(unit);
+         }
+         else if(group=="Scale")line->addWidget(new QLabel("dimensionless",row));
          form->addRow(axis.isEmpty() ? "Factor" : axis,row);
          connect(slider,&QSlider::valueChanged,this,[edit,group](int value) {
             edit->setText(QString::number(group=="Scale" ? sliderScale(value) : group=="Offset" ? value/100.0 : value,'g',17));
@@ -88,11 +104,26 @@ VisualModelDialog::VisualModelDialog(const QMap<QString,QString> &initial,Normal
       }
       left->addWidget(box);
    }
+   for (const auto &prefix:QStringList{"ModelRotation","ModelOffset"})
+      VectorLineEdit::link({fields.value(prefix+"X"),fields.value(prefix+"Y"),fields.value(prefix+"Z")});
    auto *resets=new QHBoxLayout; left->addLayout(resets);
    auto *recenter=new QPushButton("Recenter model",controls); recenter->setObjectName("visualRecenter"); resets->addWidget(recenter);
    auto *autoscale=new QPushButton("Autoscale model",controls); autoscale->setObjectName("visualAutoscale"); resets->addWidget(autoscale);
    connect(recenter,&QPushButton::clicked,this,[this] { for (const auto &axis:QStringList{"X","Y","Z"}) fields["ModelOffset"+axis]->setText("0"); });
    connect(autoscale,&QPushButton::clicked,this,[this] { fields["ModelScale"]->setText("1"); });
+   // NASA's model panel enables transforms only after a model is selected.
+   // Empty-model native properties are unavailable;their omitted values must
+   // not leave active sliders next to blank inputs.
+   auto availability=[this,file,recenter,autoscale] {
+      const bool selected=!file->text().trimmed().isEmpty();
+      for (auto it=fields.cbegin();it!=fields.cend();++it)
+         if (it.key().startsWith("ModelRotation") || it.key().startsWith("ModelOffset") || it.key()=="ModelScale") {
+            it.value()->setEnabled(selected);
+            if (auto *slider=findChild<QSlider *>("visualSlider_"+it.key())) slider->setEnabled(selected);
+         }
+      recenter->setEnabled(selected); autoscale->setEnabled(selected);
+   };
+   connect(file,&QLineEdit::textChanged,this,availability); availability();
    auto *colors=new QGroupBox("Colors",controls); auto *colorForm=new QFormLayout(colors);
    for (const auto &name:QStringList{"OrbitColor","TargetColor"}) {
       auto *row=new QWidget(colors); auto *line=new QHBoxLayout(row); line->setContentsMargins(0,0,0,0);
@@ -124,7 +155,14 @@ VisualModelDialog::VisualModelDialog(const QMap<QString,QString> &initial,Normal
    auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,this); layout->addWidget(buttons);
    refreshTimer=new QTimer(this); refreshTimer->setSingleShot(true); refreshTimer->setInterval(150);
    connect(refreshTimer,&QTimer::timeout,this,[this] { refreshPreview(); });
-   for (auto *edit:fields) connect(edit,&QLineEdit::textChanged,this,[this] { refreshTimer->start(); });
+   for (auto it=fields.cbegin();it!=fields.cend();++it) {
+      const bool fileField=it.key()=="ModelFile";
+      connect(it.value(),&QLineEdit::textChanged,this,[this,fileField] {
+         acceptWhenReady=false;
+         if (fileField) { modelLoad.reset(); checkedPath.clear(); }
+         refreshTimer->start();
+      });
+   }
    for (auto it=fields.cbegin();it!=fields.cend();++it) if (it.key()!="ModelFile" && !it.key().endsWith("Color"))
       connect(it.value(),&QLineEdit::editingFinished,this,[this] {
          if (!refreshPreview()) return;
@@ -132,8 +170,11 @@ VisualModelDialog::VisualModelDialog(const QMap<QString,QString> &initial,Normal
             if (it.key().startsWith("ModelRotation") || it.key().startsWith("ModelOffset") || it.key()=="ModelScale") fields[it.key()]->setText(it.value());
          refreshTimer->stop();
       });
-   connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);
-   connect(buttons,&QDialogButtonBox::accepted,this,[this] { refreshTimer->stop(); if (refreshPreview()) accept(); });
+   connect(buttons,&QDialogButtonBox::rejected,this,&VisualModelDialog::reject);
+   connect(buttons,&QDialogButtonBox::accepted,this,[this] {
+      refreshTimer->stop();
+      if (refreshPreview()) accept(); else acceptWhenReady=bool(modelLoad);
+   });
    splitter->setStretchFactor(0,0); splitter->setStretchFactor(1,1);
    const auto available=screen()->availableGeometry().size();
    resize(std::min(1000,available.width()-40),std::min(720,available.height()-80)); refreshPreview();
@@ -145,14 +186,30 @@ QMap<QString,QString> VisualModelDialog::settings() const
    for (auto it=fields.cbegin();it!=fields.cend();++it) result[it.key()]=it.value()->text();
    return result;
 }
+void VisualModelDialog::reject()
+{
+   modelLoad.reset(); acceptWhenReady=false; refreshTimer->stop();
+   QDialog::reject();
+}
 bool VisualModelDialog::refreshPreview()
 {
    try {
       QMap<QString,QString> pending; for (auto it=fields.cbegin();it!=fields.cend();++it) pending.insert(it.key(),it.value()->text());
       const auto normalized=normalize(pending); const auto path=normalized.value("@ResolvedModelFile");
       if (!pending.value("ModelFile").isEmpty()) {
-         if (path!=checkedPath || checkedPath.isEmpty()) { checkedPath=path; checkedReadable=orbitModelFileReadable(path); }
-         if (!checkedReadable) throw std::runtime_error("The model file could not be loaded. Choose a supported model file or clear the path.");
+         if (path!=checkedPath || checkedPath.isEmpty()) {
+            modelLoad.reset(); checkedPath=path; checkedReadable=false; checkedError.clear();
+            if (QFileInfo(path).suffix().compare("pov",Qt::CaseInsensitive)==0) {
+               modelLoad=std::make_shared<PovModelLoad>(path,true,this,[this,path](osg::ref_ptr<osg::Node> loaded,const QString &error) {
+                  if (checkedPath!=path) return;
+                  checkedReadable=loaded.valid(); checkedError=error; modelLoad.reset();
+                  const bool apply=acceptWhenReady; acceptWhenReady=false;
+                  if (refreshPreview() && apply) accept();
+               });
+            } else checkedReadable=orbitModelFileReadable(path,&checkedError);
+         }
+         if (modelLoad) { status->setText("Loading model… You can change the file or cancel this dialog."); return false; }
+         if (!checkedReadable) throw std::runtime_error((checkedError.isEmpty() ? QString("The model file could not be loaded. Choose a supported model file or clear the path.") : checkedError).toStdString());
       }
       auto &curve=model->curves[0]; curve.modelPath=path; curve.modelScale=normalized.value("ModelScale").toDouble();
       for (int i=0;i<3;++i) {

@@ -44,6 +44,7 @@ class SolarSystem;
 class PhysicalModel;
 class CoordinateSystem;
 class Publisher;
+struct ExpressionScopeCopies;
 
 class GMAT_API MathTree : public GmatBase
 {
@@ -72,6 +73,7 @@ public:
    bool                 Initialize(ObjectMap *objectMap,
                                    ObjectMap *globalObjectMap);
    void                 Finalize();
+   void                 RetireBindings();
    void                 GetOutputInfo(Integer &type, Integer &rowCount,
                                       Integer &colCount);
    
@@ -85,6 +87,11 @@ public:
    
    // Inherited (GmatBase) methods
    virtual GmatBase*    Clone() const;
+   void Copy(const GmatBase *source) override;
+   std::vector<MathNode*> GetStructuralNodes() const;
+   void GetClonedOwnedObjects(const MathTree &target, ObjectArray &originals, ObjectArray &copies) const;
+   void RebindClonedReferences(const MathTree &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve, WrapperMap *wrappers);
    
    virtual bool         RenameRefObject(const UnsignedInt type,
                                         const std::string &oldName,
@@ -98,6 +105,9 @@ public:
 
 protected:
    
+   std::shared_ptr<ExpressionScopeCopies> expressionBindings;
+   bool isRetiringBindings = false;
+
    /// Top node of the math tree
    MathNode   *theTopNode;
    

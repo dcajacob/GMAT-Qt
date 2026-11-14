@@ -70,6 +70,7 @@ public:
    SimpleExponentialAtmosphere(const SimpleExponentialAtmosphere& atm);
    SimpleExponentialAtmosphere&  operator=(const SimpleExponentialAtmosphere&
          atm);
+   void Copy(const GmatBase *original) override;
     
    virtual bool            Density(Real *position, Real *density, 
                                    Real epoch = GmatTimeConstants::MJD_OF_J2000,

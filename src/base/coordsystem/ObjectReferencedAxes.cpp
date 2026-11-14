@@ -31,12 +31,14 @@
 //------------------------------------------------------------------------------
 #include <sstream>
 #include <iomanip>
+#include <cmath>
 #include <algorithm>                    // Required by GCC 4.3
 #include "gmatdefs.hpp"
 #include "GmatBase.hpp"
 #include "ObjectReferencedAxes.hpp"
 #include "DynamicAxes.hpp"
 #include "CoordinateSystemException.hpp"
+#include "ODEModel.hpp"
 
 #include "MessageInterface.hpp"
 
@@ -872,8 +874,28 @@ bool ObjectReferencedAxes::SetRefObject(GmatBase *obj,
  *                         (default is false)
  */
 //---------------------------------------------------------------------------
+Rmatrix33 ObjectReferencedAxes::GetRotationMatrixOnly(const A1Mjd &atEpoch) const
+{
+   if (GetTypeName() != "ObjectReferenced")
+      throw CoordinateSystemException("Rotation-only object geometry requires ObjectReferenced axes.");
+   ObjectReferencedAxes geometry(*this);
+   geometry.CalculateFrame(atEpoch, false);
+   return geometry.rotMatrix;
+}
+
+Rmatrix33 ObjectReferencedAxes::GetRotationMatrixOnly(const GmatTime &atEpoch) const
+{
+   // ObjectReferencedAxes already uses the A1Mjd calculation for precise time.
+   return GetRotationMatrixOnly(A1Mjd(atEpoch.GetMjd()));
+}
+
 void ObjectReferencedAxes::CalculateRotationMatrix(const A1Mjd &atEpoch,
                                                    bool forceComputation)
+{
+   CalculateFrame(atEpoch, true);
+}
+
+void ObjectReferencedAxes::CalculateFrame(const A1Mjd &atEpoch, bool calculateRate)
 {
 #ifdef DEBUG_ROT_MATRIX
    if (visitCount == 0)
@@ -940,16 +962,21 @@ void ObjectReferencedAxes::CalculateRotationMatrix(const A1Mjd &atEpoch,
       }
    #endif
 
-   Rvector3 a     =  useAsSecondary->GetMJ2000Acceleration(atEpoch) -
-                     primary->GetMJ2000Acceleration(atEpoch);
+   Rvector3 a;
+   if (calculateRate &&
+       !ODEModel::GetBoundRelativeAcceleration(useAsSecondary,primary,atEpoch,a))
+      a=useAsSecondary->GetMJ2000Acceleration(atEpoch)-primary->GetMJ2000Acceleration(atEpoch);
    
    Rvector3 r      = rv.GetR();
    Rvector3 v      = rv.GetV();
    Rvector3 n     =  Cross(r,v);
 
-   // This set up of the spacecraft' acceleration to the same value in
-   // the GMAT version without CCSDS_OEM_v2_EphemerisPropagator branch
-   a[0] = a[1] = a[2] = 0.0;
+   // Velocity and orbit-normal derivatives require the actual relative
+   // acceleration supplied by the two reference objects.
+   for (Integer i = 0; calculateRate && i < 3; ++i)
+      if (!std::isfinite(a[i]))
+         throw CoordinateSystemException("Object referenced axes " +
+            coordName + " received nonfinite relative acceleration.");
 
 #ifdef DEBUG_ROT_MATRIX
    MessageInterface::ShowMessage(" r = [%.15lf   %.15lf   %.15lf]\n", r[0], r[1], r[2]);
@@ -972,9 +999,13 @@ void ObjectReferencedAxes::CalculateRotationMatrix(const A1Mjd &atEpoch,
       throw CoordinateSystemException(errmsg);
    }
 
-   Rvector3 rDot  = (v / rMag) - (rUnit / rMag) * (rUnit * v);
-   Rvector3 vDot  = (a / vMag) - (vUnit / vMag) * (vUnit * a);
-   Rvector3 nDot = (Cross(r,a) / nMag) - (nUnit / nMag) * (Cross(r,a) * nUnit);
+   Rvector3 rDot, vDot, nDot;
+   if (calculateRate)
+   {
+      rDot = (v / rMag) - (rUnit / rMag) * (rUnit * v);
+      vDot = (a / vMag) - (vUnit / vMag) * (vUnit * a);
+      nDot = (Cross(r,a) / nMag) - (nUnit / nMag) * (Cross(r,a) * nUnit);
+   }
    Rvector3 xUnit, yUnit, zUnit, xDot, yDot, zDot;
    bool     xUsed = true, yUsed = true, zUsed = true;
 
@@ -1130,6 +1161,14 @@ void ObjectReferencedAxes::CalculateRotationMatrix(const A1Mjd &atEpoch,
    rotMatrix(2,1) = yUnit(2);
    rotMatrix(2,2) = zUnit(2);
 
+   if (!calculateRate)
+   {
+      if (!rotMatrix.IsOrthonormal(ORTHONORMAL_TOL))
+         throw CoordinateSystemException("Object referenced axis system \"" + coordName +
+            "\" has a non-orthogonal rotation matrix. Choose two orthogonal directions.");
+      return; // Geometry copy only: no rate is calculated or published.
+   }
+
    // Compute the rotation derivative matrix
    rotDotMatrix(0,0) = xDot(0);
    rotDotMatrix(0,1) = yDot(0);
@@ -1158,8 +1197,7 @@ void ObjectReferencedAxes::CalculateRotationMatrix(const A1Mjd &atEpoch,
 
    if (!rotMatrix.IsOrthonormal(ORTHONORMAL_TOL))
    {
-      std::stringstream errmsg("");
-      errmsg << "*** WARNING*** Object referenced axis system \"" << coordName;
-      errmsg << "\" has a non-orthogonal rotation matrix. " << std::endl;
+      throw CoordinateSystemException("Object referenced axis system \"" + coordName +
+         "\" has a non-orthogonal rotation matrix. Choose two orthogonal directions.");
    }
 }

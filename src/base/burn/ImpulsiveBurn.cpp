@@ -30,10 +30,13 @@
 //------------------------------------------------------------------------------
 
 
+#include <memory>
+#include <algorithm>
 #include "ImpulsiveBurn.hpp"
 #include "BurnException.hpp"
 #include "MessageInterface.hpp"
 #include "StringUtil.hpp"
+#include "FuelTank.hpp"
 
 //#define DEBUG_IMPBURN_INIT
 //#define DEBUG_IMPBURN_SET
@@ -184,10 +187,11 @@ void ImpulsiveBurn::SetSpacecraftToManeuver(Spacecraft *sat)
    if (sat == NULL)
       return;
    
+   const bool changed = spacecraft != sat;
    Burn::SetSpacecraftToManeuver(sat);
    
-   // Associate tank of the spacecraft
-   if (decrementMass && spacecraft != sat)
+   // The base setter has already assigned spacecraft when this is checked.
+   if (decrementMass && changed)
       SetTankFromSpacecraft();
    
    #ifdef DEBUG_IMPBURN_SET
@@ -496,7 +500,9 @@ void ImpulsiveBurn::TransformDeltaVToJ2kFrame(Real *deltaV, Real epoch)
 //------------------------------------------------------------------------------
 GmatBase* ImpulsiveBurn::Clone() const
 {
-   return (new ImpulsiveBurn(*this));
+   std::unique_ptr<ImpulsiveBurn> value(new ImpulsiveBurn(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -511,7 +517,12 @@ GmatBase* ImpulsiveBurn::Clone() const
 //---------------------------------------------------------------------------
 void ImpulsiveBurn::Copy(const GmatBase* orig)
 {
-   operator=(*((ImpulsiveBurn *)(orig)));
+   const auto *source = dynamic_cast<const ImpulsiveBurn*>(orig);
+   if (!source) throw BurnException("Incompatible ImpulsiveBurn value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -851,13 +862,23 @@ bool ImpulsiveBurn::SetStringParameter(const Integer id, const std::string &valu
    {
    case FUEL_TANK:
       {
+         if (index < 0)
+            throw BurnException("Negative fuel tank index for ImpulsiveBurn " + instanceName);
          if (index < (Integer)tankNames.size())
-            tankNames[index] = value;
-         else
-            // Add the tank only if it is not in the list already
-            if (find(tankNames.begin(), tankNames.end(), value) == tankNames.end()) 
-               tankNames.push_back(value);
-         
+         {
+            const std::string previous = tankNames[index];
+            if (previous != value)
+            {
+               tankNames[index] = value;
+               tankMap.erase(previous);
+               isInitialized = false;
+            }
+         }
+         else if (find(tankNames.begin(), tankNames.end(), value) == tankNames.end())
+         {
+            tankNames.push_back(value);
+            isInitialized = false;
+         }
          return true;
       }
    default:
@@ -1019,8 +1040,12 @@ bool ImpulsiveBurn::SetRefObject(GmatBase *obj, const UnsignedInt type,
    {
    case Gmat::FUEL_TANK:
       {
-         if (tankMap.find(name) != tankMap.end())
-            tankMap[name] = obj;
+         auto *tank = dynamic_cast<FuelTank*>(obj);
+         if (!tank) return false;
+         const std::string key = name.empty() ? tank->GetName() : name;
+         if (std::find(tankNames.begin(), tankNames.end(), key) == tankNames.end()) return false;
+         if (spacecraft) return GetRefObject(Gmat::FUEL_TANK, key) != NULL;
+         tankMap[key] = tank;
          return true;
       }
    default:
@@ -1088,72 +1113,31 @@ bool ImpulsiveBurn::RenameRefObject(const UnsignedInt type,
 //------------------------------------------------------------------------------
 bool ImpulsiveBurn::SetTankFromSpacecraft()
 {
-   #ifdef DEBUG_IMPBURN_SET
-   MessageInterface::ShowMessage
-      ("ImpulsiveBurn::SetTankFromSpacecraft() entered, spacecraft=<%p>'%s'\n",
-       spacecraft, spacecraft ? spacecraft->GetName().c_str() : "NULL");
-   MessageInterface::ShowMessage("   tankNames.size()=%d\n", tankNames.size());
-   #endif
-   
-   if (spacecraft == NULL)
-      return false;
-   
+   if (!spacecraft) return false;
    if (tankNames.empty())
-      throw BurnException("ImpulsiveBurn::Initialize() " + instanceName +
-                          " has no associated tank");
-   
-   ObjectArray tankArray = spacecraft->GetRefObjectArray(Gmat::FUEL_TANK);
-   
-   #ifdef DEBUG_IMPBURN_SET
-   MessageInterface::ShowMessage
-      ("   spacecraft tankArray.size()=%d\n", tankArray.size());
-   #endif
-   
-   if (!tankNames.empty() && !tankArray.empty())
+      throw BurnException("ImpulsiveBurn::Initialize() " + instanceName + " has no associated tank");
+   const ObjectArray available = spacecraft->GetRefObjectArray(Gmat::FUEL_TANK);
+   ObjectMap current;
+   for (const std::string &name : tankNames)
    {
-      ObjectArray::iterator scTank = tankArray.begin();
-      
-      // Find the tank on the spacecraft
-      for (StringArray::iterator tankName = tankNames.begin();
-           tankName != tankNames.end(); ++tankName)
+      FuelTank *selected = NULL;
+      for (GmatBase *object : available)
       {
-         while (scTank != tankArray.end())
-         {
-            #ifdef DEBUG_IMPBURN_SET
-            MessageInterface::ShowMessage
-               ("   The tank '%s' associated with spacecraft is <%p>'%s'\n",
-                (*tankName).c_str(), (*scTank),
-                (*scTank) ? (*scTank)->GetName().c_str() : "NULL");
-            #endif
-            
-            // Just in case, check for NULL tank pointer
-            if (*scTank == NULL)
-               continue;
-            
-            // Assign the tank
-            if ((*scTank)->GetName() == *tankName)
-            {
-               tankMap[*tankName] = (*scTank);
-               #ifdef DEBUG_IMPBURN_SET
-               MessageInterface::ShowMessage
-                  ("   Assigned <%p>'%s' to tankMap\n", *scTank, (*tankName).c_str());
-               #endif
-            }
-            ++scTank;
-         }
+         auto *tank = dynamic_cast<FuelTank*>(object);
+         if (!tank || tank->GetName() != name) continue;
+         if (selected && selected != tank)
+            throw BurnException("Ambiguous fuel tank " + name + " on spacecraft " + spacecraft->GetName());
+         selected = tank;
       }
-      if (tankNames.size() != tankMap.size())
+      if (!selected)
          throw BurnException("The impulsive burn " + instanceName +
                " could not find the fuel tank needed to deplete mass; please "
                "attach the tank to the spacecraft " + spacecraft->GetName() +
                " or turn off mass depletion.");
+      if (!current.emplace(name, selected).second)
+         throw BurnException("Repeated fuel tank " + name + " in ImpulsiveBurn " + instanceName);
    }
-   
-   #ifdef DEBUG_IMPBURN_SET
-   MessageInterface::ShowMessage
-      ("ImpulsiveBurn::SetTankFromSpacecraft() returning true\n");
-   #endif
-   
+   tankMap.swap(current);
    return true;
 }
 
@@ -1237,4 +1221,52 @@ void ImpulsiveBurn::DecrementMass(bool backwards)
    MessageInterface::ShowMessage
       ("ImpulsiveBurn::DecrementMass() <%p>'%s' returning\n", this, GetName().c_str());
    #endif
+}
+
+GmatBase* ImpulsiveBurn::GetRefObject(const UnsignedInt type, const std::string &name)
+{
+   if (type != Gmat::FUEL_TANK) return Burn::GetRefObject(type, name);
+   if (std::find(tankNames.begin(), tankNames.end(), name) == tankNames.end()) return NULL;
+   if (!spacecraft)
+   {
+      const auto found = tankMap.find(name);
+      return found == tankMap.end() ? NULL : found->second;
+   }
+   FuelTank *selected = NULL;
+   const ObjectArray available = spacecraft->GetRefObjectArray(Gmat::FUEL_TANK);
+   for (GmatBase *object : available)
+   {
+      auto *tank = dynamic_cast<FuelTank*>(object);
+      if (!tank || tank->GetName() != name) continue;
+      if (selected && selected != tank)
+         throw BurnException("Ambiguous fuel tank " + name + " on spacecraft " + spacecraft->GetName());
+      selected = tank;
+   }
+   if (selected) tankMap[name] = selected;
+   else tankMap.erase(name);
+   return selected;
+}
+
+void ImpulsiveBurn::RebindClonedReferences(const Burn &source, SolarSystem *system,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *burn = dynamic_cast<const ImpulsiveBurn*>(&source);
+   if (!burn) throw BurnException("Incompatible retained ImpulsiveBurn value.");
+   ObjectMap prototypes;
+   if (!burn->spacecraft)
+      for (const auto &entry : burn->tankMap)
+      {
+         if (std::find(burn->tankNames.begin(), burn->tankNames.end(), entry.first) == burn->tankNames.end()) continue;
+         auto *tank = dynamic_cast<FuelTank*>(resolve(entry.second));
+         if (!tank) throw BurnException("Cannot retain ImpulsiveBurn tank " + entry.first);
+         prototypes.emplace(entry.first, tank);
+      }
+   Burn::RebindClonedReferences(source, system, resolve);
+   tankMap.swap(prototypes);
+}
+
+bool ImpulsiveBurn::InitializeClonedResource()
+{
+   if (!Burn::InitializeClonedResource()) return false;
+   return !isInitialized || !decrementMass || SetTankFromSpacecraft();
 }

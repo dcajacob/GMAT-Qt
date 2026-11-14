@@ -37,8 +37,122 @@
 #include "StringUtil.hpp"  // for Replace()
 #include "MessageInterface.hpp"
 #include "TextParser.hpp"
+#include <map>
+#include <set>
+#include <mutex>
 #include <sstream>         // for std::stringstream
+#include <array>
+#include <cmath>
+#include <algorithm>
+#include <memory>
+#include <typeinfo>
 
+
+namespace
+{
+// Keep authored-option provenance outside the command layout: existing binary
+// plugins retain Vary's size and virtual interface. Do not infer author intent
+// by comparing a value against a default; an explicitly supplied default still
+// needs a warning when the solver does not support that field.
+struct VaryOptions
+{
+   std::mutex mutex;
+   std::map<const Vary*, std::set<Integer>> commands;
+};
+VaryOptions &varyOptions() { static auto *options=new VaryOptions; return *options; }
+void clearVaryOptions(const Vary *command)
+{
+   auto &state=varyOptions();std::lock_guard<std::mutex> lock(state.mutex);
+   state.commands.erase(command);
+}
+void copyVaryOptions(const Vary *to,const Vary *from)
+{
+   auto &state=varyOptions();std::lock_guard<std::mutex> lock(state.mutex);
+   const auto found=state.commands.find(from);
+   if (found==state.commands.end()) state.commands.erase(to);
+   else state.commands[to]=found->second;
+}
+void setVaryOption(const Vary *command,Integer id)
+{
+   auto &state=varyOptions();std::lock_guard<std::mutex> lock(state.mutex);
+   state.commands[command].insert(id);
+}
+std::set<Integer> authoredVaryOptions(const Vary *command)
+{
+   auto &state=varyOptions();std::lock_guard<std::mutex> lock(state.mutex);
+   const auto found=state.commands.find(command);
+   return found==state.commands.end() ? std::set<Integer>{} : found->second;
+}
+}
+
+namespace
+{
+struct VaryScale
+{
+   Real additive;
+   Real multiplier;
+};
+
+Real readVaryOperand(ElementWrapper *wrapper, const std::string &role, bool range = false)
+{
+   if (!wrapper)
+      throw CommandException("Vary has no bound " + role + " wrapper.");
+   return range ? wrapper->EvaluateRealForRange() : wrapper->EvaluateRealForCalculation();
+}
+
+VaryScale makeVaryScale(Real additive, Real multiplier)
+{
+   if (multiplier <= 0.0)
+      throw CommandException("Vary MultiplicativeScaleFactor must be finite and greater than zero.");
+   return {additive, multiplier};
+}
+
+Real scaleVaryValue(Real value, const VaryScale &scale, bool translate)
+{
+   // Positive finite scaling preserves infinite range endpoints/step limits.
+   if (std::isinf(value))
+      return value;
+   const Real shifted = translate ? value + scale.additive : value;
+   if (!std::isfinite(shifted))
+   {
+      // A finite x+a can exceed the intermediate range while m*(x+a) still
+      // fits. Here x and a have the same sign, so separately scaled terms
+      // avoid that intermediate overflow without introducing cancellation.
+      return value * scale.multiplier + scale.additive * scale.multiplier;
+   }
+   const Real reciprocal = 1.0 / scale.multiplier;
+   if (std::isfinite(reciprocal) && reciprocal > 0.0)
+      return shifted / reciprocal; // native operation order for ordinary data
+   return shifted * scale.multiplier; // same xn=m*(xd+a), without reciprocal overflow
+}
+
+std::array<Real, 6> varySolverData(Real initial, Real lower, Real upper,
+      Real perturb, Real maximumStep, const VaryScale &scale)
+{
+   return {{scaleVaryValue(initial, scale, true),
+            scaleVaryValue(perturb, scale, false),
+            scaleVaryValue(lower, scale, true),
+            scaleVaryValue(upper, scale, true),
+            scaleVaryValue(maximumStep, scale, false), initial}};
+}
+
+Real unscaleVaryValue(Real value, ElementWrapper *multiplicative,
+      ElementWrapper *additive)
+{
+   if (!std::isfinite(value))
+      throw CommandException("Vary received a non-finite solver decision value.");
+   const Real multiplier = readVaryOperand(multiplicative, "MultiplicativeScaleFactor");
+   const Real offset = readVaryOperand(additive, "AdditiveScaleFactor");
+   const VaryScale scale = makeVaryScale(offset, multiplier);
+   const Real quotient = value / scale.multiplier;
+   Real result = quotient - scale.additive;
+   if (!std::isfinite(quotient))
+      result = std::fma(-scale.additive, scale.multiplier, value) / scale.multiplier;
+   if (!std::isfinite(result))
+      throw CommandException("Vary physical control value is outside the finite numerical range.");
+   return result;
+}
+}
 
 //#define DEBUG_VARIABLE_RANGES
 //#define DEBUG_VARY_EXECUTE
@@ -122,6 +236,7 @@ Vary::Vary() :
    solverDataFinalized           (false),
    isThisLastVaryCommand         (false)
 {
+   clearVaryOptions(this);
    objectTypeNames.push_back("SolverCommand");
    objectTypeNames.push_back("Vary");
    settables.push_back("Perturbation"); 
@@ -169,9 +284,10 @@ Vary::Vary(const Vary& t) :
    multiplicativeScaleFactorName (t.multiplicativeScaleFactorName),
    multiplicativeScaleFactor     (NULL),
    variableID                    (-1),
-   solverDataFinalized           (t.solverDataFinalized),
+   solverDataFinalized           (false),
    isThisLastVaryCommand         (t.isThisLastVaryCommand)
 {
+    copyVaryOptions(this,&t);
     parameterCount = t.parameterCount;
 }
 
@@ -191,6 +307,7 @@ Vary& Vary::operator=(const Vary& t)
       return *this;
 
    SolverSequenceCommand::operator=(t);
+   copyVaryOptions(this,&t);
         
    solverName                    = t.solverName;
    variableName                  = t.variableName;
@@ -208,7 +325,8 @@ Vary& Vary::operator=(const Vary& t)
 
    solver = NULL;
    variableID = -1;
-   solverDataFinalized = t.solverDataFinalized;
+   solverDataFinalized = false;
+   isThisLastVaryCommand = t.isThisLastVaryCommand;
     
    return *this;
 }
@@ -222,6 +340,7 @@ Vary& Vary::operator=(const Vary& t)
 //------------------------------------------------------------------------------
 Vary::~Vary()
 {
+   clearVaryOptions(this);
    ClearWrappers();
 }
 
@@ -788,6 +907,7 @@ bool Vary::SetStringParameter(const Integer id, const std::string &value)
             throw GmatBaseException("Unknown property for Vary command\n");
       }
       
+      if (id>=PERTURBATION && id<=MULTIPLICATIVE_SCALE_FACTOR) setVaryOption(this,id);
       return true;
    }
     
@@ -840,7 +960,11 @@ void Vary::SetField(const Integer id, const Real value)
       if (perturbation)
       {
          if (value != 0.0)
+         {
             perturbation->SetReal(value);
+            setVaryOption(this,id);
+            WarnUnsupportedSetting(id);
+         }
          return;
       }
       break;
@@ -849,6 +973,8 @@ void Vary::SetField(const Integer id, const Real value)
       if (variableLower)
       {
          variableLower->SetReal(value);
+         setVaryOption(this,id);
+         WarnUnsupportedSetting(id);
          return;
       }
       break;
@@ -857,6 +983,8 @@ void Vary::SetField(const Integer id, const Real value)
       if (variableUpper)
       {
          variableUpper->SetReal(value);
+         setVaryOption(this,id);
+         WarnUnsupportedSetting(id);
          return;
       }
       break;
@@ -865,6 +993,8 @@ void Vary::SetField(const Integer id, const Real value)
       if (variableMaximumStep)
       {
          variableMaximumStep->SetReal(value);
+         setVaryOption(this,id);
+         WarnUnsupportedSetting(id);
          return;
       }
       break;
@@ -873,6 +1003,8 @@ void Vary::SetField(const Integer id, const Real value)
       if (additiveScaleFactor)
       {
          additiveScaleFactor->SetReal(value);
+         setVaryOption(this,id);
+         WarnUnsupportedSetting(id);
          return;
       }
       break;
@@ -881,6 +1013,8 @@ void Vary::SetField(const Integer id, const Real value)
       if (multiplicativeScaleFactor)
       {
          multiplicativeScaleFactor->SetReal(value);
+         setVaryOption(this,id);
+         WarnUnsupportedSetting(id);
          return;
       }
       break;
@@ -1027,6 +1161,7 @@ bool Vary::SetRefObject(GmatBase *obj, const UnsignedInt type,
 bool Vary::InterpretAction()
 {
    // Clean out any old data
+   clearVaryOptions(this);
    wrapperObjectNames.clear();
    ClearWrappers();
 
@@ -1217,86 +1352,69 @@ bool Vary::SetElementWrapper(ElementWrapper *toWrapper, const std::string &withN
       withName.c_str());
    #endif
    
-   if (variableName == withName)
+   // Equal literal spellings are independent values in different roles.
+   // Actual Variables/Parameters keep their existing shared-object semantics.
+   const std::array<const std::string*, 8> names{{&variableName, &initialValueName,
+      &perturbationName, &variableLowerName, &variableUpperName,
+      &variableMaximumStepName, &additiveScaleFactorName,
+      &multiplicativeScaleFactorName}};
+   const std::array<ElementWrapper**, 8> destinations{{&variable, &initialValue,
+      &perturbation, &variableLower, &variableUpper, &variableMaximumStep,
+      &additiveScaleFactor, &multiplicativeScaleFactor}};
+   std::array<ElementWrapper*, 8> previous, proposed;
+   for (std::size_t i = 0; i < destinations.size(); ++i)
+      previous[i] = proposed[i] = *destinations[i];
+
+   std::vector<std::unique_ptr<ElementWrapper>> literals;
+   literals.reserve(destinations.size());
+   for (std::size_t i = 0; i < names.size(); ++i)
    {
-      if (variable != NULL &&
-          !IsThereSameWrapperName(VARIABLE_NAME, withName))
-         CollectOldWrappers(&variable);
-      
-      variable = toWrapper;
+      if (*names[i] != withName) continue;
       retval = true;
+      if (toWrapper->GetWrapperType() != Gmat::NUMBER_WT)
+         proposed[i] = toWrapper;
+      else
+      {
+         ElementWrapper *raw = toWrapper->Clone();
+         bool borrowed = raw == toWrapper ||
+            std::find(previous.begin(), previous.end(), raw) != previous.end() ||
+            std::find(oldWrappers.begin(), oldWrappers.end(), raw) != oldWrappers.end();
+         for (const auto &copy : literals) if (copy.get() == raw) borrowed = true;
+         if (!raw || borrowed)
+            throw CommandException("Vary literal Clone returned a null or borrowed wrapper.");
+         std::unique_ptr<ElementWrapper> copy(raw);
+         if (typeid(*copy) != typeid(*toWrapper) ||
+               copy->GetWrapperType() != Gmat::NUMBER_WT ||
+               copy->GetDataType() != Gmat::REAL_TYPE)
+            throw CommandException("Vary literal Clone returned an incompatible wrapper.");
+         proposed[i] = copy.get();
+         literals.push_back(std::move(copy));
+      }
    }
-   
-   if (initialValueName == withName)
+   if (!retval) return false;
+
+   // Stage ownership changes before publishing any binding. A failed Clone or
+   // allocation leaves the old command and the incoming caller ownership intact.
+   WrapperArray retiring(oldWrappers);
+   retiring.erase(std::remove_if(retiring.begin(), retiring.end(),
+      [&](ElementWrapper *wrapper) {
+         return std::find(proposed.begin(), proposed.end(), wrapper) != proposed.end();
+      }), retiring.end());
+   auto retire = [&](ElementWrapper *wrapper)
    {
-      if (initialValue != NULL &&
-          !IsThereSameWrapperName(INITIAL_VALUE, withName))
-         CollectOldWrappers(&initialValue);
-      
-      initialValue = toWrapper;
-      retval = true;
-   }
-   
-   if (perturbationName == withName)
-   {
-      if (perturbation != NULL&&
-          !IsThereSameWrapperName(PERTURBATION, withName))
-         CollectOldWrappers(&perturbation);
-      
-      perturbation = toWrapper;
-      retval = true;
-   }
-   
-   if (variableLowerName == withName)
-   {
-      if (variableLower != NULL &&
-          !IsThereSameWrapperName(VARIABLE_LOWER, withName))
-         CollectOldWrappers(&variableLower);
-      
-      variableLower = toWrapper;
-      retval = true;
-   }
-   
-   if (variableUpperName == withName)
-   {
-      if (variableUpper != NULL &&
-          !IsThereSameWrapperName(VARIABLE_UPPER, withName))
-         CollectOldWrappers(&variableUpper);
-      
-      variableUpper = toWrapper;
-      retval = true;
-   }
-   
-   if (variableMaximumStepName == withName) 
-   {
-      if (variableMaximumStep != NULL &&
-          !IsThereSameWrapperName(VARIABLE_MAXIMUM_STEP, withName))
-         CollectOldWrappers(&variableMaximumStep);
-      
-      variableMaximumStep = toWrapper;
-      retval = true;
-   }
-   
-   if (additiveScaleFactorName == withName)
-   {
-      if (additiveScaleFactor != NULL &&
-          !IsThereSameWrapperName(ADDITIVE_SCALE_FACTOR, withName))
-         CollectOldWrappers(&additiveScaleFactor);
-      
-      additiveScaleFactor = toWrapper;
-      retval = true;
-   }
-   
-   if (multiplicativeScaleFactorName == withName)
-   {
-      if (multiplicativeScaleFactor != NULL &&
-          !IsThereSameWrapperName(MULTIPLICATIVE_SCALE_FACTOR, withName))
-         CollectOldWrappers(&multiplicativeScaleFactor);
-      
-      multiplicativeScaleFactor = toWrapper;
-      retval = true;
-   }
-   
+      if (wrapper && std::find(proposed.begin(), proposed.end(), wrapper) == proposed.end() &&
+            std::find(retiring.begin(), retiring.end(), wrapper) == retiring.end())
+         retiring.push_back(wrapper);
+   };
+   for (auto *wrapper : previous) retire(wrapper);
+   // Numeric incoming wrappers are templates consumed by an accepted binding;
+   // each role owns its staged copy. Ordinary ClearWrappers releases both once.
+   retire(toWrapper);
+   oldWrappers.swap(retiring);
+   for (std::size_t i = 0; i < destinations.size(); ++i)
+      *destinations[i] = proposed[i];
+   for (auto &copy : literals) copy.release();
+
    //@todo In nested function, there are still bad wrapper pointers so until it is resolved
    // delete if not in function. (tested with Func_BasicOptimizerTest.script,
    // Func_Pic_Achieve.script)
@@ -1333,7 +1451,8 @@ void Vary::ClearWrappers()
    #endif
    
    // For element wrapper cleanup
-   ClearOldWrappers();
+   // Include wrappers retired by rebinding; clearing that list would leak
+   // them. CollectOldWrappers deduplicates current bindings against it.
    CollectOldWrappers(&variable);
    CollectOldWrappers(&initialValue);
    CollectOldWrappers(&perturbation);
@@ -1368,6 +1487,11 @@ bool Vary::Initialize()
       throw CommandException("solver not initialized for Vary command\n  \""
                              + generatingString + "\"\n");
    
+   if (!variable || !initialValue || !perturbation || !variableLower ||
+       !variableUpper || !variableMaximumStep || !additiveScaleFactor ||
+       !multiplicativeScaleFactor)
+      throw CommandException("Vary requires its control and numerical option wrappers.");
+
    std::string solverType = solver->GetTypeName();
    std::string errMsg = "Upper and Lower bounds in the Vary command are required when using " +
       solverType + " in \n   " + GetGeneratingString(Gmat::NO_COMMENTS);
@@ -1438,9 +1562,20 @@ bool Vary::Initialize()
       MessageInterface::ShowMessage("Vary command Initialization complete\n");
    #endif
 
+   if (retval) for (Integer option : authoredVaryOptions(this)) WarnUnsupportedSetting(option);
    return retval;
 }
 
+
+void Vary::WarnUnsupportedSetting(Integer id) const
+{
+   if (!solver || id<PERTURBATION || id>MULTIPLICATIVE_SCALE_FACTOR) return;
+   static const char *capabilities[]={"AllowVariablePertSetting","AllowRangeSettings",
+      "AllowRangeSettings","AllowStepsizeSetting","AllowScaleSetting","AllowScaleSetting"};
+   if (!solver->GetBooleanParameter(capabilities[id-PERTURBATION]))
+      MessageInterface::ShowMessage("*** Warning *** Vary for '%s': setting '%s' is not supported by solver '%s' (%s).\n",
+         variableName.c_str(),GetParameterText(id).c_str(),solver->GetName().c_str(),solver->GetTypeName().c_str());
+}
 
 //------------------------------------------------------------------------------
 //  bool Execute()
@@ -1458,6 +1593,8 @@ bool Vary::Initialize()
 //------------------------------------------------------------------------------
 bool Vary::Execute()
 {
+   if (!solver || !variable)
+      throw CommandException("Vary requires a bound solver and control wrapper.");
    bool retval = true;
 
    #ifdef DEBUG_VARY_EXECUTE
@@ -1472,24 +1609,13 @@ bool Vary::Execute()
             ("Vary::Execute() - running code for the first time through <<<\n");
       #endif
       // First time through, tell the solver about the variables
-      Real varData[6], asf, msf;
-      asf = additiveScaleFactor->EvaluateReal();
-      msf = 1.0 / multiplicativeScaleFactor->EvaluateReal();
-
-      if (msf <= 0.0)
-      {
-         std::stringstream msg;
-         msg << "Error in the Vary command; The multiplicative scale factor "
-             << "has the value "
-             << multiplicativeScaleFactor->EvaluateReal()
-             << ", but multiplicative scale factors must be greater than 0 on "
-             << "the line\n" << GetGeneratingString(Gmat::SCRIPTING);
-         throw CommandException(msg.str());
-      }
-
-      Real initval = initialValue->EvaluateReal();
-      Real minval  = variableLower->EvaluateReal();
-      Real maxval  = variableUpper->EvaluateReal();
+      const Real asf = readVaryOperand(additiveScaleFactor, "AdditiveScaleFactor");
+      const Real multiplier = readVaryOperand(multiplicativeScaleFactor, "MultiplicativeScaleFactor");
+      const VaryScale scale = makeVaryScale(asf, multiplier);
+      // Infinite initial guesses retain the native clamp-to-finite-bound path.
+      Real initval = readVaryOperand(initialValue, "InitialValue", true);
+      const Real minval = readVaryOperand(variableLower, "Lower", true);
+      const Real maxval = readVaryOperand(variableUpper, "Upper", true);
 
       // Make sure the initial variable is in range
       if (initval < minval)
@@ -1507,15 +1633,10 @@ bool Vary::Execute()
          initval = maxval;
       }
 
-      varData[5] = initval;                // Initial value
+      const Real pert = readVaryOperand(perturbation, "Perturbation");
+      const Real maxStep = readVaryOperand(variableMaximumStep, "MaxStep", true);
+      std::array<Real, 6> varData = varySolverData(initval, minval, maxval, pert, maxStep, scale);
 
-      // scale by using Eq. 13.5 of Architecture document
-      varData[0] = (varData[5] + asf) / msf;
-      varData[1] = (perturbation->EvaluateReal()) / msf;         // pert
-      varData[2] = (minval + asf) / msf;  // minimum
-      varData[3] = (maxval + asf) / msf;  // maximum
-      varData[4] = (variableMaximumStep->EvaluateReal()) / msf;  // largest step
-      
       #ifdef DEBUG_VARY_EXECUTE
          MessageInterface::ShowMessage(
             "For variable \"%s\", data is [%15.9lf %15.9lf %15.9lf %15.9lf "
@@ -1523,7 +1644,9 @@ bool Vary::Execute()
             varData[3], varData[4]);
       #endif      
    
-      variableID = solver->SetSolverVariables(varData, variableName);
+      variableID = solver->SetSolverVariables(varData.data(), variableName);
+      if (variableID < 0)
+         throw CommandException("Vary solver did not register its control variable.");
 
       #ifdef DEBUG_VARY_EXECUTE
          MessageInterface::ShowMessage("Solver variables were set\n");
@@ -1539,12 +1662,8 @@ bool Vary::Execute()
       return retval;
    }
    
-   Real var = solver->GetSolverVariable(variableID);
-   // scale using Eq. 13.6 of Architecture document
-   var = var / multiplicativeScaleFactor->EvaluateReal() -
-      additiveScaleFactor->EvaluateReal();
-   
-   currentValue = var;
+   const Real var = unscaleVaryValue(solver->GetSolverVariable(variableID),
+         multiplicativeScaleFactor, additiveScaleFactor);
 
    #ifdef DEBUG_VARIABLE_RANGES
       MessageInterface::ShowMessage(
@@ -1555,8 +1674,10 @@ bool Vary::Execute()
 
    try
    {
-      variable->SetReal(var);
-      
+      if (!variable->SetReal(var))
+         throw CommandException("Vary could not assign its control value.");
+      currentValue = var;
+
       // Check if it should notify Publisher so that Subscribers can handle it
       // such as chunking the ephemeris data
       if (isThisLastVaryCommand)
@@ -1579,6 +1700,7 @@ bool Vary::Execute()
          {
             bool notifyPublisher = false;
             bool isParameter = false;
+            GmatBase *changedSpacecraft = NULL;
             std::string satName;
             Real epoch = 0;
             
@@ -1590,6 +1712,7 @@ bool Vary::Execute()
                notifyPublisher = true;
                epoch = refObj->GetRealParameter("A1Epoch");
                satName = refObj->GetName();
+               changedSpacecraft = refObj;
             }
             else if (refObj->IsOfType("Parameter"))
             {
@@ -1612,6 +1735,7 @@ bool Vary::Execute()
                {
                   notifyPublisher = true;
                   satName = paramOwner->GetName();
+                  changedSpacecraft = paramOwner;
                   epoch = paramOwner->GetRealParameter("A1Epoch");
                   #ifdef DEBUG_VARY_FOR_SUBSCRIBER
                   MessageInterface::ShowMessage
@@ -1627,7 +1751,7 @@ bool Vary::Execute()
                #ifdef DEBUG_VARY_FOR_SUBSCRIBER
                MessageInterface::ShowMessage("   varMsg = %s\n", varMsg.c_str());
                #endif
-               publisher->SetSpacecraftPropertyChanged(this, epoch, satName, varMsg);
+               publisher->SetSpacecraftPropertyChanged(this, epoch, satName, varMsg, changedSpacecraft);
             }
             
          } // end if (refObj)
@@ -1686,6 +1810,21 @@ void Vary::RunComplete()
 //------------------------------------------------------------------------------
 bool Vary::TakeAction(const std::string &action, const std::string &actionData)
 {
+   if (action == "RefreshSolverReporting")
+   {
+      if (actionData != solverName) return false;
+      if (!solver || !solverDataFinalized || !multiplicativeScaleFactor ||
+          !additiveScaleFactor)
+         throw CommandException("Cannot refresh reporting for an uninitialized Vary command.");
+      // Use the same physical-unit transformation as Execute, without
+      // assigning the varied object, notifying subscribers, or changing the
+      // accepted solver decision vector.
+      const Real value = unscaleVaryValue(solver->GetSolverVariable(variableID),
+            multiplicativeScaleFactor, additiveScaleFactor);
+      solver->SetUnscaledVariable(variableID,value);
+      return true;
+   }
+
    if (action == "SolverReset")
    {
       // Prep to refresh the solver data if called again
@@ -1716,18 +1855,19 @@ void Vary::SetInitialValue(Solver *theSolver)
 {
    if (solver == theSolver)
    {
+      // RunComplete clears solverDataFinalized; the completed solver's value
+      // and registered ID remain available for the GUI's Apply Corrections.
+      if (!solver || variableID < 0 || !initialValue)
+         throw CommandException("Cannot apply corrections for an uninitialized Vary command.");
       if ((initialValue->GetWrapperType() != Gmat::VARIABLE_WT) &&
           (initialValue->GetWrapperType() != Gmat::ARRAY_ELEMENT_WT) &&
           (initialValue->GetWrapperType() != Gmat::OBJECT_PROPERTY_WT) &&
           (initialValue->GetWrapperType() != Gmat::PARAMETER_WT))
       {
-         Real var = solver->GetSolverVariable(variableID);
-
-         // Unscale the variables using Eq. 13.6 of Architecture document
-         var = var / multiplicativeScaleFactor->EvaluateReal() -
-            additiveScaleFactor->EvaluateReal();
-
-         initialValue->SetReal(var);
+         const Real var = unscaleVaryValue(solver->GetSolverVariable(variableID),
+               multiplicativeScaleFactor, additiveScaleFactor);
+         if (!initialValue->SetReal(var))
+            throw CommandException("Vary could not update its initial guess.");
 
          MessageInterface::ShowMessage("Apply Corrections has changed the "
                "initial guess for %s from %s to %.12lf\n", variableName.c_str(),
@@ -1838,18 +1978,19 @@ bool Vary::IsThereSameWrapperName(int param, const std::string &wrapperName)
 //------------------------------------------------------------------------------
 void Vary::RefreshData()
 {
-   Real varData[5], asf, msf;
-   asf = additiveScaleFactor->EvaluateReal();
-   msf = 1.0 / multiplicativeScaleFactor->EvaluateReal();
-
-   varData[0] = initialValue->EvaluateReal();                // Initial value
-
-   // scale by using Eq. 13.5 of Architecture document
-   varData[0] = (varData[0] + asf) / msf;
-   varData[1] = (perturbation->EvaluateReal()) / msf;         // pert
-   varData[2] = (variableLower->EvaluateReal() + asf) / msf;  // minimum
-   varData[3] = (variableUpper->EvaluateReal() + asf) / msf;  // maximum
-   varData[4] = (variableMaximumStep->EvaluateReal()) / msf;  // largest step
+   if (!solver)
+      throw CommandException("Cannot refresh an uninitialized Vary solver.");
+   const Real asf = readVaryOperand(additiveScaleFactor, "AdditiveScaleFactor");
+   const Real multiplier = readVaryOperand(multiplicativeScaleFactor, "MultiplicativeScaleFactor");
+   const VaryScale scale = makeVaryScale(asf, multiplier);
+   const Real initial = readVaryOperand(initialValue, "InitialValue", true);
+   const Real pert = readVaryOperand(perturbation, "Perturbation");
+   const Real lower = readVaryOperand(variableLower, "Lower", true);
+   const Real upper = readVaryOperand(variableUpper, "Upper", true);
+   const Real maxStep = readVaryOperand(variableMaximumStep, "MaxStep", true);
+   // Refresh consumes the same sixth physical-value field as registration.
+   // It retains the native no-clamping refresh and solver RETAIN behavior.
+   std::array<Real, 6> varData = varySolverData(initial, lower, upper, pert, maxStep, scale);
 
    #ifdef DEBUG_VARY_EXECUTE
       MessageInterface::ShowMessage(
@@ -1858,5 +1999,20 @@ void Vary::RefreshData()
          varData[3], varData[4]);
    #endif
 
-   solver->RefreshSolverVariables(varData, variableName);
+   const bool refreshed = variable && variable->GetWrapperType() == Gmat::NUMBER_WT ?
+      solver->RefreshSolverVariable(varData.data(), variableID, variableName) :
+      solver->RefreshSolverVariables(varData.data(), variableName);
+   if (!refreshed)
+      throw CommandException("Vary solver could not refresh control \"" + variableName + "\".");
+}
+
+void Vary::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   ClearWrappers();
+   solver = nullptr;
+   variableID = -1;
+   solverDataFinalized = false;
+   currentValue = 0.0;
+   SolverSequenceCommand::RetireFunctionBindings(store);
 }

@@ -178,6 +178,8 @@
   <refsection>
     <title>Remarks</title>
 
+<para>Compatible native restoration retains the current linear and not-a-knot interpolation objects, ring buffers and coefficient storage. Captured point counters, direction and scratch values are restored together. Native rollback prepares private interpolation storage when presence or layout differs from capture, including a spline created during evaluation. Thrust profiles, participant bindings and physical-model layout checks remain in effect.</para>
+
     <refsection>
       <title>Format of a thrust history file</title>
 

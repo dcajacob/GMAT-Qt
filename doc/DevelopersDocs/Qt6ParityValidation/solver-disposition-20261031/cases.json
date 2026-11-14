@@ -1,0 +1,149 @@
+{
+  "scope": "Current native conformance only, not resolution of missing historical keyword intent",
+  "cases": [
+    {
+      "case": "AchieveBranchAppend",
+      "historical_key": "H2012:R1677",
+      "source_fingerprint": "400a583e7d0d993a4e38c4c94a88dbf5fa92b1574eb11a4c7849ade8f1ca7191",
+      "historical_operation": "Control Logic Append",
+      "historical_recorded_status": "",
+      "positive_hypothesis": "QtGui.NativeNasaSolverLeafAchieveBranchAppend",
+      "positive_hypothesis_status": "disabled; unexecuted; not passed",
+      "negative_contract": "QtGui.NativeNasaSolverNestingRejectionAchieveBranchAppend",
+      "disposition": "Current native interpreter rejects this control-logic nesting; preserve positive hypothesis as unresolved NASA source conflict; qualify rejection and rollback separately",
+      "positive_scope_credit_added": false
+    },
+    {
+      "case": "AchieveEndBefore",
+      "historical_key": "H2012:R1678",
+      "source_fingerprint": "18811762eaa8f99128445dbbe3bbabe5fd21ba294c7f592f7a707aa02f836c7e",
+      "historical_operation": "Control Logic End Insert Before",
+      "historical_recorded_status": "",
+      "positive_hypothesis": "QtGui.NativeNasaSolverLeafAchieveEndBefore",
+      "positive_hypothesis_status": "disabled; unexecuted; not passed",
+      "negative_contract": "QtGui.NativeNasaSolverNestingRejectionAchieveEndBefore",
+      "disposition": "Current native interpreter rejects this control-logic nesting; preserve positive hypothesis as unresolved NASA source conflict; qualify rejection and rollback separately",
+      "positive_scope_credit_added": false
+    },
+    {
+      "case": "MinimizeBranchAppend",
+      "historical_key": "H2012:R1722",
+      "source_fingerprint": "d0f6e90e11d8a6e2809bf8dce7d78570c8580f7b7915652ffbfcf3d8713e9a24",
+      "historical_operation": "Control Logic Append",
+      "historical_recorded_status": "",
+      "positive_hypothesis": "QtGui.NativeNasaSolverLeafMinimizeBranchAppend",
+      "positive_hypothesis_status": "disabled; unexecuted; not passed",
+      "negative_contract": "QtGui.NativeNasaSolverNestingRejectionMinimizeBranchAppend",
+      "disposition": "Current native interpreter rejects this control-logic nesting; preserve positive hypothesis as unresolved NASA source conflict; qualify rejection and rollback separately",
+      "positive_scope_credit_added": false
+    },
+    {
+      "case": "MinimizeEndBefore",
+      "historical_key": "H2012:R1726",
+      "source_fingerprint": "672e63aa1ba0a9bc142dcf35608562e18ffab2f855e15edd4576a083621e08d8",
+      "historical_operation": "Control Logic End Insert Before",
+      "historical_recorded_status": "",
+      "positive_hypothesis": "QtGui.NativeNasaSolverLeafMinimizeEndBefore",
+      "positive_hypothesis_status": "disabled; unexecuted; not passed",
+      "negative_contract": "QtGui.NativeNasaSolverNestingRejectionMinimizeEndBefore",
+      "disposition": "Current native interpreter rejects this control-logic nesting; preserve positive hypothesis as unresolved NASA source conflict; qualify rejection and rollback separately",
+      "positive_scope_credit_added": false
+    },
+    {
+      "case": "MinimizeLeafAfter",
+      "historical_key": "H2012:R1727",
+      "source_fingerprint": "f6c2cd9c217f07d0601984f05ff39131fd26c3ab571af8b24b498ea49ce74c54",
+      "historical_operation": "Control Logic Insert After",
+      "historical_recorded_status": "",
+      "positive_hypothesis": "QtGui.NativeNasaSolverLeafMinimizeLeafAfter",
+      "positive_hypothesis_status": "disabled; unexecuted; not passed",
+      "negative_contract": "QtGui.NativeNasaSolverNestingRejectionMinimizeLeafAfter",
+      "disposition": "Current native interpreter rejects this control-logic nesting; preserve positive hypothesis as unresolved NASA source conflict; qualify rejection and rollback separately",
+      "positive_scope_credit_added": false
+    },
+    {
+      "case": "MinimizeLeafBefore",
+      "historical_key": "H2012:R1728",
+      "source_fingerprint": "ed9c04fdd5fedea9a49c85d4ca71667130acf1d467491577b909f519e80edad9",
+      "historical_operation": "Control Logic Insert Before",
+      "historical_recorded_status": "",
+      "positive_hypothesis": "QtGui.NativeNasaSolverLeafMinimizeLeafBefore",
+      "positive_hypothesis_status": "disabled; unexecuted; not passed",
+      "negative_contract": "QtGui.NativeNasaSolverNestingRejectionMinimizeLeafBefore",
+      "disposition": "Current native interpreter rejects this control-logic nesting; preserve positive hypothesis as unresolved NASA source conflict; qualify rejection and rollback separately",
+      "positive_scope_credit_added": false
+    },
+    {
+      "case": "NonlinearConstraintBranchAppend",
+      "historical_key": "H2012:R1876",
+      "source_fingerprint": "a1d023d7135ec2197bbad1d0b9881266a2cbf6967590f4dbfcbbefc368941397",
+      "historical_operation": "Control Logic Append",
+      "historical_recorded_status": "",
+      "positive_hypothesis": "QtGui.NativeNasaSolverLeafNonlinearConstraintBranchAppend",
+      "positive_hypothesis_status": "disabled; unexecuted; not passed",
+      "negative_contract": "QtGui.NativeNasaSolverNestingRejectionNonlinearConstraintBranchAppend",
+      "disposition": "Current native interpreter rejects this control-logic nesting; preserve positive hypothesis as unresolved NASA source conflict; qualify rejection and rollback separately",
+      "positive_scope_credit_added": false
+    },
+    {
+      "case": "NonlinearConstraintEndBefore",
+      "historical_key": "H2012:R1880",
+      "source_fingerprint": "77395134ab8400b9ec6e06beb29f07eaabe85b772d06628d89ec9d9312066716",
+      "historical_operation": "Control Logic End Insert Before",
+      "historical_recorded_status": "",
+      "positive_hypothesis": "QtGui.NativeNasaSolverLeafNonlinearConstraintEndBefore",
+      "positive_hypothesis_status": "disabled; unexecuted; not passed",
+      "negative_contract": "QtGui.NativeNasaSolverNestingRejectionNonlinearConstraintEndBefore",
+      "disposition": "Current native interpreter rejects this control-logic nesting; preserve positive hypothesis as unresolved NASA source conflict; qualify rejection and rollback separately",
+      "positive_scope_credit_added": false
+    },
+    {
+      "case": "NonlinearConstraintLeafAfter",
+      "historical_key": "H2012:R1881",
+      "source_fingerprint": "98a7207739fefe19b26dc007213b9b8f68423dda9dc4e16de4eb0d9073e416aa",
+      "historical_operation": "Control Logic Insert After",
+      "historical_recorded_status": "",
+      "positive_hypothesis": "QtGui.NativeNasaSolverLeafNonlinearConstraintLeafAfter",
+      "positive_hypothesis_status": "disabled; unexecuted; not passed",
+      "negative_contract": "QtGui.NativeNasaSolverNestingRejectionNonlinearConstraintLeafAfter",
+      "disposition": "Current native interpreter rejects this control-logic nesting; preserve positive hypothesis as unresolved NASA source conflict; qualify rejection and rollback separately",
+      "positive_scope_credit_added": false
+    },
+    {
+      "case": "NonlinearConstraintLeafBefore",
+      "historical_key": "H2012:R1882",
+      "source_fingerprint": "e1bef0cf6b67907d6e19154861e3eaabc4338dd07ce203f909ffb3d44c6041e9",
+      "historical_operation": "Control Logic Insert Before",
+      "historical_recorded_status": "",
+      "positive_hypothesis": "QtGui.NativeNasaSolverLeafNonlinearConstraintLeafBefore",
+      "positive_hypothesis_status": "disabled; unexecuted; not passed",
+      "negative_contract": "QtGui.NativeNasaSolverNestingRejectionNonlinearConstraintLeafBefore",
+      "disposition": "Current native interpreter rejects this control-logic nesting; preserve positive hypothesis as unresolved NASA source conflict; qualify rejection and rollback separately",
+      "positive_scope_credit_added": false
+    },
+    {
+      "case": "VaryOptimizeBranchAppend",
+      "historical_key": "H2012:R1317",
+      "source_fingerprint": "c90d9800e517c65d7eaf12e61e110dd4f8a9ab0daac913ba89754c1dd1f33cd5",
+      "historical_operation": "Control Logic Append",
+      "historical_recorded_status": "NotRunnable",
+      "positive_hypothesis": "QtGui.NativeNasaSolverLeafVaryOptimizeBranchAppend",
+      "positive_hypothesis_status": "disabled; unexecuted; not passed",
+      "negative_contract": "QtGui.NativeNasaSolverNestingRejectionVaryOptimizeBranchAppend",
+      "disposition": "Current native interpreter rejects this control-logic nesting; preserve positive hypothesis as unresolved NASA source conflict; qualify rejection and rollback separately",
+      "positive_scope_credit_added": false
+    },
+    {
+      "case": "VaryTargetBranchAppend",
+      "historical_key": "H2012:R1279",
+      "source_fingerprint": "673ab190acc9ff38bc1cca790e5726d4dd071b98dac83ca3ffe4b264097a365b",
+      "historical_operation": "Control Logic Append",
+      "historical_recorded_status": "Passed",
+      "positive_hypothesis": "QtGui.NativeNasaSolverLeafVaryTargetBranchAppend",
+      "positive_hypothesis_status": "disabled; unexecuted; not passed",
+      "negative_contract": "QtGui.NativeNasaSolverNestingRejectionVaryTargetBranchAppend",
+      "disposition": "Current native interpreter rejects this control-logic nesting; preserve positive hypothesis as unresolved NASA source conflict; qualify rejection and rollback separately",
+      "positive_scope_credit_added": false
+    }
+  ]
+}

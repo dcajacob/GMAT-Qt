@@ -26,13 +26,17 @@
  //------------------------------------------------------------------------------
 
 #include <list>
+#include <memory>
 #include <iostream> // for messages, **REPLACE** with appropriate calls *****
 #include <fstream>
 #include <sstream>
 #include "utildefs.hpp"
 #include "CustomFOV.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include "MessageInterface.hpp"
 #include "FieldOfViewException.hpp"
+#include "UtilityException.hpp"
 #include "GmatConstants.hpp"
 #include "RealUtilities.hpp"
 #include "Mod.hpp"
@@ -93,8 +97,14 @@ CustomFOV::CustomFOV(const std::string &itsName) :
    parameterCount = CustomFOVParamCount;
    objectTypes.push_back(Gmat::CUSTOM_FOV);
    objectTypeNames.push_back("CustomFOV"); 
-   // We need to tell the FileManager the default location for this type of file
-   FileManager::Instance()->AddFileType("FOV_DATA_PATH", "../data/hardware");
+   // Install the legacy default only when startup has no FOV path. Preserve
+   // configured directories and raw aliases for every frontend and later FOV.
+   auto *files = FileManager::Instance();
+   try { files->GetPathDefinition("FOV_DATA_PATH"); }
+   catch (const UtilityException &)
+   {
+      files->AddFileType("FOV_DATA_PATH", "../data/hardware");
+   }
    
    // Set defaults for the cone and clock angles
    coneAngleVec.SetSize(1);
@@ -454,7 +464,9 @@ bool CustomFOV::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* CustomFOV::Clone() const
 {
-	return (new CustomFOV(*this));
+	std::unique_ptr<CustomFOV> value(new CustomFOV(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //------------------------------------------------------------------------------
@@ -472,102 +484,30 @@ GmatBase* CustomFOV::Clone() const
  //------------------------------------------------------------------------------
 bool CustomFOV::CheckTargetVisibility(Real viewConeAngle,Real viewClockAngle)
 {
-	// declare data needed for fast checks, and perhaps beyond
-   bool possiblyInView = true;
    Real xCoord, yCoord;
    ConeClockToStereographic(viewConeAngle, viewClockAngle, xCoord, yCoord);
+   if (!CheckTargetMaxExcursionAngle(viewConeAngle) ||
+         !CheckTargetMaxExcursionCoordinates(xCoord, yCoord))
+      return false;
 
-	// first check if in view cone, if so check stereographic box
-   if (!CheckTargetMaxExcursionAngle(viewConeAngle))
-	   possiblyInView = false;
-   else if (!CheckTargetMaxExcursionCoordinates(xCoord, yCoord))
-	   possiblyInView = false;
-
-	// we've executed the quick tests, if point is possibly in the FOV
-	// then run a line intersection test to determine if it is or not
-   bool inView;
-   if (!possiblyInView)
-	   inView = false;
-   else
+   // Count crossings of a horizontal ray in the projected polygon. The
+   // half-open Y interval counts a shared vertex on just one neighboring
+   // edge, and horizontal edges do not cross the ray. This also avoids the
+   // old finite external rays passing through vertices and rejecting an
+   // interior point (including boresight) after counting a vertex twice.
+   bool inView = false;
+   for (Integer i = 0; i < numFOVPoints; ++i)
    {
-	   // outputs of LineSegmentIntersect
-	   Rmatrix distanceMatrix(numTestPoints, 1); //used in validation
-	   std::vector<IntegerArray> adjacency; // used in counting crossings
-
-		// outputs not used in visibility check
-		Rmatrix huey(numTestPoints, 1);
-		Rmatrix dewey(numTestPoints, 1);
-		Rmatrix louie(numTestPoints, 1);
-		std::vector<IntegerArray> romulus, remus;
-
-		// vectors of integer arrays have to be loaded to allocate memory
-		// N - vector where each element is an integer array of 1 element
-		IntegerArray row;
-		row.push_back(0);
-		for (int i = 0; i < numTestPoints; i++)
-		{
-			adjacency.push_back(row);
-			romulus.push_back(row);
-			remus.push_back(row);
-		}
-
-		//  other declarations
-		Real distance;
-		Real distTol = 1.0e-12;
-		Rmatrix lineSeg(1, 4);
-		bool foundValidPoint = false;
-
-		// valid point test:
-		// See if there is at least 1 valid external point
-		for (int i = 0; i < numTestPoints; i++)
-		{
-			// lineSeg = (xCoord, yCoord, externalPointArray.GetElement(i,0),
-		   // externalPointArray.GetElement(i,1));
-			lineSeg.SetElement(0, 0, xCoord);
-			lineSeg.SetElement(0, 1, yCoord);
-			lineSeg.SetElement(0, 2, externalPointArray.GetElement(i, 0));
-			lineSeg.SetElement(0, 3, externalPointArray.GetElement(i, 1));
-			LineSegmentIntersect(segmentArray, lineSeg, adjacency,huey, dewey,
-                              louie, distanceMatrix, romulus, remus);
-
-			// loop exits on finding first valid point or finding none at all
-			// distance matrix computed by LineSegmentIntersect is a
-			// numFOVpoints x 1 matrix
-			for (int j = 0; j < numFOVPoints; j++)
-			{
-				distance = distanceMatrix.GetElement(j, 0);
-				if (!(abs(distance) <= distTol || abs(distance - 1.0) <= distTol))
-				{
-					foundValidPoint = true;
-					break;
-				}
-			}
-			if (foundValidPoint) break;
-
-		} // valid point test
-
-		// count crossings by iterating across the (numFOVpoints x 1)
-		// adjacency matrix, use result to determine if point is in FOV
-		if (foundValidPoint)
-		{
-			Integer numCrossings = 0;
-			for (int i = 0; i < numFOVPoints; i++)
-				if (adjacency[i][0] == 1)
-					numCrossings++;
-			if (numCrossings % 2 == 1)
-				inView = true;
-			else
-				inView = false;
-		}
-		else
-		{
-         #ifdef DEBUG_CUSTOM_FOV
-            MessageInterface::ShowMessage(
-                     "Internal Error: No valid external point was found");
-         #endif // DEBUG_CUSTOM_FOV
-			inView = false;
-		}
-   } // line intersection test
+      const Integer j = (i + 1) % numFOVPoints;
+      const Real x1 = xProjectionCoordArray[i], y1 = yProjectionCoordArray[i];
+      const Real x2 = xProjectionCoordArray[j], y2 = yProjectionCoordArray[j];
+      if ((y1 > yCoord) != (y2 > yCoord))
+      {
+         const Real crossingX = x1 + (yCoord - y1) * (x2 - x1) / (y2 - y1);
+         if (xCoord < crossingX)
+            inView = !inView;
+      }
+   }
    return inView;
 }
 
@@ -1227,20 +1167,47 @@ const Rvector& CustomFOV::GetRvectorParameter(const std::string &label) const
 const Rvector& CustomFOV::SetRvectorParameter(const Integer id,
                                               const Rvector &value)
 {
+   if (id == CONE_ANGLES || id == CLOCK_ANGLES ||
+         id == FOV_ELEVATION || id == FOV_AZIMUTH)
+   {
+      // Apply the indexed setter's bounds before changing any values or mode
+      // flags, so a rejected vector leaves the existing mask intact.
+      for (Integer i = 0; i < value.GetSize(); ++i)
+      {
+         if (!(value[i] >= 0.0) || (id == FOV_ELEVATION && value[i] > 90.0))
+         {
+            FieldOfViewException error("");
+            error.SetDetails(errorMessageFormat.c_str(),
+                  GmatStringUtil::ToString(value[i], 16).c_str(),
+                  GetParameterText(id).c_str(), id == FOV_ELEVATION ?
+                  "90.0 >= Real Number >= 0.0" : "Real Number >= 0.0");
+            throw error;
+         }
+      }
+   }
+
 	if (id == CONE_ANGLES || id == FOV_ELEVATION)
 	{
-		coneAngleVec.SetSize(value.GetSize());
       Rvector tempValue = value;
       if (id == FOV_ELEVATION)
       {
-         tempValue = Rvector(3, 90.0, 90.0, 90.0) - value;
+         for (Integer i = 0; i < tempValue.GetSize(); ++i)
+            tempValue[i] = 90.0 - value[i];
+         interpolatePoints = true;
+         isClockCone = false;
       }
+		coneAngleVec.SetSize(tempValue.GetSize());
 		coneAngleVec = tempValue * GmatMathConstants::RAD_PER_DEG;
 		return coneAngleVec;
 	}
 	
    if (id == CLOCK_ANGLES || id == FOV_AZIMUTH)
 	{
+		if (id == FOV_AZIMUTH)
+		{
+			interpolatePoints = true;
+			isClockCone = false;
+		}
 		clockAngleVec.SetSize(value.GetSize());
 		clockAngleVec = value * GmatMathConstants::RAD_PER_DEG;
 		return clockAngleVec;
@@ -1265,6 +1232,24 @@ const Rvector& CustomFOV::SetRvectorParameter(const std::string &label,
                                               const Rvector &value)
 {
 	return SetRvectorParameter(GetParameterID(label), value);
+}
+
+void CustomFOV::WriteParameterValue(Integer id, std::stringstream &stream)
+{
+   const bool coneClock = id == CONE_ANGLES || id == CLOCK_ANGLES;
+   const bool azimuthElevation = id == FOV_AZIMUTH || id == FOV_ELEVATION;
+   if (coneClock || azimuthElevation)
+   {
+      // File-backed masks must reload their file without explicit vertices.
+      // Before initialization, preserve the selected interpolation input mode.
+      // After initialization, export the actual polygon once in cone/clock
+      // coordinates so reloading cannot interpolate its sampled vertices again.
+      const bool useAzimuthElevation = !isClockCone && !pointsInterpolated;
+      if (!fovFileName.empty() || (coneClock && useAzimuthElevation) ||
+            (azimuthElevation && !useAzimuthElevation))
+         return;
+   }
+   FieldOfView::WriteParameterValue(id, stream);
 }
 
 //------------------------------------------------------------------------------
@@ -2005,3 +1990,18 @@ bool CompareFOVElements(const FOVElement &e1, const FOVElement &e2)
 	return e1.value < e2.value;
 }
 
+
+// Reset/copy through the inherited polymorphic contract without slicing.
+void CustomFOV::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const CustomFOV*>(original);
+   if (!source || typeid(*source) != typeid(CustomFOV) ||
+       typeid(*this) != typeid(CustomFOV))
+      throw GmatBaseException("Cannot copy incompatible object into CustomFOV");
+   if (source == this)
+      return;
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
+}

@@ -1,0 +1,341 @@
+{
+  "schema_version": 1,
+  "scope": "Missing parameter, formation and file/function resource Save contracts. External text inputs are retained and hashed; no portable dependency package, file-format science or universal Save claim.",
+  "cases": [
+    {
+      "key": "VariableRuntime",
+      "setup": "Create Variable Subject;\nSubject = 1;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Variable.data",
+      "definitions": [
+        "Create Variable Subject\n"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Value",
+          "type": "Real",
+          "expected": -12.75
+        }
+      ],
+      "before_save": "Subject = -12.75;\n"
+    },
+    {
+      "key": "StringRuntime",
+      "setup": "Create String Subject;\nSubject = 'initial';\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.String.data",
+      "definitions": [
+        "Create String Subject\n"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Value",
+          "type": "String",
+          "expected": "saved \u0394 value"
+        }
+      ],
+      "before_save": "Subject = 'saved \u0394 value';\n"
+    },
+    {
+      "key": "ArrayRuntime",
+      "setup": "Create Array Subject[2,3];\nSubject(1,1) = 1;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Array.data",
+      "definitions": [
+        "Create Array Subject[2,3];"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "RmatValue",
+          "type": "Rmatrix",
+          "expected": [
+            [
+              -1.5,
+              0,
+              2.25
+            ],
+            [
+              3.5,
+              -4,
+              5.75
+            ]
+          ]
+        }
+      ],
+      "before_save": "Subject(1,1) = -1.5;\nSubject(1,2) = 0;\nSubject(1,3) = 2.25;\nSubject(2,1) = 3.5;\nSubject(2,2) = -4;\nSubject(2,3) = 5.75;\n"
+    },
+    {
+      "key": "Formation",
+      "setup": "Create Spacecraft Anchor;\nAnchor.NAIFId = -101031;\nAnchor.NAIFIdReferenceFrame = -910031;\nCreate Spacecraft Other;\nOther.NAIFId = -101032;\nOther.NAIFIdReferenceFrame = -910032;\nAnchor.DryMass = 833.25;\nOther.DryMass = 941.5;\nCreate Formation Subject;\nSubject.Add = {Anchor,Other};\n",
+      "selected": [
+        "Subject",
+        "Anchor",
+        "Other"
+      ],
+      "objects": [
+        "Subject",
+        "Anchor",
+        "Other"
+      ],
+      "filename": "Subject_Anchor_Other.data",
+      "definitions": [
+        "Create Formation Subject;",
+        "Create Spacecraft Anchor;",
+        "Create Spacecraft Other;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Add",
+          "type": "ObjectArray",
+          "expected": [
+            "Anchor",
+            "Other"
+          ]
+        },
+        {
+          "object": "Anchor",
+          "field": "DryMass",
+          "type": "Real",
+          "expected": 833.25
+        },
+        {
+          "object": "Other",
+          "field": "DryMass",
+          "type": "Real",
+          "expected": 941.5
+        }
+      ]
+    },
+    {
+      "key": "EphemerisFile",
+      "setup": "Create Spacecraft Anchor;\nAnchor.NAIFId = -101031;\nAnchor.NAIFIdReferenceFrame = -910031;\nCreate EphemerisFile Subject;\nSubject.Spacecraft = Anchor;\nSubject.Filename = '@FILES@/unused.oem';\nSubject.FileFormat = CCSDS-OEM;\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.StepSize = 60;\nSubject.InterpolationOrder = 3;\nSubject.WriteEphemeris = false;\n",
+      "selected": [
+        "Subject",
+        "Anchor"
+      ],
+      "objects": [
+        "Subject",
+        "Anchor"
+      ],
+      "filename": "Subject_Anchor.data",
+      "definitions": [
+        "Create EphemerisFile Subject;",
+        "Create Spacecraft Anchor;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Spacecraft",
+          "type": "Object",
+          "expected": "Anchor"
+        },
+        {
+          "object": "Subject",
+          "field": "Filename",
+          "type": "Filename",
+          "expected": "@FILES@/unused.oem"
+        },
+        {
+          "object": "Subject",
+          "field": "StepSize",
+          "type": "Enumeration",
+          "expected": "60"
+        },
+        {
+          "object": "Subject",
+          "field": "InterpolationOrder",
+          "type": "Integer",
+          "expected": 3
+        },
+        {
+          "object": "Subject",
+          "field": "WriteEphemeris",
+          "type": "Boolean",
+          "expected": false
+        }
+      ]
+    },
+    {
+      "key": "FileInterface",
+      "setup": "Create FileInterface Subject;\nSubject.Filename = '@FILES@/input \u03b1.sv';\nSubject.Format = 'TVHF_ASCII';\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.FileInterface.data",
+      "definitions": [
+        "Create FileInterface Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Filename",
+          "type": "Filename",
+          "expected": "@FILES@/input \u03b1.sv"
+        },
+        {
+          "object": "Subject",
+          "field": "Format",
+          "type": "Enumeration",
+          "expected": "TVHF_ASCII"
+        }
+      ],
+      "fixture_files": {
+        "input \u03b1.sv": "     TCOPS VECTOR HOLD FILE DUMP PROGRAM VERSION 95.01\n\n     DATE OF DUMP: 12/234/17:42:25.000\n\n     THERE ARE 609 RECORDS IN THE FILE\n\n     THE LAST RECORD WRITTEN IS RECORD 506\n\n     *****  NAMELIST INPUT  *****\n\n      &HFIN                                                                          \n       SID=0523401,                                                                  \n       ELMSTR=506,                                                                   \n       ELMEND=506,                                                                   \n       FORM='LONG',                                                                  \n      &END                                                                           \n1           LONG REPORT OF THE TCOPS VECTOR HOLD FILE                      RUN  1\n\n\n  SATELLITE ID:    523401                 SIC/VIC:   0234/01\n  ELEMENT SET NUMBER:    506\n                                          YY MM DD HH MM SS.SSS\n  EPOCH TIME FOR ELEMENTS:                12 08 20 00 00 00.000\n  START TIME OF FITTED DATA:              12 07 13 16 20 00.000\n  END TIME OF FITTED DATA:                12 08 21 15 26 56.000\n  RMS OF FIT:                               .128703D+01\n  VECTOR TYPE:                            FREE FLIGHT(ON-ORBIT)       \n  REFERENCE COORDINATE SYSTEM:            J2000\n  CENTRAL BODY:                           EARTH    \n  SPACECRAFT MASS:                          .50000000000000D+03\n  SPACECRAFT CROSS-SECTIONAL AREA:\n    DRAG     .60000000000000D-05          SOLRAD(EPSRPA)   .60000000000000D-05\n  AREA MODEL USED:                        BOX-AND-WING           \n                                          BOX TOP (M**2)      =   .00000000D+00\n                                          BOX SIDE (M**2)     =   .00000000D+00\n                                          BOX END (M**2)      =   .00000000D+00\n                                          PANEL FRONT (M**2)  =   .60000000D+01\n                                          PANEL EDGE (M**2)   =   .00000000D+00\n                                          PANEL OFFSET (DEG)  =   .00000000D+00\n                                          CRIT. ANGLE 1 (DEG) =   .00000000D+00\n                                          CRIT. ANGLE 2 (DEG) =   .00000000D+00\n                                          FEATHERING          = OFF\n  NUMBER OF ORBS TO GENERATE ELEMENT SET:   3095\n  CONVERGING/DIVERGING INDICATOR:\n    D.C. CONVERGED                                                  \n  ORBIT THEORY USED:                      COWELL                 \n  ATMOSPHERIC MODEL USED:                 JACCHIA-ROBERTS\n  CARTESIAN COORDINATES:\n    X        .42164000000000D+05 KM       XDOT       .00000000000000D+00 KM/S\n    Y        .00000000000000D+00 KM       YDOT       .30746662829706D+01 KM/S\n    Z        .00000000000000D+00 KM       ZDOT       .00000000000000D+00 KM/S\n  KEPLERIAN ELEMENTS:\n    SMA      .42164000000000D+05 KM       LAN        .00000000000000D+00 DEG\n    ECC      .00000000000000D+00          PA         .00000000000000D+00 DEG\n    INC      .00000000000000D+00 DEG      MA         .00000000000000D+00 DEG\n  SOLAR RADIATION PRESSURE COEFFICIENTS:    MODELING IS ON         \n    CSUBR    .14000000000000D+01\n  DRAG COEFFICIENTS:                        MODELING IS ON         \n    CSUBDZ   .20000000000000D+01          RHO2       .00000000000000D+00\n    RHO1     .00000000000000D+00          RHO3       .00000000000000D+00\n  THRUST MODEL COEFFICIENTS:                MODELING IS OFF        \n      .000000D+00     .000000D+00     .000000D+00     .000000D+00     .000000D+00\n  RIGHT ASCENSION:\n      .000000D+00     .000000D+00     .000000D+00     .000000D+00     .000000D+00\n  DECLINATION:\n      .000000D+00     .000000D+00     .000000D+00     .000000D+00     .000000D+00\n  JOB ID:   user                          SYSTEM:   GTDS    \n  MACHINE TIME:                           ** 08 21 13 26 22.000\n  MACHINE ID:                             us\n"
+      }
+    },
+    {
+      "key": "ThrustSegment",
+      "setup": "Create ThrustSegment Subject;\nSubject.ThrustScaleFactor = 1.25;\nSubject.MassFlowScaleFactor = 0.8;\nSubject.ApplyThrustScaleToMassFlow = true;\nSubject.ThrustAngle1 = [1 2];\nSubject.ThrustAngle2 = [3 4];\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.ThrustSegment.data",
+      "definitions": [
+        "Create ThrustSegment Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "ThrustScaleFactor",
+          "type": "Real",
+          "expected": 1.25
+        },
+        {
+          "object": "Subject",
+          "field": "MassFlowScaleFactor",
+          "type": "Real",
+          "expected": 0.8
+        },
+        {
+          "object": "Subject",
+          "field": "ApplyThrustScaleToMassFlow",
+          "type": "Boolean",
+          "expected": true
+        },
+        {
+          "object": "Subject",
+          "field": "ThrustAngle1",
+          "type": "Rvector",
+          "expected": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "key": "ThrustHistoryFile",
+      "setup": "Create ChemicalTank Fuel;\nFuel.FuelMass = 100;\nCreate ThrustSegment Segment;\nSegment.MassSource = {Fuel};\nSegment.ThrustScaleFactor = 1.25;\nCreate ThrustHistoryFile Subject;\nSubject.FileName = '@FILES@/history.thf';\nSubject.AddThrustSegment = {Segment};\n",
+      "selected": [
+        "Subject",
+        "Segment",
+        "Fuel"
+      ],
+      "objects": [
+        "Subject",
+        "Segment",
+        "Fuel"
+      ],
+      "filename": "Subject_Segment_Fuel.data",
+      "definitions": [
+        "Create ThrustHistoryFile Subject;",
+        "Create ThrustSegment Segment;",
+        "Create ChemicalTank Fuel;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FileName",
+          "type": "Filename",
+          "expected": "@FILES@/history.thf"
+        },
+        {
+          "object": "Subject",
+          "field": "AddThrustSegment",
+          "type": "StringArray",
+          "expected": [
+            "Segment"
+          ]
+        },
+        {
+          "object": "Segment",
+          "field": "ThrustScaleFactor",
+          "type": "Real",
+          "expected": 1.25
+        }
+      ],
+      "fixture_files": {
+        "history.thf": "BeginThrust {Segment}\nStart_Epoch = 01 Jan 2000 12:00:00.000\nThrust_Vector_Coordinate_System = EarthMJ2000Eq\nThrust_Vector_Interpolation_Method = None\nMass_Flow_Rate_Interpolation_Method = None\nModelAccelAndMassRate\n0.0 0.1 0 0 0.5\n120.0 0.1 0 0 0.5\nEndThrust {Segment}\n"
+      }
+    },
+    {
+      "key": "GmatFunction",
+      "setup": "Create Variable Result;\nResult = 0;\nCreate GmatFunction Subject;\nSubject.FunctionPath = '@FILES@/Subject.gmf';\n",
+      "selected": [
+        "Subject",
+        "Result"
+      ],
+      "objects": [
+        "Subject",
+        "Result"
+      ],
+      "filename": "Subject_Result.data",
+      "definitions": [
+        "Create GmatFunction Subject;",
+        "Create Variable Result\n"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": "@FILES@/Subject.gmf"
+        },
+        {
+          "object": "Result",
+          "field": "Value",
+          "type": "Real",
+          "expected": 13
+        }
+      ],
+      "before_save": "Result = Subject(6);\n",
+      "fixture_files": {
+        "Subject.gmf": "function [out] = Subject(input)\nCreate Variable out;\nBeginMissionSequence;\nout = 2 * input + 1;\n"
+      },
+      "reload_probe": "Result = Subject(7);\n",
+      "probe_witnesses": [
+        {
+          "object": "Result",
+          "field": "Value",
+          "type": "Real",
+          "expected": 15
+        }
+      ]
+    }
+  ]
+}

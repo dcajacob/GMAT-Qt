@@ -104,6 +104,19 @@
     <para>Unless otherwise mentioned, <guilabel>ContactLocator</guilabel>
     fields cannot be set in the mission sequence.</para>
 
+    <para>A complete <literal>Latitude</literal> or <literal>Longitude</literal>
+    assignment replaces its coordinate list. An indexed native edit replaces
+    an existing entry or appends at the next index. Coordinates must be finite;
+    latitude remains between -90 and 90 degrees, and the longitude span must
+    remain less than 360 degrees. Native initialization still requires matching
+    lists with at least three points.</para>
+    <para><literal>AreaFileName = '';</literal> clears file mode and keeps any
+    loaded coordinates as an inline definition. Replacing an existing file
+    selection validates the new path before discarding its old coordinates.
+    Explicit inline coordinates and a nonempty file selection remain mutually
+    exclusive. Successful definition edits invalidate the calculated polygon;
+    the next native initialization or geometry query rebuilds it.</para>
+
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="ContactLocator"/>, <xref linkend="Spacecraft"/>, <xref
     linkend="CelestialBody"/>, <xref linkend="FindEvents"/></para>

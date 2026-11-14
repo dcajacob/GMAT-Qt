@@ -9,6 +9,7 @@
 #include <QVBoxLayout>
 #include <QMap>
 #include <cmath>
+#include <QJsonObject>
 
 class QtSolverListener final : public ISolverListener
 {
@@ -100,4 +101,25 @@ ISolverListener *QtSolverListenerManager::CreateSolverListener(const std::string
    listener->status->setText("Iterating…"); listener->status->setProperty("converged",QVariant());
    if (maximized) listener->window->showMaximized(); else listener->window->show();
    return listener.get();
+}
+
+QJsonArray QtSolverListenerManager::snapshot() const
+{
+   QJsonArray result;
+   for (const auto &entry:listeners) {
+      const auto &listener=*entry.second;
+      if (!listener.active) continue;
+      QJsonArray goals,variables;
+      if (listener.table) for(int row=0;row<listener.table->rowCount();++row) {
+         const auto text=[&](int col) { const auto *cell=listener.table->item(row,col);return cell?cell->text():QString(); };
+         bool numeric=false;const auto current=text(2).toDouble(&numeric);
+         QJsonObject value{{"name",text(1)},{"value",numeric?QJsonValue(current):QJsonValue(text(2))}};
+         if(text(0)=="Variable") variables.append(value);
+         else { value["desired"]=text(3).isEmpty()?QJsonValue():QJsonValue(text(3).toDouble());value["residual"]=text(4).isEmpty()?QJsonValue():QJsonValue(text(4).toDouble());goals.append(value); }
+      }
+      const auto known=listener.status && listener.status->property("converged").isValid();
+      const auto convergence=known?(listener.status->property("converged").toBool()?"converged":"not_converged"):"unavailable";
+      result.append(QJsonObject{{"name",QString::fromStdString(entry.first).section('\n',0,0)},{"convergence",convergence},{"native_status",QJsonValue()},{"variables",variables},{"goals",goals},{"iterations",QJsonValue()},{"source","Qt native solver listener"}});
+   }
+   return result;
 }

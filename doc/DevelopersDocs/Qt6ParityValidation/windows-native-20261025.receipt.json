@@ -1,0 +1,205 @@
+{
+  "date": "2026-10-25",
+  "repository": "/home/dan/GIT/GMAT-Qt",
+  "branch": "codex/qt6-gui",
+  "base_commit": "215be630654f66f3953528f58dea4cc2de639af9",
+  "integration": "uncommitted canonical working tree; earlier unrelated changes retained",
+  "source_audit": {
+    "matched_files": 4471,
+    "differences": [],
+    "platform_generated": [
+      "application/bin/gmat_startup_qt.txt"
+    ],
+    "manifest": "final-source-hashes.json"
+  },
+  "windows": {
+    "vm": "gmat-win11-test",
+    "uuid": "489ee2d8-cde7-4f16-b2fb-505a52e7f743",
+    "os": "Windows 11 Enterprise Evaluation 26200",
+    "display": "Red Hat QXL 10.0.0.18000; 1920x1080; 96 DPI",
+    "compiler": "MSVC 19.44, C++17",
+    "qt": "6.10.2 msvc2022_64",
+    "osg": "3.6.5 official source build",
+    "application": "C:/GMAT-Test/qt-current-20261025/gmat-source/application/bin/GmatQt.exe",
+    "binaries": [
+      {
+        "path": "C:\\GMAT-Test\\qt-current-20261025\\gmat-source\\application\\bin\\GmatQt.exe",
+        "size": 4748800,
+        "sha256": "fbcd865ffbc1a035e6324e3309956e3a932cc3bc69488bca15ee8cecac6db995"
+      },
+      {
+        "path": "C:\\GMAT-Test\\qt-current-20261025\\gmat-source\\application\\bin\\libGmatBase.dll",
+        "size": 20342784,
+        "sha256": "e946cef321ed85fd95764578b05cc201017426bcc617f170cfb0fae0c62bb249"
+      },
+      {
+        "path": "C:\\GMAT-Test\\qt-current-20261025\\gmat-source\\application\\bin\\libGmatUtil.dll",
+        "size": 2000896,
+        "sha256": "89c4f7c466c8e6775dc539660a50796dd7d76737fc94b8622e2c66a64353743e"
+      },
+      {
+        "path": "C:\\GMAT-Test\\qt-current-20261025\\gmat-source\\application\\bin\\opengl32.dll",
+        "size": 20639888,
+        "sha256": "b04de4541863bc7d8879040a78889c4849c1b1da2784c4630f734c146c2998ce"
+      },
+      {
+        "path": "C:\\GMAT-Test\\qt-current-20261025\\gmat-source\\application\\bin\\gmat_startup_qt.txt",
+        "size": 10175,
+        "sha256": "5a3651ebd4a8dea3b399d8a07c93aa1cab252d47fe7592d415e82c07376d17ed"
+      },
+      {
+        "path": "C:\\GMAT-Test\\qt-current-20261025\\gmat-build\\src\\qtgui\\Release\\GmatQtFileTests.exe",
+        "size": 4773376,
+        "sha256": "d45c2f965ea1c56edc5eb5df8dcb3477176d04167acae8e61578e90773d30607"
+      },
+      {
+        "path": "C:\\GMAT-Test\\qt-current-20261025\\gmat-build\\src\\qtgui\\Release\\GmatQtMissionTests.exe",
+        "size": 4882944,
+        "sha256": "9beabec8845fbe4f5f354fe3b53c8434e3599c0030bb748e4fb27306a8c5466e"
+      },
+      {
+        "path": "C:\\GMAT-Test\\qt-current-20261025\\gmat-build\\src\\qtgui\\Release\\GmatQtOrbitRendererTests.exe",
+        "size": 512000,
+        "sha256": "d7270a0ee4bce4779891387f7d13eb05563a128a1db171b5aa112fb46a1f99f5"
+      },
+      {
+        "path": "C:\\GMAT-Test\\qt-current-20261025\\gmat-build\\src\\qtgui\\Release\\GmatQtPlaybackOptionsRuntimeTests.exe",
+        "size": 4802048,
+        "sha256": "74a41d23b87eeb408788266a07206d80e1b9f618807813df7679605c662f9fbe"
+      },
+      {
+        "path": "C:\\GMAT-Test\\qt-current-20261025\\gmat-build\\src\\qtgui\\Release\\GmatQtPlotTests.exe",
+        "size": 4855296,
+        "sha256": "76f5f8984fef1ad6e2cabf04ceb7a34d5554b0813a1313ca03f6a36cb4e86f16"
+      },
+      {
+        "path": "C:\\GMAT-Test\\qt-current-20261025\\gmat-build\\src\\qtgui\\Release\\GmatQtTreeActivationTests.exe",
+        "size": 4787200,
+        "sha256": "2ff0a3fee9d282c221413b36c16b7fd69c41a964e45a550cbc2db4bc72a46e02"
+      },
+      {
+        "path": "C:\\GMAT-Test\\qt-current-20261025\\gmat-build\\src\\qtgui\\Release\\GmatQtWindowTests.exe",
+        "size": 4793856,
+        "sha256": "3d9e86b4378c237dd6cefbfa8c2ab4a8ea3d0f3b6a212647b4c06dc6907d5dc6"
+      },
+      {
+        "path": "C:\\GMAT-Test\\qt-current-20261025\\gmat-build\\src\\qtgui\\Release\\GmatQtWorkflowTests.exe",
+        "size": 5143552,
+        "sha256": "478f7eacf91b95f7a0b58d0ecb147719e55a7020f2cf845d525c51bab3d41331"
+      }
+    ],
+    "ctest": {
+      "passed": 9,
+      "failed": 0,
+      "seconds": 43.87,
+      "log": "windows/implementation/complete-ctest.log",
+      "junit": "windows/implementation/complete-ctest.xml"
+    },
+    "native_tests": [
+      {
+        "name": "GmatQtOrbitRendererTests",
+        "qpa": "windows",
+        "rhi_override": false,
+        "sha256": "d7270a0ee4bce4779891387f7d13eb05563a128a1db171b5aa112fb46a1f99f5",
+        "exit": 0,
+        "elapsed_seconds": 10.111362218856812,
+        "session": "actual logged-in console; Qt programmatic tests started via browser viewer"
+      },
+      {
+        "name": "GmatQtWindowTests",
+        "qpa": "windows",
+        "rhi_override": false,
+        "sha256": "3d9e86b4378c237dd6cefbfa8c2ab4a8ea3d0f3b6a212647b4c06dc6907d5dc6",
+        "exit": 0,
+        "elapsed_seconds": 24.725311279296875,
+        "session": "actual logged-in console; Qt programmatic tests started via browser viewer"
+      }
+    ],
+    "renderer_probe": {
+      "context_valid": true,
+      "direct_renderer": "Gallium 0.4 on llvmpipe (LLVM 3.6, 256 bits)",
+      "direct_vendor": "VMware, Inc.",
+      "direct_version": "3.0 Mesa 11.2.2",
+      "direct_wgl_context": true,
+      "framebuffer_null": false,
+      "opengl32.dll": "C:\\GMAT-Test\\qt-current-20261025\\gmat-source\\application\\bin\\OPENGL32.dll",
+      "opengl32sw.dll": "",
+      "qt_renderer": "Gallium 0.4 on llvmpipe (LLVM 3.6, 256 bits)",
+      "qt_vendor": "VMware, Inc.",
+      "qt_version": "3.0 Mesa 11.2.2"
+    },
+    "manual_native": {
+      "textured_orbit": "PASS",
+      "camera_drag_rotate": "PASS",
+      "camera_wheel_zoom": "PASS",
+      "timeline_scrub": "PASS",
+      "animation": "PASS; 1.4% to 80.9%, Pause visible, spacecraft moved",
+      "viewer_close_reopen": "PASS",
+      "mission_run": "PASS",
+      "unicode_report": "PASS",
+      "normal_exit_with_station_editor_open": "PASS exit 0; no forced stop"
+    },
+    "software_gl": {
+      "official_archive": "https://download.qt.io/development_releases/prebuilt/llvmpipe/windows/opengl32sw-64-mesa_11_2_2-signed_sha256.7z",
+      "archive_sha256": "c61f801c1760aa24b02c7a8354323cddf368b86f8f5c34b50b3b224f7d728afd",
+      "dll_sha256": "b04de4541863bc7d8879040a78889c4849c1b1da2784c4630f734c146c2998ce",
+      "signature": "Valid; The Qt Company Oy",
+      "scope": "app-local opengl32.dll and opengl32sw.dll, same DLL beside native tests; no system driver/DLL change"
+    }
+  },
+  "linux": {
+    "compiler": "GCC 15.2.0; C++17 Release",
+    "qt": "6.10.2",
+    "osg": "3.6.5",
+    "ctest": {
+      "passed": 12,
+      "failed": 0,
+      "seconds": 39.89,
+      "log": "linux-final-ctest.log",
+      "junit": "linux-final-ctest.xml"
+    },
+    "window_test": {
+      "exit": 0,
+      "seconds": 19.703,
+      "environment": "private Xvfb/xcb software OpenGL; no window manager or physical compositor",
+      "log": "linux-final-window.log"
+    },
+    "binaries": "linux-binaries.json"
+  },
+  "cleanup": {
+    "utc": "2026-10-25T19:06:43.662351+00:00",
+    "vm": "gmat-win11-test",
+    "vm_state": "shut off",
+    "stopped": [
+      "exact private console bridge"
+    ],
+    "temporary_container_remaining": "",
+    "localhost_viewer_port_open": false,
+    "ephemeral_auth_files_remaining": [],
+    "guest_configuration_retained": "approved auto-login/no-lock; app-local official software OpenGL; isolated source/build/evidence",
+    "host_compositor_touched": false,
+    "viewer": {
+      "container": "gmat-qt-impl-viewer-20261025",
+      "host_port": 55393,
+      "url": "http://127.0.0.1:55393/vnc.html?autoconnect=1&resize=scale",
+      "authentication": "temporary private VNC password; never URL or logs",
+      "host_desktop_bound": false,
+      "physical_devices_bound": false,
+      "guest_console": "dedicated VM libvirt graphics FD through private mode-0600 Unix socket; no SPICE TCP listener",
+      "viewer_pid": 1297126
+    }
+  },
+  "patch_sha256": "023a34bbcae9a524423c415c02d079ae2533b92d5e03cc041a6fbc776e60e657",
+  "limits": [
+    "software OpenGL in Windows VM, not hardware GPU qualification",
+    "bounded selected regressions, not full 165-test Windows or 183-test Linux matrix",
+    "physical Linux Intel/Wayland lifecycle remains unqualified; excluded compositor-risk procedure not attempted",
+    "Windows C++11/14 alternatives not tested; ReportFile change uses C++17 filesystem",
+    "no packaging, commit, push, release or outreach"
+  ],
+  "raw_archive": {
+    "filename": "windows-native-20261025.raw.zip",
+    "sha256": "2576b1822e688e474d4f0384ae704270d89fb6817b41e05e1d2c5cfe0bc7a879",
+    "bytes": 3187082
+  }
+}

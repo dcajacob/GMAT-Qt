@@ -115,7 +115,7 @@ ExternalOptimizer& ExternalOptimizer::operator=(const ExternalOptimizer& opt)
    
    functionPath        = opt.functionPath;
    //sourceType          = opt.sourceType;
-   sourceReady         = opt.sourceReady;
+   sourceReady         = false;
    inSource            = opt.inSource;
    inSourceServer      = opt.inSourceServer;
    parameterCount      = opt.parameterCount;

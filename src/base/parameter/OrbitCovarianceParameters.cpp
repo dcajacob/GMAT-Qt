@@ -101,6 +101,11 @@ bool OrbitErrorCovariance::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* OrbitErrorCovariance::Clone(void) const
 {
-   return new OrbitErrorCovariance(*this);
+   return CompleteParameterClone(new OrbitErrorCovariance(*this));
+}
+
+void OrbitErrorCovariance::Copy(const GmatBase *source)
+{
+   CopyParameterValue<OrbitErrorCovariance>(source);
 }
 

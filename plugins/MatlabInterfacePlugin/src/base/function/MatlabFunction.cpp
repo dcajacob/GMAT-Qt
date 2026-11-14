@@ -29,7 +29,25 @@
  */
 //------------------------------------------------------------------------------
 
+#include "FunctionException.hpp"
+#include "ExpressionBinding.hpp"
+#include <memory>
+#include <typeinfo>
 #include "MatlabFunction.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration matlabFunctionValueProvider({
+   MatlabFunction::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const MatlabFunction*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<MatlabFunction*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "FileManager.hpp"       // for GetMatlabFunctionPath()
 #include "FileUtil.hpp"          // for ParseFileName(), GetCurrentWorkingDirectory()
 #include "StringUtil.hpp"        // for Trim()
@@ -160,7 +178,15 @@ MatlabFunction& MatlabFunction::operator=(const MatlabFunction& right)
 //------------------------------------------------------------------------------
 GmatBase* MatlabFunction::Clone() const
 {
-   return (new MatlabFunction(*this));
+   std::unique_ptr<MatlabFunction> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new MatlabFunction(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived MatlabFunction must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -175,7 +201,17 @@ GmatBase* MatlabFunction::Clone() const
 //---------------------------------------------------------------------------
 void MatlabFunction::Copy(const GmatBase* orig)
 {
-   operator=(*((MatlabFunction *)(orig)));
+   const auto *source = dynamic_cast<const MatlabFunction*>(orig);
+   if (!source || typeid(*this) != typeid(MatlabFunction) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible MatlabFunction value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -318,3 +354,19 @@ bool MatlabFunction::SetMatlabFunctionPath(const std::string &path)
    return true;
 }
 
+
+
+bool MatlabFunction::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const MatlabFunction*>(&original);
+   if (!source || typeid(*this) != typeid(MatlabFunction) || typeid(original) != typeid(MatlabFunction))
+      throw FunctionException("Derived MatlabFunction references need their own passive provider.\n");
+   RebindFunctionEnvironment(*source, resolve);
+   return true;
+}
+
+bool MatlabFunction::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(MatlabFunction);
+}

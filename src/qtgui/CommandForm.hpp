@@ -1,24 +1,29 @@
 #pragma once
 #include <QGroupBox>
+#include <QMap>
 #include <QVector>
 #include <functional>
 class QFormLayout;
 class QLineEdit;
+class QLabel;
 
 // Edits source spans, preserving labels, formatting, options and branch bodies.
 class CommandForm final : public QGroupBox
 {
 public:
-   CommandForm(std::function<void(const QString &)> changed,QWidget *parent=nullptr);
+   CommandForm(std::function<void(const QString &)> changed,QWidget *parent=nullptr,const QMap<QString,QString> &pendingFiniteResources={});
    void setStatement(const QString &statement);
-   QString validationError() const;
+   QString validationError(bool deferGlobalReferences=false) const;
 private:
    struct Field { QLineEdit *input; qsizetype start,length; };
    QFormLayout *layout;
    QVector<Field> fields;
+   QMap<QString,QLabel *> unitLabels;
    QString original;
+   QMap<QString,QString> pendingFiniteResources;
    std::function<void(const QString &)> changed;
    bool synchronizing=false;
    QString currentStatement() const;
    void updateSource();
+   void updateUnits();
 };

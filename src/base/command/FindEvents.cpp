@@ -557,7 +557,7 @@ bool FindEvents::Execute()
    eventLocator->SetAppend(appendFlag);
    eventLocator->LocateEvents("");
 
-//   BuildCommandSummary(true);  // do I need this?
+   BuildCommandSummary(true);
    return true;
 }
 

@@ -58,6 +58,7 @@
  */
 class GMAT_API Hardware : public GmatBase
 {
+   friend class Spacecraft;
 public:
    Hardware(UnsignedInt typeId, const std::string &typeStr,
             const std::string &nomme = "");

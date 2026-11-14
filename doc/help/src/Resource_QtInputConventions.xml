@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<refentry version="5.0" xml:id="QtInputConventions" xmlns="http://docbook.org/ns/docbook">
+  <refmeta><refentrytitle>Qt Input Conventions</refentrytitle></refmeta>
+  <refnamediv><refname>Qt Input Conventions</refname><refpurpose>Interpret inherited resource controls and their units</refpurpose></refnamediv>
+  <refsection><title>Description</title>
+    <para>Resource controls can include fields inherited from a common resource type.
+    A blank unit label does not mean dimensionless. Enter physical quantities in
+    the units specified by the resource reference; the numeric editor does not
+    convert a number with a unit suffix. Names, filenames, selectors and logical
+    controls have no physical quantity to enter. This topic describes several
+    inherited controls whose labels differ from the main reference tables.</para>
+    <para>Hardware origin components HWOriginInBCSX, HWOriginInBCSY and
+    HWOriginInBCSZ are in metres in the spacecraft body frame. DirectionX/Y/Z
+    and SecondDirectionX/Y/Z are dimensionless direction-vector components.
+    These conventions also apply to radio hardware inheriting Imager geometry.
+    The FieldOfView control names a field-of-view resource; angular quantities
+    belong to that resource's own fields. See <xref linkend="Imager"/> and
+    <xref linkend="Antenna"/>.</para>
+  </refsection>
+  <refsection><title>Fields</title>
+    <informaltable><tgroup cols="2"><tbody>
+      <row><entry><guilabel>MaxPlotPoints</guilabel></entry><entry>
+        <para>OrbitView and GroundTrack plot-history capacity, expressed as a
+        positive integer count of stored plot points. This is distinct from a
+        duration, the integration step or the redraw interval.</para>
+        <variablelist><varlistentry><term>Units</term><listitem><para>Count of plot points</para></listitem></varlistentry></variablelist>
+      </entry></row>
+      <row><entry><guilabel>DataFile</guilabel></entry><entry>
+        <para>Estimator and Smoother output filename. This names an output file;
+        it does not set the units of measurement data or the estimator state.</para>
+        <variablelist><varlistentry><term>Units</term><listitem><para>Filename; no physical quantity</para></listitem></varlistentry></variablelist>
+      </entry></row>
+      <row><entry><guilabel>ThrottleLogicAlgorithm</guilabel></entry><entry>
+        <para>FiniteBurn algorithm selector. The supported value is
+        MaxNumberOfThrusters. Enter the algorithm name; thrust, power and fuel
+        quantities retain the units of their separate resource fields.</para>
+        <variablelist><varlistentry><term>Units</term><listitem><para>Algorithm name; no physical quantity</para></listitem></varlistentry></variablelist>
+      </entry></row>
+      <row><entry><guilabel>SolverIterations</guilabel></entry><entry>
+        <para>Subscriber output selector: All, Current or None. These are
+        iteration-output modes, not an integer iteration limit.</para>
+        <variablelist><varlistentry><term>Units</term><listitem><para>Mode selector; no physical quantity</para></listitem></varlistentry></variablelist>
+      </entry></row>
+      <row><entry><guilabel>Precision</guilabel></entry><entry>
+        <para>MessageWindow decimal formatting count, a positive integer. Its
+        fixed decimal stream uses this count for digits after the decimal point.
+        Formatting does not change the physical units of reported values.</para>
+        <variablelist><varlistentry><term>Units</term><listitem><para>Count of decimal digits</para></listitem></varlistentry></variablelist>
+      </entry></row>
+      <row><entry><guilabel>AnomalyType</guilabel></entry><entry>
+        <para>Spacecraft anomaly representation selector, such as TA, MA, EA or HA.
+        It selects a representation rather than an anomaly value. Use the units
+        and applicability restrictions of the selected orbit-state component in
+        <xref linkend="SpacecraftOrbitState"/>.</para>
+        <variablelist><varlistentry><term>Units</term><listitem><para>Representation selector; no physical quantity</para></listitem></varlistentry></variablelist>
+      </entry></row>
+      <row><entry><guilabel>AttitudeDisplayStateType</guilabel></entry><entry>
+        <para>Spacecraft attitude display representation selector. Choosing Euler
+        angles, quaternions, a direction cosine matrix or modified Rodrigues
+        parameters changes the component fields and their units. See
+        <xref linkend="SpacecraftAttitude"/>; the selector itself is text.</para>
+        <variablelist><varlistentry><term>Units</term><listitem><para>Representation selector; no physical quantity</para></listitem></varlistentry></variablelist>
+      </entry></row>
+      <row><entry><guilabel>PowerSystem</guilabel></entry><entry>
+        <para>Spacecraft reference to a SolarPowerSystem or NuclearPowerSystem
+        resource. Enter the resource name. Power quantities and coefficients
+        belong to that resource and retain their documented units.</para>
+        <variablelist><varlistentry><term>Units</term><listitem><para>Resource name; no physical quantity</para></listitem></varlistentry></variablelist>
+      </entry></row>
+      <row><entry><guilabel>Object</guilabel></entry><entry>
+        <para>Array's inherited parameter-owner reference. This is a resource
+        name, not an array element. Array numeric values have user-assigned
+        meaning and no automatic common physical-unit declaration. The Variable
+        and String editors show an Initial value control instead of this
+        inherited metadata field.</para>
+        <variablelist><varlistentry><term>Units</term><listitem><para>Resource name; no physical quantity</para></listitem></varlistentry></variablelist>
+      </entry></row>
+    </tbody></tgroup></informaltable>
+  </refsection>
+</refentry>

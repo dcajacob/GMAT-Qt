@@ -119,6 +119,21 @@ EnvData& EnvData::operator= (const EnvData &right)
 }
 
 
+// Map cached identities without evaluating or initializing a Parameter.
+void EnvData::RebindClonedParameterCaches(const RefData &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &data = ClonedParameterData<EnvData>(source);
+   auto *bound_mSpacecraft = BindClonedParameterReference(data.mSpacecraft, resolve);
+   auto *bound_mSolarSystem = BindClonedParameterReference(data.mSolarSystem, resolve);
+   auto *bound_mOrigin = BindClonedParameterReference(data.mOrigin, resolve);
+   mSpacecraft = bound_mSpacecraft;
+   mSolarSystem = bound_mSolarSystem;
+   mOrigin = bound_mOrigin;
+}
+
+
+
 //------------------------------------------------------------------------------
 // ~EnvData()
 //------------------------------------------------------------------------------

@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 
 #include "BuiltinFunctionNode.hpp"
+#include "ExpressionBinding.hpp"
 #include "MathException.hpp"
 #include "TextParser.hpp"
 #include "StringUtil.hpp"
@@ -132,6 +133,11 @@ BuiltinFunctionNode::BuiltinFunctionNode(const BuiltinFunctionNode &func) :
    MathNode   (func)
 {
    desc = func.desc;
+   inputNames = func.inputNames;
+   outputNames = func.outputNames;
+   theWrapperMap = NULL;
+   inputArgWrappers.assign(inputNames.size(), NULL);
+   outputArgWrappers.assign(outputNames.size(), NULL);
 }
 
 //------------------------------------------------------------------------------
@@ -150,8 +156,13 @@ BuiltinFunctionNode& BuiltinFunctionNode::operator=(const BuiltinFunctionNode &f
    if (this == &func)
       return *this;
    
-   GmatBase::operator=(func);
+   MathNode::operator=(func);
    desc = func.desc;
+   inputNames = func.inputNames;
+   outputNames = func.outputNames;
+   theWrapperMap = NULL;
+   inputArgWrappers.assign(inputNames.size(), NULL);
+   outputArgWrappers.assign(outputNames.size(), NULL);
    return *this;
 }
 
@@ -159,55 +170,21 @@ BuiltinFunctionNode& BuiltinFunctionNode::operator=(const BuiltinFunctionNode &f
 //------------------------------------------------------------------------------
 // void SetMathWrappers(std::map<std::string, ElementWrapper*> *wrapperMap)
 //------------------------------------------------------------------------------
-void BuiltinFunctionNode::SetMathWrappers(std::map<std::string, ElementWrapper*> *wrapperMap)
+void BuiltinFunctionNode::SetMathWrappers(WrapperMap *wrapperMap)
 {
    theWrapperMap = wrapperMap;
-   
-   #ifdef DEBUG_WRAPPERS
-   MessageInterface::ShowMessage
-      ("BuiltinFunctionNode::SetMathWrappers() entered, theWrapperMap=<%p>, Node=%s\n",
-       theWrapperMap, GetName().c_str());
-   #endif
-   
-   if (theWrapperMap == NULL)
+   inputArgWrappers.assign(inputNames.size(), nullptr);
+   outputArgWrappers.assign(outputNames.size(), nullptr);
+   if (!wrapperMap) return;
+   for (size_t i = 0; i < inputNames.size(); ++i)
    {
-      #ifdef DEBUG_WRAPPERS
-      MessageInterface::ShowMessage
-         ("MathElement::RenameRefObject() theWrapperMap is NULL, returning true\n");
-      #endif
-      return;
+      const auto found = wrapperMap->find(inputNames[i]);
+      if (found != wrapperMap->end()) inputArgWrappers[i] = found->second;
    }
-   
-   #ifdef DEBUG_WRAPPERS
-   MessageInterface::ShowMessage
-      ("   now checking %d objects in theWrapperMap\n", theWrapperMap->size());
-   #endif
-   
-   // Rename wrapper objects
-   std::map<std::string, ElementWrapper *> tempMap;
-   std::map<std::string, ElementWrapper *>::iterator ewi;
-   bool needSwap = false;
-   
-   for (ewi = theWrapperMap->begin(); ewi != theWrapperMap->end(); ++ewi)
+   for (size_t i = 0; i < outputNames.size(); ++i)
    {
-      std::string name = ewi->first;
-      ElementWrapper *wrapper = ewi->second;
-      
-      #ifdef DEBUG_WRAPPERS
-      MessageInterface::ShowMessage("   name=<%s>, wrapper=%p\n", name.c_str(), wrapper);
-      #endif
-      
-      for (unsigned int i = 0; i < inputNames.size(); i++)
-      {
-         if (name == inputNames[i])
-         {
-            #ifdef DEBUG_WRAPPERS
-            MessageInterface::ShowMessage
-               ("   Setting wrapper<%p> to '%s'\n", wrapper, name.c_str());
-            #endif
-            inputArgWrappers[i] = wrapper;
-         }
-      }
+      const auto found = wrapperMap->find(outputNames[i]);
+      if (found != wrapperMap->end()) outputArgWrappers[i] = found->second;
    }
 }
 
@@ -343,3 +320,19 @@ void BuiltinFunctionNode::ValidateWrappers()
    }
 }
 
+
+void BuiltinFunctionNode::RebindExpressionReferences(const MathNode &source,
+      const std::function<GmatBase*(GmatBase*)> &, WrapperMap *wrappers)
+{
+   if (typeid(*this) != typeid(source))
+      throw MathException("Incompatible native builtin expression copy.\n");
+   SetMathWrappers(wrappers);
+}
+
+void BuiltinFunctionNode::RetireExpressionReferences()
+{
+   theWrapperMap = nullptr;
+   for (auto &wrapper : inputArgWrappers) wrapper = nullptr;
+   for (auto &wrapper : outputArgWrappers) wrapper = nullptr;
+   isInitialized = false;
+}

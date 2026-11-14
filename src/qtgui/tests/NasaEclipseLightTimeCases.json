@@ -1,0 +1,447 @@
+{
+  "cases": [
+    {
+      "key": "AllTypes",
+      "types": [
+        "Umbra",
+        "Penumbra",
+        "Antumbra"
+      ],
+      "target": "Sat",
+      "per_type": {
+        "Umbra": {
+          "count": 1,
+          "maximum": 2106.093208193779,
+          "participants": [
+            "Sat/Earth"
+          ]
+        },
+        "Penumbra": {
+          "count": 2,
+          "maximum": 8.820608854293823,
+          "participants": [
+            "Sat/Earth"
+          ]
+        },
+        "Antumbra": {
+          "count": 0,
+          "maximum": 0.0,
+          "participants": []
+        }
+      },
+      "radius": 7000,
+      "mu": 398600.4415,
+      "duration": 6500,
+      "initial_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "final_state": [
+        1299.9373202574714,
+        -6512.065760733014,
+        2214.3085808645924,
+        -0.46728157899613887,
+        2.340857765818517,
+        7.158558029409535
+      ],
+      "other_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "write_report": true,
+      "bounded": false,
+      "events": [
+        {
+          "start": 1852.439778149128,
+          "end": 1861.2603870034218,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.820608854293823,
+          "total_duration": 2123.6419093608856
+        },
+        {
+          "start": 1861.2603870034218,
+          "end": 3967.353595197201,
+          "type": "Umbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 2106.093208193779,
+          "total_duration": 2123.6419093608856
+        },
+        {
+          "start": 3967.353595197201,
+          "end": 3976.0816875100136,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.728092312812805,
+          "total_duration": 2123.6419093608856
+        }
+      ],
+      "total_events": 1,
+      "maximum_duration": 2123.6419093608856,
+      "maximum_group": 1,
+      "time_tolerance": 0.002,
+      "duration_tolerance": 0.002,
+      "use_light_time": true,
+      "use_stellar_aberration": false,
+      "uncorrected_events": [
+        {
+          "start": 1852.4572750926018,
+          "end": 1861.277885735035,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.820610642433167,
+          "total_duration": 2123.641812801361
+        },
+        {
+          "start": 1861.277885735035,
+          "end": 3967.3709937930107,
+          "type": "Umbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 2106.0931080579758,
+          "total_duration": 2123.641812801361
+        },
+        {
+          "start": 3967.3709937930107,
+          "end": 3976.099087893963,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.728094100952148,
+          "total_duration": 2123.641812801361
+        }
+      ],
+      "correction_shifts_seconds": [
+        -0.017496943473815918,
+        -0.01749873161315918,
+        -0.01749873161315918,
+        -0.017398595809936523,
+        -0.017398595809936523,
+        -0.017400383949279785
+      ],
+      "correction_samples": [
+        {
+          "seconds": 0.0,
+          "sun_delay": 490.6618402339403,
+          "earth_delay": 0.023349488887404898,
+          "sun_iterations": 3,
+          "earth_iterations": 3
+        },
+        {
+          "seconds": 2500.0,
+          "sun_delay": 490.70614384987726,
+          "earth_delay": 0.02334940448158835,
+          "sun_iterations": 3,
+          "earth_iterations": 3
+        },
+        {
+          "seconds": 6500.0,
+          "sun_delay": 490.66742397985627,
+          "earth_delay": 0.023349369049930773,
+          "sun_iterations": 3,
+          "earth_iterations": 3
+        }
+      ]
+    },
+    {
+      "key": "Antumbra",
+      "types": [
+        "Antumbra"
+      ],
+      "target": "Sat",
+      "per_type": {
+        "Antumbra": {
+          "count": 1,
+          "maximum": 4990.83213955164,
+          "participants": [
+            "Sat/Earth"
+          ]
+        }
+      },
+      "radius": 2000000.0,
+      "mu": 398600.4415,
+      "duration": 6500,
+      "initial_state": [
+        -360302.8507182417,
+        1804945.3778217845,
+        782530.5354068195,
+        0.034193525250917366,
+        -0.171293247416849,
+        0.4108401720502816
+      ],
+      "final_state": [
+        -360080.2136438452,
+        1803830.072301546,
+        785200.1719324831,
+        0.03431017793067969,
+        -0.1718776216862388,
+        0.4105863071314571
+      ],
+      "other_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "write_report": true,
+      "bounded": false,
+      "events": [
+        {
+          "start": 0.0,
+          "end": 4990.83213955164,
+          "type": "Antumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 4990.83213955164,
+          "total_duration": 4990.83213955164
+        }
+      ],
+      "total_events": 1,
+      "maximum_duration": 4990.83213955164,
+      "maximum_group": 1,
+      "time_tolerance": 0.002,
+      "duration_tolerance": 0.002,
+      "use_light_time": true,
+      "use_stellar_aberration": false,
+      "uncorrected_events": [
+        {
+          "start": 0.0,
+          "end": 4764.872806370258,
+          "type": "Antumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 4764.872806370258,
+          "total_duration": 4764.872806370258
+        }
+      ],
+      "correction_shifts_seconds": [
+        0.0,
+        225.95933318138123
+      ],
+      "correction_samples": [
+        {
+          "seconds": 0.0,
+          "sun_delay": 497.3564713053997,
+          "earth_delay": 6.6712813372086295,
+          "sun_iterations": 3,
+          "earth_iterations": 3
+        },
+        {
+          "seconds": 2500.0,
+          "sun_delay": 497.35636404285066,
+          "earth_delay": 6.671280965824772,
+          "sun_iterations": 3,
+          "earth_iterations": 3
+        },
+        {
+          "seconds": 6500.0,
+          "sun_delay": 497.35618775164977,
+          "earth_delay": 6.671280371594814,
+          "sun_iterations": 3,
+          "earth_iterations": 3
+        }
+      ]
+    },
+    {
+      "key": "StellarIgnored",
+      "types": [
+        "Umbra",
+        "Penumbra",
+        "Antumbra"
+      ],
+      "target": "Sat",
+      "per_type": {
+        "Umbra": {
+          "count": 1,
+          "maximum": 2106.093208193779,
+          "participants": [
+            "Sat/Earth"
+          ]
+        },
+        "Penumbra": {
+          "count": 2,
+          "maximum": 8.820608854293823,
+          "participants": [
+            "Sat/Earth"
+          ]
+        },
+        "Antumbra": {
+          "count": 0,
+          "maximum": 0.0,
+          "participants": []
+        }
+      },
+      "radius": 7000,
+      "mu": 398600.4415,
+      "duration": 6500,
+      "initial_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "final_state": [
+        1299.9373202574714,
+        -6512.065760733014,
+        2214.3085808645924,
+        -0.46728157899613887,
+        2.340857765818517,
+        7.158558029409535
+      ],
+      "other_state": [
+        1261.059977513846,
+        -6317.308822376246,
+        -2738.856873923868,
+        0.5779760669995956,
+        -2.8953843372122883,
+        6.944466388433826
+      ],
+      "write_report": true,
+      "bounded": false,
+      "events": [
+        {
+          "start": 1852.439778149128,
+          "end": 1861.2603870034218,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.820608854293823,
+          "total_duration": 2123.6419093608856
+        },
+        {
+          "start": 1861.2603870034218,
+          "end": 3967.353595197201,
+          "type": "Umbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 2106.093208193779,
+          "total_duration": 2123.6419093608856
+        },
+        {
+          "start": 3967.353595197201,
+          "end": 3976.0816875100136,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.728092312812805,
+          "total_duration": 2123.6419093608856
+        }
+      ],
+      "total_events": 1,
+      "maximum_duration": 2123.6419093608856,
+      "maximum_group": 1,
+      "time_tolerance": 0.002,
+      "duration_tolerance": 0.002,
+      "use_light_time": true,
+      "use_stellar_aberration": true,
+      "uncorrected_events": [
+        {
+          "start": 1852.4572750926018,
+          "end": 1861.277885735035,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.820610642433167,
+          "total_duration": 2123.641812801361
+        },
+        {
+          "start": 1861.277885735035,
+          "end": 3967.3709937930107,
+          "type": "Umbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 2106.0931080579758,
+          "total_duration": 2123.641812801361
+        },
+        {
+          "start": 3967.3709937930107,
+          "end": 3976.099087893963,
+          "type": "Penumbra",
+          "body": "Earth",
+          "group": 1,
+          "duration": 8.728094100952148,
+          "total_duration": 2123.641812801361
+        }
+      ],
+      "correction_shifts_seconds": [
+        -0.017496943473815918,
+        -0.01749873161315918,
+        -0.01749873161315918,
+        -0.017398595809936523,
+        -0.017398595809936523,
+        -0.017400383949279785
+      ],
+      "correction_samples": [
+        {
+          "seconds": 0.0,
+          "sun_delay": 490.6618402339403,
+          "earth_delay": 0.023349488887404898,
+          "sun_iterations": 3,
+          "earth_iterations": 3
+        },
+        {
+          "seconds": 2500.0,
+          "sun_delay": 490.70614384987726,
+          "earth_delay": 0.02334940448158835,
+          "sun_iterations": 3,
+          "earth_iterations": 3
+        },
+        {
+          "seconds": 6500.0,
+          "sun_delay": 490.66742397985627,
+          "earth_delay": 0.023349369049930773,
+          "sun_iterations": 3,
+          "earth_iterations": 3
+        }
+      ]
+    }
+  ],
+  "physical_inputs": {
+    "tt0": 64.184,
+    "earth_radii": [
+      6378.1366,
+      6378.1366,
+      6356.7519
+    ],
+    "sun_radius": 695700.0,
+    "kernels": {
+      "application/data/time/SPICELeapSecondKernel.tls": "678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b",
+      "application/data/planetary_coeff/SPICEPlanetaryConstantsKernel.tpc": "3dff7b1dbeceaa01f25467767d3fa25816051c85d162d1edf04acb310ee28bb1",
+      "application/data/planetary_ephem/spk/DE421AllPlanets.bsp": "d6f02ca7f99bcea29c472e4955b52faccd026ae3d5dbc7bd6306979b5b57ea99",
+      "application/data/planetary_coeff/SPICEEarthPredictedKernel.bpc": "f5ed4d1f460dbcf40bf24f657ab9021718048e18fb723093bfd229066b4e3a49",
+      "application/data/planetary_coeff/SPICEEarthCurrentKernel.bpc": "6d899c83542e32dfd77f3b3b79383db88860adca59adf60f4823780760589a52",
+      "application/data/planetary_coeff/earth_latest_high_prec.bpc": "94b3cedf59698eedf429ed50e25a2c9cec3e916cbc1bc5ce405671ce11b3a527",
+      "application/data/icrf/ICRF_Table.txt": "e6b3969a7961c56cacd37a3daa2a98d1d7d765e8605699d5151db2a5bde44547"
+    }
+  },
+  "speed_of_light_km_s": 299792.458,
+  "allowed_scientific_spice_calls": [
+    "str2et_c",
+    "unitim_c",
+    "spkezr_c",
+    "pxform_c",
+    "bodvrd_c"
+  ],
+  "references": [
+    "https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/req/abcorr.html",
+    "https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/cspice/spkezr_c.html",
+    "https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/cspice/gfoclt_c.html"
+  ],
+  "scope": "Independent barycentric fixed-point reception light time, delayed Earth orientation and solar-limb/ellipsoid roots for two selected circular Earth trajectories. Geometric SPICE data only; no native GMAT, SPICE corrected positions or GF/event solver predicts results. Stellar toggle is ignored for eclipse detection as documented by NAIF. Contact transmission/stellar science, arbitrary bodies/orbits/grazing, independent ephemeris/frame truth, native OS input/hardware/platform/stress/private current NASA and full current-build suites remain unqualified."
+}

@@ -8,6 +8,7 @@ class QLabel;
 class QTimer;
 class PlotCanvas;
 struct PlotModel;
+class PovModelLoad;
 
 class VisualModelDialog final : public QDialog
 {
@@ -17,6 +18,7 @@ public:
    QMap<QString,QString> values() const { return acceptedValues; }
    QMap<QString,QString> settings() const;
    std::shared_ptr<PlotModel> previewModel() const { return model; }
+   void reject() override;
 private:
    bool refreshPreview();
    QMap<QString,QLineEdit *> fields;
@@ -27,5 +29,8 @@ private:
    QLabel *status=nullptr;
    QTimer *refreshTimer=nullptr;
    QString checkedPath;
+   QString checkedError;
    bool checkedReadable=false;
+   std::shared_ptr<PovModelLoad> modelLoad;
+   bool acceptWhenReady=false;
 };

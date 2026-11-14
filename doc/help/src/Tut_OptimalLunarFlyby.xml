@@ -742,7 +742,7 @@ BeginScript 'Constants and Init'
    %  Define constraint values and other constants 
    conTOIPeriapsis     = 6378 + 285   % constraint on launch periapsis
    conTOIInclination   = 28.5         % constraint launch inclination
-   conLunarPeriapsis   = 8000         % constraint on flyby altitude
+   conLunarPeriapsis   = 5000         % lunar periapsis radius in km
    conMOIApoapsis      = 60*earthRadius  % constraint on mission apoapsis
    conMOIInclination   = 10              % constraint on mission inc.
    conMOIPeriapsis     = 15*earthRadius  % constraint on mission periapsis
@@ -1283,7 +1283,7 @@ PenDown EarthView
 NonlinearConstraint NLPOpt(satTOI.RadPer=conTOIPeriapsis)
 NonlinearConstraint NLPOpt(satMOI_Backward.RadPer = conMOIPeriapsis)
 NonlinearConstraint NLPOpt(launchRdotV=0)
-NonlinearConstraint NLPOpt(satMOI_Forward.EarthMJ2000Eq.INC =. . .
+NonlinearConstraint NLPOpt(satMOI_Forward.EarthMJ2000Eq.INC = conMOIInclination)
 NonlinearConstraint NLPOpt(satMOI_Forward.RadApo=conMOIApoapsis)
 Minimize NLPOpt(Cost)
 </code></programlisting>
@@ -1405,8 +1405,32 @@ satMOI_Backward.VZ = -0.284892404787
     <section>
       <title>Step 5: Apply a New Constraint</title>
 
-      <para>We leave it as an exercise, to apply a constraint that the lunar
-      flyby periapsis radius must be greater than or equal to 5000 km.</para>
+      <para>Apply the 5000 km lunar periapsis constraint from the shipped Step 5 script. First replace the initial-guess values with the following nominal warm start. These values are part of the reference scenario; the earlier illustrative guesses do not reproduce its optimization path.</para>
+      <programlisting><code>toiEpoch               = 27698.5525217
+   flybyEpoch             = 27703.5424626
+   moiEpoch               = 27724.9087797
+   satTOI.X               = -6662.76928123
+   satTOI.Y               = 0.529259998179
+   satTOI.Z               = 55.445695172
+   satTOI.VX              = 0.0422871233672
+   satTOI.VY              = -9.52832392029
+   satTOI.VZ              = 5.1724900621
+   satFlyBy_Forward.X     = 335.658252296
+   satFlyBy_Forward.Y     = -6835.95740947
+   satFlyBy_Forward.Z     = -3697.50596172
+   satFlyBy_Forward.VX    = 1.10235600715
+   satFlyBy_Forward.VY    = -0.762907417999
+   satFlyBy_Forward.VZ    = -0.55207349527
+   satMOI_Backward.X      = -70968.1251141
+   satMOI_Backward.Y      = -64018.0819406
+   satMOI_Backward.Z      = -4289.59488745
+   satMOI_Backward.VX     = 1.77944265144
+   satMOI_Backward.VY     = -1.94858006561
+   satMOI_Backward.VZ     = -0.449239007699
+   MOI.Element1           = -0.0911640161905</code></programlisting>
+      <para>After the satMOI_Backward.RadPer constraint and before the launch RdotV calculation, insert the following constraint. Keep conLunarPeriapsis equal to 5000. This constrains the osculating lunar periapsis radius; an RMAG constraint at an arbitrary patch point is a different problem.</para>
+      <programlisting><code>NonlinearConstraint NLPOpt(satFlyBy_Backward.Luna.RadPer &gt;= conLunarPeriapsis)</code></programlisting>
+      <para>Save, build and run. Compare this Step 5 milestone with the shipped Step 5 script. Earlier feasibility and alternative-guess stages are separate tutorial milestones.</para>
     </section>
   </section>
 </chapter>

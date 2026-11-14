@@ -2,6 +2,7 @@
 #include "GmatCommand.hpp"
 #include "Moderator.hpp"
 #include "ScriptStatements.hpp"
+#include "PropagationOptions.hpp"
 #include <QSet>
 #include <QMap>
 #include <QRegularExpression>
@@ -105,7 +106,7 @@ QString key(QString code)
    static const QRegularExpression number(R"(^(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)");
    for (qsizetype index=0;index<code.size();++index) {
       const auto ch=code[index];
-      if (ch=='\'') quoted=!quoted;
+      if (ch=='\'' && (quoted || !scriptTransposeQuote(code,index))) quoted=!quoted;
       // A numeric unary plus is omitted by command serialization. Keep binary
       // addition and quoted labels significant while accepting the source's
       // explicit positive initial guess (including scientific notation).
@@ -130,10 +131,9 @@ QString propagationKey(const QString &code)
    // Propagate stores these flags without quotes, may repeat them in earlier
    // groups, and includes STM automatically with Covariance. Compare the
    // command-wide flags while retaining each ordered propagator/object group.
-   static const QRegularExpression prefix(R"(^\s*Propagate\s+(?:'[^'\n]*'\s+)?(?:BackProp\s+)?(?:Synchronized\s+)?)");
-   const auto begin=prefix.match(code); if (!begin.hasMatch()) return key(code);
+   const auto prefix=propagationHeader(code);if (!prefix.valid) return key(code);
    static const QRegularExpression group(R"(^([A-Za-z][A-Za-z0-9_]*)\s*\(\s*((?:[A-Za-z][A-Za-z0-9_]*|'STM'|'AMatrix'|'Covariance')(?:\s*,\s*(?:[A-Za-z][A-Za-z0-9_]*|'STM'|'AMatrix'|'Covariance'))*)\s*\))");
-   QString rest=code.mid(begin.capturedEnd()).trimmed(),header=begin.captured();
+   QString rest=code.mid(prefix.groupsStart).trimmed(),header=prefix.canonical;
    QSet<QString> flags; int count=0;
    while (!rest.isEmpty() && rest.front()!='{' && rest.front()!=';') {
       const auto match=group.match(rest); if (!match.hasMatch()) return key(code);
@@ -155,18 +155,37 @@ QString propagationKey(const QString &code)
    if (body.hasMatch()) {
       auto entries=body.captured(1).split(',');
       if (entries.size()>1 && entries.first().trimmed().isEmpty()) entries.removeFirst();
-      bool singleStep=!entries.isEmpty(); QSet<QString> seen; QString color;
+      bool singleStep=!entries.isEmpty(); QSet<QString> seen; QString color,ephemerisPolicy;
       for (const auto &entry:entries) {
-         const auto option=QRegularExpression(R"(^\s*(StopTolerance|OrbitColor)\s*=\s*(.+?)\s*$)").match(entry);
+         const auto option=QRegularExpression(R"(^\s*(StopTolerance|OrbitColor|EphemerisPolicy)\s*=\s*(.+?)\s*$)").match(entry);
          if (!option.hasMatch() || seen.contains(option.captured(1))) { singleStep=false; break; }
          seen.insert(option.captured(1));
          if (option.captured(1)=="OrbitColor") color=option.captured(2);
+         if (option.captured(1)=="EphemerisPolicy") {
+            const auto policy=propagationEphemerisPolicy(code);
+            if (!policy.valid) { singleStep=false; break; }
+            ephemerisPolicy=policy.value;
+         }
       }
-      if (singleStep) rest=color.isEmpty() ? QString(";") : "{OrbitColor = "+color+"};";
+      if (singleStep) {
+         QStringList options;
+         if (!color.isEmpty()) options.append("OrbitColor = "+color);
+         if (!ephemerisPolicy.isEmpty()) options.append("EphemerisPolicy = "+ephemerisPolicy);
+         rest=options.isEmpty() ? QString(";") : "{"+options.join(", ")+"};";
+      }
    }
    if (flags.contains("Covariance")) flags.remove("STM");
    auto ordered=flags.values(); ordered.sort();
-   return key(header+rest)+"|variational="+ordered.join(',');
+   auto canonical=header+rest;
+   // Native serialization emits this enum without quotes. Keep the join
+   // between authored stopped commands and their native command objects when
+   // the source used the equally valid quoted spelling.
+   const auto policy=propagationEphemerisPolicy(canonical);
+   if (policy.valid && policy.present && policy.valueStart>0 && canonical[policy.valueStart-1]=='\'') {
+      canonical.remove(policy.valueStart+policy.valueLength,1);
+      canonical.remove(policy.valueStart-1,1);
+   }
+   return key(canonical)+"|variational="+ordered.join(',');
 }
 QString pythonCallKey(const QString &code)
 {
@@ -181,7 +200,7 @@ QString pythonCallKey(const QString &code)
 }
 QString gmatCallKey(const QString &code)
 {
-   // Normalize only a configured GMAT function's accepted call spelling.
+   // Normalize only configured GMAT/native builtin function call spellings.
    // Bare zero-input calls and scalar output syntax serialize differently;
    // labels, function identity and ordered arguments must still match.
    static const QRegularExpression call(R"(^((?:'[^'\n]*')?)(?:(?:\[([A-Za-z][A-Za-z0-9_]*(?:,[A-Za-z][A-Za-z0-9_]*)*)\]|([A-Za-z][A-Za-z0-9_]*))=)?([A-Za-z][A-Za-z0-9_]*)(\([\s\S]*\))?$)");
@@ -189,14 +208,31 @@ QString gmatCallKey(const QString &code)
    if (!match.hasMatch()) return text;
    auto *moderator=Moderator::Instance();
    auto *function=moderator->IsInitialized() ? moderator->GetConfiguredObject(match.captured(4).toStdString()) : nullptr;
-   if (!function || !function->IsOfType("GmatFunction")) return text;
+   if (!function || (!function->IsOfType("GmatFunction") && !function->IsOfType("BuiltinGmatFunction"))) return text;
    const auto outputs=match.captured(2).isEmpty() ? match.captured(3) : match.captured(2);
    return match.captured(1)+(outputs.isEmpty() ? QString() : "["+outputs+"]=")+match.captured(4)+(match.captured(5).isEmpty() ? "()" : match.captured(5));
+}
+QString finiteBurnKey(const QString &code)
+{
+   const auto text=key(code);
+   static const QRegularExpression prefix(R"(^\s*(?:BeginFiniteBurn|EndFiniteBurn)\s+)");
+   if (!prefix.match(code).hasMatch()) return text;
+   static const QRegularExpression command(R"(^(BeginFiniteBurn|EndFiniteBurn)('[^'\n]*')?([A-Za-z][A-Za-z0-9_]*)\(([A-Za-z][A-Za-z0-9_]*(?:,[A-Za-z][A-Za-z0-9_]*)*)\)$)");
+   const auto match=command.match(text);
+   if (!match.hasMatch()) return text;
+   auto satellites=match.captured(4).split(','); satellites.removeDuplicates();
+   // The native commands retain one occurrence of a repeated spacecraft.
+   // Preserve the source spelling; normalize only its equivalence key, and
+   // never equate distinct spacecraft, burns, command types or labels.
+   if (satellites.size()!=1) return text;
+   return match.captured(1)+match.captured(2)+match.captured(3)+"("+satellites.first()+")";
 }
 bool sameStatement(const QString &generated,const QString &original)
 {
    auto a=key(generated),b=key(original);
    if (a==b) return true;
+   if ((generated.trimmed().startsWith("BeginFiniteBurn ") || generated.trimmed().startsWith("EndFiniteBurn ")) &&
+       finiteBurnKey(generated)==finiteBurnKey(original)) return true;
    if (gmatCallKey(generated)==gmatCallKey(original)) return true;
    if (a.contains("Python.") && pythonCallKey(generated)==pythonCallKey(original)) return true;
    if (generated.trimmed().startsWith("Propagate ") && propagationKey(generated)==propagationKey(original)) return true;
@@ -234,14 +270,29 @@ void retainSource(MissionSnapshot &snapshot)
    for (qsizetype i=generated.size();i-->0;) if (generated[i].code.trimmed().startsWith("#Include")) generated.removeAt(i);
    qsizetype canonicalBegin=-1,sourceBegin=-1;
    for (qsizetype i=0;i<generated.size();++i) if (key(generated[i].code)=="BeginMissionSequence") { canonicalBegin=i; break; }
-   const bool canonicalBoundary=canonicalBegin>=0;
+   // A unique sequence starter may be inside the first grouped Script Event.
+   // Align from that event's opening statement, so its editable range retains
+   // BeginScript as well as the contained boundary. The full suffix still has
+   // to match before any node becomes editable.
+   bool groupedBoundary=false;
+   if (canonicalBegin>=0) for (const auto &node:snapshot.nodes) {
+      if (node.parent>=0 || node.type!="BeginScript" || node.start<0 ||
+          node.start>=codeStart(generated[canonicalBegin]) || node.end<codeEnd(generated[canonicalBegin])) continue;
+      for (qsizetype i=0;i<canonicalBegin;++i) if (QRegularExpression("^\\s*BeginScript\\b").match(generated[i].code).hasMatch() &&
+            codeStart(generated[i])>=node.start && codeEnd(generated[i])<=node.end) {
+         canonicalBegin=i; groupedBoundary=true; break;
+      }
+      if (groupedBoundary) break;
+   }
+   const bool canonicalBoundary=canonicalBegin>=0 && !groupedBoundary;
    if (!canonicalBoundary) {
       for (const auto &node:snapshot.nodes) if (node.parent<0 && node.start>=0) {
          for (qsizetype i=0;i<generated.size();++i) if (codeStart(generated[i])>=node.start && codeEnd(generated[i])<=node.end) { canonicalBegin=i; break; }
          if (canonicalBegin>=0) break;
       }
    }
-   for (qsizetype i=0;i<original.size();++i) if (key(original[i].code)=="BeginMissionSequence") { sourceBegin=i; break; }
+   for (qsizetype i=0;i<original.size();++i) if (groupedBoundary ?
+         sameStatement(generated[canonicalBegin].code,original[i].code) : key(original[i].code)=="BeginMissionSequence") { sourceBegin=i; break; }
    // The engine inserts BeginMissionSequence for an implicit mission. Locate
    // its first actual command, rather than treating configuration assignments
    // as executable source.
@@ -250,7 +301,7 @@ void retainSource(MissionSnapshot &snapshot)
       implicit=true;
       for (qsizetype i=0;i<original.size();++i) if (sameStatement(generated[canonicalBegin+(canonicalBoundary ? 1 : 0)].code,original[i].code)) { sourceBegin=i; break; }
    }
-   else if (sourceBegin>=0 && !canonicalBoundary) ++sourceBegin;
+   else if (sourceBegin>=0 && !canonicalBoundary && !groupedBoundary) ++sourceBegin;
    QMap<qsizetype,qsizetype> mapping;
    bool matched=canonicalBegin>=0 && sourceBegin>=0;
    auto sourceIndex=sourceBegin;
@@ -319,7 +370,9 @@ int missionBranchEnd(const MissionSnapshot &snapshot,int index)
    for (auto child:branch.children) {
       if (child<0 || child>=snapshot.nodes.size()) continue;
       const auto &node=snapshot.nodes[child];
-      if (node.parent==index && node.type==ending && node.start>=branch.start &&
+      const bool matchesEnding=node.type==ending ||
+         (branch.type=="Optimize" && node.type=="EndTarget");
+      if (node.parent==index && matchesEnding && node.start>=branch.start &&
           node.end>node.start && node.end<=branch.end) return child;
    }
    return -1;
@@ -431,7 +484,14 @@ QString editMission(const MissionSnapshot &snapshot,int index,MissionEdit operat
          candidate.replace(node.start,node.end-node.start,original.left(begin)+text+original.mid(end));
       } else candidate.replace(node.start,node.end-node.start,text+"\n");
    }
-   else if (operation==MissionEdit::InsertBefore) candidate.insert(node.start,replacement.trimmed()+"\n");
-   else if (operation==MissionEdit::InsertAfter) candidate.insert(node.end,replacement.trimmed()+"\n");
+   else if (operation==MissionEdit::InsertBefore || operation==MissionEdit::InsertAfter) {
+      const auto position=operation==MissionEdit::InsertBefore ? node.start : node.end;
+      auto insertion=replacement.trimmed()+"\n";
+      // The last source command need not have a semicolon or final newline.
+      // Separate it from the inserted command, including any trailing comment.
+      // Mapped inline commands also need a line boundary before new text.
+      if (position>0 && candidate[position-1]!='\n') insertion.prepend('\n');
+      candidate.insert(position,insertion);
+   }
    return candidate;
 }

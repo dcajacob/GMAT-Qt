@@ -1,0 +1,94 @@
+{
+  "cases": [
+    {
+      "id": "If",
+      "opener": "If V == 0;",
+      "body": "If V == 0;\nV = 2;\nEndIf;\n",
+      "closer": "EndIf;",
+      "unclosed": "If V == 0;\nV = 2;\n",
+      "crossed": "BeginScript 'Event'; % fixed begin\nIf V == 0;\nV = 2;\nEndScript; % escaped boundary\nEndIf;\n",
+      "oracle": [
+        2,
+        -99,
+        0,
+        42
+      ],
+      "requirement": "FRC!E140"
+    },
+    {
+      "id": "IfElse",
+      "opener": "If V > 0;",
+      "body": "If V > 0;\nV = 9;\nElse;\nV = 3;\nEndIf;\n",
+      "closer": "EndIf;",
+      "unclosed": "If V > 0;\nV = 9;\nElse;\nV = 3;\n",
+      "crossed": "BeginScript 'Event'; % fixed begin\nIf V > 0;\nV = 9;\nElse;\nV = 3;\nEndScript; % escaped boundary\nEndIf;\n",
+      "oracle": [
+        3,
+        -99,
+        0,
+        42
+      ],
+      "requirement": "FRC!E141"
+    },
+    {
+      "id": "For",
+      "opener": "For I = 1:1:3;",
+      "body": "For I = 1:1:3;\nV = V + I;\nEndFor;\n",
+      "closer": "EndFor;",
+      "unclosed": "For I = 1:1:3;\nV = V + I;\n",
+      "crossed": "BeginScript 'Event'; % fixed begin\nFor I = 1:1:3;\nV = V + I;\nEndScript; % escaped boundary\nEndFor;\n",
+      "oracle": [
+        6,
+        3,
+        0,
+        42
+      ],
+      "requirement": "FRC!E142"
+    },
+    {
+      "id": "While",
+      "opener": "While V < 4;",
+      "body": "While V < 4;\nV = V + 1;\nEndWhile;\n",
+      "closer": "EndWhile;",
+      "unclosed": "While V < 4;\nV = V + 1;\n",
+      "crossed": "BeginScript 'Event'; % fixed begin\nWhile V < 4;\nV = V + 1;\nEndScript; % escaped boundary\nEndWhile;\n",
+      "oracle": [
+        4,
+        -99,
+        0,
+        42
+      ],
+      "requirement": "FRC!E143"
+    },
+    {
+      "id": "Target",
+      "opener": "Target DC {SolveMode = RunInitialGuess, ShowProgressWindow = false};",
+      "body": "Target DC {SolveMode = RunInitialGuess, ShowProgressWindow = false};\nVary DC(X = 1);\nAchieve DC(X = 3);\nV = X + 2;\nEndTarget;\n",
+      "closer": "EndTarget;",
+      "unclosed": "Target DC {SolveMode = RunInitialGuess, ShowProgressWindow = false};\nVary DC(X = 1);\nAchieve DC(X = 3);\nV = X + 2;\n",
+      "crossed": "BeginScript 'Event'; % fixed begin\nTarget DC {SolveMode = RunInitialGuess, ShowProgressWindow = false};\nVary DC(X = 1);\nAchieve DC(X = 3);\nV = X + 2;\nEndScript; % escaped boundary\nEndTarget;\n",
+      "oracle": [
+        3,
+        -99,
+        1,
+        42
+      ],
+      "requirement": "FRC!E144"
+    },
+    {
+      "id": "Optimize",
+      "opener": "Optimize Opt {SolveMode = RunInitialGuess, ShowProgressWindow = false};",
+      "body": "Optimize Opt {SolveMode = RunInitialGuess, ShowProgressWindow = false};\nVary Opt(X = 2);\nV = (X - 3)^2;\nMinimize Opt(V);\nEndOptimize;\n",
+      "closer": "EndOptimize;",
+      "unclosed": "Optimize Opt {SolveMode = RunInitialGuess, ShowProgressWindow = false};\nVary Opt(X = 2);\nV = (X - 3)^2;\nMinimize Opt(V);\n",
+      "crossed": "BeginScript 'Event'; % fixed begin\nOptimize Opt {SolveMode = RunInitialGuess, ShowProgressWindow = false};\nVary Opt(X = 2);\nV = (X - 3)^2;\nMinimize Opt(V);\nEndScript; % escaped boundary\nEndOptimize;\n",
+      "oracle": [
+        1,
+        -99,
+        2,
+        42
+      ],
+      "requirement": "FRC!E145"
+    }
+  ]
+}

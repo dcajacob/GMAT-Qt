@@ -11,6 +11,7 @@ QMap<QString,QString> epochIntervalSettings(GmatBase &object);
 QMap<QString,QString> convertEpochInterval(const QMap<QString,QString> &values,const QString &format);
 QSet<QString> applyEpochIntervalProperties(GmatBase &object,const QMap<QString,QString> &values);
 QString convertWarmStartEpoch(const QString &epoch,const QString &from,const QString &to);
+QString convertEphemerisEpoch(const QString &epoch,const QString &from,const QString &to);
 QSet<QString> applyWarmStartProperties(GmatBase &object,const QMap<QString,QString> &values);
 class EpochIntervalDialog final : public QDialog
 {

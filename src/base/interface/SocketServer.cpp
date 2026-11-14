@@ -31,6 +31,9 @@
 
 #include "SocketServer.hpp"
 #include "GmatInterface.hpp"
+#include "BaseException.hpp"
+#include <cstdio>
+#include <cstring>
 //#include "MessageInterface.hpp"
 
 
@@ -111,6 +114,9 @@ bool SocketServer::RunRequest(SOCKET sock)
 	#endif
 
 
+   const bool rejected = std::strncmp(buf, "script,", 7) == 0 &&
+      !GmatInterface::CanAcceptMatlabCommand(buf + 7);
+
 	// 2. Echo back the data
 	send(sock, buf, len, 0);
 	#ifdef DEBUG_SOCKET
@@ -121,6 +127,15 @@ bool SocketServer::RunRequest(SOCKET sock)
 		#endif
 	#endif
 
+
+   if (rejected)
+   {
+      // The echo acknowledges receipt only. Never queue a denied request for
+      // execution after the MATLAB function or callback has already returned.
+      std::fprintf(stderr, "GMAT refused a MATLAB command during active function/callback/script control\n");
+      delete[] buf;
+      return false;
+   }
 
 	// 3. if the received message contains 'Request' string then run
 	//    OnRequest() function
@@ -264,6 +279,11 @@ bool OnExecute(const wxString& WXUNUSED(topic),
 
 bool SocketServer::OnPoke(char* data)
 {
+   if (!data) return false;
+   if (std::strcmp(data, "Close;") == 0) return true;
+   try
+   {
+
 	#ifdef DEBUG_SOCKET_SERVICE_POKE
 		#ifdef MessageInterface_hpp
 			MessageInterface::ShowMessage("GmatSocketService::OnPoke() data = %s\n", data);
@@ -320,14 +340,17 @@ bool SocketServer::OnPoke(char* data)
     }
     else
     {
-	   char* s = new char[strlen(data)+1];
-	   strcpy(s, data);
-       GmatInterface::Instance()->PutScript(s);
-
-       delete s;
+       GmatInterface::Instance()->PutScript(data);
     }
 
    return true;
+
+   }
+   catch (BaseException &error)
+   {
+      std::fprintf(stderr, "GMAT MATLAB command rejected: %s\n", error.GetFullMessage().c_str());
+      return false;
+   }
 }
 
 /*

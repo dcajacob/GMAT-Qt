@@ -1,3 +1,4 @@
+#include "AcceptanceView.hpp"
 #include "MainWindow.hpp"
 #include "QtPlotReceiver.hpp"
 #include "PlotWidget.hpp"
@@ -82,6 +83,7 @@ int main(int argc,char **argv)
       const auto model=receiver.model("Display"); require(model && model->resetView && model->resetView->cameras.size()==2 && near(model->resetView->cameras.front().eye,{7001,-8002,9003}),"Primary reset history not retained independently");
       PlotWidget *widget=nullptr; for (auto *child:area.subWindowList()) if (auto *plot=dynamic_cast<PlotWidget *>(child->widget())) widget=plot;
       require(widget,"Plot widget unavailable"); auto *reset=widget->findChild<QAction *>("orbitResetView");
+      acceptanceView(*widget);
       auto *shortcut=widget->canvas()->findChild<QShortcut *>("orbitResetShortcut");
       require(reset && shortcut && shortcut->key()==QKeySequence(Qt::Key_Space) && shortcut->context()==Qt::WidgetWithChildrenShortcut && shortcut->parent()==widget->canvas(),"Reset operation or plot-scoped Space shortcut missing");
       widget->canvas()->setViewAngles(.7,-.3); widget->canvas()->zoomBy(4); const auto before=converted.script;

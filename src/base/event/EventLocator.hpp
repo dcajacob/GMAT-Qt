@@ -64,6 +64,8 @@ class EphemManager;
 class GMAT_API EventLocator: public GmatBase
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = GmatBase::NativeValueProviderDepth + 1;
+
    EventLocator(const std::string &typeStr, const std::string &nomme = "");
    virtual ~EventLocator();
    EventLocator(const EventLocator& el);
@@ -141,6 +143,10 @@ public:
    virtual const ObjectTypeArray&
                         GetRefObjectTypeArray();
    virtual std::string  GetRefObjectName(const UnsignedInt type) const;
+   GmatBase *GetRefObject(const UnsignedInt type,
+         const std::string &name) override;
+   GmatBase *GetRefObject(const UnsignedInt type,
+         const std::string &name, const Integer index) override;
    virtual const StringArray&
                         GetRefObjectNameArray(const UnsignedInt type);
    virtual bool         SetRefObject(GmatBase *obj, const UnsignedInt type,
@@ -159,7 +165,19 @@ public:
    virtual bool         FileWasWritten();
    virtual bool         IsInAutomaticMode();
 
+   // Passive function values bind references without recording ephemerides,
+   // searching for events, opening reports or generating instrument kernels.
+   virtual bool HasEventLocatorValueReferenceProvider() const;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source,
+         SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+
 protected:
+   static GmatBase *MapFunctionValueReference(GmatBase *source,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+   static ObjectArray MapFunctionValueObjects(const ObjectArray &source,
+         const StringArray &names, StringArray &boundNames,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
    /// We need to store vector of Events
    typedef std::vector<LocatedEvent*>    EventList;
 

@@ -48,6 +48,8 @@ class MatlabInterface;
 class FMINCON_API FminconOptimizer : public ExternalOptimizer
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = ExternalOptimizer::NativeValueProviderDepth + 1;
+
    FminconOptimizer(const std::string &name);
    virtual ~FminconOptimizer();
    FminconOptimizer(const FminconOptimizer &opt);
@@ -60,7 +62,11 @@ public:
    
    // inherited from GmatBase
    virtual GmatBase*    Clone() const;
+   bool HasSolverValueReferenceProviderImpl() const;
+   void PrepareClonedSolverValueImpl(const Solver &source);
    virtual void         Copy(const GmatBase* orig);
+   virtual bool         TakeAction(const std::string &action,
+                                  const std::string &actionData = "");
    
    // Access methods overriden from the base class
    
@@ -106,6 +112,9 @@ protected:
    Integer      fminconExitFlag;
    /// The interface ised to exchange data with fmincon running in MATLAB
    MatlabInterface *matlabIf;
+   /// Actual MATLAB output-function counters, independent of branch evaluations.
+   Integer iterationFunctionCount = -1;
+   std::string iterationPhase;
    
    /// Table of options supported, excluding options inherited from base classes
    static const std::string    ALLOWED_OPTIONS[6];

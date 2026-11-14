@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "guide": "doc/help/src/Resource_ForceModel.xml",
+  "initial_values": {
+    "SRP.Flux": 1367,
+    "SRP.Nominal_Sun": 149597870.691,
+    "Drag.F107": 150,
+    "Drag.F107A": 150,
+    "Drag.MagneticIndex": 3
+  },
+  "mu": 398600.4415,
+  "radius_km": 7000,
+  "duration_seconds": 5,
+  "position_bound_km": 2e-05,
+  "velocity_bound_km_s": 2e-08,
+  "cases": [
+    {
+      "key": "SrpFlux",
+      "field": "SRP.Flux",
+      "unit": "W/m^2",
+      "lower": 1200,
+      "upper": 1450,
+      "lower_inclusive": false,
+      "upper_inclusive": false,
+      "valid": [
+        "1200.0000000000002",
+        "1449.9999999999998",
+        "1400"
+      ],
+      "invalid": [
+        "1200",
+        "1450",
+        "1199.9999999999998",
+        "1450.0000000000002",
+        "NaN",
+        "inf",
+        "-inf",
+        "1e309",
+        "not-a-number"
+      ]
+    },
+    {
+      "key": "NominalSun",
+      "field": "SRP.Nominal_Sun",
+      "unit": "km",
+      "lower": 135000000,
+      "upper": 165000000,
+      "lower_inclusive": false,
+      "upper_inclusive": false,
+      "valid": [
+        "135000000.00000003",
+        "164999999.99999997",
+        "150000000"
+      ],
+      "invalid": [
+        "135000000",
+        "165000000",
+        "134999999.99999997",
+        "165000000.00000003",
+        "NaN",
+        "inf",
+        "-inf",
+        "1e309",
+        "not-a-number"
+      ]
+    },
+    {
+      "key": "F107",
+      "field": "Drag.F107",
+      "unit": "10^-22 W/m^2/Hz",
+      "lower": 0,
+      "lower_inclusive": true,
+      "valid": [
+        "0",
+        "1e-12",
+        "1000000",
+        "200.5"
+      ],
+      "invalid": [
+        "-1",
+        "-1e-12",
+        "NaN",
+        "inf",
+        "-inf",
+        "1e309",
+        "not-a-number"
+      ]
+    },
+    {
+      "key": "F107A",
+      "field": "Drag.F107A",
+      "unit": "10^-22 W/m^2/Hz",
+      "lower": 0,
+      "lower_inclusive": true,
+      "valid": [
+        "0",
+        "1e-12",
+        "1000000",
+        "180.25"
+      ],
+      "invalid": [
+        "-1",
+        "-1e-12",
+        "NaN",
+        "inf",
+        "-inf",
+        "1e309",
+        "not-a-number"
+      ]
+    },
+    {
+      "key": "MagneticIndex",
+      "field": "Drag.MagneticIndex",
+      "unit": "",
+      "lower": 0,
+      "upper": 9,
+      "lower_inclusive": true,
+      "upper_inclusive": true,
+      "valid": [
+        "0",
+        "9",
+        "6.5"
+      ],
+      "invalid": [
+        "-1e-12",
+        "9.000000000000002",
+        "-1",
+        "10",
+        "NaN",
+        "inf",
+        "-inf",
+        "1e309",
+        "not-a-number"
+      ]
+    }
+  ],
+  "limits": "Five scalar inputs in one Earth NRLMSISE00/spherical-SRP configuration. Final null-area trajectory checks runtime input delivery and the zero-force invariant, not empirical atmosphere/SRP magnitude accuracy. Other fields,conditional configurations,numeric domains and whole historical status rows remain open."
+}

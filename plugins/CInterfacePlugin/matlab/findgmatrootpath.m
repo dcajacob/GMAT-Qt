@@ -45,9 +45,14 @@ else
     ps = strfind(gsfl,'=');
     root_path = strtrim(gsfl(ps+1:end));
     
-    % If ROOT_PATH is a relative path, then convert it to absolute
-    W = what(root_path);
-    if(~strcmp(W.path, root_path))
+    % Decide from the path syntax, not WHAT's normalized directory spelling.
+    % WHAT removes a trailing separator from an otherwise valid absolute path.
+    if ispc
+        is_absolute = ~isempty(regexp(root_path, '^([A-Za-z]:[\\/]|[\\/])', 'once'));
+    else
+        is_absolute = startsWith(root_path, '/');
+    end
+    if ~is_absolute
         gsf_path = fileparts(which('gmat_startup_file.txt'));
         root_path = fullfile(gsf_path, root_path);
     end

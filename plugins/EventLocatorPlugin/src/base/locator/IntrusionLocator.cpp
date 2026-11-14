@@ -31,6 +31,20 @@
 
 
 #include "IntrusionLocator.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration intrusionLocatorValueProvider({
+   IntrusionLocator::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const IntrusionLocator*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<IntrusionLocator*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "EventException.hpp"
 #include "MessageInterface.hpp"
 #include "SolarSystem.hpp"
@@ -41,9 +55,123 @@
 #include "StringUtil.hpp"
 #include "Imager.hpp"
 #include "SpiceInterface.hpp"
+#include "SpiceKernelFileRetirement.hpp"
 #include "SpiceFrameKernelWriter.hpp"
 #include "FileUtil.hpp"
 #include "IntrusionEvent.hpp"
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <exception>
+#include <limits>
+#include <memory>
+#include <set>
+#include <typeinfo>
+
+namespace
+{
+Integer IntrusionSensorFrameId(Spacecraft *spacecraft, GmatBase *sensor,
+      const std::string &locatorName)
+{
+   const StringArray hardware = spacecraft->GetRefObjectNameArray(Gmat::HARDWARE);
+   const auto position = std::find(hardware.begin(), hardware.end(), sensor->GetName());
+   if (position == hardware.end())
+      throw EventException("Error setting imagers on IntrusionLocator " +
+            locatorName + ", Imager " + sensor->GetName() +
+            " not attached to spacecraft " + spacecraft->GetName() + "\n");
+
+   const Integer spacecraftId = spacecraft->GetIntegerParameter("NAIFId");
+   if (spacecraftId >= 0)
+      throw EventException("Error in IntrusionLocator::Initialize, "
+            "the spacecraft NAIF ID for spacecraft \"" + spacecraft->GetName() +
+            "\" must be negative in order to properly associate it with "
+            "the generated SCLK file for intrusion.\n");
+
+   const long long hardwareIndex = position - hardware.begin();
+   const long long frameId = static_cast<long long>(spacecraftId) * 1000 -
+         hardwareIndex - 1;
+   if (frameId < std::numeric_limits<Integer>::min() ||
+       frameId > std::numeric_limits<Integer>::max())
+      throw EventException("Generated imager NAIF ID is outside the integer range "
+            "for spacecraft " + spacecraft->GetName() +
+            " on IntrusionLocator " + locatorName);
+   return static_cast<Integer>(frameId);
+}
+
+void CheckIntrusionFrameLookup()
+{
+   if (failed_c())
+   {
+      SpiceChar message[MAX_LONG_MESSAGE_VALUE];
+      getmsg_c("LONG", MAX_LONG_MESSAGE_VALUE, message);
+      reset_c();
+      throw EventException("Cannot resolve intrusion frame: " + std::string(message));
+   }
+}
+
+std::string AvailableIntrusionFrameName(std::string name, Integer frameId,
+      bool instrumentAlias)
+{
+   // FRAME_<name> must fit a 32-character kernel variable. Case folding and
+   // truncation must not rebind another loaded frame or instrument alias.
+   if (name.size() > 26) name.resize(26);
+   size_t suffix = 0;
+   for (;;)
+   {
+      SpiceInt existingFrame = 0, existingBody = 0;
+      SpiceBoolean foundBody = SPICEFALSE;
+      namfrm_c(name.c_str(), &existingFrame);
+      CheckIntrusionFrameLookup();
+      if (instrumentAlias)
+      {
+         bodn2c_c(name.c_str(), &existingBody, &foundBody);
+         CheckIntrusionFrameLookup();
+      }
+      if ((existingFrame == 0 || existingFrame == frameId) &&
+          (!foundBody || existingBody == frameId))
+         return name;
+      name = "GMAT_" + std::to_string(frameId) +
+            (instrumentAlias ? "_I" : "_C") + std::to_string(++suffix);
+      if (name.size() > 26)
+         throw EventException("Cannot allocate an intrusion frame name for ID " +
+               std::to_string(frameId));
+   }
+}
+
+std::string RegisteredIntrusionFrameName(Integer frameId)
+{
+   SpiceChar name[128];
+   frmnam_c(frameId, sizeof(name), name);
+   CheckIntrusionFrameLookup();
+   if (name[0] == '\0')
+      throw EventException("No registered intrusion frame for ID " +
+            std::to_string(frameId));
+   return name;
+}
+
+void ReleaseIntrusionKernels(SpiceInterface *&owner, StringArray &frames,
+      StringArray &instruments, std::string &spacecraftFrame)
+{
+   std::set<std::string> paths(frames.begin(), frames.end());
+   paths.insert(instruments.begin(), instruments.end());
+   if (!spacecraftFrame.empty()) paths.insert(spacecraftFrame);
+   std::exception_ptr firstFailure;
+   for (const auto &path : paths)
+   {
+      if (path.empty()) continue;
+      try { GmatSpiceKernelFiles::Retire(owner, path); }
+      catch (...) { if (!firstFailure) firstFailure = std::current_exception(); }
+   }
+   // Keep failed paths and their reader available for an idempotent retry.
+   if (firstFailure) std::rethrow_exception(firstFailure);
+   std::unique_ptr<SpiceInterface> retired(owner);
+   owner = NULL;
+   frames.clear();
+   instruments.clear();
+   spacecraftFrame.clear();
+   retired.reset();
+}
+}
 
 //#define DEBUG_SET
 //#define DEBUG_SETREF
@@ -63,7 +191,9 @@ const std::string IntrusionLocator::PARAMETER_TEXT[
       "IntrudingBodies",
       "MinimumPhase",
       "ReportCoordinates",
-      "SpiceGridFrameFile"
+      "SpiceGridFrameFile",
+      "RootFindingMethod",
+      "RootTolerance"
    };
 
 const Gmat::ParameterType IntrusionLocator::PARAMETER_TYPE[
@@ -74,7 +204,9 @@ const Gmat::ParameterType IntrusionLocator::PARAMETER_TYPE[
       Gmat::OBJECTARRAY_TYPE,
       Gmat::REAL_TYPE,
       Gmat::STRING_TYPE,
-      Gmat::STRING_TYPE
+      Gmat::STRING_TYPE,
+      Gmat::ENUMERATION_TYPE,
+      Gmat::REAL_TYPE
    };
 
 
@@ -131,26 +263,23 @@ IntrusionLocator::~IntrusionLocator()
          instanceName.c_str(), this);
    #endif
 
-   // Remove the temp files
-   if (spice)
+   try
    {
-      for (Integer fileIdx = 0; fileIdx < instFKFileNames.size(); ++fileIdx)
-         spice->UnloadKernel(instFKFileNames.at(fileIdx));
-
-      for (Integer fileIdx = 0; fileIdx < ikFileNames.size(); ++fileIdx)
-         spice->UnloadKernel(ikFileNames.at(fileIdx));
-
-      spice->UnloadKernel(scFKFileName);
+      ReleaseIntrusionKernels(spice, instFKFileNames, ikFileNames, scFKFileName);
+   }
+   catch (BaseException &e)
+   {
+      MessageInterface::ShowMessage("Error releasing generated intrusion kernels for %s: %s\n",
+            instanceName.c_str(), e.GetFullMessage().c_str());
+   }
+   catch (...)
+   {
+      MessageInterface::ShowMessage("Error releasing generated intrusion kernels for %s\n",
+            instanceName.c_str());
    }
 
-   for (Integer fileIdx = 0; fileIdx < instFKFileNames.size(); ++fileIdx)
-      remove(instFKFileNames.at(fileIdx).c_str());
-
-   for (Integer fileIdx = 0; fileIdx < ikFileNames.size(); ++fileIdx)
-      remove(ikFileNames.at(fileIdx).c_str());
-
-   remove(scFKFileName.c_str());
-
+   delete spice;
+   spice = NULL;
    TakeAction("Clear");
 }
 
@@ -171,9 +300,11 @@ IntrusionLocator::IntrusionLocator(const IntrusionLocator &cl) :
    reportCoordinates(cl.reportCoordinates),
    spice(NULL),
    gridFrameFile(cl.gridFrameFile),
-   instFKFileNames(cl.instFKFileNames),
-   scFKFileName(cl.scFKFileName),
-   ikFileNames(cl.ikFileNames)
+   instFKFileNames(),
+   scFKFileName(),
+   ikFileNames(),
+   rootFindingMethod(cl.rootFindingMethod),
+   rootTolerance(cl.rootTolerance)
 {
    sensorNames.clear();
    sensors.clear();
@@ -222,7 +353,10 @@ IntrusionLocator& IntrusionLocator::operator=(const IntrusionLocator &c)
 {
    if (this != &c)
    {
+      isInitialized = false;
+      ReleaseIntrusionKernels(spice, instFKFileNames, ikFileNames, scFKFileName);
       EventLocator::operator=(c);
+      isInitialized = false;
 
       centralBodyName = c.centralBodyName;
       centralBody = c.centralBody;
@@ -230,9 +364,10 @@ IntrusionLocator& IntrusionLocator::operator=(const IntrusionLocator &c)
       reportCoordinates = c.reportCoordinates;
       spice = NULL;
       gridFrameFile = c.gridFrameFile;
-      instFKFileNames = c.instFKFileNames;
-      scFKFileName = c.scFKFileName;
-      ikFileNames = c.ikFileNames;
+      rootFindingMethod = c.rootFindingMethod;
+      rootTolerance = c.rootTolerance;
+      // Generated files belong to the destination's next initialization.
+      // A value copy must never acquire ownership of the source's kernels.
 
       sensorNames.clear();
       sensors.clear();
@@ -280,7 +415,9 @@ IntrusionLocator& IntrusionLocator::operator=(const IntrusionLocator &c)
 //------------------------------------------------------------------------------
 GmatBase *IntrusionLocator::Clone() const
 {
-   return new IntrusionLocator(*this);
+   auto value = std::make_unique<IntrusionLocator>(*this);
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //---------------------------------------------------------------------------
@@ -294,7 +431,45 @@ GmatBase *IntrusionLocator::Clone() const
 //---------------------------------------------------------------------------
 void IntrusionLocator::Copy(const GmatBase* orig)
 {
-   operator=(*((IntrusionLocator *)(orig)));
+   const auto *locator = dynamic_cast<const IntrusionLocator*>(orig);
+   if (!locator || typeid(*locator) != typeid(IntrusionLocator) ||
+         typeid(*this) != typeid(IntrusionLocator))
+      throw EventException("Cannot copy incompatible IntrusionLocator.\n");
+   if (locator == this) return;
+   const auto previous = GetFunctionValueContext();
+   operator=(*locator);
+   RebindFunctionValueContext(*locator);
+}
+
+bool IntrusionLocator::HasEventLocatorValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(IntrusionLocator);
+}
+
+bool IntrusionLocator::RebindFunctionValueReferencesImpl(const GmatBase &source,
+      SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *locator = dynamic_cast<const IntrusionLocator*>(&source);
+   if (!locator || typeid(*locator) != typeid(IntrusionLocator) ||
+         !HasEventLocatorValueReferenceProvider())
+      throw EventException("Incompatible IntrusionLocator function value.\n");
+   StringArray boundSensorNames, boundBodyNames;
+   ObjectArray boundSensors = MapFunctionValueObjects(locator->sensors,
+         locator->sensorNames, boundSensorNames, resolve);
+   ObjectArray boundBodies = MapFunctionValueObjects(locator->intrudingBodies,
+         locator->intrudingBodyNames, boundBodyNames, resolve);
+   auto *body = dynamic_cast<CelestialBody*>(MapFunctionValueReference(locator->centralBody, resolve));
+   std::string bodyName = body ? body->GetName() : locator->centralBodyName;
+   isInitialized = false;
+   ReleaseIntrusionKernels(spice, instFKFileNames, ikFileNames, scFKFileName);
+   EventLocator::RebindFunctionValueReferencesImpl(source, system, resolve);
+   sensors.swap(boundSensors);
+   sensorNames.swap(boundSensorNames);
+   intrudingBodies.swap(boundBodies);
+   intrudingBodyNames.swap(boundBodyNames);
+   centralBody = body;
+   centralBodyName.swap(bodyName);
+   return true;
 }
 
 
@@ -390,6 +565,7 @@ std::string IntrusionLocator::GetParameterTypeString(const Integer id) const
 //------------------------------------------------------------------------------
 std::string IntrusionLocator::GetStringParameter(const Integer id) const
 {
+   if (id == ROOT_FINDING_METHOD) return rootFindingMethod;
    if (id == REPORT_COORDINATES)
       return reportCoordinates;
    if (id == CENTRAL_BODY)
@@ -415,6 +591,14 @@ std::string IntrusionLocator::GetStringParameter(const Integer id) const
 bool IntrusionLocator::SetStringParameter(const Integer id,
    const std::string &value)
 {
+   if (id == ROOT_FINDING_METHOD)
+   {
+      if (value != "SPICE" && value != "Brent")
+         throw EventException("RootFindingMethod must be SPICE or Brent");
+      rootFindingMethod = value;
+      isInitialized = false;
+      return true;
+   }
    #ifdef DEBUG_SET
       MessageInterface::ShowMessage("In SetStringParameter with id = %d, value = %s\n",
          id, value.c_str());
@@ -753,6 +937,7 @@ const StringArray & IntrusionLocator::GetStringArrayParameter(
 //------------------------------------------------------------------------------
 Real IntrusionLocator::GetRealParameter(const Integer id) const
 {
+   if (id == ROOT_TOLERANCE) return rootTolerance;
    if (id == MINIMUM_PHASE)
       return minimumPhase;
 
@@ -775,9 +960,17 @@ Real IntrusionLocator::GetRealParameter(const Integer id) const
 Real IntrusionLocator::SetRealParameter(const Integer id,
    const Real value)
 {
+   if (id == ROOT_TOLERANCE)
+   {
+      if (!std::isfinite(value) || value <= 0)
+         throw EventException("RootTolerance must be finite and positive in seconds");
+      rootTolerance = value;
+      isInitialized = false;
+      return rootTolerance;
+   }
    if (id == MINIMUM_PHASE)
    {
-      if (value < 0.0 || value > 1.0)
+      if (!std::isfinite(value) || value < 0.0 || value > 1.0)
       {
          std::string errmsg = "*** Error *** The value" +
             GmatStringUtil::ToString(value) + "for field MinimumPhase on "
@@ -787,6 +980,7 @@ Real IntrusionLocator::SetRealParameter(const Integer id,
       }
 
       minimumPhase = value;
+      isInitialized = false;
       return minimumPhase;
    }
 
@@ -940,6 +1134,9 @@ const StringArray& IntrusionLocator::GetPropertyEnumStrings(const Integer id) co
    static StringArray enumStrings;
    switch (id)
    {
+   case ROOT_FINDING_METHOD:
+      enumStrings = {"SPICE", "Brent"};
+      return enumStrings;
    case REPORT_COORDINATES:
       enumStrings.clear();
       enumStrings.push_back("SensorFrame");
@@ -948,6 +1145,13 @@ const StringArray& IntrusionLocator::GetPropertyEnumStrings(const Integer id) co
    default:
       return EventLocator::GetPropertyEnumStrings(id);
    }
+}
+
+bool IntrusionLocator::IsParameterCloaked(const Integer id) const
+{
+   if (id == ROOT_FINDING_METHOD) return rootFindingMethod == "SPICE";
+   if (id == ROOT_TOLERANCE) return rootFindingMethod == "SPICE" && rootTolerance == 1.0e-6;
+   return EventLocator::IsParameterCloaked(id);
 }
 
 //------------------------------------------------------------------------------
@@ -1025,35 +1229,18 @@ const ObjectTypeArray& IntrusionLocator::GetTypesForList(const std::string &labe
 GmatBase* IntrusionLocator::GetRefObject(const UnsignedInt type,
    const std::string &name)
 {
-   switch (type)
-   {
-   case Gmat::HARDWARE:
-      for (UnsignedInt ii = 0; ii < sensorNames.size(); ii++)
-      {
-         if (name == sensorNames.at(ii))
-         {
-            return sensors.at(ii);
-         }
-      }
-      break;
-
-   case Gmat::CELESTIAL_BODY:
-   case Gmat::SPACECRAFT:
-      if (name == centralBodyName)
-         return centralBody;
-
-      for (UnsignedInt ii = 0; ii < intrudingBodyNames.size(); ii++)
-      {
-         if (name == intrudingBodyNames.at(ii))
-         {
-            return intrudingBodies.at(ii);
-         }
-      }
-      break;
-
-   default:
-      break;
-   }
+   const auto matches = [type](GmatBase *object)
+   { return object && (type == Gmat::UNKNOWN_OBJECT || object->IsOfType(type)); };
+   for (size_t i = 0; i < sensors.size(); ++i)
+      if (matches(sensors[i]) && (sensors[i]->GetName() == name ||
+            (i < sensorNames.size() && sensorNames[i] == name)))
+         return sensors[i];
+   if (matches(centralBody) && (name == centralBodyName || name == centralBody->GetName()))
+      return centralBody;
+   for (size_t i = 0; i < intrudingBodies.size(); ++i)
+      if (matches(intrudingBodies[i]) && (intrudingBodies[i]->GetName() == name ||
+            (i < intrudingBodyNames.size() && intrudingBodyNames[i] == name)))
+         return intrudingBodies[i];
    return EventLocator::GetRefObject(type, name);
 }
 
@@ -1376,6 +1563,8 @@ bool IntrusionLocator::TakeAction(const std::string &action,
 //------------------------------------------------------------------------------
 bool IntrusionLocator::Initialize()
 {
+   isInitialized = false;
+   ReleaseIntrusionKernels(spice, instFKFileNames, ikFileNames, scFKFileName);
    bool retval = false;
 #ifdef DEBUG_IntrusionLocator_INIT
    MessageInterface::ShowMessage("In CL::Init for %s\n", instanceName.c_str());
@@ -1457,6 +1646,7 @@ bool IntrusionLocator::Initialize()
 
          // First create the spacecraft frame
          SpiceFrameKernelWriter frameWriter = SpiceFrameKernelWriter();
+         std::string scBodyFrameName;
 
          if (reportCoordinates == "SensorFrame")
          {
@@ -1474,8 +1664,10 @@ bool IntrusionLocator::Initialize()
 
             std::string scIdString = GmatStringUtil::ToString(satNAIFId);
             std::string scFrameIdString = GmatStringUtil::ToString(satNAIFId * 1000);
-            std::string scBodyFrameName = GmatStringUtil::ToUpper(sat->GetName());
-            scFKFileName = spiceFilePath + sat->GetName() + now + ".tf";
+            scBodyFrameName = AvailableIntrusionFrameName(
+                  GmatStringUtil::ToUpper(sat->GetName()), satNAIFId * 1000, false);
+            scFKFileName = spiceFilePath + sat->GetName() + "_" +
+                  std::to_string(satNAIFId * 1000) + "_" + now + ".tf";
             frameWriter.WriteCKBasedFrame(scFKFileName, scBodyFrameName,
                scFrameIdString, scIdString);
             frameWriter.LoadKernel(scFKFileName);
@@ -1483,43 +1675,14 @@ bool IntrusionLocator::Initialize()
 
          for (Integer sensIdx = 0; sensIdx < sensors.size(); ++sensIdx)
          {
-            // To get a unique id, check which piece of hardware the current sensor is
-            StringArray allHardwareNames = sat->GetRefObjectNameArray(Gmat::HARDWARE);
-            Integer hardwareIdx = -1;
-            for (Integer ii = 0; ii < allHardwareNames.size(); ++ii)
-            {
-               if (sensors.at(sensIdx)->GetName() == allHardwareNames.at(ii))
-               {
-                  hardwareIdx = ii;
-                  break;
-               }
-            }
-
-            if (hardwareIdx == -1)
-            {
-               std::string errmsg = "Error setting imagers on IntrusionLocator ";
-               errmsg += instanceName + ", Imager " + sensors.at(sensIdx)->GetName() +
-                  " not attached to spacecraft " + sat->GetName() + "\n";
-               throw EventException(errmsg);
-            }
-
             // Prepare an id for this hardware, recommended by SPICE documents
             // to use s/c ID * 1000 - instrument number
-            Integer frameId = 0;
-            if (satNAIFId < 0)
-               frameId = satNAIFId * 1000 - hardwareIdx - 1;
-            else
-            {
-               std::string errmsg = "Error in IntrusionLocator::Initialize, "
-                  "the spacecraft NAIF ID for spacecraft \"" + sat->GetName() +
-                  "\" must be negative in order to properly associate it with "
-                  "the generated SCLK file for intrusion.\n";
-               throw EventException(errmsg);
-            }
-
+            const Integer frameId = IntrusionSensorFrameId(sat, sensors.at(sensIdx),
+                  instanceName);
             std::string frameIdStr = GmatStringUtil::ToString(frameId);
-            std::string frameName = GmatStringUtil::ToUpper(sat->GetName()) +
-               "_" + GmatStringUtil::ToUpper(sensors.at(sensIdx)->GetName());
+            std::string frameName = AvailableIntrusionFrameName(
+                  GmatStringUtil::ToUpper(sat->GetName()) + "_" +
+                  GmatStringUtil::ToUpper(sensors.at(sensIdx)->GetName()), frameId, true);
 
             // Get the rotation matrix
             Rmatrix33 rotMat = ((Imager*)sensors.at(sensIdx))->GetRotationMatrix();
@@ -1538,14 +1701,13 @@ bool IntrusionLocator::Initialize()
             }
 
             // Generate the sensor frame
-            instFKFileNames.push_back(spiceFilePath + sensors.at(sensIdx)->GetName() + "ImagerFrame_" + now + ".tf");
+            instFKFileNames.push_back(spiceFilePath + sensors.at(sensIdx)->GetName() +
+                  "ImagerFrame_" + std::to_string(frameId) + "_" + now + ".tf");
             if (GmatFileUtil::DoesFileExist(instFKFileNames.back()))
                remove(instFKFileNames.back().c_str());
             if (reportCoordinates == "SensorFrame")
             {
                std::string scIdString = GmatStringUtil::ToString(satNAIFId);
-               std::string scFrameIdString = GmatStringUtil::ToString(satNAIFId * 1000);
-               std::string scBodyFrameName = GmatStringUtil::ToUpper(sat->GetName());
                // Now create the sensor's frame
                frameWriter.WriteFixedOffsetFrame(instFKFileNames.back(), frameName, frameIdStr,
                   scIdString, scBodyFrameName, rotMatColumn);
@@ -1674,7 +1836,8 @@ bool IntrusionLocator::Initialize()
             }
 
             // Create the instrument definition file for the FOV's
-            ikFileNames.push_back(spiceFilePath + sensors.at(sensIdx)->GetName() + "ImagerFOV_" + now + ".ti");
+            ikFileNames.push_back(spiceFilePath + sensors.at(sensIdx)->GetName() +
+                  "ImagerFOV_" + std::to_string(frameId) + "_" + now + ".ti");
             if (GmatFileUtil::DoesFileExist(ikFileNames.back()))
                remove(ikFileNames.back().c_str());
             std::ofstream ikStream;
@@ -1708,9 +1871,9 @@ bool IntrusionLocator::Initialize()
             {
                Rvector coneAngles = theFOV->GetRvectorParameter("ConeAngles");
                Rvector clockAngles = theFOV->GetRvectorParameter("ClockAngles");
-               std::string lengthSpaces = "INS" + frameIdStr + "_FOV_BOUNDARY_CORNERS = ( ";
-               lengthSpaces = std::string(" ", lengthSpaces.size());
-               ikStream << "INS" << frameIdStr << "_FOV_BOUNDARY_CORNERS = ( ";
+               // GETFOV accepts this equivalent shorter keyword, which also
+               // fits the kernel-pool name limit for large instrument IDs.
+               ikStream << "INS" << frameIdStr << "_FOV_BOUNDARY = ( ";
                for (Integer i = 0; i < coneAngles.GetSize(); i++)
                {
                   Real az = GmatMathUtil::DegToRad(-clockAngles.GetElement(i));
@@ -1843,8 +2006,11 @@ void IntrusionLocator::FindEvents()
    // Loop through each of the imagers to run through intrusion detection
    for (Integer sensIdx = 0; sensIdx < sensors.size(); ++sensIdx)
    {
-      std::string instName = GmatStringUtil::ToUpper(sat->GetName()) +
-         "_" + GmatStringUtil::ToUpper(sensors.at(sensIdx)->GetName());
+      // Use the binding generated at initialization, including collision-safe
+      // names, for both event detection and the reported sensor coordinates.
+      const std::string frameName = RegisteredIntrusionFrameName(
+            IntrusionSensorFrameId(sat, sensors.at(sensIdx), instanceName));
+      const std::string instName = frameName;
 
       std::string targetShape, targetFrame;
       Integer targetNaifId = 0;
@@ -1889,7 +2055,7 @@ void IntrusionLocator::FindEvents()
          em->GetIntrusionIntervals(instName, intrudingBodyNames.at(targetIdx),
             targetShape, targetFrame, targetNaifId, abCorr, occultBods, maxPhaseAngle, initialEp, finalEp,
             useEntireInterval, useLightTimeDelay, stepSize,
-            numIntervals, intervalTypes, starts, ends);
+            numIntervals, intervalTypes, starts, ends, rootFindingMethod, rootTolerance);
 
          for (Integer intervalIdx = 0; intervalIdx < numIntervals; ++intervalIdx)
          {
@@ -1905,8 +2071,6 @@ void IntrusionLocator::FindEvents()
                epochArray.push_back(intermediateTime);
 
                // First get the position of the target w.r.t. the sensor
-               std::string frameName = GmatStringUtil::ToUpper(sat->GetName()) +
-                  "_" + GmatStringUtil::ToUpper(sensors.at(sensIdx)->GetName());
                Rvector3 targPos;
                Real lightTime = 0.0;
 

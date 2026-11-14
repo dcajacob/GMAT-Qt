@@ -108,7 +108,11 @@
 				    <para>GUI, script</para>
 				  </listitem>
 				</varlistentry>
-			  </variablelist></entry>
+			  <varlistentry>
+                  <term>Units</term>
+                  <listitem><para>On/Off selection; no physical units.</para></listitem>
+                </varlistentry>
+              </variablelist></entry>
 	      </row>
 		</tbody>
 	  </tgroup>

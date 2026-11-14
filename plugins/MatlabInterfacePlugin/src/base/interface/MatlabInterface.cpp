@@ -32,6 +32,7 @@
 #include <stdlib.h>         // for NULL
 #include <string.h>         // for memcpy()
 #include <sstream>          // for std::stringstream
+#include <algorithm>        // for bounded engine-array copies
 
 // Clear a build error with Visual Studio 2010
 #ifdef _CHAR16T
@@ -40,6 +41,9 @@
 
 #include "engine.h"         // for Matlab Engine
 #include "matrix.h"         // for Matlab mxArray
+#ifdef GMAT_MATLAB_QT_ENGINE
+#include "MatlabLibraryExecutor.hpp"
+#endif
 
 #ifdef __WXMAC__
 #include <stdlib.h>         // for system() to launch X11 application
@@ -47,10 +51,24 @@
 #endif
 
 #include "MatlabInterface.hpp"
+#include "MatlabCallbackBridge.hpp"
+#include "MatlabArrayConversion.hpp"
 #include "InterfaceException.hpp"
 #include "GmatGlobal.hpp"          // for IsMatlabDebugOn()
 #include "StringUtil.hpp"          // for DecomposeBy()
 #include "MessageInterface.hpp"
+#include <memory>
+#include <codecvt>
+#include <locale>
+#include <atomic>
+#include <limits>
+#include <cmath>
+#include <type_traits>
+#if defined(_WIN32) || defined(__WIN32__)
+#include <process.h>
+#else
+#include <unistd.h>
+#endif
 
 //#define DEBUG_MATLAB_OPEN_CLOSE
 //#define DEBUG_MATLAB_PUT_REAL
@@ -58,11 +76,151 @@
 //#define DEBUG_MATLAB_GET_STRING
 //#define DEBUG_MATLAB_EVAL
 
+namespace
+{
+std::string MatlabCharacterData(const mxArray *value)
+{
+   const size_t count = mxGetNumberOfElements(value);
+   const mxChar *characters = mxGetChars(value);
+   if (count && !characters)
+      throw InterfaceException("MATLAB character output has no character data.");
+   std::u16string units;
+   units.reserve(count);
+   for (size_t i = 0; i < count; ++i) units.push_back(static_cast<char16_t>(characters[i]));
+   try
+   {
+      std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
+      std::string result = converter.to_bytes(units.data(), units.data() + units.size());
+      if (converter.converted() != units.size())
+         throw InterfaceException("MATLAB character output contains incomplete UTF-16.");
+      return result;
+   }
+   catch (const std::range_error &)
+   {
+      throw InterfaceException("MATLAB character output contains invalid UTF-16.");
+   }
+}
+
+template <typename T>
+bool MatlabNumericData(const mxArray *value, RealArray &result)
+{
+   const size_t count = mxGetNumberOfElements(value);
+   const T *data = static_cast<const T*>(mxGetData(value));
+   if (count && !data)
+      throw InterfaceException("MATLAB numeric output has no data.");
+   result.reserve(count);
+   for (size_t i = 0; i < count; ++i)
+   {
+      const Real number = static_cast<Real>(data[i]);
+      if constexpr (std::is_integral<T>::value && sizeof(T) >= 8)
+      {
+         // A 64-bit integer need not fit exactly in native Real. Test range
+         // before the round-trip cast, avoiding undefined overflow at 2^63/64.
+         const Real upper = std::ldexp(1.0, std::numeric_limits<T>::digits);
+         const Real lower = std::is_signed<T>::value ? -upper : 0.0;
+         if (number < lower || number >= upper || static_cast<T>(number) != data[i])
+         {
+            result.clear();
+            return false;
+         }
+      }
+      result.push_back(number);
+   }
+   return true;
+}
+
+MatlabValue CaptureMatlabValue(const mxArray *value)
+{
+   MatlabValue result;
+   if (!value) { result.className = "unset"; return result; }
+   const char *name = mxGetClassName(value);
+   result.className = name ? name : "unknown";
+   const size_t rows = mxGetM(value), columns = mxGetN(value);
+   const size_t count = mxGetNumberOfElements(value);
+   const size_t limit = static_cast<size_t>(std::numeric_limits<Integer>::max());
+   if (rows > limit || columns > limit || count > limit)
+      throw InterfaceException("MATLAB object output exceeds native dimension capacity.");
+   result.rows = static_cast<Integer>(rows);
+   result.columns = static_cast<Integer>(columns);
+   if (mxGetNumberOfDimensions(value) != 2 || mxIsSparse(value) || mxIsComplex(value))
+      return result;
+   if (mxIsChar(value))
+   {
+      result.type = MatlabValue::Type::CHARACTER;
+      result.text = MatlabCharacterData(value);
+   }
+   else if (mxIsStruct(value) && count == 1)
+   {
+      result.type = MatlabValue::Type::STRUCTURE;
+      const int fields = mxGetNumberOfFields(value);
+      if (fields < 0) throw InterfaceException("MATLAB structure has an invalid field count.");
+      result.fieldNames.reserve(static_cast<size_t>(fields));
+      result.children.reserve(static_cast<size_t>(fields));
+      for (int i = 0; i < fields; ++i)
+      {
+         const char *field = mxGetFieldNameByNumber(value, i);
+         if (!field) throw InterfaceException("MATLAB structure has an unnamed field.");
+         result.fieldNames.emplace_back(field);
+         result.children.push_back(CaptureMatlabValue(mxGetFieldByNumber(value, 0, i)));
+      }
+   }
+   else if (mxIsCell(value))
+   {
+      result.type = MatlabValue::Type::CELL;
+      result.children.reserve(count);
+      for (size_t i = 0; i < count; ++i)
+         result.children.push_back(CaptureMatlabValue(mxGetCell(value, i)));
+   }
+   else
+   {
+      bool numeric = false;
+      switch (mxGetClassID(value))
+      {
+         case mxDOUBLE_CLASS: numeric = MatlabNumericData<double>(value, result.numbers); break;
+         case mxSINGLE_CLASS: numeric = MatlabNumericData<float>(value, result.numbers); break;
+         case mxLOGICAL_CLASS: numeric = MatlabNumericData<mxLogical>(value, result.numbers); break;
+         case mxINT8_CLASS: numeric = MatlabNumericData<mxInt8>(value, result.numbers); break;
+         case mxUINT8_CLASS: numeric = MatlabNumericData<mxUint8>(value, result.numbers); break;
+         case mxINT16_CLASS: numeric = MatlabNumericData<mxInt16>(value, result.numbers); break;
+         case mxUINT16_CLASS: numeric = MatlabNumericData<mxUint16>(value, result.numbers); break;
+         case mxINT32_CLASS: numeric = MatlabNumericData<mxInt32>(value, result.numbers); break;
+         case mxUINT32_CLASS: numeric = MatlabNumericData<mxUint32>(value, result.numbers); break;
+         case mxINT64_CLASS: numeric = MatlabNumericData<mxInt64>(value, result.numbers); break;
+         case mxUINT64_CLASS: numeric = MatlabNumericData<mxUint64>(value, result.numbers); break;
+         default: break;
+      }
+      if (numeric)
+         result.type = mxIsLogical(value) ? MatlabValue::Type::LOGICAL : MatlabValue::Type::NUMERIC;
+   }
+   return result;
+}
+}
+
 //--------------------------------------
 //  initialize static variables
 //--------------------------------------
 MatlabInterface* MatlabInterface::instance = NULL;
 const int MatlabInterface::MAX_OUT_SIZE = 8192;
+
+struct MatlabCallbackState
+{
+   std::vector<char> output;
+   Integer outputSize;
+   std::string callingName;
+   MatlabCallbackState(Integer capacity,const std::string &name)
+      : output(static_cast<size_t>(capacity)+1,0),outputSize(capacity),callingName(name) {}
+};
+
+std::shared_ptr<MatlabCallbackState> MatlabInterface::GetCallbackState()
+{
+   auto state=std::static_pointer_cast<MatlabCallbackState>(MatlabCallbackBridge::LocalState());
+   if(!state) {
+      state=std::make_shared<MatlabCallbackState>(MAX_OUT_SIZE,callingObjectName);
+      MatlabCallbackBridge::LocalState()=state;
+   }
+   return state;
+}
+
 
 const std::string
 MatlabInterface::PARAMETER_TEXT[MatlabInterfaceParamCount - InterfaceParamCount] =
@@ -109,34 +267,22 @@ MatlabInterface* MatlabInterface::Instance()
 //------------------------------------------------------------------------------
 int MatlabInterface::Open(const std::string &name)
 {
-   //=======================================================
-   #ifdef __WXMAC__
-   //=======================================================
-   
-   return OpenEngineOnMac();
-   
-   //=======================================================
-   #else
-   //=======================================================
-   
-   // If opening MATLAB engine for single use
-   if (matlabMode == SINGLE_USE)
-      return OpenSingleEngine(name);
-   else if (matlabMode == SHARED)
-      return OpenSharedEngine();
-   else
-   {
-      #ifdef DEBUG_OPEN_CLOSE
-      MessageInterface::ShowMessage
-         ("MatlabInterface::Open() name='%s', returning 0, matlab mode is invalid, "
-          "expecting 20 or 21\n");
-      #endif
-      return 0;
+   if(MatlabCallbackBridge::IsActive()) {
+      if(!name.empty() && name!="GmatMatlab")
+         throw InterfaceException("A callback must reuse its waiting MATLAB session");
+      return matlabMode==NO_MATLAB ? 0 : 1;
    }
-   
-   //=======================================================
-   #endif  // End-ifdef __WXMAC__
-   //=======================================================
+
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return Open(name);});
+#endif
+   if (matlabMode == SINGLE_USE) return OpenSingleEngine(name);
+   if (matlabMode != SHARED) return 0;
+#ifdef __WXMAC__
+   return OpenEngineOnMac();
+#else
+   return OpenSharedEngine();
+#endif
 } // end Open()
 
 
@@ -152,41 +298,92 @@ int MatlabInterface::Open(const std::string &name)
 //------------------------------------------------------------------------------
 int MatlabInterface::Close(const std::string &name)
 {
-   //=======================================================
-   #ifdef __WXMAC__
-   //=======================================================
-   
+   if(MatlabCallbackBridge::IsActive())
+      throw InterfaceException("Cannot close the waiting MATLAB session from its callback");
+
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return Close(name);});
+#endif
+   if (matlabMode == SINGLE_USE) return CloseSingleEngine(name);
+   if (matlabMode != SHARED) return 0;
+#ifdef __WXMAC__
    return CloseEngineOnMac();
-   
-   //=======================================================
-   #else
-   //=======================================================
-   
-   if (matlabMode == SINGLE_USE)
-      return CloseSingleEngine(name);
-   else if (matlabMode == SHARED)
-      return CloseSharedEngine();
-   else
-   {
-      #ifdef DEBUG_OPEN_CLOSE
-      MessageInterface::ShowMessage
-         ("MatlabInterface::Close() name='%s', returning 0, matlab mode is invalid, "
-          "expecting 20 or 21\n");
-      #endif
-      return 0;
-   }
-   
-   //=======================================================
-   #endif
-   //=======================================================
+#else
+   return CloseSharedEngine();
+#endif
 } // end Close()
 
+
+std::string MatlabInterface::CharacterLiteral(const std::string &value)
+{
+   std::string result = "['";
+   for (unsigned char ch : value)
+   {
+      if (ch == '\n' || ch == '\r' || ch == 0)
+         result += "' char(" + std::to_string(static_cast<unsigned int>(ch)) + ") '";
+      else
+      {
+         result += static_cast<char>(ch);
+         if (ch == '\'') result += '\'';
+      }
+   }
+   return result + "']";
+}
+
+// Reserve an unused base-workspace name without replacing a user variable.
+// The process id separates clients sharing a Windows automation server; the
+// serial also separates nested calls and reloads check existing names again.
+std::string MatlabInterface::CreateTemporaryVariable()
+{
+   return CreateTemporaryVariable(StringArray{});
+}
+
+std::string MatlabInterface::CreateTemporaryVariable(const StringArray &excluded)
+{
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabCallbackBridge::IsActive() && !MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return CreateTemporaryVariable(excluded);});
+#endif
+   if (!MatlabCallbackBridge::IsActive() && !enginePtr)
+      throw MatlabEngineConnectionException("The MATLAB engine is not open for result capture.");
+   static std::atomic<unsigned long long> serial{0};
+#if defined(_WIN32) || defined(__WIN32__)
+   const auto processId = _getpid();
+#else
+   const auto processId = getpid();
+#endif
+   for (;;)
+   {
+      const std::string name = "gmat_io_" + std::to_string(processId) + "_" +
+         std::to_string(serial.fetch_add(1, std::memory_order_relaxed));
+      if (std::find(excluded.begin(), excluded.end(), name) != excluded.end()) continue;
+      if(MatlabCallbackBridge::IsActive()) {
+         MatlabCallbackRequest request;request.operation=MatlabCallbackRequest::Operation::RESERVE;request.name=name;
+         if(MatlabCallbackBridge::Execute(request).reserved) return name;
+         continue;
+      }
+      std::unique_ptr<mxArray, decltype(&mxDestroyArray)> previous(
+         engGetVariable(enginePtr, name.c_str()), &mxDestroyArray);
+      if (previous) continue;
+      std::unique_ptr<mxArray, decltype(&mxDestroyArray)> placeholder(
+         mxCreateDoubleMatrix(0, 0, mxREAL), &mxDestroyArray);
+      if (!placeholder)
+         throw InterfaceException("Cannot allocate a MATLAB temporary variable.");
+      if (engPutVariable(enginePtr, name.c_str(), placeholder.get()) != 0)
+         throw MatlabEngineConnectionException("Cannot reserve a MATLAB temporary variable.");
+      return name;
+   }
+}
 
 //------------------------------------------------------------------------------
 // void SetCallingObjectName(const std::string &calledFrom)
 //------------------------------------------------------------------------------
 void MatlabInterface::SetCallingObjectName(const std::string &calledFrom)
 {
+   if(MatlabCallbackBridge::IsActive()) { GetCallbackState()->callingName=calledFrom;return; }
+
+#ifdef GMAT_MATLAB_QT_ENGINE
+   MatlabLibraries().EnsureIdle();
+#endif
    callingObjectName = calledFrom;
    #ifdef DEBUG_CALLED_FROM
    MessageInterface::ShowMessage
@@ -201,6 +398,11 @@ void MatlabInterface::SetCallingObjectName(const std::string &calledFrom)
 //------------------------------------------------------------------------------
 std::string MatlabInterface::GetCallingObjectName()
 {
+   if(MatlabCallbackBridge::IsActive()) return GetCallbackState()->callingName;
+
+#ifdef GMAT_MATLAB_QT_ENGINE
+   MatlabLibraries().EnsureIdle();
+#endif
    return callingObjectName;
 }
 
@@ -221,67 +423,47 @@ std::string MatlabInterface::GetCallingObjectName()
 int MatlabInterface::PutRealArray(const std::string &matlabVarName,
                                   int numRows, int numCols, const double *inArray)
 {
-   #ifdef DEBUG_MATLAB_PUT_REAL
-   MessageInterface::ShowMessage
-      ("MatlabInterface::PutRealArray() entered, matlabVarName='%s', numRows=%d, "
-       "numCols=%d, inArray=%p\n", matlabVarName.c_str(), numRows, numCols, inArray);
-   MessageInterface::ShowMessage("inArray = \n");
-   for (int i = 0; i < numRows; i++)
-      for (int j = 0; j < numCols; j++)
-      {
-         MessageInterface::ShowMessage("%f ", inArray[i*numCols+j]);
-         if (j == numCols-1) MessageInterface::ShowMessage("\n");
-      }
-   #endif
-   
-   // Since MATLAB stores array in column major order, it needs to take transpose
-   // before putting to MATLAB workspace
-   Rmatrix rowMajorMat(numRows, numCols);
-   for (int i = 0; i < numRows; i++)
-      for (int j = 0; j < numCols; j++)
-         rowMajorMat(i,j) = inArray[i*numCols+j];
-   
-   #ifdef DEBUG_MATLAB_PUT_REAL
-   MessageInterface::ShowMessage("rowMajorMat=\n%s\n", rowMajorMat.ToString(16));
-   #endif
-   
-   // Create column major matrix
-   Rmatrix colMajorMat(numCols, numRows);
-   colMajorMat = rowMajorMat.Transpose();
+   if(MatlabCallbackBridge::IsActive()) {
+      if(numRows<0 || numCols<0) throw InterfaceException("MATLAB numeric input dimensions cannot be negative.");
+      const size_t rows=static_cast<size_t>(numRows),columns=static_cast<size_t>(numCols);
+      const size_t limit=static_cast<size_t>(std::numeric_limits<Integer>::max());
+      if(columns && rows>limit/columns) throw InterfaceException("MATLAB numeric input exceeds native capacity.");
+      const size_t count=rows*columns;
+      if(count && !inArray) throw InterfaceException("MATLAB numeric input has no data.");
+      MatlabValue value;value.type=MatlabValue::Type::NUMERIC;value.className="double";
+      value.rows=numRows;value.columns=numCols;value.numbers.resize(count);
+      for(size_t row=0;row<rows;++row) for(size_t column=0;column<columns;++column)
+         value.numbers[column*rows+row]=inArray[row*columns+column];
+      return PutValue(matlabVarName,value);
+   }
 
-   #ifdef DEBUG_MATLAB_PUT_REAL
-   MessageInterface::ShowMessage("colMajorMat=\n%s\n", colMajorMat.ToString(16));
-   #endif
-   
-   const double *inColMajorArr = colMajorMat.GetDataVector();
-   
-   // create a matlab variable
-   mxArray *mxArrayPtr = NULL;
-   mxArrayPtr = mxCreateDoubleMatrix(numRows, numCols, mxREAL);
-   
-   #ifdef DEBUG_MATLAB_PUT_REAL
-   MessageInterface::ShowMessage
-      ("   mxArrayPtr <%p> created, now copying from inArray <%p>\n", mxArrayPtr, inColMajorArr);
-   #endif
-   
-   // Call mxGetPr to access the real data in the mxArray that pm points to.
-   // Once you have the starting address, you can access any other element in the mxArray.
-   double *putArray = mxGetPr(mxArrayPtr);
-   memcpy((void*)putArray, (void*)inColMajorArr, numRows*numCols*sizeof(double));
-   
-   #ifdef DEBUG_MATLAB_PUT_REAL
-   MessageInterface::ShowMessage("   Now putting mxArrayPtr <%p> to matlab workspace\n");
-   #endif
-   
-   // place the variable mxArrayPtr into the MATLAB workspace
-   engPutVariable(enginePtr, matlabVarName.c_str(), mxArrayPtr);
-   
-   // Should I destroy after put to matlab?
-   #ifdef DEBUG_MATLAB_PUT_REAL
-   MessageInterface::ShowMessage("   Now destroying mxArrayPtr <%p>\n", mxArrayPtr);
-   #endif
-   mxDestroyArray(mxArrayPtr);
-   
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return PutRealArray(matlabVarName,numRows,numCols,inArray);});
+#endif
+   if (!enginePtr)
+      throw MatlabEngineConnectionException("The MATLAB engine is not open for numeric input.");
+   if (numRows < 0 || numCols < 0)
+      throw InterfaceException("MATLAB numeric input dimensions cannot be negative.");
+   const size_t rows = static_cast<size_t>(numRows);
+   const size_t columns = static_cast<size_t>(numCols);
+   if (columns && rows > std::numeric_limits<size_t>::max() / columns)
+      throw InterfaceException("MATLAB numeric input dimensions exceed native capacity.");
+   const size_t count = rows * columns;
+   if (count && !inArray)
+      throw InterfaceException("MATLAB numeric input has no data.");
+   std::unique_ptr<mxArray, decltype(&mxDestroyArray)> value(
+      mxCreateDoubleMatrix(rows, columns, mxREAL), &mxDestroyArray);
+   if (!value)
+      throw InterfaceException("Cannot allocate a MATLAB numeric input array.");
+   double *data = mxGetPr(value.get());
+   if (count && !data)
+      throw InterfaceException("Cannot access a MATLAB numeric input array.");
+   // GMAT's source matrix is row-major; MATLAB stores columns contiguously.
+   for (size_t row = 0; row < rows; ++row)
+      for (size_t column = 0; column < columns; ++column)
+         data[column * rows + row] = inArray[row * columns + column];
+   if (engPutVariable(enginePtr, matlabVarName.c_str(), value.get()) != 0)
+      throw MatlabEngineConnectionException("Failed to send numeric input to the MATLAB engine.");
    return 1;
 } // end PutRealArray()
 
@@ -306,96 +488,57 @@ int MatlabInterface::GetRealArray(const std::string &matlabVarName,
                                   int numElements, double outArray[],
                                   Integer &numRowsReceived, Integer &numColsReceived)
 {
-   #ifdef DEBUG_MATLAB_GET_REAL
-   MessageInterface::ShowMessage
-      ("MatlabInterface::GetRealArray() entered, matlabVarName=%s, numElements=%d\n",
-       matlabVarName.c_str(), numElements);
-   #endif
-   
-   // get the variable from the MATLAB workspace
-   mxArray *mxArrayPtr = NULL;
-   mxArrayPtr = engGetVariable(enginePtr, matlabVarName.c_str());
-   
-   #ifdef DEBUG_MATLAB_GET_REAL
-   MessageInterface::ShowMessage("   mxArrayPtr is <%p>\n", mxArrayPtr);
-   #endif
-   
-   if (mxArrayPtr == NULL)
-   {
-      #ifdef DEBUG_MATLAB_GET_REAL
-      MessageInterface::ShowMessage
-         ("MatlabInterface::GetRealArray(): mxArrayPtr is NULL\n");
-      #endif
+   if(MatlabCallbackBridge::IsActive()) {
+      numRowsReceived=numColsReceived=0;
+      if(numElements<=0 || !outArray) return 0;
+      MatlabCallbackRequest request;request.operation=MatlabCallbackRequest::Operation::FETCH;request.name=matlabVarName;
+      auto reply=MatlabCallbackBridge::Execute(request);if(!reply.found) return 0;
+      const auto &value=reply.value;numRowsReceived=value.rows;numColsReceived=value.columns;
+      if(value.type==MatlabValue::Type::NUMERIC && value.className=="double") {
+         if(value.numbers.empty()) throw InterfaceException("Received empty real output from MATLAB");
+         std::copy_n(value.numbers.data(),std::min(static_cast<size_t>(numElements),value.numbers.size()),outArray);
+         return static_cast<Integer>(value.numbers.size());
+      }
+      if(value.type==MatlabValue::Type::LOGICAL && value.numbers.size()==1) {outArray[0]=value.numbers[0];return 1;}
       return 0;
    }
-   
-   size_t numElementsReceived = mxGetNumberOfElements(mxArrayPtr);
-   numRowsReceived = (Integer)mxGetM(mxArrayPtr);
-   numColsReceived = (Integer)mxGetN(mxArrayPtr);
-   #ifdef DEBUG_MATLAB_GET_REAL
-   MessageInterface::ShowMessage
-      ("   numElementsReceived=%d, numRowsReceived=%d, numColsReceived=%d\n",
-       numElementsReceived, numRowsReceived, numColsReceived);
-   #endif
-   
-   if (mxIsDouble(mxArrayPtr))
+
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return GetRealArray(matlabVarName,numElements,outArray,numRowsReceived,numColsReceived);});
+#endif
+   numRowsReceived = 0;
+   numColsReceived = 0;
+   if (numElements <= 0 || !outArray) return 0;
+   if (!enginePtr)
+      throw MatlabEngineConnectionException("The MATLAB engine is not open for numeric output.");
+   std::unique_ptr<mxArray, decltype(&mxDestroyArray)> value(
+      engGetVariable(enginePtr, matlabVarName.c_str()), &mxDestroyArray);
+   if (!value) return 0;
+   const size_t rows = mxGetM(value.get());
+   const size_t columns = mxGetN(value.get());
+   const size_t count = mxGetNumberOfElements(value.get());
+   const size_t limit = static_cast<size_t>(std::numeric_limits<Integer>::max());
+   if (rows > limit || columns > limit || count > limit)
+      throw InterfaceException("MATLAB numeric output exceeds native dimension capacity.");
+   numRowsReceived = static_cast<Integer>(rows);
+   numColsReceived = static_cast<Integer>(columns);
+   if (mxIsDouble(value.get()) && !mxIsComplex(value.get()) &&
+       !mxIsSparse(value.get()) && mxGetNumberOfDimensions(value.get()) == 2)
    {
-      #ifdef DEBUG_MATLAB_GET_REAL
-      MessageInterface::ShowMessage
-         ("MatlabInterface::GetRealArray() matlab double array pointer found <%p>, "
-          "so calling mxGetPr()\n", mxArrayPtr);
-      #endif
-      
-      // If real numeric pointer is NULL, throw an exception
-      double *realPtr = mxGetPr(mxArrayPtr);
-      if (realPtr == NULL)
+      const double *data = mxGetPr(value.get());
+      if (!data)
          throw InterfaceException("Received empty real output from MATLAB");
-      
-      memcpy((char*)outArray, (char*)mxGetPr(mxArrayPtr),
-             numElements*sizeof(double));
-      
-      #ifdef DEBUG_MATLAB_GET_REAL
-      MessageInterface::ShowMessage("      outArray  = \n");
-      for (unsigned int ii=0; ii < numElementsReceived; ii++)
-         MessageInterface::ShowMessage("         %.12f\n", outArray[ii]);
-      MessageInterface::ShowMessage("   Now destroying mxArrayPtr <%p>\n", mxArrayPtr);
-      #endif
-      
-      mxDestroyArray(mxArrayPtr);
-      return numElementsReceived;
+      const size_t copyCount = std::min(static_cast<size_t>(numElements), count);
+      std::copy(data, data + copyCount, outArray);
+      return static_cast<Integer>(count);
    }
-   // Added to handle logical scalar data (Bug 2376 fix)
-   else if (mxIsLogicalScalar(mxArrayPtr))
+   // Preserve the native logical-scalar compatibility; arrays need doubles.
+   if (mxIsLogicalScalar(value.get()))
    {
-      #ifdef DEBUG_MATLAB_GET_REAL
-      MessageInterface::ShowMessage
-         ("MatlabInterface::GetRealArray() matlab logical scalar pointer found <%p>, "
-          "so calling mxGetPr()\n", mxArrayPtr);
-      #endif
-      if (mxIsLogicalScalarTrue(mxArrayPtr))
-         outArray[0] = 1.0;
-      else
-         outArray[0] = 0.0;
-      
-      #ifdef DEBUG_MATLAB_GET_REAL
-      for (Integer ii=0; ii < numElements; ii++)
-         MessageInterface::ShowMessage("      outArray[%d] = %f\n", ii, outArray[ii]);
-      MessageInterface::ShowMessage("   Now destroying mxArrayPtr <%p>\n", mxArrayPtr);
-      #endif
-      
-      mxDestroyArray(mxArrayPtr);
+      outArray[0] = mxIsLogicalScalarTrue(value.get()) ? 1.0 : 0.0;
       return 1;
    }
-   else
-   {
-      #ifdef DEBUG_MATLAB_GET_REAL
-      MessageInterface::ShowMessage
-         ("MatlabInterface::GetRealArray() Matlab variable '%s' "
-          "is not a double array or logical scalar.\n", matlabVarName.c_str());
-      #endif
-      
-      return 0;
-   }
+   return 0;
 } // end GetRealArray()
 
 
@@ -414,62 +557,176 @@ int MatlabInterface::GetRealArray(const std::string &matlabVarName,
 int MatlabInterface::GetString(const std::string &matlabVarName,
                                std::string &outStr)
 {
+   if(MatlabCallbackBridge::IsActive()) {
+      MatlabCallbackRequest request;request.operation=MatlabCallbackRequest::Operation::FETCH_CHARACTER;request.name=matlabVarName;
+      auto reply=MatlabCallbackBridge::Execute(request);
+      if(!reply.found || reply.value.type!=MatlabValue::Type::CHARACTER) return 0;
+      outStr=std::move(reply.value.text);return 1;
+   }
+
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return GetString(matlabVarName,outStr);});
+#endif
    #ifdef DEBUG_MATLAB_GET_STRING
    MessageInterface::ShowMessage
       ("MatlabInterface::GetString() entered, matlabVarName='%s', outStr='%s'\n",
        matlabVarName.c_str(), outStr.c_str());
    #endif
 
-   // get the variable from the MATLAB workspace
-   mxArray *mxArrayPtr = NULL;
-   mxArrayPtr = engGetVariable(enginePtr, matlabVarName.c_str());
-
-   if (mxArrayPtr == NULL)
-   {
-      #ifdef DEBUG_MATLAB_GET_STRING
-      MessageInterface::ShowMessage
-         ("MatlabInterface::GetString() mxArrayPtr is NULL\n");
-      #endif
-      return 0;
-   }
-
-   // check if it is string
-   if (mxIsChar(mxArrayPtr))
-   {
-      #ifdef DEBUG_MATLAB_GET_STRING
-      MessageInterface::ShowMessage
-         ("MatlabInterface::GetString() matlab string pointer found <%p>, "
-          "so calling mxGetString()\n", mxArrayPtr);
-      #endif
-
-      if (outBuffer == NULL)
-         throw InterfaceException
-            ("**** ERROR **** Failed to get string from MATLAB, output buffer is NULL\n");
-
-      outBuffer[0] = '\0';
-      mxGetString(mxArrayPtr, outBuffer, MAX_OUT_SIZE);
-      outBuffer[MAX_OUT_SIZE] = '\0';
-      outStr.assign(outBuffer);
-
-      #ifdef DEBUG_MATLAB_GET_STRING
-      MessageInterface::ShowMessage
-         ("MatlabInterface::GetString() outStr =\n%s\n", outStr.c_str());
-      MessageInterface::ShowMessage("   Now destroying mxArrayPtr <%p>\n", mxArrayPtr);
-      #endif
-
-      mxDestroyArray(mxArrayPtr);
-      return 1;
-   }
-   else
-   {
-      #ifdef DEBUG_MATLAB_GET_STRING
-      MessageInterface::ShowMessage
-         ("MatlabInterface::GetString() Matlab variable is not a char array\n");
-      #endif
-
-      return 0;
-   }
+   if (!enginePtr)
+      throw MatlabEngineConnectionException("The MATLAB engine is not open for character output.");
+   std::unique_ptr<mxArray, decltype(&mxDestroyArray)> value(
+      engGetVariable(enginePtr, matlabVarName.c_str()), &mxDestroyArray);
+   if (!value || !mxIsChar(value.get())) return 0;
+   std::string result = MatlabCharacterData(value.get());
+   outStr.swap(result);
+   return 1;
 } // end GetString()
+
+namespace
+{
+using MatlabArrayOwner = std::unique_ptr<mxArray, decltype(&mxDestroyArray)>;
+
+MatlabArrayOwner MakeMatlabInput(const MatlabValue &value)
+{
+   if (value.type == MatlabValue::Type::CHARACTER)
+   {
+      // Native strings use a canonical MATLAB character row. Decode the full
+      // byte range so embedded NUL and non-ASCII text never enter source code.
+      std::u16string units;
+      try
+      {
+         std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
+         units = converter.from_bytes(value.text.data(), value.text.data() + value.text.size());
+         if (converter.converted() != value.text.size())
+            throw InterfaceException("MATLAB character input contains incomplete UTF-8.");
+      }
+      catch (const std::range_error &)
+      { throw InterfaceException("MATLAB character input contains invalid UTF-8."); }
+      if (units.size() > static_cast<size_t>(std::numeric_limits<Integer>::max()))
+         throw InterfaceException("MATLAB character input exceeds native dimension capacity.");
+      const mwSize dimensions[2] = {units.empty() ? mwSize(0) : mwSize(1),
+                                    static_cast<mwSize>(units.size())};
+      MatlabArrayOwner result(mxCreateCharArray(2, dimensions), &mxDestroyArray);
+      if (!result) throw InterfaceException("Cannot allocate MATLAB character input.");
+      mxChar *data = mxGetChars(result.get());
+      if (!units.empty() && !data) throw InterfaceException("Cannot access MATLAB character input.");
+      for (size_t i = 0; i < units.size(); ++i) data[i] = static_cast<mxChar>(units[i]);
+      return result;
+   }
+   if (value.rows < 0 || value.columns < 0)
+      throw InterfaceException("MATLAB input dimensions cannot be negative.");
+   const size_t rows = static_cast<size_t>(value.rows), columns = static_cast<size_t>(value.columns);
+   const size_t limit = static_cast<size_t>(std::numeric_limits<Integer>::max());
+   if (columns && rows > limit / columns)
+      throw InterfaceException("MATLAB input exceeds native element capacity.");
+   const size_t count = rows * columns;
+   if (value.type == MatlabValue::Type::NUMERIC || value.type == MatlabValue::Type::LOGICAL)
+   {
+      if (count != value.numbers.size()) throw InterfaceException("MATLAB input data does not match its dimensions.");
+      MatlabArrayOwner result(value.type == MatlabValue::Type::LOGICAL ?
+         mxCreateLogicalMatrix(rows, columns) : mxCreateDoubleMatrix(rows, columns, mxREAL), &mxDestroyArray);
+      if (!result) throw InterfaceException("Cannot allocate MATLAB numeric input.");
+      if (value.type == MatlabValue::Type::LOGICAL)
+      {
+         mxLogical *data = static_cast<mxLogical*>(mxGetData(result.get()));
+         if (count && !data) throw InterfaceException("Cannot access MATLAB logical input.");
+         for (size_t i = 0; i < count; ++i)
+         {
+            if (value.numbers[i] != 0.0 && value.numbers[i] != 1.0)
+               throw InterfaceException("MATLAB logical input must contain zero or one.");
+            data[i] = value.numbers[i] == 1.0;
+         }
+      }
+      else
+      {
+         double *data = mxGetPr(result.get());
+         if (count && !data) throw InterfaceException("Cannot access MATLAB numeric input.");
+         for (size_t i = 0; i < count; ++i) data[i] = value.numbers[i];
+      }
+      return result;
+   }
+   if (value.type == MatlabValue::Type::CELL)
+   {
+      if (count != value.children.size()) throw InterfaceException("MATLAB cell data does not match its dimensions.");
+      const mwSize dimensions[2] = {static_cast<mwSize>(rows), static_cast<mwSize>(columns)};
+      MatlabArrayOwner result(mxCreateCellArray(2, dimensions), &mxDestroyArray);
+      if (!result) throw InterfaceException("Cannot allocate MATLAB cell input.");
+      for (size_t i = 0; i < count; ++i)
+      {
+         auto child = MakeMatlabInput(value.children[i]);
+         mxSetCell(result.get(), i, child.release());
+      }
+      return result;
+   }
+   if (value.type == MatlabValue::Type::STRUCTURE)
+   {
+      if (count != 1 || value.children.size() != value.fieldNames.size() || value.fieldNames.size() > limit)
+         throw InterfaceException("MATLAB structure input must be scalar with matching named fields.");
+      std::vector<const char*> fields;
+      for (const auto &name : value.fieldNames) fields.push_back(name.c_str());
+      MatlabArrayOwner result(mxCreateStructMatrix(1, 1, static_cast<int>(fields.size()), fields.data()), &mxDestroyArray);
+      if (!result) throw InterfaceException("Cannot allocate MATLAB structure input.");
+      for (size_t i = 0; i < value.children.size(); ++i)
+      {
+         auto child = MakeMatlabInput(value.children[i]);
+         mxSetFieldByNumber(result.get(), 0, static_cast<int>(i), child.release());
+      }
+      return result;
+   }
+   throw InterfaceException("Unsupported typed MATLAB input value.");
+}
+}
+
+mxArray *CreateMatlabArray(const MatlabValue &value)
+{
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker())
+      throw InterfaceException("Native MATLAB arrays must be created on the library worker");
+#endif
+   return MakeMatlabInput(value).release();
+}
+
+Integer MatlabInterface::PutValue(const std::string &matlabVarName, const MatlabValue &value)
+{
+   if(MatlabCallbackBridge::IsActive()) {
+      MatlabCallbackRequest request;request.operation=MatlabCallbackRequest::Operation::STORE;
+      request.name=matlabVarName;request.value=value;MatlabCallbackBridge::Execute(request);return 1;
+   }
+
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker())
+      return MatlabLibraries().Invoke([&] { return PutValue(matlabVarName, value); });
+#endif
+   if (!enginePtr) throw MatlabEngineConnectionException("The MATLAB engine is not open for typed input.");
+   auto input = MakeMatlabInput(value);
+   if (engPutVariable(enginePtr, matlabVarName.c_str(), input.get()) != 0)
+      throw MatlabEngineConnectionException("Cannot transfer typed MATLAB input: " + matlabVarName);
+   return 1;
+}
+
+MatlabValue MatlabInterface::GetValue(const std::string &matlabVarName)
+{
+   if(MatlabCallbackBridge::IsActive()) {
+      MatlabCallbackRequest request;request.operation=MatlabCallbackRequest::Operation::FETCH;request.name=matlabVarName;
+      auto reply=MatlabCallbackBridge::Execute(request);
+      if(!reply.found) throw InterfaceException("MATLAB object output is missing: "+matlabVarName);
+      return std::move(reply.value);
+   }
+
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker())
+      return MatlabLibraries().Invoke([&] { return GetValue(matlabVarName); });
+#endif
+   if (!enginePtr)
+      throw MatlabEngineConnectionException("The MATLAB engine is not open for object output.");
+   std::unique_ptr<mxArray, decltype(&mxDestroyArray)> value(
+      engGetVariable(enginePtr, matlabVarName.c_str()), &mxDestroyArray);
+   if (!value)
+      throw InterfaceException("MATLAB object output is missing: " + matlabVarName);
+   return CaptureMatlabValue(value.get());
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -484,6 +741,18 @@ int MatlabInterface::GetString(const std::string &matlabVarName,
 //------------------------------------------------------------------------------
 int MatlabInterface::EvalString(const std::string &evalString)
 {
+   if(MatlabCallbackBridge::IsActive()) {
+      auto state=GetCallbackState();
+      MatlabCallbackRequest request;request.operation=MatlabCallbackRequest::Operation::EVALUATE;request.expression=evalString;
+      auto reply=MatlabCallbackBridge::Execute(request);
+      std::fill(state->output.begin(),state->output.end(),0);
+      std::copy_n(reply.output.data(),std::min(reply.output.size(),static_cast<size_t>(state->outputSize)),state->output.data());
+      return 0;
+   }
+
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return EvalString(evalString);});
+#endif
    #ifdef DEBUG_MATLAB_EVAL
    MessageInterface::ShowMessage
       ("MatlabInterface::EvalString() calling engEvalString with\n"
@@ -517,14 +786,25 @@ int MatlabInterface::EvalString(const std::string &evalString)
 //------------------------------------------------------------------------------
 int MatlabInterface::SetOutputBuffer(int size)
 {
-   outBuffer[0] = '\0';
+   if(MatlabCallbackBridge::IsActive()) {
+      auto state=GetCallbackState();std::fill(state->output.begin(),state->output.end(),0);
+      state->outputSize=size>1 ? std::min(size-1,MAX_OUT_SIZE) : 0;return state->outputSize;
+   }
+
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return SetOutputBuffer(size);});
+#endif
+   // The C engine does not promise to terminate captured output. Clear the
+   // entire storage so shorter captures cannot expose bytes from an old call.
+   std::fill(outBuffer, outBuffer + MAX_OUT_SIZE + 1, '\0');
+   if (!enginePtr || size <= 1)
+      return 0;
    int sizeToUse = size-1;
 
    if (sizeToUse > MAX_OUT_SIZE)
       sizeToUse = MAX_OUT_SIZE;
 
-   engOutputBuffer(enginePtr, outBuffer, sizeToUse);
-   return sizeToUse;
+   return engOutputBuffer(enginePtr, outBuffer, sizeToUse) == 0 ? sizeToUse : 0;
 }
 
 
@@ -538,6 +818,11 @@ int MatlabInterface::SetOutputBuffer(int size)
 //------------------------------------------------------------------------------
 char* MatlabInterface::GetOutputBuffer()
 {
+   if(MatlabCallbackBridge::IsActive()) return GetCallbackState()->output.data();
+
+#ifdef GMAT_MATLAB_QT_ENGINE
+   MatlabLibraries().EnsureIdle();
+#endif
    return outBuffer;
 }
 
@@ -552,6 +837,11 @@ char* MatlabInterface::GetOutputBuffer()
 //------------------------------------------------------------------------------
 bool MatlabInterface::IsOpen(const std::string &name)
 {
+   if(MatlabCallbackBridge::IsActive()) return matlabMode!=NO_MATLAB && (name.empty() || name=="GmatMatlab");
+
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if (!MatlabLibraries().OnWorker()) return MatlabLibraries().Invoke([&]{return IsOpen(name);});
+#endif
    #ifdef DEBUG_MATLAB_OPEN_CLOSE
    MessageInterface::ShowMessage
       ("MatlabInterface::IsOpen() entered, name='%s', matlabMode=%d, enginePtr=<%p>\n",
@@ -601,6 +891,9 @@ bool MatlabInterface::IsOpen(const std::string &name)
 //------------------------------------------------------------------------------
 void MatlabInterface::RunMatlabString(const std::string &evalString)
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   if(!MatlabCallbackBridge::IsActive()) MatlabLibraries().EnsureIdle();
+#endif
    #ifdef DEBUG_MATLAB_EVAL
    MessageInterface::ShowMessage
       ("MatlabInterface::RunMatlabString() entered\n"
@@ -615,49 +908,50 @@ void MatlabInterface::RunMatlabString(const std::string &evalString)
          throw InterfaceException("**** ERROR **** Failed to open MATLAB engine\n");
    }
    
+   const auto callingName=GetCallingObjectName();
    std::string newEvalStr = evalString;
    
-   // To handle special case of 'cd' with directory with blank spaces, cd c:\my test directory,
-   // used the functional form of cd, such as cd('directory-spec'),
-   // since Matlab cannot handle cd to directory name with blanks (LOJ: 2010.10.07)
-   // This will fix bug 2032
-   StringArray parts = GmatStringUtil::DecomposeBy(newEvalStr, " ");
-   if (parts.size() > 1)
-   {      
-      std::string firstToken = GmatStringUtil::ToLower(parts[0]);
-      
-      #ifdef DEBUG_MATLAB_EVAL
-      MessageInterface::ShowMessage("   firstToken='%s'\n", firstToken.c_str());
-      #endif
-      
-      if (firstToken == "cd")
-         newEvalStr = "cd(" + GmatStringUtil::AddEnclosingString(parts[1], "'") + ")";
-      
-      #ifdef DEBUG_MATLAB_EVAL
-      MessageInterface::ShowMessage
-         ("   String starts with 'cd' so changed to function form\n"
-          "   old name = '%s'\n   new name = '%s'\n", evalString.c_str(), newEvalStr.c_str());
-      #endif
+   // Internal directory/path operations use CharacterLiteral and functional
+   // MATLAB syntax. Execute other expressions as supplied; token splitting
+   // here used to truncate command-form paths containing whitespace.
+   // Track this evaluation independently of any preceding error message.
+   // Do not use a scratch name referenced by the expression's inputs/outputs.
+   std::string statusName;
+   for (size_t suffix = 0; ; ++suffix)
+   {
+      statusName = "gmat_eval_status_" + std::to_string(suffix);
+      if (newEvalStr.find(statusName) == std::string::npos) break;
    }
-   
-   // add try/catch to string to evaluate
-   newEvalStr = "try,\n  beep off;\n  " + newEvalStr + "\ncatch\n  errormsg = lasterr;\nend";
+   newEvalStr = "try,\n  beep off;\n  " + newEvalStr + "\n  " + statusName +
+      " = 0;\ncatch\n  errormsg = lasterr;\n  " + statusName + " = 1;\nend";
    
    bool errorReturned = false;
    std::string errorStr;
    // call to evaluate string
-   if (EvalString(newEvalStr) == 0)
+   // Initialize separately: a syntax error can prevent the entire try/catch
+   // command from parsing. Such an evaluation must not reuse an old success.
+   if (EvalString(statusName + " = -1;") == 0 && EvalString(newEvalStr) == 0)
    {
       // if there was an error throw an exception
       #ifdef DEBUG_MATLAB_EVAL
       MessageInterface::ShowMessage("   Now checking if there was an error\n");
       #endif
-      if (GetString("errormsg", errorStr) == 1)
+      Real status = -1;
+      Integer rows = 0, columns = 0;
+      if (GetRealArray(statusName, 1, &status, rows, columns) != 1 ||
+          rows != 1 || columns != 1 || (status != 0 && status != 1))
       {
+         errorReturned = true;
+         errorStr = "MATLAB evaluation did not report completion";
+      }
+      else if (status == 1)
+      {
+         if (GetString("errormsg", errorStr) != 1)
+            errorStr = "MATLAB reported an error without a character message";
          #ifdef DEBUG_MATLAB_EVAL
          MessageInterface::ShowMessage
             ("Error occurred in Matlab function '%s'\n'%s'\n",
-             callingObjectName.c_str(), errorStr.c_str());
+             callingName.c_str(), errorStr.c_str());
          #endif
          errorReturned = true;
       }
@@ -667,13 +961,13 @@ void MatlabInterface::RunMatlabString(const std::string &evalString)
    }
    else
    {
-      errorReturned = true;
-      errorStr = "Error encountered during engEvalString of \"" + evalString + "\"";
+      throw MatlabEngineConnectionException("\"" + callingName +
+         ".m\", Error encountered during engEvalString of \"" + evalString + "\"");
    }
    
    if (errorReturned)
    {
-      throw InterfaceException("\"" + callingObjectName + ".m\", " + errorStr);
+      throw InterfaceException("\"" + callingName + ".m\", " + errorStr);
    }
    
    #ifdef DEBUG_MATLAB_EVAL
@@ -689,11 +983,31 @@ void MatlabInterface::RunMatlabString(const std::string &evalString)
  * Sets matlab run mode.
  *
  * @param  mode  The matlab run mode
- *               (0 = shared, 1 = single use, -1 = no MATLAB installed)
+ *               SINGLE_USE, SHARED or NO_MATLAB
  */
 //------------------------------------------------------------------------------
 void MatlabInterface::SetMatlabMode(int mode)
 {
+   if(MatlabCallbackBridge::IsActive()) {
+      if(mode!=matlabMode) throw InterfaceException("Cannot change a waiting MATLAB callback session mode");
+      return;
+   }
+
+#ifdef GMAT_MATLAB_QT_ENGINE
+   MatlabLibraries().EnsureIdle();
+#endif
+   if (mode != SINGLE_USE && mode != SHARED && mode != NO_MATLAB)
+      throw InterfaceException("Invalid MATLAB engine mode");
+#if !defined(_WIN32) && !defined(__WIN32__)
+   if (mode == SINGLE_USE)
+      throw InterfaceException("MATLAB engOpenSingleUse mode is supported only on Windows.");
+#endif
+   if (mode == matlabMode)
+      return;
+   // Handles belong to the mode that opened them. Changing dispatch while an
+   // engine is live can double-close it or leave named engines unreachable.
+   if (enginePtr || !matlabEngineMap.empty())
+      throw InterfaceException("Close MATLAB engines before changing engine mode");
    matlabMode = mode;
 }
 
@@ -703,11 +1017,16 @@ void MatlabInterface::SetMatlabMode(int mode)
 /**
  * Return matlab run mode.
  *
- * @return  The matlab run mode (0 = shared, 1 = single use)
+ * @return  SINGLE_USE, SHARED or NO_MATLAB
  */
 //------------------------------------------------------------------------------
 int MatlabInterface::GetMatlabMode()
 {
+   if(MatlabCallbackBridge::IsActive()) return matlabMode;
+
+#ifdef GMAT_MATLAB_QT_ENGINE
+   MatlabLibraries().EnsureIdle();
+#endif
    return matlabMode;
 }
 
@@ -723,6 +1042,9 @@ int MatlabInterface::GetMatlabMode()
 //------------------------------------------------------------------------------
 GmatBase* MatlabInterface::Clone() const
 {
+#ifdef GMAT_MATLAB_QT_ENGINE
+   MatlabLibraries().EnsureIdle();
+#endif
    return (new MatlabInterface(*this));
 }
 
@@ -769,7 +1091,7 @@ MatlabInterface::MatlabInterface(const std::string &name) :
 //------------------------------------------------------------------------------
 MatlabInterface::~MatlabInterface()
 {
-   if (enginePtr != NULL)
+   if (enginePtr != NULL || !matlabEngineMap.empty())
       Close();
    delete [] outBuffer;
 }
@@ -779,7 +1101,13 @@ MatlabInterface::~MatlabInterface()
 // MatlabInterface(const MatlabInterface &mi)
 //------------------------------------------------------------------------------
 MatlabInterface::MatlabInterface(const MatlabInterface &mi) :
-   Interface (mi)
+   Interface (mi),
+   enginePtr (NULL),
+   callingObjectName (mi.callingObjectName),
+   accessCount (0),
+   matlabMode (mi.matlabMode),
+   outBuffer (new char[MAX_OUT_SIZE+1]()),
+   debugMatlabEngine (mi.debugMatlabEngine)
 {
 }
 
@@ -791,7 +1119,18 @@ MatlabInterface& MatlabInterface::operator=(const MatlabInterface& mi)
 {
    if (&mi != this)
    {
+#ifdef GMAT_MATLAB_QT_ENGINE
+      MatlabLibraries().EnsureIdle();
+#endif
+      if (enginePtr || !matlabEngineMap.empty())
+         throw InterfaceException("Close MATLAB engines before replacing interface configuration");
       Interface::operator=(mi);
+      callingObjectName = mi.callingObjectName;
+      matlabMode = mi.matlabMode;
+      debugMatlabEngine = mi.debugMatlabEngine;
+      accessCount = 0;
+      lastEngineName.clear();
+      outBuffer[0] = '\0';
    }
    
    return *this;
@@ -822,7 +1161,7 @@ int MatlabInterface::OpenEngineOnMac()
    /// Check if MATLAB engine is still running then doesn't need to re-launch
    if (enginePtr != NULL)
    {
-      accessCount++;
+      accessCount = 1;
       if (debugMatlabEngine)
       {
          MessageInterface::ShowMessage
@@ -848,13 +1187,20 @@ int MatlabInterface::OpenEngineOnMac()
 //   std::string runString = "matlab -maci ";  // for 32-bit ONLY for now!!!
    // do we want -nodisplay here as well??
    std::string runString = "matlab -nosplash -nodesktop";  // for 64-bit ONLY for now!!!
-   if ((enginePtr = engOpen(runString.c_str())))
+   Engine *opened = engOpen(runString.c_str());
+   if (opened)
    {
+      if (engEvalString(opened, "format long") != 0)
+      {
+         engClose(opened);
+         return 0;
+      }
+      enginePtr = opened;
       MessageInterface::ShowMessage(
                "Successfully opened MATLAB engine using startcmd \"%s\"\n",
                runString.c_str());
       
-      accessCount++;
+      accessCount = 1;
       if (debugMatlabEngine)
       {
          MessageInterface::ShowMessage
@@ -901,7 +1247,7 @@ int MatlabInterface::CloseEngineOnMac()
             ("MatlabInterface::Close() enginePtr=%p\n", enginePtr);
       }
       
-      accessCount--;
+      accessCount = 0;
       
       if (debugMatlabEngine)
       {
@@ -983,7 +1329,7 @@ int MatlabInterface::OpenSharedEngine()
    // open new MATLAB engine
    if ((enginePtr = engOpen(NULL)))
    {
-      accessCount++;
+      accessCount = 1;
       
       if (debugMatlabEngine)
       {
@@ -993,7 +1339,11 @@ int MatlabInterface::OpenSharedEngine()
       }
       
       // set precision to long
-      EvalString("format long");
+      if (EvalString("format long") != 0)
+      {
+         CloseSharedEngine();
+         return 0;
+      }
       MessageInterface::ShowMessage("MATLAB engine successfully opened\n");
       if (debugMatlabEngine)
          MessageInterface::ShowMessage
@@ -1038,7 +1388,7 @@ int MatlabInterface::CloseSharedEngine()
             ("MatlabInterface::CloseSharedEngine() enginePtr=%p\n", enginePtr);
       }
       
-      accessCount--;
+      accessCount = 0;
       
       if (debugMatlabEngine)
       {
@@ -1095,95 +1445,55 @@ int MatlabInterface::CloseSharedEngine()
 //------------------------------------------------------------------------------
 int MatlabInterface::OpenSingleEngine(const std::string &name)
 {
-   //=================================================================
-   //Engine* engOpenSingleUse(const char *startcmd, void *dcom, int *retstatus);
-   //startcmd
-   //   String to start MATLAB process. On Microsoft Windows systems,
-   //   the startcmd string must be NULL.
-   //dcom
-   //   Reserved for future use; must be NULL.
-   //retstatus
-   //   Return status; possible cause of failure.
-   //      0 = success
-   //     -2 = error - second argument must be NULL
-   //     -3 = error - engOpenSingleUse failed
-   //=================================================================
-      
-   if (debugMatlabEngine)
-      MessageInterface::ShowMessage
-         ("MatlabInterface::OpenSingleEngine() name='%s'\n", name.c_str());
-   
-   // Check for the engine name first      
-   if (name == "")
+#if !defined(_WIN32) && !defined(__WIN32__)
+   throw InterfaceException("MATLAB engOpenSingleUse mode is supported only on Windows.");
+#endif
+   // The default belongs to the GMAT process. Explicit names retain the native
+   // API's optional additional-engine behavior without splitting ordinary users.
+   const std::string engineName = name.empty() ? "GmatMatlab" : name;
+
+   auto existing = matlabEngineMap.find(engineName);
+   if (existing != matlabEngineMap.end())
    {
-      std::stringstream ss("");
-      ss.width(1);
-      ss << accessCount+1;
-      lastEngineName = "matlabEngine_" + ss.str();
-   }
-   else
-   {
-      lastEngineName = name;
-   }
-   
-   if (debugMatlabEngine)
-   {
-      MessageInterface::ShowMessage
-         ("Attempting to open MATLAB engine '%s' for single use ... accessCount = %d\n",
-          lastEngineName.c_str(), accessCount+1);
-   }
-   
-   if (matlabEngineMap.find(lastEngineName) != matlabEngineMap.end())
-   {
-      enginePtr = matlabEngineMap[lastEngineName];
-      
-      if (debugMatlabEngine)
-      {
-         MessageInterface::ShowMessage
-            ("'%s' already opened for single use, enginePtr=<%p>\n",
-             lastEngineName.c_str(), enginePtr);
-         MessageInterface::ShowMessage
-            ("MatlabInterface::OpenSingleEngine() returning 1\n");
-      }
-      
+      enginePtr = existing->second;
+      lastEngineName = engineName;
       return 1;
    }
-   
-   // Set current engine pointer to enginePtr
-   int retval = -99;
-   enginePtr = engOpenSingleUse(NULL, NULL, &retval);
-   
-   if (retval != 0)
+
+   // This vendor API supplies the Windows single-use process contract. Do not
+   // substitute engOpen on platforms where engOpenSingleUse is unsupported.
+   int status = -99;
+   Engine *opened = engOpenSingleUse(NULL, NULL, &status);
+   if (!opened || status != 0)
    {
-      MessageInterface::ShowMessage
-         ("Failed to open MATLAB engine for single use...\n");
-      if (debugMatlabEngine)
-         MessageInterface::ShowMessage
-            ("MatlabInterface::OpenSingleEngine() returning 0\n");
+      if (opened)
+         engClose(opened);
+      MessageInterface::ShowMessage("Failed to open MATLAB engine for single use...\n");
       return 0;
    }
-   
-   accessCount++;
-   matlabEngineMap.insert(std::make_pair(lastEngineName, enginePtr));
-   
-   if (debugMatlabEngine)
+
+   // A failed open/setup must not lose the previously selected engine.
+   if (engEvalString(opened, "format long") != 0)
    {
-      MessageInterface::ShowMessage
-         ("Added <%p>'%s' to matlabEngineMap\n", enginePtr, lastEngineName.c_str());
+      engClose(opened);
+      return 0;
    }
-   
-   // set precision to long
-   EvalString("format long");
-   MessageInterface::ShowMessage
-      ("MATLAB engine '%s' successfully opened\n", lastEngineName.c_str());
-   
-   if (debugMatlabEngine)
-      MessageInterface::ShowMessage
-         ("MatlabInterface::OpenSingleEngine() returning 1\n");
-   
+   try
+   {
+      matlabEngineMap.emplace(engineName, opened);
+   }
+   catch (...)
+   {
+      engClose(opened);
+      throw;
+   }
+   enginePtr = opened;
+   lastEngineName = engineName;
+   accessCount = static_cast<Integer>(matlabEngineMap.size());
+   outBuffer[0] = '\0';
+   MessageInterface::ShowMessage("MATLAB engine '%s' successfully opened\n", engineName.c_str());
    return 1;
 }
-
 
 //------------------------------------------------------------------------------
 // int CloseSingleEngine(const std::string &name)
@@ -1197,77 +1507,57 @@ int MatlabInterface::OpenSingleEngine(const std::string &name)
 //------------------------------------------------------------------------------
 int MatlabInterface::CloseSingleEngine(const std::string &name)
 {
-   int retval = 1; // set to success
-   bool failedToClose = false;
-   
-   if (name != "")
+   auto closeEngine = [&](std::map<std::string, Engine*>::iterator position)
    {
-      std::map<std::string, Engine*>::iterator pos = matlabEngineMap.find(name);
-      if (pos != matlabEngineMap.end())
-      {
-         //==============================================================
-         // int engClose(Engine *ep);
-         // 0 on success, and 1 otherwise. Possible failure includes
-         // attempting to terminate a MATLAB engine that was
-         // already terminated.
-         //==============================================================
-         retval = engClose(pos->second);
-         if (retval == 0)
-         {
-            MessageInterface::ShowMessage
-               ("MATLAB engine '%s' successfully closed\n", name.c_str());
-            matlabEngineMap.erase(pos);
-         }
-         else
-         {
-            failedToClose = true;
-            MessageInterface::ShowMessage
-               ("Error closing MATLAB engine '%s'\n", name.c_str());
-         }
-      }
-      else
-      {
-         MessageInterface::ShowMessage
-            ("Error closing MATLAB engine '%s'\n", name.c_str());
-      }
-   }
-   else
-   {
-      // Close all matlab engines
-      for (std::map<std::string, Engine*>::iterator pos = matlabEngineMap.begin();
-           pos != matlabEngineMap.end(); ++pos)
-      {
-         if (debugMatlabEngine)
-         {
-            MessageInterface::ShowMessage
-               ("MatlabInterface::CloseSingleEngine() about to close engine <%p>'%s'\n",
-                pos->second, (pos->first).c_str());
-         }
-         
-         retval = engClose(pos->second);
-         if (retval == 0)
-         {
-            MessageInterface::ShowMessage
-               ("MATLAB engine '%s' successfully closed\n", (pos->first).c_str());
-         }
-         else
-         {
-            failedToClose = true;
-            MessageInterface::ShowMessage
-               ("Error closing MATLAB engine '%s'\n", (pos->first).c_str());
-         }
-      }
-      
-      if (!failedToClose)
-         matlabEngineMap.clear();
-   }
-   
-   if (failedToClose)
-      retval = 0;
-   
-   return retval;
-}
+      Engine *closing = position->second;
+      const std::string closedName = position->first;
+      const bool selected = enginePtr == closing;
+      const int status = engClose(closing);
 
+      // Retire every attempted handle, including a connection whose process
+      // has already terminated. Never select or close that handle again.
+      matlabEngineMap.erase(position);
+      accessCount = static_cast<Integer>(matlabEngineMap.size());
+      if (selected)
+      {
+         if (matlabEngineMap.empty())
+         {
+            enginePtr = NULL;
+            lastEngineName.clear();
+         }
+         else
+         {
+            enginePtr = matlabEngineMap.begin()->second;
+            lastEngineName = matlabEngineMap.begin()->first;
+         }
+         outBuffer[0] = '\0';
+      }
+      MessageInterface::ShowMessage(status == 0 ?
+            "MATLAB engine '%s' successfully closed\n" :
+            "Error closing MATLAB engine '%s'\n", closedName.c_str());
+      return status == 0;
+   };
+
+   if (!name.empty())
+   {
+      auto position = matlabEngineMap.find(name);
+      if (position == matlabEngineMap.end())
+         return 0;
+      return closeEngine(position) ? 1 : 0;
+   }
+
+   bool allClosed = true;
+   while (!matlabEngineMap.empty())
+   {
+      const bool closed = closeEngine(matlabEngineMap.begin());
+      allClosed = closed && allClosed;
+   }
+   enginePtr = NULL;
+   lastEngineName.clear();
+   accessCount = 0;
+   outBuffer[0] = '\0';
+   return allClosed ? 1 : 0;
+}
 
 //------------------------------------------------------------------------------
 // Integer GetParameterID(const std::string &str) const
@@ -1333,7 +1623,7 @@ Integer MatlabInterface::SetIntegerParameter(const Integer id, const Integer val
    switch (id)
    {
    case MATLAB_MODE:
-      matlabMode = value;
+      SetMatlabMode(value);
       return matlabMode;
    default:
       return Interface::SetIntegerParameter(id, value);

@@ -59,6 +59,9 @@ public:
    static const Real PLANET_REAL_UNDEFINED;// = -9876543210.1234;
    
 protected:
+   void RebindClonedParameterCaches(const RefData &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
+
 
    // The inherited methods from RefData
    virtual void InitializeRefObjects();

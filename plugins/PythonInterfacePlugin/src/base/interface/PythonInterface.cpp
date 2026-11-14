@@ -35,6 +35,7 @@
 #include "InterfaceException.hpp"
 #include "Array.hpp"
 #include <iostream>
+#include <memory>
 #include <pyconfig.h>
 #ifdef __linux__
 #include <dlfcn.h>
@@ -531,127 +532,82 @@ PyObject* PythonInterface::PyExternalFunctionWrapper(const std::string &modName,
 	Real *state, Real now, StringArray stateDescription, Integer order, Integer dimension,
 	UnsignedInt argSz)
 {
-	PyObject* pyModule = NULL;
-	PyObject* pyPluginModule = NULL;
-	PyObject* pyFuncAttr = NULL;
-	PyObject* pyArgs = NULL;
-	PyObject* pyFunc = NULL;
-	PyObject* pyTupleObj = NULL;
-
-	//error messages
-	PyObject* pType = NULL;
-	PyObject* pValue = NULL;
-	PyObject* pTraceback = NULL;
-
-	std::string msg;
-
-
-
-	// Build the Python Tuple object based on the format string
-	pyTupleObj = PyTuple_New(argSz);
-	// index to add elements to Tuple
-	int i = 0;
-
-#ifdef IS_PY3K
-	// create a python Unicode object from an UTF-8 encoded null terminated char buffer
-	pyModule = PyUnicode_FromString(modName.c_str());
-#else
-	pyModule = PyBytes_FromString(modName.c_str());
-#endif
-
-	if (!pyModule)
-	{
-		PyErrorMsg(pType, pValue, pTraceback, msg);
-		throw InterfaceException(" Python Exception: " + msg + "\n");
-	}
-
-	// import the python module
-	pyPluginModule = PyImport_Import(pyModule);
-	Py_DECREF(pyModule);
-
-	if (!pyPluginModule)
-	{
-		PyErrorMsg(pType, pValue, pTraceback, msg);
-		throw InterfaceException(" Python Exception: " + msg + "\n");
-	}
-     
-   // Set standard output of this module to a parameter
-   std::string redirectPyOutput =
-      "from io import StringIO\n"
-      "import sys\n"
-      "storageObj = StringIO()\n"
-      "sys.stdout = storageObj";
-   PyRun_String(redirectPyOutput.c_str(), Py_file_input,
-      PyModule_GetDict(pyPluginModule), PyModule_GetDict(pyPluginModule));
-   PyObject *catcher = PyObject_GetAttrString(pyPluginModule, "storageObj");
-
-
-	// retrieve an attribute named 'funcName' from the python module
-	pyFuncAttr = PyObject_GetAttrString(pyPluginModule, funcName.c_str());
-	Py_DECREF(pyPluginModule);
-
-	if (!pyFuncAttr)
-	{
-		PyErrorMsg(pType, pValue, pTraceback, msg);
-		throw InterfaceException(" Python Exception: " + msg + "\n");
-	}	
-
-	PyObject* pyList = PyList_New(dimension);
-
-	for (UnsignedInt k = 0; k < dimension; ++k)
-	{
-		PyObject* pyState = PyFloat_FromDouble((Real)state[k]);
-		
-		PyList_SetItem(pyList, k, pyState);
-	}
-
-	PyTuple_SetItem(pyTupleObj, 0, pyList);
-
-	PyObject* pyFloatObjDt = PyFloat_FromDouble((Real)now);
-	PyTuple_SetItem(pyTupleObj, 1, pyFloatObjDt);
-
-   PyObject* pyList2 = PyList_New(stateDescription.size());
-   for (UnsignedInt k = 0; k < stateDescription.size(); ++k)
+   if (!state || dimension <= 0 || (argSz != 3 && argSz != 4))
+      throw InterfaceException("External callback arguments are inconsistent.");
+   struct PythonLock
    {
-      PyObject* pyState = PyUnicode_FromString(stateDescription[k].c_str());
-
-      PyList_SetItem(pyList2, k, pyState);
+      PyGILState_STATE state = PyGILState_Ensure();
+      ~PythonLock() { PyGILState_Release(state); }
+   } lock;
+   auto release = [](PyObject *object) { Py_XDECREF(object); };
+   using PythonObject = std::unique_ptr<PyObject,decltype(release)>;
+   auto fail = [&]()
+   {
+      std::string message;
+      PyErrorMsg(nullptr,nullptr,nullptr,message);
+      throw InterfaceException("Python Exception: " + message);
+   };
+   PythonObject module(PyImport_ImportModule(modName.c_str()),release);
+   if (!module) fail();
+   PythonObject function(PyObject_GetAttrString(module.get(),funcName.c_str()),release);
+   if (!function) fail();
+   if (!PyCallable_Check(function.get()))
+   {
+      PyErr_SetString(PyExc_TypeError,"External callback entry point is not callable");
+      fail();
    }
-   PyTuple_SetItem(pyTupleObj, 2, pyList2);
-
-	PyObject* pyFloatObjOrder = PyFloat_FromDouble((Real)order);
-	PyTuple_SetItem(pyTupleObj,3, pyFloatObjOrder);
-
-
-	// Call the python function   
-	pyFunc = PyObject_CallObject(pyFuncAttr, pyTupleObj);
-	
-	Py_DECREF(pyFuncAttr);
-	Py_DECREF(pyTupleObj);
-
-	if (!pyFunc)
-	{
-		PyErrorMsg(pType, pValue, pTraceback, msg);
-		throw InterfaceException("Python Exception: " + msg + "\n");
-	}
-
-   // Grab any standard output that has been generated
-   PyObject* getValuePyFunc = PyObject_GetAttrString(catcher, "getvalue");
-   PyObject* emptyArgs = PyTuple_Pack(0);
-   PyObject *stdOutFromPy = PyObject_CallObject(getValuePyFunc, emptyArgs);
-
-   std::string outFromPyString;
-   PyObject *bytes;
-   bytes = PyUnicode_AsUTF8String(stdOutFromPy);
-   outFromPyString = PyBytes_AsString(bytes);
-   MessageInterface::ShowMessage(outFromPyString);
-
-   Py_DECREF(catcher);
-   Py_DECREF(getValuePyFunc);
-   Py_DECREF(emptyArgs);
-   Py_DECREF(stdOutFromPy);
-
-	return pyFunc;
+   PythonObject arguments(PyTuple_New(argSz),release);
+   PythonObject values(PyList_New(dimension),release);
+   PythonObject descriptions(PyList_New(stateDescription.size()),release);
+   if (!arguments || !values || !descriptions) fail();
+   for (Integer index = 0; index < dimension; ++index)
+   {
+      PyObject *value = PyFloat_FromDouble(state[index]);
+      if (!value) fail();
+      PyList_SET_ITEM(values.get(),index,value);
+   }
+   for (size_t index = 0; index < stateDescription.size(); ++index)
+   {
+      PyObject *value = PyUnicode_FromString(stateDescription[index].c_str());
+      if (!value) fail();
+      PyList_SET_ITEM(descriptions.get(),index,value);
+   }
+   PyTuple_SET_ITEM(arguments.get(),0,values.release());
+   PyObject *epochValue = PyFloat_FromDouble(now);
+   if (!epochValue) fail();
+   PyTuple_SET_ITEM(arguments.get(),1,epochValue);
+   PyTuple_SET_ITEM(arguments.get(),2,descriptions.release());
+   if (argSz == 4)
+   {
+      PyObject *orderValue = PyFloat_FromDouble(order);
+      if (!orderValue) fail();
+      PyTuple_SET_ITEM(arguments.get(),3,orderValue);
+   }
+   PythonObject io(PyImport_ImportModule("io"),release);
+   if (!io) fail();
+   PythonObject stringIO(PyObject_GetAttrString(io.get(),"StringIO"),release);
+   if (!stringIO) fail();
+   PythonObject catcher(PyObject_CallObject(stringIO.get(),nullptr),release);
+   if (!catcher) fail();
+   PyObject *previous = PySys_GetObject("stdout");
+   Py_XINCREF(previous);
+   PythonObject previousOutput(previous,release);
+   if (PySys_SetObject("stdout",catcher.get()) != 0) fail();
+   struct RestoreOutput
+   {
+      PyObject *previous;
+      ~RestoreOutput() { PySys_SetObject("stdout",previous); }
+   } restore{previousOutput.get()};
+   PythonObject result(PyObject_CallObject(function.get(),arguments.get()),release);
+   if (!result) fail();
+   PythonObject getValue(PyObject_GetAttrString(catcher.get(),"getvalue"),release);
+   if (!getValue) fail();
+   PythonObject output(PyObject_CallObject(getValue.get(),nullptr),release);
+   if (!output) fail();
+   const char *text = PyUnicode_AsUTF8(output.get());
+   if (!text) fail();
+   MessageInterface::ShowMessage("%s",text);
+   return result.release();
 }
 
 //------------------------------------------------------------------------------

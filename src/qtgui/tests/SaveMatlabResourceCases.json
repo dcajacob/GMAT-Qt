@@ -1,0 +1,76 @@
+{
+  "cases": [
+    {
+      "key": "Fmincon",
+      "setup": "Create FminconOptimizer Subject;\nSubject.ShowProgress = false;\nSubject.MaximumIterations = 17;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.FminconOptimizer.data",
+      "definitions": [
+        "Create FminconOptimizer Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "ShowProgress",
+          "type": "Boolean",
+          "expected": false
+        },
+        {
+          "object": "Subject",
+          "field": "MaximumIterations",
+          "type": "Integer",
+          "expected": 17
+        }
+      ]
+    },
+    {
+      "key": "MatlabFunction",
+      "fixture_files": {
+        "SaveEcho.m": "function out = SaveEcho(x)\nout = x + 2;\nend\n"
+      },
+      "setup": "Create MatlabFunction SaveEcho;\nSaveEcho.FunctionPath = '@FILES@/SaveEcho.m';\nCreate Variable ProbeValue;\nProbeValue = 41;\n",
+      "selected": [
+        "SaveEcho",
+        "ProbeValue"
+      ],
+      "objects": [
+        "SaveEcho",
+        "ProbeValue"
+      ],
+      "filename": "SaveEcho_ProbeValue.data",
+      "definitions": [
+        "Create MatlabFunction SaveEcho;",
+        "Create Variable ProbeValue\n"
+      ],
+      "witnesses": [
+        {
+          "object": "SaveEcho",
+          "field": "FunctionPath",
+          "type": "Filename",
+          "expected": "@FILES@/SaveEcho.m"
+        },
+        {
+          "object": "ProbeValue",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "[ProbeValue] = SaveEcho(ProbeValue);\n",
+      "probe_witnesses": [
+        {
+          "object": "ProbeValue",
+          "field": "Value",
+          "type": "Real",
+          "expected": 43
+        }
+      ]
+    }
+  ],
+  "scope": "Supplementary LegacyData snapshots of available MATLAB-backed Resources. Fmincon configuration/standalone rebuild only. MatlabFunction additionally executes the saved function through actual MATLAB after reload and checks the independent exact result43. No full optimizer/function-I/O/Resource qualification."
+}

@@ -116,7 +116,12 @@ int main(int argc,char **argv)
    const auto source=window.findChild<QPlainTextEdit *>("scriptEditor")->toPlainText();
    const bool minimizeMain=!(argc>4 && QString(argv[4])=="--skip-main-minimize");
    const bool wayland=QGuiApplication::platformName().startsWith("wayland");
-   int stage=0,cycle=0;
+   int stage=0,cycle=0,lastWindowClosed=0;
+   bool normalCloseRequested=false;
+   QSize initialMainSize,initialOrbitSize,initialGroundSize,smallMainSize,smallOrbitSize,smallGroundSize;
+   QObject::connect(&app,&QGuiApplication::lastWindowClosed,&app,[&] { ++lastWindowClosed; });
+   // A wedged close or compositor transition must fail inside CTest's bound.
+   QTimer::singleShot(55000,&app,[&] { log("FAIL: lifecycle/normal-close deadline"); app.exit(1); });
    QTimer actions;
    actions.setInterval(500);
    QObject::connect(&actions,&QTimer::timeout,&window,[&] {
@@ -142,22 +147,48 @@ int main(int argc,char **argv)
          if (surface.destroyed) { log("FAIL: plot interaction replaced the native window"); app.exit(1); return; }
          if (!ground->isMinimized()) { log("FAIL: repeated minimize did not minimize"); app.exit(1); return; }
          log("resize main and both viewers"); ground->showNormal(); orbit->showNormal();
+         initialMainSize=window.size(); initialGroundSize=ground->size(); initialOrbitSize=orbit->size();
          window.resize(900,640); ground->resize(420,320); orbit->resize(420,320); break;
       case 5:
+         smallMainSize=window.size(); smallGroundSize=ground->size(); smallOrbitSize=orbit->size();
+         if (smallMainSize==initialMainSize || smallGroundSize==initialGroundSize || smallOrbitSize==initialOrbitSize) {
+            log("FAIL: resize did not produce distinct main and viewer sizes"); app.exit(1); return;
+         }
          if (!scene("DefaultOrbitView",200,20) || !scene("DefaultGroundTrackPlot",200,20)) {
             log("FAIL: resized viewers lost textures or trajectory"); app.exit(1); return;
          }
          window.resize(1280,900); ground->resize(700,480); orbit->resize(700,480);
          log("maximize orbit"); orbit->showMaximized(); area->setActiveSubWindow(orbit); break;
       case 6:
+         if (window.size()==smallMainSize || ground->size()==smallGroundSize || orbit->size()==smallOrbitSize) {
+            log("FAIL: enlargement/maximize did not change main and viewer sizes"); app.exit(1); return;
+         }
          if (!scene("DefaultOrbitView")) { log("FAIL: maximized orbit lost scene"); app.exit(1); return; }
-         log("close orbit and reopen immediately through Output"); orbit->close();
-         if (!openOutput("DefaultOrbitView")) { log("FAIL: closed orbit did not reopen"); app.exit(1); return; }
+         log("close orbit and reopen immediately through Output");
+         {
+            const QPointer<QMdiSubWindow> closed=orbit;
+            const auto retained=window.plotReceiver()->model("DefaultOrbitView");
+            if (!orbit->close() || plot("DefaultOrbitView")) { log("FAIL: orbit close left a workspace viewer"); app.exit(1); return; }
+            if (!openOutput("DefaultOrbitView")) { log("FAIL: closed orbit did not reopen"); app.exit(1); return; }
+            QApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
+            if (closed || !plot("DefaultOrbitView") || window.plotReceiver()->model("DefaultOrbitView")!=retained) {
+               log("FAIL: deferred orbit destruction lost reopened viewer/history"); app.exit(1); return;
+            }
+         }
          break;
       case 7:
          if (!scene("DefaultOrbitView")) { log("FAIL: reopened orbit lost scene"); app.exit(1); return; }
-         log("close ground and reopen immediately through Output"); ground->close();
-         if (!openOutput("DefaultGroundTrackPlot")) { log("FAIL: closed ground did not reopen"); app.exit(1); return; }
+         log("close ground and reopen immediately through Output");
+         {
+            const QPointer<QMdiSubWindow> closed=ground;
+            const auto retained=window.plotReceiver()->model("DefaultGroundTrackPlot");
+            if (!ground->close() || plot("DefaultGroundTrackPlot")) { log("FAIL: ground close left a workspace viewer"); app.exit(1); return; }
+            if (!openOutput("DefaultGroundTrackPlot")) { log("FAIL: closed ground did not reopen"); app.exit(1); return; }
+            QApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
+            if (closed || !plot("DefaultGroundTrackPlot") || window.plotReceiver()->model("DefaultGroundTrackPlot")!=retained) {
+               log("FAIL: deferred ground destruction lost reopened viewer/history"); app.exit(1); return;
+            }
+         }
          break;
       case 8:
          if (!scene("DefaultGroundTrackPlot")) { log("FAIL: reopened ground lost scene"); app.exit(1); return; }
@@ -206,7 +237,9 @@ int main(int argc,char **argv)
                "PASS: three viewer lifecycle cycles, textured orbit/map and trajectories, immediate close/reopen, resize/maximize, Wayland main minimize requests and exposed restoration/rerun remain responsive; compositor minimization state is not observable" :
                "PASS: three viewer lifecycle cycles, textured orbit/map and trajectories, immediate close/reopen, resize/maximize, main minimize/restore and rerun remain responsive") :
                "PASS: three viewer lifecycle cycles, textured orbit/map and trajectories, immediate close/reopen, resize/maximize and rerun remain responsive; top-level minimize/restore remains unqualified");
-            app.exit(0);
+            actions.stop(); normalCloseRequested=true;
+            log("request normal main-window close");
+            if (!window.close() || window.isVisible()) { log("FAIL: normal close rejected or window remained visible"); app.exit(1); }
          }
          break;
       }
@@ -239,5 +272,10 @@ int main(int argc,char **argv)
       log("explicit and manually adjusted viewer positions retained");
       actions.start();
    });
-   return app.exec();
+   const int result=app.exec();
+   if (result || !normalCloseRequested || lastWindowClosed!=1 || window.isVisible()) {
+      log("FAIL: event loop did not exit through the normal last-window close"); return 1;
+   }
+   log("PASS: accepted main-window close emitted lastWindowClosed and exited the event loop normally");
+   return 0;
 }

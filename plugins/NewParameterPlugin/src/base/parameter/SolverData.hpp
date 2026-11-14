@@ -59,6 +59,9 @@ public:
    const static std::string SOLVER_STRING_UNDEFINED;
 
 protected:
+   void RebindClonedParameterCaches(const RefData &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
+
    // The inherited methods from RefData
    virtual void InitializeRefObjects();
    virtual bool IsValidObjectType(UnsignedInt type);

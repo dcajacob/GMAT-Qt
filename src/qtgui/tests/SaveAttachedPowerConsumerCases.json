@@ -1,0 +1,146 @@
+{
+  "cases": [
+    {
+      "key": "AttachedNuclearPowerSystem",
+      "power_type": "NuclearPowerSystem",
+      "power_expected": {
+        "TotalPowerAvailable": 6.5,
+        "RequiredBusPower": 1.5,
+        "ThrustPowerAvailable": 4.5
+      },
+      "setup": "Create NuclearPowerSystem Subject;\nSubject.InitialMaxPower = 6.5;\nSubject.AnnualDecayRate = 0;\nSubject.Margin = 10;\nSubject.BusCoeff1 = 1.5;\nSubject.BusCoeff2 = 0;\nSubject.BusCoeff3 = 0;\nCreate CoordinateSystem SunFrame;\nSunFrame.Origin = Sun;\nSunFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.NAIFId = -101131;\nSat.NAIFIdReferenceFrame = -910131;\nSat.CoordinateSystem = SunFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.X = 149597870;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = 20;\nSat.VZ = 0;\nSat.PowerSystem = Subject;\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "selected": [
+        "Subject",
+        "SunFrame",
+        "Sat",
+        "ReloadAlive"
+      ],
+      "objects": [
+        "Subject",
+        "SunFrame",
+        "Sat",
+        "ReloadAlive"
+      ],
+      "definitions": [
+        "Create NuclearPowerSystem Subject",
+        "Create CoordinateSystem SunFrame",
+        "Create Spacecraft Sat",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_SunFrame_Sat_ReloadAlive.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "InitialMaxPower",
+          "type": "Real",
+          "expected": 6.5
+        },
+        {
+          "object": "Sat",
+          "field": "PowerSystem",
+          "type": "Object",
+          "expected": "Subject"
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Sat",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "Q1",
+          "type": "Real"
+        }
+      ]
+    },
+    {
+      "key": "AttachedSolarPowerSystem",
+      "power_type": "SolarPowerSystem",
+      "power_expected": {
+        "TotalPowerAvailable": 22.5,
+        "RequiredBusPower": 1.5,
+        "ThrustPowerAvailable": 18.900000000000002
+      },
+      "setup": "Create SolarPowerSystem Subject;\nSubject.InitialMaxPower = 22.5;\nSubject.AnnualDecayRate = 0;\nSubject.Margin = 10;\nSubject.BusCoeff1 = 1.5;\nSubject.BusCoeff2 = 0;\nSubject.BusCoeff3 = 0;\nSubject.ShadowModel = None;\nSubject.SolarCoeff1 = 1;\nSubject.SolarCoeff2 = 0;\nSubject.SolarCoeff3 = 0;\nSubject.SolarCoeff4 = 0;\nSubject.SolarCoeff5 = 0;\nCreate CoordinateSystem SunFrame;\nSunFrame.Origin = Sun;\nSunFrame.Axes = MJ2000Eq;\nCreate Spacecraft Sat;\nSat.NAIFId = -101131;\nSat.NAIFIdReferenceFrame = -910131;\nSat.CoordinateSystem = SunFrame;\nSat.DateFormat = A1ModJulian;\nSat.Epoch = '21545';\nSat.X = 149597870;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = 20;\nSat.VZ = 0;\nSat.PowerSystem = Subject;\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "selected": [
+        "Subject",
+        "SunFrame",
+        "Sat",
+        "ReloadAlive"
+      ],
+      "objects": [
+        "Subject",
+        "SunFrame",
+        "Sat",
+        "ReloadAlive"
+      ],
+      "definitions": [
+        "Create SolarPowerSystem Subject",
+        "Create CoordinateSystem SunFrame",
+        "Create Spacecraft Sat",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_SunFrame_Sat_ReloadAlive.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "InitialMaxPower",
+          "type": "Real",
+          "expected": 22.5
+        },
+        {
+          "object": "Sat",
+          "field": "PowerSystem",
+          "type": "Object",
+          "expected": "Subject"
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Sat",
+          "owned_indices": [
+            0
+          ],
+          "native_type": "CoordinateSystemFixed",
+          "field": "Q1",
+          "type": "Real"
+        }
+      ]
+    }
+  ],
+  "independent_inputs": {
+    "sun_relative_radius_km": 149597870,
+    "native_AU_length_km": 149597870,
+    "solar_shape_coefficients": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "annual_decay": 0,
+    "shadow_model": "None",
+    "bus_power_kw": 1.5,
+    "margin_percent": 10
+  },
+  "scope": "Real spacecraft-attached power consumer before and after export/reload. Existing generic Save assertions unchanged."
+}

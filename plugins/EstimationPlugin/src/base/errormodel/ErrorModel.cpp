@@ -30,6 +30,21 @@
 
 
 #include "ErrorModel.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration errorModelValueProvider({
+   ErrorModel::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const ErrorModel*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<ErrorModel*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
+#include <memory>
 #include "Rvector.hpp"
 #include "StringUtil.hpp"
 #include "TimeSystemConverter.hpp"
@@ -37,6 +52,7 @@
 #include "MeasurementException.hpp"
 #include "MessageInterface.hpp"
 #include <sstream>
+#include <map>
 
 
 //#define DEBUG_CONSTRUCTION
@@ -113,7 +129,8 @@ ErrorModel::ErrorModel(const std::string name) :
 
  
    passBiases.Set(1, bias);                                 // Initially, pass bias is set to be the value of bias
-   passBiasStartEpoches.push_back(new GmatTime(0.0));       // Initially, pass bias' start time is undefined. We set it to 0
+   ownedPassBiasStartEpochs.emplace_back(new GmatTime(0.0));
+   passBiasStartEpoches.push_back(ownedPassBiasStartEpochs.back().get());
 
    covariance.AddCovarianceElement("PassBiases", this);
    locationStart = covariance.GetSubMatrixLocationStart(PASS_BIASES);
@@ -137,8 +154,8 @@ ErrorModel::ErrorModel(const std::string name) :
 //------------------------------------------------------------------------------
 ErrorModel::~ErrorModel()
 {
-   // All passBiasStartEpoches' elements are created by other objects. 
-   // So it does not need to delete here because other objects handle it.
+   // The owned pool releases defaults/snapshots. Measurement-manager epoch
+   // pointers in passBiasStartEpoches retain their native borrowed ownership.
 }
 
 
@@ -168,36 +185,13 @@ ErrorModel::ErrorModel(const ErrorModel& em) :
    solveforNames         (em.solveforNames),
    modelId               (em.modelId)
 {
+   CopyPassEpochs(em, false);
 #ifdef DEBUG_CONSTRUCTION
 	MessageInterface::ShowMessage("ErrorModel copy constructor from <%s,%p>  to  <%s,%p>\n", em.GetName().c_str(), &em, GetName().c_str(), this);
 #endif
 
-   covariance.AddCovarianceElement("Bias", this);
-   Integer locationStart = covariance.GetSubMatrixLocationStart(BIAS);
-   covariance(locationStart, locationStart) = biasSigma*biasSigma;
-
-   covariance.AddCovarianceElement("PassBiases", this);
-   locationStart             = covariance.GetSubMatrixLocationStart(PASS_BIASES);
-   Integer dim               = covariance.GetElementSize(PASS_BIASES);
-   Integer locationStartDest = em.covariance.GetSubMatrixLocationStart(PASS_BIASES);
-   Integer dimDest           = em.covariance.GetElementSize(PASS_BIASES);
-
-   // Resize the element
-   if (dim != dimDest)
-   {
-      covariance.SetElementSize(PASS_BIASES, dimDest);
-   }
-
-   for (Integer row = 0; row < dimDest; ++row)
-   {
-      for (Integer col = 0; col < dimDest; ++col)
-      {
-         if ((row >= dim) || (col >= dim))
-            covariance(locationStart + row, locationStart + col) = ((row == col) ? (biasSigma*biasSigma) : 0.0);
-         else
-            covariance(locationStart + row, locationStart + col) = em.covariance(locationStartDest + row, locationStartDest + col);
-      }
-   }     
+   // GmatBase captured the complete covariance and rebound this owner.
+   // Preserve estimated Bias/PassBiases correlations independently of BiasSigma.
 }
 
 
@@ -220,6 +214,15 @@ ErrorModel& ErrorModel::operator=(const ErrorModel& em)
 
    if (this != &em)
    {
+      const bool restoring = GmatBase::IsNativeRestorationCopy();
+      const bool ready = isInitialized;
+      bool complete = false;
+      const auto onFailure = [&](void*) { if (restoring && !complete) isInitialized = false; };
+      const std::unique_ptr<void, decltype(onFailure)> restorationStatus(this, onFailure);
+      if (restoring && (measurementType != em.measurementType || solveforNames != em.solveforNames ||
+          modelId != em.modelId || passBiases.GetSize() != em.passBiases.GetSize()))
+         throw MeasurementException("Prepare error-model roles before restoring changed measurement bindings.");
+      CopyPassEpochs(em, false);
       GmatBase::operator=(em);
 
       measurementType     = em.measurementType;
@@ -233,37 +236,12 @@ ErrorModel& ErrorModel::operator=(const ErrorModel& em)
       solveforNames       = em.solveforNames;
       modelId             = em.modelId;
 
-      Integer locationStart = covariance.GetSubMatrixLocationStart(BIAS);
-      covariance(locationStart, locationStart) = biasSigma * biasSigma;
-
-
-      // Copy value
-      timeGap                   = em.timeGap;
-      passBiases                = em.passBiases;
-      passBiasStartEpoches      = em.passBiasStartEpoches;
-
-      // Resize element's covariance and copy its value
-      locationStart             = covariance.GetSubMatrixLocationStart(PASS_BIASES);
-      Integer dim               = covariance.GetElementSize(PASS_BIASES);
-      Integer locationStartDest = em.covariance.GetSubMatrixLocationStart(PASS_BIASES);
-      Integer dimDest           = em.covariance.GetElementSize(PASS_BIASES);
-
-      // Resize the element
-      if (dim != dimDest)
-      {
-         covariance.SetElementSize(PASS_BIASES, dimDest);
-      }
-
-      for (Integer row = 0; row < dimDest; ++row)
-      {
-         for (Integer col = 0; col < dimDest; ++col)
-         {
-            if ((row >= dim) || (col >= dim))
-               covariance(locationStart + row, locationStart + col) = ((row == col) ? (biasSigma*biasSigma) : 0.0);
-            else
-               covariance(locationStart + row, locationStart + col) = em.covariance(locationStartDest + row, locationStartDest + col);
-         }
-      }
+      // The inherited value includes the complete Bias/PassBiases covariance.
+      // BiasSigma edits retain their existing explicit prior-update behavior.
+      timeGap = em.timeGap;
+      passBiases = em.passBiases;
+      if (restoring) isInitialized = ready;
+      complete = true;
    }
 
    return *this;
@@ -314,7 +292,9 @@ bool ErrorModel::operator==(const ErrorModel& em)
 //------------------------------------------------------------------------------
 GmatBase* ErrorModel::Clone() const
 {
-   return new ErrorModel(*this);
+   std::unique_ptr<ErrorModel> value(new ErrorModel(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -1760,9 +1740,51 @@ std::string  ErrorModel::GetTimeRangeEndInUTCGregorian(Integer passNum)
 //-------------------------------------------------------------------------
 void ErrorModel::SetPassBiasStartEpoches(std::vector<GmatTime*> startEpoches)
 {
-   passBiasStartEpoches.clear();
-   passBiasStartEpoches = startEpoches;
+   // A caller may return this model's own epoch pointers. Keep exactly those
+   // owned values alive; replacing them with manager pointers restores native
+   // borrowing without leaking the old default/snapshot pool.
+   std::vector<std::unique_ptr<GmatTime>> retained;
+   retained.reserve(ownedPassBiasStartEpochs.size());
+   for (auto &epoch : ownedPassBiasStartEpochs)
+      if (std::find(startEpoches.begin(), startEpoches.end(), epoch.get()) != startEpoches.end())
+         retained.push_back(std::move(epoch));
+   passBiasStartEpoches.swap(startEpoches);
+   ownedPassBiasStartEpochs.swap(retained);
 };
+
+void ErrorModel::CopyPassEpochs(const ErrorModel &source, bool snapshotBorrowed)
+{
+   std::vector<GmatTime*> references;
+   std::vector<std::unique_ptr<GmatTime>> values;
+   std::map<const GmatTime*, GmatTime*> copies;
+   references.reserve(source.passBiasStartEpoches.size());
+   for (GmatTime *epoch : source.passBiasStartEpoches)
+   {
+      bool owned = snapshotBorrowed;
+      for (const auto &value : source.ownedPassBiasStartEpochs)
+         if (value.get() == epoch) owned = true;
+      if (!epoch || !owned) { references.push_back(epoch); continue; }
+      auto found = copies.find(epoch);
+      if (found == copies.end())
+      {
+         values.emplace_back(new GmatTime(*epoch));
+         found = copies.emplace(epoch, values.back().get()).first;
+      }
+      references.push_back(found->second);
+   }
+   passBiasStartEpoches.swap(references);
+   ownedPassBiasStartEpochs.swap(values);
+}
+
+bool ErrorModel::RebindFunctionValueReferencesImpl(const GmatBase &source,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &)
+{
+   const auto *model = dynamic_cast<const ErrorModel*>(&source);
+   if (!model || model->GetTypeName() != GetTypeName())
+      throw MeasurementException("Incompatible ErrorModel function value.\n");
+   CopyPassEpochs(*model, true);
+   return true;
+}
 
 
 //------------------------------------------------------------------------------
@@ -1831,3 +1853,16 @@ Real ErrorModel::GetPassBias(const Integer passNum)
 }
 
 
+
+// Whole-object script assignment and GmatFunction outputs use this virtual API.
+// Retain the existing class assignment logic and the destination's identity.
+void ErrorModel::Copy(const GmatBase* source)
+{
+   const auto* typed = dynamic_cast<const ErrorModel*>(source);
+   if (!typed || typed->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Cannot copy into " + GetTypeName() +
+                             " from a null or incompatible object");
+   const auto previous = GetFunctionValueContext();
+   operator=(*typed);
+   RebindFunctionValueContext(*typed);
+}

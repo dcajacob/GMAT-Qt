@@ -93,6 +93,7 @@ public:
    void ConvertEbcdicToAscii(char *ebcdic, char *ascii, int numChars);
    
    Real GetTimeSystem();
+   Real GetInputTimeSystem() const;
    std::string GetCentralBody();
    Integer GetCoordSystemIndicator();
    

@@ -116,6 +116,13 @@ public:
    virtual bool                ValidateRefObjects(GmatBase *param) = 0;
    virtual const std::string*  GetValidObjectList() const;
 
+   // Preserve lexical role names while mapping their actual bound identities.
+   // Cached pointers outside the declaration list are handled by each family.
+   void RebindClonedParameterReferences(const RefData &source, Parameter &target,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+   // Retire a symbolic prototype, keeping role names and pure value data.
+   void RetireParameterPrototype(Parameter &target);
+
 protected:
 
    Parameter   *mParameter;
@@ -151,6 +158,29 @@ protected:
    
    virtual void         InitializeRefObjects();
    virtual bool         IsValidObjectType(UnsignedInt type) = 0;
+
+   virtual void RebindClonedParameterCaches(const RefData &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+
+   bool IsRetiringPrototypeReferences() const;
+   static thread_local const RefData *retiringPrototype;
+
+   template <class T> T *BindClonedParameterReference(T *source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) const
+   {
+      if (!source) return NULL;
+      T *value = dynamic_cast<T*>(resolve(source));
+      if (!value && !IsRetiringPrototypeReferences())
+         throw GmatBaseException("Invalid retained Parameter cache reference.\n");
+      return value;
+   }
+
+   template <class T> static const T &ClonedParameterData(const RefData &source)
+   {
+      const T *value = dynamic_cast<const T*>(&source);
+      if (!value) throw GmatBaseException("Incompatible retained Parameter data family.\n");
+      return *value;
+   }
 };
 #endif // RefData_hpp
 

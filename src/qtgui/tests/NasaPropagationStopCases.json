@@ -1,0 +1,70 @@
+{
+  "radius": 7000,
+  "cases": [
+    {
+      "id": "GoalVariable",
+      "family": "goal",
+      "kind": "Variable",
+      "parameter": "Sat.ElapsedSecs",
+      "goal": "Goal",
+      "elapsed": 90,
+      "requirement": "FRC!E119"
+    },
+    {
+      "id": "GoalArray",
+      "family": "goal",
+      "kind": "Array",
+      "parameter": "Sat.ElapsedSecs",
+      "goal": "Grid(1,2)",
+      "elapsed": 75,
+      "requirement": "FRC!E120"
+    },
+    {
+      "id": "GoalProperty",
+      "family": "goal",
+      "kind": "Property",
+      "parameter": "Sat.A1ModJulian",
+      "goal": "Other.A1ModJulian",
+      "elapsed": 120,
+      "requirement": "FRC!E121"
+    },
+    {
+      "id": "FirstStepRepeat",
+      "family": "fsa",
+      "kind": "repeat",
+      "parameter": "Sat.EarthMJ2000Eq.X",
+      "goal": "0",
+      "first_goal": "0",
+      "tolerance": "0.001",
+      "requirement": "FRC!E124"
+    },
+    {
+      "id": "FirstStepBeforeRoot",
+      "family": "fsa",
+      "kind": "before-root",
+      "parameter": "Sat.EarthMJ2000Eq.X",
+      "goal": "0",
+      "first_goal": "0.0001",
+      "tolerance": "0.001",
+      "requirement": "FRC!E124"
+    },
+    {
+      "id": "StopTop",
+      "family": "stop",
+      "kind": "Top",
+      "requirement": "FRC!E152"
+    },
+    {
+      "id": "StopLoop",
+      "family": "stop",
+      "kind": "Loop",
+      "requirement": "FRC!E152"
+    },
+    {
+      "id": "StopTarget",
+      "family": "stop",
+      "kind": "Target",
+      "requirement": "FRC!E152"
+    }
+  ]
+}

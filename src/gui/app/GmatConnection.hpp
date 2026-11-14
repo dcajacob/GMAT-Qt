@@ -40,6 +40,8 @@
 #endif
 
 #include "wx/ipc.h"
+#include <string>
+#include <vector>
 
 class GmatConnection : public wxConnection
 {
@@ -72,6 +74,11 @@ public:
 protected:
    char* RunRequest(const wxString &item);
    bool  RunPoke(const char *itemData);
+   std::string ReadReply(const wxString &item);
+
+private:
+   std::vector<char> replyBytes; // Encoded bytes, including the format's NUL.
+
 };
 
 #endif // GmatConnection_hpp

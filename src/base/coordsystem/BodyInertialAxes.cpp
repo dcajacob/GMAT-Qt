@@ -165,14 +165,14 @@ bool BodyInertialAxes::Initialize()
       throw CoordinateSystemException(
             "Improper origin set for BodyInertialAxes object.");
    //if (originName == SolarSystem::EARTH_NAME)
-   if (originName == GmatSolarSystemDefaults::EARTH_NAME)
+   if (GetOriginPhysicalName() == GmatSolarSystemDefaults::EARTH_NAME)
    {
       rotMatrix.Set(1.0,0.0,0.0,
                     0.0,1.0,0.0,
                     0.0,0.0,1.0);
    }
    //else if (originName == SolarSystem::MOON_NAME)
-   else if (originName == GmatSolarSystemDefaults::MOON_NAME)
+   else if (GetOriginPhysicalName() == GmatSolarSystemDefaults::MOON_NAME)
    {
       rotMatrix.Set( 0.998496505205088,  0.0499357293985327, -0.0226086714041825,
                     -0.0548154092680678, 0.909610125238044,  -0.411830900942613,

@@ -53,6 +53,11 @@ public:
    virtual ~ArrayWrapper();
    
    virtual ElementWrapper*     Clone() const;
+   void RebindClonedReferences(const ElementWrapper &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
+
+   bool OwnsRefObject() const override;
+   void AdoptRefObject(std::unique_ptr<Array> value);
 
    virtual std::string         ToString();
    virtual Gmat::ParameterType GetDataType() const;
@@ -77,6 +82,8 @@ protected:
    /// name of the array
    std::string     arrayName;
    
+   std::unique_ptr<Array> ownedArray;
+
    virtual void         SetupWrapper(); 
 };
 #endif // ArrayWrapper_hpp

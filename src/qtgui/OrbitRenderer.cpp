@@ -1,4 +1,6 @@
 #include "OrbitRenderer.hpp"
+#include "PovModel.hpp"
+#include "PovModelLoad.hpp"
 #include "OrbitCamera.hpp"
 #include "OrbitObjectAxes.hpp"
 #include "OrbitObjectGuides.hpp"
@@ -8,6 +10,7 @@
 #include "OrbitSensorMasks.hpp"
 #include "OrbitStars.hpp"
 #include "PlotInterpolation.hpp"
+#include "PlotPresentation.hpp"
 #include <osg/PolygonMode>
 #include <osg/BlendFunc>
 #include <QOpenGLContext>
@@ -19,9 +22,13 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QDebug>
+#include <QThread>
+#include <atomic>
+#include <stdexcept>
 #include <osgViewer/Viewer>
 #include <osgViewer/GraphicsWindow>
 #include <osg/Geometry>
+#include <osg/ValueObject>
 #include <osg/MatrixTransform>
 #include <osg/Texture2D>
 #include <osg/LineWidth>
@@ -120,30 +127,48 @@ void isolateArrays(osg::Drawable *drawable)
    drawable->setUseVertexBufferObjects(true);
    drawable->setUseVertexArrayObject(true);
 }
+void modelCheckpoint(const PovModelCancel &cancel)
+{
+   if (cancel && cancel()) throw std::runtime_error("POV model import canceled.");
+}
 class ModelArrays final : public osg::NodeVisitor {
 public:
-   ModelArrays() : osg::NodeVisitor(TRAVERSE_ALL_CHILDREN) {}
+   explicit ModelArrays(PovModelCancel cancel={}) : osg::NodeVisitor(TRAVERSE_ALL_CHILDREN),cancel(std::move(cancel)) {}
    void apply(osg::Geode &node) override {
-      for (unsigned i=0;i<node.getNumDrawables();++i) isolateArrays(node.getDrawable(i));
+      for (unsigned i=0;i<node.getNumDrawables();++i) { modelCheckpoint(cancel); isolateArrays(node.getDrawable(i)); }
       traverse(node);
    }
+private:
+   PovModelCancel cancel;
 };
-osg::ref_ptr<osg::Node> readModel(const QString &path,bool normalize)
+class ModelBounds final : public osg::ComputeBoundsVisitor {
+public:
+   explicit ModelBounds(PovModelCancel cancel) : cancel(std::move(cancel)) {}
+   void apply(osg::Drawable &drawable) override { modelCheckpoint(cancel); osg::ComputeBoundsVisitor::apply(drawable); }
+   void apply(osg::Transform &transform) override { modelCheckpoint(cancel); osg::ComputeBoundsVisitor::apply(transform); }
+private:
+   PovModelCancel cancel;
+};
+osg::ref_ptr<osg::Node> prepareModel(osg::ref_ptr<osg::Node> model,bool normalize,QString *diagnostic,const PovModelCancel &cancel={})
 {
-   // Include build dependencies and an adjacent deployed plugin directory.
-   auto &paths=osgDB::Registry::instance()->getLibraryFilePathList();
-   for (const auto &candidate:{QCoreApplication::applicationDirPath()+"/osgPlugins-"+QString(osgGetVersion()),QString(GMAT_QT_OSG_PLUGIN_DIR)})
-      if (QDir(candidate).exists() && std::find(paths.begin(),paths.end(),candidate.toStdString())==paths.end()) paths.push_back(candidate.toStdString());
-   osg::ref_ptr<osgDB::Options> options=new osgDB::Options;
-   options->setOptionString("noRotation");
-   options->setReadFileCallback(new TextureReader);
-   options->getDatabasePathList().push_back(QFileInfo(path).absolutePath().toStdString());
-   auto model=osgDB::readRefNodeFile(path.toStdString(),options);
-   if (!model) { qWarning().noquote()<<"Qt orbit: could not load model"<<path<<"; using the default body or marker."; return {}; }
-   ModelArrays arrays; model->accept(arrays);
-   osg::ComputeBoundsVisitor bounds; model->accept(bounds);
+   modelCheckpoint(cancel);
+   if (!model) return {};
+   ModelArrays arrays(cancel); model->accept(arrays);
+   ModelBounds bounds(cancel); model->accept(bounds);
    const auto box=bounds.getBoundingBox();
-   if (!box.valid() || box.radius()<=0) return {};
+   modelCheckpoint(cancel);
+   if (!box.valid() || !std::isfinite(box.radius()) || box.radius()<=0) {
+      bool emptyPov=false;
+      if (!box.valid() && model->getUserValue("gmat.pov.emptyGeometry",emptyPov) && emptyPov) {
+         // A valid CSG difference/intersection can remove every surface.
+         // Supply only framing metadata; keep the model visibly empty and
+         // prevent the ordinary missing-model fallback from replacing it.
+         model->setInitialBound(osg::BoundingSphere(osg::Vec3(0,0,0),1));
+         return model;
+      }
+      if (diagnostic) *diagnostic="The model needs finite, nonzero bounds.";
+      return {};
+   }
    // Celestial-body meshes retain their physical dimensions. Only spacecraft
    // use wx's normalized, exaggerated display-size convention.
    if (!normalize) return model;
@@ -152,6 +177,31 @@ osg::ref_ptr<osg::Node> readModel(const QString &path,bool normalize)
    normalized->addChild(model);
    return normalized;
 }
+osg::ref_ptr<osg::Node> readModel(const QString &path,bool normalize,QString *diagnostic=nullptr)
+{
+   if (diagnostic) diagnostic->clear();
+   // Include build dependencies and an adjacent deployed plugin directory.
+   auto &paths=osgDB::Registry::instance()->getLibraryFilePathList();
+   for (const auto &candidate:{QCoreApplication::applicationDirPath()+"/osgPlugins-"+QString(osgGetVersion()),QString(GMAT_QT_OSG_PLUGIN_DIR)})
+      if (QDir(candidate).exists() && std::find(paths.begin(),paths.end(),candidate.toStdString())==paths.end()) paths.push_back(candidate.toStdString());
+   osg::ref_ptr<osgDB::Options> options=new osgDB::Options;
+   options->setOptionString("noRotation");
+   options->setReadFileCallback(new TextureReader);
+   options->getDatabasePathList().push_back(QFileInfo(path).absolutePath().toStdString());
+   QStringList povIncludePaths;
+   for (const auto &directory:osgDB::Registry::instance()->getDataFilePathList())
+      povIncludePaths.append(QString::fromStdString(directory));
+   QString error;
+   auto model=QFileInfo(path).suffix().compare("pov",Qt::CaseInsensitive)==0 ?
+      readPovModel(path,povIncludePaths,&error) : osgDB::readRefNodeFile(path.toStdString(),options);
+   if (!model) {
+      if (error.isEmpty()) error="The model file could not be loaded.";
+      if (diagnostic) *diagnostic=error;
+      qWarning().noquote()<<"Qt orbit: could not load model"<<path<<error<<"; using the default body or marker."; return {};
+   }
+   return prepareModel(model,normalize,diagnostic);
+}
+
 osg::ref_ptr<osg::Geode> sphere(double radius,const QString &path,const QColor &fallback)
 {
    constexpr int columns=128,rows=64;
@@ -190,7 +240,50 @@ osg::ref_ptr<osg::Geode> sphere(double radius,const QString &path,const QColor &
 }
 }
 
-bool orbitModelFileReadable(const QString &path) { return !path.isEmpty() && readModel(path,true).valid(); }
+struct PovModelLoad::State {
+   std::atomic_bool cancel{false};
+   osg::ref_ptr<osg::Node> model;
+   QString error;
+};
+PovModelLoad::PovModelLoad(const QString &path,bool normalize,QObject *context,Completion completed)
+   : state(std::make_shared<State>())
+{
+   if (!context || context->thread()!=QThread::currentThread())
+      throw std::logic_error("A model loader needs a context on its calling thread.");
+   // Snapshot shared registry configuration before entering the worker. The
+   // POV worker never changes plugin paths or accesses an existing scene.
+   QStringList includePaths;
+   for (const auto &directory:osgDB::Registry::instance()->getDataFilePathList())
+      includePaths.append(QString::fromStdString(directory));
+   const auto owned=state;
+   auto *worker=QThread::create([owned,path,normalize,includePaths] {
+      const PovModelCancel canceled=[owned] { return owned->cancel.load(std::memory_order_acquire) || QThread::currentThread()->isInterruptionRequested(); };
+      try {
+         auto model=readPovModel(path,includePaths,&owned->error,canceled);
+         owned->model=prepareModel(std::move(model),normalize,&owned->error,canceled);
+      } catch (const std::exception &failure) { owned->error=QString::fromUtf8(failure.what()); }
+      catch (...) { owned->error="An unexpected error interrupted model loading."; }
+   });
+   QObject::connect(worker,&QThread::finished,context,[owned,completed=std::move(completed)] {
+      if (!owned->cancel.load(std::memory_order_acquire) && completed)
+         completed(std::move(owned->model),owned->error);
+   },Qt::QueuedConnection);
+   QObject::connect(context,&QObject::destroyed,worker,[owned] { owned->cancel.store(true,std::memory_order_release); },Qt::DirectConnection);
+   QObject::connect(worker,&QThread::finished,worker,&QObject::deleteLater);
+   if (auto *application=QCoreApplication::instance())
+      QObject::connect(application,&QCoreApplication::aboutToQuit,worker,[owned,worker] {
+         owned->cancel.store(true,std::memory_order_release); worker->requestInterruption(); worker->wait();
+      },Qt::DirectConnection);
+   worker->start();
+}
+PovModelLoad::~PovModelLoad() { state->cancel.store(true,std::memory_order_release); }
+
+bool orbitModelFileReadable(const QString &path) { return orbitModelFileReadable(path,nullptr); }
+bool orbitModelFileReadable(const QString &path,QString *error) {
+   if (error) error->clear();
+   if (path.isEmpty()) { if (error) *error="Choose a model file."; return false; }
+   return readModel(path,true,error).valid();
+}
 
 struct OrbitRenderer::Scene
 {
@@ -202,6 +295,11 @@ struct OrbitRenderer::Scene
       QString texture,modelPath;
       osg::ref_ptr<osg::MatrixTransform> modelPose=new osg::MatrixTransform;
       bool modelLoaded=false,modelOverride=false;
+      std::shared_ptr<PovModelLoad> modelLoad;
+      std::shared_ptr<int> modelRequest;
+      osg::ref_ptr<osg::Node> pendingModel;
+      QString pendingError;
+      bool modelReady=false;
       double radius=-1,assetExtent=1;
       Curve() { root->addChild(track); root->addChild(body); root->addChild(markers); }
    };
@@ -210,11 +308,17 @@ struct OrbitRenderer::Scene
       const auto &r=source.modelRotation,&offset=source.modelOffset;
       constexpr double radians=3.14159265358979323846/180;
       const double scale=source.modelScale*(source.radius==0 ? 1000 : 1);
-      const auto rotation=osg::Matrixd::rotate(r[0]*radians,osg::Vec3d(1,0,0),r[1]*radians,osg::Vec3d(0,1,0),r[2]*radians,osg::Vec3d(0,0,1));
+      // wx builds the model's local X/Y/Z rotations for OpenGL column
+      // vectors. OSG multiplies row vectors, so compose Z/Y/X here to
+      // preserve that order when more than one model angle is nonzero.
+      const auto rotation=osg::Matrixd::rotate(r[2]*radians,osg::Vec3d(0,0,1))*
+         osg::Matrixd::rotate(r[1]*radians,osg::Vec3d(0,1,0))*
+         osg::Matrixd::rotate(r[0]*radians,osg::Vec3d(1,0,0));
       return source.radius==0 ? osg::Matrixd::translate(offset[0],offset[1],offset[2])*osg::Matrixd::scale(scale,scale,scale)*rotation :
          osg::Matrixd::scale(scale,scale,scale)*rotation*osg::Matrixd::translate(offset[0],offset[1],offset[2]);
    }
    std::shared_ptr<PlotModel> model;
+   OrbitRenderer *owner;
    osgViewer::Viewer viewer;
    osg::ref_ptr<osgViewer::GraphicsWindowEmbedded> context;
    osg::ref_ptr<osg::Group> root=new osg::Group;
@@ -228,9 +332,10 @@ struct OrbitRenderer::Scene
    double nativeLineWidthLimit=1;
    double coordinateAxisExtent=1;
    double zoom=1,yaw=.55,pitch=.45;
+   std::optional<std::array<double,9>> orbitRotation;
    QPointF pan;
    quint64 frame=std::numeric_limits<quint64>::max();
-   explicit Scene(std::shared_ptr<PlotModel> value) : model(std::move(value)) {
+   explicit Scene(std::shared_ptr<PlotModel> value,OrbitRenderer *owner) : model(std::move(value)),owner(owner) {
       viewer.setThreadingModel(osgViewer::Viewer::SingleThreaded);
       viewer.setLightingMode(osg::View::NO_LIGHT);
       illumination->getLight()->setLightNum(0);
@@ -255,18 +360,40 @@ struct OrbitRenderer::Scene
    void prepareCurve(int key,const PlotCurve &source) {
       auto added=curves.try_emplace(key); auto &curve=added.first->second;
       if (added.second) root->addChild(curve.root);
-         if (curve.radius!=source.radius || curve.texture!=source.texturePath || curve.modelPath!=source.modelPath || curve.modelOverride!=source.modelOverride) {
-            curve.body->removeChildren(0,curve.body->getNumChildren());
-            if (source.name=="Sun") curve.body->getOrCreateStateSet()->setMode(GL_LIGHTING,osg::StateAttribute::OFF);
-            curve.modelPose->removeChildren(0,curve.modelPose->getNumChildren());
-            curve.modelLoaded=false;
-            if (!source.modelPath.isEmpty()) {
-               auto model=readModel(source.modelPath,source.radius==0 && !source.modelOverride);
+      if (curve.radius!=source.radius || curve.texture!=source.texturePath || curve.modelPath!=source.modelPath || curve.modelOverride!=source.modelOverride) {
+         curve.modelLoad.reset(); curve.modelRequest=std::make_shared<int>(0);
+         curve.pendingModel=nullptr; curve.pendingError.clear(); curve.modelReady=false;
+         curve.body->removeChildren(0,curve.body->getNumChildren());
+         if (source.name=="Sun") curve.body->getOrCreateStateSet()->setMode(GL_LIGHTING,osg::StateAttribute::OFF);
+         curve.modelPose->removeChildren(0,curve.modelPose->getNumChildren());
+         curve.modelLoaded=false;
+         if (!source.modelPath.isEmpty()) {
+            const bool normalize=source.radius==0 && !source.modelOverride;
+            if (QFileInfo(source.modelPath).suffix().compare("pov",Qt::CaseInsensitive)==0) {
+               const auto request=curve.modelRequest;
+               curve.modelLoad=std::make_shared<PovModelLoad>(source.modelPath,normalize,owner,[this,key,request](osg::ref_ptr<osg::Node> model,const QString &error) {
+                  const auto found=curves.find(key);
+                  if (found==curves.end() || found->second.modelRequest!=request) return;
+                  auto &curve=found->second; curve.pendingModel=std::move(model);
+                  curve.pendingError=error; curve.modelReady=true; owner->update();
+               });
+            } else {
+               auto model=readModel(source.modelPath,normalize);
                if (model) { curve.modelPose->addChild(model); curve.body->addChild(curve.modelPose); curve.modelLoaded=true; curve.assetExtent=model->getBound().center().length()+model->getBound().radius(); }
             }
-            if (source.radius>0 && !curve.modelLoaded) curve.body->addChild(sphere(source.radius,source.texturePath,source.color));
-            curve.radius=source.radius; curve.texture=source.texturePath; curve.modelPath=source.modelPath; curve.modelOverride=source.modelOverride;
          }
+         if (source.radius>0 && !curve.modelLoaded) curve.body->addChild(sphere(source.radius,source.texturePath,source.color));
+         curve.radius=source.radius; curve.texture=source.texturePath; curve.modelPath=source.modelPath; curve.modelOverride=source.modelOverride;
+      }
+      if (curve.modelReady) {
+         curve.modelReady=false; curve.modelLoad.reset();
+         if (curve.pendingModel) {
+            curve.body->removeChildren(0,curve.body->getNumChildren());
+            curve.modelPose->addChild(curve.pendingModel); curve.body->addChild(curve.modelPose); curve.modelLoaded=true;
+            curve.assetExtent=curve.pendingModel->getBound().center().length()+curve.pendingModel->getBound().radius();
+            curve.pendingModel=nullptr;
+         } else qWarning().noquote()<<"Qt orbit: could not load model"<<curve.modelPath<<curve.pendingError<<"; using the default body or marker.";
+      }
    }
    void synchronize(int width,int height,double pixelRatio) {
       viewer.getCamera()->setClearColor(model->printBackground ? osg::Vec4(1,1,1,1) : model->starOptions ? osg::Vec4(0,0,0,1) : osg::Vec4(.015,.025,.045,1));
@@ -313,7 +440,8 @@ struct OrbitRenderer::Scene
       coordinateAxisExtent=extent;
       // Preserve the orbit controls and stable replay framing in either projection.
       const double aspect=double(width)/height;
-      const auto camera=orbitCamera(*model,frame,yaw,pitch,extent,aspect,&bounds,&objects);
+      const auto camera=orbitCamera(*model,frame,yaw,pitch,extent,aspect,&bounds,&objects,
+         orbitRotation ? &*orbitRotation : nullptr);
       const auto &target=camera.target,&right=camera.right,&up=camera.up,&outward=camera.outward;
       const double distance=camera.distance,viewExtent=camera.extent;
       const double tangent=std::tan(std::clamp(model->fieldOfView,1.0,150.0)*osg::PI/360.0)/zoom;
@@ -404,12 +532,12 @@ struct OrbitRenderer::Scene
          auto positions=new osg::Vec3Array;
          for (const auto &segment:model->constellationCatalog.segments) {
             auto a=rotateSky(segment.first),b=rotateSky(segment.second);
-            const double fa=-(a*outward),fb=-(b*outward),near=.001;
-            if (fa<near && fb<near) continue;
+            const double fa=-(a*outward),fb=-(b*outward),nearDistance=.001;
+            if (fa<nearDistance && fb<nearDistance) continue;
             // Clip against the forward celestial hemisphere before projection.
             // Frustum clipping handles segments crossing a screen edge.
-            if (fa<near) a=a+(b-a)*((near-fa)/(fb-fa));
-            else if (fb<near) b=b+(a-b)*((near-fb)/(fa-fb));
+            if (fa<nearDistance) a=a+(b-a)*((nearDistance-fa)/(fb-fa));
+            else if (fb<nearDistance) b=b+(a-b)*((nearDistance-fb)/(fa-fb));
             positions->push_back(skyPosition(a)); positions->push_back(skyPosition(b));
          }
          geometry->setVertexArray(positions);
@@ -450,12 +578,6 @@ struct OrbitRenderer::Scene
          osg::Vec3d sun(sample->sunPosition[0],sample->sunPosition[1],sample->sunPosition[2]);
          if (sun.normalize()>0) line({0,0,0},sun*(extent*1.25),{1,.82f,.2f,1});
       }
-      if (model->grid) for (int i=0;i<=5;++i) {
-         const double x=halfWidth*(-1+2.0*i/5),y=halfHeight*(-1+2.0*i/5);
-         const auto back=center-outward*extent*2;
-         line(back+right*x-up*halfHeight,back+right*x+up*halfHeight,{.11f,.14f,.19f,1});
-         line(back+up*y-right*halfWidth,back+up*y+right*halfWidth,{.11f,.14f,.19f,1});
-      }
       for (const auto &source:model->curves) if (source.visible && source.objectVelocity) {
          const auto first=model->firstVisibleFrame(source,frame);
          for (const auto &point:plotDisplayedPoints(source,frame)) if (point.frame>=first)
@@ -471,10 +593,12 @@ struct OrbitRenderer::Scene
       }
       const auto guideProjection=viewer.getCamera()->getViewMatrix()*viewer.getCamera()->getProjectionMatrix();
       for (auto it=model->curves.cbegin();it!=model->curves.cend();++it) {
-         const auto &source=it.value(); if (!source.visible || (!source.objectGrid && !source.objectXYPlane)) continue;
+         const auto &source=it.value();
+         const bool celestialGrid=model->grid && source.showObject && source.radius>0;
+         if (!source.visible || (!source.objectGrid && !source.objectXYPlane && !celestialGrid)) continue;
          const auto *pose=orbitObjectPose(source,frame); if (!pose) continue;
          const auto &prepared=curves.at(it.key());
-         const auto geometry=orbitObjectGuides(source,*pose,orbitObjectGuideRadius(source,prepared.modelLoaded ? prepared.modelPose->getBound().radius() : 0));
+         const auto geometry=orbitObjectGuides(source,*pose,celestialGrid && !source.objectGrid ? source.radius : orbitObjectGuideRadius(source,prepared.modelLoaded ? prepared.modelPose->getBound().radius() : 0),celestialGrid);
          for (const auto &edge:geometry.lines) {
             const auto &c=edge.color; osg::Vec4 tint(float(c.redF()),float(c.greenF()),float(c.blueF()),float(c.alphaF()));
             if (edge.width==1) { line(edge.start,edge.end,tint); continue; }
@@ -633,7 +757,7 @@ struct OrbitRenderer::Scene
    }
 };
 
-OrbitRenderer::OrbitRenderer(std::shared_ptr<PlotModel> data,QWidget *parent) : QOpenGLWidget(parent),scene(new Scene(std::move(data)))
+OrbitRenderer::OrbitRenderer(std::shared_ptr<PlotModel> data,QWidget *parent) : QOpenGLWidget(parent),scene(new Scene(std::move(data),this))
 {
    // Multisampled widget framebuffers trigger Intel Iris Xe GPU resets when
    // OSG and Qt share this context. Keep hardware rendering without MSAA.
@@ -668,9 +792,11 @@ void OrbitRenderer::resizeGL(int width,int height)
    if (scene->context) scene->context->resized(0,0,w,h);
    scene->viewer.getCamera()->setViewport(0,0,w,h);
 }
-void OrbitRenderer::setView(double zoom,double yaw,double pitch,QPointF pan,quint64 frame)
+void OrbitRenderer::setView(double zoom,double yaw,double pitch,QPointF pan,quint64 frame,
+   const std::optional<std::array<double,9>> &rotation)
 {
-   scene->zoom=zoom; scene->yaw=yaw; scene->pitch=pitch; scene->pan=pan; scene->frame=frame; update();
+   scene->zoom=zoom; scene->yaw=yaw; scene->pitch=pitch; scene->pan=pan; scene->frame=frame;
+   scene->orbitRotation=rotation; update();
 }
 void OrbitRenderer::paintGL()
 {
@@ -719,6 +845,9 @@ void OrbitRenderer::paintGL()
 QImage OrbitRenderer::captureImage()
 {
    auto image=grabFramebuffer();
+   // Export must not silently commit a frame whose selected model is still
+   // loading. The normal repaint installs completed results on this thread.
+   for (const auto &[key,curve]:scene->curves) if (curve.modelLoad) return {};
    image.setDevicePixelRatio(devicePixelRatioF());
    return image;
 }
@@ -726,7 +855,10 @@ void OrbitRenderer::drawOverlay(QPainter &painter)
 {
    const QColor foreground=scene->model->printBackground ? QColor(25,35,45) : QColor(220,225,235);
    painter.setPen(foreground);
-   painter.drawText(QRectF(10,height()-28,width()-20,22),Qt::AlignCenter,scene->model->coordinates+" · km");
+   painter.drawText(QRectF(10,height()-50,width()-20,22),Qt::AlignCenter,scene->model->coordinates+" · km");
+   const auto caption=plotUtcCaption(*scene->model,scene->frame);
+   setAccessibleDescription(caption);
+   painter.drawText(QRectF(10,height()-28,width()-20,22),Qt::AlignCenter,caption);
    {
       const auto projection=scene->viewer.getCamera()->getViewMatrix()*scene->viewer.getCamera()->getProjectionMatrix();
       for (const auto &label:orbitCoordinateLabels(*scene->model,scene->coordinateAxisExtent)) {

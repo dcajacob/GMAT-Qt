@@ -13,7 +13,9 @@ extracted during preparation. It binds one file read-only, selects the theme
 only for GmatQt, and traces FileChooser requests/Response on the owned bus.
 One JSON action per stdin line: screenshot(label), windows, state, move(x,y),
 click(x,y,button=1,count=1), button(button,down), key(keys="CTRL+O"), text(text),
-focus(window), wait(ms<=2000), quit. Input enters Mutter's virtual input seat,
+focus(window), wait(ms<=2000), exit_application, quit. exit_application sends
+Alt+F4 only to the sole focused owned main window, waits at most five seconds
+for code 0, records other process status, and ends the worker normally. Input enters Mutter's virtual input seat,
 then Qt's Wayland event path; no Qt test hooks are used. Import this class for
 adaptive use. sandbox_path() maps artifact paths to the private /evidence mount.
 """
@@ -590,6 +592,27 @@ class PrivateWorker:
         if not ok or saved != path or not Path(path).is_file(): raise RuntimeError('Private compositor screenshot failed')
         return path
 
+    def exit_application(self):
+        # Arm the terminal observation before sending real input: alive() must
+        # continue treating every *unexpected* application exit as a failure.
+        applications = [child for name, child in self.processes if name == 'application']
+        if len(applications) != 1: raise RuntimeError('Exactly one owned application required')
+        application = applications[0]
+        windows = [w for w in self.windows() if w['pid'] == application.pid and w['mapped']]
+        if len(windows) != 1 or not windows[0]['focus'] or 'GMAT Qt 6' not in windows[0]['title']:
+            raise ValueError('Normal exit requires the sole mapped owned main window to have focus')
+        self.key('ALT+F4')
+        timeout = min(5, max(0, self.deadline - time.monotonic()))
+        try: code = application.wait(timeout=timeout)
+        except subprocess.TimeoutExpired as error:
+            raise RuntimeError('Owned application did not exit after Alt+F4 within bound') from error
+        if code != 0: raise RuntimeError(f'Owned application exited abnormally after Alt+F4 ({code})')
+        others = {name: child.poll() for name, child in self.processes if name != 'application'}
+        if any(code is not None for code in others.values()):
+            raise RuntimeError('Private service exited before normal-close observation: ' + repr(others))
+        return {'application_exit': code, 'input': 'ALT+F4', 'focused_window': windows[0],
+                'other_process_exits_before_cleanup': others}
+
     def fixture(self, path):
         path = Path(path).resolve()
         if not path.is_relative_to('/evidence') or path.suffix != '.script' or not path.is_file():
@@ -608,7 +631,7 @@ class PrivateWorker:
         if not isinstance(request, dict): raise ValueError('Action must be an object')
         kind = request.get('action'); values = {k: v for k, v in request.items() if k != 'action'}
         if kind == 'quit': return {'action': 'quit', 'quit': True}
-        if kind not in ('screenshot', 'windows', 'state', 'move', 'click', 'button', 'key', 'text', 'focus', 'wait', 'fixture'):
+        if kind not in ('screenshot', 'windows', 'state', 'move', 'click', 'button', 'key', 'text', 'focus', 'wait', 'fixture', 'exit_application'):
             raise ValueError('Unknown private Wayland action')
         record = {'elapsed': self.config['seconds'] - (self.deadline - time.monotonic()),
                   **request, 'request_id': request_id}
@@ -618,7 +641,7 @@ class PrivateWorker:
             record['error'] = str(error); raise
         finally:
             with open('/evidence/actions.jsonl', 'a') as log: log.write(json.dumps(record) + '\n')
-        return {'action': kind, 'result': result}
+        return {'action': kind, 'result': result, **({'quit': True} if kind == 'exit_application' else {})}
 
     def close(self):
         if self.closed: return

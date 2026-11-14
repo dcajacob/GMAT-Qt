@@ -62,6 +62,7 @@ class GMAT_API Vary : public SolverSequenceCommand
 public:
    Vary();
    virtual ~Vary();
+   void RetireFunctionBindings(ObjectMap *store) override;
    
    Vary(const Vary& t);
    Vary&              operator=(const Vary& t);
@@ -217,6 +218,7 @@ protected:
    bool IsThereSameWrapperName(int param, const std::string &wrapperName);
    /// Method to refresh values of data from variables
    void RefreshData();
+   void WarnUnsupportedSetting(Integer id) const;
 };
 
 

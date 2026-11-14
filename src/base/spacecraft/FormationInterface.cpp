@@ -32,6 +32,23 @@
 
 
 #include "FormationInterface.hpp"
+#include "SpaceObjectException.hpp"
+
+std::unique_ptr<FormationRestorationPlan> FormationInterface::PrepareRestorationLayout(
+      const FormationInterface &snapshot, const ObjectArray &members)
+{
+   // Unported providers retain their existing compatible-layout path. A new
+   // topology requires an explicit native preparation contract.
+   if (GetRefObjectArray(Gmat::SPACEOBJECT) != members)
+      throw SpaceObjectException("Formation topology restoration requires a native provider.");
+   state.ValidateRestorationLayout(snapshot.state);
+   return {};
+}
+
+GmatBase *FormationInterface::CloneRestorationProbe() const
+{
+   return Clone();
+}
 
 
 //------------------------------------------------------------------------------
@@ -97,8 +114,24 @@ FormationInterface& FormationInterface::operator=(const FormationInterface& fi)
 {
    if (this != &fi)
    {
+      const auto previous = GetFunctionValueContext();
+      ObjectArray retained = GetRefObjectArray(Gmat::SPACECRAFT);
       SpaceObject::operator=(fi);
+      // BufferSatelliteStates assigns through FormationInterface, so the
+      // member-binding lifetime must also be preserved at this base boundary.
+      retained.push_back(GetJ2000Body());
+      RetainFunctionValueReferences(previous, retained);
    }
 
    return *this;
+}
+
+//------------------------------------------------------------------------------
+// RebindClonedReferences
+//------------------------------------------------------------------------------
+void FormationInterface::RebindClonedReferences(const FormationInterface &,
+      const std::function<GmatBase*(GmatBase*)> &, bool)
+{
+   throw SpaceObjectException("Formation implementation does not provide native value reference binding: " +
+         GetTypeName());
 }

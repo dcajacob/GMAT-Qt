@@ -1,3 +1,4 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "ResourceEditor.hpp"
 #include "ScriptCompatibility.hpp"
@@ -91,7 +92,7 @@ static void catalogBrowse(QDialog *form,const QString &path)
 int main(int argc,char **argv)
 {
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv); app.setOrganizationName("GMATTests"); app.setApplicationName("StarOptionsEditor");
-   if (argc!=2 || QGuiApplication::platformName()!="offscreen") return 2;
+   if (argc!=2 || !acceptanceWidgetPlatform()) return 2;
    try {
       TestSettings settings; QTemporaryDir files; require(files.isValid(),"Star editor fixture directory unavailable");
       const auto catalog=files.filePath("owned catalog α.txt"),second=files.filePath("selected catalog β.txt");

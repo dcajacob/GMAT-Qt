@@ -29,10 +29,20 @@
   <refsection>
     <title>Description</title>
 
+    <para>Each simulator measurement manager owns its tracking-set and filter
+    copies and prepares its own adapters and streams. Replacing a definition
+    keeps its previous model generation alive until dependent registrations have
+    been reconnected.</para>
+
     <para>A <guilabel>Simulator</guilabel> configures the generation of
     simulated tracking data measurements. These measurements can then be used
     by a <guilabel>BatchEstimator</guilabel> resource as part of an estimation
     run.</para>
+
+    <para>Simulator resource copies own separate propagation setup definitions.
+    Replacing a selected setup prepares its copy before retiring the old value.
+    Propagation updates follow the actual selected definition; equal names in
+    different scopes do not select unrelated owned definitions.</para>
 
     <para>The <guilabel>Simulator</guilabel> object requires specification of
     one or more instances of a <guilabel>TrackingFileSet</guilabel> resource
@@ -54,6 +64,12 @@
 
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="TrackingFileSet"/>, <xref linkend="RunEstimator"/></para>
+    <para>A Simulator passed or returned as a function value owns its propagation
+    and tracking definitions. Private participant dependencies, including their
+    native hardware and error-model references, are retained by the function
+    value context. Copying a Simulator prepares a new command invocation and
+    does not resume a running simulation or open observation streams.</para>
+
   </refsection>
 
   <refsection>

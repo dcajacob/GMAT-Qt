@@ -56,6 +56,14 @@ public:
    ObservationData(const ObservationData& od);
    ObservationData&  operator=(const ObservationData& od);
 
+   enum class EpochReference { Configured, Transmit, Receive };
+   enum class IntegrationReference { Configured, Start, Middle, End };
+
+   GmatTime          GetEpochInA1() const;
+   bool              IsEpochAtReceive(bool configuredReference) const;
+   Real              GetIntegrationEndOffset(Real interval) const;
+   void              SetReceiverEpochInA1(const GmatTime &atEpoch);
+
    virtual void      Clear();
    
    std::string       GetTrackingConfig();
@@ -93,6 +101,11 @@ public:
    bool              epochAtEnd;
    /// Flag indicating if epoch is at start or end of integration
    bool              epochAtIntegrationEnd;
+
+   /// Explicit metadata overrides the adapter default; legacy streams keep it.
+   EpochReference    epochReference;
+   /// Unlike the legacy boolean, this also represents a centered interval.
+   IntegrationReference integrationReference;
    
    /// Who is involved in the measurement.  First one is the "anchor" node
    StringArray       participantIDs;

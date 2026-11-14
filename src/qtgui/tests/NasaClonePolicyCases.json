@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "Sun",
+      "mode": "protected",
+      "resource": "Sun",
+      "type": "Star",
+      "field": "Mu",
+      "control": "body_Mu",
+      "modified": "63",
+      "historical_keys": [
+        "H2012:R897",
+        "H2012:R910"
+      ]
+    },
+    {
+      "key": "Mercury",
+      "mode": "protected",
+      "resource": "Mercury",
+      "type": "Planet",
+      "field": "Mu",
+      "control": "body_Mu",
+      "modified": "63",
+      "historical_keys": [
+        "H2012:R702",
+        "H2012:R715"
+      ]
+    },
+    {
+      "key": "Venus",
+      "mode": "protected",
+      "resource": "Venus",
+      "type": "Planet",
+      "field": "Mu",
+      "control": "body_Mu",
+      "modified": "63",
+      "historical_keys": [
+        "H2012:R975",
+        "H2012:R988"
+      ]
+    },
+    {
+      "key": "Earth",
+      "mode": "protected",
+      "resource": "Earth",
+      "type": "Planet",
+      "field": "Mu",
+      "control": "body_Mu",
+      "modified": "63",
+      "historical_keys": [
+        "H2012:R507",
+        "H2012:R520"
+      ]
+    },
+    {
+      "key": "Luna",
+      "mode": "protected",
+      "resource": "Luna",
+      "type": "Moon",
+      "field": "Mu",
+      "control": "body_Mu",
+      "modified": "63",
+      "historical_keys": [
+        "H2012:R624",
+        "H2012:R637"
+      ]
+    },
+    {
+      "key": "Mars",
+      "mode": "protected",
+      "resource": "Mars",
+      "type": "Planet",
+      "field": "Mu",
+      "control": "body_Mu",
+      "modified": "63",
+      "historical_keys": [
+        "H2012:R663",
+        "H2012:R676"
+      ]
+    },
+    {
+      "key": "Jupiter",
+      "mode": "protected",
+      "resource": "Jupiter",
+      "type": "Planet",
+      "field": "Mu",
+      "control": "body_Mu",
+      "modified": "63",
+      "historical_keys": [
+        "H2012:R585",
+        "H2012:R598"
+      ]
+    },
+    {
+      "key": "Uranus",
+      "mode": "protected",
+      "resource": "Uranus",
+      "type": "Planet",
+      "field": "Mu",
+      "control": "body_Mu",
+      "modified": "63",
+      "historical_keys": [
+        "H2012:R936",
+        "H2012:R949"
+      ]
+    },
+    {
+      "key": "Neptune",
+      "mode": "protected",
+      "resource": "Neptune",
+      "type": "Planet",
+      "field": "Mu",
+      "control": "body_Mu",
+      "modified": "63",
+      "historical_keys": [
+        "H2012:R780",
+        "H2012:R793"
+      ]
+    },
+    {
+      "key": "Pluto",
+      "mode": "protected",
+      "resource": "Pluto",
+      "type": "Planet",
+      "field": "Mu",
+      "control": "body_Mu",
+      "modified": "63",
+      "historical_keys": [
+        "H2012:R819",
+        "H2012:R832"
+      ]
+    },
+    {
+      "key": "Propagator",
+      "mode": "protected",
+      "resource": "Integrator",
+      "type": "PropSetup",
+      "field": "InitialStepSize",
+      "control": "resource_InitialStepSize",
+      "modified": "180",
+      "historical_keys": [
+        "H2012:R348",
+        "H2012:R351"
+      ]
+    },
+    {
+      "key": "SpacecraftAttitude",
+      "mode": "modified",
+      "resource": "Sat",
+      "type": "Spacecraft",
+      "field": "AngularVelocityX",
+      "control": "attitude_AngularVelocityX",
+      "base": "0.1",
+      "modified": "0.2",
+      "third": "0.3",
+      "fourth": "0.4",
+      "tabs": [
+        "Setup",
+        "Attitude"
+      ],
+      "historical_keys": [
+        "H2012:R68"
+      ]
+    },
+    {
+      "key": "SpacecraftVisual",
+      "mode": "modified",
+      "resource": "Sat",
+      "type": "Spacecraft",
+      "field": "ModelScale",
+      "control": "visual_ModelScale",
+      "base": "3",
+      "modified": "5",
+      "third": "7",
+      "fourth": "11",
+      "tabs": [
+        "Setup",
+        "Visual model"
+      ],
+      "historical_keys": [
+        "H2012:R148"
+      ]
+    }
+  ]
+}

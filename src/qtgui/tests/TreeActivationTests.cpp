@@ -124,6 +124,19 @@ int main(int argc,char **argv)
       require(area->subWindowList().size()==before && editor->toPlainText()==pendingSource && panel->hasChanges() && elevation->text()=="21.5","Unbuilt source guard was bypassed or pending data changed");
       require(bytes(report)==reportBefore,"Navigation activation changed independent report bytes");
       elevation->setText(initialElevation); require(!panel->hasChanges(),"Navigation cleanup did not restore the pending field");
+      // Reverting a value retains NASA's dirty-input flag until Apply. Use
+      // the normal no-op Apply route before asking Build to replace the model.
+      panel->requestApply();
+      require(!panel->hasUnappliedInput() && editor->toPlainText()==pendingSource,
+         "Navigation cleanup did not accept the reverted draft without changing source");
+      editor->setPlainText(source); require(window.buildScript(),"Unicode report overwrite fixture failed to rebuild");
+      { QFile stale(report); require(stale.open(QIODevice::WriteOnly|QIODevice::Truncate),"Unicode report overwrite fixture unavailable"); stale.write("stale report bytes"); }
+      require(window.runMission()==MainWindow::RunResult::Completed && bytes(report)==reportBefore,"Unicode report rerun did not truncate the intended file");
+      auto appendSource=source; appendSource.replace("Values.WriteHeaders = false;","Values.WriteHeaders = false;\nValues.AppendToExistingFile = true;");
+      editor->setPlainText(appendSource);
+      require(window.runMission()==MainWindow::RunResult::Completed && bytes(report)==reportBefore+reportBefore,"Unicode report append did not use the same intended file");
+
+
       std::cout<<"PASS focused Return/Enter opens real Resource/Mission/Report/retained Plot once; pending settings/source/report preserved; mouse/direct callers, category no-op, key repeat and actual run/unbuilt guards retained. Offscreen only.\n";
    } catch (BaseException &error) { std::cerr<<"FAIL: "<<error.GetFullMessage()<<'\n'; return 1; }
    catch (const std::exception &error) { std::cerr<<"FAIL: "<<error.what()<<'\n'; return 1; }

@@ -21,6 +21,8 @@
 #include <QPushButton>
 #include <QListWidget>
 #include <QDialogButtonBox>
+#include <QCheckBox>
+#include <QDynamicPropertyChangeEvent>
 
 ReportParameterDialog::ReportParameterDialog(const QStringList &selected,QWidget *parent,Mode mode) : QDialog(parent)
 {
@@ -29,12 +31,20 @@ ReportParameterDialog::ReportParameterDialog(const QStringList &selected,QWidget
    const bool literal=mode==Mode::NumericSingle;
    const bool plottable=mode==Mode::PlottableSingle || mode==Mode::PlottableMultiple || numeric;
    const bool single=mode!=Mode::Multiple && mode!=Mode::PlottableMultiple && !arguments;
-   const bool writable=mode==Mode::Writable || mode==Mode::WritableReal || mode==Mode::FunctionOutputs;
-   const bool realOnly=mode==Mode::WritableReal;
+   const bool varyControl=mode==Mode::VaryControl;
+   const bool writable=mode==Mode::Writable || mode==Mode::WritableReal || mode==Mode::FunctionOutputs || varyControl;
+   const bool realOnly=mode==Mode::WritableReal || varyControl;
    const bool stop=mode==Mode::StopParameter;
-   auto writableParameter=[realOnly](const Parameter *parameter) {
+   auto *moderator=Moderator::Instance();
+   auto worksheetReadOnly=[moderator](const QString &reference) {
+      const auto type=reference.section('.',-1);
+      if (type!="RMAG" && type!="SemilatusRectum") return false;
+      auto *object=moderator->GetConfiguredObject(reference.section('.',0,0).toStdString());
+      return object && object->IsOfType("Spacecraft") && object->GetStringParameter("OrbitParameterAccess")=="Worksheet";
+   };
+   auto writableParameter=[realOnly,worksheetReadOnly](const Parameter *parameter) {
       const bool user=parameter->IsOfType("Variable") || parameter->IsOfType("Array") || parameter->IsOfType("String");
-      return (user || parameter->IsSettable()) && (!realOnly || parameter->GetReturnType()==Gmat::REAL_TYPE || parameter->IsOfType("Array"));
+      return (user || (parameter->IsSettable() && !worksheetReadOnly(QString::fromStdString(parameter->GetName())))) && (!realOnly || parameter->GetReturnType()==Gmat::REAL_TYPE || parameter->IsOfType("Array"));
    };
    setObjectName("reportParameterDialog"); setWindowTitle(numeric ? "Select numeric value" : plottable ? "Plot parameters" : arguments ? (writable ? "Function outputs" : "Function inputs") : single ? "Select parameter" : "Report parameters"); resize(600,single ? 350 : 450);
    auto *layout=new QVBoxLayout(this);
@@ -42,10 +52,10 @@ ReportParameterDialog::ReportParameterDialog(const QStringList &selected,QWidget
    help->setWordWrap(true); layout->addWidget(help);
    if (plottable) help->setText("Choose a numeric plot parameter or an array element. Browse object properties and their reference frames below. Apply validates the complete plot.");
    if (numeric) help->setText(literal ? "Choose a Variable, array element or numeric object property, or enter a finite real number. Apply validates the complete command." : "Choose a Variable, array element or numeric object property. Apply validates the complete command.");
+   if (stop) help->setText("Choose a propagated spacecraft Parameter, Variable or Array element. Variables and Array elements use the first propagated spacecraft's epoch and their current values; propagation does not change those values automatically.");
    auto *entry=new QComboBox(this); entry->setObjectName("reportParameterEntry");
    if (single) singleEntry=entry;
    entry->setEditable(true); entry->setInsertPolicy(QComboBox::NoInsert);
-   auto *moderator=Moderator::Instance();
    QStringList names;
    for (const auto &name:moderator->GetListOfObjects(Gmat::PARAMETER)) {
       auto *parameter=moderator->GetParameter(name);
@@ -59,6 +69,24 @@ ReportParameterDialog::ReportParameterDialog(const QStringList &selected,QWidget
       }
    }
    names.sort(); names.removeDuplicates(); entry->addItems(names); layout->addWidget(entry);
+   if (single) {
+      unitEntry=entry;unitNotice=new QLabel(this);unitNotice->setObjectName("reportParameterUnits");unitNotice->setWordWrap(true);layout->addWidget(unitNotice);
+      connect(entry,&QComboBox::currentTextChanged,this,[this] { updateUnitNotice(); });
+   }
+   if (mode==Mode::FunctionInputs) {
+      auto *units=new QLabel("Units for numeric arguments are defined by the called function; values are passed without unit conversion.",this);
+      units->setObjectName("functionArgumentUnits"); units->setWordWrap(true); layout->addWidget(units);
+   }
+   QCheckBox *allowNumber=nullptr;
+   if (varyControl) {
+      setWindowTitle("Select Vary control");
+      help->setText("Choose a writable numeric parameter or array element. To use a number as a command-local control, enable the option below.");
+      allowNumber=new QCheckBox("Allow a numeric control",this);
+      allowNumber->setObjectName("varyAllowNumericControl");
+      bool number=false; const double value=selected.value(0).trimmed().toDouble(&number);
+      allowNumber->setChecked(number && std::isfinite(value));
+      layout->addWidget(allowNumber);
+   }
    auto *browser=new QGroupBox("Browse object properties",this);
    auto *form=new QFormLayout(browser);
    auto *owner=new QComboBox(browser); owner->setObjectName("reportPropertyObject");
@@ -74,11 +102,22 @@ ReportParameterDialog::ReportParameterDialog(const QStringList &selected,QWidget
       if (plottable ? !info->IsPlottable(type) : writable ? (!info->IsSettable(type) || (realOnly && !info->IsPlottable(type))) : (!info->IsReportable(type) && !(stop && (type=="Periapsis" || type=="Apoapsis")))) continue;
       const auto ownerType=info->GetObjectType(type);
       if (ownerType==Gmat::UNKNOWN_OBJECT || ownerType==Gmat::PARAMETER) continue;
-      for (const auto &name:moderator->GetListOfObjects(ownerType)) properties[QString::fromStdString(name)].append(QString::fromStdString(type));
+      for (const auto &name:moderator->GetListOfObjects(ownerType)) {
+         const auto ownerName=QString::fromStdString(name),propertyType=QString::fromStdString(type);
+         if (writable && worksheetReadOnly(ownerName+"."+propertyType)) continue;
+         properties[ownerName].append(propertyType);
+      }
    }
    owner->addItems(properties.keys());
-   auto updateDependency=[property,dependency,dependencyLabel,use,owner] {
-      const auto dep=parameterDependency(owner->currentText(),property->currentText());
+   auto updateDependency=[property,dependency,dependencyLabel,use,owner,writable,moderator] {
+      auto dep=parameterDependency(owner->currentText(),property->currentText());
+      // Burn components can be read in other frames, but native writes use
+      // the burn's own configured axes. An external frame would reject a
+      // Local VNB/LVLH write at execution rather than set its components.
+      auto *object=moderator->GetConfiguredObject(owner->currentText().toStdString());
+      if (writable && object && object->IsOfType("ImpulsiveBurn") &&
+          QStringList{"Element1","Element2","Element3","V","N","B"}.contains(property->currentText()))
+         dep.needed=false;
       dependency->clear(); dependency->addItems(dep.choices);
       dependencyLabel->setText(dep.label);
       dependency->setVisible(dep.needed); dependencyLabel->setVisible(dep.needed);
@@ -160,7 +199,7 @@ ReportParameterDialog::ReportParameterDialog(const QStringList &selected,QWidget
    }
    auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,this); layout->addWidget(buttons);
    if (single) {
-      auto validate=[entry,buttons,moderator,info,writable,realOnly,mode,writableParameter] {
+      auto validate=[this,entry,buttons,moderator,info,writable,realOnly,mode,writableParameter,worksheetReadOnly,allowNumber] {
          const auto value=entry->currentText().trimmed();
          const auto *object=moderator->GetConfiguredObject(value.toStdString());
          const bool bareArray=object && object->IsOfType("Array") && QString::fromStdString(object->GetName())==value;
@@ -174,20 +213,38 @@ ReportParameterDialog::ReportParameterDialog(const QStringList &selected,QWidget
                const auto type=value.section('.',-1).toStdString();
                const auto &types=info->GetTypesOfParameters();
                if (std::find(types.begin(),types.end(),type)!=types.end())
-                  valid=valid && info->IsSettable(type) && (!realOnly || info->IsPlottable(type));
+                  valid=valid && info->IsSettable(type) && !worksheetReadOnly(value) && (!realOnly || info->IsPlottable(type));
             }
+         }
+         // Resource controls require an existing numeric destination. The
+         // syntactic check alone admits unknown/out-of-range array cells.
+         if (realOnly) valid=valid && isPlottableReference(value);
+         if (allowNumber && allowNumber->isChecked()) {
+            bool number=false; const double real=value.toDouble(&number);
+            valid=valid || (number && std::isfinite(real));
          }
          buttons->button(QDialogButtonBox::Ok)->setEnabled(valid);
       };
+      if (allowNumber) connect(allowNumber,&QCheckBox::toggled,this,[validate] { validate(); });
       connect(entry,&QComboBox::currentTextChanged,this,[validate] { validate(); }); validate();
    }
    if (mode==Mode::FunctionOutputs) {
-      auto validate=[this,buttons,moderator,writableParameter] {
+      auto validate=[this,buttons,moderator,info,writableParameter,worksheetReadOnly] {
          static const QRegularExpression reference(R"(^[A-Za-z_][A-Za-z0-9_.]*(?:\(\s*[1-9][0-9]*\s*,\s*[1-9][0-9]*\s*\))?$)");
          bool valid=true;
          for (int i=0;i<list->count();++i) {
             const auto value=list->item(i)->text().trimmed(); valid=valid && reference.match(value).hasMatch();
-            if (const auto *parameter=dynamic_cast<const Parameter *>(moderator->GetConfiguredObject(value.toStdString()))) valid=valid && writableParameter(parameter);
+            if (const auto *object=moderator->GetConfiguredObject(value.toStdString())) {
+               if (const auto *parameter=dynamic_cast<const Parameter *>(object)) valid=valid && writableParameter(parameter);
+            } else {
+               // A reference typed here need not have been instantiated by a
+               // report or expression yet. Apply the same parameter metadata
+               // check as the Assignment destination picker in that case.
+               const auto type=value.section('.',-1).toStdString();
+               const auto &types=info->GetTypesOfParameters();
+               if (std::find(types.begin(),types.end(),type)!=types.end())
+                  valid=valid && info->IsSettable(type) && !worksheetReadOnly(value);
+            }
          }
          buttons->button(QDialogButtonBox::Ok)->setEnabled(valid);
       };
@@ -212,6 +269,21 @@ ReportParameterDialog::ReportParameterDialog(const QStringList &selected,QWidget
    }
    connect(buttons,&QDialogButtonBox::accepted,this,&QDialog::accept);
    connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);
+   updateUnitNotice();
+}
+bool ReportParameterDialog::event(QEvent *event)
+{
+   if(event->type()==QEvent::DynamicPropertyChange &&
+      static_cast<QDynamicPropertyChangeEvent *>(event)->propertyName()=="unitContext") updateUnitNotice();
+   return QDialog::event(event);
+}
+void ReportParameterDialog::updateUnitNotice()
+{
+   if(!unitNotice || !unitEntry)return;
+   const auto value=unitEntry->currentText().trimmed(),context=property("unitContext").toString();
+   bool number=false;const auto scalar=value.toDouble(&number);
+   const auto unit=number&&std::isfinite(scalar)&&!context.isEmpty()?context:parameterUnitDescription(value);
+   unitNotice->setText("Units: "+unit+(!context.isEmpty()&&unit!=context?"; field units: "+context:QString()));
 }
 bool ReportParameterDialog::isPlottableReference(const QString &reference)
 {

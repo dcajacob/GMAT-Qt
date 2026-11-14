@@ -1,3 +1,4 @@
+#include "AcceptancePlatform.hpp"
 #include "MainWindow.hpp"
 #include "ResourceEditor.hpp"
 #include "ResourceRename.hpp"
@@ -43,7 +44,12 @@ static QTreeWidgetItem *item(QTreeWidget *tree,const QString &name)
 }
 static void closePanels(MainWindow &window)
 {
-   for (auto *child:window.findChild<QMdiArea *>("workspace")->subWindowList()) if (child->property("configurationPanel").toBool()) child->close();
+   for (auto *child:window.findChild<QMdiArea *>("workspace")->subWindowList()) if (child->property("configurationPanel").toBool()) {
+      // Reverting a value still leaves touched input. Explicitly discard the
+      // test-owned draft before closing; the assertions below stay unchanged.
+      if (auto *panel=dynamic_cast<EditablePanel *>(child->widget())) panel->discardChanges();
+      child->close();
+   }
    QApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
 }
 static QString withoutCamera(QString source)
@@ -121,7 +127,7 @@ int main(int argc,char **argv)
    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs); QApplication app(argc,argv);
    app.setOrganizationName("GMATTests"); app.setApplicationName("QtResourceRename"); TestSettings settings;
    try {
-      require(argc==2 && QGuiApplication::platformName()=="offscreen","Rename test needs an offscreen startup argument");
+      require(argc==2 && acceptanceWidgetPlatform(),"Rename test needs an offscreen startup argument");
       QTemporaryDir files; require(files.isValid(),"Rename temporary directory unavailable");
       const auto startup=QFileInfo(QString::fromLocal8Bit(argv[1])).absoluteFilePath(); QDir::setCurrent(QFileInfo(startup).absolutePath());
       MainWindow window; require(window.initialize(startup),"Rename initialization failed"); window.show();

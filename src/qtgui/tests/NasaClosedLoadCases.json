@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "Sun",
+      "body": "Sun",
+      "type": "Star",
+      "user": false,
+      "field": "Mu",
+      "control": "body_Mu",
+      "initial": "63",
+      "loaded": "89",
+      "historical_key": "H2012:R906"
+    },
+    {
+      "key": "Mercury",
+      "body": "Mercury",
+      "type": "Planet",
+      "user": false,
+      "field": "Mu",
+      "control": "body_Mu",
+      "initial": "63",
+      "loaded": "89",
+      "historical_key": "H2012:R711"
+    },
+    {
+      "key": "Venus",
+      "body": "Venus",
+      "type": "Planet",
+      "user": false,
+      "field": "Mu",
+      "control": "body_Mu",
+      "initial": "63",
+      "loaded": "89",
+      "historical_key": "H2012:R984"
+    },
+    {
+      "key": "Earth",
+      "body": "Earth",
+      "type": "Planet",
+      "user": false,
+      "field": "Mu",
+      "control": "body_Mu",
+      "initial": "63",
+      "loaded": "89",
+      "historical_key": "H2012:R516"
+    },
+    {
+      "key": "Luna",
+      "body": "Luna",
+      "type": "Moon",
+      "user": false,
+      "field": "Mu",
+      "control": "body_Mu",
+      "initial": "63",
+      "loaded": "89",
+      "historical_key": "H2012:R633"
+    },
+    {
+      "key": "Mars",
+      "body": "Mars",
+      "type": "Planet",
+      "user": false,
+      "field": "Mu",
+      "control": "body_Mu",
+      "initial": "63",
+      "loaded": "89",
+      "historical_key": "H2012:R672"
+    },
+    {
+      "key": "Jupiter",
+      "body": "Jupiter",
+      "type": "Planet",
+      "user": false,
+      "field": "Mu",
+      "control": "body_Mu",
+      "initial": "63",
+      "loaded": "89",
+      "historical_key": "H2012:R594"
+    },
+    {
+      "key": "Uranus",
+      "body": "Uranus",
+      "type": "Planet",
+      "user": false,
+      "field": "Mu",
+      "control": "body_Mu",
+      "initial": "63",
+      "loaded": "89",
+      "historical_key": "H2012:R945"
+    },
+    {
+      "key": "Neptune",
+      "body": "Neptune",
+      "type": "Planet",
+      "user": false,
+      "field": "Mu",
+      "control": "body_Mu",
+      "initial": "63",
+      "loaded": "89",
+      "historical_key": "H2012:R789"
+    },
+    {
+      "key": "Pluto",
+      "body": "Pluto",
+      "type": "Planet",
+      "user": false,
+      "field": "Mu",
+      "control": "body_Mu",
+      "initial": "63",
+      "loaded": "89",
+      "historical_key": "H2012:R828"
+    },
+    {
+      "key": "Asteroid",
+      "body": "ScriptAsteroid",
+      "type": "Asteroid",
+      "user": true,
+      "field": "Mu",
+      "control": "body_Mu",
+      "initial": "63",
+      "loaded": "89",
+      "historical_key": "H2012:R399"
+    },
+    {
+      "key": "Comet",
+      "body": "ScriptComet",
+      "type": "Comet",
+      "user": true,
+      "field": "Mu",
+      "control": "body_Mu",
+      "initial": "63",
+      "loaded": "89",
+      "historical_key": "H2012:R438"
+    },
+    {
+      "key": "Planet",
+      "body": "ScriptPlanet",
+      "type": "Planet",
+      "user": true,
+      "field": "Mu",
+      "control": "body_Mu",
+      "initial": "63",
+      "loaded": "89",
+      "historical_key": "H2012:R477"
+    },
+    {
+      "key": "SpacecraftVisual",
+      "body": "Sat",
+      "type": "Spacecraft",
+      "user": false,
+      "field": "ModelScale",
+      "control": "visual_ModelScale",
+      "initial": "3",
+      "loaded": "5",
+      "historical_key": "H2012:R137"
+    }
+  ]
+}

@@ -1,0 +1,717 @@
+{
+  "schema_version": 1,
+  "scope": "Missing attitude-owned configuration persistence partitions. Existing attitude representation literals reused; no new orbit propagation, empirical attitude, kernel/AEM or whole-row qualification.",
+  "cases": [
+    {
+      "key": "SpinnerEuler321",
+      "setup": "Create Spacecraft Subject;\nSubject.NAIFId = -101101;\nSubject.NAIFIdReferenceFrame = -910101;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = Spinner;\nSubject.AttitudeDisplayStateType = EulerAngles;\nSubject.EulerAngleSequence = '321';\nSubject.AttitudeRateDisplayStateType = EulerAngleRates;\nSubject.EulerAngle1 = 17;\nSubject.EulerAngle2 = 30;\nSubject.EulerAngle3 = 38;\nSubject.EulerAngleRate1 = 0.15000000000000002;\nSubject.EulerAngleRate2 = 0.30000000000000004;\nSubject.EulerAngleRate3 = 0.44999999999999996;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Spacecraft.data",
+      "definitions": [
+        "Create Spacecraft Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "EulerAngle1",
+          "type": "Real",
+          "expected": 17
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "EulerAngle2",
+          "type": "Real",
+          "expected": 30
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "EulerAngle3",
+          "type": "Real",
+          "expected": 38
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "EulerAngleRate1",
+          "type": "Real",
+          "expected": 0.15000000000000002
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "EulerAngleRate2",
+          "type": "Real",
+          "expected": 0.30000000000000004
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "EulerAngleRate3",
+          "type": "Real",
+          "expected": 0.44999999999999996
+        }
+      ],
+      "expected_attitude_model": "Spinner"
+    },
+    {
+      "key": "SpinnerQuaternion",
+      "setup": "Create Spacecraft Subject;\nSubject.NAIFId = -101101;\nSubject.NAIFIdReferenceFrame = -910101;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = Spinner;\nSubject.AttitudeDisplayStateType = Quaternion;\nSubject.EulerAngleSequence = '321';\nSubject.AttitudeRateDisplayStateType = AngularVelocity;\nSubject.Q1 = 0.10870494035972886;\nSubject.Q2 = 0.21740988071945772;\nSubject.Q3 = 0.32611482107918655;\nSubject.Q4 = 0.91354545764260087;\nSubject.AngularVelocityX = 0.12;\nSubject.AngularVelocityY = 0.23000000000000001;\nSubject.AngularVelocityZ = 0.34000000000000002;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Spacecraft.data",
+      "definitions": [
+        "Create Spacecraft Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "Q1",
+          "type": "Real",
+          "expected": 0.10870494035972886
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "Q2",
+          "type": "Real",
+          "expected": 0.21740988071945772
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "Q3",
+          "type": "Real",
+          "expected": 0.32611482107918655
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "Q4",
+          "type": "Real",
+          "expected": 0.9135454576426009
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "AngularVelocityX",
+          "type": "Real",
+          "expected": 0.12
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "AngularVelocityY",
+          "type": "Real",
+          "expected": 0.23
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "AngularVelocityZ",
+          "type": "Real",
+          "expected": 0.34
+        }
+      ],
+      "expected_attitude_model": "Spinner"
+    },
+    {
+      "key": "SpinnerDirectionCosineMatrix",
+      "setup": "Create Spacecraft Subject;\nSubject.NAIFId = -101101;\nSubject.NAIFIdReferenceFrame = -910101;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = Spinner;\nSubject.AttitudeDisplayStateType = DirectionCosineMatrix;\nSubject.EulerAngleSequence = '321';\nSubject.AttitudeRateDisplayStateType = AngularVelocity;\nSubject.DCM11 = 0.67391139250374121;\nSubject.DCM12 = 0.69635561533695667;\nSubject.DCM13 = -0.24684467189379855;\nSubject.DCM21 = -0.49568570303156656;\nSubject.DCM22 = 0.67391139250374121;\nSubject.DCM23 = 0.5478495403518836;\nSubject.DCM31 = 0.5478495403518836;\nSubject.DCM32 = -0.24684467189379855;\nSubject.DCM33 = 0.79933008769460989;\nSubject.AngularVelocityX = 0.13999999999999999;\nSubject.AngularVelocityY = 0.24000000000000002;\nSubject.AngularVelocityZ = 0.37;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Spacecraft.data",
+      "definitions": [
+        "Create Spacecraft Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "DCM11",
+          "type": "Real",
+          "expected": 0.6739113925037412
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "DCM12",
+          "type": "Real",
+          "expected": 0.6963556153369567
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "DCM13",
+          "type": "Real",
+          "expected": -0.24684467189379855
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "DCM21",
+          "type": "Real",
+          "expected": -0.49568570303156656
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "DCM22",
+          "type": "Real",
+          "expected": 0.6739113925037412
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "DCM23",
+          "type": "Real",
+          "expected": 0.5478495403518836
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "DCM31",
+          "type": "Real",
+          "expected": 0.5478495403518836
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "DCM32",
+          "type": "Real",
+          "expected": -0.24684467189379855
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "DCM33",
+          "type": "Real",
+          "expected": 0.7993300876946099
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "AngularVelocityX",
+          "type": "Real",
+          "expected": 0.13999999999999999
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "AngularVelocityY",
+          "type": "Real",
+          "expected": 0.24000000000000002
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "AngularVelocityZ",
+          "type": "Real",
+          "expected": 0.37
+        }
+      ],
+      "expected_attitude_model": "Spinner"
+    },
+    {
+      "key": "SpinnerMRPs",
+      "setup": "Create Spacecraft Subject;\nSubject.NAIFId = -101101;\nSubject.NAIFIdReferenceFrame = -910101;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = Spinner;\nSubject.AttitudeDisplayStateType = MRPs;\nSubject.EulerAngleSequence = '321';\nSubject.AttitudeRateDisplayStateType = AngularVelocity;\nSubject.MRP1 = 0.17737737436965181;\nSubject.MRP2 = 0.1182515829131012;\nSubject.MRP3 = 0.17737737436965181;\nSubject.AngularVelocityX = 0.16;\nSubject.AngularVelocityY = 0.25;\nSubject.AngularVelocityZ = 0.40000000000000002;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Spacecraft.data",
+      "definitions": [
+        "Create Spacecraft Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "MRP1",
+          "type": "Real",
+          "expected": 0.1773773743696518
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "MRP2",
+          "type": "Real",
+          "expected": 0.1182515829131012
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "MRP3",
+          "type": "Real",
+          "expected": 0.1773773743696518
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "AngularVelocityX",
+          "type": "Real",
+          "expected": 0.16
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "AngularVelocityY",
+          "type": "Real",
+          "expected": 0.25
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "Spinner"
+          ],
+          "field": "AngularVelocityZ",
+          "type": "Real",
+          "expected": 0.4
+        }
+      ],
+      "expected_attitude_model": "Spinner"
+    },
+    {
+      "key": "ThreeAxisQuaternion",
+      "setup": "Create Spacecraft Subject;\nSubject.NAIFId = -101101;\nSubject.NAIFIdReferenceFrame = -910101;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = ThreeAxisKinematic;\nSubject.AttitudeDisplayStateType = Quaternion;\nSubject.AttitudeRateDisplayStateType = AngularVelocity;\nSubject.Q1 = 0.10870494035972886;\nSubject.Q2 = 0.21740988071945772;\nSubject.Q3 = 0.32611482107918655;\nSubject.Q4 = 0.91354545764260087;\nSubject.AngularVelocityX = 0.12;\nSubject.AngularVelocityY = 0.23000000000000001;\nSubject.AngularVelocityZ = 0.34000000000000002;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Spacecraft.data",
+      "definitions": [
+        "Create Spacecraft Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "ThreeAxisKinematic"
+          ],
+          "field": "Q1",
+          "type": "Real",
+          "expected": 0.10870494035972886
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "ThreeAxisKinematic"
+          ],
+          "field": "Q2",
+          "type": "Real",
+          "expected": 0.21740988071945772
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "ThreeAxisKinematic"
+          ],
+          "field": "Q3",
+          "type": "Real",
+          "expected": 0.32611482107918655
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "ThreeAxisKinematic"
+          ],
+          "field": "Q4",
+          "type": "Real",
+          "expected": 0.9135454576426009
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "ThreeAxisKinematic"
+          ],
+          "field": "AngularVelocityX",
+          "type": "Real",
+          "expected": 0.12
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "ThreeAxisKinematic"
+          ],
+          "field": "AngularVelocityY",
+          "type": "Real",
+          "expected": 0.23
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "ThreeAxisKinematic"
+          ],
+          "field": "AngularVelocityZ",
+          "type": "Real",
+          "expected": 0.34
+        }
+      ],
+      "expected_attitude_model": "ThreeAxisKinematic"
+    },
+    {
+      "key": "FixedEcliptic",
+      "setup": "Create Spacecraft Subject;\nSubject.NAIFId = -101101;\nSubject.NAIFIdReferenceFrame = -910101;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = CoordinateSystemFixed;\nSubject.AttitudeCoordinateSystem = EarthMJ2000Ec;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Spacecraft.data",
+      "definitions": [
+        "Create Spacecraft Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CoordinateSystemFixed"
+          ],
+          "field": "AttitudeCoordinateSystem",
+          "type": "Object",
+          "expected": "EarthMJ2000Ec"
+        }
+      ],
+      "expected_attitude_model": "CoordinateSystemFixed"
+    },
+    {
+      "key": "Precessing",
+      "setup": "Create Spacecraft Subject;\nSubject.NAIFId = -101101;\nSubject.NAIFIdReferenceFrame = -910101;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = PrecessingSpinner;\nSubject.NutationReferenceVectorX = 1;\nSubject.NutationReferenceVectorY = 0;\nSubject.NutationReferenceVectorZ = 0;\nSubject.BodySpinAxisX = 0;\nSubject.BodySpinAxisY = 0;\nSubject.BodySpinAxisZ = 1;\nSubject.InitialPrecessionAngle = 15;\nSubject.PrecessionRate = 0.2;\nSubject.NutationAngle = 30;\nSubject.InitialSpinAngle = 25;\nSubject.SpinRate = 0.4;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Spacecraft.data",
+      "definitions": [
+        "Create Spacecraft Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "PrecessingSpinner"
+          ],
+          "field": "NutationReferenceVectorX",
+          "type": "Real",
+          "expected": 1
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "PrecessingSpinner"
+          ],
+          "field": "NutationReferenceVectorY",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "PrecessingSpinner"
+          ],
+          "field": "NutationReferenceVectorZ",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "PrecessingSpinner"
+          ],
+          "field": "BodySpinAxisX",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "PrecessingSpinner"
+          ],
+          "field": "BodySpinAxisY",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "PrecessingSpinner"
+          ],
+          "field": "BodySpinAxisZ",
+          "type": "Real",
+          "expected": 1
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "PrecessingSpinner"
+          ],
+          "field": "InitialPrecessionAngle",
+          "type": "Real",
+          "expected": 15
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "PrecessingSpinner"
+          ],
+          "field": "PrecessionRate",
+          "type": "Real",
+          "expected": 0.2
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "PrecessingSpinner"
+          ],
+          "field": "NutationAngle",
+          "type": "Real",
+          "expected": 30
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "PrecessingSpinner"
+          ],
+          "field": "InitialSpinAngle",
+          "type": "Real",
+          "expected": 25
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "PrecessingSpinner"
+          ],
+          "field": "SpinRate",
+          "type": "Real",
+          "expected": 0.4
+        }
+      ],
+      "expected_attitude_model": "PrecessingSpinner"
+    },
+    {
+      "key": "NadirPointing",
+      "setup": "Create Spacecraft Subject;\nSubject.NAIFId = -101101;\nSubject.NAIFIdReferenceFrame = -910101;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = NadirPointing;\nSubject.AttitudeReferenceBody = Earth;\nSubject.AttitudeConstraintType = OrbitNormal;\nSubject.BodyAlignmentVectorX = 1;\nSubject.BodyAlignmentVectorY = 0;\nSubject.BodyAlignmentVectorZ = 0;\nSubject.BodyConstraintVectorX = 0;\nSubject.BodyConstraintVectorY = 0;\nSubject.BodyConstraintVectorZ = 1;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Spacecraft.data",
+      "definitions": [
+        "Create Spacecraft Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "NadirPointing"
+          ],
+          "field": "BodyAlignmentVectorX",
+          "type": "Real",
+          "expected": 1
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "NadirPointing"
+          ],
+          "field": "BodyAlignmentVectorY",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "NadirPointing"
+          ],
+          "field": "BodyAlignmentVectorZ",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "NadirPointing"
+          ],
+          "field": "BodyConstraintVectorX",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "NadirPointing"
+          ],
+          "field": "BodyConstraintVectorY",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "NadirPointing"
+          ],
+          "field": "BodyConstraintVectorZ",
+          "type": "Real",
+          "expected": 1
+        }
+      ],
+      "expected_attitude_model": "NadirPointing"
+    },
+    {
+      "key": "CommandableNadirPointing",
+      "setup": "Create Spacecraft Subject;\nSubject.NAIFId = -101101;\nSubject.NAIFIdReferenceFrame = -910101;\nSubject.DateFormat = A1ModJulian;\nSubject.Epoch = '21545';\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.X = 7000;\nSubject.Y = 0;\nSubject.Z = 0;\nSubject.VX = 0;\nSubject.VY = 7.5;\nSubject.VZ = 1;\nSubject.Attitude = CommandableNadirPointing;\nSubject.AttitudeReferenceBody = Earth;\nSubject.AttitudeConstraintType = OrbitNormal;\nSubject.BodyAlignmentVectorX = 1;\nSubject.BodyAlignmentVectorY = 0;\nSubject.BodyAlignmentVectorZ = 0;\nSubject.BodyConstraintVectorX = 0;\nSubject.BodyConstraintVectorY = 0;\nSubject.BodyConstraintVectorZ = 1;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "filename": "Subject.Spacecraft.data",
+      "definitions": [
+        "Create Spacecraft Subject;"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CommandableNadirPointing"
+          ],
+          "field": "BodyAlignmentVectorX",
+          "type": "Real",
+          "expected": 1
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CommandableNadirPointing"
+          ],
+          "field": "BodyAlignmentVectorY",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CommandableNadirPointing"
+          ],
+          "field": "BodyAlignmentVectorZ",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CommandableNadirPointing"
+          ],
+          "field": "BodyConstraintVectorX",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CommandableNadirPointing"
+          ],
+          "field": "BodyConstraintVectorY",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Subject",
+          "owned_types": [
+            "CommandableNadirPointing"
+          ],
+          "field": "BodyConstraintVectorZ",
+          "type": "Real",
+          "expected": 1
+        }
+      ],
+      "expected_attitude_model": "CommandableNadirPointing"
+    }
+  ]
+}

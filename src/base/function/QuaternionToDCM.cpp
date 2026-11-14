@@ -27,7 +27,24 @@
  */
  //------------------------------------------------------------------------------
 
+#include "ExpressionBinding.hpp"
+#include <memory>
+#include <typeinfo>
 #include "QuaternionToDCM.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration quaternionToDCMValueProvider({
+   QuaternionToDCM::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const QuaternionToDCM*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<QuaternionToDCM*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "FunctionException.hpp"
 #include "RealUtilities.hpp"
 #include "MessageInterface.hpp"
@@ -162,9 +179,7 @@ void QuaternionToDCM::SetOutputTypes(WrapperTypeArray& outputTypes,
    #endif
 
    // Set output wrapper type for QuaternionToDCM
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;
+   Function::SetOutputTypes(outputTypes, rowCounts, colCounts);
 }
 
 //------------------------------------------------------------------------------
@@ -472,7 +487,15 @@ void QuaternionToDCM::Finalize(bool cleanUp)
  //------------------------------------------------------------------------------
 GmatBase* QuaternionToDCM::Clone() const
 {
-   return (new QuaternionToDCM(*this));
+   std::unique_ptr<QuaternionToDCM> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new QuaternionToDCM(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived QuaternionToDCM must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -487,5 +510,32 @@ GmatBase* QuaternionToDCM::Clone() const
  //---------------------------------------------------------------------------
 void QuaternionToDCM::Copy(const GmatBase* orig)
 {
-   operator=(*((QuaternionToDCM*)(orig)));
+   const auto *source = dynamic_cast<const QuaternionToDCM*>(orig);
+   if (!source || typeid(*this) != typeid(QuaternionToDCM) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible QuaternionToDCM value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   const auto previousObjectBindings = objectBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
+}
+
+
+bool QuaternionToDCM::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const QuaternionToDCM*>(&original);
+   if (!source || typeid(*this) != typeid(QuaternionToDCM) || typeid(original) != typeid(QuaternionToDCM))
+      throw FunctionException("Derived QuaternionToDCM references need their own passive provider.\n");
+   RebindObjectManagedFunctionValue(*source, resolve);
+   return true;
+}
+
+bool QuaternionToDCM::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(QuaternionToDCM);
 }

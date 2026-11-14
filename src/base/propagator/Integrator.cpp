@@ -299,7 +299,7 @@ std::string Integrator::GetParameterTypeString(const Integer id) const
 {
     if (id >= PropagatorParamCount && id < IntegratorParamCount)
         return GmatBase::PARAM_TYPE_STRING
-                                      [GetParameterType(id - PropagatorParamCount)];
+                                      [GetParameterType(id)];
     else
         return Propagator::GetParameterTypeString(id);
 }

@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 
 #include "Transmitter.hpp"
+#include <memory>
 #include "HardwareException.hpp"
 #include "MessageInterface.hpp"
 #include "StringUtil.hpp"
@@ -145,19 +146,13 @@ Transmitter::Transmitter(const Transmitter & trans) :
    freqPolynomialCoeffSigmas  (trans.freqPolynomialCoeffSigmas),
    initialEpochStr            (trans.initialEpochStr),
    initialEpochTypeStr        (trans.initialEpochTypeStr),
+   initialEpoch               (trans.initialEpoch),
    solveforNames              (trans.solveforNames)
 {
-   signal1->SetValue(frequency);
-   std::string toStr;
-   if(initialEpochStr != "FromSpacecraft")
-      TimeSystemConverter::Instance()->Convert(initialEpochTypeStr, -999.999, initialEpochStr, "A1ModJulian", initialEpoch, toStr);
-   
+   // RFHardware/Sensor already captured the current signal and covariance.
    for (Integer i = RFHardwareParamCount; i < TransmitterParamCount; ++i)
       parameterWriteOrder.push_back(i);
-   covariance.AddCovarianceElement("FrequencyBias", this);
-   Integer start = covariance.GetSubMatrixLocationStart("FrequencyBias");
-   for (Integer i = 0; i < freqPolynomialCoeffs.GetSize(); ++i)
-      covariance(start + i, start + i) = freqPolynomialCoeffSigmas[i] * freqPolynomialCoeffSigmas[i];
+   // Preserve the full captured FrequencyBias covariance and correlations.
 }
 
 
@@ -186,13 +181,9 @@ Transmitter& Transmitter::operator =(const Transmitter & trans)
       solveforNames              = trans.solveforNames;
       RFHardware::operator=(trans);
       
-      std::string toStr;
-      if (initialEpochStr != "FromSpacecraft")
-         TimeSystemConverter::Instance()->Convert(initialEpochTypeStr, -999.999, initialEpochStr, "A1ModJulian", initialEpoch, toStr);
-      covariance.AddCovarianceElement("FrequencyBias", this);
-      Integer start = covariance.GetSubMatrixLocationStart("FrequencyBias");
-      for (Integer i = 0; i < freqPolynomialCoeffs.GetSize(); ++i)
-         covariance(start + i, start + i) = freqPolynomialCoeffSigmas[i] * freqPolynomialCoeffSigmas[i];
+      initialEpoch = trans.initialEpoch;
+      // The base Copy preserves full covariance; sigma setters still update priors.
+
    }
 
    return *this;
@@ -210,7 +201,9 @@ Transmitter& Transmitter::operator =(const Transmitter & trans)
 //------------------------------------------------------------------------------
 GmatBase *Transmitter::Clone() const
 {
-   return new Transmitter(*this);
+   std::unique_ptr<Transmitter> value(new Transmitter(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //---------------------------------------------------------------------------
@@ -224,7 +217,13 @@ GmatBase *Transmitter::Clone() const
 //---------------------------------------------------------------------------
 void Transmitter::Copy(const GmatBase* orig)
 {
-   operator=(*((Transmitter *)(orig)));
+   const auto *source = dynamic_cast<const Transmitter*>(orig);
+   if (!source || source->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Incompatible Transmitter value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 

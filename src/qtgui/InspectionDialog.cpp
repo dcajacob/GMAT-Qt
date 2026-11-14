@@ -17,6 +17,10 @@
 #include <stdexcept>
 #include <memory>
 #include <QSignalBlocker>
+#include <QScrollBar>
+#include <QTextCursor>
+#include <tuple>
+#include <algorithm>
 
 InspectionDialog::InspectionDialog(const QString &title,const QString &contents,const QString &context,
                                    QWidget *parent,ProtectedPaths paths)
@@ -44,7 +48,22 @@ InspectionDialog::InspectionDialog(const QString &title,const QString &contents,
    }
    connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);
 }
-void InspectionDialog::setText(const QString &contents) { text->setPlainText(contents); }
+void InspectionDialog::setText(const QString &contents)
+{
+   if (text->toPlainText()==contents) return;
+   const auto previous=text->textCursor();
+   const int position=previous.position(),anchor=previous.anchor();
+   const int vertical=text->verticalScrollBar()->value();
+   const int horizontal=text->horizontalScrollBar()->value();
+   text->setPlainText(contents);
+   auto cursor=text->textCursor();
+   const int last=text->document()->characterCount()-1;
+   cursor.setPosition(std::min(anchor,last));
+   cursor.setPosition(std::min(position,last),QTextCursor::KeepAnchor);
+   text->setTextCursor(cursor);
+   text->verticalScrollBar()->setValue(vertical);
+   text->horizontalScrollBar()->setValue(horizontal);
+}
 QString InspectionDialog::exportText(const QString &path) const
 {
    if (path.isEmpty()) return "Choose a file for the summary.";
@@ -73,21 +92,25 @@ SummaryDialog::SummaryDialog(const QString &title,const QStringList &frames,bool
    frame->setCurrentText("EarthMJ2000Eq"); row->addWidget(frame,1);
    auto *physics=new QCheckBox("Physics commands only",controls); physics->setObjectName("summaryPhysics");
    physics->setVisible(mission); row->addWidget(physics);
+   auto *a1=new QCheckBox("Include A1ModJulian",controls); a1->setObjectName("summaryA1Epoch");
+   row->addWidget(a1);
    static_cast<QVBoxLayout *>(layout())->insertWidget(1,controls);
-   auto previous=std::make_shared<QPair<QString,bool>>(frame->currentText(),false);
-   auto refresh=[this,frame,physics,loader,previous] {
+   auto previous=std::make_shared<std::tuple<QString,bool,bool>>(frame->currentText(),false,false);
+   auto refresh=[this,frame,physics,a1,loader,previous] {
       auto *status=findChild<QLabel *>("inspectionStatus");
       try {
-         setText(loader(frame->currentText(),physics->isChecked()));
-         *previous={frame->currentText(),physics->isChecked()}; status->clear();
+         setText(loader(frame->currentText(),physics->isChecked(),a1->isChecked()));
+         *previous={frame->currentText(),physics->isChecked(),a1->isChecked()}; status->clear();
       } catch (BaseException &error) {
          status->setText(QString::fromStdString(error.GetFullMessage()));
       } catch (const std::exception &error) { status->setText(QString::fromUtf8(error.what())); }
       if (!status->text().isEmpty()) {
-         const QSignalBlocker frameBlock(frame),physicsBlock(physics);
-         frame->setCurrentText(previous->first); physics->setChecked(previous->second);
+         const QSignalBlocker frameBlock(frame),physicsBlock(physics),a1Block(a1);
+         frame->setCurrentText(std::get<0>(*previous)); physics->setChecked(std::get<1>(*previous));
+         a1->setChecked(std::get<2>(*previous));
       }
    };
    connect(frame,&QComboBox::currentTextChanged,this,[refresh] { refresh(); });
    connect(physics,&QCheckBox::toggled,this,[refresh] { refresh(); }); refresh();
+   connect(a1,&QCheckBox::toggled,this,[refresh] { refresh(); });
 }

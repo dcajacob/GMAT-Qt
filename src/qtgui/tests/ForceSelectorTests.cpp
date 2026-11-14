@@ -5,6 +5,7 @@
 #include "Moderator.hpp"
 #include "BaseException.hpp"
 #include "ODEModel.hpp"
+#include "PropSetup.hpp"
 #include "TestSettings.hpp"
 #include <QApplication>
 #include <QComboBox>
@@ -12,6 +13,10 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSet>
 #include <QMdiArea>
 #include <QMdiSubWindow>
 #include <QPlainTextEdit>
@@ -79,9 +84,25 @@ int main(int argc,char **argv)
       auto reference=[&](bool srp,bool relat,double flux,const QString &control) { editor->setPlainText(fixture(srp,relat,flux,control)); return run(); };
       const auto base=reference(false,false,1367,"RSSStep"),srp=reference(true,false,1367,"RSSStep"),both=reference(true,true,1400,"LargestStep"),relat=reference(false,true,1367,"LargestStep");
       require(base!=srp && srp!=both && base!=relat,"Independent fixtures did not exercise perturbation effects");
+      QSet<QString> runtimeStates;
+      int runtimeComparisons=0;
       auto compare=[&](const QString &expected) {
          const auto actual=run().split(QRegularExpression("\\s+"),Qt::SkipEmptyParts),wanted=expected.split(QRegularExpression("\\s+"),Qt::SkipEmptyParts); require(actual.size()==6 && wanted.size()==6,"State report incomplete");
          for (int i=0;i<6;++i) { bool valid=false; const auto a=actual[i].toDouble(&valid),b=wanted[i].toDouble(); require(valid && std::isfinite(a) && std::abs(a-b)<1e-12*std::max(1.0,std::abs(b)),"GUI toggle state differs from independently configured script"); }
+         auto *runtimeProp=dynamic_cast<PropSetup *>(Moderator::Instance()->GetInternalObject("Prop"));
+         auto *runtime=runtimeProp ? runtimeProp->GetODEModel() : nullptr;
+         auto *selected=dynamic_cast<ODEModel *>(Moderator::Instance()->GetConfiguredObject("FM"));
+         require(runtime && selected,"Runtime/configured force model missing");
+         const auto activeSrp=runtime->GetOnOffParameter("SRP"),activeRelativity=runtime->GetOnOffParameter("RelativisticCorrection");
+         require(activeSrp==selected->GetOnOffParameter("SRP") && activeRelativity==selected->GetOnOffParameter("RelativisticCorrection"),"Mission runtime force families differ from GUI configuration");
+         if (activeSrp=="On") {
+            bool spherical=false;
+            for (const auto &property:resourceProperties(*runtime))
+               if (property.name=="SRP.SRPModel") spherical=property.value=="Spherical";
+            require(spherical,"Mission did not use the expected spherical SRP model");
+         }
+         runtimeStates.insert(QString::fromStdString(activeSrp+":"+activeRelativity));
+         ++runtimeComparisons;
       };
       auto open=[&] {
          auto *tree=window.findChild<QTreeWidget *>("Resources"); const auto matches=tree->findItems("FM",Qt::MatchExactly|Qt::MatchRecursive); require(matches.size()==1,"Force model resource missing"); tree->itemDoubleClicked(matches.first(),0);
@@ -124,6 +145,12 @@ int main(int argc,char **argv)
       const auto mixed=editor->toPlainText(); require(mixed.contains(fixed) && mixed.endsWith(mission) && mixed.contains("% drag removal comment") && configured()->GetStringParameter("Drag")=="None","Mixed creator families lost source or drag removal");
       editor->undo(); require(editor->toPlainText()==dragSource,"Mixed creator families were not one exact Undo"); editor->redo(); require(editor->toPlainText()==mixed,"Mixed creator families Redo was not exact");
       const auto mixedFile=files.filePath("Mixed creators α.script"); require(window.saveScriptTo(mixedFile) && window.loadScript(mixedFile) && window.buildScript(),"Mixed creator save/reopen failed"); compare(both);
+      require(runtimeComparisons>=6 && runtimeStates==QSet<QString>{"Off:Off","On:Off","Off:On","On:On"},"Runtime force validation did not cover every on/off combination");
+      for (const auto &family:QStringList{"srp-spherical","relativity"}) {
+         const QJsonObject proof{{"checkpoint","force-family."+family},{"family",family},{"outcome","passed"},
+            {"facets",QJsonArray{"gui-toggles","all-on-off-combinations","runtime-family","spherical-srp","atomic-mixed-apply","exact-undo-redo","unicode-save-reopen","script-reference-trajectory"}}};
+         std::cout<<"NASA_CHECK "<<QJsonDocument(proof).toJson(QJsonDocument::Compact).constData()<<std::endl;
+      }
       std::cout<<"PASS: real SRP/relativistic On/Off creation/removal, pending mixed Apply with invalid flux correction, retained panels, unchanged unrelated force source/comments/defaults, exact Undo/Redo/Unicode save/reopen and independent six-state reports; source mapping with continued selectors, legacy leaves and implicit mission boundary.\n"; return 0;
    } catch (BaseException &error) { std::cerr<<"FAIL: "<<error.GetFullMessage()<<'\n'; return 1; }
      catch (const std::exception &error) { std::cerr<<"FAIL: "<<error.what()<<'\n'; return 1; }

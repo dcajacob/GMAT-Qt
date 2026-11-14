@@ -1,6 +1,12 @@
 #include "PropagationGroupsDialog.hpp"
 #include "TableColumns.hpp"
+#include "PropagationOptions.hpp"
+#include "ScriptStatements.hpp"
 #include "Propagate.hpp"
+#include "Moderator.hpp"
+#include "PropSetup.hpp"
+#include "Propagator.hpp"
+#include "BaseException.hpp"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QComboBox>
@@ -12,22 +18,25 @@
 #include <QRegularExpression>
 #include <QSignalBlocker>
 #include <QSet>
+#include <QMap>
+#include <stdexcept>
 
 namespace {
-struct Groups { bool valid=false,backward=false,synchronized=false,stm=false,aMatrix=false,covariance=false; int start=0,length=0; QList<QPair<QString,QString>> rows; };
+struct Groups { bool valid=false,backward=false,synchronized=false,stm=false,aMatrix=false,covariance=false; int start=0,length=0; QString ephemerisPolicy="Native"; QList<QPair<QString,QString>> rows; };
 QStringList names(const QString &text) { return text.split(QRegularExpression("[\\s,]+"),Qt::SkipEmptyParts); }
 Groups parse(const QString &source)
 {
    Groups result;
-   const auto prefix=QRegularExpression("^\\s*Propagate\\s+(?:'[^'\\n]*'\\s+)?").match(source); if (!prefix.hasMatch()) return result;
-   result.start=prefix.capturedEnd();
+   const auto policy=propagationEphemerisPolicy(source); if (!policy.valid) return result;
+   result.ephemerisPolicy=policy.value;
+   const auto header=propagationHeader(source);if (!header.valid) return result;
+   result.start=header.prefixEnd;
    const auto end=QRegularExpression("(?:\\{[^{};]*\\}\\s*)?;[ \\t]*(?:%[^\\n]*)?\\s*$").match(source,result.start); if (!end.hasMatch()) return result;
-   result.length=end.capturedStart()-result.start; QString header=source.mid(result.start,result.length).trimmed();
-   if (header.startsWith("BackProp ")) { result.backward=true; header=header.mid(9).trimmed(); }
-   if (header.startsWith("Synchronized ")) { result.synchronized=true; header=header.mid(13).trimmed(); }
+   result.length=end.capturedStart()-result.start;QString remaining=source.mid(header.groupsStart,end.capturedStart()-header.groupsStart).trimmed();
+   result.backward=header.backward;result.synchronized=header.synchronized;
    const QRegularExpression group("^([A-Za-z][A-Za-z0-9_]*)\\s*\\(\\s*((?:[A-Za-z][A-Za-z0-9_]*|'STM'|'AMatrix'|'Covariance')(?:\\s*,\\s*(?:[A-Za-z][A-Za-z0-9_]*|'STM'|'AMatrix'|'Covariance'))*)\\s*\\)");
-   while (!header.isEmpty()) {
-      const auto match=group.match(header); if (!match.hasMatch()) return result;
+   while (!remaining.isEmpty()) {
+      const auto match=group.match(remaining); if (!match.hasMatch()) return result;
       QStringList objects;
       for (const auto &name:names(match.captured(2))) {
          if (name=="STM" || name=="'STM'") result.stm=true;
@@ -36,13 +45,64 @@ Groups parse(const QString &source)
          else objects.append(name);
       }
       if (objects.isEmpty()) return result;
-      result.rows.append({match.captured(1),objects.join(", ")}); header=header.mid(match.capturedLength()).trimmed();
+      result.rows.append({match.captured(1),objects.join(", ")}); remaining=remaining.mid(match.capturedLength()).trimmed();
    }
    result.valid=!result.rows.isEmpty(); return result;
 }
 }
 bool PropagationGroupsDialog::supports(const QString &source) { return parse(source).valid; }
-PropagationGroupsDialog::PropagationGroupsDialog(const QString &source,const QStringList &propagators,const QStringList &objects,QWidget *parent)
+QString PropagationGroupsDialog::appendGroup(const QString &source,const QString &propagator,const QString &spacecraft)
+{
+   const auto statements=scriptStatements(source);
+   if (statements.size()!=1) throw std::runtime_error("Select one editable Propagate command.");
+   const auto &statement=statements.first();
+   const auto parsed=parse(statement.code);
+   const QRegularExpression identifier("^[A-Za-z][A-Za-z0-9_]*$");
+   if (!parsed.valid || !identifier.match(propagator).hasMatch() || !identifier.match(spacecraft).hasMatch())
+      throw std::runtime_error("Select an editable Propagate command and valid resource names.");
+   int end=parsed.start+parsed.length;
+   while (end>parsed.start && statement.code[end-1].isSpace()) --end;
+   auto result=source;
+   result.insert(statement.positions[end-1]+1," "+propagator+"("+spacecraft+")");
+   return result;
+}
+QString configuredPropagationError(const QString &source)
+{
+   const auto groups=parse(source);if (!groups.valid) return {};
+   try {
+      QSet<QString> assigned; std::vector<PropSetup*> setups;
+      const bool variational=groups.stm || groups.aMatrix || groups.covariance;
+      for (const auto &row:groups.rows) {
+         auto *setup=dynamic_cast<PropSetup *>(Moderator::Instance()->GetConfiguredObject(row.first.toStdString()));
+         if (!setup || !setup->GetPropagator()) return "Choose a configured propagator for "+row.first+".";
+         setups.push_back(setup);
+         auto *propagator=setup->GetPropagator();const auto objects=names(row.second);
+         if (!propagator->UsesODEModel() && variational)
+            return QString("Propagator %1 (%2) cannot propagate STM/covariance or compute an A-matrix. Clear those command-wide options or use numeric propagators for every group.").arg(row.first,QString::fromStdString(propagator->GetTypeName()));
+         if (propagator->GetTypeName()=="SPK" && objects.size()!=1) return "SPK propagator "+row.first+" requires exactly one spacecraft per group.";
+         for (const auto &name:objects) {
+            auto *object=Moderator::Instance()->GetConfiguredObject(name.toStdString());
+            if (!object || (!object->IsOfType(Gmat::SPACECRAFT) && !object->IsOfType(Gmat::FORMATION))) return "Choose a configured spacecraft or formation for "+name+".";
+            if (propagator->GetTypeName()=="SPK" && !object->IsOfType(Gmat::SPACECRAFT)) return "SPK propagator "+row.first+" requires one spacecraft; a formation is not supported.";
+            QStringList members;
+            if (object->IsOfType(Gmat::FORMATION)) {
+               if (variational) return "Formation "+name+" cannot be used with STM, A-matrix or covariance propagation.";
+               for (const auto &member:object->GetStringArrayParameter("Add")) members.append(QString::fromStdString(member));
+               if (members.isEmpty()) return "Formation "+name+" is empty. Choose at least one spacecraft.";
+            } else members.append(name);
+            for (const auto &member:members) {
+               if (assigned.contains(member)) return "Spacecraft "+member+" is assigned more than once, including formation members.";
+               assigned.insert(member);
+            }
+         }
+      }
+      const auto policyError=Propagate::EphemerisPolicyError(groups.ephemerisPolicy.toStdString(),setups);
+      if (!policyError.empty()) return QString::fromStdString(policyError);
+   } catch (BaseException &error) {return QString::fromStdString(error.GetFullMessage());}
+   catch (const std::exception &error) {return QString::fromUtf8(error.what());}
+   return {};
+}
+PropagationGroupsDialog::PropagationGroupsDialog(const QString &source,const QStringList &propagators,const QStringList &objects,QWidget *parent,std::function<QString(const QString &)> validate)
    : QDialog(parent),source(source)
 {
    setObjectName("propagationGroupsDialog"); setWindowTitle("Propagators and spacecraft"); resize(720,430);
@@ -54,6 +114,17 @@ PropagationGroupsDialog::PropagationGroupsDialog(const QString &source,const QSt
    for (const auto &name:defaults.GetStringArrayParameter(defaults.GetParameterID("AvailablePropModes"))) if (name!="BackProp") mode->addItem(name.empty() ? "Independent" : QString::fromStdString(name),QString::fromStdString(name));
    mode->setCurrentIndex(mode->findData(parsed.synchronized ? "Synchronized" : "")); settings->addWidget(mode);
    backward=new QCheckBox("Propagate backwards",this); backward->setObjectName("propagationGroupBackwards"); backward->setChecked(parsed.backward); settings->addWidget(backward); settings->addStretch();
+   auto *limits=new QHBoxLayout; layout->addLayout(limits); limits->addWidget(new QLabel("Ephemeris limit",this));
+   ephemerisPolicy=new QComboBox(this); ephemerisPolicy->setObjectName("propagationEphemerisPolicy");
+   const QMap<QString,QString> policyLabels={{"Native","Current behavior"},
+      {"SingleSetup","At most one distinct setup"},{"SingleGroup","At most one group"},
+      {"ExactlyOneSetup","Exactly one distinct setup"},{"ExactlyOneGroup","Exactly one group"}};
+   for (const auto &value:defaults.GetPropertyEnumStrings(defaults.GetParameterID("EphemerisPolicy"))) {
+      const auto name=QString::fromStdString(value); ephemerisPolicy->addItem(policyLabels.value(name,name),name);
+   }
+   ephemerisPolicy->setCurrentIndex(ephemerisPolicy->findData(parsed.ephemerisPolicy));
+   ephemerisPolicy->setToolTip("Count ephemeris groups or distinct configured setups. Repeated groups can share one setup. At-most choices allow numerical-only commands; exactly-one choices require an ephemeris group. Numerical groups do not enter this count.");
+   limits->addWidget(ephemerisPolicy); limits->addStretch();
    auto *variational=new QHBoxLayout; layout->addLayout(variational);
    explicitSTM=parsed.stm;
    stm=new QCheckBox("Propagate STM",this); stm->setObjectName("propagationGroupSTM"); stm->setChecked(parsed.stm || parsed.covariance); variational->addWidget(stm);
@@ -89,8 +160,10 @@ PropagationGroupsDialog::PropagationGroupsDialog(const QString &source,const QSt
          valid=valid && !combo->currentText().isEmpty() && !names(item->text()).isEmpty();
          for (const auto &name:names(item->text())) { valid=valid && objects.contains(name) && !assigned.contains(name); assigned.insert(name); }
       }
+      QString message=valid ? QString() : QString("Choose at least one object per row; each object may appear only once.");
+      if (valid && validate) {message=validate(statement());valid=message.isEmpty();}
       buttons->button(QDialogButtonBox::Ok)->setEnabled(valid);
-      error->setText(valid ? "" : "Choose at least one object per row; each object may appear only once.");
+      error->setText(message);
    };
    auto connectCombo=[=](int row) {
       auto *combo=qobject_cast<QComboBox *>(table->cellWidget(row,0));
@@ -113,13 +186,15 @@ PropagationGroupsDialog::PropagationGroupsDialog(const QString &source,const QSt
       if (dialog.exec()==QDialog::Accepted) { QStringList values; for (int i=0;i<list->count();++i) if (list->item(i)->checkState()==Qt::Checked) values.append(list->item(i)->text()); table->item(row,1)->setText(values.join(", ")); }
    });
    connect(table,&QTableWidget::itemChanged,this,[=] { refresh(); }); connect(table,&QTableWidget::itemSelectionChanged,this,refresh);
+   connect(stm,&QCheckBox::toggled,this,refresh);connect(aMatrix,&QCheckBox::toggled,this,refresh);connect(covariance,&QCheckBox::toggled,this,refresh);
+   connect(ephemerisPolicy,&QComboBox::currentIndexChanged,this,refresh);
    connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject); connect(buttons,&QDialogButtonBox::accepted,this,&QDialog::accept); refresh();
 }
 QString PropagationGroupsDialog::statement() const
 {
    const auto original=parse(source); bool unchanged=original.valid && backward->isChecked()==original.backward && (mode->currentData().toString()=="Synchronized")==original.synchronized && (covariance->isChecked() ? explicitSTM : stm->isChecked())==original.stm && aMatrix->isChecked()==original.aMatrix && covariance->isChecked()==original.covariance && table->rowCount()==original.rows.size();
    for (int row=0;unchanged && row<table->rowCount();++row) unchanged=qobject_cast<QComboBox *>(table->cellWidget(row,0))->currentText()==original.rows[row].first && table->item(row,1)->text()==original.rows[row].second;
-   if (unchanged) return source;
+   if (unchanged) return withPropagationEphemerisPolicy(source,ephemerisPolicy->currentData().toString());
    QStringList groups; if (backward->isChecked()) groups.append("BackProp"); if (!mode->currentData().toString().isEmpty()) groups.append(mode->currentData().toString());
    for (int row=0;row<table->rowCount();++row) {
       auto objects=names(table->item(row,1)->text());
@@ -129,5 +204,5 @@ QString PropagationGroupsDialog::statement() const
       if (row==0 && covariance->isChecked()) objects.append("'Covariance'");
       groups.append(qobject_cast<QComboBox *>(table->cellWidget(row,0))->currentText()+"("+objects.join(", ")+")");
    }
-   QString result=source; result.replace(start,length,groups.join(" ")+" "); return result;
+   QString result=source; result.replace(start,length,groups.join(" ")+" "); return withPropagationEphemerisPolicy(result,ephemerisPolicy->currentData().toString());
 }

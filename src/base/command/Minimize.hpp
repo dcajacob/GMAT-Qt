@@ -49,6 +49,9 @@ public:
    Minimize(const Minimize& m);
    Minimize&           operator=(const Minimize& m);
    virtual ~Minimize();
+   /// Preserve the worksheet's cost-function spelling on a native objective.
+   void UseWorksheetSpelling(bool enabled) { worksheetSpelling=enabled; }
+   void RetireFunctionBindings(ObjectMap *store) override;
 
    // inherited from GmatBase
    virtual GmatBase*   Clone() const;
@@ -102,6 +105,7 @@ public:
    DEFAULT_TO_NO_CLONES
     
 protected:
+   void InsertCommandName(std::string &genString) override;
    /// The name of the spacecraft that gets maneuvered
    std::string         optimizerName;
    /// Name of the variable to be minimized
@@ -122,6 +126,7 @@ protected:
    Integer             objId;
    /// flag indicating whether or not the generating string has been interpreted
    bool                interpreted;
+   bool                worksheetSpelling=false;
 
    
    // Parameter IDs

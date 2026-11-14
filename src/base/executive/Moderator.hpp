@@ -137,6 +137,7 @@ public:
    
    //----- object map
    void SetObjectMap(ObjectMap *objMap);
+   std::function<void()> CaptureInterpreterContext();
    void SetObjectManageOption(Integer option);
    Integer GetObjectManageOption();
    void ResetObjectPointer(ObjectMap *objMap, GmatBase *newobj,
@@ -444,6 +445,8 @@ public:
    void ClearScript();
    bool InterpretScript(const std::string &filename, bool readBack = false,
                         const std::string &newPath = "");
+   bool InterpretScript(const std::string &filename, bool readBack,
+                        const std::string &newPath, bool allowUtf8);
    bool InterpretScript(std::istringstream *ss, bool clearObjs);
    bool SaveScript(const std::string &filename,
                    Gmat::WriteMode mode = Gmat::SCRIPTING);

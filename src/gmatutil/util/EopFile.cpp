@@ -534,7 +534,9 @@ bool EopFile::GetPolarMotionAndLod(const GmatTime &forUtcMjd, Real &xval, Real  
    {
       // First try to use the index from the last call
       if ((previousIndex < tableSz - 1) && 
-          (utcJD <= data[(previousIndex+1)*col]) &&
+          // LOD is the left daily sample. Use a half-open cache interval so
+          // an exact next-day knot agrees with an uncached lookup.
+          (utcJD < data[(previousIndex+1)*col]) &&
           (utcJD >= data[previousIndex*col]))
       {
          Integer leftIndex  = previousIndex*col, 

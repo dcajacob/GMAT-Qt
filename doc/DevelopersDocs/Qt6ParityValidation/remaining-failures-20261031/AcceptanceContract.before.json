@@ -1,0 +1,287 @@
+{
+  "schema_version": 1,
+  "id_scope": "UI IDs are local acceptance mechanism IDs, not NASA requirement numbers.",
+  "nasa_test_plan": "https://gmat.atlassian.net/wiki/spaces/GW/pages/380273283",
+  "nasa_matrix": "doc/SystemDocs/Test/Requirements-To-Test Matrix, 2012-05-11 (GMAT Build 2012-05-04).csv",
+  "mechanisms": [
+    {
+      "id": "UI-01",
+      "title": "Workspace, menus, welcome and license",
+      "expected": "Menu actions open the intended panels; About/license data match the runtime and shipped license; pending source and Undo remain intact.",
+      "source": "doc/help/src/Using_UserInterfaces.xml",
+      "tests": "^QtGui\\.(NasaToolbar[A-Za-z]+|Desktop|Welcome|CommandGeometry|WorkspaceReachability)$"
+    },
+    {
+      "id": "UI-02",
+      "title": "Resource creation, references and lifecycle",
+      "expected": "Create, Clone, Rename and Delete preserve typed references and unrelated source; invalid or stale edits recover atomically; Apply/Cancel/Undo and Save/reopen preserve accepted state.",
+      "source": "doc/help/src/Using_ResourcesTree.xml",
+      "tests": "(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:^QtGui\\.(NativeNasaCommandTree[A-Za-z0-9]+|NativeNasaObjectSelection(?:Save|Global)|NativeNasaBuiltinSsb[A-Za-z0-9]+|NativeNasaFrameDelete[A-Za-z0-9]+|NativeNasaBodyOpen[A-Za-z]+|NativeNasaClosedLoad[A-Za-z]+|NativeNasaClonePolicy[A-Za-z]+|NativeNasaCommandReference[A-Za-z]+|NativeNasaPanelLifecycle[A-Za-z]+|NativeNasaBodyMechanism[A-Za-z]+|NativeNasaBodyClose[A-Za-z]+|NativeNasaResourceScript[A-Za-z0-9]+|NativeNasaFiniteBurnSelection[A-Za-z]+|NativeNasaIntegratorControls[A-Za-z0-9]+|NativeNasaVF13adResource[A-Za-z]+|NativeNasaFormationScript|NativeNasaFormationMembership|NativeNasaVF13adCreate|NativeNasaResourceNames|NasaFunctionEditorControl[A-Za-z]+|NasaSyntaxColor(?:Function)?|NasaEditorSearch|NasaRevertedDraft[A-Za-z]+|NasaApplyState[A-Za-z]+|NasaPanelMechanism[A-Za-z]+|NasaPanelButtons|ResourceCreationDefaults|UnifiedResources|ResourceCreationHelp|CoordinateCreation|ChemicalTankApply|PropSetupApply|PropSetupCreation|BurnOrigin|ResourceClone|AxisRename|ResourceRename|ResourceVisibility|PluginCreation|ResourceCategoryMenus|NasaEpochClone[A-Za-z]+|NasaLifecycle[A-Za-z0-9_]+|ResourceRoundTrips|PreviewLifetime)$|^QtGui\\.NativeNasaCloneAll(?:Attitude|Mass|Visual|Tank|Thruster|Burn|DC|XYPlot)$)|^QtGui\\.NativeNasaSpkOutputDegree[13579]$)|^QtGui\\.NativeNasaInterfaceDelivery(?:ExplicitStartup|Positional)$)|^QtGui\\.NativeNasaBodyParentCreation)|^QtGui\\.NativeNasaTypedResourceName)|^QtGui\\.NativeNasaTypedNameRecovery)|^QtGui\\.NativeNasa(?:PenNoResources(?:PenUp|PenDown)|PlotPickerDrag(?:ClearPlot|MarkPoint|PenUp|PenDown))$)|^QtGui\\.NativeNasaFunctionPropagatorGlobal(?:Existing|Created)$)|^QtGui\\.NasaCannonballDrag$)|^QtGui\\.NasaHarmonicGravity(?:Earth|Ceres)$)|^QtGui\\.NasaExternalPlugin(?:Enabled|Absent|Missing)$)|^QtGui\\.NativeNasaUserBodyClone(?:Asteroid|Comet|Planet|Moon)$)|^QtGui\\.NativeNasaUserBodyDefaultClone(?:Asteroid|Comet|Planet|Moon)$)|^QtGui\\.NativeNasaUserBodyRename(?:Asteroid|Comet|Planet|Moon)$)|^QtGui\\.NativeNasaUserBodyDelete(?:Asteroid|Comet|Planet|Moon)$)|^QtGui\\.NativeNasaUserBodyCloneRename(?:Asteroid|Comet|Planet|Moon)(?:Original|Clone)$)|^QtGui\\.NativeNasaUserBodyAllClone(?:Asteroid|Comet|Planet|Moon)$)|^(?:QtGui\\.NativeNasaCloneReferenceBarycenter|QtGui\\.NativeNasaCloneReferenceReportFile)$)"
+    },
+    {
+      "id": "UI-03",
+      "title": "Spacecraft configuration and dependent forms",
+      "expected": "Spacecraft orbit/epoch/attitude/mass/visualization and dependent resource panels apply typed values, reject invalid inputs, preserve pending changes and retain calculated results.",
+      "source": "doc/help/src/Resource_Spacecraft.xml",
+      "tests": "(?:(?:(?:(?:(?:^QtGui\\.(NativeNasaClosedLoadSpacecraftVisual|NativeNasaClonePolicySpacecraft(?:Attitude|Visual)|NativeNasaPanelLifecycleSpacecraft(?:Attitude|Visual|Mass)|Workflow|NasaBallistics|NasaBallisticSrp|NasaOrbitDefinition[A-Za-z]+|NasaEpochDefinition[A-Za-z0-9]+|NasaEpochLifecycle[A-Za-z0-9]+|NasaAttitudeDefinition[A-Za-z0-9]+|NativeNasaVisual[A-Za-z0-9]+)$|^QtTutorials\\.OrbitRoundTrip$)|^QtGui\\.NativeNasaCloneAll(?:Attitude|Mass|Visual)$)|^QtGui\\.NativeNasaVisualSliderCatalogue$)|^QtGui[.]NativeNasaAttitudeFixedFrame(?:Inertial|Ecliptic|Translated|BodySpin|BodySweep|OrbitRadial|OrbitVelocity)$)|^(?:QtGui\\.BrouwerSourceParity|QtGui\\.NasaAsymptoteEllipticIncomingAsymptote|QtGui\\.NasaAsymptoteEllipticOutgoingAsymptote|QtGui\\.NasaBrouwerOriginBrouwerMeanLong|QtGui\\.NasaBrouwerOriginBrouwerMeanShort|QtGui\\.NasaOrbitConversionCartesian|QtGui\\.NasaOrbitConversionEquinoctial|QtGui\\.NasaOrbitConversionKeplerian|QtGui\\.NasaOrbitConversionModifiedKeplerian|QtGui\\.NasaOrbitConversionSphericalAZFPA|QtGui\\.NasaOrbitConversionSphericalRADEC|QtGui\\.NasaOrbitExtendedConversionAlternateEquinoctial|QtGui\\.NasaOrbitExtendedConversionCartesian|QtGui\\.NasaOrbitExtendedConversionDelaunay|QtGui\\.NasaOrbitExtendedConversionEquinoctial|QtGui\\.NasaOrbitExtendedConversionKeplerian|QtGui\\.NasaOrbitExtendedConversionModifiedEquinoctial|QtGui\\.NasaOrbitExtendedConversionModifiedKeplerian|QtGui\\.NasaOrbitExtendedConversionSphericalAZFPA|QtGui\\.NasaOrbitExtendedConversionSphericalRADEC|QtGui\\.NasaOrbitHyperbolicConversionCartesian|QtGui\\.NasaOrbitHyperbolicConversionIncomingAsymptote|QtGui\\.NasaOrbitHyperbolicConversionKeplerian|QtGui\\.NasaOrbitHyperbolicConversionModifiedEquinoctial|QtGui\\.NasaOrbitHyperbolicConversionModifiedKeplerian|QtGui\\.NasaOrbitHyperbolicConversionOutgoingAsymptote|QtGui\\.NasaOrbitHyperbolicConversionSphericalAZFPA|QtGui\\.NasaOrbitHyperbolicConversionSphericalRADEC|QtGui\\.NasaPlanetodeticEarthlike|QtGui\\.NasaPlanetodeticOblate|QtGui\\.NasaPlanetodeticSouthern|QtGui\\.NasaPlanetodeticSphere|QtGui\\.OriginRelativeStateContract|QtGui\\.ScalarAngleBoundaries|QtGui\\.ScalarAnomalyCallers|QtGui\\.ScalarInclinationBoundaries)$)"
+    },
+    {
+      "id": "UI-04",
+      "title": "Script documents, files, paths and editing",
+      "expected": "Open, Save, Save As, Unicode paths, independent documents, Find/Replace, focus and Undo operate on the intended document; failures preserve source and file content.",
+      "source": "doc/help/src/Using_ScriptEditor.xml",
+      "tests": "(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:^QtGui\\.(NativeNasaClosedLoad[A-Za-z]+|NativeNasaClonePolicy[A-Za-z]+|NativeNasaCommandReference[A-Za-z]+|NativeNasaPanelLifecycleSpacecraft(?:Attitude|Visual)|NativeNasaBodyClose[A-Za-z]+|NasaMissionCommandPanelLoad[A-Za-z]+|NasaMissionCommandLoad[A-Za-z]+|NasaPlotCommandLifecycle[A-Za-z]+|NasaPenScriptPolicy[A-Za-z]+|NasaFileOutputPath|UnicodeFileNames|Files|ScriptDocuments|ScriptEditing|NasaScriptEditor|Paths|NasaFunctionPath[A-Za-z]+|ScriptAssets|FocusUndo|SearchRouting|PythonPaths|Launch)$|^QtGui\\.NativeNasaSpkOutputDegree[13579]$)|^QtGui\\.NativeNasaInterfaceDelivery(?:ExplicitStartup|Positional)$)|^QtGui\\.NativeNasaSolverMenuCatalogue(?:Target|OptimizeAddObjective|OptimizeCapacity|Commands)$)|^QtGui\\.NativeNasaIfElseFullGrid(?:And|Or)$)|^QtGui\\.NativeNasaManeuverSelection(?:Burn|Spacecraft)$)|^QtGui\\.NativeNasaSolverParent)|^QtGui\\.NativeNasaTypedResourceName)|^QtGui\\.NativeNasaTypedNameRecovery)|^QtGui\\.NativeNasaPlotFieldControl(?:ClearPlot|MarkPoint|PenUp|PenDown)$)|^QtGui\\.NativeNasa(?:PenNoResources(?:PenUp|PenDown)|PlotPickerDrag(?:ClearPlot|MarkPoint|PenUp|PenDown))$)|^QtGui\\.NativeNasaFiniteCommandField(?:BeginFiniteBurn|EndFiniteBurn)$)|^QtGui\\.NativeNasaFiniteCommandDefault(?:BeginFiniteBurn|EndFiniteBurn)(?:Existing|NoBurn|NoResources|BurnCollision|SpacecraftCollision)$)|^QtGui\\.NativeNasaFiniteDefaultWorkflow(?:BeginFiniteBurn|EndFiniteBurn)(?:MissingSpacecraft|SwitchTemplate|ConfigureAndRun)$)|^QtGui\\.NativeNasaFiniteEndContext[A-Za-z]+$)|^QtGui\\.NativeNasaBodyAppearance[A-Za-z]+$)|^QtGui\\.NativeNasaFunctionPropagatorGlobal(?:Existing|Created)$)|^QtGui\\.NativeNasaFunctionDeclaration(?:Straight|Nested)$)|^QtGui\\.NativeNasaFunctionValidation(?:Used|Unused|Nested|Isolation)$)|^QtGui\\.NasaFunctionFilePolicy(?:Utf8Literal|PrefixRecovery|TrailingSuffix|InvalidUtf8Comment)$)|^QtGui[.]NativeNasaAttitudeFixedFrame(?:Inertial|Ecliptic|Translated|BodySpin|BodySweep|OrbitRadial|OrbitVelocity)$)"
+    },
+    {
+      "id": "UI-05",
+      "title": "Mission tree, insertion, branches and labels",
+      "expected": "Mission insertion/deletion/navigation preserves nested commands, labels and comments; repeated Apply edits the intended command; invalid edits preserve pending source.",
+      "source": "doc/help/src/Using_MissionTree.xml",
+      "tests": "(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:^QtGui\\.(NativeNasaCommandReference[A-Za-z]+|NativeNasaControlLeafOrder[A-Za-z]+|NativeNasaControlTree[A-Za-z]+|NativeNasaTypedCommit[A-Za-z]+|NasaMissionCommandNames[A-Za-z]+|NasaPlotCommandNames[A-Za-z]+|NasaPlotCommandLifecycle[A-Za-z]+|NasaPlotCommandResult[A-Za-z]+|NasaPropagationStop[A-Za-z]+|NasaSaveAttachment[A-Za-z]+|NasaScriptEvent[A-Za-z]+|NasaControlBoundary[A-Za-z]+|NasaControlLogic[A-Za-z]+|NasaVaryParameter|NasaAchieveParameter|NasaMinimizeProperty|NativeNasaOptimizeTwoControls|NasaOptimizerRule[A-Za-z]+|NasaMissionTreeMenu[A-Za-z]+|NasaAssignment[A-Za-z0-9]+|NasaPanelButtons|NasaCommand[A-Za-z0-9_]+|Mission|MissionInsertion|MissionNavigation|TreeActivation|MissionLabelsWrite|WhileTemplate|CommandGeometry|GlobalScopes)$|^QtGui\\.NativeNasaReportLoop(?:Precision|Presentation|FilenameTypes)$)|^QtGui\\.NativeNasaSolverTree(?:Target|Optimize)(?:Root|Boundary|Interior)$)|^QtGui\\.NativeNasaSolverContext(?:Root|Target|OptimizeAddObjective|OptimizeCapacity)$)|^QtGui\\.NativeNasaSolverLeaf[A-Za-z]+$)|^QtGui\\.NativeNasaSolverMany[A-Za-z]+$)|^QtGui\\.NativeNasaConditionalObjectLoop(?:Variable|Array|Property)$)|^QtGui\\.NativeNasaBurnObjectLoop(?:Impulse|Duty|Scale)$)|^QtGui\\.NativeNasaSubscriberGlobalLoop(?:Toggle|Global)$)|^QtGui\\.NativeNasaInterfaceDelivery(?:ExplicitStartup|Positional)$)|^QtGui\\.NativeNasaToggleCheckbox(?:On|Off)$)|^QtGui\\.NativeNasaSolverParent)|^QtGui\\.NativeNasaPlotFieldControl(?:ClearPlot|MarkPoint|PenUp|PenDown)$)|^QtGui\\.NativeNasa(?:PenNoResources(?:PenUp|PenDown)|PlotPickerDrag(?:ClearPlot|MarkPoint|PenUp|PenDown))$)|^QtGui\\.NativeNasaFiniteCommandField(?:BeginFiniteBurn|EndFiniteBurn)$)|^QtGui\\.NativeNasaFiniteCommandDefault(?:BeginFiniteBurn|EndFiniteBurn)(?:Existing|NoBurn|NoResources|BurnCollision|SpacecraftCollision)$)|^QtGui\\.NativeNasaFiniteDefaultWorkflow(?:BeginFiniteBurn|EndFiniteBurn)(?:MissingSpacecraft|SwitchTemplate|ConfigureAndRun)$)|^QtGui\\.NativeNasaFiniteEndContext[A-Za-z]+$)|^QtGui\\.NativeNasaBurnCanonicalParameters$)|^QtGui\\.NativeNasaFunctionDeclaration(?:Straight|Nested)$)|^(?:QtGui\\.NativeNasaCommandPanelCompletionBeginFiniteBurn|QtGui\\.NativeNasaCommandPanelCompletionEndFiniteBurn|QtGui\\.NativeNasaCommandPanelCompletionSave|QtGui\\.NativeNasaElseAppendControlForElseParent|QtGui\\.NativeNasaElseAppendControlIfElseElseParent|QtGui\\.NativeNasaElseAppendControlIfElseParent|QtGui\\.NativeNasaElseAppendControlWhileElseParent|QtGui\\.NativeNasaElseAppendSolverOptimizeElseParent|QtGui\\.NativeNasaElseAppendSolverTargetElseParent|QtGui\\.NativeNasaElseParentControlForElseParent|QtGui\\.NativeNasaElseParentControlIfElseElseParent|QtGui\\.NativeNasaElseParentControlIfElseParent|QtGui\\.NativeNasaElseParentControlWhileElseParent|QtGui\\.NativeNasaElseParentSolverOptimizeElseParent|QtGui\\.NativeNasaElseParentSolverTargetElseParent|QtGui\\.NativeNasaIfParentControlForIfParent|QtGui\\.NativeNasaIfParentControlIfElseIfParent|QtGui\\.NativeNasaIfParentControlIfIfParent|QtGui\\.NativeNasaIfParentControlWhileIfParent|QtGui\\.NativeNasaIfParentSolverOptimizeIfParent|QtGui\\.NativeNasaIfParentSolverTargetIfParent|QtGui\\.NativeNasaWhileParentControlForWhileParent|QtGui\\.NativeNasaWhileParentControlIfElseWhileParent|QtGui\\.NativeNasaWhileParentControlIfWhileParent|QtGui\\.NativeNasaWhileParentControlWhileWhileParent|QtGui\\.NativeNasaWhileParentSolverOptimizeWhileParent|QtGui\\.NativeNasaWhileParentSolverTargetWhileParent)$)"
+    },
+    {
+      "id": "UI-06",
+      "title": "Propagation, gravity and atmosphere",
+      "expected": "Propagator/force selectors maintain compatible dependencies; forward/backward propagation, stops, integrator options, covariance and display colors match checked reports or analytical expectations.",
+      "source": "doc/help/src/Command_Propagate.xml",
+      "tests": "(?:(?:(((?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:^QtGui\\.(NativeNasaFormationPropagation|NasaErrorControl|NasaTerminalSteps|NasaForceModel(?:Window|Transactions|Clone)|NasaGravityValidation|NasaSpk[A-Za-z0-9]+|PropagationSingleStep|Atmosphere|ForceSource|ForceSelectors|GravityBodies|NasaGravityDialog|NasaUserGravity|NasaTide(?:EarthInherited|EarthFile|EarthPole|LunarFile)|MarsGravity|ImplicitGravity|BulirschControls|PropagationColors|RuntimeColors|PropagationCovariance|NasaStateTransition(?:Forward|Backward))$|^QtTutorials\\.ForceOrder$)|^QtGui\\.NativeNasaBurnObjectLoop(?:Impulse|Duty|Scale)$)|^QtGui\\.NativeNasaSubscriberGlobalLoop(?:Toggle|Global)$)|^QtGui\\.NativeNasaSpkOutputDegree[13579]$)|^QtGui\\.NativeNasaFunctionPropagatorGlobal(?:Existing|Created)$)|^QtGui\\.NasaCannonballDrag$)|^QtGui\\.NasaSpkEpochExecution(?:J2000|PreLeap|LeapSecond|PostLeap)$|^QtGui\\.SpkEpochInputOracle$)|^QtGui\\.LeapSecondInputs$)|^QtGui\\.NasaHarmonicGravity(?:Earth|Ceres)$)|^QtGui\\.NativeNasaNumericalCapacity(?:Independent|Synchronized)(?:16|128)$)|^QtGui.NativeNasaFk5Dynamics(?:Impulse|Thrust)(?:FK5|ICRF)(?:J2000|Later)$)|^QtGui.NativeNasaForceControlInventory(?:Basic|Owned)$)|^QtGui.NativeNasaForceInputBoundary(?:SrpFlux|NominalSun|F107|F107A|MagneticIndex)$)|^QtGui[.]NativeNasaWeatherChoice[A-Za-z0-9]+$)|^QtGui[.]NativeNasaForceRoute[A-Za-z0-9]+$)|^QtGui[.]NativeNasaSrpModelChoice(?:Spherical|SPADFile|NPlate)$)|^QtGui[.]NativeNasaDragModelChoice(?:Spherical|SPADFile)$)"
+    },
+    {
+      "id": "UI-07",
+      "title": "Hardware, tanks, thrusters and maneuvers",
+      "expected": "Tank/thruster/burn controls maintain reference/cardinality constraints and valid frames; test fuel use and maneuver results satisfy their numerical checks.",
+      "source": "doc/help/src/Resource_Thruster.xml",
+      "tests": "(?:(?:(?:(?:(?:(?:(?:^QtGui\\.(NasaBurnVnbAliases|NasaImpulsiveFrame[A-Za-z]+|NasaThrusterIntegration[A-Za-z]+|NasaThrusterFrame[A-Za-z0-9]+|NasaThrusterPolynomial[A-Za-z]+|NasaTankParameter[A-Za-z]+|Thrusters|Burns|ThrustFiles|FileThrustCardinality)$|^QtGui\\.NativeNasaBurnObjectLoop(?:Impulse|Duty|Scale)$)|^QtGui\\.NativeNasaSubscriberGlobalLoop(?:Toggle|Global)$)|^QtGui\\.NativeNasaCloneAll(?:Tank|Thruster|Burn)$)|^QtGui\\.NativeNasaManeuverSelection(?:Burn|Spacecraft)$)|^QtGui\\.NativeNasaBurnCanonicalParameters$)|^QtGui.NativeNasaFk5Dynamics(?:Impulse|Thrust)(?:FK5|ICRF)(?:J2000|Later)$)|^QtGui[.]NativeNasaHardwareUnits(?:BurnPrimary|ChemicalPrimary|ElectricPrimary|ChemicalCoefficients)$)"
+    },
+    {
+      "id": "UI-08",
+      "title": "Solar system, celestial bodies and frames",
+      "expected": "Solar-system/body/coordinate settings and calculated points preserve valid references and reject invalid combinations through recoverable edits.",
+      "source": "doc/help/src/Resource_SolarSystem.xml",
+      "tests": "(?:(?:(?:(?:^QtGui\\.(NativeNasaCommandTree[A-Za-z0-9]+|NativeNasaObjectSelection(?:Save|Global)|NativeNasaBuiltinSsb[A-Za-z0-9]+|NativeNasaFrameDelete[A-Za-z0-9]+|NativeNasaBodyOpen[A-Za-z]+|NativeNasaClosedLoad(?:Sun|Mercury|Venus|Earth|Luna|Mars|Jupiter|Uranus|Neptune|Pluto|Asteroid|Comet|Planet)|NativeNasaClonePolicy(?:Sun|Mercury|Venus|Earth|Luna|Mars|Jupiter|Uranus|Neptune|Pluto)|NativeNasaBodyScript[A-Za-z]+|NativeNasaBodyTexture[A-Za-z]+|NasaUserBodySpk[A-Za-z]+|NasaScientificFile[A-Za-z]+|NasaEphemerisLocation(?:DE405|Nutation)|SolarSystem|CelestialBodies|CalculatedPoints|NasaCalculated[A-Za-z0-9]+|NasaBodyKernel[A-Za-z0-9]+|NasaBodyOrientation[A-Za-z0-9]+|NasaBodySpiceRotation[A-Za-z0-9]+|NasaInertial[A-Za-z0-9]+|NasaDynamic[A-Za-z0-9]+|NasaObjectAxes[A-Za-z0-9_]+|NasaCircularRV[A-Za-z]+|NasaObjectPicker[A-Za-z]+|NasaOriginFrame[A-Za-z0-9]+|NasaReadonly[A-Za-z0-9]+|NasaFunctionFrame[A-Za-z]+|NasaFunctionControl[A-Za-z]+|NasaFunctionIo[A-Za-z]+|NasaSolar[A-Za-z]+|NasaTopoRuntime[A-Za-z]+|CoordinateCreation)$|^QtGui\\.NativeNasaBodyParentCreation)|^QtGui\\.NativeNasaBodyControl[A-Za-z]+$)|^QtGui\\.NativeNasaBodyAppearance[A-Za-z]+$)|^(?:QtGui\\.NativeNasaBaryMembershipClear|QtGui\\.NativeNasaBaryMembershipFirstJupiter|QtGui\\.NativeNasaBaryMembershipLastVenus|QtGui\\.NativeNasaBaryMembershipMiddleNeptune|QtGui\\.NativeNasaBaryMembershipPairJupiterNeptune|QtGui\\.ObjectAccelerationDerivativeContract)$)"
+    },
+    {
+      "id": "UI-09",
+      "title": "Parameters, arrays and function calls",
+      "expected": "Scalar, String, Array and function argument controls retain types and ordering; execution checks known outputs and source round trips.",
+      "source": "doc/help/src/Resource_GmatFunction.xml",
+      "tests": "(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:^QtGui\\.(NasaFunctionDefinition[A-Za-z]+|NasaStmParameter[a-z]+|NasaBetaAngle[A-Za-z]+|NasaReadonlyGeodetic[A-Za-z]+|NasaBurnVnbAliases|NasaPropagationStop[A-Za-z]+|NasaSaveAttachment[A-Za-z]+|NasaScriptEvent[A-Za-z]+|NasaControlBoundary[A-Za-z]+|NasaControlLogic[A-Za-z]+|NasaVaryParameter|NasaAchieveParameter|NasaMinimizeProperty|NasaOrbitalParameter[A-Za-z]+|NasaOrbitCalculation[A-Za-z]+|NasaFunctionPath[A-Za-z]+|Parameters|ParameterSelection|GmatCallSyntax|FunctionFileNames|FunctionImport|Compatibility|StringArrayDispatch)$|^QtGui\\.NativeNasaReportLoop(?:Precision|Presentation|FilenameTypes)$)|^QtGui\\.NativeNasaSolverContext(?:Root|Target|OptimizeAddObjective|OptimizeCapacity)$)|^QtGui\\.NativeNasaInterfaceDelivery(?:ExplicitStartup|Positional)$)|^QtGui\\.NativeNasaIfElseFullGrid(?:And|Or)$)|^QtGui\\.NativeNasaManeuverSelection(?:Burn|Spacecraft)$)|^QtGui\\.NativeNasaFunctionPropagatorGlobal(?:Existing|Created)$)|^QtGui\\.NativeNasaBurnCanonicalParameters$)|^QtGui\\.NativeNasaFunctionDeclaration(?:Straight|Nested)$)|^QtGui\\.NativeNasaFunctionValidation(?:Used|Unused|Nested|Isolation)$)|^QtGui\\.NasaFunctionResource[A-Za-z]+$)|^QtGui\\.NasaFunctionReference[A-Za-z]+$|^QtGui\\.NasaCreatableResourceCatalog$)|^QtGui\\.NasaFunctionBuiltin[A-Za-z]+$)"
+    },
+    {
+      "id": "UI-10",
+      "title": "Run control, debugger and inspection",
+      "expected": "Run/Stop/debug controls act on the current mission; breakpoints, stepping, inspection and failure recovery retain the expected runtime state.",
+      "source": "doc/help/src/Using_RunningGmat.xml",
+      "tests": "(?:(?:(?:(?:(?:(?:(?:(?:^QtGui\\.(NasaPenScriptPolicy[A-Za-z]+|NativeNasaScriptPreviews|NasaCommandSummaryFields|NasaCommandSummaryExtended[A-Za-z]+|NasaCommandSummaryPlots|Debugger|Inspection|NativeDebugger)$|^QtGui\\.NativeNasaReportLoop(?:Precision|Presentation|FilenameTypes)$)|^QtGui\\.NativeNasaSolverTree(?:Target|Optimize)(?:Root|Boundary|Interior)$)|^QtGui\\.NativeNasaSolverLeaf[A-Za-z]+$)|^QtGui\\.NativeNasaBurnObjectLoop(?:Impulse|Duty|Scale)$)|^QtGui\\.NativeNasaSubscriberGlobalLoop(?:Toggle|Global)$)|^QtGui\\.NativeNasaInterfaceDelivery(?:ExplicitStartup|Positional)$)|^QtGui\\.NativeNasaFunctionPropagatorGlobal(?:Existing|Created)$)|^QtGui\\.NativeNasaFunctionValidation(?:Used|Unused|Nested|Isolation)$)"
+    },
+    {
+      "id": "UI-11",
+      "title": "Targeting, optimization and solver scope",
+      "expected": "Target/Optimize/Vary/Achieve/constraint controls preserve typed operands and nested scope; solver modes, correction output, disabled blocks and stop/failure behavior satisfy executable expectations.",
+      "source": "doc/help/src/Command_Target.xml",
+      "tests": "(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:^QtGui\\.(NativeNasaVF13ad(?:Initial|Perturbation|MaxStep|Additive|Multiplicative)|NasaVaryParameter|NasaAchieveParameter|NasaMinimizeProperty|NasaOptimizerRule[A-Za-z]+|NasaDifferential[A-Za-z0-9]+|MixedSolverScopes|MixedVF13adSolverScopes|SolverToggle|OptimizerToggle|NestedSolverToggle|SolverCorrections|SolverOperands|Constraints|SolverModes|DisabledSolverStop|DisabledSolverFailure)$|^QtGui\\.NativeNasaSolverTree(?:Target|Optimize)(?:Root|Boundary|Interior)$)|^QtGui\\.NativeNasaSolverContext(?:Root|Target|OptimizeAddObjective|OptimizeCapacity)$)|^QtGui\\.NativeNasaSolverLeaf[A-Za-z]+$)|^QtGui\\.NativeNasaSolverMany[A-Za-z]+$)|^QtGui\\.NativeNasaCloneAll(?:DC)$)|^QtGui\\.NativeNasaSolverMenuCatalogue(?:Target|OptimizeAddObjective|OptimizeCapacity|Commands)$)|^QtGui\\.NativeNasaIfElseFullGrid(?:And|Or)$)|^QtGui\\.NativeNasaSolverParent)|^QtGui\\.NasaSolverEphemeris(?:Target|Optimize)$)|^QtGui\\.NasaBatchEphemeris(?:Positive|Negative)$)|^QtGui\\.NativeNasaBatchMode(?:InitialGuess|IterationLimit|Reentry)$)|^QtGui\\.NativeNasaBatchFormat(?:StkKilometers|StkMeters|Code500Little|Code500Big)$)|^QtGui\\.NativeNasaBatchSpk(?:Positive|Negative)$)|^QtGui\\.NativeNasaFilterFormat(?:Filter|Smoother)(?:Oem|Spk|Code500|Stk)$)|^(?:QtGui\\.NativeNasaVaryOptimizeProperty)$)"
+    },
+    {
+      "id": "UI-12",
+      "title": "Reports, comparisons and exports",
+      "expected": "Report selection, search and file comparison preserve complete results; invalid numeric rows/tolerances/errors are diagnosed; exports preserve data and do not overwrite inputs.",
+      "source": "doc/help/src/Resource_ReportFile.xml",
+      "tests": "(?:(?:(?:(((?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:(?:^QtGui\\.(?:NativeNasaEphemerisDirection[A-Za-z0-9]+|NasaInterpolatorOrder)$|(?:^QtGui\\.(?:NasaReportOutput|NasaEphemerisSampling)[A-Za-z]+$|^QtGui\\.(Comparison|ReportSearchOptions|XYExport|PlotImageExport|Ephemeris|DataInterface|DynamicData)$))|^QtGui\\.NativeNasaReportLoop(?:Precision|Presentation|FilenameTypes)$)|^QtGui\\.NativeNasaSpkOutputDegree[13579]$)|^QtGui\\.NativeNasaInterfaceDelivery(?:ExplicitStartup|Positional)$)|^QtGui\\.NativeNasaToggleCheckbox(?:On|Off)$)|^QtGui\\.NativeNasaBodyControl[A-Za-z]+$)|^QtGui\\.NativeNasaBodyAppearance[A-Za-z]+$)|^QtGui\\.NativeNasaFunctionPropagatorGlobal(?:Existing|Created)$)|^QtGui\\.NativeNasaBurnCanonicalParameters$)|^QtGui\\.NativeNasaFunctionDeclaration(?:Straight|Nested)$)|^QtGui\\.NativeNasaFunctionValidation(?:Used|Unused|Nested|Isolation)$)|^QtGui\\.NasaSolverEphemeris(?:Target|Optimize)$)|^QtGui\\.NasaBatchEphemeris(?:Positive|Negative)$)|^QtGui\\.NativeNasaBatchMode(?:InitialGuess|IterationLimit|Reentry)$)|^QtGui\\.NativeNasaBatchFormat(?:StkKilometers|StkMeters|Code500Little|Code500Big)$)|^QtGui\\.NativeNasaBatchSpk(?:Positive|Negative)$)|^QtGui\\.NativeNasaFilterFormat(?:Filter|Smoother)(?:Oem|Spk|Code500|Stk)$)|^QtGui.NativeNasaFk5Dynamics(?:Impulse|Thrust)(?:FK5|ICRF)(?:J2000|Later)$)|^QtGui.NativeNasaForceInputBoundary(?:SrpFlux|NominalSun|F107|F107A|MagneticIndex)$)|^QtGui[.]NativeNasaWeatherChoice[A-Za-z0-9]+$)|^QtGui[.]NativeNasaForceRoute[A-Za-z0-9]+$)|^QtGui[.]NativeNasaSrpModelChoice(?:Spherical|SPADFile|NPlate)$)|^QtGui[.]NativeNasaDragModelChoice(?:Spherical|SPADFile)$)|^(?:QtGui\\.BatchFormatOracleContract|QtGui\\.BatchOneStepOracleContract|QtGui\\.BatchSpkOracleContract|QtGui\\.PublicationEpochContract|QtGui\\.SharedSampleContract|QtGui\\.SpkCanonicalEpochContract|QtGui\\.SpkHermiteOracleContract|QtGui\\.SpkWriterBoundaryRecovery|QtGui\\.SpkWriterBoundaryStorage)$)"
+    },
+    {
+      "id": "UI-13",
+      "title": "Plot setup, axes, visibility and live output",
+      "expected": "Plot controls preserve membership/axes/colors; Toggle and invalid/disabled data rules prevent stale output; exports and pixel/data assertions verify supported rendering.",
+      "source": "doc/help/src/Resource_XYPlot.xml",
+      "tests": "(?:(?:(?:(?:^QtGui\\.(NasaGroundTrackBodySymbols[A-Za-z]+|NativeNasaMarkPoint|NasaXyRegionZoom[A-Za-z]+|NasaPlotCommandResult[A-Za-z]+|NasaPlotPresentation[A-Za-z]+|PlotSetup|Plots|PlotsHiDPI|NativePlots|OrbitSetup|XYAxes(?:FractionalDPI|HiDPI|HighScale)?|TogglePlots|CompletedDisabledPlots|LivePlotFlush|InvalidPlotData|EphemerisToggle|SolverEphemerisToggle|BinaryEphemerisToggle|OwnedPlotBatch)$|^QtGui\\.NativeNasaCloneAll(?:XYPlot)$)|^QtGui\\.NativeNasaToggleCheckbox(?:On|Off)$)|^QtGui\\.NativeNasaPlotFieldControl(?:ClearPlot|MarkPoint|PenUp|PenDown)$)|^QtGui\\.NativeNasa(?:PenNoResources(?:PenUp|PenDown)|PlotPickerDrag(?:ClearPlot|MarkPoint|PenUp|PenDown))$)"
+    },
+    {
+      "id": "UI-14",
+      "title": "Orbit rendering, drawing and styles",
+      "expected": "Visible bodies, trajectories, fonts, widths, markers and coordinates follow saved settings; native/fallback geometry and pixel comparisons check supported appearance.",
+      "source": "doc/help/src/Resource_OrbitView.xml",
+      "tests": "(?:^QtGui\\.(NasaGroundTrackBodySymbols[A-Za-z]+|NasaPlotCommandResultPenOrbitGround|NasaPlotPresentationOrbitPointer|NativeVectors|NativeNasaOrbitStarControls[A-Za-z]+|NasaOrbitGuideRaster|NativeNasaOrbitGuide[A-Za-z]+|NativeOrbit|NativeOrbitHiDPI|NativeOrbitFractionalDPI|ConvertedVisibility|ObjectDrawing|ObjectAxes|ObjectGuides|ObjectVelocity|FontMetadata|FontRendering|ConvertedFonts|WidthRendering|ConvertedWidths|MarkerMetadata|ConvertedMarkers|ObjectDrawingLayout|OrbitDataAvailability|CoordinateLabels|NativeCoordinateLabels|OpenFramesVectors)$|^QtGui\\.NativeNasaVisualSliderCatalogue$)"
+    },
+    {
+      "id": "UI-15",
+      "title": "Playback, timing, epochs and animation",
+      "expected": "Playback transport, speed, time scale, parent/child clocks, toolbar visibility and recorded/interpolated states match checked epoch/geometry and replay expectations.",
+      "source": "doc/help/src/Resource_OrbitView.xml",
+      "tests": "(?:^QtGui\\.(NasaPlotPresentationEpoch(?:Orbit|Ground)|SharedPlayback|SharedPlaybackButtons|InterpolatedPlayback|NativeInterpolatedPlayback|PlaybackOptionsBackend|PlaybackOptionsEditor|PlaybackOptionsRuntime|SimulationClock|EpochPlaybackRendering|NativeEpochPlayback|ClockArcCapture|EpochPlayback)$|^QtGui\\.NativeNasaSpkOutputDegree[13579]$)"
+    },
+    {
+      "id": "UI-16",
+      "title": "Cameras, segments and OpenFrames conversion",
+      "expected": "Camera defaults/current reset, primary/named views, body-relative positions and segment labels/arc choices preserve supported source semantics and checked geometry.",
+      "source": "doc/help/src/Resource_OrbitView.xml",
+      "tests": "^QtGui\\.(CameraReset|OpenFramesCameraAliases|SegmentLabels|NativeSegmentLabels|SegmentArc|SegmentCameras|OpenFramesSyntax|UnplottedBodyCameras)$"
+    },
+    {
+      "id": "UI-17",
+      "title": "Models, star fields and sensor masks",
+      "expected": "Model assets/transforms, star styles and sensor-mask geometry follow saved settings; invalid assets/references recover without source loss; pixel tests verify supported native/fallback output.",
+      "source": "doc/help/src/Resource_SpacecraftVisualizationProperties.xml",
+      "tests": "(?:(?:(?:^QtGui\\.(ModelDrawingBackend|ModelDrawingEditor|ModelDrawingRuntime|NativeModelDrawing|StarOptionsBackend|StarOptionsEditor|StarStyleRendering|NativeStarStyles|SensorMaskBackend|SensorMaskEditor|SensorMaskRendering|NativeSensorMasks|SkyControls)$|^QtGui\\.NativeNasaCloneAll(?:Visual)$)|^QtGui\\.NativeNasaVisualSliderCatalogue$)|^QtGui\\.NativeNasaBodyAppearance[A-Za-z]+$)"
+    },
+    {
+      "id": "UI-18",
+      "title": "Window and viewer lifecycle",
+      "expected": "Viewer close/reopen, resize, minimize/restore and final close preserve data and render the expected scene; private/native routes remain distinct from physical host acceptance.",
+      "source": "doc/help/src/Using_OutputTree.xml",
+      "tests": "(?:(?:(?:(?:^QtGui\\.(NasaPlotCommandLifecycle[A-Za-z]+|NativeWindows|NasaWindowMenu[A-Za-z]+)$|^QtGui\\.NativeNasaBodyParentCreation)|^QtGui\\.NativeNasaTypedResourceName)|^QtGui\\.NativeNasaTypedNameRecovery)|^QtGui\\.NativeNasa(?:PenNoResources(?:PenUp|PenDown)|PlotPickerDrag(?:ClearPlot|MarkPoint|PenUp|PenDown))$)"
+    },
+    {
+      "id": "UI-19",
+      "title": "Solver plot history and cleanup",
+      "expected": "All/Current/None/LastN modes and nested solver cleanup preserve accepted trajectories, reports and bounded display history.",
+      "source": "doc/help/src/Resource_OrbitView.xml",
+      "tests": "^QtGui\\.(SolverPlots|OptimizerPlots|NestedSolverPlots|NestedSolverCleanup|NativeSolverPlots|LastNSolver)$"
+    },
+    {
+      "id": "UI-20",
+      "title": "Stations, FOVs, regions and events",
+      "expected": "Locator/station/FOV/Region editors preserve typed references, paired data, epoch and file settings; event execution and invalid-input recovery satisfy bounded report checks.",
+      "source": "doc/help/src/Resource_ContactLocator.xml",
+      "tests": "^QtGui\\.(Stations|CustomFovControls|CustomFovPaths|Region|EventLocators|NasaEclipse(?:Result|LightTime)[A-Za-z]+|NasaContact(?:Result|Occultation)[A-Za-z]+|EventLocatorCreation|NasaStation[A-Za-z]+)$"
+    },
+    {
+      "id": "UI-21",
+      "title": "Tracking, estimation and covariance",
+      "expected": "Simulation/estimation/filter/hardware controls preserve valid references and selections; known measurement/state/covariance outputs and missing-file recovery are checked.",
+      "source": "doc/help/src/Command_RunEstimator.xml",
+      "tests": "^QtGui\\.(NasaTrackingFileLocations|Estimation|KalmanFilter|Covariance|ReceiverErrorModels|TransmitterSolveFors)$"
+    },
+    {
+      "id": "UI-22",
+      "title": "External force and polyhedron integrations",
+      "expected": "Supported plugin configuration, file/module selection and source overrides preserve semantics; checked execution and invalid-data recovery remain explicit.",
+      "source": "doc/help/src/Resource_Propagator.xml",
+      "tests": "^QtGui\\.(ExternalForces|ExternalModuleSource|Polyhedron|PolyhedronBodySource)$"
+    },
+    {
+      "id": "UI-23",
+      "title": "Help and attachments",
+      "expected": "Context F1/Help and offline navigation reach the correct document; local attachments, Find and history remain usable without changing pending mission edits. Help-menu wiki/community/project actions dispatch their reviewed destinations and preserve source/history/results. Report An Issue and Provide Feedback preserve pending state and dispatch the reviewed tracker and mailto recipient/subject.",
+      "source": "doc/help/src/Using_GettingHelp.xml",
+      "tests": "^QtGui\\.(NativeNasaHelpContacts|NativeNasaHelpLinks|Help|HelpAttachments|ResourceCreationHelp)$"
+    },
+    {
+      "id": "UI-24",
+      "title": "Folder runs and batch results",
+      "expected": "Folder selection, range/filter/order/function options, cancellation, reports and errors are checked through the delivered batch controls.",
+      "source": "doc/help/src/Using_SampleMissions.xml",
+      "tests": "^QtGui\\.(FolderRun|NativeFolderRun|NativeDocuments)$"
+    },
+    {
+      "id": "UI-25",
+      "title": "Diagnostics and isolated-session support",
+      "expected": "SPICE failure diagnostics retain useful file/context details; isolated Wayland helper normal-exit contracts are checked separately from the GUI.",
+      "source": "doc/help/src/Using_ConfiguringGmat.xml",
+      "tests": "^QtGui\\.(SpiceDiagnostics|IsolatedWaylandExit)$"
+    },
+    {
+      "id": "UI-26",
+      "title": "Python call forms",
+      "expected": "Python module/function/input/output controls preserve accepted syntax and argument order, and check known scalar/Array outputs.",
+      "source": "doc/help/src/Resource_GmatFunction.xml",
+      "tests": "^QtGui\\.(PythonCalls|PythonZeroInputs|PythonScalarOutput|PythonBareCalls)$"
+    }
+  ],
+  "coverage_limits": [
+    "Test assertions retain their original scope and oracles. Same-engine script equality establishes GUI equivalence, not independent scientific truth.",
+    "A named widget reference in a test is only a mapping candidate; observed, shown, changed and activated do not prove checked behavior or human input.",
+    "Literal setObjectName declarations omit dynamic names, unnamed controls, delegates, context menu choices and native dialogs. No total GUI coverage percentage is claimed.",
+    "NASA historical pass results are never promoted to current Qt acceptance. No row-level correspondence has been verified.",
+    "Visible mode uses a controlled Xephyr test-desktop window on Linux, or an explicitly selected native desktop route, with bounded pacing and native-surface snapshots. It is not a full OS input driver or physical hardware qualification.",
+    "Local UI IDs group existing evidence. Complete NASA requirement acceptance needs reviewed case-level mappings and the missing tests."
+  ],
+  "known_gaps": [
+    {
+      "id": "SUBUNIT-DPI-RASTER",
+      "detail": "A manual 0.5x XY raster check still fails the original full-color marker oracle after logical-coordinate normalization. Subpixel raster coverage at scales below 1 remains unqualified; registered XY checks cover 1x, 1.5x, 2x and 3x, and a manual 4x check passed. This is retained as a gap, not converted into a passing check."
+    },
+    {
+      "id": "NASA-CASE-TRACEABILITY",
+      "detail": "Historical NASA matrix rows require reviewed case-level mappings and current Qt applicability. Only source-bound, passed proof records receive credit; consult nasa-requirements.json for verified and unreviewed counts. Historical status fields and broad mechanism groups do not close remaining rows."
+    },
+    {
+      "id": "PER-CONTROL-ORACLES",
+      "detail": "No verified assertion linkage for every individual widget, menu action and control state. Existing executable assertions are reused and their source files/logs are linked."
+    },
+    {
+      "id": "INPUT-BOUNDARIES",
+      "detail": "Valid, invalid and boundary inputs are checked in existing scenarios; a reviewed input-domain matrix for every editable field is incomplete."
+    },
+    {
+      "id": "DYNAMIC-UNNAMED-CONTROLS",
+      "detail": "Runtime traces include encountered unnamed widgets, but the static inventory cannot enumerate every generated property row, menu choice, delegate or platform-native control."
+    },
+    {
+      "id": "NATIVE-INPUT-PORTALS",
+      "detail": "In-process Qt events and calls do not verify OS mouse/keyboard routing, native desktop file portals or accessibility. Native-dialog suppression in existing tests is preserved."
+    },
+    {
+      "id": "PHYSICAL-GPU-LIFECYCLE",
+      "detail": "Physical Intel/Wayland viewer close/reopen, resize, minimize/restore and normal exit remain distinct acceptance items. Software GL/XWayland/private-display passes do not close them."
+    },
+    {
+      "id": "SCIENTIFIC-INTEGRATION-HOLDS",
+      "detail": "See current-acceptance-20261002.md for held tutorial/example objectives, unsupported scientific regimes, legacy data and proprietary/MATLAB dependencies. These are not silently skipped as passes. Custom rotation fixtures isolate frames with an Earth-coincident origin; 1e-8 km relative-input precision at distant astronomical origins remains unqualified, with Ceres-offset failure reports preserved."
+    },
+    {
+      "id": "TUTORIAL-CORPUS-REPLAY",
+      "detail": "This suite runs registered regression checks. Prior tutorial/corpus evidence is linked in the acceptance ledger but their complete authored GUI replay is not automated here."
+    },
+    {
+      "id": "STRESS-PLATFORM-MATRIX",
+      "detail": "No full-duration stress/soak, Windows/macOS distribution matrix or all hardware/scale/input combinations is established by this run."
+    },
+    {
+      "id": "ARTIFACT-PROVENANCE",
+      "detail": "Receipts hash source, binaries and startup inputs; matching source-to-binary provenance requires a controlled build/release receipt."
+    },
+    {
+      "id": "VISIBLE-STEP-COVERAGE",
+      "detail": "Automatic visible checkpoints are capped per process. Fast modal callbacks and intermediate edits can finish before native exposure; complete step-by-step visual replay still needs explicit scenario checkpoints. Assertions still execute for those steps."
+    },
+    {
+      "id": "WINDOW-CONTENT-VISIBILITY",
+      "detail": "Native exposure does not prove that every control is inside the visible workspace. An earlier host-scale SearchRouting capture exposed off-edge MDI placement; that fixture now asserts viewport containment. Other fixture layouts, popups, readable presentation and all supported scale combinations still need direct visibility assertions."
+    },
+    {
+      "id": "SUBMICROSECOND-STOP-PRECISION",
+      "detail": "The Propagate guide documents epoch time quantization and a warning when requested stopping tolerance cannot be met. The new variational cases request 1e-9 s and observe about 6.98e-8 s reported stop error; they verify the warning and its requested/achieved values. Their state/STM oracles use the actual integration clock. Passing these quantity checks does not qualify nanosecond stopping precision."
+    },
+    {
+      "id": "LIBRATION-VELOCITY-EPHEMERIS-PLANE-DERIVATIVE",
+      "detail": "The shipped mathematical specification explicitly assumes the relative-acceleration terms are zero in libration velocity, and SpacePoint supplies zero acceleration. New six-state checks qualify that local linear model using an independent position derivative. They do not qualify the full derivative of changing ephemerides or arbitrary nonplanar/nonzero-acceleration primary-secondary motion."
+    },
+    {
+      "id": "HISTORICAL-USER-BODY-TWO-BODY",
+      "detail": "Historical user-body two-body and orbital-element requirements conflict with the current shipped SPICE-only guide and explicit runtime deprecation/read-only guards. The source instances remain reviewed-unverified pending authoritative baseline/retirement reconciliation; no test pass substitutes SPICE for the named removed mode."
+    },
+    {
+      "id": "SOLVER-MATHEMATICAL-SPEC-INCOMPLETE",
+      "detail": "The shipped Solvers.tex has empty Differential Correction, Broyden and Newton sections. The new solver cases derive independent finite-difference/Newton oracles for one specified polynomial problem and check all presentation values; they do not replace a complete authoritative NASA numerical solver V&V corpus or qualify general conditioning, scaling, bounds, Broyden or dynamical targeting."
+    },
+    {
+      "id": "SPK-PENDING-TYPE-AND-ORIGIN",
+      "detail": "Pending drafts, spacecraft kernel selection/cache, mixed numeric/SPK modes and configured STM/A-matrix/covariance/cardinality boundaries have bounded cases. Remaining: inactive Origin, other segments/general frame-time science, native input/drag-drop, user-body SPK state/cache/precedence (configured list controls now have separate bounded cases) and full current regression."
+    },
+    {
+      "id": "PROPAGATE-GROUP-CAPACITY-AND-EPHEMERIS-COUNT",
+      "detail": "FRC!E113 unlimited numerical groups requires capacity/stress qualification. FRC!E114 historical ephemeris-count wording needs resource-versus-clone reconciliation with current guide/examples and repeated/distinct SPK support. Both reviewed-unverified."
+    },
+    {
+      "id": "USER-BODY-ROTATION-DRIFT-DISPOSITION",
+      "detail": "FRR!E227 historical rotation drift rate and parent E221 remain reviewed-unverified: current guide/core supports spin angle and constant spin rate, with no separate spin acceleration. Bounded orientation GUI/analytic-state cases do not resolve historical nomenclature or retirement."
+    },
+    {
+      "id": "VF13AD-FINAL-TEXT-REPORT-TRUTH",
+      "detail": "The registered NativeNasaVF13adResourceReportTruth case fails: final solver report prints2.01 while native/CSV optimum is2 (central reports1.99). Keep the strict assertion active; no WILL_FAIL/skip waiver. Safe repair requires review of the externally provided VF13ad interface source. Configuration/numerical passes do not qualify report truth.",
+      "tests": [
+        "QtGui.NativeNasaVF13adResourceReportTruth"
+      ]
+    }
+  ]
+}

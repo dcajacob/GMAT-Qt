@@ -32,9 +32,13 @@
 #define Publisher_hpp
 
 #include "Subscriber.hpp"
+#include "GmatTime.hpp"
+#include "Rvector6.hpp"
 #include <list>
 #include <vector>
 #include <map>
+#include <array>
+#include <memory>
 
 
 class GMAT_API Publisher
@@ -50,6 +54,127 @@ public:
    bool UnsubscribeAll();
    
    virtual bool Publish(GmatBase *provider, Integer id, Real *data, Integer count, Real propDir = 1.0);
+   // Optional precise timestamp for this synchronous Real packet only. Existing
+   // Publish overloads and subscriber ABI remain unchanged.
+   bool PublishWithEpoch(GmatBase *provider, Integer id, Real *data, Integer count,
+                         const GmatTime &epoch, Real propDir = 1.0);
+   static bool GetPublishedEpoch(const Real *data, Integer count, GmatTime &epoch);
+   struct CartesianSample
+   {
+      const GmatBase *object;
+      GmatTime epoch;
+      Rvector6 state;
+   };
+   bool PublishWithSamples(GmatBase *provider, Integer id, Real *data,
+                           Integer count, const GmatTime &sourceEpoch,
+                           const std::vector<CartesianSample> &samples,
+                           Real propDir = 1.0);
+   static bool GetPublishedCartesianState(const Real *data, Integer count,
+      const GmatBase *object, GmatTime &epoch, Rvector6 &state);
+   // Optional accepted integration endpoints for this synchronous publication.
+   // Existing packets, virtual dispatch and Subscriber ABI remain unchanged.
+   struct IntegrationStep
+   {
+      bool initial = false;
+      // True for a committed ephemeris-provider advance (no integration).
+      bool ephemeris = false;
+      Real startSeconds = 0.0;
+      Real endSeconds = 0.0;
+      std::string method;
+      GmatTime epoch;
+      std::vector<CartesianSample> states;
+      // Optional native command-start equivalents of numerical endpoints.
+      // Used only to recognize continuous Real-clock restarts; display and
+      // scientific consumers retain the precise Cartesian samples above.
+      std::vector<CartesianSample> restartStates;
+   };
+   static void SetIntegrationStepConsumer(Subscriber *subscriber, bool enabled);
+   bool HasIntegrationStepConsumers() const;
+   bool PublishWithIntegrationSteps(GmatBase *provider, Integer id, Real *data,
+      Integer count, const std::vector<IntegrationStep> &steps, Real propDir = 1.0);
+   static const std::vector<IntegrationStep>* GetPublishedIntegrationSteps(
+      const Real *data, Integer count);
+
+   // Identity and command-start flag for the current ordinary Propagate packet.
+   // This lightweight context does not subscribe the caller to integration steps.
+   struct CartesianColumns
+   {
+      const GmatBase *object;
+      std::array<Integer, 6> indices;
+      // Zero means the optional field is absent from this packet.
+      std::array<Integer, 21> covariance{};
+      std::array<Integer, 3> acceleration{};
+      std::array<Integer, 4> quaternion{};
+      Integer propagationGroup = -1;
+      std::string propagatorName;
+      std::weak_ptr<const void> propagatorIdentity;
+      bool hasEpoch = false;
+      GmatTime epoch;
+      CoordinateSystem *frame = NULL;
+      std::weak_ptr<const void> frameIdentity;
+   };
+   bool PublishPropagatePacket(GmatBase *provider, Integer id, Real *data,
+      Integer count, Real direction, const ObjectArray &objects, bool initial,
+      const std::vector<IntegrationStep> *steps = NULL,
+      const std::vector<CartesianColumns> *columns = NULL);
+   static const ObjectArray *GetPublishedPropagationObjects(const Real *data,
+      Integer count, bool &initial);
+
+   // Bind packet columns to the actual propagated object. Function arguments
+   // may rename spacecraft, and distinct retained objects may share a name.
+   static const std::vector<CartesianColumns> *GetPublishedCartesianColumns(
+      const Real *data, Integer count);
+   static const std::vector<CartesianColumns> *GetPublishedCartesianColumns(
+      const GmatBase *provider);
+   static bool GetPublishedSpacecraftEpoch(const Real *data, Integer count,
+      const GmatBase *object, GmatTime &epoch);
+   static CoordinateSystem *GetPublishedSpacecraftFrame(const Real *data, Integer count,
+      const GmatBase *object);
+   struct EpochColumns
+   {
+      GmatTime epoch;
+      std::vector<CartesianColumns> columns;
+   };
+   static std::vector<EpochColumns> GetPublishedEpochGroups(const Real *data, Integer count,
+      const ObjectArray &objects);
+   bool PublishWithSpacecraftColumns(GmatBase *provider, Integer id, Real *data,
+      Integer count, const std::vector<CartesianColumns> &columns, Real direction = 1.0,
+      const GmatTime *epoch = NULL, const std::vector<CartesianSample> *samples = NULL);
+   // A plot's compact accepted-step packet gets its own column layout while
+   // preserving the original integration/origin metadata for frame conversion.
+   class GMAT_API CartesianColumnScope
+   {
+   public:
+      CartesianColumnScope(const Real *data, Integer count,
+         const std::vector<CartesianColumns> &columns);
+      ~CartesianColumnScope();
+      CartesianColumnScope(const CartesianColumnScope &) = delete;
+      CartesianColumnScope &operator=(const CartesianColumnScope &) = delete;
+   private:
+      const Real *previousData;
+      Integer previousCount;
+      const std::vector<CartesianColumns> *previousColumns;
+      const GmatBase *previousProvider;
+      const Real *previousRootData;
+      Integer previousRootCount;
+      const std::vector<CartesianColumns> *previousRootColumns;
+      const std::vector<CartesianColumns> frozen;
+   };
+
+   // Only a report's wrapper evaluation opts into sampled Cartesian/time
+   // values. Other subscribers and the live spacecraft retain source data.
+   class GMAT_API ParameterStateScope
+   {
+   public:
+      ParameterStateScope(const Real *data, Integer count);
+      ~ParameterStateScope();
+      ParameterStateScope(const ParameterStateScope &) = delete;
+      ParameterStateScope &operator=(const ParameterStateScope &) = delete;
+   private:
+      const void *previous;
+   };
+   static bool GetParameterCartesianState(const GmatBase *object,
+      GmatTime &epoch, Rvector6 &state);
    virtual bool Publish(Integer id, char *data, Integer count = 0);
    virtual bool Publish(Integer id, Integer *data, Integer count);
    virtual void Ping();
@@ -83,6 +208,23 @@ public:
                                        const StringArray &satNames,
                                        const std::string &desc);
    bool                 GetManeuvering();
+   struct ManeuveringState
+   {
+   private:
+      friend class Publisher;
+      struct Entry
+      {
+         Subscriber *object;
+         std::weak_ptr<const void> identity;
+         bool active;
+      };
+      const Publisher *owner = nullptr;
+      bool active = false;
+      std::vector<Entry> subscribers;
+   };
+   ManeuveringState CaptureManeuveringState() const;
+   std::unique_ptr<NativeRestorationPlan> PrepareManeuveringRestoration(
+         const ManeuveringState &source);
    
    void                 SetSpacecraftPropertyChanged(GmatBase *originator, Real epoch,
                                                      const std::string &satName,
@@ -99,6 +241,24 @@ public:
                                              bool overrideColor,
                                              UnsignedInt orbitColor,
                                              const StringArray &objNames);
+
+   // Identity-bearing overloads preserve the existing subscriber callbacks and
+   // exported name-only entry points for external publishers/plugins.
+   enum class ObjectEvent { Maneuver, SpacecraftProperty, OrbitColor, TargetColor, SegmentColor };
+   static bool IsPublishedEventSubject(ObjectEvent event, const GmatBase *originator,
+      const GmatBase *subject, bool &identified);
+   void SetManeuvering(GmatBase *originator, bool flag, Real epoch,
+      const std::string &name, const std::string &desc, GmatBase *subject);
+   void SetManeuvering(GmatBase *originator, bool flag, Real epoch,
+      const StringArray &names, const std::string &desc, const ObjectArray &subjects);
+   void SetSpacecraftPropertyChanged(GmatBase *originator, Real epoch,
+      const std::string &name, const std::string &desc, GmatBase *subject);
+   void SetOrbitColorChanged(GmatBase *originator, const std::string &color,
+      const std::string &name, const std::string &desc, GmatBase *subject);
+   void SetTargetColorChanged(GmatBase *originator, const std::string &color,
+      const std::string &name, const std::string &desc, GmatBase *subject);
+   void SetSegmentOrbitColor(GmatBase *originator, bool overrideColor,
+      UnsignedInt color, const StringArray &names, const ObjectArray &subjects);
    
    CoordinateSystem* GetInternalCoordSystem() { return internalCoordSystem; }
    CoordinateSystem* GetDataCoordSystem() { return dataCoordSystem; }

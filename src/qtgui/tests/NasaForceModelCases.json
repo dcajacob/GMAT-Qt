@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "key": "ForceModel",
+      "type": "ForceModel",
+      "object_type": "ODEModel",
+      "category": "Force Models",
+      "field": "ErrorControl",
+      "kind": "string",
+      "first": "RSSState",
+      "second": "LargestState",
+      "legacy_groups": ["Dynamics Models"],
+      "clone_allowed": true
+    }
+  ]
+}

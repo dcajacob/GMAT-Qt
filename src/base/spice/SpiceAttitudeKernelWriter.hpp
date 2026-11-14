@@ -88,6 +88,7 @@ public:
    void        StoreSegment(const A1Mjd& start, const A1Mjd& end,
       const std::vector<Rvector>& quats, const EpochArray& epochs);
    void        FinalizeKernel(bool done = true, bool writeMetaData = true);
+   void        AbortKernel();
    void        WriteCKData();
    void        WriteSCLKData();
    void        AddMetaData(const std::string& line, bool done = false);
@@ -172,6 +173,7 @@ protected:
    void     GenerateSpiceErrorMessage(std::string errDesc);
 
 private:
+   void SwapValue(SpiceAttitudeKernelWriter &other) noexcept;
    // default constructor
    SpiceAttitudeKernelWriter();
 };

@@ -34,9 +34,53 @@
     including Cartesian and spherical. This resource cannot be modified in the
     mission sequence.</para>
 
+    <para>Native MJ2000 acceleration includes central-body motion and the
+    rotation of the station's fixed location. It is a fourth-order derivative
+    of native velocity using samples one second apart. Valid body ephemeris
+    and orientation data must cover a complete central or one-sided stencil.
+    Failed coverage reports an error rather than extrapolating or returning
+    zero. Initialize the station before requesting acceleration; configured
+    body and orientation update intervals are preserved, with fresh ephemeris
+    and rotation calculations forced during sampling.</para>
+
+    <para>After changing the central body or replacing its solar-system or body
+    reference through the native API, initialize the station again before state,
+    acceleration, or event-geometry requests. Reinitialization binds fresh local
+    frames to the selected body. Previously generated station kernels are
+    unloaded and regenerated when contact geometry is next requested. Diagnostic
+    kernel files requested for retention remain on disk. The station's allocated
+    numeric NAIF identifiers retain their existing copy/rebind behavior.</para>
+
+    <para>Station-kernel generation reports open, write, and close failures.
+    An incomplete SPK/FK pair is retired before another attempt; a failed pair
+    is not cached as successfully generated geometry.</para>
+
+    <para>Replacing generated station geometry requires successful kernel
+    unloading. If a kernel remains loaded or unloading reports an error,
+    replacement stops and the pending filenames are retained for retry.
+    Destruction reports cleanup failures and retains files whose retirement
+    could not be confirmed. The diagnostic-file retention option continues
+    to control deletion after successful unloading.</para>
+
+    <para>Committed native API edits to location, StateType, or HorizonReference
+    retire previously generated station kernels while preserving valid local
+    coordinate frames. Reinitialize contact locators before calculating events
+    with the edited resource. Invalid or nonfinite location edits and failed
+    representation conversions leave the preceding configuration intact.
+    Latitude limits, longitude wrapping, and the input-unit return convention
+    for spherical-angle setters are unchanged. Reinitializing the station also
+    retires generated geometry when its central body's radius or flattening
+    has changed.</para>
+
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="ContactLocator"/>, <xref linkend="CoordinateSystem"/>, <xref
     linkend="Color"/></para>
+    <para>Native estimation restoration keeps the station's existing hardware,
+    receiver error models, signal-path error models and private mask fields of
+    view. Captured values are applied within the same component declarations;
+    restoration rejects changed component roles or types before replacing any
+    active reference.</para>
+
   </refsection>
 
   <refsection xml:id="GroundStation_Resource_Fields">
@@ -689,15 +733,7 @@
           <row>
             <entry><guilabel>Location1</guilabel></entry>
 
-            <entry><para>The first component of the
-            <guilabel>GroundStation</guilabel> location. When
-            <guilabel>StateType</guilabel> is <guilabel>Cartesian</guilabel>,
-            <guilabel>Location1</guilabel> is the x-component of station
-            location in the body-fixed system. When
-            <guilabel>StateType</guilabel> is <guilabel>Spherical</guilabel>
-            or <guilabel>Elliposoid</guilabel>, <guilabel>Location1</guilabel>
-            is the <guilabel>Latitude</guilabel> (deg.) of the
-            <guilabel>GroundStation</guilabel>.</para><variablelist>
+            <entry><para>Location1 is the x-component in km in the central-body fixed coordinate system when StateType is Cartesian. When StateType is Spherical, it is latitude in degrees. HorizonReference selects Sphere or Ellipsoid for the spherical location; Ellipsoid is not a StateType.</para><variablelist>
                 <varlistentry>
                   <term>Data Type</term>
 
@@ -738,7 +774,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>see description</para>
+                    <para>km (Cartesian x); degrees (Spherical latitude)</para>
                   </listitem>
                 </varlistentry>
 
@@ -755,15 +791,7 @@
           <row>
             <entry><guilabel>Location2</guilabel></entry>
 
-            <entry><para>The second component of the
-            <guilabel>GroundStation</guilabel> location. When
-            <guilabel>StateType</guilabel> is <guilabel>Cartesian</guilabel>,
-            <guilabel>Location2</guilabel> is the y-component of station
-            location in the body-fixed system. When
-            <guilabel>StateType</guilabel> is <guilabel>Spherical</guilabel>
-            or <guilabel>Ellipsoid</guilabel>, <guilabel>Location2</guilabel>
-            is the <guilabel>Longitude</guilabel> (deg.) of the
-            <guilabel>GroundStation</guilabel>.</para><variablelist>
+            <entry><para>Location2 is the y-component in km in the central-body fixed coordinate system when StateType is Cartesian. When StateType is Spherical, it is longitude in degrees. HorizonReference selects Sphere or Ellipsoid for the spherical location; Ellipsoid is not a StateType.</para><variablelist>
                 <varlistentry>
                   <term>Data Type</term>
 
@@ -804,7 +832,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>see description</para>
+                    <para>km (Cartesian y); degrees (Spherical longitude)</para>
                   </listitem>
                 </varlistentry>
 
@@ -821,15 +849,7 @@
           <row>
             <entry><guilabel>Location3</guilabel></entry>
 
-            <entry><para>The third component of the
-            <guilabel>GroundStation</guilabel> location. When
-            <guilabel>StateType</guilabel> is <guilabel>Cartesian</guilabel>,
-            <guilabel>Location3</guilabel> is the z-component of station
-            location in the body-fixed system. When
-            <guilabel>StateType</guilabel> is <guilabel>Spherical</guilabel>
-            or <guilabel>Elliposoid</guilabel>, <guilabel>Location3</guilabel>
-            is the height (km) of the <guilabel>GroundStation</guilabel> above
-            the reference shape.</para><variablelist>
+            <entry><para>Location3 is the z-component in km in the central-body fixed coordinate system when StateType is Cartesian. When StateType is Spherical, it is altitude in km above the reference shape. HorizonReference selects Sphere or Ellipsoid for the spherical location; Ellipsoid is not a StateType.</para><variablelist>
                 <varlistentry>
                   <term>Data Type</term>
 
@@ -870,7 +890,7 @@
                   <term>Units</term>
 
                   <listitem>
-                    <para>see description</para>
+                    <para>km (Cartesian z); km (Spherical altitude)</para>
                   </listitem>
                 </varlistentry>
 

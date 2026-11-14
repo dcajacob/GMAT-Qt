@@ -33,6 +33,7 @@
 //------------------------------------------------------------------------------
 #include "gmatdefs.hpp"
 #include "PlanetData.hpp"
+#include "Publisher.hpp"
 #include "ParameterException.hpp"
 #include "GmatConstants.hpp"
 #include "CelestialBody.hpp"
@@ -151,6 +152,27 @@ PlanetData& PlanetData::operator= (const PlanetData &right)
 }
 
 
+// Map cached identities without evaluating or initializing a Parameter.
+void PlanetData::RebindClonedParameterCaches(const RefData &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &data = ClonedParameterData<PlanetData>(source);
+   auto *bound_mSpacecraft = BindClonedParameterReference(data.mSpacecraft, resolve);
+   auto *bound_mSolarSystem = BindClonedParameterReference(data.mSolarSystem, resolve);
+   auto *bound_mCentralBody = BindClonedParameterReference(data.mCentralBody, resolve);
+   auto *bound_mOrigin = BindClonedParameterReference(data.mOrigin, resolve);
+   auto *bound_mInternalCoordSystem = BindClonedParameterReference(data.mInternalCoordSystem, resolve);
+   auto *bound_mOutCoordSystem = BindClonedParameterReference(data.mOutCoordSystem, resolve);
+   mSpacecraft = bound_mSpacecraft;
+   mSolarSystem = bound_mSolarSystem;
+   mCentralBody = bound_mCentralBody;
+   mOrigin = bound_mOrigin;
+   mInternalCoordSystem = bound_mInternalCoordSystem;
+   mOutCoordSystem = bound_mOutCoordSystem;
+}
+
+
+
 //------------------------------------------------------------------------------
 // ~PlanetData()
 //------------------------------------------------------------------------------
@@ -193,8 +215,24 @@ Real PlanetData::GetPlanetReal(Integer item)
       #endif
    }
    
-   // Get current time
-   Real a1mjd = mSpacecraft->GetEpoch();
+   // Report evaluations use the state and epoch of the same scoped publication.
+   // Outside that scope, preserve the spacecraft's native precision policy.
+   GmatTime sampleEpoch;
+   Rvector6 instate;
+   const bool published = Publisher::GetParameterCartesianState(mSpacecraft, sampleEpoch, instate);
+   const bool precise = published || mSpacecraft->HasPrecisionTime();
+   if (!published)
+   {
+      instate.Set(mSpacecraft->GetState().GetState());
+      if (precise) sampleEpoch = mSpacecraft->GetEpochGT();
+   }
+   const Real a1mjd = precise ? sampleEpoch.GetMjd() : mSpacecraft->GetEpoch();
+   // The native local input avoids cancellation at distant origins. A report
+   // sample remains authoritative, even while that live input is retained.
+   const bool localState = !published && mOutCoordSystem &&
+      mInternalCoordSystem == mSpacecraft->GetInternalCoordSystem() &&
+      mSpacecraft->GetOriginRelativeState(mOutCoordSystem->GetOrigin(),
+         mSpacecraft->GetEpochGT(), instate);
    
    // Call GetHourAngle() on origin
    Real mha = 0.0;
@@ -205,12 +243,13 @@ Real PlanetData::GetPlanetReal(Integer item)
    MessageInterface::ShowMessage("   mha = %f\n", mha);
    #endif
    
-   // Why not use a1mjd obtained previously?
-   Real epoch = mSpacecraft->GetRealParameter("A1Epoch");
-   Rvector6 instate = mSpacecraft->GetState().GetState();
    Rvector6 state;
-   mCoordConverter.Convert(A1Mjd(epoch), instate, mInternalCoordSystem,
-                           state, mOutCoordSystem);
+   if (precise)
+      mCoordConverter.Convert(sampleEpoch, instate, mInternalCoordSystem,
+                              state, mOutCoordSystem, false, localState);
+   else
+      mCoordConverter.Convert(A1Mjd(a1mjd), instate, mInternalCoordSystem,
+                              state, mOutCoordSystem, false, localState);
    // get flattening for the body
    Real flatteningFactor =
       mOrigin->GetRealParameter(mOrigin->GetParameterID("Flattening"));

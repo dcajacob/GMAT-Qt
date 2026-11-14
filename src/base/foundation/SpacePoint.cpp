@@ -38,6 +38,7 @@
 #include "gmatdefs.hpp"
 #include "GmatBase.hpp"
 #include "SpacePoint.hpp"
+#include "CelestialBody.hpp"
 #include "A1Mjd.hpp"
 #include "Rvector6.hpp"
 #include "Rvector3.hpp"
@@ -279,6 +280,23 @@ const SpacePoint& SpacePoint::operator=(const SpacePoint &sp)
 {
    if (&sp == this)
       return *this;
+   if (GmatBase::IsNativeRestorationCopy())
+   {
+      // Native restoration preserves this active point's frame, kernel and
+      // origin bindings. Captured display/base values do not own those handles.
+      const bool ready = isInitialized;
+      GmatBase::operator=(sp);
+      useOrbitColorName = sp.useOrbitColorName;
+      useTargetColorName = sp.useTargetColorName;
+      defaultOrbitColor = sp.defaultOrbitColor;
+      defaultTargetColor = sp.defaultTargetColor;
+      orbitColor = sp.orbitColor;
+      targetColor = sp.targetColor;
+      orbitColorStr = sp.orbitColorStr;
+      targetColorStr = sp.targetColorStr;
+      isInitialized = ready;
+      return *this;
+   }
    theSolarSystem           = sp.theSolarSystem;
    inertialCS               = NULL;
    bodyFixedCS              = NULL;
@@ -497,7 +515,12 @@ SpacePoint* SpacePoint::GetJ2000Body() const
 //------------------------------------------------------------------------------
 bool SpacePoint::SetJ2000BodyName(const std::string &toName)
 {
-   j2000BodyName = toName;
+   if (j2000BodyName != toName)
+   {
+      j2000BodyName = toName;
+      if (auto *body = dynamic_cast<CelestialBody*>(this))
+         body->NotifyEphemerisChange(true);
+   }
    return true;
 }
 
@@ -524,9 +547,13 @@ void SpacePoint::SetJ2000Body(SpacePoint* toBody)
             instanceName.c_str());
    #endif
    
-   j2000Body        = toBody;
-   if (j2000Body)
-      j2000BodyName = j2000Body->GetName();
+   std::string nextName = toBody ? toBody->GetName() : j2000BodyName;
+   const bool changed = j2000Body != toBody || j2000BodyName != nextName;
+   j2000BodyName.swap(nextName);
+   j2000Body = toBody;
+   if (changed)
+      if (auto *body = dynamic_cast<CelestialBody*>(this))
+         body->NotifyEphemerisChange(true);
 
    #ifdef DEBUG_J2000_STATE
       if (j2000Body)
@@ -1533,6 +1560,32 @@ std::string SpacePoint::GetStringParameter(const Integer id) const
  *
  */
 //------------------------------------------------------------------------------
+void SpacePoint::SetField(const Integer id, const StringArray &value)
+{
+   StringArray *destination = nullptr;
+   std::string kind;
+   switch (id)
+   {
+      case ORBIT_SPICE_KERNEL_NAME: destination = &orbitSpiceKernelNames; kind = "spk"; break;
+      case ATTITUDE_SPICE_KERNEL_NAME:
+         destination = &attitudeSpiceKernelNames;
+         kind = IsOfType("CelestialBody") ? "pck" : "ck";
+         break;
+      case SC_CLOCK_SPICE_KERNEL_NAME: destination = &scClockSpiceKernelNames; kind = "sclk"; break;
+      case FRAME_SPICE_KERNEL_NAME: destination = &frameSpiceKernelNames; kind = "fk"; break;
+      default: GmatBase::SetField(id, value); return;
+   }
+   // Typed values are literal data; native script quote removal occurs only
+   // at the script-facing boundary below. Validate all entries before commit.
+   StringArray next(value);
+   for (const auto &name : next) ValidateKernel(name, GetParameterText(id), kind);
+   if (next != *destination)
+   {
+      destination->swap(next);
+      spiceSetupDone = false;
+   }
+}
+
 bool SpacePoint::SetStringParameter(const Integer id, 
                                     const std::string &value)
 {
@@ -1582,22 +1635,11 @@ bool SpacePoint::SetStringParameter(const Integer id,
       // if it is the whole StringArray of kernel names, handle that here
       // (needed so that assignments will work inside of GmatFunctions) wcs 2010.05.18
       std::string value1 = GmatStringUtil::Trim(value);
-      std::string parsed = "";
       if (GmatStringUtil::IsEnclosedWithBraces(value1))
       {
-         orbitSpiceKernelNames.clear();
          StringArray kernels = GmatStringUtil::ToStringArray(value1);
-         #ifdef DEBUG_SPACE_POINT_ORBIT_KERNELS
-             MessageInterface::ShowMessage("In SP::SetString value IS enclosed with braces and values are:\n");
-             for (unsigned int ii = 0; ii < kernels.size(); ii++)
-                MessageInterface::ShowMessage("   (%d)   %s\n", (Integer) ii, (kernels.at(ii)).c_str());
-         #endif
-         for (unsigned int ii = 0; ii < kernels.size(); ii++)
-         {
-            parsed = ParseKernelName(kernels.at(ii));
-            ValidateKernel(parsed, "OrbitSpiceKernelName", "spk");
-            orbitSpiceKernelNames.push_back(parsed);
-         }
+         for (auto &name : kernels) name = ParseKernelName(name);
+         SetField(id, kernels);
       }
       else
       {
@@ -1627,21 +1669,11 @@ bool SpacePoint::SetStringParameter(const Integer id,
       // if it is the whole StringArray of kernel names, handle that here
       // (needed so that assignments will work inside of GmatFunctions) wcs 2010.05.18
       std::string value1 = GmatStringUtil::Trim(value);
-      std::string parsed = "";
       if (GmatStringUtil::IsEnclosedWithBraces(value1))
       {
-         attitudeSpiceKernelNames.clear();
          StringArray kernels = GmatStringUtil::ToStringArray(value1);
-         for (unsigned int ii = 0; ii < kernels.size(); ii++)
-         {
-            parsed = ParseKernelName(kernels.at(ii));
-            if (IsOfType("CelestialBody"))
-               ValidateKernel(parsed, "PlanetarySpiceKernelName", "pck");
-            else
-               ValidateKernel(parsed, "AttitudeSpiceKernelName", "ck");
-
-            attitudeSpiceKernelNames.push_back(parsed);
-         }
+         for (auto &name : kernels) name = ParseKernelName(name);
+         SetField(id, kernels);
       }
       else
       {
@@ -1666,17 +1698,11 @@ bool SpacePoint::SetStringParameter(const Integer id,
       // if it is the whole StringArray of kernel names, handle that here
       // (needed so that assignments will work inside of GmatFunctions) wcs 2010.05.18
       std::string value1 = GmatStringUtil::Trim(value);
-      std::string parsed = "";
       if (GmatStringUtil::IsEnclosedWithBraces(value1))
       {
-         scClockSpiceKernelNames.clear();
          StringArray kernels = GmatStringUtil::ToStringArray(value1);
-         for (unsigned int ii = 0; ii < kernels.size(); ii++)
-         {
-            parsed = ParseKernelName(kernels.at(ii));
-            ValidateKernel(parsed, "SCClockSpiceKernelName", "sclk");
-            scClockSpiceKernelNames.push_back(parsed);
-         }
+         for (auto &name : kernels) name = ParseKernelName(name);
+         SetField(id, kernels);
       }
       else
       {
@@ -1693,17 +1719,11 @@ bool SpacePoint::SetStringParameter(const Integer id,
       // if it is the whole StringArray of kernel names, handle that here
       // (needed so that assignments will work inside of GmatFunctions) wcs 2010.05.18
       std::string value1 = GmatStringUtil::Trim(value);
-      std::string parsed = "";
       if (GmatStringUtil::IsEnclosedWithBraces(value1))
       {
-         frameSpiceKernelNames.clear();
          StringArray kernels = GmatStringUtil::ToStringArray(value1);
-         for (unsigned int ii = 0; ii < kernels.size(); ii++)
-         {
-            parsed = ParseKernelName(kernels.at(ii));
-            ValidateKernel(parsed, "FrameSpiceKernelName", "fk");
-            frameSpiceKernelNames.push_back(parsed);
-         }
+         for (auto &name : kernels) name = ParseKernelName(name);
+         SetField(id, kernels);
       }
       else
       {

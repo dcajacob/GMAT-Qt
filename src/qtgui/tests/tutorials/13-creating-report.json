@@ -1,0 +1,584 @@
+{
+  "id": "13-creating-report",
+  "title": "Creating a Report",
+  "guide": "doc/help/src/Tut_CreatingReport.xml",
+  "guide_sha256": "49df3dfca1a970dbfe0ba4a04fd6be7b97a3bba8a5af27c7c050f5bb2a70b4db",
+  "reference": "application/docs/help/files/scripts/ReportTutorial.script",
+  "provenance": "Reviewed current Help instructions, using semantic QtTest widget selectors. Values come from the Help chapter; the generator never reads a completed example mission. Script-event text is entered only where the chapter explicitly teaches it.",
+  "stages": [
+    {
+      "name": "Current Help GUI instructions with QtTest selectors",
+      "input": null,
+      "requires_run": true,
+      "actions": [
+        {
+          "action": "key",
+          "keys": "Esc"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+N"
+        },
+        {
+          "action": "window",
+          "state": "maximized"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ReportFile",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "AutoReport",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Filename"
+        },
+        {
+          "action": "text",
+          "text": "AutoReport.txt",
+          "target_name": "resource_Filename"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Add"
+        },
+        {
+          "action": "text",
+          "text": "DefaultSC.UTCGregorian, DefaultSC.EarthMJ2000Eq.X, DefaultSC.EarthMJ2000Eq.Y, DefaultSC.EarthMJ2000Eq.Z, DefaultSC.EarthMJ2000Eq.VX, DefaultSC.EarthMJ2000Eq.VY, DefaultSC.EarthMJ2000Eq.VZ",
+          "target_name": "resource_Add"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ReportFile",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "ManualReport",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Filename"
+        },
+        {
+          "action": "text",
+          "text": "ManualReport.txt",
+          "target_name": "resource_Filename"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Output",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add ReportFile",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "DecoratedReport",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Filename"
+        },
+        {
+          "action": "text",
+          "text": "DecoratedReport.txt",
+          "target_name": "resource_Filename"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resource_Add"
+        },
+        {
+          "action": "text",
+          "text": "DefaultSC.UTCGregorian, DefaultSC.EarthMJ2000Eq.X, DefaultSC.EarthMJ2000Eq.Y, DefaultSC.EarthMJ2000Eq.Z, DefaultSC.EarthMJ2000Eq.VX, DefaultSC.EarthMJ2000Eq.VY, DefaultSC.EarthMJ2000Eq.VZ",
+          "target_name": "resource_Add"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Variables, Arrays, Strings",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Add String",
+          "target_role": "menu"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "text",
+          "text": "stringVar",
+          "target_name": "resourceName"
+        },
+        {
+          "action": "click",
+          "target_text": "Create",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Mission",
+          "target_role": "tab"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Propagate",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Delete command",
+          "target_role": "menu"
+        },
+        {
+          "action": "click",
+          "target_text": "Yes",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "ManualReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "DefaultSC.UTCGregorian DefaultSC.EarthMJ2000Eq.X DefaultSC.EarthMJ2000Eq.Y DefaultSC.EarthMJ2000Eq.Z DefaultSC.EarthMJ2000Eq.VX DefaultSC.EarthMJ2000Eq.VY DefaultSC.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Script event"
+        },
+        {
+          "action": "click",
+          "target_name": "editScriptEvent"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "scriptEventBody"
+        },
+        {
+          "action": "text",
+          "target_name": "scriptEventBody",
+          "text": "DecoratedReport.WriteHeaders = Off;"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "scriptEventBody",
+          "text": "stringVar = '==================================================';"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "scriptEventBody",
+          "text": "Report DecoratedReport stringVar;"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "scriptEventBody",
+          "text": "stringVar = 'GMAT Report File in Time X Y Z VX VY VZ format';"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "scriptEventBody",
+          "text": "Report DecoratedReport stringVar;"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "scriptEventBody",
+          "text": "stringVar = '==================================================';"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "scriptEventBody",
+          "text": "Report DecoratedReport stringVar;"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "text",
+          "target_name": "scriptEventBody",
+          "text": "DecoratedReport.WriteHeaders = On;"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "click",
+          "target_text": "OK",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Days"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "0.1",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Script event"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Propagate"
+        },
+        {
+          "action": "select",
+          "target_name": "propagationUnits",
+          "value": "Days"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "text",
+          "text": "0.1",
+          "target_name": "propagationDuration"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "button": 3,
+          "target_text": "Mission Sequence",
+          "target_role": "tree"
+        },
+        {
+          "action": "click",
+          "target_text": "Append command",
+          "target_role": "menu"
+        },
+        {
+          "action": "select",
+          "target_name": "commandTemplate",
+          "value": "Report"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "text",
+          "text": "ManualReport",
+          "target_name": "commandField_Report file"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "text",
+          "text": "DefaultSC.UTCGregorian DefaultSC.EarthMJ2000Eq.X DefaultSC.EarthMJ2000Eq.Y DefaultSC.EarthMJ2000Eq.Z DefaultSC.EarthMJ2000Eq.VX DefaultSC.EarthMJ2000Eq.VY DefaultSC.EarthMJ2000Eq.VZ",
+          "target_name": "commandField_Parameters"
+        },
+        {
+          "action": "click",
+          "target_text": "Apply",
+          "target_role": "button"
+        },
+        {
+          "action": "click",
+          "target_text": "Close",
+          "target_role": "button"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+S"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/AuthoredCreatingReport.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "key",
+          "keys": "F5"
+        },
+        {
+          "action": "screenshot",
+          "label": "guide-three-reports-produced"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+O"
+        },
+        {
+          "action": "key",
+          "keys": "Ctrl+A",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "text",
+          "text": "${WORK}/AuthoredCreatingReport.script",
+          "target_name": "fileNameEdit"
+        },
+        {
+          "action": "key",
+          "keys": "Return"
+        },
+        {
+          "action": "screenshot",
+          "label": "own-saved-mission-reopened"
+        }
+      ]
+    }
+  ]
+}

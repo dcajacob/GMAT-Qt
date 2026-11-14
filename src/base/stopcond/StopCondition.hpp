@@ -45,6 +45,8 @@
 class GMAT_API StopCondition : public GmatBase
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = GmatBase::NativeValueProviderDepth + 1;
+
 
    static const Real STOP_COND_TOL;
 
@@ -74,6 +76,8 @@ public:
    std::string& GetDescription();
    Parameter* GetEpochParameter();
    Parameter* GetStopParameter();
+   Real EvaluateStopValue();
+   bool UsesUserScalar() const;
    Parameter* GetGoalParameter();
    Interpolator* GetInterpolator();
    
@@ -103,12 +107,23 @@ public:
    
    // methods inherited from GmatBase
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *original) override;
+   void PrepareClonedFunctionValue(const StopCondition &source);
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
+   void GetClonedOwnedObjects(const StopCondition &target,
+         ObjectArray &originals, ObjectArray &copies) const;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source,
+         SolarSystem *solarSystem,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
    
    virtual bool RenameRefObject(const UnsignedInt type,
                                 const std::string &oldName,
                                 const std::string &newName);
    
    virtual const StringArray& GetRefObjectNameArray(const UnsignedInt type);
+   bool HasRefObjectTypeArray() override;
+   const ObjectTypeArray& GetRefObjectTypeArray() override;
+   GmatBase *GetRefObject(const UnsignedInt type, const std::string &name) override;
    virtual bool SetRefObject(GmatBase *obj, const UnsignedInt type,
                              const std::string &name = "");
    
@@ -116,6 +131,8 @@ public:
    virtual Integer GetParameterID(const std::string &str) const;
    virtual Gmat::ParameterType GetParameterType(const Integer id) const;
    virtual std::string GetParameterTypeString(const Integer id) const;
+   using GmatBase::IsParameterReadOnly;
+   bool IsParameterReadOnly(const Integer id) const override;
 
    virtual Integer GetIntegerParameter(const Integer id) const;
    virtual Integer GetIntegerParameter(const std::string &label) const;
@@ -161,6 +178,7 @@ protected:
    SolarSystem *mSolarSystem;
    
    Interpolator *mInterpolator;
+   bool ownsInterpolator;
    std::string mDescription;
    std::string mStopParamType;
    std::string mStopParamName;
@@ -178,6 +196,7 @@ protected:
    
    ElementWrapper *lhsWrapper;
    ElementWrapper *rhsWrapper;
+   std::vector<std::unique_ptr<ElementWrapper>> ownedValueWrappers;
    
    /// ring buffer for epochs
    RealArray mEpochBuffer;

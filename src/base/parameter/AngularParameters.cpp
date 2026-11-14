@@ -144,7 +144,12 @@ bool SemilatusRectum::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SemilatusRectum::Clone(void) const
 {
-   return new SemilatusRectum(*this);
+   return CompleteParameterClone(new SemilatusRectum(*this));
+}
+
+void SemilatusRectum::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SemilatusRectum>(source);
 }
 
 
@@ -257,7 +262,12 @@ bool AngularMomentumMag::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* AngularMomentumMag::Clone(void) const
 {
-   return new AngularMomentumMag(*this);
+   return CompleteParameterClone(new AngularMomentumMag(*this));
+}
+
+void AngularMomentumMag::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AngularMomentumMag>(source);
 }
 
 
@@ -370,7 +380,12 @@ bool AngularMomentumX::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* AngularMomentumX::Clone(void) const
 {
-   return new AngularMomentumX(*this);
+   return CompleteParameterClone(new AngularMomentumX(*this));
+}
+
+void AngularMomentumX::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AngularMomentumX>(source);
 }
 
 
@@ -482,7 +497,12 @@ bool AngularMomentumY::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* AngularMomentumY::Clone(void) const
 {
-   return new AngularMomentumY(*this);
+   return CompleteParameterClone(new AngularMomentumY(*this));
+}
+
+void AngularMomentumY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AngularMomentumY>(source);
 }
 
 
@@ -595,7 +615,12 @@ bool AngularMomentumZ::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* AngularMomentumZ::Clone(void) const
 {
-   return new AngularMomentumZ(*this);
+   return CompleteParameterClone(new AngularMomentumZ(*this));
+}
+
+void AngularMomentumZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AngularMomentumZ>(source);
 }
 
 
@@ -709,7 +734,12 @@ bool BetaAngle::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BetaAngle::Clone(void) const
 {
-   return new BetaAngle(*this);
+   return CompleteParameterClone(new BetaAngle(*this));
+}
+
+void BetaAngle::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BetaAngle>(source);
 }
 
 //==============================================================================
@@ -821,7 +851,12 @@ bool RLA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* RLA::Clone(void) const
 {
-   return new RLA(*this);
+   return CompleteParameterClone(new RLA(*this));
+}
+
+void RLA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<RLA>(source);
 }
 
 //==============================================================================
@@ -933,5 +968,10 @@ bool DLA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* DLA::Clone(void) const
 {
-   return new DLA(*this);
+   return CompleteParameterClone(new DLA(*this));
+}
+
+void DLA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DLA>(source);
 }

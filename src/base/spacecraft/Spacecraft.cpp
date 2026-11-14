@@ -35,12 +35,40 @@
  */
 //------------------------------------------------------------------------------
 
+#include <algorithm>
 #include <sstream>
+#include <cmath>
+#include <utility>
+#include <memory>
+#include <set>
 #include "Spacecraft.hpp"
+#include "OrbitStmContext.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration spacecraftValueProvider({
+   Spacecraft::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Spacecraft*>(object) != nullptr; },
+   [](const GmatBase *object) { return dynamic_cast<const Spacecraft*>(object)->GetFunctionValueOwnedObjectsImpl(); },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source) { return dynamic_cast<Spacecraft*>(object)->PrepareRestorationImpl(source); },
+   nullptr,
+   nullptr
+});
+}
+#include "NativeRestoration.hpp"
+#include "SolarPowerSystem.hpp"
+#include <typeinfo>
+#include "ObjectMatlabExportScope.hpp"
+#include "ObjectScriptExportScope.hpp"
+#include "ParameterWriteOrder.hpp"
+#include "ODEModel.hpp"
 #include "MessageInterface.hpp"
 #include "ConfigManager.hpp" // FIXME: Temporary workaround until GMT-7066 is fixed
 #include "SpaceObjectException.hpp"
 #include "StateConversionUtil.hpp"
+#include "OrbitStateConversion.hpp"
 #include "StringUtil.hpp"
 #include "TimeTypes.hpp"
 #include "CSFixed.hpp"               // for default and command mode attitude creation
@@ -242,6 +270,7 @@ Spacecraft::PARAMETER_TYPE[SpacecraftParamCount - SpaceObjectParamCount] =
       Gmat::REAL_TYPE,        // Model Rotation Y
       Gmat::REAL_TYPE,        // Model Rotation Z
       Gmat::REAL_TYPE,        // Model Scale Factor
+      Gmat::ENUMERATION_TYPE, // OrbitParameterAccess
    };
 
 const std::string
@@ -358,6 +387,7 @@ Spacecraft::PARAMETER_LABEL[SpacecraftParamCount - SpaceObjectParamCount] =
       "ModelRotationY",
       "ModelRotationZ",
       "ModelScale",
+      "OrbitParameterAccess",
 };
 
 const std::string Spacecraft::MULT_REP_STRINGS[EndMultipleReps - CART_X] =
@@ -481,6 +511,7 @@ Spacecraft::Spacecraft(const std::string &name, const std::string &typeStr) :
    modelFile            (""),
    modelID              (NO_MODEL),
    modelFileFullPath    (""),
+   orbitParameterAccess ("Native"),
    dryMass              (850.0),
    dryCM                (0.0, 0.0, 0.0),
    dryMOI               (999.0*Rmatrix33(true)),
@@ -511,6 +542,8 @@ Spacecraft::Spacecraft(const std::string &name, const std::string &typeStr) :
    coordinateSystem     (NULL),
    coordSysName         ("EarthMJ2000Eq"),
    originMu             (0.0),
+   originFlattening     (0.0),
+   originEqRadius       (0.0),
    coordSysSet          (false),
    epochSet             (false),
    uniqueStateTypeFound (false),
@@ -673,6 +706,8 @@ Spacecraft::Spacecraft(const std::string &name, const std::string &typeStr) :
    attitude->SetPrecisionTimeFlag(hasPrecisionTime);
 
    attitude->SetOwningSpacecraft(this);
+   attitude->SetCloneOwner(this);
+   SetCloneNotificationsEnabled(true);
    ownedObjectCount++;
 
    #ifdef DEBUG_SC_OWNED_OBJECT
@@ -730,8 +765,9 @@ Spacecraft::Spacecraft(const std::string &name, const std::string &typeStr) :
    Real Cr_EpsilonSigma = reflectCoeffSigma / reflectCoeff;             // stdiv[CrEpsilon] = stdiv[Cr]/Cr0
    Real Cd_EpsilonSigma = coeffDragSigma / coeffDrag;                   // stdiv[CdEpsilon] = stdiv[Cd]/Cd0
    Real AtmosDensity_EpsilonSigma = atmosDensityScaleFactorSigma / atmosDensityScaleFactor;
-   Rvector value(8, 1.0e70, 1.0e70, 1.0e70, 1.0e70, 1.0e70, 1.0e70,
+   Rvector value(9, 1.0e70, 1.0e70, 1.0e70, 1.0e70, 1.0e70, 1.0e70,
       Cd_EpsilonSigma*Cd_EpsilonSigma,
+      Cr_EpsilonSigma*Cr_EpsilonSigma,
       AtmosDensity_EpsilonSigma*AtmosDensity_EpsilonSigma);
    covariance.ConstructRHS(value, 0);
 
@@ -766,6 +802,7 @@ Spacecraft::Spacecraft(const std::string &name, const std::string &typeStr) :
 //---------------------------------------------------------------------------
 Spacecraft::~Spacecraft()
 {
+   ODEModel::ForgetAccelerationContext(this);
 #ifdef DEBUG_SPACECRAFT
    MessageInterface::ShowMessage
    ("Spacecraft::~Spacecraft() <%p>'%s' entered, attitude=<%p>\n",
@@ -799,6 +836,9 @@ Spacecraft::~Spacecraft()
    if (scInertialCS)
       delete scInertialCS;
 
+   delete cmInterp;
+   delete moiInterp;
+
 
    #ifdef DEBUG_SPACECRAFT
    MessageInterface::ShowMessage
@@ -824,6 +864,7 @@ Spacecraft::Spacecraft(const Spacecraft &a) :
    modelFile            (a.modelFile),
    modelID              (a.modelID),
    modelFileFullPath    (a.modelFileFullPath),
+   orbitParameterAccess (a.orbitParameterAccess),
    scEpochStr           (a.scEpochStr),
    dryMass              (a.dryMass),
    dryCM                (a.dryCM),
@@ -855,6 +896,8 @@ Spacecraft::Spacecraft(const Spacecraft &a) :
    coordinateSystem     (a.coordinateSystem),      // need to copy
    coordSysName         (a.coordSysName),
    originMu             (a.originMu),
+   originFlattening     (a.originFlattening),
+   originEqRadius       (a.originEqRadius),
    defaultCartesian     (a.defaultCartesian),
    possibleInputTypes   (a.possibleInputTypes),
    coordSysSet          (a.coordSysSet),
@@ -863,6 +906,7 @@ Spacecraft::Spacecraft(const Spacecraft &a) :
    coordSysMap          (a.coordSysMap),
    spacecraftId         (a.spacecraftId),
    attitudeModel        (a.attitudeModel),
+   attitude             (NULL),
    ephemerisName        (a.ephemerisName),
    powerSystemName      (a.powerSystemName),
    powerSystem          (NULL),
@@ -872,12 +916,13 @@ Spacecraft::Spacecraft(const Spacecraft &a) :
    massProperties_MOI_LookupTable (a.massProperties_MOI_LookupTable),
    massPropertiesModelType        (a.massPropertiesModelType),
    massPropertiesModeled          (a.massPropertiesModeled),
-   cmInterp             (a.cmInterp),
-   moiInterp            (a.moiInterp),
+   cmInterp             (NULL),
+   moiInterp            (NULL),
    table_CM_Offset      (a.table_CM_Offset),
    table_MOI_Offset     (a.table_MOI_Offset),
    systemCM             (a.systemCM),
    systemMOI            (a.systemMOI),
+   originRelativeState  (a.originRelativeState),
    initialDisplay       (false),
    csSet                (a.csSet),
    isThrusterSettingMode(a.isThrusterSettingMode),
@@ -923,6 +968,18 @@ Spacecraft::Spacecraft(const Spacecraft &a) :
    runningCommandFlag   (a.runningCommandFlag),
    currentConstraintIndex  (a.currentConstraintIndex)
 {
+   GmatBase::FunctionValueCopyGuard nativeChildren;
+   bool copyComplete = false;
+   const auto onFailure = [&](void*)
+   {
+      if (copyComplete) return;
+      DeleteOwnedObjects(true, true, true, true, true);
+      for (auto *plate : plateList) delete plate;
+      plateList.clear();
+      delete cmInterp;
+      delete moiInterp;
+   };
+   const std::unique_ptr<void, decltype(onFailure)> copyStatus(this, onFailure);
    constraintsList.clear();
    for (Integer i = 0; i < a.constraintsList.size(); ++i)
       constraintsList.push_back(a.constraintsList[i]);
@@ -975,6 +1032,8 @@ Spacecraft::Spacecraft(const Spacecraft &a) :
       {
          // Add to Plate object list
          GmatBase* pl = ((Plate*)(a.plateList[i]))->Clone();
+         pl->SetCloneOwner(this);
+         ((Plate*)pl)->StoreSpacecraftInertialCoordinateSystem(NULL);
          plateList.push_back(pl);
 
          // Create extra STM entries for Plate object
@@ -1043,63 +1102,24 @@ Spacecraft::Spacecraft(const Spacecraft &a) :
    BuildStateElementLabelsAndUnits();
 
 
-   // Set value to covariance matrix
-   // Set state covariance
-   Integer locationStart = covariance.GetSubMatrixLocationStart("CartesianState");
-   covariance.ConstructRHS(orbitErrorCovariance, locationStart);
+   // The base copy already captured the complete covariance, including
+   // estimated correlations. Map owned component associations into this value.
+   NativeRestoration::RebindCovariance(*this, a.GetFunctionValueOwnedObjects(), GetFunctionValueOwnedObjects());
 
-   // Set Cd covariance
-   locationStart = covariance.GetSubMatrixLocationStart("Cd_Epsilon");
-   Real Cd_EpsilonSigma, Cd0;
-   if (dragShapeModel == "Spherical")
-   {
-      Cd0 = coeffDrag;                                     // Note that: coeffDarg is Cd0
-      Cd_EpsilonSigma = coeffDragSigma / Cd0;              // stdiv[Cd_epsilon] = stdiv[Cd]/Cd0
-      covariance(locationStart, locationStart) = Cd_EpsilonSigma * Cd_EpsilonSigma;      // var[Cd_epsilon] = (stdiv[Cr_epsilon]) ^ 2
-   }
-   else if (dragShapeModel == "SPADFile")
-   {
-      Cd0 = spadDragScaleFactor;                          // Note that: spadDragScaleFactor is SpadCd0
-      Cd_EpsilonSigma = spadDragScaleFactorSigma / Cd0;   // stdiv[Cd_epsilon] = stdiv[Cd]/Cd0
-      covariance(locationStart, locationStart) = Cd_EpsilonSigma * Cd_EpsilonSigma;      // var[Cd_epsilon] = (stdiv[Cr_epsilon]) ^ 2
-   }
-   //covariance(locationStart, locationStart) = Cd_EpsilonSigma * Cd_EpsilonSigma;      // var[Cd_epsilon] = (stdiv[Cr_epsilon]) ^ 2
-
-   // Set Cr covariance
-   locationStart = covariance.GetSubMatrixLocationStart("Cr_Epsilon");
-   Real Cr_EpsilonSigma, Cr0;
-   if (srpShapeModel == "Spherical")
-   {
-      Cr0 = reflectCoeff;                                // Note that: reflectCoeff is Cr0
-      Cr_EpsilonSigma = reflectCoeffSigma / Cr0;         // stdiv[Cr_epsilon] = stdiv[Cr]/Cr0
-      covariance(locationStart, locationStart) = Cr_EpsilonSigma * Cr_EpsilonSigma;      // var[Cr_epsilon] = (stdiv[Cr_epsilon])^2
-   }
-   else if (srpShapeModel == "SPADFile")
-   {
-      Cr0 = spadSRPScaleFactor;                          // Note that: spadSRPScaleFactor is SpadCr0
-      Cr_EpsilonSigma = spadSRPScaleFactorSigma / Cr0;   // stdiv[Cr_epsilon] = stdiv[Cr]/Cr0
-      covariance(locationStart, locationStart) = Cr_EpsilonSigma * Cr_EpsilonSigma;      // var[Cr_epsilon] = (stdiv[Cr_epsilon])^2
-   }
-   if (srpShapeModel == "NPlate")
-   {
-      // Set values but not using them
-      Cr0 = reflectCoeff / (1 + crEpsilon);              // Cr0 = Cr / (1+Cr_epsilon)
-      Cr_EpsilonSigma = reflectCoeffSigma / Cr0;         // stdiv[Cr_epsilon] = stdiv[Cr]/Cr0
-      covariance(locationStart, locationStart) = Cr_EpsilonSigma * Cr_EpsilonSigma;      // var[Cr_epsilon] = (stdiv[Cr_epsilon])^2
-   }
-   //covariance(locationStart, locationStart) = Cr_EpsilonSigma * Cr_EpsilonSigma;      // var[Cr_epsilon] = (stdiv[Cr_epsilon])^2
-
-   // Set AtmosDensityScaleFactor covariance
-   locationStart = covariance.GetSubMatrixLocationStart("AtmosDensity_Epsilon");
-   Real AtmosDensity_EpsilonSigma, AtmosDensity0;
-   AtmosDensity0 = atmosDensityScaleFactor;          // Note: atmosDensityScaleFactor does not include epsilon
-   AtmosDensity_EpsilonSigma = atmosDensityScaleFactorSigma / AtmosDensity0;
-   covariance(locationStart, locationStart) = AtmosDensity_EpsilonSigma * AtmosDensity_EpsilonSigma;
+   // These interpolators are allocated by this spacecraft's lookup-table
+   // loaders. A value copy must not share mutable interpolation buffers.
+   std::unique_ptr<LagrangeInterpolator> copiedCM(a.cmInterp ?
+         new LagrangeInterpolator(*a.cmInterp) : NULL);
+   std::unique_ptr<LagrangeInterpolator> copiedMOI(a.moiInterp ?
+         new LagrangeInterpolator(*a.moiInterp) : NULL);
+   cmInterp = copiedCM.release();
+   moiInterp = copiedMOI.release();
 
    #ifdef DEBUG_SPACECRAFT
    MessageInterface::ShowMessage
       ("Spacecraft::Spacecraft(copy) <%p>'%s' exiting\n", this, GetName().c_str());
    #endif
+   copyComplete = true;
 }
 
 
@@ -1118,9 +1138,33 @@ Spacecraft::Spacecraft(const Spacecraft &a) :
 //---------------------------------------------------------------------------
 Spacecraft& Spacecraft::operator=(const Spacecraft &a)
 {
+   GmatBase::FunctionValueCopyGuard nativeChildren;
    // Don't do anything if copying self
    if (&a == this)
       return *this;
+
+   const auto stmReference = OrbitStmContext::Get(&a);
+
+   const bool restoring = GmatBase::IsNativeRestorationCopy();
+   const bool ready = isInitialized;
+   bool complete = false;
+   const auto onFailure = [&](void*) { if (restoring && !complete) isInitialized = false; };
+   const std::unique_ptr<void, decltype(onFailure)> restorationState(this, onFailure);
+   std::unique_ptr<NativeRestorationPlan> interpolationPreparation;
+   if (restoring)
+   {
+      // Direct native Copy callers (including estimation restoration) use the
+      // same private-cache preparation as the shared owned-graph path.
+      interpolationPreparation = PrepareRestoration(a);
+      if (interpolationPreparation) interpolationPreparation->Apply();
+      ValidateRestorationInputs(a, true);
+   }
+
+
+   std::unique_ptr<LagrangeInterpolator> copiedCM(!restoring && a.cmInterp ?
+         new LagrangeInterpolator(*a.cmInterp) : NULL);
+   std::unique_ptr<LagrangeInterpolator> copiedMOI(!restoring && a.moiInterp ?
+         new LagrangeInterpolator(*a.moiInterp) : NULL);
 
    #ifdef DEBUG_SPACECRAFT
    MessageInterface::ShowMessage
@@ -1137,6 +1181,7 @@ Spacecraft& Spacecraft::operator=(const Spacecraft &a)
    modelFile            = a.modelFile;
    modelID              = a.modelID;
    modelFileFullPath    = a.modelFileFullPath;
+   orbitParameterAccess = a.orbitParameterAccess;
    scEpochStr           = a.scEpochStr;
    dryMass              = a.dryMass;
    dryCM                = a.dryCM;
@@ -1147,7 +1192,7 @@ Spacecraft& Spacecraft::operator=(const Spacecraft &a)
    srpArea              = a.srpArea;
    reflectCoeff         = a.reflectCoeff;
    reflectCoeffSigma    = a.reflectCoeffSigma;
-   processNoiseModel    = a.processNoiseModel;
+   if (!restoring) processNoiseModel    = a.processNoiseModel;
    processNoiseName     = a.processNoiseName;
    epochSystem          = a.epochSystem;
    epochFormat          = a.epochFormat;
@@ -1157,18 +1202,21 @@ Spacecraft& Spacecraft::operator=(const Spacecraft &a)
    anomalyType          = a.anomalyType;
    coordSysName         = a.coordSysName;
    originMu             = a.originMu;
+   originFlattening     = a.originFlattening;
+   originEqRadius       = a.originEqRadius;
    defaultCartesian     = a.defaultCartesian;
    possibleInputTypes   = a.possibleInputTypes;
    coordSysSet          = a.coordSysSet;
    epochSet             = a.epochSet;
    uniqueStateTypeFound = a.uniqueStateTypeFound;
-   coordSysMap          = a.coordSysMap;
+   if (!restoring) coordSysMap          = a.coordSysMap;
    spacecraftId         = a.spacecraftId;
    attitudeModel        = a.attitudeModel;
    ephemerisName        = a.ephemerisName;
-   solarSystem          = a.solarSystem;         // need to copy
-   internalCoordSystem  = a.internalCoordSystem; // need to copy
-   coordinateSystem     = a.coordinateSystem;    // need to copy
+   if (!restoring) solarSystem          = a.solarSystem;         // need to copy
+   originRelativeState  = a.originRelativeState;
+   if (!restoring) internalCoordSystem  = a.internalCoordSystem; // need to copy
+   if (!restoring) coordinateSystem     = a.coordinateSystem;    // need to copy
 
    csTransformMatrix      = a.csTransformMatrix;
    isCSTransformMatrixSet = a.isCSTransformMatrixSet;
@@ -1182,8 +1230,17 @@ Spacecraft& Spacecraft::operator=(const Spacecraft &a)
    massPropertiesModelType        = a.massPropertiesModelType;
    massPropertiesModeled          = a.massPropertiesModeled;
 
-   cmInterp             = a.cmInterp;
-   moiInterp            = a.moiInterp;
+   if (restoring)
+   {
+      if (cmInterp) cmInterp->RestoreValues(*a.cmInterp);
+      if (moiInterp) moiInterp->RestoreValues(*a.moiInterp);
+   }
+   else
+   {
+      delete cmInterp;
+      delete moiInterp;
+      cmInterp = copiedCM.release(); moiInterp = copiedMOI.release();
+   }
 
    table_CM_Offset      = a.table_CM_Offset;
    table_MOI_Offset     = a.table_MOI_Offset;
@@ -1208,7 +1265,7 @@ Spacecraft& Spacecraft::operator=(const Spacecraft &a)
 //       a.trueAnomaly.GetTypeString().c_str());
    #endif
 
-   state = a.state;
+   if (!restoring) state = a.state;
 
    stateElementLabel = a.stateElementLabel;
    stateElementUnits = a.stateElementUnits;
@@ -1219,49 +1276,61 @@ Spacecraft& Spacecraft::operator=(const Spacecraft &a)
    // external STM setting
    externalStmEntries         = a.externalStmEntries;
    externalStmEntrySubIndices = a.externalStmEntrySubIndices;
-   externalStmSources         = a.externalStmSources;
+   if (!restoring) externalStmSources         = a.externalStmSources;
    externalStmIndices         = a.externalStmIndices;
 
    // set plates
    plateNames        = a.plateNames;
-   auto it = begin(plateList);
-   while (it != end(plateList))
+   if (!restoring)
    {
-      bool found = false;
+      auto it = begin(plateList);
+      while (it != end(plateList))
+      {
+         bool found = false;
+         for (Integer i = 0; i < a.plateList.size(); ++i)
+         {
+            if ((*it)->GetName() == a.plateList[i]->GetName())
+            {
+               found = true;
+               break;
+            }
+         }
+         if (!found)
+         {
+            GmatBase *retired = *it;
+            it = plateList.erase(it);
+            #ifdef DEBUG_MEMORY
+            MemoryTracker::Instance()->Remove(retired, retired->GetName(), "Spacecraft::operator=()", "retired owned plate");
+            #endif
+            delete retired;
+         }
+         else
+            ++it;
+      }
+
       for (Integer i = 0; i < a.plateList.size(); ++i)
       {
-         if ((*it)->GetName() == a.plateList[i]->GetName())
+         bool found = false;
+         for (Integer j = 0; j < plateList.size(); ++j)
          {
-            found = true;
-            break;
+            if (plateList[j]->GetName() == a.plateList[i]->GetName())
+            {
+               found = true;
+               ((Plate*)plateList[j])->operator=(*((Plate*)(a.plateList[i])));
+               break;
+            }
+         }
+         if (!found)
+         {
+            GmatBase* pl = ((Plate*)(a.plateList[i]))->Clone();
+            pl->SetCloneOwner(this);
+            plateList.push_back(pl);
          }
       }
-      if (!found)
-         it = plateList.erase(it);
-      else
-         ++it;
-   }
 
-   for (Integer i = 0; i < a.plateList.size(); ++i)
-   {
-      bool found = false;
-      for (Integer j = 0; j < plateList.size(); ++j)
-      {
-         if (plateList[j]->GetName() == a.plateList[i]->GetName())
-         {
-            found = true;
-            ((Plate*)plateList[j])->operator=(*((Plate*)(a.plateList[i])));
-            break;
-         }
-      }
-      if (!found)
-      {
-         GmatBase* pl = ((Plate*)(a.plateList[i]))->Clone();
-         plateList.push_back(pl);
-      }
-   }
-   
 
+
+   }
 
    constraintsList.clear();
    for (Integer i = 0; i < a.constraintsList.size(); ++i)
@@ -1291,38 +1360,60 @@ Spacecraft& Spacecraft::operator=(const Spacecraft &a)
          activeThrusters.push_back(thrusters[i]->GetName());
    }
 
-   DeleteOwnedObjects(true, true, true, true, false);
-
-   // then cloned owned objects
-   #ifdef DEBUG_SPACECRAFT
-   MessageInterface::ShowMessage
-      ("Spacecraft::Spacecraft(=) about to clone all owned objects\n");
-   #endif
-   CloneOwnedObjects(a.attitude, a.tanks, a.thrusters, a.powerSystem, a.hardwareList);
-
-   for (UnsignedInt i = 0; i < activeThrusters.size(); ++i)
+   if (restoring)
    {
-      for (UnsignedInt j = 0; j < thrusters.size(); ++j)
+      NativeRestoration::Copy(a.GetFunctionValueOwnedObjects(), GetFunctionValueOwnedObjects());
+      NativeRestoration::RebindCovariance(*this, a.GetFunctionValueOwnedObjects(), GetFunctionValueOwnedObjects());
+   }
+   else
+   {
+      DeleteOwnedObjects(true, true, true, true, false);
+
+      // then cloned owned objects
+      #ifdef DEBUG_SPACECRAFT
+      MessageInterface::ShowMessage
+         ("Spacecraft::Spacecraft(=) about to clone all owned objects\n");
+      #endif
+      CloneOwnedObjects(a.attitude, a.tanks, a.thrusters, a.powerSystem, a.hardwareList);
+
+      for (UnsignedInt i = 0; i < activeThrusters.size(); ++i)
       {
-         if (thrusters[j]->GetName() == activeThrusters[i])
-            thrusters[j]->SetBooleanParameter("IsFiring", true);
+         for (UnsignedInt j = 0; j < thrusters.size(); ++j)
+         {
+            if (thrusters[j]->GetName() == activeThrusters[i])
+               thrusters[j]->SetBooleanParameter("IsFiring", true);
+         }
       }
+
    }
 
    // Restore the maneuvering state
-   isManeuvering = iAmManeuvering ;
+   isManeuvering = restoring ? a.isManeuvering : iAmManeuvering;
 
    // Build element labels and units
    BuildStateElementLabelsAndUnits();
 
    // resize the matrices first, then copy the contents
-   fullSTM.SetSize(a.fullSTM.GetNumRows(), a.fullSTM.GetNumColumns());
-   fullSTM = a.fullSTM;
-
+   if (restoring)
+   {
+      const auto values = [](Rmatrix &target, const Rmatrix &source)
+      {
+         if (!source.IsSized()) return;
+         for (Integer row = 0; row < source.GetNumRows(); ++row)
+            for (Integer column = 0; column < source.GetNumColumns(); ++column)
+               target(row, column) = source(row, column);
+      };
+      values(fullSTM, a.fullSTM);
+      values(fullAMatrix, a.fullAMatrix);
+   }
+   else
+   {
+      fullSTM.SetSize(a.fullSTM.GetNumRows(), a.fullSTM.GetNumColumns());
+      fullSTM = a.fullSTM;
+      fullAMatrix.SetSize(a.fullAMatrix.GetNumRows(), a.fullAMatrix.GetNumColumns());
+      fullAMatrix = a.fullAMatrix;
+   }
    stmIndices = a.stmIndices;
-
-   fullAMatrix.SetSize(a.fullAMatrix.GetNumRows(), a.fullAMatrix.GetNumColumns());
-   fullAMatrix = a.fullAMatrix;
 
    fullSTMRowCount = a.fullSTMRowCount;
 
@@ -1332,8 +1423,8 @@ Spacecraft& Spacecraft::operator=(const Spacecraft &a)
    spadSrpFileFullPath = a.spadSrpFileFullPath;
    spadSRPScaleFactor = a.spadSRPScaleFactor;
    spadSRPScaleFactorSigma  = a.spadSRPScaleFactorSigma;
-   spadSRPReader      = NULL;
-   spadBFCS           = NULL;
+   if (!restoring) spadSRPReader      = NULL;
+   if (!restoring) spadBFCS           = NULL;
    spadSRPInterpolationMethod = a.spadSRPInterpolationMethod;
 
    dragShapeModel       = a.dragShapeModel;
@@ -1341,8 +1432,8 @@ Spacecraft& Spacecraft::operator=(const Spacecraft &a)
    spadDragFileFullPath = a.spadDragFileFullPath;
    spadDragScaleFactor  = a.spadDragScaleFactor;
    spadDragScaleFactorSigma = a.spadDragScaleFactorSigma;
-   spadDragReader       = NULL;
-   spadDragBFCS         = NULL;
+   if (!restoring) spadDragReader       = NULL;
+   if (!restoring) spadDragBFCS         = NULL;
    spadDragInterpolationMethod = a.spadDragInterpolationMethod;
 
    atmosDensityScaleFactor = a.atmosDensityScaleFactor;
@@ -1360,7 +1451,7 @@ Spacecraft& Spacecraft::operator=(const Spacecraft &a)
    includeCartesianState = a.includeCartesianState;
 
    solveforNames      = a.solveforNames;
-   solveforEstimatedParams = a.solveforEstimatedParams;
+   if (!restoring) solveforEstimatedParams = a.solveforEstimatedParams;
    stmElementNames    = a.stmElementNames;
 
    cdEpsilon          = a.cdEpsilon;
@@ -1371,53 +1462,12 @@ Spacecraft& Spacecraft::operator=(const Spacecraft &a)
 
    orbitErrorCovariance     = a.orbitErrorCovariance;
 
-   // Set value to covariance matrix
-   // Set state covariance
-   Integer locationStart = covariance.GetSubMatrixLocationStart("CartesianState");
-   covariance.ConstructRHS(orbitErrorCovariance, locationStart);
+   // Preserve the complete captured covariance independently of configured
+   // orbit/sigma priors; property setters still update those priors normally.
+   if (!restoring)
+      NativeRestoration::RebindCovariance(*this, a.GetFunctionValueOwnedObjects(), GetFunctionValueOwnedObjects());
 
-   // Set Cd covariance
-   locationStart = covariance.GetSubMatrixLocationStart("Cd_Epsilon");
-   Real Cd_EpsilonSigma, Cd0;
-   if (dragShapeModel == "Spherical")
-   {
-      Cd0 = coeffDrag;                                     // Note that: coeffDrag is Cd0
-      Cd_EpsilonSigma = coeffDragSigma / Cd0;              // stdiv[Cd_epsilon] = stdiv[Cd]/Cd0
-      covariance(locationStart, locationStart) = Cd_EpsilonSigma * Cd_EpsilonSigma;     // var[Cd_epsilon] = (stdiv[Cd_epsilon])^2
-   }
-   else if (dragShapeModel == "SPADFile")
-   {
-      Cd0 = spadDragScaleFactor;                             // spadDragScaleFactor is SpadCd0
-      Cd_EpsilonSigma = spadDragScaleFactorSigma / Cd0;    // stdiv[Cd_epsilon] = stdiv[Cd]/Cd0
-      covariance(locationStart, locationStart) = Cd_EpsilonSigma * Cd_EpsilonSigma;     // var[Cd_epsilon] = (stdiv[Cd_epsilon])^2
-   }
-   //covariance(locationStart, locationStart) = Cd_EpsilonSigma * Cd_EpsilonSigma;     // var[Cd_epsilon] = (stdiv[Cd_epsilon])^2
-
-   // Set Cr covariance
-   locationStart = covariance.GetSubMatrixLocationStart("Cr_Epsilon");
-   Real Cr_EpsilonSigma, Cr0;
-   if (srpShapeModel == "Spherical")
-   {
-      Cr0 = reflectCoeff / (1 + crEpsilon);                // Cr0 = Cr/(1+Cr_epsilon)
-      Cr_EpsilonSigma = reflectCoeffSigma / Cr0;           // stdiv[Cr_epsilon] = stdiv[Cr]/Cr0
-      covariance(locationStart, locationStart) = Cr_EpsilonSigma * Cr_EpsilonSigma;     // var[Cd_epsilon] = (stdiv[Cd_epsilon])^2
-   }
-   else if (srpShapeModel == "SPADFile")
-   {
-      Cr0 = spadSRPScaleFactor;                            // Note that: spadSRPScaleFactor is SpadCr0
-      Cr_EpsilonSigma = spadSRPScaleFactorSigma / Cr0;     // stdiv[Cr_epsilon] = stdiv[Cr]/Cr0
-      covariance(locationStart, locationStart) = Cr_EpsilonSigma * Cr_EpsilonSigma;     // var[Cd_epsilon] = (stdiv[Cd_epsilon])^2
-   }
-   //covariance(locationStart, locationStart) = Cr_EpsilonSigma * Cr_EpsilonSigma;     // var[Cd_epsilon] = (stdiv[Cd_epsilon])^2
-
-   // Set AtmosDensityScaleFactor covariance
-   locationStart = covariance.GetSubMatrixLocationStart("AtmosDensity_Epsilon");
-   Real AtmosDensity_EpsilonSigma, AtmosDensity0;
-   AtmosDensity0 = atmosDensityScaleFactor;          // Note: atmosDensityScaleFactor does not include epsilon
-   AtmosDensity_EpsilonSigma = atmosDensityScaleFactorSigma / AtmosDensity0;
-   covariance(locationStart, locationStart) = AtmosDensity_EpsilonSigma * AtmosDensity_EpsilonSigma;
-
-   runningCommandFlag = a.runningCommandFlag;
+   if (!restoring) runningCommandFlag = a.runningCommandFlag;
    skipSTM = false;
 
    ephemerisFileTypes = a.ephemerisFileTypes;
@@ -1425,6 +1475,22 @@ Spacecraft& Spacecraft::operator=(const Spacecraft &a)
    MessageInterface::ShowMessage
       ("Spacecraft::Spacecraft(=) <%p>'%s' exiting\n", this, GetName().c_str());
    #endif
+
+   if (restoring)
+   {
+      originRelativeState.valid = false;
+      isCSTransformMatrixSet = false;
+      isInitialized = ready;
+      parmsChanged = true;
+   }
+   else if (!a.isInitialized)
+   {
+      // A cold prototype can replace an initialized local spacecraft between
+      // function calls. Its declared hardware still needs incremental binding.
+      isInitialized = false;
+   }
+   OrbitStmContext::Commit(this, stmReference);
+   complete = true;
 
    return *this;
 }
@@ -1440,8 +1506,8 @@ void Spacecraft::SetSolarSystem(SolarSystem *ss)
       ("Spacecraft::SetSolarSystem() this=<%p>'%s' entered, ss=<%p>\n", this,
        GetName().c_str(), ss);
    #endif
-   solarSystem = ss;
    if (powerSystem) powerSystem->SetSolarSystem(ss);
+   solarSystem = ss;
 }
 
 
@@ -1466,6 +1532,7 @@ void Spacecraft::SetInternalCoordSystem(CoordinateSystem *cs)
 
    if (internalCoordSystem != cs)
    {
+      originRelativeState.valid = false;
       internalCoordSystem = cs;
       if (coordinateSystem == NULL)
          coordinateSystem = cs;
@@ -1479,6 +1546,105 @@ void Spacecraft::SetInternalCoordSystem(CoordinateSystem *cs)
 CoordinateSystem* Spacecraft::GetInternalCoordSystem()
 {
    return internalCoordSystem;
+}
+
+void Spacecraft::RebindClonedReferences(const Spacecraft &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve,
+      const std::function<void(const ObjectArray&, const ObjectArray&)> &owned)
+{
+   if (this == &source) return;
+   ObjectArray originals, values;
+   auto pair = [&](GmatBase *original, GmatBase *value)
+   {
+      originals.push_back(original);
+      values.push_back(value);
+   };
+   auto pairs = [&](const ObjectArray &from, const ObjectArray &to)
+   {
+      if (from.size() != to.size())
+         throw SpaceObjectException("Spacecraft Clone changed an owned component collection.\n");
+      for (UnsignedInt i = 0; i < from.size(); ++i) pair(from[i], to[i]);
+   };
+   pair(source.attitude, attitude);
+   pair(source.powerSystem, powerSystem);
+   pairs(source.tanks, tanks);
+   pairs(source.thrusters, thrusters);
+   pairs(source.hardwareList, hardwareList);
+   pairs(source.plateList, plateList);
+   // Register the complete attached-object set before following cross-links,
+   // such as a receiver's antenna or a thruster's tanks/owning spacecraft.
+   owned(originals, values);
+   for (UnsignedInt i = 0; i < originals.size(); ++i)
+      covariance.RebindOwner(originals[i], values[i]);
+
+   auto bind = [&](auto *original)
+   {
+      if (!original) return original;
+      auto *value = dynamic_cast<decltype(original)>(resolve(original));
+      if (!value)
+         throw SpaceObjectException("Incompatible dependency in a cloned spacecraft.\n");
+      return value;
+   };
+   // Assign the reference fields directly. Ordinary SetRefObject also converts
+   // initial state, clones hardware and appends estimated parameters.
+   CoordinateSystem *newInternal = bind(source.internalCoordSystem);
+   CoordinateSystem *newFrame = bind(source.coordinateSystem);
+   SpacePoint *newOrigin = bind(source.origin);
+   SpacePoint *newJ2000 = bind(source.j2000Body);
+   GmatBase *newNoise = bind(source.processNoiseModel);
+   auto newFrames = source.coordSysMap;
+   newFrames.clear();
+   for (const auto &entry : source.coordSysMap)
+   {
+      CoordinateSystem *frame = bind(entry.second);
+      const std::string name = entry.second && frame && entry.first == entry.second->GetName() ?
+            frame->GetName() : entry.first;
+      newFrames[name] = frame;
+   }
+   ObjectArray newParameters, newStmSources;
+   for (GmatBase *parameter : source.solveforEstimatedParams)
+      newParameters.push_back(bind(parameter));
+   for (GmatBase *object : source.externalStmSources)
+      newStmSources.push_back(bind(object));
+   OriginRelativeState localState = source.originRelativeState;
+   const auto stmReference = OrbitStmContext::Rebound(OrbitStmContext::Get(&source), resolve);
+   if (localState.valid)
+   {
+      localState.origin = bind(localState.origin);
+      localState.internalOrigin = bind(localState.internalOrigin);
+      localState.internalFrame = bind(localState.internalFrame);
+      if (localState.origin) localState.originName = localState.origin->GetName();
+      if (localState.internalOrigin) localState.internalOriginName = localState.internalOrigin->GetName();
+   }
+
+   internalCoordSystem = newInternal;
+   coordinateSystem = newFrame;
+   origin = newOrigin;
+   j2000Body = newJ2000;
+   if (newFrame) coordSysName = newFrame->GetName();
+   if (newOrigin) originName = newOrigin->GetName();
+   if (newJ2000) j2000BodyName = newJ2000->GetName();
+   processNoiseModel = newNoise;
+   if (newNoise) processNoiseName = newNoise->GetName();
+   for (UnsignedInt i = 0; i < source.solveforEstimatedParams.size(); ++i)
+      if (source.solveforEstimatedParams[i] && newParameters[i] &&
+          source.solveforEstimatedParams[i]->GetName() != newParameters[i]->GetName())
+      {
+         const std::string oldName = source.solveforEstimatedParams[i]->GetName();
+         const std::string newName = newParameters[i]->GetName();
+         for (std::string &name : solveforNames) if (name == oldName) name = newName;
+         for (std::string &name : stmElementNames) if (name == oldName) name = newName;
+      }
+   coordSysMap.swap(newFrames);
+   solveforEstimatedParams.swap(newParameters);
+   externalStmSources.swap(newStmSources);
+   originRelativeState = localState;
+   if (powerSystem) powerSystem->SetSpacecraft(this); // refresh its origin too
+   // Retained Plate binding already maps its actual inertial/history frames.
+   // Native construction still clears unbound runtime caches before this pass.
+   isCSTransformMatrixSet = false;
+   isInitialized = false;
+   OrbitStmContext::Commit(this, stmReference);
 }
 
 //---------------------------------------------------------------------------
@@ -1603,12 +1769,109 @@ void Spacecraft::SetState(const std::string &elementType, Real *instate)
 void Spacecraft::SetState(const Real s1, const Real s2, const Real s3,
                           const Real s4, const Real s5, const Real s6)
 {
+    originRelativeState.valid = false;
     state[0] = s1;
     state[1] = s2;
     state[2] = s3;
     state[3] = s4;
     state[4] = s5;
     state[5] = s6;
+}
+
+
+//------------------------------------------------------------------------------
+// Origin-relative Cartesian state preservation
+//------------------------------------------------------------------------------
+bool Spacecraft::SetOriginRelativeState(SpacePoint *origin,
+      const GmatTime &atEpoch, const Rvector6 &localState)
+{
+   if (!origin || !internalCoordSystem || !internalCoordSystem->GetOrigin() ||
+       origin == internalCoordSystem->GetOrigin() ||
+       !internalCoordSystem->AreAxesOfType("MJ2000EqAxes") ||
+       atEpoch != state.GetEpochGT())
+      return false;
+   for (Integer i = 0; i < 6; ++i)
+      if (!std::isfinite(localState[i]) || !std::isfinite(state[i]))
+         return false;
+
+   OriginRelativeState retained;
+   retained.origin = origin;
+   retained.internalOrigin = internalCoordSystem->GetOrigin();
+   retained.internalFrame = internalCoordSystem;
+   retained.epoch = atEpoch;
+   retained.originName = origin->GetName();
+   retained.internalOriginName = internalCoordSystem->GetOrigin()->GetName();
+   retained.celestialOrigin = origin->IsOfType(Gmat::CELESTIAL_BODY);
+   retained.celestialInternalOrigin =
+      internalCoordSystem->GetOrigin()->IsOfType(Gmat::CELESTIAL_BODY);
+   if (retained.celestialOrigin)
+      retained.originEphemeris =
+         static_cast<CelestialBody*>(origin)->GetState(atEpoch);
+   if (retained.celestialInternalOrigin)
+      retained.internalOriginEphemeris =
+         static_cast<CelestialBody*>(internalCoordSystem->GetOrigin())->GetState(atEpoch);
+
+   retained.local = localState;
+   for (Integer i = 0; i < 6; ++i)
+      retained.backing[i] = state[i];
+   for (Integer i = 0; i < 6; ++i)
+      if ((retained.celestialOrigin && !std::isfinite(retained.originEphemeris[i])) ||
+          (retained.celestialInternalOrigin && !std::isfinite(retained.internalOriginEphemeris[i])))
+         return false;
+   retained.valid = true;
+   originRelativeState = retained;
+   return true;
+}
+
+bool Spacecraft::GetOriginRelativeState(SpacePoint *origin,
+      const GmatTime &atEpoch, Rvector6 &localState) const
+{
+   if (!originRelativeState.valid)
+      return false;
+
+   // Mutable GmatState access is part of the existing public API. Bind the
+   // retained state to all six backing values, epoch and frame identities.
+   bool current = internalCoordSystem &&
+      internalCoordSystem == originRelativeState.internalFrame &&
+      internalCoordSystem->AreAxesOfType("MJ2000EqAxes") &&
+      state.GetEpochGT() == originRelativeState.epoch;
+   for (Integer i = 0; i < 6 && current; ++i)
+      current = (state[i] == originRelativeState.backing[i]);
+   // Sandbox initialization can rebind the shared internal frame to a cloned
+   // celestial body. Accept that handoff only with exact name and ephemeris
+   // equality at the retained epoch; never dereference the old origin pointer.
+   auto equivalentBody = [&](SpacePoint *body, bool celestial,
+         const std::string &name, const Rvector6 &ephemeris)
+   {
+      return celestial && body && body->IsOfType(Gmat::CELESTIAL_BODY) &&
+         body->GetName() == name &&
+         static_cast<CelestialBody*>(body)->GetState(originRelativeState.epoch) == ephemeris;
+   };
+   if (current && internalCoordSystem->GetOrigin() != originRelativeState.internalOrigin)
+   {
+      current = equivalentBody(internalCoordSystem->GetOrigin(),
+         originRelativeState.celestialInternalOrigin,
+         originRelativeState.internalOriginName, originRelativeState.internalOriginEphemeris);
+      if (current)
+         originRelativeState.internalOrigin = internalCoordSystem->GetOrigin();
+   }
+   if (!current)
+   {
+      originRelativeState.valid = false;
+      return false;
+   }
+   // Rebinding the spacecraft's configured frame to the equivalent sandbox
+   // body preserves local input. A separate same-name object does not match.
+   if (origin != originRelativeState.origin && coordinateSystem &&
+       origin == coordinateSystem->GetOrigin() &&
+       equivalentBody(origin, originRelativeState.celestialOrigin,
+          originRelativeState.originName, originRelativeState.originEphemeris))
+      originRelativeState.origin = origin;
+   // An unrelated query must not discard a still-valid local state.
+   if (origin != originRelativeState.origin || atEpoch != originRelativeState.epoch)
+      return false;
+   localState = originRelativeState.local;
+   return true;
 }
 
 
@@ -2940,7 +3203,9 @@ void Spacecraft::ProvideEphemerisData()
 //------------------------------------------------------------------------------
 GmatBase* Spacecraft::Clone() const
 {
-   Spacecraft *clone = new Spacecraft(*this);
+   std::unique_ptr<Spacecraft> owner(new Spacecraft(*this));
+   Spacecraft *clone = owner.get();
+   clone->RebindFunctionValueContext(*this);
 
    #ifdef DEBUG_SPACECRAFT
       MessageInterface::ShowMessage
@@ -2957,7 +3222,7 @@ GmatBase* Spacecraft::Clone() const
             vec6[0], vec6[1], vec6[2], vec6[3], vec6[4], vec6[5]);
    #endif
 
-   return (clone);
+   return owner.release();
 }
 
 
@@ -2972,7 +3237,12 @@ GmatBase* Spacecraft::Clone() const
 //---------------------------------------------------------------------------
 void Spacecraft::Copy(const GmatBase* orig)
 {
-   operator=(*((Spacecraft *)(orig)));
+   const auto *source = dynamic_cast<const Spacecraft*>(orig);
+   if (!source) throw GmatBaseException("Incompatible Spacecraft value copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -3801,6 +4071,8 @@ bool Spacecraft::SetRefObject(GmatBase *obj, const UnsignedInt type,
          {
             GmatBase* clone = ((Plate*)obj)->Clone();
             clone->SetFullName(GetName() + "." + clone->GetName());
+            clone->SetCloneSource(obj);
+            clone->SetCloneOwner(this);
             plateList.push_back(clone);
          }
       }
@@ -3818,75 +4090,10 @@ bool Spacecraft::SetRefObject(GmatBase *obj, const UnsignedInt type,
           tanks.size(), thrusters.size());
       #endif
 
-      // set fueltank
-      if (obj->IsOfType("FuelTank"))
-      {
-         bool retval = SetHardware(obj, tankNames, tanks);
-         if (retval)
-         {
-            if (isInitialized)
-            {
-               // Update tank/thruster settings; don't throw if misconfigured
-               try
-               {
-                  AttachTanksToThrusters();
-               }
-               catch (BaseException &)
-               {
-                  #ifdef DEBUG_SC_REF_OBJECT
-                  MessageInterface::ShowMessage
-                     ("Spacecraft::SetRefObject() EXCEPTION thrown in AttachTanksToThrusters\n");
-                  #endif
-               }
-            }
-         }
-         // Now we can delete the obsolete objects since they should not be
-         // pointed to anymore
-         for (unsigned int ii = 0; ii < obsoleteObjects.size(); ii++)
-         {
-            #ifdef DEBUG_SC_REF_OBJECT
-            MessageInterface::ShowMessage
-               ("Spacecraft::SetRefObject() deleting obsolete object %s<%p>\n",
-                     obsoleteObjects.at(ii)->GetName().c_str(), obsoleteObjects.at(ii));
-            #endif
-            delete obsoleteObjects.at(ii);
-         }
-         obsoleteObjects.clear();
-         return retval;
-      }
-
-      // set thruster
-      if (obj->IsOfType("Thruster"))
-      {
-         bool retval = SetHardware(obj, thrusterNames, thrusters);
-         if (retval)
-         {
-            if (isInitialized)
-            {
-               // Update tank/thruster settings; don't throw if misconfigured
-               try
-               {
-                  AttachTanksToThrusters();
-               }
-               catch (BaseException &)
-               {
-               }
-            }
-         }
-         // Now we can delete the obsolete objects since they should not be
-         // pointed to anymore
-         for (unsigned int ii = 0; ii < obsoleteObjects.size(); ii++)
-         {
-            #ifdef DEBUG_SC_REF_OBJECT
-            MessageInterface::ShowMessage
-               ("Spacecraft::SetRefObject() deleting obsolete object %s<%p>\n",
-                     obsoleteObjects.at(ii)->GetName().c_str(), obsoleteObjects.at(ii));
-            #endif
-            delete obsoleteObjects.at(ii);
-         }
-         obsoleteObjects.clear();
-         return retval;
-      }
+      if (obj->IsOfType(Gmat::FUEL_TANK))
+         return SetHardware(obj, tankNames, tanks);
+      if (obj->IsOfType(Gmat::THRUSTER))
+         return SetHardware(obj, thrusterNames, thrusters);
 
       #ifdef DEBUG_POWER_SYSTEM
          MessageInterface::ShowMessage("=-=-=-=-=-= NOW, checking for powerSystem = <%p>\n", powerSystem);
@@ -4024,22 +4231,37 @@ bool Spacecraft::SetRefObject(GmatBase *obj, const UnsignedInt type,
             ("   About to convert to new CS '%s'\n", coordSysName.c_str());
          #endif
 
-         // saved the old CS and added try/catch block to set to old CS
-         // in case of exception thrown (loj: 2008.10.23)
-         CoordinateSystem *oldCS = coordinateSystem;
-         coordinateSystem = cs;
+         // Resolve the new origin before changing any cached frame data.
+         // Calculated-point origins have no body gravity/shape constants;
+         // retaining the previous body's values would give them false gravity.
+         SpacePoint *newOrigin = cs->GetOrigin();
+         if (!newOrigin)
+            throw SpaceObjectException("Cannot bind coordinate system \"" +
+               cs->GetName() + "\" on spacecraft \"" + instanceName +
+               "\": its origin is not initialized.\n");
+         CelestialBody *newBody = dynamic_cast<CelestialBody*>(newOrigin);
+         const Real newMu = newBody ? newBody->GetGravitationalConstant() : 0.0;
+         const Real newFlattening = newBody ? newBody->GetFlattening() : 0.0;
+         const Real newEqRadius = newBody ? newBody->GetEquatorialRadius() : 0.0;
+         const std::string newOriginName = cs->GetOriginName();
 
-         originName = coordinateSystem->GetOriginName();
-         origin     = coordinateSystem->GetOrigin();
-         if (origin->IsOfType("CelestialBody"))
-         {
-            originMu         = ((CelestialBody*) origin)->GetGravitationalConstant();
-            originFlattening = ((CelestialBody*) origin)->GetFlattening();
-            originEqRadius   = ((CelestialBody*) origin)->GetEquatorialRadius();
-         }
+         // The frame pointer and all its cached origin data form one binding.
+         // Restore that whole binding if applying the initial state fails.
+         CoordinateSystem *oldCS = coordinateSystem;
+         SpacePoint *oldOrigin = origin;
+         std::string oldOriginName = originName;
+         const Real oldMu = originMu;
+         const Real oldFlattening = originFlattening;
+         const Real oldEqRadius = originEqRadius;
 
          try
          {
+            coordinateSystem = cs;
+            originName = newOriginName;
+            origin = newOrigin;
+            originMu = newMu;
+            originFlattening = newFlattening;
+            originEqRadius = newEqRadius;
             #ifdef DEBUG_SPACECRAFT_CS
             MessageInterface::ShowMessage
                ("Spacecraft::SetRefObject() calling TakeAction - ApplyCoordinateSystem\n");
@@ -4053,13 +4275,14 @@ bool Spacecraft::SetRefObject(GmatBase *obj, const UnsignedInt type,
             MessageInterface::ShowMessage("   %s\n", vec6.ToString().c_str());
             #endif
          }
-         catch (BaseException &e)
+         catch (...)
          {
-            #ifdef DEBUG_SPACECRAFT_CS
-            MessageInterface::ShowMessage
-               ("Exception thrown: '%s', so setting back to old CS\n", e.GetFullMessage().c_str());
-            #endif
             coordinateSystem = oldCS;
+            origin = oldOrigin;
+            originName.swap(oldOriginName);
+            originMu = oldMu;
+            originFlattening = oldFlattening;
+            originEqRadius = oldEqRadius;
             throw;
          }
 //      }
@@ -4106,6 +4329,7 @@ bool Spacecraft::SetRefObject(GmatBase *obj, const UnsignedInt type,
          #endif
       }
       attitude = (Attitude*) obj;
+      attitude->SetCloneOwner(this);
       attitudeModel = attitude->GetAttitudeModelName();
       ownedObjectCount++;
       // set epoch ...
@@ -4195,7 +4419,9 @@ ObjectArray& Spacecraft::GetRefObjectArray(const UnsignedInt type)
    if (type == Gmat::POWER_SYSTEM)
    {
       static ObjectArray powerSysList;
-      powerSysList.push_back(powerSystem);
+      powerSysList.clear();
+      if (powerSystem)
+         powerSysList.push_back(powerSystem);
       return powerSysList;
    }
    if (type == GmatType::GetTypeId("EstimatedParameter"))
@@ -4246,7 +4472,9 @@ ObjectArray& Spacecraft::GetRefObjectArray(const std::string& typeString)
    if ((typeString == "PowerSystem") || (typeString == "PowerSystems"))
    {
       static ObjectArray powerSysList;
-      powerSysList.push_back(powerSystem);
+      powerSysList.clear();
+      if (powerSystem)
+         powerSysList.push_back(powerSystem);
       return powerSysList;
    }
    if (typeString == "Plate")
@@ -4625,6 +4853,8 @@ bool Spacecraft::IsParameterReadOnly(const std::string &label) const
 //------------------------------------------------------------------------------
 bool Spacecraft::IsParameterCommandModeSettable(const Integer id) const
 {
+   if (id == ORBIT_PARAMETER_ACCESS)
+      return false;
    if (id == MODEL_FILE || id == MODEL_FILE_FULL_PATH)
       return false;
 
@@ -6019,6 +6249,8 @@ const Rvector& Spacecraft::SetRvectorParameter(const std::string &label,
 //------------------------------------------------------------------------------
 std::string Spacecraft::GetStringParameter(const Integer id) const
 {
+    if (id == ORBIT_PARAMETER_ACCESS)
+       return orbitParameterAccess;
     if (id == SC_EPOCH_ID)
     {
        return (const_cast<Spacecraft*>(this))->GetEpochString();
@@ -6306,19 +6538,264 @@ const StringArray& Spacecraft::GetStringArrayParameter(
 }
 
 //---------------------------------------------------------------------------
-//  bool SetStringParameter(const Integer id, const std::string &value)
+//  void SetField(const Integer id, const StringArray &value)
 //---------------------------------------------------------------------------
 /**
- * Change the value of a string parameter.
- *
- * @param <id> The integer ID for the parameter.
- * @param <value> The new string for this parameter.
- *
- * @return true if the string is stored, false if not.
+ * Replace an attached propulsion list using existing owned components. New
+ * attachments require actual sources through ReplacePropulsionHardware.
  */
+//---------------------------------------------------------------------------
+void Spacecraft::SetField(const Integer id, const StringArray &value)
+{
+   if (id != FUEL_TANK_ID && id != THRUSTER_ID) { SpaceObject::SetField(id, value); return; }
+   if (value == GetStringArrayParameter(id)) return;
+   const StringArray wantedTanks = id == FUEL_TANK_ID ? value : tankNames;
+   const StringArray wantedThrusters = id == THRUSTER_ID ? value : thrusterNames;
+   const auto select = [&](const StringArray &names, const ObjectArray &objects)
+   {
+      ObjectArray selected;
+      for (const auto &name : names)
+      {
+         GmatBase *match = nullptr;
+         for (auto *object : objects)
+            if (object && object->GetName() == name)
+            {
+               if (match && match != object) throw SpaceObjectException("Ambiguous attached hardware: " + name);
+               match = object;
+            }
+         if (!match)
+            throw SpaceObjectException("A new hardware name requires an actual source in ReplacePropulsionHardware: " + name);
+         selected.push_back(match);
+      }
+      return selected;
+   };
+   ReplacePropulsionHardware(wantedTanks, select(wantedTanks, tanks),
+                             wantedThrusters, select(wantedThrusters, thrusters));
+}
+
+void Spacecraft::ReplacePropulsionHardware(const StringArray &wantedTanks,
+   const ObjectArray &tankSources, const StringArray &wantedThrusters,
+   const ObjectArray &thrusterSources)
+{
+   ReplacePropulsionHardware(wantedTanks, tankSources, wantedThrusters, thrusterSources, false);
+}
+
+void Spacecraft::ReplacePropulsionHardware(const StringArray &wantedTanks,
+   const ObjectArray &tankSources, const StringArray &wantedThrusters,
+   const ObjectArray &thrusterSources, bool allowUnbound)
+{
+   if (allowUnbound && isInitialized)
+      throw SpaceObjectException("An initialized spacecraft requires complete propulsion bindings.");
+   if (wantedTanks.size() != tankSources.size() || wantedThrusters.size() != thrusterSources.size())
+      throw SpaceObjectException("Propulsion hardware names and sources do not match.");
+   if (wantedTanks.size() > static_cast<size_t>(std::numeric_limits<Integer>::max()) ||
+       wantedThrusters.size() > static_cast<size_t>(std::numeric_limits<Integer>::max()))
+      throw SpaceObjectException("Propulsion hardware count exceeds native capacity.");
+   if (wantedTanks == tankNames && wantedThrusters == thrusterNames &&
+       tankSources == tanks && thrusterSources == thrusters) return;
+
+   const auto previous = GetFunctionValueContext();
+   (void)previous; // Keep dependencies alive through replacement and retirement.
+   StringArray nextTankNames(wantedTanks), nextThrusterNames(wantedThrusters);
+   std::set<std::string> selectedNames;
+   std::set<GmatBase*> selectedSources;
+   const auto validate = [&](const StringArray &names, const ObjectArray &sources, UnsignedInt type)
+   {
+      for (size_t i = 0; i < names.size(); ++i)
+      {
+         if (!GmatStringUtil::IsValidIdentity(names[i]) ||
+             (!sources[i] && !allowUnbound) || (sources[i] && !sources[i]->IsOfType(type)))
+            throw SpaceObjectException("Invalid propulsion hardware source: " + names[i]);
+         if (!selectedNames.insert(names[i]).second ||
+             (sources[i] && !selectedSources.insert(sources[i]).second))
+            throw SpaceObjectException("Repeated propulsion hardware name or source: " + names[i]);
+      }
+   };
+   validate(wantedTanks, tankSources, Gmat::FUEL_TANK);
+   validate(wantedThrusters, thrusterSources, Gmat::THRUSTER);
+   for (const auto *object : hardwareList)
+      if (object && selectedNames.count(object->GetName()))
+         throw SpaceObjectException("Propulsion hardware conflicts with attached hardware: " + object->GetName());
+   for (const auto *object : plateList)
+      if (object && selectedNames.count(object->GetName()))
+         throw SpaceObjectException("Propulsion hardware conflicts with an attached plate: " + object->GetName());
+   if (powerSystem && selectedNames.count(powerSystem->GetName()))
+      throw SpaceObjectException("Propulsion hardware conflicts with the power system.");
+
+   const auto dispose = [this](GmatBase *object)
+   {
+      if (!object) return;
+      #ifdef DEBUG_MEMORY
+         try { MemoryTracker::Instance()->Remove(object, object->GetName(),
+               "Spacecraft::ReplacePropulsionHardware", "retiring propulsion hardware", this); }
+         catch (...) {} // Cleanup must not replace a preparation failure.
+      #endif
+      delete object;
+   };
+   using Owned = std::unique_ptr<GmatBase, decltype(dispose)>;
+   std::vector<Owned> created;
+   created.reserve(tankSources.size() + thrusterSources.size());
+   const auto prepare = [&](GmatBase *source, const std::string &name, const ObjectArray &current)
+   {
+      if (source->GetName() == name && std::find(current.begin(), current.end(), source) != current.end())
+         return source;
+      Owned object(source->Clone(), dispose);
+      if (!object || object.get() == source)
+      {
+         if (object.get() == source) object.release();
+         throw SpaceObjectException("Hardware Clone did not return a new object: " + name);
+      }
+      if (object->GetTypeName() != source->GetTypeName())
+         throw SpaceObjectException("Hardware Clone changed its native type: " + name);
+      object->SetName(name);
+      object->SetFullName(GetName() + "." + name);
+      object->SetCloneSource(std::find(current.begin(), current.end(), source) == current.end() ?
+         source : source->GetCloneSource());
+      #ifdef DEBUG_MEMORY
+         MemoryTracker::Instance()->Add(object.get(), name,
+            "Spacecraft::ReplacePropulsionHardware", "staged propulsion clone", this);
+      #endif
+      GmatBase *value = object.get();
+      created.push_back(std::move(object));
+      return value;
+   };
+   ObjectArray nextTanks, nextThrusters;
+   nextTanks.reserve(tankSources.size());
+   nextThrusters.reserve(thrusterSources.size());
+   for (size_t i = 0; i < tankSources.size(); ++i)
+   {
+      if (!tankSources[i]) continue; // An unresolved declaration, never an owned null.
+      auto *value = dynamic_cast<FuelTank*>(prepare(tankSources[i], wantedTanks[i], tanks));
+      if (!value) throw SpaceObjectException("Incompatible cloned tank: " + wantedTanks[i]);
+      if (std::find(tanks.begin(), tanks.end(), value) == tanks.end() && isInitialized && !value->Initialize())
+         throw SpaceObjectException("Cannot initialize staged tank: " + wantedTanks[i]);
+      nextTanks.push_back(value);
+   }
+   std::vector<std::pair<Thruster*, std::vector<FuelTank*>>> links;
+   links.reserve(thrusterSources.size());
+   for (size_t i = 0; i < thrusterSources.size(); ++i)
+   {
+      if (!thrusterSources[i]) continue;
+      auto *value = dynamic_cast<Thruster*>(prepare(thrusterSources[i], wantedThrusters[i], thrusters));
+      if (!value) throw SpaceObjectException("Incompatible cloned thruster: " + wantedThrusters[i]);
+      const bool retained = std::find(thrusters.begin(), thrusters.end(), value) != thrusters.end();
+      auto resolved = value->ResolveTankReferences(nextTanks, allowUnbound);
+      if (allowUnbound && resolved.empty() && !value->tankNames.empty() &&
+          value->GetBooleanParameter(value->GetParameterID("IsFiring")))
+         throw SpaceObjectException("End the finite burn before leaving its tank bindings pending.");
+      // Retained thrusters are not reinitialized. Preserve the native tank
+      // family checks from ChemicalThruster/ElectricThruster::Initialize.
+      const char *tankFamily = value->IsOfType("ChemicalThruster") ? "ChemicalTank" :
+         (value->IsOfType("ElectricThruster") ? "ElectricTank" : nullptr);
+      if (tankFamily)
+         for (const auto *tank : resolved)
+            if (!tank->IsOfType(tankFamily))
+               throw SpaceObjectException("Incompatible tank family for thruster: " + value->GetName());
+      if (retained)
+      {
+         if (value->spacecraft != this)
+            throw SpaceObjectException("Attached thruster has a different owner: " + value->GetName());
+         links.emplace_back(value, std::move(resolved));
+      }
+      else
+      {
+         if (!allowUnbound && value->usingLocalCoordSys && !solarSystem)
+            throw SpaceObjectException("A solar system is required to bind a local thruster.");
+         value->RetireLocalCoordinateSystem();
+         value->spacecraft = this;
+         value->satName = GetName();
+         if (solarSystem) value->SetSolarSystem(solarSystem);
+         else
+         {
+            value->solarSystem = nullptr;
+            if (value->usingLocalCoordSys)
+            {
+               value->localOrigin = nullptr;
+               value->j2000Body = nullptr;
+            }
+         }
+         const std::string frame = value->GetRefObjectName(Gmat::COORDINATE_SYSTEM);
+         if (!value->coordSystem && coordSysMap.find(frame) != coordSysMap.end())
+            value->SetRefObject(coordSysMap.at(frame), Gmat::COORDINATE_SYSTEM, frame);
+         value->tanks.swap(resolved);
+         bool firing = false;
+         for (auto *old : thrusters)
+            if (old && old->GetName() == wantedThrusters[i]) firing = old->GetBooleanParameter("IsFiring");
+         value->SetBooleanParameter(value->GetParameterID("IsFiring"), firing);
+         if (isInitialized && !value->Initialize())
+            throw SpaceObjectException("Cannot initialize staged thruster: " + wantedThrusters[i]);
+      }
+      nextThrusters.push_back(value);
+   }
+
+   std::set<GmatBase*> selected(nextTanks.begin(), nextTanks.end());
+   selected.insert(nextThrusters.begin(), nextThrusters.end());
+   std::set<GmatBase*> oldObjects(tanks.begin(), tanks.end());
+   oldObjects.insert(thrusters.begin(), thrusters.end());
+   std::vector<std::pair<GmatBase*, GmatBase*>> replacements;
+   ObjectArray retire;
+   for (auto *old : oldObjects)
+   {
+      if (!old || selected.count(old)) continue;
+      if (old->IsOfType(Gmat::THRUSTER) && old->GetBooleanParameter("IsFiring"))
+         throw SpaceObjectException("End the finite burn before replacing firing thruster: " + old->GetName());
+      GmatBase *replacement = nullptr;
+      const ObjectArray &candidates = old->IsOfType(Gmat::FUEL_TANK) ? nextTanks : nextThrusters;
+      for (auto *candidate : candidates)
+         if (candidate->GetName() == old->GetName() && candidate->GetTypeName() == old->GetTypeName())
+            replacement = candidate;
+      ValidateHardwareRetirement(old, replacement);
+      if (replacement) replacements.emplace_back(old, replacement);
+      retire.push_back(old);
+   }
+   ObjectArray nextStm(externalStmSources), nextEstimated(solveforEstimatedParams);
+   for (const auto &pair : replacements)
+   {
+      for (auto &object : nextStm) if (object == pair.first) object = pair.second;
+      for (auto &object : nextEstimated) if (object == pair.first) object = pair.second;
+   }
+   Real nextMass = CalculateTotalMass(nextTanks);
+   Rvector3 nextCenter(systemCM);
+   Rmatrix33 nextInertia(systemMOI);
+   if (isInitialized) CalculateMassProperties(nextTanks, nextMass, nextCenter, nextInertia);
+   if (!std::isfinite(nextMass) || nextMass < 0.0)
+      throw SpaceObjectException("Propulsion replacement has an invalid total mass.");
+
+   for (auto &object : created) object->SetCloneOwner(this);
+   // Everything that can reject/allocate is prepared. Publish containers and
+   // retained thruster links before disposing any displaced owned component.
+   tankNames.swap(nextTankNames);
+   thrusterNames.swap(nextThrusterNames);
+   tanks.swap(nextTanks);
+   thrusters.swap(nextThrusters);
+   for (auto &link : links) link.first->tanks.swap(link.second);
+   for (const auto &pair : replacements) covariance.RebindOwner(pair.first, pair.second);
+   externalStmSources.swap(nextStm);
+   solveforEstimatedParams.swap(nextEstimated);
+   totalMass = nextMass;
+   for (Integer i = 0; i < 3; ++i)
+   {
+      systemCM[i] = nextCenter[i];
+      for (Integer j = 0; j < 3; ++j) systemMOI(i, j) = nextInertia(i, j);
+   }
+   parmsChanged = true;
+   for (auto &object : created) object.release();
+   for (auto *object : retire) dispose(object);
+}
+
+//---------------------------------------------------------------------------
+//  bool SetStringParameter(const Integer id, const std::string &value)
 //---------------------------------------------------------------------------
 bool Spacecraft::SetStringParameter(const Integer id, const std::string &value)
 {
+   if (id == ORBIT_PARAMETER_ACCESS)
+   {
+      if (value != "Native" && value != "Worksheet")
+         throw SpaceObjectException("Invalid OrbitParameterAccess '" + value +
+            "' for Spacecraft '" + GetName() + "'; expected Native or Worksheet.");
+      orbitParameterAccess = value;
+      return true;
+   }
    #ifdef DEBUG_SC_SET_STRING
       MessageInterface::ShowMessage
          ("Spacecraft::SetStringParameter() string parameter %d (%s) to %s\n",
@@ -6733,7 +7210,8 @@ bool Spacecraft::SetStringParameter(const Integer id, const std::string &value)
             MessageInterface::ShowMessage("powerSystemName being set to %s......\n",
                   value.c_str());
       #endif
-      powerSystemName = value;
+      if (value.empty() || value == "None") ReplacePowerSystem("", nullptr);
+      else powerSystemName = value;
    }
    else if (id == MASS_PROPERTIES_TABLE_PATH_ID)
    {
@@ -7290,12 +7768,15 @@ const Rmatrix& Spacecraft::SetRmatrixParameter(const Integer id,
 {
    if (id == ORBIT_STM)
    {
+      auto stmReference = OrbitStmContext::Identity(value) ? OrbitStmContext::Capture(this) : OrbitStmContext::Get(this);
+      if (!OrbitStmContext::Identity(value)) stmReference.advanced = true;
       #ifdef DEBUG_STM
          MessageInterface::ShowMessage("Setting orbit STM\n");
       #endif
 //         orbitSTM = value;
 //         return orbitSTM;
       fullSTM = value;
+      OrbitStmContext::Commit(this, std::move(stmReference));
 
       return fullSTM;
    }
@@ -7313,10 +7794,13 @@ const Rmatrix& Spacecraft::SetRmatrixParameter(const Integer id,
 
    if (id == FULL_STM)
    {
+      auto stmReference = OrbitStmContext::Identity(value) ? OrbitStmContext::Capture(this) : OrbitStmContext::Get(this);
+      if (!OrbitStmContext::Identity(value)) stmReference.advanced = true;
       #ifdef DEBUG_STM
          MessageInterface::ShowMessage("Setting full STM\n");
       #endif
       fullSTM = value;
+      OrbitStmContext::Commit(this, std::move(stmReference));
 
       return fullSTM;
    }
@@ -7631,96 +8115,54 @@ bool Spacecraft::TakeAction(const std::string &action,
    if ((action == "RemoveHardware") || (action == "RemoveTank") ||
        (action == "RemoveThruster") || (action == "RemovePowerSystem"))
    {
-      bool removeTank     = true, removeThruster = true;
-      bool removePowerSys = true, removeAll      = false;
-      if (action == "RemoveTank")
+      const bool removeTank = action == "RemoveHardware" || action == "RemoveTank";
+      const bool removeThruster = action == "RemoveHardware" || action == "RemoveThruster";
+      const bool removePower = (action == "RemoveHardware" || action == "RemovePowerSystem") &&
+         (actionData.empty() || actionData == powerSystemName ||
+          (powerSystem && actionData == powerSystem->GetName()));
+      const auto previousContext = GetFunctionValueContext();
+      (void)previousContext;
+      StringArray wantedTanks(tankNames), wantedThrusters(thrusterNames);
+      const auto remove = [&](StringArray &names)
       {
-         removePowerSys = false;
-         removeThruster = false;
-      }
-      if (action == "RemoveThruster")
-      {
-         removePowerSys = false;
-         removeTank     = false;
-      }
-      if (action == "RemovePowerSystem")
-      {
-         removeThruster = false;
-         removeTank     = false;
-      }
-      if (actionData == "")
-         removeAll = true;
-
-      if (removePowerSys)
-      {
-         DeleteOwnedObjects(false, false, false, true, false);
-         powerSystem = NULL;
-//         powerSystemName = "";   // Is this correct?
-      }
-
-      if (removeThruster)
-      {
-         if (removeAll)
+         if (actionData.empty()) names.clear();
+         else names.erase(std::remove(names.begin(), names.end(), actionData), names.end());
+      };
+      if (removeTank) remove(wantedTanks);
+      if (removeThruster) remove(wantedThrusters);
+      if (removePower) ValidateHardwareRetirement(powerSystem, nullptr);
+      if (removeTank && !actionData.empty())
+         for (auto *object : thrusters)
          {
-            DeleteOwnedObjects(false, false, true, false, false);
-            thrusters.clear();
-            thrusterNames.clear();
+            auto *thruster = dynamic_cast<Thruster*>(object);
+            if (!thruster) throw SpaceObjectException("Incompatible owned thruster.");
+            if (std::find(wantedThrusters.begin(), wantedThrusters.end(), thruster->GetName()) != wantedThrusters.end() &&
+                std::find(thruster->tankNames.begin(), thruster->tankNames.end(), actionData) != thruster->tankNames.end())
+               throw SpaceObjectException("Cannot remove tank still declared by thruster: " + thruster->GetName());
          }
-         else
+      if (removeTank || removeThruster)
+      {
+         const bool pending = !isInitialized;
+         ReplacePropulsionHardware(wantedTanks, ResolvePropulsionSources(wantedTanks, tanks, nullptr, pending),
+            wantedThrusters, ResolvePropulsionSources(wantedThrusters, thrusters, nullptr, pending), pending);
+      }
+      // No rejected propulsion update can remove the power system first.
+      if (removePower)
+      {
+         PowerSystem *previous = powerSystem;
+         powerSystem = nullptr;
+         powerSystemName.clear();
+         parmsChanged = true;
+         if (previous)
          {
-            for (StringArray::iterator i = thrusterNames.begin();
-                 i != thrusterNames.end(); ++i)
-               if (*i == actionData)
-                  thrusterNames.erase(i);
-            for (ObjectArray::iterator i = thrusters.begin();
-                 i != thrusters.end(); ++i)
-               if ((*i)->GetName() == actionData)
-               {
-                  GmatBase *thr = (*i);
-                  thrusters.erase(i);
-                  #ifdef DEBUG_MEMORY
-                  MemoryTracker::Instance()->Remove
-                     (*i, (*i)->GetName(), "Spacecraft::TakeAction()",
-                      "deleting cloned Thruster", this);
-                  #endif
-                  delete thr;
-               }
+            #ifdef DEBUG_MEMORY
+               try { MemoryTracker::Instance()->Remove(previous, previous->GetName(),
+                  "Spacecraft::TakeAction", "retiring removed power system", this); }
+               catch (...) {}
+            #endif
+            delete previous;
          }
       }
-
-      if (removeTank)
-      {
-         if (removeAll)
-         {
-            DeleteOwnedObjects(false, true, true, false, false);
-            tanks.clear();
-            tankNames.clear();
-         }
-         else
-         {
-            for (StringArray::iterator i = tankNames.begin();
-                 i != tankNames.end(); ++i)
-               if (*i == actionData)
-                  tankNames.erase(i);
-            for (ObjectArray::iterator i = tanks.begin();
-                 i != tanks.end(); ++i)
-               if ((*i)->GetName() == actionData)
-               {
-                  GmatBase *tnk = (*i);
-                  tanks.erase(i);
-                  #ifdef DEBUG_MEMORY
-                  MemoryTracker::Instance()->Remove
-                     (*i, (*i)->GetName(), "Spacecraft::TakeAction()",
-                      "deleting cloned Tanks", this);
-                  #endif
-                  delete tnk;
-               }
-         }
-      }
-
-      #ifdef DEBUG_SC_REF_OBJECT
-      MessageInterface::ShowMessage("Leaviong SC::TakeAction with true\n");
-      #endif
       return true;
    }
 
@@ -7773,7 +8215,7 @@ bool Spacecraft::TakeAction(const std::string &action,
                   MessageInterface::ShowMessage("    and current input state is: %12.10f   %12.10f      %12.10f   %12.10f   %12.10f   %12.10f\n",
                         state[0], state[1], state[2], state[3], state[4], state[5]);
                #endif
-               convertedState = GetStateInRepresentation(stateType, true); // will use defaultCartesian for the state here
+               convertedState = GetStateInRepresentation(stateType, true, true); // use defaultCartesian with the input epoch's rotation
 //               convertedState = StateConversionUtil::Convert(originMu, defaultCartesian, "Cartesian", stateType);
                #ifdef DEBUG_SPACECRAFT_CS
                   MessageInterface::ShowMessage("    state converted to %s is: %s\n", stateType.c_str(), (convertedState.ToString()).c_str());
@@ -7894,6 +8336,7 @@ bool Spacecraft::TakeAction(const std::string &action,
 
    if (action == "ResetSTM")
    {
+      const auto reference = OrbitStmContext::Capture(this);
       for (Integer i = 0; i < fullSTMRowCount; ++i)
       {
          fullSTM(i,i) = 1.0;
@@ -7902,6 +8345,7 @@ bool Spacecraft::TakeAction(const std::string &action,
             fullSTM(i,j) = fullSTM(j,i) = 0.0;
          }
       }
+      OrbitStmContext::Commit(this, reference);
    }
 
    if (action == "ResetAMatrix")
@@ -7976,6 +8420,8 @@ UnsignedInt Spacecraft::GetPropertyObjectType(const Integer id) const
    }
    switch (id)
    {
+   case ATTITUDE:
+      return Gmat::ATTITUDE;
    case COORD_SYS_ID:
       return Gmat::COORDINATE_SYSTEM;
    case FUEL_TANK_ID:
@@ -8002,6 +8448,11 @@ UnsignedInt Spacecraft::GetPropertyObjectType(const Integer id) const
 //---------------------------------------------------------------------------
 const StringArray& Spacecraft::GetPropertyEnumStrings(const Integer id) const
 {
+   if (id == ORBIT_PARAMETER_ACCESS)
+   {
+      static const StringArray accessModes = {"Native", "Worksheet"};
+      return accessModes;
+   }
    static StringArray enumStrings;
    switch (id)
    {
@@ -8085,6 +8536,18 @@ bool Spacecraft::Validate()
 //---------------------------------------------------------------------------
 bool Spacecraft::Initialize()
 {
+   return InitializeResource(!GetFunctionValueContext());
+}
+
+bool Spacecraft::InitializeClonedResource()
+{
+   return InitializeResource(false);
+}
+
+bool Spacecraft::InitializeResource(bool rebuildHardwareReferences)
+{
+   // A rejected or incomplete initialization cannot leave stale readiness.
+   isInitialized = false;
    #ifdef DEBUG_SPACECRAFT_CS
    MessageInterface::ShowMessage
       ("Spacecraft::Initialize() entered ---------- this=<%p> '%s'\n   "
@@ -8107,6 +8570,19 @@ bool Spacecraft::Initialize()
       if (!coordinateSystem)
       {
          throw SpaceObjectException("Spacecraft has empty coordinate system");
+      }
+
+      // Resolve declarations at the native initialization boundary. Incremental
+      // cold binding may have arrived before its tanks or solar system.
+      ResolvePropulsionSources(tankNames, tanks, nullptr, false);
+      ResolvePropulsionSources(thrusterNames, thrusters, nullptr, false);
+      AttachTanksToThrusters();
+      for (auto *object : thrusters)
+      {
+         auto *thruster = dynamic_cast<Thruster*>(object);
+         if (!thruster || (!solarSystem && thruster->usingLocalCoordSys))
+            throw SpaceObjectException("A local thruster requires a solar system before initialization.");
+         thruster->SetSolarSystem(solarSystem);
       }
 
       // Initialize mass properties
@@ -8149,7 +8625,9 @@ bool Spacecraft::Initialize()
                spiceAttitude->SetStringParameter("FrameKernelName", frameSpiceKernelNames[ii], ii);
          }
    #endif
-         attitude->Initialize();
+         const bool attitudeReady = rebuildHardwareReferences ? attitude->Initialize() :
+               attitude->InitializeClonedResource();
+         if (!attitudeReady) return false;
          #ifdef DEBUG_SC_ATTITUDE
             MessageInterface::ShowMessage(
             "***Finished initializing attitude object for spacecraft %s\n",
@@ -8293,7 +8771,8 @@ bool Spacecraft::Initialize()
       #endif
 
       // Set the hardware interconnections
-      for (ObjectArray::iterator i=hardwareList.begin(); i!=hardwareList.end(); ++i)
+      for (ObjectArray::iterator i=hardwareList.begin();
+           rebuildHardwareReferences && i!=hardwareList.end(); ++i)
       {
          if ((*i)->IsOfType(Gmat::HARDWARE))
          {
@@ -8369,7 +8848,12 @@ bool Spacecraft::Initialize()
          thrusters[i]->Initialize();
       }
 
-      if (powerSystem) powerSystem->Initialize();
+      if (powerSystem)
+      {
+         const bool powerReady = rebuildHardwareReferences ? powerSystem->Initialize() :
+               powerSystem->InitializeClonedResource();
+         if (!powerReady) return false;
+      }
 
       ////// Set size for STM matrix
       //////MessageInterface::ShowMessage("*****  spacecraft = <%s>, plateList.size() = %d\n", GetName().c_str(), plateList.size());
@@ -8404,6 +8888,7 @@ bool Spacecraft::Initialize()
       GetCoordinateSystemTransformMatrix();
       isCSTransformMatrixSet = true;
 
+      if (rebuildHardwareReferences) SetCloneNotificationsEnabled(true);
       isInitialized = true;
       retval = true;
    }
@@ -9175,6 +9660,209 @@ bool Spacecraft::HasLocalClones()
 
 
 //------------------------------------------------------------------------------
+// Owned component clone update helpers
+//------------------------------------------------------------------------------
+GmatBase *Spacecraft::FindOwnedClone(const GmatBase &source) const
+{
+   ObjectArray candidates;
+   if (source.IsOfType(Gmat::FUEL_TANK)) candidates = tanks;
+   else if (source.IsOfType(Gmat::THRUSTER)) candidates = thrusters;
+   else if (source.IsOfType(Gmat::POWER_SYSTEM)) { if (powerSystem) candidates.push_back(powerSystem); }
+   else if (source.IsOfType(Gmat::PLATE)) candidates = plateList;
+   else if (source.IsOfType(Gmat::HARDWARE)) candidates = hardwareList;
+   GmatBase *selected = nullptr;
+   for (auto *candidate : candidates)
+      if (candidate && (candidate == &source || candidate->IsCloneOf(source)))
+      {
+         if (selected && selected != candidate)
+            throw SpaceObjectException("Ambiguous owned clone update: " + source.GetName());
+         selected = candidate;
+      }
+   if (selected && (typeid(*selected) != typeid(source) || selected->GetTypeName() != source.GetTypeName()))
+      throw SpaceObjectException("Owned clone update requires the same concrete type: " + source.GetName());
+   return selected;
+}
+
+void Spacecraft::UpdateOwnedClone(GmatBase *target, const GmatBase &source, Integer parameterId)
+{
+   const auto previous = target->GetFunctionValueContext();
+   const auto sourceContext = source.GetFunctionValueContext();
+   (void)sourceContext;
+   std::unique_ptr<GmatBase> prepared;
+   {
+      // This is an owned component copy. Reconnect its owner graph here rather
+      // than invoking a completed public-root copy hook from a native leaf.
+      GmatBase::FunctionValueCopyGuard copy;
+      prepared.reset((parameterId < 0 ? &source : target)->Clone());
+   }
+   if (!prepared || prepared.get() == target || prepared.get() == &source)
+   {
+      if (prepared.get() == target || prepared.get() == &source) prepared.release();
+      throw SpaceObjectException("Owned clone update did not create a distinct value.");
+   }
+   if (typeid(*prepared) != typeid(*target) || prepared->GetTypeName() != target->GetTypeName())
+      throw SpaceObjectException("Owned clone update changed its concrete type.");
+   if (parameterId >= 0) prepared->CopyParameter(source, parameterId);
+   prepared->SetName(target->GetName());
+   prepared->SetFullName(target->GetFullName());
+   ObjectArray retained;
+   auto *thruster = dynamic_cast<Thruster*>(prepared.get());
+   auto *power = dynamic_cast<PowerSystem*>(prepared.get());
+   auto *solar = dynamic_cast<SolarPowerSystem*>(prepared.get());
+   if (thruster)
+   {
+      auto *prior = dynamic_cast<Thruster*>(target);
+      thruster->RetireLocalCoordinateSystem();
+      const auto frame = coordSysMap.find(thruster->coordSystemName);
+      if (thruster->coordSystemName == prior->coordSystemName && prior->coordSystem)
+         thruster->coordSystem = prior->coordSystem;
+      else if (frame != coordSysMap.end()) thruster->coordSystem = frame->second;
+      else if (thruster->coordSystem && thruster->coordSystem->GetName() != thruster->coordSystemName)
+         thruster->coordSystem = nullptr;
+      const auto body = [&](const std::string &name, const std::string &oldName,
+                            CelestialBody *old, CelestialBody *current)
+      {
+         if (name == oldName && old) return old;
+         if (current && current->GetName() == name) return current;
+         return solarSystem ? solarSystem->GetBody(name) : nullptr;
+      };
+      thruster->localOrigin = body(thruster->localOriginName, prior->localOriginName,
+                                   prior->localOrigin, thruster->localOrigin);
+      thruster->j2000Body = body(thruster->j2000BodyName, prior->j2000BodyName,
+                                 prior->j2000Body, thruster->j2000Body);
+      thruster->solarSystem = solarSystem;
+      thruster->spacecraft = this;
+      thruster->satName = GetName();
+      thruster->tanks = thruster->ResolveTankReferences(tanks, !isInitialized);
+      if (parameterId < 0 || source.GetParameterText(parameterId) != "IsFiring")
+         thruster->thrusterFiring = prior->thrusterFiring;
+      if (thruster->thrusterFiring && !thruster->tankNames.empty() && thruster->tanks.empty())
+         throw SpaceObjectException("A firing thruster cannot have unresolved tank bindings.");
+      retained = {this, thruster->coordSystem, thruster->localOrigin, thruster->j2000Body};
+      retained.insert(retained.end(), thruster->tanks.begin(), thruster->tanks.end());
+   }
+   if (power)
+   {
+      auto *prior = dynamic_cast<PowerSystem*>(target);
+      power->solarSystem = solarSystem;
+      power->spacecraft = this;
+      power->scOrigin = GetOrigin();
+      power->sun = prior->solarSystem == solarSystem && prior->sun ? prior->sun :
+         (solarSystem ? solarSystem->GetBody("Sun") : nullptr);
+      if (power->sun) power->sunRadius = power->sun->GetEquatorialRadius();
+      retained = {this, power->scOrigin, power->sun};
+      if (solar)
+      {
+         auto *old = dynamic_cast<SolarPowerSystem*>(target);
+         if (isInitialized && solar->shadowBodyNames.empty() && !solar->settingNoBodies)
+            solar->shadowBodyNames = solar->defaultShadowBodyNames;
+         std::vector<CelestialBody*> selected;
+         for (const auto &name : solar->shadowBodyNames)
+         {
+            CelestialBody *body = nullptr;
+            for (auto *candidate : old->shadowBodies)
+               if (candidate && candidate->GetName() == name)
+               {
+                  if (body && body != candidate) throw SpaceObjectException("Ambiguous owned solar shadow body.");
+                  body = candidate;
+               }
+            if (!body)
+               for (auto *candidate : solar->shadowBodies)
+                  if (candidate && candidate->GetName() == name) body = candidate;
+            if (!body && solarSystem) body = solarSystem->GetBody(name);
+            if (!body && isInitialized) throw SpaceObjectException("Unbound solar shadow body: " + name);
+            if (body) selected.push_back(body);
+         }
+         solar->shadowBodies.swap(selected);
+         retained.insert(retained.end(), solar->shadowBodies.begin(), solar->shadowBodies.end());
+      }
+   }
+   if (prepared->IsOfType(Gmat::RF_HARDWARE))
+   {
+      const std::string name = prepared->GetStringParameter("PrimaryAntenna");
+      GmatBase *antenna = nullptr;
+      for (auto *candidate : hardwareList)
+         if (candidate && candidate->GetName() == name)
+         {
+            if (!candidate->IsOfType("Antenna") || (antenna && antenna != candidate))
+               throw SpaceObjectException("Ambiguous or incompatible owned primary antenna: " + name);
+            antenna = candidate;
+         }
+      if (!antenna && isInitialized) throw SpaceObjectException("Unbound owned primary antenna: " + name);
+      if (!prepared->SetRefObject(antenna, Gmat::HARDWARE, name))
+         throw SpaceObjectException("Cannot bind owned primary antenna: " + name);
+      retained.push_back(antenna);
+   }
+   if (isInitialized)
+   {
+      if (prepared->GetTypeName() == "Transmitter" && prepared->GetStringParameter("ReferenceEpoch") == "FromSpacecraft")
+      {
+         prepared->SetStringParameter("ReferenceEpoch", GetEpochString());
+         prepared->SetStringParameter("EpochFormat", epochType);
+      }
+      const bool ready = power ? power->InitializeClonedResource() : prepared->Initialize();
+      if (!ready) throw SpaceObjectException("Cannot initialize updated owned component: " + target->GetName());
+   }
+   if (auto *hardware = dynamic_cast<Hardware*>(prepared.get())) hardware->isInitialized = isInitialized;
+   Real nextMass = totalMass;
+   Rvector3 nextCenter(systemCM);
+   Rmatrix33 nextInertia(systemMOI);
+   if (prepared->IsOfType(Gmat::FUEL_TANK))
+   {
+      ObjectArray proposed(tanks);
+      for (auto &tank : proposed) if (tank == target) tank = prepared.get();
+      if (isInitialized) CalculateMassProperties(proposed, nextMass, nextCenter, nextInertia);
+      else nextMass = CalculateTotalMass(proposed);
+      if (!std::isfinite(nextMass) || nextMass < 0.0)
+         throw SpaceObjectException("Updated tank produces an invalid spacecraft mass.");
+   }
+   prepared->RetainFunctionValueReferences(previous, retained);
+   try
+   {
+      GmatBase::FunctionValueCopyGuard copy;
+      target->Copy(prepared.get()); // Concrete virtual copy; retain target identity.
+      if (thruster)
+      {
+         auto *actual = dynamic_cast<Thruster*>(target);
+         actual->spacecraft = this;
+         std::swap(actual->localCoordSystem, thruster->localCoordSystem);
+         actual->isInitialized = thruster->isInitialized;
+      }
+      if (power)
+      {
+         auto *actual = dynamic_cast<PowerSystem*>(target);
+         actual->solarSystem = power->solarSystem;
+         actual->spacecraft = this;
+         actual->scOrigin = power->scOrigin;
+         actual->sun = power->sun;
+         actual->isInitialized = power->isInitialized;
+         if (solar)
+         {
+            auto *actualSolar = dynamic_cast<SolarPowerSystem*>(target);
+            std::swap(actualSolar->shadowState, solar->shadowState);
+         }
+      }
+      if (auto *hardware = dynamic_cast<Hardware*>(target)) hardware->isInitialized = isInitialized;
+      target->RetainFunctionValueReferences(previous, retained);
+   }
+   catch (...)
+   {
+      // The concrete native copy may allocate. A failed publication is never
+      // advertised as initialized; caller error handling stops that update.
+      isInitialized = false;
+      throw;
+   }
+   totalMass = nextMass;
+   for (Integer i = 0; i < 3; ++i)
+   {
+      systemCM[i] = nextCenter[i];
+      for (Integer j = 0; j < 3; ++j) systemMOI(i,j) = nextInertia(i,j);
+   }
+   parmsChanged = true;
+   if (isInitialized && !target->IsInitialized()) isInitialized = false;
+}
+
+//------------------------------------------------------------------------------
 // void UpdateClonedObject(GmatBase *obj)
 //------------------------------------------------------------------------------
 /**
@@ -9185,100 +9873,29 @@ bool Spacecraft::HasLocalClones()
 //------------------------------------------------------------------------------
 void Spacecraft::UpdateClonedObject(GmatBase *obj)
 {
+   if (!obj) throw SpaceObjectException("Cannot update an owned clone from a null source.");
    #ifdef DEBUG_CLONES
       MessageInterface::ShowMessage("***Spacecraft clone update for %s on %s\n",
             obj->GetName().c_str(), instanceName.c_str());
    #endif
 
-   if (obj->IsOfType(Gmat::HARDWARE))
+   if (obj->IsOfType(Gmat::HARDWARE) || obj->IsOfType(Gmat::PLATE))
    {
-      UnsignedInt objType = obj->GetType();
-
-      // updates for PowerSystem
-      if (objType == Gmat::POWER_SYSTEM)
-      {
-         if (powerSystem && (obj->GetName() == powerSystemName))
-         {
-            powerSystem->operator=((*(PowerSystem*) obj));
-            if (isInitialized)
-               isInitialized = powerSystem->IsInitialized();
-         }
-      }
-
-      // updates for fueltank
-      if (objType == Gmat::FUEL_TANK)
-      {
-         for (UnsignedInt i = 0; i < tanks.size(); ++i)
-         {
-            if (obj->GetName() == tanks[i]->GetName())
-            {
-               ((FuelTank*)tanks[i])->operator=(*((FuelTank*)obj));
-               // Update init flag
-               if (isInitialized)
-                  isInitialized = tanks[i]->IsInitialized();
-            }
-         }
-      }
-
-      // updates for thruster
-      if (objType == Gmat::THRUSTER)
-      {
-         {
-            for (UnsignedInt i = 0; i < thrusters.size(); ++i)
-               if (obj->GetName() == thrusters[i]->GetName())
-               {
-                  // Buffer the isFiring flag for the thruster
-                  bool active = thrusters[i]->GetBooleanParameter("IsFiring");
-
-                  ((Thruster*)thrusters[i])->operator=(*((Thruster*)obj));
-                  // Update init flag
-                  if (isInitialized)
-                  {
-                     isInitialized = thrusters[i]->IsInitialized();
-                  }
-
-                  thrusters[i]->SetBooleanParameter("IsFiring", active);
-               }
-         }
-      }
-
-      if (objType == Gmat::PLATE)
-      {
-         std::string name = obj->GetName();
-         for (UnsignedInt i = 0; i < plateList.size(); ++i)
-         {
-            if (name == plateList[i]->GetName())
-            {
-               ((Plate*)plateList[i])->operator=(*((Plate*)obj));
-               // Update init flag
-               if (isInitialized)
-                  isInitialized = plateList[i]->IsInitialized();
-            }
-         }
-      }
-
-      // updates for other hardware
-      if (obj->GetType() == Gmat::HARDWARE)
-      {
-         // Needs to be watched to be sure hardware uses operator= correctly
-         for (UnsignedInt i = 0; i < hardwareList.size(); ++i)
-            if (obj->GetName() == hardwareList[i]->GetName())
-            {
-               ((Hardware*)hardwareList[i])->operator =(*((Hardware*)obj));
-               // Update init flag
-               if (isInitialized)
-                  isInitialized = hardwareList[i]->IsInitialized();
-            }
-      }
+      if (auto *target = FindOwnedClone(*obj)) UpdateOwnedClone(target, *obj, -1);
+      return;
    }
-
-
-
-
 
    if (obj->IsOfType(Gmat::ATTITUDE))
    {
+      if (!attitude || (obj != attitude && !attitude->IsCloneOf(*obj))) return;
+      if (obj == attitude)
+      {
+         attitude->NeedsReinitialization();
+         isInitialized = false;
+         return;
+      }
       Attitude *newAtt = (Attitude*) (obj->Clone());
+      newAtt->SetCloneSource(obj);
 //      attitude = (Attitude*)(obj->Clone());
       bool attitudeOK = SetAttitudeAndCopyData(attitude, newAtt, true);
       if (!attitudeOK)
@@ -9304,50 +9921,18 @@ void Spacecraft::UpdateClonedObject(GmatBase *obj)
 void Spacecraft::UpdateClonedObjectParameter(GmatBase *obj,
       Integer updatedParameterId)
 {
+   if (!obj) throw SpaceObjectException("Cannot update an owned clone from a null source.");
+   if (updatedParameterId < 0) throw SpaceObjectException("An owned property update requires a valid parameter ID.");
    #ifdef DEBUG_CLONES
       MessageInterface::ShowMessage("Spacecraft::UpdateClonedObject(%s) "
             "called\n", obj->GetName().c_str());
    #endif
 
-   GmatBase *theClone = NULL;
-
-   if (obj->IsOfType(Gmat::HARDWARE))
+   if (obj->IsOfType(Gmat::HARDWARE) || obj->IsOfType(Gmat::PLATE))
    {
-      UnsignedInt objType = obj->GetType();
-
-      // updates for fueltank
-      if (objType == Gmat::FUEL_TANK)
-         for (UnsignedInt i = 0; i < tanks.size(); ++i)
-            if (obj->GetName() == tanks[i]->GetName())
-               theClone = tanks[i];
-
-      // updates for thruster
-      if (objType == Gmat::THRUSTER)
-         for (UnsignedInt i = 0; i < thrusters.size(); ++i)
-            if (obj->GetName() == thrusters[i]->GetName())
-               theClone = thrusters[i];
-
-      // updates for Power System
-      if (objType == Gmat::POWER_SYSTEM)
-         if (powerSystem && (obj->GetName() == powerSystemName))
-            theClone = powerSystem;
-
-      // updates for other hardware
-      if (objType == Gmat::HARDWARE)
-         for (UnsignedInt i = 0; i < hardwareList.size(); ++i)
-            if (obj->GetName() == hardwareList[i]->GetName())
-               theClone = hardwareList[i];
+      if (auto *target = FindOwnedClone(*obj)) UpdateOwnedClone(target, *obj, updatedParameterId);
+      return;
    }
-
-   if (obj->IsOfType(Gmat::PLATE))
-   {
-      for (UnsignedInt i = 0; i < plateList.size(); ++i)
-         if (obj->GetName() == plateList[i]->GetName())
-            theClone = plateList[i];
-   }
-
-   if (theClone != NULL)
-      theClone->CopyParameter(*obj, updatedParameterId);
 
    if (obj->IsOfType(Gmat::ATTITUDE))
       UpdateClonedObject(obj);
@@ -9482,14 +10067,20 @@ void Spacecraft::InitializeMassProperties()
 //------------------------------------------------------------------------------
 void Spacecraft::UpdateMassProperties()
 {
+   CalculateMassProperties(tanks, totalMass, systemCM, systemMOI);
+}
+
+void Spacecraft::CalculateMassProperties(const ObjectArray &selectedTanks, Real &mass,
+                                        Rvector3 &center, Rmatrix33 &inertia)
+{
    #ifdef DEBUG_MASS_PROPERTIES_MODEL
    MessageInterface::ShowMessage
       ("Spacecraft::UpdateMassProperties() <%p>'%s' entered, dryMass=%f\n",
        this, GetName().c_str(), dryMass);
    #endif
 
-   // initialize mass; if no tanks totalMass = dryMass
-   totalMass = CalculateTotalMass();
+   // initialize mass; if no selectedTanks mass = dryMass
+   mass = CalculateTotalMass(selectedTanks);
 
    if (massPropertiesModeled == "None")
       return;
@@ -9499,13 +10090,13 @@ void Spacecraft::UpdateMassProperties()
       if ((massPropertiesModeled == "CenterOfMass") ||
           (massPropertiesModeled =="CenterOfMassAndMomentOfInertia"))
       {
-         systemCM = LookupSystemCM(totalMass);
+         center = LookupSystemCM(mass);
       }
 
       if ((massPropertiesModeled == "MomentOfInertia") ||
           (massPropertiesModeled =="CenterOfMassAndMomentOfInertia"))
       {
-         systemMOI = LookupSystemMOI(totalMass);
+         inertia = LookupSystemMOI(mass);
       }
    }
    else if (massPropertiesModelType == "Analytic")
@@ -9513,13 +10104,13 @@ void Spacecraft::UpdateMassProperties()
       if ((massPropertiesModeled == "CenterOfMass") ||
          (massPropertiesModeled == "CenterOfMassAndMomentOfInertia"))
       {
-         systemCM = CalculateSystemCenterOfMass();
+         center = CalculateSystemCenterOfMass(selectedTanks);
       }
 
       if ((massPropertiesModeled == "MomentOfInertia") ||
          (massPropertiesModeled == "CenterOfMassAndMomentOfInertia"))
       {
-         systemMOI = CalculateSystemMOI();
+         inertia = CalculateSystemMOI(selectedTanks);
       }
    }
    else
@@ -9532,29 +10123,29 @@ void Spacecraft::UpdateMassProperties()
    }
 
    /*
-   if (tanks.size() > 0)
+   if (selectedTanks.size() > 0)
    {
       // mass
       // center of mass
-      systemCM = dryMass*dryCM;
-      for (ObjectArray::iterator i = tanks.begin(); i < tanks.end(); ++i)
+      center = dryMass*dryCM;
+      for (ObjectArray::iterator i = selectedTanks.begin(); i < selectedTanks.end(); ++i)
       {
-         systemCM += ((FuelTank*)(*i))->GetFuelMass() *
+         center += ((FuelTank*)(*i))->GetFuelMass() *
                      ((FuelTank*)(*i))->GetFuelCM_BCS();
       }
-      systemCM = systemCM / totalMass;
+      center = center / mass;
 
       //moment of inertia
 
-      // compute dry body CM around systemCM (instead of dryCM)
-      Rvector3 r = dryCM - systemCM;
+      // compute dry body CM around center (instead of dryCM)
+      Rvector3 r = dryCM - center;
       Rmatrix33 I33(true);
-      systemMOI += dryMass * ( (r*r) * I33 - Outerproduct(r,r));
+      inertia += dryMass * ( (r*r) * I33 - Outerproduct(r,r));
 
       // add in fuel contributions
-      for (ObjectArray::iterator i = tanks.begin(); i < tanks.end(); ++i)
+      for (ObjectArray::iterator i = selectedTanks.begin(); i < selectedTanks.end(); ++i)
       {
-         systemMOI += ((FuelTank*)(*i))->GetFuelMOI_BCS(systemCM);
+         inertia += ((FuelTank*)(*i))->GetFuelMOI_BCS(center);
       }
 
    }
@@ -9562,7 +10153,7 @@ void Spacecraft::UpdateMassProperties()
    #ifdef DEBUG_MASS_PROPERTIES_MODEL
    MessageInterface::ShowMessage
       ("Spacecraft::UpdateMassProperties() <%p>'%s' returning %f\n", this,
-       GetName().c_str(), totalMass);
+       GetName().c_str(), mass);
    #endif
 
 }
@@ -9582,15 +10173,20 @@ void Spacecraft::UpdateMassProperties()
 //------------------------------------------------------------------------------
 Real Spacecraft::CalculateTotalMass() const
 {
+   return CalculateTotalMass(tanks);
+}
+
+Real Spacecraft::CalculateTotalMass(const ObjectArray &selectedTanks) const
+{
    #ifdef DEBUG_UPDATE_TOTAL_MASS
    MessageInterface::ShowMessage
       ("Spacecraft::UpdateTotalMass() const <%p>'%s' entered, dryMass=%f, "
        "attached tank count = %d\n", this, GetName().c_str(), dryMass,
-       tanks.size());
+       selectedTanks.size());
    #endif
 
    Real tmass = dryMass;
-   for (ObjectArray::const_iterator i = tanks.begin(); i < tanks.end(); ++i)
+   for (ObjectArray::const_iterator i = selectedTanks.begin(); i < selectedTanks.end(); ++i)
    {
       tmass += (*i)->GetRealParameter("FuelMass");
    }
@@ -9619,16 +10215,21 @@ Real Spacecraft::CalculateTotalMass() const
 //------------------------------------------------------------------------------
 Rvector3 Spacecraft::CalculateSystemCenterOfMass() const
 {
+   return CalculateSystemCenterOfMass(tanks);
+}
+
+Rvector3 Spacecraft::CalculateSystemCenterOfMass(const ObjectArray &selectedTanks) const
+{
    #ifdef DEBUG_UPDATE_SYSTEM_CENTER_OF_MASS
    MessageInterface::ShowMessage
       ("Spacecraft::UpdateSystemCenterOfMass() const <%p>'%s' entered, "
        "attached tank count = %d\n",
-       this, GetName().c_str(), tanks.size());
+       this, GetName().c_str(), selectedTanks.size());
    #endif
 
 
    // tmass is used in computing CM as a weighted average
-   Real tmass = CalculateTotalMass();
+   Real tmass = CalculateTotalMass(selectedTanks);
 
    #ifdef DEBUG_UPDATE_SYSTEM_CENTER_OF_MASS
    MessageInterface::ShowMessage
@@ -9642,16 +10243,16 @@ Rvector3 Spacecraft::CalculateSystemCenterOfMass() const
 
    /* bug [or C++ feature; moving this loop from non-const to const function
     * caused the iterator not to work as it had originally
-   for (ObjectArray::iterator i = tanks.begin(); i < tanks.end(); ++i)
+   for (ObjectArray::iterator i = selectedTanks.begin(); i < selectedTanks.end(); ++i)
    {
       sum += ((FuelTank*)(*i))->GetFuelMass() * ((FuelTank*)(*i))->GetFuelCM_BCS();
    }
    */
 
-   for (int i = 0; i < tanks.size(); i++)
+   for (int i = 0; i < selectedTanks.size(); i++)
    {
-      sum += ((FuelTank *)tanks[i])->GetFuelMass() *
-             ((FuelTank *)tanks[i])->GetFuelCM_BCS();
+      sum += ((FuelTank *)selectedTanks[i])->GetFuelMass() *
+             ((FuelTank *)selectedTanks[i])->GetFuelCM_BCS();
    }
    Rvector3 centerOfMass = sum / tmass;
 
@@ -9681,18 +10282,23 @@ Rvector3 Spacecraft::CalculateSystemCenterOfMass() const
 //------------------------------------------------------------------------------
 Rmatrix33 Spacecraft::CalculateSystemMOI() const
 {
+   return CalculateSystemMOI(tanks);
+}
+
+Rmatrix33 Spacecraft::CalculateSystemMOI(const ObjectArray &selectedTanks) const
+{
    #ifdef DEBUG_UPDATE_SYSTEM_MOI
    MessageInterface::ShowMessage
       ("Spacecraft::UpdateSystemMOI() const <%p>'%s' entered, "
        "attached tank count = %d\n",
-       this, GetName().c_str(), tanks.size());
+       this, GetName().c_str(), selectedTanks.size());
        ///
    #endif
 
    Rmatrix33 moi = dryMOI;
-   if (tanks.size() > 0)
+   if (selectedTanks.size() > 0)
    {
-      Rvector3  cm = CalculateSystemCenterOfMass();
+      Rvector3  cm = CalculateSystemCenterOfMass(selectedTanks);
       Rvector3  r  = dryCM - cm;
       Rmatrix33 I33(true);
 
@@ -9701,9 +10307,9 @@ Rmatrix33 Spacecraft::CalculateSystemMOI() const
 
       // add in fuel contributions
 
-      for (int i = 0; i < tanks.size(); i++)
+      for (int i = 0; i < selectedTanks.size(); i++)
       {
-         moi += ((FuelTank *)tanks[i])->GetFuelMOI_BCS(cm);
+         moi += ((FuelTank *)selectedTanks[i])->GetFuelMOI_BCS(cm);
       }
 
    }
@@ -10051,6 +10657,7 @@ void Spacecraft::CloneOwnedObjects(Attitude *att, const ObjectArray &tnks,
       GmatBase *clonedPwrSys = pwrSys->Clone();
       if (clonedPwrSys)
       {
+         clonedPwrSys->SetCloneOwner(this);
          #ifdef DEBUG_SC_OWNED_OBJECT
          MessageInterface::ShowMessage
             ("Spacecraft::CloneOwnedObjects() cloning power system <%p>", pwrSys);
@@ -10071,6 +10678,7 @@ void Spacecraft::CloneOwnedObjects(Attitude *att, const ObjectArray &tnks,
       {
          // clone the tanks here
          GmatBase *clonedTank = (tnks[i])->Clone();
+         clonedTank->SetCloneOwner(this);
          tanks.push_back(clonedTank);
          #ifdef DEBUG_MEMORY
          MemoryTracker::Instance()->Add
@@ -10087,6 +10695,7 @@ void Spacecraft::CloneOwnedObjects(Attitude *att, const ObjectArray &tnks,
       {
          // clone the thrusters here
          GmatBase *clonedObj = (thrs[i])->Clone();
+         clonedObj->SetCloneOwner(this);
          thrusters.push_back(clonedObj);
          #ifdef DEBUG_MEMORY
          MemoryTracker::Instance()->Add
@@ -10139,7 +10748,15 @@ void Spacecraft::CloneOwnedObjects(Attitude *att, const ObjectArray &tnks,
       // If not found, clone otherHardware[i] and add to hardwareList
       if (j == hardwareList.size())
       {
-         hardwareList.push_back(otherHardware[i]->Clone());
+         std::unique_ptr<GmatBase> component(otherHardware[i]->Clone());
+         if (!component || component.get() == otherHardware[i])
+         {
+            if (component.get() == otherHardware[i]) component.release();
+            throw SpaceObjectException("Hardware Clone did not create an owned component.");
+         }
+         component->SetCloneOwner(this);
+         hardwareList.push_back(component.get());
+         component.release();
       }
    }
 }
@@ -10148,70 +10765,65 @@ void Spacecraft::CloneOwnedObjects(Attitude *att, const ObjectArray &tnks,
 //--------------------------------------------------------------------
 // void AttachTanksToThrusters()
 //--------------------------------------------------------------------
+ObjectArray Spacecraft::ResolvePropulsionSources(const StringArray &names, const ObjectArray &current,
+                                                 GmatBase *replacement, bool allowUnbound) const
+{
+   ObjectArray result;
+   result.reserve(names.size());
+   for (const auto &name : names)
+   {
+      GmatBase *selected = nullptr;
+      for (auto *candidate : current)
+         if (candidate && candidate->GetName() == name)
+         {
+            if (selected && selected != candidate)
+               throw SpaceObjectException("Ambiguous attached propulsion component: " + name);
+            selected = candidate;
+         }
+      if (replacement && replacement->GetName() == name) selected = replacement;
+      if (!selected && !allowUnbound)
+         throw SpaceObjectException("Unbound propulsion declaration: " + name);
+      result.push_back(selected);
+   }
+   return result;
+}
+
+void Spacecraft::ValidateHardwareRetirement(const GmatBase *previous, const GmatBase *replacement) const
+{
+   if (!previous || previous == replacement) return;
+   if (previous->IsOfType(Gmat::POWER_SYSTEM))
+      for (const auto *thruster : thrusters)
+         if (thruster && thruster->IsOfType("ElectricThruster") && thruster->GetBooleanParameter("IsFiring"))
+            throw SpaceObjectException("End the electric finite burn before replacing its power system.");
+   const bool referenced = covariance.HasOwner(previous) ||
+      std::find(externalStmSources.begin(), externalStmSources.end(), previous) != externalStmSources.end() ||
+      std::find(solveforEstimatedParams.begin(), solveforEstimatedParams.end(), previous) != solveforEstimatedParams.end();
+   if (referenced && (!replacement || replacement->GetName() != previous->GetName() ||
+                     replacement->GetTypeName() != previous->GetTypeName()))
+      throw SpaceObjectException("Remove estimation/STM references before removing or changing hardware type: " + previous->GetName());
+}
+
+void Spacecraft::RebindHardwareOwner(GmatBase *previous, GmatBase *replacement) noexcept
+{
+   if (!previous || previous == replacement) return;
+   covariance.RebindOwner(previous, replacement);
+   for (auto &object : externalStmSources) if (object == previous) object = replacement;
+   for (auto &object : solveforEstimatedParams) if (object == previous) object = replacement;
+}
+
 void Spacecraft::AttachTanksToThrusters()
 {
-   #ifdef DEBUG_SC_REF_OBJECT
-   MessageInterface::ShowMessage
-      ("Spacecraft::AttachTanksToThrusters() this=<%p>'%s' entered\n",
-       this, GetName().c_str());
-   #endif
-
-   // Attach tanks to thrusters
-   StringArray tankNommes;
-   GmatBase *tank;
-
-   #ifdef DEBUG_SC_REF_OBJECT
-   MessageInterface::ShowMessage
-      ("   tanks.size()=%d, thrusters.size()=%d\n", tanks.size(), thrusters.size());
-   #endif
-
-   for (ObjectArray::iterator i = thrusters.begin(); i < thrusters.end(); ++i)
+   std::vector<std::pair<Thruster*, std::vector<FuelTank*>>> links;
+   links.reserve(thrusters.size());
+   for (GmatBase *object : thrusters)
    {
-      tankNommes = (*i)->GetStringArrayParameter("Tank");
-
-      #ifdef DEBUG_SC_REF_OBJECT
-      MessageInterface::ShowMessage
-         ("   go through %d tank(s) in the thruster <%p>'%s'\n", tankNommes.size(),
-          (*i), (*i)->GetName().c_str());
-      #endif
-
-      for (StringArray::iterator j = tankNommes.begin();
-           j < tankNommes.end(); ++j)
-      {
-         // Look up the tank in the hardware list
-         #ifdef DEBUG_SC_REF_OBJECT
-         MessageInterface::ShowMessage
-            ("   Checking to see if '%s' is in the spacecraft tank list\n",
-             (*j).c_str());
-         #endif
-         tank = NULL;
-         for (ObjectArray::iterator k = tanks.begin(); k < tanks.end(); ++k)
-            if ((*k)->GetName() == *j)
-            {
-               tank = *k;
-               break;
-            }
-
-         if (tank)
-         {
-            #ifdef DEBUG_SC_REF_OBJECT
-            MessageInterface::ShowMessage
-               ("   Setting the tank <%p>'%s' to the thruster <%p>'%s'\n",
-                tank, tank->GetName().c_str(), (*i), (*i)->GetName().c_str());
-            #endif
-            (*i)->SetRefObject(tank, tank->GetType(), tank->GetName());
-         }
-         else
-            throw SpaceObjectException
-               ("Cannot find tank \"" + (*j) + "\" in spacecraft \"" +
-                instanceName + "\"\n");
-      }
+      auto *thruster = dynamic_cast<Thruster*>(object);
+      if (!thruster) throw SpaceObjectException("Incompatible thruster owned by spacecraft " + instanceName);
+      // A cloned thruster can still contain source/previous-owner pointers.
+      // Resolve by its configured tank names without dereferencing that cache.
+      links.emplace_back(thruster, thruster->ResolveTankReferences(tanks));
    }
-
-   #ifdef DEBUG_SC_REF_OBJECT
-   MessageInterface::ShowMessage
-      ("Spacecraft::AttachTanksToThrusters() exiting\n");
-   #endif
+   for (auto &link : links) link.first->tanks.swap(link.second);
 }
 
 
@@ -10221,6 +10833,21 @@ void Spacecraft::AttachTanksToThrusters()
 bool Spacecraft::SetHardware(GmatBase *obj, StringArray &hwNames,
                              ObjectArray &hwArray)
 {
+   if (&hwArray == &tanks || &hwArray == &thrusters)
+   {
+      if (!obj || (&hwArray == &tanks ? !obj->IsOfType(Gmat::FUEL_TANK) : !obj->IsOfType(Gmat::THRUSTER)))
+         throw SpaceObjectException("Incompatible native propulsion attachment.");
+      if (std::find(hwNames.begin(), hwNames.end(), obj->GetName()) == hwNames.end() ||
+          std::find(hwArray.begin(), hwArray.end(), obj) != hwArray.end()) return true;
+      const bool pending = !isInitialized;
+      ReplacePropulsionHardware(tankNames,
+         ResolvePropulsionSources(tankNames, tanks, &hwArray == &tanks ? obj : nullptr, pending),
+         thrusterNames,
+         ResolvePropulsionSources(thrusterNames, thrusters, &hwArray == &thrusters ? obj : nullptr, pending),
+         pending);
+      return true;
+   }
+
    std::string objType = obj->GetTypeName();
    std::string objName = obj->GetName();
 
@@ -10301,6 +10928,8 @@ bool Spacecraft::SetHardware(GmatBase *obj, StringArray &hwNames,
          // clone and push the hardware to the list
          GmatBase *clonedObj = obj->Clone();
          clonedObj->SetFullName(GetName() + "." + clonedObj->GetName());     // set full name. Ex: "Sat.Tranmitter1"
+         clonedObj->SetCloneSource(obj);
+         clonedObj->SetCloneOwner(this);
 
          #ifdef DEBUG_MEMORY
          MemoryTracker::Instance()->Add
@@ -10375,35 +11004,81 @@ bool Spacecraft::SetHardware(GmatBase *obj, StringArray &hwNames,
 //------------------------------------------------------------------------------
 bool Spacecraft::SetPowerSystem(GmatBase *obj, std::string &psName)
 {
-   #ifdef DEBUG_POWER_SYSTEM
-      MessageInterface::ShowMessage("Entering SetPowerSystem with obj <%p> and name %s\n",
-            obj, psName.c_str());
-   #endif
-   if (powerSystem != (PowerSystem*) obj)
+   if (!obj || !obj->IsOfType(Gmat::POWER_SYSTEM))
+      throw SpaceObjectException("Incompatible power-system attachment.");
+   if (obj->GetName() == psName) ReplacePowerSystem(psName, obj);
+   return true;
+}
+
+void Spacecraft::ReplacePowerSystem(const std::string &name, GmatBase *obj)
+{
+   const std::string requested = name == "None" ? std::string() : name;
+   auto *source = dynamic_cast<PowerSystem*>(obj);
+   if (obj && !source) throw SpaceObjectException("Incompatible power-system attachment.");
+   if ((source && !GmatStringUtil::IsValidIdentity(requested)) || (!source && !requested.empty()))
+      throw SpaceObjectException("A power-system name requires its actual source.");
+   if (source == powerSystem && requested == powerSystemName &&
+       (!source || source->GetName() == requested)) return;
+   if (!requested.empty())
+      for (const auto *names : {&tankNames, &thrusterNames, &hardwareNames, &plateNames})
+         if (std::find(names->begin(), names->end(), requested) != names->end())
+            throw SpaceObjectException("Power-system name conflicts with another attached component: " + requested);
+   std::string nextName(requested);
+   const auto previousContext = GetFunctionValueContext();
+   const auto sourceContext = source ? source->GetFunctionValueContext() : nullptr;
+   (void)previousContext;
+   (void)sourceContext;
+   const auto dispose = [this](GmatBase *object)
    {
-      if (powerSystemName == psName)
-      {
-         if (powerSystem) delete powerSystem;
-         powerSystem = (PowerSystem*) obj->Clone();
-         powerSystem->SetSolarSystem(solarSystem);
-         powerSystem->SetSpacecraft(this);
-      }
-      else
-      {
-         #ifdef DEBUG_SC_REF_OBJECT
-         MessageInterface::ShowMessage
-            ("   The name '%s' not found in list\n", psName.c_str());
-         #endif
-      }
-   }
-   else
-   {
-      #ifdef DEBUG_SC_REF_OBJECT
-      MessageInterface::ShowMessage
-         ("   The same %s <%p> found in pointer list\n", psName.c_str());
+      if (!object) return;
+      #ifdef DEBUG_MEMORY
+         try { MemoryTracker::Instance()->Remove(object, object->GetName(),
+            "Spacecraft::SetPowerSystem", "retiring power system", this); }
+         catch (...) {}
       #endif
+      delete object;
+   };
+   if (!source)
+   {
+      ValidateHardwareRetirement(powerSystem, nullptr);
+      PowerSystem *previous = powerSystem;
+      powerSystem = nullptr;
+      powerSystemName.swap(nextName);
+      parmsChanged = true;
+      dispose(previous);
+      return;
    }
-   return true;    // or false?
+   std::unique_ptr<GmatBase, decltype(dispose)> candidate(source->Clone(), dispose);
+   if (!candidate || candidate.get() == source)
+   {
+      if (candidate.get() == source) candidate.release();
+      throw SpaceObjectException("PowerSystem Clone did not return a new object.");
+   }
+   auto *prepared = dynamic_cast<PowerSystem*>(candidate.get());
+   if (!prepared || prepared->GetTypeName() != source->GetTypeName())
+      throw SpaceObjectException("PowerSystem Clone changed its native type.");
+   prepared->SetName(requested);
+   prepared->SetFullName(GetName() + "." + requested);
+   prepared->SetCloneSource(source == powerSystem ? source->GetCloneSource() : source);
+   #ifdef DEBUG_MEMORY
+      MemoryTracker::Instance()->Add(prepared, requested,
+         "Spacecraft::SetPowerSystem", "staged power system", this);
+   #endif
+   if (solarSystem) prepared->SetSolarSystem(solarSystem);
+   else if (isInitialized) throw SpaceObjectException("An initialized power system requires a solar system.");
+   prepared->SetSpacecraft(this);
+   if (isInitialized && !prepared->Initialize())
+      throw SpaceObjectException("Cannot initialize staged power system: " + requested);
+   ValidateHardwareRetirement(powerSystem, prepared);
+   prepared->SetCloneOwner(this);
+   PowerSystem *previous = powerSystem;
+   powerSystem = prepared;
+   powerSystemName.swap(nextName);
+   RebindHardwareOwner(previous, prepared);
+   candidate.release();
+   parmsChanged = true;
+   dispose(previous);
+   return;
 }
 
 //------------------------------------------------------------------------------
@@ -10425,6 +11100,11 @@ const std::string& Spacecraft::GetGeneratingString(Gmat::WriteMode mode,
                                                    const std::string &prefix,
                                                    const std::string &useName)
 {
+   // The legacy prepass is discarded by the final base call below. A typed
+   // capture must evaluate its selected property values only once.
+   if (ObjectMatlabExportScope::Applies(mode))
+      return SpaceObject::GetGeneratingString(mode, prefix, useName);
+   ObjectMatlabModeScope matlabMode(inMatlabMode, mode);
    #ifdef DEBUG_GEN_STRING
    MessageInterface::ShowMessage
       ("Spacecraft::GetGeneratingString() <%p><%s>'%s' entered, mode=%d, "
@@ -10446,6 +11126,9 @@ const std::string& Spacecraft::GetGeneratingString(Gmat::WriteMode mode,
       inMatlabMode = false;
    if (mode == Gmat::MATLAB_STRUCT || mode == Gmat::EPHEM_HEADER)
       inMatlabMode = true;
+
+   matlabMode.Apply();
+   ObjectMatlabExportScope::Prepare(data);
 
    if (useName != "")
       nomme = useName;
@@ -10513,6 +11196,9 @@ const std::string& Spacecraft::GetGeneratingString(Gmat::WriteMode mode,
 void Spacecraft::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
                                  std::stringstream &stream)
 {
+   const bool explicitScriptExport = ObjectScriptExportScope::IsActive() &&
+      (mode == Gmat::SCRIPTING || mode == Gmat::OWNED_OBJECT ||
+       mode == Gmat::NO_COMMENTS || mode == Gmat::OBJECT_EXPORT);
    #ifdef DEBUG_WRITE_PARAMETERS
    MessageInterface::ShowMessage("--- Entering SC::WriteParameters ...\n");
    MessageInterface::ShowMessage("--- mode = %d, prefix = %s\n",
@@ -10523,7 +11209,8 @@ void Spacecraft::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
    Integer i;
    Gmat::ParameterType parmType;
    std::stringstream value;
-   value.precision(GetDataPrecision());
+   value.precision(ObjectMatlabExportScope::Precision(GetDataPrecision()));
+   ObjectMatlabExportScope::Prepare(value);
 
    #ifdef __WRITE_ANOMALY_TYPE__
       bool showAnomaly = false;
@@ -10531,90 +11218,81 @@ void Spacecraft::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
          showAnomaly = true;
    #endif
 
-   Integer *parmOrder = new Integer[parameterCount];
-   Integer parmIndex = 0;
+   const Integer paramCount = GetParameterCount();
+   IntegerArray preferredOrder;
 
-   parmOrder[parmIndex++] = DATE_FORMAT_ID;
-   parmOrder[parmIndex++] = SC_EPOCH_ID;
-   parmOrder[parmIndex++] = COORD_SYS_ID;
-   parmOrder[parmIndex++] = DISPLAY_STATE_TYPE_ID;
-   parmOrder[parmIndex++] = ANOMALY_ID;
-   parmOrder[parmIndex++] = ELEMENT1_ID;
-   parmOrder[parmIndex++] = ELEMENT2_ID;
-   parmOrder[parmIndex++] = ELEMENT3_ID;
-   parmOrder[parmIndex++] = ELEMENT4_ID;
-   parmOrder[parmIndex++] = ELEMENT5_ID;
-   parmOrder[parmIndex++] = ELEMENT6_ID;
-   parmOrder[parmIndex++] = DRY_MASS_ID;
-   parmOrder[parmIndex++] = CD_ID;
-   parmOrder[parmIndex++] = CR_ID;
-   parmOrder[parmIndex++] = DRAG_AREA_ID;
-   parmOrder[parmIndex++] = SRP_AREA_ID;
-   parmOrder[parmIndex++] = SPAD_DRAG_SCALE_FACTOR;
-   parmOrder[parmIndex++] = SPAD_SRP_SCALE_FACTOR;
-   parmOrder[parmIndex++] = ATMOS_DENSITY_SCALE_FACTOR;
+   preferredOrder.push_back(DATE_FORMAT_ID);
+   preferredOrder.push_back(SC_EPOCH_ID);
+   preferredOrder.push_back(COORD_SYS_ID);
+   preferredOrder.push_back(DISPLAY_STATE_TYPE_ID);
+   preferredOrder.push_back(ANOMALY_ID);
+   preferredOrder.push_back(ELEMENT1_ID);
+   preferredOrder.push_back(ELEMENT2_ID);
+   preferredOrder.push_back(ELEMENT3_ID);
+   preferredOrder.push_back(ELEMENT4_ID);
+   preferredOrder.push_back(ELEMENT5_ID);
+   preferredOrder.push_back(ELEMENT6_ID);
+   preferredOrder.push_back(DRY_MASS_ID);
+   preferredOrder.push_back(CD_ID);
+   preferredOrder.push_back(CR_ID);
+   preferredOrder.push_back(DRAG_AREA_ID);
+   preferredOrder.push_back(SRP_AREA_ID);
+   preferredOrder.push_back(SPAD_DRAG_SCALE_FACTOR);
+   preferredOrder.push_back(SPAD_SRP_SCALE_FACTOR);
+   preferredOrder.push_back(ATMOS_DENSITY_SCALE_FACTOR);
 
-   parmOrder[parmIndex++] = NPLATE_ADD_PLATE;
-   parmOrder[parmIndex++] = ADD_AREA_COEFFICIENT_EQUATE_CONSTRAINT;
+   preferredOrder.push_back(NPLATE_ADD_PLATE);
+   preferredOrder.push_back(ADD_AREA_COEFFICIENT_EQUATE_CONSTRAINT);
 
-   parmOrder[parmIndex++] = MASS_PROPERTIES_MODELED_ID;
-   parmOrder[parmIndex++] = MASS_PROPERTIES_MODEL_TYPE_ID;
-   parmOrder[parmIndex++] = MASS_PROPERTIES_TABLE_PATH_ID;
-   parmOrder[parmIndex++] = MASS_PROPERTIES_CM_LOOKUP_TABLE_ID;
-   parmOrder[parmIndex++] = MASS_PROPERTIES_MOI_LOOKUP_TABLE_ID;
+   preferredOrder.push_back(MASS_PROPERTIES_MODELED_ID);
+   preferredOrder.push_back(MASS_PROPERTIES_MODEL_TYPE_ID);
+   preferredOrder.push_back(MASS_PROPERTIES_TABLE_PATH_ID);
+   preferredOrder.push_back(MASS_PROPERTIES_CM_LOOKUP_TABLE_ID);
+   preferredOrder.push_back(MASS_PROPERTIES_MOI_LOOKUP_TABLE_ID);
 
-   parmOrder[parmIndex++] = DRY_CM_X_ID;
-   parmOrder[parmIndex++] = DRY_CM_Y_ID;
-   parmOrder[parmIndex++] = DRY_CM_Z_ID;
-   parmOrder[parmIndex++] = DRY_MOI_XX_ID;
-   parmOrder[parmIndex++] = DRY_MOI_XY_ID;
-   parmOrder[parmIndex++] = DRY_MOI_XZ_ID;
-   parmOrder[parmIndex++] = DRY_MOI_YY_ID;
-   parmOrder[parmIndex++] = DRY_MOI_YZ_ID;
-   parmOrder[parmIndex++] = DRY_MOI_ZZ_ID;
+   preferredOrder.push_back(DRY_CM_X_ID);
+   preferredOrder.push_back(DRY_CM_Y_ID);
+   preferredOrder.push_back(DRY_CM_Z_ID);
+   preferredOrder.push_back(DRY_MOI_XX_ID);
+   preferredOrder.push_back(DRY_MOI_XY_ID);
+   preferredOrder.push_back(DRY_MOI_XZ_ID);
+   preferredOrder.push_back(DRY_MOI_YY_ID);
+   preferredOrder.push_back(DRY_MOI_YZ_ID);
+   preferredOrder.push_back(DRY_MOI_ZZ_ID);
 
-   parmOrder[parmIndex++] = MASS_PROPERTIES_TBL_CM_OFFSET_X_ID;
-   parmOrder[parmIndex++] = MASS_PROPERTIES_TBL_CM_OFFSET_Y_ID;
-   parmOrder[parmIndex++] = MASS_PROPERTIES_TBL_CM_OFFSET_Z_ID;
-   parmOrder[parmIndex++] = MASS_PROPERTIES_TBL_MOI_OFFSET_XX_ID;
-   parmOrder[parmIndex++] = MASS_PROPERTIES_TBL_MOI_OFFSET_XY_ID;
-   parmOrder[parmIndex++] = MASS_PROPERTIES_TBL_MOI_OFFSET_XZ_ID;
-   parmOrder[parmIndex++] = MASS_PROPERTIES_TBL_MOI_OFFSET_YY_ID;
-   parmOrder[parmIndex++] = MASS_PROPERTIES_TBL_MOI_OFFSET_YZ_ID;
-   parmOrder[parmIndex++] = MASS_PROPERTIES_TBL_MOI_OFFSET_ZZ_ID;
+   preferredOrder.push_back(MASS_PROPERTIES_TBL_CM_OFFSET_X_ID);
+   preferredOrder.push_back(MASS_PROPERTIES_TBL_CM_OFFSET_Y_ID);
+   preferredOrder.push_back(MASS_PROPERTIES_TBL_CM_OFFSET_Z_ID);
+   preferredOrder.push_back(MASS_PROPERTIES_TBL_MOI_OFFSET_XX_ID);
+   preferredOrder.push_back(MASS_PROPERTIES_TBL_MOI_OFFSET_XY_ID);
+   preferredOrder.push_back(MASS_PROPERTIES_TBL_MOI_OFFSET_XZ_ID);
+   preferredOrder.push_back(MASS_PROPERTIES_TBL_MOI_OFFSET_YY_ID);
+   preferredOrder.push_back(MASS_PROPERTIES_TBL_MOI_OFFSET_YZ_ID);
+   preferredOrder.push_back(MASS_PROPERTIES_TBL_MOI_OFFSET_ZZ_ID);
 
-   parmOrder[parmIndex++] = FUEL_TANK_ID;
-   parmOrder[parmIndex++] = THRUSTER_ID;
-   parmOrder[parmIndex++] = POWER_SYSTEM_ID;
+   preferredOrder.push_back(FUEL_TANK_ID);
+   preferredOrder.push_back(THRUSTER_ID);
+   preferredOrder.push_back(POWER_SYSTEM_ID);
    if (ephemerisName != "")
-      parmOrder[parmIndex++] = EPHEMERIS_NAME;
-   parmOrder[parmIndex++] = ORBIT_STM;
-   parmOrder[parmIndex++] = ORBIT_A_MATRIX;
-   parmOrder[parmIndex++] = ELEMENT1UNIT_ID;
-   parmOrder[parmIndex++] = ELEMENT2UNIT_ID;
-   parmOrder[parmIndex++] = ELEMENT3UNIT_ID;
-   parmOrder[parmIndex++] = ELEMENT4UNIT_ID;
-   parmOrder[parmIndex++] = ELEMENT5UNIT_ID;
-   parmOrder[parmIndex++] = ELEMENT6UNIT_ID;
+      preferredOrder.push_back(EPHEMERIS_NAME);
+   preferredOrder.push_back(ORBIT_STM);
+   preferredOrder.push_back(ORBIT_A_MATRIX);
+   preferredOrder.push_back(ELEMENT1UNIT_ID);
+   preferredOrder.push_back(ELEMENT2UNIT_ID);
+   preferredOrder.push_back(ELEMENT3UNIT_ID);
+   preferredOrder.push_back(ELEMENT4UNIT_ID);
+   preferredOrder.push_back(ELEMENT5UNIT_ID);
+   preferredOrder.push_back(ELEMENT6UNIT_ID);
 
 
-   bool registered;
-   for (i = 0; i < parameterCount; ++i)
-   {
-      registered = false;
-      for (Integer j = 0; j < parmIndex; ++j)
-      {
-         if (parmOrder[j] == i)
-         {
-            registered = true;
-            break;
-         }
-      }
-      if (!registered)
-         parmOrder[parmIndex++] = i;
-   }
+   // A local validated order keeps all native state-format dependencies while
+   // owning its storage across conversion, getter and owned-object failures.
+   const IntegerArray parmOrder = GmatSerialization::CompleteParameterOrder(
+      paramCount, preferredOrder, GetName());
 
-   Rvector6 repState = GetStateInRepresentation(displayStateType);
+   // Serialization must describe the state at its own epoch, independently of
+   // a frame cache initialized by an earlier mission or another spacecraft.
+   Rvector6 repState = GetStateInRepresentation(displayStateType, false, true);
 
    #ifdef DEBUG_WRITE_PARAMETERS
    MessageInterface::ShowMessage
@@ -10629,8 +11307,10 @@ void Spacecraft::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
 
    std::string fieldComment = "";
    std::string inlineFieldComment = "";
-   for (i = 0; i < parameterCount; ++i)
+   for (i = 0; i < paramCount; ++i)
    {
+      if (parmOrder[i] == ORBIT_PARAMETER_ACCESS && orbitParameterAccess == "Native")
+         continue;
       if ((IsParameterReadOnly(parmOrder[i]) == false) &&
           (parmOrder[i] != J2000_BODY_NAME) &&
           (parmOrder[i] != TOTAL_MASS_ID)   &&
@@ -10639,7 +11319,7 @@ void Spacecraft::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
       {
          parmType = GetParameterType(parmOrder[i]);
 
-         if (mode != Gmat::OBJECT_EXPORT)
+         if (mode != Gmat::OBJECT_EXPORT && !ObjectMatlabExportScope::Applies(mode))
          {
             fieldComment = GetAttributeCommentLine(parmOrder[i]);
             inlineFieldComment = GetInlineAttributeComment(parmOrder[i]);
@@ -10668,13 +11348,17 @@ void Spacecraft::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
                   MessageInterface::ShowMessage(" --- and that is for element %s\n",
                   (GetParameterText(parmOrder[i])).c_str());
                   #endif
-                  value.precision(GetDataPrecision());
-                  value << repState[parmOrder[i] - ELEMENT1_ID];
-                  value.precision(GetDataPrecision());
+                  value.precision(ObjectMatlabExportScope::Precision(GetDataPrecision()));
+                  if (!ObjectMatlabExportScope::Applies(mode) ||
+                      !ObjectMatlabExportScope::WriteReal(repState[parmOrder[i] - ELEMENT1_ID], value))
+                     value << repState[parmOrder[i] - ELEMENT1_ID];
+                  value.precision(ObjectMatlabExportScope::Precision(GetDataPrecision()));
                }
                else if (parmOrder[i] == DISPLAY_STATE_TYPE_ID)
                {
-                  if (mode != Gmat::MATLAB_STRUCT)
+                  if (ObjectMatlabExportScope::Applies(mode))
+                     WriteParameterValue(parmOrder[i], value);
+                  else if (mode != Gmat::MATLAB_STRUCT)
                      value << displayStateType;
                   else
                      value << "'" << displayStateType << "'";
@@ -10684,7 +11368,9 @@ void Spacecraft::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
                   #ifdef __WRITE_ANOMALY_TYPE__
                   if (showAnomaly)
                   {
-                     if (mode != Gmat::MATLAB_STRUCT)
+                     if (ObjectMatlabExportScope::Applies(mode))
+                        WriteParameterValue(parmOrder[i], value);
+                     else if (mode != Gmat::MATLAB_STRUCT)
                         value << anomalyType;
                      else
                         value << "'" << anomalyType << "'";
@@ -10722,6 +11408,12 @@ void Spacecraft::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
             bool writeQuotes = inMatlabMode || parmType == Gmat::STRINGARRAY_TYPE;
 
             // Handle StringArrays
+            if (ObjectMatlabExportScope::Applies(mode) || explicitScriptExport)
+            {
+               WriteStringArrayValue(mode, prefix, parmOrder[i],
+                  ObjectMatlabExportScope::Applies(mode) || writeQuotes, stream);
+               continue;
+            }
             StringArray sar = GetStringArrayParameter(parmOrder[i]);
             if (sar.size() > 0)
             {
@@ -10747,7 +11439,13 @@ void Spacecraft::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
       {
          if (attitude)
          {
-            if (inMatlabMode)
+            if (ObjectMatlabExportScope::Applies(mode))
+            {
+               std::stringstream value;
+               WriteParameterValue(ATTITUDE, value);
+               stream << prefix << "Attitude = " << value.str() << ";\n";
+            }
+            else if (inMatlabMode)
                stream << prefix << "Attitude = '" << attitude->GetAttitudeModelName() << "';" << inlineFieldComment << "\n";
             else
                stream << prefix << "Attitude = " << attitude->GetAttitudeModelName() << ";" << inlineFieldComment << "\n";
@@ -10802,7 +11500,6 @@ void Spacecraft::WriteParameters(Gmat::WriteMode mode, std::string &prefix,
       stream << ownedObject->GetGeneratingString(Gmat::OWNED_OBJECT, newprefix);
    }
 
-   delete [] parmOrder;
 }
 
 
@@ -10862,6 +11559,12 @@ void Spacecraft::UpdateElementLabels(const std::string &displayStateType)
 //------------------------------------------------------------------------------
 Rvector6 Spacecraft::GetStateInRepresentation(const std::string &rep, bool useDefaultCartesian)
 {
+   return GetStateInRepresentation(rep, useDefaultCartesian, false);
+}
+
+Rvector6 Spacecraft::GetStateInRepresentation(const std::string &rep,
+      bool useDefaultCartesian, bool forceComputation)
+{
    #ifdef DEBUG_STATE_INTERFACE
       MessageInterface::ShowMessage("Spacecraft::GetStateInRepresentation(string): Constructing %s state\n", rep.c_str());
       MessageInterface::ShowMessage("Spacecraft::GetStateInRepresentation(string): using defaultCartesian = %s\n",
@@ -10887,12 +11590,14 @@ Rvector6 Spacecraft::GetStateInRepresentation(const std::string &rep, bool useDe
                coordinateSystem->GetName().c_str());
       #endif
 
+      const bool local = !useDefaultCartesian && GetOriginRelativeState(
+         coordinateSystem->GetOrigin(), state.GetEpochGT(), inState);
       if (hasPrecisionTime)
          coordConverter.Convert(GetEpochGT(), inState, internalCoordSystem, csState,
-            coordinateSystem);
+            coordinateSystem, forceComputation, local);
       else
          coordConverter.Convert(GetEpoch(), inState, internalCoordSystem, csState,
-            coordinateSystem);
+            coordinateSystem, forceComputation, local);
 
       inertialCS = coordinateSystem->IsInertial();
       cbOrigin   = coordinateSystem->HasCelestialBodyOrigin();
@@ -10936,8 +11641,11 @@ Rvector6 Spacecraft::GetStateInRepresentation(const std::string &rep, bool useDe
          MessageInterface::ShowMessage("Spacecraft::GetStateInRepresentation(string): Using originMu = %12.10f\n", originMu);
       #endif
          //finalState = StateConversionUtil::Convert(csState, "Cartesian", rep,
-      finalState = StateConversionUtil::Convert(csState, "Cartesian", newRep,
-                   originMu, originFlattening, originEqRadius, anomalyType);
+      finalState = HasPrecisionTime() ?
+         OrbitStateConversion::Convert(GetEpochGT(), csState, "Cartesian", newRep, coordinateSystem,
+               originMu, originFlattening, originEqRadius, anomalyType) :
+         OrbitStateConversion::Convert(A1Mjd(GetEpoch()), csState, "Cartesian", newRep, coordinateSystem,
+               originMu, originFlattening, originEqRadius, anomalyType);
 
       if (!inertialCS || !cbOrigin)
       {
@@ -11023,7 +11731,7 @@ void Spacecraft::SetStateFromRepresentation(const std::string &rep, Rvector6 &st
    }
 
    // First convert from the representation to Cartesian
-   static Rvector6 csState, finalState;
+   Rvector6 csState, finalState;
 
    if (rep == "Cartesian")
       csState = st;
@@ -11033,8 +11741,11 @@ void Spacecraft::SetStateFromRepresentation(const std::string &rep, Rvector6 &st
       MessageInterface::ShowMessage
          ("   rep is not Cartesian, so calling StateConversionUtil::Convert()\n");
       #endif
-      csState = StateConversionUtil::Convert(st, rep, "Cartesian",
-                originMu, originFlattening, originEqRadius, anomalyType);
+      csState = HasPrecisionTime() ?
+         OrbitStateConversion::Convert(GetEpochGT(), st, rep, "Cartesian", coordinateSystem,
+               originMu, originFlattening, originEqRadius, anomalyType) :
+         OrbitStateConversion::Convert(A1Mjd(GetEpoch()), st, rep, "Cartesian", coordinateSystem,
+               originMu, originFlattening, originEqRadius, anomalyType);
    }
 
    #ifdef DEBUG_STATE_INTERFACE
@@ -11060,16 +11771,47 @@ void Spacecraft::SetStateFromRepresentation(const std::string &rep, Rvector6 &st
       #endif
       if (hasPrecisionTime)
          coordConverter.Convert(GetEpochGT(), csState, coordinateSystem, finalState,
-            internalCoordSystem);
+            internalCoordSystem, true);
       else
          coordConverter.Convert(GetEpoch(), csState, coordinateSystem, finalState,
-            internalCoordSystem);
+            internalCoordSystem, true);
    }
    else
       finalState = csState;
 
-   for (int i=0; i<6; i++)
-      state[i] = finalState[i];
+   // Retaining the local state can evaluate body ephemerides and throw after
+   // the ordinary Cartesian conversion succeeds. Do not leave the spacecraft
+   // with a new physical state and an old frame binding after that failure.
+   const Rvector6 previousState(state.GetState());
+   OriginRelativeState previousRelativeState = originRelativeState;
+   try
+   {
+      for (int i=0; i<6; i++)
+         state[i] = finalState[i];
+
+      originRelativeState.valid = false;
+      if (coordinateSystem->GetOrigin() && internalCoordSystem->GetOrigin() &&
+          coordinateSystem->GetOrigin() != internalCoordSystem->GetOrigin() &&
+          internalCoordSystem->AreAxesOfType("MJ2000EqAxes"))
+      {
+         Rvector6 localState;
+         if (hasPrecisionTime)
+            coordConverter.Convert(GetEpochGT(), csState, coordinateSystem,
+               localState, internalCoordSystem, true, true);
+         else
+            coordConverter.Convert(GetEpoch(), csState, coordinateSystem,
+               localState, internalCoordSystem, true, true);
+         SetOriginRelativeState(coordinateSystem->GetOrigin(), state.GetEpochGT(),
+            localState);
+      }
+   }
+   catch (...)
+   {
+      for (int i=0; i<6; i++)
+         state[i] = previousState[i];
+      originRelativeState = std::move(previousRelativeState);
+      throw;
+   }
 
    #ifdef DEBUG_STATE_INTERFACE
       MessageInterface::ShowMessage(
@@ -11326,7 +12068,7 @@ bool Spacecraft::SetElement(const std::string &label, const Real &value)
             #ifdef DEBUG_SPACECRAFT_SET_ELEMENT
                MessageInterface::ShowMessage("In SC::SetElement, csSet = TRUE\n");
             #endif
-            Rvector6 tempState = GetStateInRepresentation(rep);
+            Rvector6 tempState = GetStateInRepresentation(rep, false, true);
             tempState[id] = value;
             SetStateFromRepresentation(rep, tempState, label);
          }
@@ -12224,6 +12966,7 @@ bool Spacecraft::SetAttitudeAndCopyData(Attitude *oldAtt, Attitude *newAtt,
    newAtt->SetPrecisionTimeFlag(hasPrecisionTime);
 
    newAtt->SetOwningSpacecraft(this);
+   newAtt->SetCloneOwner(this);
    newAtt->NeedsReinitialization();
 
    // Set attitude to the new one
@@ -12860,6 +13603,8 @@ void Spacecraft::RecomputeStateDueToChangeOfEpochPrecision(bool fromLowToHi)
 
    // 1. Get internal state
    Rvector6 inState(state.GetState());
+   const bool local = coordinateSystem && GetOriginRelativeState(
+      coordinateSystem->GetOrigin(), state.GetEpochGT(), inState);
 
 #ifdef DEBUG_CHANGE_EPOCH_PRECISION
    MessageInterface::ShowMessage("   internal CS = <%s,%p>  spacecraft's CS = <%s,%p>\n", internalCoordSystem->GetName().c_str(), internalCoordSystem, coordinateSystem->GetName().c_str(), coordinateSystem);
@@ -12872,7 +13617,7 @@ void Spacecraft::RecomputeStateDueToChangeOfEpochPrecision(bool fromLowToHi)
    {
       // Case 1: precision changes from low to high:
       // Convert state from internal coordinate system to object coordinate system in low precision epoch
-      coordConverter.Convert(GetEpoch(), inState, internalCoordSystem, csState, coordinateSystem);
+      coordConverter.Convert(GetEpoch(), inState, internalCoordSystem, csState, coordinateSystem, false, local);
 
       // Convert state from object coordinate system to internal coordinate system in high precision epoch
       coordConverter.Convert(GetEpochGT(), csState, coordinateSystem, finalState, internalCoordSystem);
@@ -12881,7 +13626,7 @@ void Spacecraft::RecomputeStateDueToChangeOfEpochPrecision(bool fromLowToHi)
    {
       // Case 2: precision changes from high to low:
       // Convert state from internal coordinate system to object coordinate system in high precision epoch
-      coordConverter.Convert(GetEpochGT(), inState, internalCoordSystem, csState, coordinateSystem);
+      coordConverter.Convert(GetEpochGT(), inState, internalCoordSystem, csState, coordinateSystem, false, local);
 
       // Convert state from object coordinate system to internal coordinate system in low precision epoch
       coordConverter.Convert(GetEpoch(), csState, coordinateSystem, finalState, internalCoordSystem);
@@ -12894,6 +13639,21 @@ void Spacecraft::RecomputeStateDueToChangeOfEpochPrecision(bool fromLowToHi)
    state[3] = finalState[3];
    state[4] = finalState[4];
    state[5] = finalState[5];
+
+   originRelativeState.valid = false;
+   if (local)
+   {
+      Rvector6 newLocal;
+      if (fromLowToHi)
+         coordConverter.Convert(GetEpochGT(), csState, coordinateSystem,
+            newLocal, internalCoordSystem, false, true);
+      else
+         coordConverter.Convert(GetEpoch(), csState, coordinateSystem,
+            newLocal, internalCoordSystem, false, true);
+      SetOriginRelativeState(coordinateSystem->GetOrigin(), state.GetEpochGT(),
+         newLocal);
+   }
+
 
 #ifdef DEBUG_CHANGE_EPOCH_PRECISION
    MessageInterface::ShowMessage("   final state = [%.12lf   %.12lf   %.12lf   %.12lf   %.12lf   %.12lf]\n", state[0], state[1], state[2], state[3], state[4], state[5]);
@@ -13291,10 +14051,13 @@ void Spacecraft::UpdateValueForConstraints()
 Rmatrix Spacecraft::SetSTMToIdentityMatrix()
 {
    Rmatrix prevFullSTM = fullSTM;
+   const auto reference = OrbitStmContext::Capture(this);
 
    for (Integer row = 0; row < fullSTM.GetNumRows(); ++row)
       for (Integer col = 0; col < fullSTM.GetNumColumns(); ++col)
          fullSTM(row, col) = (row == col ? 1.0 : 0.0);
+
+   OrbitStmContext::Commit(this, reference);
 
    return prevFullSTM;
 }
@@ -13437,4 +14200,76 @@ void Spacecraft::SetEphemerisFileTypes(std::string type)
 std::vector<std::string> Spacecraft::GetEphemerisFileTypes()
 {
    return ephemerisFileTypes;
+}
+
+ObjectArray Spacecraft::GetFunctionValueOwnedObjectsImpl() const
+{
+   ObjectArray result{attitude, powerSystem};
+   for (const auto *list : {&tanks, &thrusters, &hardwareList, &plateList})
+      result.insert(result.end(), list->begin(), list->end());
+   return result;
+}
+
+
+void Spacecraft::ValidateRestorationInputs(const Spacecraft &a, bool withCaches) const
+{
+   NativeRestoration::Validate(a.GetFunctionValueOwnedObjects(), GetFunctionValueOwnedObjects());
+   state.ValidateRestorationLayout(a.state);
+   if (withCaches)
+   {
+      if ((cmInterp == nullptr) != (a.cmInterp == nullptr) || (moiInterp == nullptr) != (a.moiInterp == nullptr))
+         throw SpaceObjectException("Prepare mass-property interpolation storage before restoring changed tables.");
+      if (cmInterp) cmInterp->ValidateRestorationLayout(*a.cmInterp);
+      if (moiInterp) moiInterp->ValidateRestorationLayout(*a.moiInterp);
+   }
+   const auto sameShape = [](const Rmatrix &left, const Rmatrix &right)
+   {
+      return left.IsSized() == right.IsSized() && (!left.IsSized() ||
+            (left.GetNumRows() == right.GetNumRows() && left.GetNumColumns() == right.GetNumColumns()));
+   };
+   if (tankNames != a.tankNames || thrusterNames != a.thrusterNames || hardwareNames != a.hardwareNames ||
+       plateNames != a.plateNames || attitudeModel != a.attitudeModel || powerSystemName != a.powerSystemName ||
+       coordSysName != a.coordSysName || processNoiseName != a.processNoiseName ||
+       externalStmEntries != a.externalStmEntries || externalStmIndices != a.externalStmIndices ||
+       externalStmEntrySubIndices != a.externalStmEntrySubIndices ||
+       solveforNames != a.solveforNames || stmElementNames != a.stmElementNames ||
+       srpShapeModel != a.srpShapeModel || dragShapeModel != a.dragShapeModel ||
+       spadSrpFileFullPath != a.spadSrpFileFullPath || spadDragFileFullPath != a.spadDragFileFullPath ||
+       spadSRPInterpolationMethod != a.spadSRPInterpolationMethod ||
+       spadDragInterpolationMethod != a.spadDragInterpolationMethod ||
+       !sameShape(fullSTM, a.fullSTM) || !sameShape(fullAMatrix, a.fullAMatrix) ||
+       fullSTMRowCount != a.fullSTMRowCount)
+      throw SpaceObjectException("Prepare spacecraft declarations before changing an active restoration graph.");
+   if ((solarSystem && a.solarSystem && solarSystem != a.solarSystem) ||
+       (coordinateSystem && a.coordinateSystem && coordinateSystem != a.coordinateSystem) ||
+       (internalCoordSystem && a.internalCoordSystem && internalCoordSystem != a.internalCoordSystem) ||
+       (processNoiseModel && a.processNoiseModel && processNoiseModel != a.processNoiseModel))
+      throw SpaceObjectException("Restoration requires the same active spacecraft environment bindings.");
+}
+
+std::unique_ptr<NativeRestorationPlan> Spacecraft::PrepareRestorationImpl(const GmatBase &source)
+{
+   if (!GmatBase::IsNativeRestorationCopy() || &source == this) return {};
+   const auto *value = dynamic_cast<const Spacecraft*>(&source);
+   if (!value) throw SpaceObjectException("Incompatible spacecraft restoration preparation.");
+   try
+   {
+      const bool cm = NativeRestoration::NeedsPrivateInterpolatorPreparation(cmInterp, value->cmInterp);
+      const bool moi = NativeRestoration::NeedsPrivateInterpolatorPreparation(moiInterp, value->moiInterp);
+      if (!cm && !moi) return {};
+      if (typeid(*this) != typeid(Spacecraft) || typeid(*value) != typeid(Spacecraft))
+         throw SpaceObjectException("Private spacecraft cache preparation requires its native owner.");
+      ValidateRestorationInputs(*value, false);
+      if (originName != value->originName || (origin && value->origin && origin != value->origin))
+         throw SpaceObjectException("Restoration requires the same active origin binding.");
+      std::vector<std::unique_ptr<NativeRestorationPlan>> plans;
+      if (cm) plans.push_back(NativeRestoration::PreparePrivateInterpolator(cmInterp, value->cmInterp));
+      if (moi) plans.push_back(NativeRestoration::PreparePrivateInterpolator(moiInterp, value->moiInterp));
+      return NativeRestoration::Combine(std::move(plans));
+   }
+   catch (...)
+   {
+      isInitialized = false;
+      throw;
+   }
 }

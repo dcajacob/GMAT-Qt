@@ -3,6 +3,7 @@
          xml:id="Orbit_Estimation_using_DSN_Range_and_Doppler_Data"
          xmlns="http://docbook.org/ns/docbook">
   <title>Orbit Estimation using DSN Range and Doppler Data</title>
+  <para>The DSN batch-estimation milestone is the comparison point for the shipped tutorial script. Preserve that saved mission and its DSN observations before the later GN extension, which intentionally changes measurement types, radio frequency, turnaround ratio and noise. Do not compare the final GN mission directly with the DSN reference.</para>
 
   <variablelist>
     <varlistentry>
@@ -545,7 +546,14 @@ bat.OLSEAdditiveConstant       = 0;
 bat.EstimationEpochFormat      = 'FromParticipants'; 
 bat.InversionAlgorithm         = 'Internal';    
 bat.MatlabFile                 =  ...
-           'Orbit Estimation using DSN Range and Doppler Data.mat'</programlisting>
+           'Orbit Estimation using DSN Range and Doppler Data.mat';
+bat.DataFile = 'Orbit Estimation using DSN Range and Doppler Data.json';
+
+% Save the same estimator diagnostics as the shipped DSN example.
+Create Variable PosError VelError;
+Create ReportFile rf;
+rf.Filename = 'Estimation_Error.report';
+rf.WriteHeaders = false;</programlisting>
 
     <para>All of the fields above are described in
     <guilabel>BatchEstimator</guilabel> Help but we describe them briefly here
@@ -629,7 +637,10 @@ bat.MatlabFile                 =  ...
 
     <programlisting>BeginMissionSequence
  
-RunEstimator bat</programlisting>
+RunEstimator bat;
+PosError = sqrt((Sat.SunMJ2000Eq.X - -126544968)^2 + (Sat.SunMJ2000Eq.Y - 61978514)^2 + (Sat.SunMJ2000Eq.Z - 24133221)^2);
+VelError = sqrt((Sat.SunMJ2000Eq.VX - -13.789)^2 + (Sat.SunMJ2000Eq.VY - -24.673)^2 + (Sat.SunMJ2000Eq.VZ - -10.662)^2);
+Report rf PosError VelError;</programlisting>
 
     <para>The first script line, <guilabel>BeginMissionSequence</guilabel>, is
     a required command which indicates that the “Command” section of the GMAT
@@ -1514,7 +1525,7 @@ DSNsimData.AddTrackingConfig = {{MAD, Sat, MAD},'RangeRate'};  %was 'DSN_TCP'</p
     apply for GN data.</para>
 
     <programlisting width="80">%DSNsimData.RampTable  = ...
-             {'../data/navdata/Simulate DSN Range and Doppler Data 3 weeks.rmp'};
+             %{'../data/navdata/Simulate DSN Range and Doppler Data 3 weeks.rmp'};
 
 %DSNsimData.SimRangeModuloConstant  = 3.3554432e+07;</programlisting>
 
