@@ -103,7 +103,14 @@ jobs:
         shell: bash
         run: python tools/preview/BuildPreviewPackage.py --platform ${{ matrix.platform }} --version "$PACKAGE_VERSION" --python-api
       - name: Start the extracted GUI with CPython unavailable
-        run: cmake -P build/preview-package/logs/archive-qualification/without-python.cmake
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then
+            gmat_cmake_path=$(command -v cmake)
+            sudo -n "$gmat_cmake_path" -P build/preview-package/logs/archive-qualification/without-python.cmake
+          else
+            cmake -P build/preview-package/logs/archive-qualification/without-python.cmake
+          fi
       - name: Finalize archive qualification
         shell: bash
         run: python -c "import sys; sys.path.insert(0, 'tools/preview'); from QualifyPythonPackage import finish; finish('${{ matrix.platform }}')"
@@ -196,7 +203,14 @@ jobs:
       - name: Re-extract the exact archive and reuse its passing qualification
         run: python -c "import sys; sys.path.insert(0, 'tools/preview'); from QualifyPythonPackage import resume_no_python; resume_no_python('${{ matrix.platform }}')"
       - name: Start the extracted GUI with CPython unavailable
-        run: cmake -P build/preview-package/logs/archive-qualification/without-python.cmake
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then
+            gmat_cmake_path=$(command -v cmake)
+            sudo -n "$gmat_cmake_path" -P build/preview-package/logs/archive-qualification/without-python.cmake
+          else
+            cmake -P build/preview-package/logs/archive-qualification/without-python.cmake
+          fi
       - name: Finalize archive qualification
         run: python -c "import sys; sys.path.insert(0, 'tools/preview'); from QualifyPythonPackage import finish; finish('${{ matrix.platform }}')"
       - name: Preserve completion diagnostics
