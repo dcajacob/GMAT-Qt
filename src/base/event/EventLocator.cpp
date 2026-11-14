@@ -61,6 +61,7 @@ const NativeValueProviderRegistration eventLocatorValueProvider({
 #include "SolarSystem.hpp"
 #include <map>
 #include <typeinfo>
+#include <filesystem>
 
 
 //#define DEBUG_DUMPEVENTDATA
@@ -2202,7 +2203,15 @@ bool EventLocator::OpenReportFile(bool renameOld)
       withoutExt = fullFileName.substr(0, lastDot);
    }
 
-   bool fileDoesExist = GmatFileUtil::DoesFileExist(fullFileName);
+   // Qt supplies UTF-8 filenames. Windows narrow streams use the active code
+   // page, which can write a different file from the one selected by the user.
+#ifdef _WIN32
+   const auto nativeReportPath = std::filesystem::u8path(fullFileName);
+   const bool fileDoesExist = std::filesystem::exists(nativeReportPath);
+#else
+   const auto &nativeReportPath = fullFileName;
+   const bool fileDoesExist = GmatFileUtil::DoesFileExist(fullFileName);
+#endif
 
    #ifdef DEBUG_EVENTLOCATOR_WRITE
       MessageInterface::ShowMessage("In ReportEventData, fullFileName  = %s\n", fullFileName.c_str());
@@ -2211,7 +2220,7 @@ bool EventLocator::OpenReportFile(bool renameOld)
    #endif
 
    if (appendReport)
-      theReport.open(fullFileName.c_str(), std::fstream::out | std::fstream::app);
+      theReport.open(nativeReportPath, std::fstream::out | std::fstream::app);
    else
    {
       // Rename any old existing files here if necessary
@@ -2268,9 +2277,15 @@ bool EventLocator::OpenReportFile(bool renameOld)
       else // if not renaming, if it already exists, delete it
       {
          if (fileDoesExist)
+         {
+#ifdef _WIN32
+            std::filesystem::remove(nativeReportPath);
+#else
             remove(fullFileName.c_str());
+#endif
+         }
       }
-      theReport.open(fullFileName.c_str(), std::fstream::out);
+      theReport.open(nativeReportPath, std::fstream::out);
    }
 
    if (!theReport.is_open())
