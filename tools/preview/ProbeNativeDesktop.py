@@ -78,6 +78,19 @@ def main():
             environment['PATH']=os.pathsep.join([str(Path(context['qt']) / 'bin'),str(Path(context['osg']) / 'bin'),
                 str(Path(context['prefix']) / 'bin'),environment['PATH']])
             environment['QT_PLUGIN_PATH']=str(Path(context['qt']) / 'plugins')
+            if graphics.get('qt_software_fallback_available'):
+                # OSG imports opengl32 directly. Use one Mesa module for both
+                # OSG and Qt so their current contexts refer to the same driver.
+                driver=output / 'opengl32.dll'
+                shutil.copy2(software,driver)
+                environment['QT_OPENGL_DLL']=str(driver)
+                environment['QT_OPENGL']='desktop'
+                fallback_probe=output / 'MesaGraphicsProbe.exe'
+                shutil.copy2(probe,fallback_probe)
+                fallback=subprocess.run([str(fallback_probe)],text=True,capture_output=True)
+                (output / 'fallback-context.log').write_text(fallback.stdout+fallback.stderr)
+                if fallback.stdout.strip():
+                    graphics['fallback']=json.loads(fallback.stdout.strip().splitlines()[-1])
         elif args.platform.startswith('linux'):
             qt=builder.DEPS / 'qt/6.10.2/gcc_64'
             environment['LD_LIBRARY_PATH']=os.pathsep.join([str(builder.REPO / 'application/bin'),str(qt / 'lib'),environment.get('LD_LIBRARY_PATH','')])

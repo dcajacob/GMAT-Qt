@@ -29,7 +29,8 @@ jobs:
           ${{ fromJSON(contains(github.event.head_commit.message, '[linux-package]') &&
           '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"}]' ||
           (contains(github.event.head_commit.message, '[windows-build]') ||
-          contains(github.event.head_commit.message, '[windows-package]')) &&
+          contains(github.event.head_commit.message, '[windows-package]') ||
+          contains(github.event.head_commit.message, '[windows-graphics]')) &&
           '[{"runner":"windows-2022","platform":"windows-x64"}]' ||
           '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"},
           {"runner":"windows-2022","platform":"windows-x64"},
