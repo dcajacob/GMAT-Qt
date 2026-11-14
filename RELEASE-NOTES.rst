@@ -1,10 +1,33 @@
-GMAT Qt 0.1.0-alpha.3
+GMAT Qt 0.1.0-alpha.4
 ====================
 
 This early alpha includes the Qt mission editor, resource dialogs, reports,
 2D and 3D plots, shared playback, map overlays, and satellite and ground-site
 import tools. New Qt orbit plots use an oblique north-up Earth view. Workspace
 windows open maximized, with tabs and two-column tiling available.
+
+Changes in alpha.4
+------------------
+
+The GPS smoother now copies its propagation definitions at the correct
+initialization stage and writes completed MATLAB data without an extra empty
+block. Buffered solver plots retain the spacecraft-relative frame state for
+each historical sample. macOS bundle paths correctly locate gravity files,
+function validators and bundled GMAT functions. Windows eclipse and contact
+reports preserve Unicode output filenames.
+
+The GUI tutorial replay completed all 17 tutorials supported by the standard
+archives on Linux, Windows, Apple Silicon and Intel Mac. All 16 tutorials with
+stock references matched their existing numerical bounds. The optional VF13ad
+lunar tutorial also passed in the full-plugin Linux build. Twelve independent
+eclipse/contact checks passed on each platform with unchanged geometric
+references and tolerances. These are source-versioned results reused from the
+recorded checks. Each new archive also receives targeted package and MCP
+qualification after extraction.
+
+The standard archives retain the CPython 3.12 core, station and navigation
+bindings. The MCP bridge remains opt-in. Existing alpha.2 and alpha.3 release
+files and checksums are preserved.
 
 Changes in alpha.3
 ------------------
