@@ -1,0 +1,275 @@
+% Formation Rendezvous Tutorial -- reconstructed demonstration
+%
+% The legacy attachment contained an unrelated lunar-transfer mission.
+% Tut_FormationRendezvous.xml specifies this four-spacecraft mission but omits
+% Sat2-Sat4's initial orbital elements. Sat1 is recovered from its screenshot:
+% SMA=7600 km, ECC approximately zero, INC=100.51 deg, RAAN=278.85 deg,
+% AOP=0 deg, TA=90 deg. Sat2-Sat4 below are deliberately chosen small formation
+% offsets, not recovered historical values. All share Sat1's epoch and SMA.
+% See doc/DevelopersDocs/Qt6ParityValidation/FormationRendezvousRecovery.md.
+%
+% The documented sequence first targets position coincidence in Sat1LVLH,
+% then targets inertial velocity matching after a second transfer interval.
+% The second target does not constrain position at the same epoch: this is a
+% targeting demonstration, not a simultaneous six-state docking solution.
+% Historical plot shapes and burn values are not reproduced by reconstruction.
+%
+% Distances are km, velocities and burn components are km/s, angles are deg.
+
+%----------------------------------------
+% Spacecraft: recovered reference and explicitly reconstructed formation
+%----------------------------------------
+Create Spacecraft Sat1;
+GMAT Sat1.DateFormat = UTCGregorian;
+GMAT Sat1.Epoch = '01 Jan 2000 11:59:27.966';
+GMAT Sat1.CoordinateSystem = EarthMJ2000Eq;
+GMAT Sat1.DisplayStateType = Keplerian;
+GMAT Sat1.SMA = 7600;
+GMAT Sat1.ECC = 0;
+GMAT Sat1.INC = 100.51;
+GMAT Sat1.RAAN = 278.85;
+GMAT Sat1.AOP = 0;
+GMAT Sat1.TA = 90;
+GMAT Sat1.OrbitColor = Red;
+
+Create Spacecraft Sat2;
+GMAT Sat2.DateFormat = UTCGregorian;
+GMAT Sat2.Epoch = '01 Jan 2000 11:59:27.966';
+GMAT Sat2.CoordinateSystem = EarthMJ2000Eq;
+GMAT Sat2.DisplayStateType = Keplerian;
+GMAT Sat2.SMA = 7600;
+GMAT Sat2.ECC = 0.0005;
+GMAT Sat2.INC = 100.515;
+GMAT Sat2.RAAN = 278.855;
+GMAT Sat2.AOP = 0;
+GMAT Sat2.TA = 90.05;
+GMAT Sat2.OrbitColor = Green;
+
+Create Spacecraft Sat3;
+GMAT Sat3.DateFormat = UTCGregorian;
+GMAT Sat3.Epoch = '01 Jan 2000 11:59:27.966';
+GMAT Sat3.CoordinateSystem = EarthMJ2000Eq;
+GMAT Sat3.DisplayStateType = Keplerian;
+GMAT Sat3.SMA = 7600;
+GMAT Sat3.ECC = 0.0005;
+GMAT Sat3.INC = 100.505;
+GMAT Sat3.RAAN = 278.845;
+GMAT Sat3.AOP = 0;
+GMAT Sat3.TA = 89.95;
+GMAT Sat3.OrbitColor = Blue;
+
+Create Spacecraft Sat4;
+GMAT Sat4.DateFormat = UTCGregorian;
+GMAT Sat4.Epoch = '01 Jan 2000 11:59:27.966';
+GMAT Sat4.CoordinateSystem = EarthMJ2000Eq;
+GMAT Sat4.DisplayStateType = Keplerian;
+GMAT Sat4.SMA = 7600;
+GMAT Sat4.ECC = 0;
+GMAT Sat4.INC = 100.52;
+GMAT Sat4.RAAN = 278.85;
+GMAT Sat4.AOP = 0;
+GMAT Sat4.TA = 90.1;
+GMAT Sat4.OrbitColor = Yellow;
+
+%----------------------------------------
+% Documented point-mass force model and Runge-Kutta 8/9 integrator
+%----------------------------------------
+Create ForceModel RKV_LowEarth_ForceModel;
+GMAT RKV_LowEarth_ForceModel.CentralBody = Earth;
+GMAT RKV_LowEarth_ForceModel.PrimaryBodies = {};
+GMAT RKV_LowEarth_ForceModel.PointMasses = {Earth, Sun, Luna, Jupiter};
+GMAT RKV_LowEarth_ForceModel.Drag = None;
+GMAT RKV_LowEarth_ForceModel.SRP = Off;
+GMAT RKV_LowEarth_ForceModel.ErrorControl = RSSStep;
+
+Create Propagator RKV_LowEarth;
+GMAT RKV_LowEarth.FM = RKV_LowEarth_ForceModel;
+GMAT RKV_LowEarth.Type = RungeKutta89;
+GMAT RKV_LowEarth.InitialStepSize = 60;
+GMAT RKV_LowEarth.Accuracy = 1e-11;
+GMAT RKV_LowEarth.MinStep = 0.001;
+GMAT RKV_LowEarth.MaxStep = 900;
+GMAT RKV_LowEarth.MaxStepAttempts = 50;
+GMAT RKV_LowEarth.StopIfAccuracyIsViolated = true;
+
+Create ImpulsiveBurn Burn1;
+GMAT Burn1.CoordinateSystem = Local;
+GMAT Burn1.Origin = Earth;
+GMAT Burn1.Axes = VNB;
+GMAT Burn1.Element1 = 0.0001;
+GMAT Burn1.Element2 = 0;
+GMAT Burn1.Element3 = 0;
+GMAT Burn1.DecrementMass = false;
+
+Create DifferentialCorrector DC;
+GMAT DC.ShowProgress = true;
+GMAT DC.ReportStyle = Normal;
+GMAT DC.ReportFile = 'DifferentialCorrectorDC.data';
+GMAT DC.MaximumIterations = 25;
+GMAT DC.DerivativeMethod = ForwardDifference;
+
+% Sat1LVLH's -N/-R orientation is recovered from the chapter screenshot.
+Create CoordinateSystem Sat1LVLH;
+GMAT Sat1LVLH.Origin = Sat1;
+GMAT Sat1LVLH.Axes = ObjectReferenced;
+GMAT Sat1LVLH.Primary = Earth;
+GMAT Sat1LVLH.Secondary = Sat1;
+GMAT Sat1LVLH.YAxis = -N;
+GMAT Sat1LVLH.ZAxis = -R;
+
+% Complete the chapter's Sat2VNB definition with conventional V and N axes.
+Create CoordinateSystem Sat2VNB;
+GMAT Sat2VNB.Origin = Sat2;
+GMAT Sat2VNB.Axes = ObjectReferenced;
+GMAT Sat2VNB.Primary = Earth;
+GMAT Sat2VNB.Secondary = Sat2;
+GMAT Sat2VNB.XAxis = V;
+GMAT Sat2VNB.YAxis = N;
+
+%----------------------------------------
+% Inertial and spacecraft-relative displays
+%----------------------------------------
+Create OrbitView EarthView;
+GMAT EarthView.SolverIterations = Current;
+GMAT EarthView.Add = {Sat1, Sat2, Sat3, Sat4, Earth};
+GMAT EarthView.DrawObject = [ true true true true true ];
+GMAT EarthView.CoordinateSystem = EarthMJ2000Eq;
+GMAT EarthView.ViewPointReference = Earth;
+GMAT EarthView.ViewPointVector = [ 0 0 30000 ];
+GMAT EarthView.ViewDirection = Earth;
+GMAT EarthView.ViewUpCoordinateSystem = EarthMJ2000Eq;
+GMAT EarthView.ViewUpAxis = Z;
+GMAT EarthView.DataCollectFrequency = 1;
+GMAT EarthView.UpdatePlotFrequency = 50;
+GMAT EarthView.ShowPlot = true;
+
+Create OrbitView Sat2InSat1LVLH;
+GMAT Sat2InSat1LVLH.SolverIterations = Current;
+GMAT Sat2InSat1LVLH.Add = {Sat1, Sat2, Sat3, Sat4, Earth};
+GMAT Sat2InSat1LVLH.DrawObject = [ true true true true true ];
+GMAT Sat2InSat1LVLH.CoordinateSystem = Sat1LVLH;
+GMAT Sat2InSat1LVLH.ViewPointReference = Earth;
+% The chapter does not specify a camera vector; use the OrbitView default.
+GMAT Sat2InSat1LVLH.ViewPointVector = [ 0 0 30000 ];
+GMAT Sat2InSat1LVLH.ViewDirection = Earth;
+GMAT Sat2InSat1LVLH.ViewScaleFactor = 0.15;
+GMAT Sat2InSat1LVLH.ViewUpCoordinateSystem = Sat1LVLH;
+GMAT Sat2InSat1LVLH.ViewUpAxis = X;
+GMAT Sat2InSat1LVLH.DataCollectFrequency = 1;
+GMAT Sat2InSat1LVLH.UpdatePlotFrequency = 50;
+GMAT Sat2InSat1LVLH.ShowPlot = true;
+
+Create XYPlot Sat2wrtSat1LVLH;
+GMAT Sat2wrtSat1LVLH.SolverIterations = Current;
+GMAT Sat2wrtSat1LVLH.XVariable = Sat2.Sat1LVLH.X;
+GMAT Sat2wrtSat1LVLH.YVariables = {Sat2.Sat1LVLH.Z};
+GMAT Sat2wrtSat1LVLH.ShowGrid = true;
+GMAT Sat2wrtSat1LVLH.ShowPlot = true;
+
+Create XYPlot Sat1wrtSat2VNB;
+GMAT Sat1wrtSat2VNB.SolverIterations = Current;
+GMAT Sat1wrtSat2VNB.XVariable = Sat1.Sat2VNB.X;
+GMAT Sat1wrtSat2VNB.YVariables = {Sat1.Sat2VNB.Y};
+GMAT Sat1wrtSat2VNB.ShowGrid = true;
+GMAT Sat1wrtSat2VNB.ShowPlot = true;
+
+Create XYPlot Sat1wrtSat2VNB2;
+GMAT Sat1wrtSat2VNB2.SolverIterations = Current;
+GMAT Sat1wrtSat2VNB2.XVariable = Sat1.Sat2VNB.Y;
+GMAT Sat1wrtSat2VNB2.YVariables = {Sat1.Sat2VNB.Z};
+GMAT Sat1wrtSat2VNB2.ShowGrid = true;
+GMAT Sat1wrtSat2VNB2.ShowPlot = true;
+
+% The chapter's twenty Report commands record four Cartesian states at each
+% checkpoint. None suppresses trial iterations but retains the solved pass.
+Create ReportFile DataReport;
+GMAT DataReport.SolverIterations = None;
+GMAT DataReport.Filename = 'FormationRendezvousTutorial.data';
+GMAT DataReport.Precision = 16;
+GMAT DataReport.WriteHeaders = On;
+GMAT DataReport.WriteReport = true;
+
+% Additional diagnostics expose both goals independently of solver logs.
+Create Variable PositionX PositionY PositionZ PositionNorm;
+Create Variable VelocityX VelocityY VelocityZ VelocityNorm;
+Create Variable PositionAtVelocityX PositionAtVelocityY PositionAtVelocityZ;
+Create Variable PositionBurnV PositionBurnN PositionBurnB;
+Create Variable VelocityBurnV VelocityBurnN VelocityBurnB;
+Create ReportFile RendezvousResiduals;
+GMAT RendezvousResiduals.Filename = 'FormationRendezvousResiduals.data';
+GMAT RendezvousResiduals.Precision = 16;
+GMAT RendezvousResiduals.WriteHeaders = On;
+GMAT RendezvousResiduals.WriteReport = true;
+
+%----------------------------------------
+% Documented mission sequence
+%----------------------------------------
+BeginMissionSequence;
+Toggle 'Enable relative views' Sat2wrtSat1LVLH Sat1wrtSat2VNB Sat1wrtSat2VNB2 Sat2InSat1LVLH On;
+Report 'Report1 - Sat1' DataReport Sat1.EarthMJ2000Eq.X Sat1.EarthMJ2000Eq.Y Sat1.EarthMJ2000Eq.Z Sat1.EarthMJ2000Eq.VX Sat1.EarthMJ2000Eq.VY Sat1.EarthMJ2000Eq.VZ;
+Report 'Report2 - Sat2' DataReport Sat2.EarthMJ2000Eq.X Sat2.EarthMJ2000Eq.Y Sat2.EarthMJ2000Eq.Z Sat2.EarthMJ2000Eq.VX Sat2.EarthMJ2000Eq.VY Sat2.EarthMJ2000Eq.VZ;
+Report 'Report3 - Sat3' DataReport Sat3.EarthMJ2000Eq.X Sat3.EarthMJ2000Eq.Y Sat3.EarthMJ2000Eq.Z Sat3.EarthMJ2000Eq.VX Sat3.EarthMJ2000Eq.VY Sat3.EarthMJ2000Eq.VZ;
+Report 'Report4 - Sat4' DataReport Sat4.EarthMJ2000Eq.X Sat4.EarthMJ2000Eq.Y Sat4.EarthMJ2000Eq.Z Sat4.EarthMJ2000Eq.VX Sat4.EarthMJ2000Eq.VY Sat4.EarthMJ2000Eq.VZ;
+GMAT DataReport.WriteHeaders = Off;
+Propagate 'Propagate1 - Initial formation coast' RKV_LowEarth(Sat1, Sat2, Sat3, Sat4) {Sat1.ElapsedDays = 0.2};
+Report 'Report5 - Sat1' DataReport Sat1.EarthMJ2000Eq.X Sat1.EarthMJ2000Eq.Y Sat1.EarthMJ2000Eq.Z Sat1.EarthMJ2000Eq.VX Sat1.EarthMJ2000Eq.VY Sat1.EarthMJ2000Eq.VZ;
+Report 'Report6 - Sat2' DataReport Sat2.EarthMJ2000Eq.X Sat2.EarthMJ2000Eq.Y Sat2.EarthMJ2000Eq.Z Sat2.EarthMJ2000Eq.VX Sat2.EarthMJ2000Eq.VY Sat2.EarthMJ2000Eq.VZ;
+Report 'Report7 - Sat3' DataReport Sat3.EarthMJ2000Eq.X Sat3.EarthMJ2000Eq.Y Sat3.EarthMJ2000Eq.Z Sat3.EarthMJ2000Eq.VX Sat3.EarthMJ2000Eq.VY Sat3.EarthMJ2000Eq.VZ;
+Report 'Report8 - Sat4' DataReport Sat4.EarthMJ2000Eq.X Sat4.EarthMJ2000Eq.Y Sat4.EarthMJ2000Eq.Z Sat4.EarthMJ2000Eq.VX Sat4.EarthMJ2000Eq.VY Sat4.EarthMJ2000Eq.VZ;
+
+% Position rendezvous: retain the chapter's three VNB controls and bounds.
+Target 'Target1 - Position rendezvous' DC {SolveMode = Solve, ExitMode = DiscardAndContinue};
+   Vary 'Vary1 - V' DC(Burn1.Element1 = -0.0001, {Perturbation = 0.001, Lower = -0.3, Upper = 0.3, MaxStep = 0.05});
+   Vary 'Vary2 - N' DC(Burn1.Element2 = 0, {Perturbation = 0.001, Lower = -0.3, Upper = 0.3, MaxStep = 0.05});
+   Vary 'Vary3 - B' DC(Burn1.Element3 = 0, {Perturbation = 0.001, Lower = -0.3, Upper = 0.3, MaxStep = 0.05});
+   Maneuver 'Maneuver1 - Position transfer' Burn1(Sat2);
+   Propagate 'Propagate2 - Position transfer' RKV_LowEarth(Sat1, Sat2, Sat3, Sat4) {Sat1.ElapsedSecs = 5498.65387429};
+   Achieve 'Achieve1 - Relative X' DC(Sat2.Sat1LVLH.X = 0, {Tolerance = 0.0001});
+   Achieve 'Achieve2 - Relative Y' DC(Sat2.Sat1LVLH.Y = 0, {Tolerance = 0.0001});
+   Achieve 'Achieve3 - Relative Z' DC(Sat2.Sat1LVLH.Z = 0, {Tolerance = 0.0001});
+   Report 'Report9 - Sat1' DataReport Sat1.EarthMJ2000Eq.X Sat1.EarthMJ2000Eq.Y Sat1.EarthMJ2000Eq.Z Sat1.EarthMJ2000Eq.VX Sat1.EarthMJ2000Eq.VY Sat1.EarthMJ2000Eq.VZ;
+   Report 'Report10 - Sat2' DataReport Sat2.EarthMJ2000Eq.X Sat2.EarthMJ2000Eq.Y Sat2.EarthMJ2000Eq.Z Sat2.EarthMJ2000Eq.VX Sat2.EarthMJ2000Eq.VY Sat2.EarthMJ2000Eq.VZ;
+   Report 'Report11 - Sat3' DataReport Sat3.EarthMJ2000Eq.X Sat3.EarthMJ2000Eq.Y Sat3.EarthMJ2000Eq.Z Sat3.EarthMJ2000Eq.VX Sat3.EarthMJ2000Eq.VY Sat3.EarthMJ2000Eq.VZ;
+   Report 'Report12 - Sat4' DataReport Sat4.EarthMJ2000Eq.X Sat4.EarthMJ2000Eq.Y Sat4.EarthMJ2000Eq.Z Sat4.EarthMJ2000Eq.VX Sat4.EarthMJ2000Eq.VY Sat4.EarthMJ2000Eq.VZ;
+EndTarget;
+GMAT PositionX = Sat2.Sat1LVLH.X;
+GMAT PositionY = Sat2.Sat1LVLH.Y;
+GMAT PositionZ = Sat2.Sat1LVLH.Z;
+GMAT PositionNorm = sqrt(PositionX^2 + PositionY^2 + PositionZ^2);
+GMAT PositionBurnV = Burn1.Element1;
+GMAT PositionBurnN = Burn1.Element2;
+GMAT PositionBurnB = Burn1.Element3;
+
+% This second transfer matches velocity only, as prescribed by the chapter.
+Target 'Target2 - Inertial velocity matching' DC {SolveMode = Solve, ExitMode = DiscardAndContinue};
+   Vary 'Vary4 - V' DC(Burn1.Element1 = -0.0001, {Perturbation = 0.001, Lower = -1, Upper = 1, MaxStep = 0.5});
+   Vary 'Vary5 - N' DC(Burn1.Element2 = 0, {Perturbation = 0.001, Lower = -1, Upper = 1, MaxStep = 0.5});
+   Vary 'Vary6 - B' DC(Burn1.Element3 = 0, {Perturbation = 0.001, Lower = -1, Upper = 1, MaxStep = 0.5});
+   Maneuver 'Maneuver2 - Velocity transfer' Burn1(Sat2);
+   Propagate 'Propagate3 - Velocity transfer' RKV_LowEarth(Sat1, Sat2, Sat3, Sat4) {Sat1.ElapsedSecs = 5498.65387429};
+   Achieve 'Achieve4 - Inertial VX' DC(Sat2.EarthMJ2000Eq.VX = Sat1.EarthMJ2000Eq.VX, {Tolerance = 0.0001});
+   Achieve 'Achieve5 - Inertial VY' DC(Sat2.EarthMJ2000Eq.VY = Sat1.EarthMJ2000Eq.VY, {Tolerance = 0.0001});
+   Achieve 'Achieve6 - Inertial VZ' DC(Sat2.EarthMJ2000Eq.VZ = Sat1.EarthMJ2000Eq.VZ, {Tolerance = 0.0001});
+   Report 'Report13 - Sat1' DataReport Sat1.EarthMJ2000Eq.X Sat1.EarthMJ2000Eq.Y Sat1.EarthMJ2000Eq.Z Sat1.EarthMJ2000Eq.VX Sat1.EarthMJ2000Eq.VY Sat1.EarthMJ2000Eq.VZ;
+   Report 'Report14 - Sat2' DataReport Sat2.EarthMJ2000Eq.X Sat2.EarthMJ2000Eq.Y Sat2.EarthMJ2000Eq.Z Sat2.EarthMJ2000Eq.VX Sat2.EarthMJ2000Eq.VY Sat2.EarthMJ2000Eq.VZ;
+   Report 'Report15 - Sat3' DataReport Sat3.EarthMJ2000Eq.X Sat3.EarthMJ2000Eq.Y Sat3.EarthMJ2000Eq.Z Sat3.EarthMJ2000Eq.VX Sat3.EarthMJ2000Eq.VY Sat3.EarthMJ2000Eq.VZ;
+   Report 'Report16 - Sat4' DataReport Sat4.EarthMJ2000Eq.X Sat4.EarthMJ2000Eq.Y Sat4.EarthMJ2000Eq.Z Sat4.EarthMJ2000Eq.VX Sat4.EarthMJ2000Eq.VY Sat4.EarthMJ2000Eq.VZ;
+EndTarget;
+GMAT VelocityX = Sat2.EarthMJ2000Eq.VX - Sat1.EarthMJ2000Eq.VX;
+GMAT VelocityY = Sat2.EarthMJ2000Eq.VY - Sat1.EarthMJ2000Eq.VY;
+GMAT VelocityZ = Sat2.EarthMJ2000Eq.VZ - Sat1.EarthMJ2000Eq.VZ;
+GMAT VelocityNorm = sqrt(VelocityX^2 + VelocityY^2 + VelocityZ^2);
+GMAT PositionAtVelocityX = Sat2.Sat1LVLH.X;
+GMAT PositionAtVelocityY = Sat2.Sat1LVLH.Y;
+GMAT PositionAtVelocityZ = Sat2.Sat1LVLH.Z;
+GMAT VelocityBurnV = Burn1.Element1;
+GMAT VelocityBurnN = Burn1.Element2;
+GMAT VelocityBurnB = Burn1.Element3;
+Report 'Separate endpoint residuals and VNB burns' RendezvousResiduals PositionX PositionY PositionZ PositionNorm VelocityX VelocityY VelocityZ VelocityNorm PositionAtVelocityX PositionAtVelocityY PositionAtVelocityZ PositionBurnV PositionBurnN PositionBurnB VelocityBurnV VelocityBurnN VelocityBurnB;
+
+% The last coast is outside Target2; it adds no rendezvous constraints.
+Propagate 'Propagate4 - Final formation coast' RKV_LowEarth(Sat1, Sat2, Sat3, Sat4) {Sat1.ElapsedDays = 0.2};
+Report 'Report17 - Sat1' DataReport Sat1.EarthMJ2000Eq.X Sat1.EarthMJ2000Eq.Y Sat1.EarthMJ2000Eq.Z Sat1.EarthMJ2000Eq.VX Sat1.EarthMJ2000Eq.VY Sat1.EarthMJ2000Eq.VZ;
+Report 'Report18 - Sat2' DataReport Sat2.EarthMJ2000Eq.X Sat2.EarthMJ2000Eq.Y Sat2.EarthMJ2000Eq.Z Sat2.EarthMJ2000Eq.VX Sat2.EarthMJ2000Eq.VY Sat2.EarthMJ2000Eq.VZ;
+Report 'Report19 - Sat3' DataReport Sat3.EarthMJ2000Eq.X Sat3.EarthMJ2000Eq.Y Sat3.EarthMJ2000Eq.Z Sat3.EarthMJ2000Eq.VX Sat3.EarthMJ2000Eq.VY Sat3.EarthMJ2000Eq.VZ;
+Report 'Report20 - Sat4' DataReport Sat4.EarthMJ2000Eq.X Sat4.EarthMJ2000Eq.Y Sat4.EarthMJ2000Eq.Z Sat4.EarthMJ2000Eq.VX Sat4.EarthMJ2000Eq.VY Sat4.EarthMJ2000Eq.VZ;
