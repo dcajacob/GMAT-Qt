@@ -93,7 +93,7 @@ def main():
     elif args.platform.startswith('macos'):
         options += ['-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
                     '-DCMAKE_OSX_ARCHITECTURES='+('arm64' if args.platform.endswith('arm64') else 'x86_64')]
-        environment['DYLD_LIBRARY_PATH'] = str(binary)+':'+str(root/'Contents/Frameworks')
+        environment.pop('DYLD_LIBRARY_PATH', None)
     else:
         environment['LD_LIBRARY_PATH'] = os.pathsep.join([str(binary), str(root/'lib'), str(qt/'lib')])
         environment['QT_PLUGIN_PATH'] = str(qt/'plugins')
@@ -125,7 +125,7 @@ def main():
                         if old.startswith(('/System/', '/usr/lib/')):
                             continue
                         library = Path(old).name
-                        candidates = [binary/library, root/'Contents/Frameworks'/library, plugins/library]
+                        candidates = [root/'Contents/Frameworks'/library, binary/library, plugins/library]
                         target = next((path for path in candidates if path.is_file()), None)
                         if target and target.resolve() != destination.resolve():
                             relative = os.path.relpath(target, destination.parent)
@@ -139,6 +139,15 @@ def main():
     suffix = '.exe' if os.name == 'nt' else ''
     probe = next(build.rglob('GmatQtTutorialProbe'+suffix))
     driver = next(build.rglob('GmatQtTutorialDriverTests'+suffix))
+    if args.platform.startswith('macos'):
+        libraries = subprocess.check_output(['otool', '-L', probe], text=True).splitlines()[1:]
+        for line in libraries:
+            old = line.strip().split(' (compatibility version', 1)[0]
+            if Path(old).name.startswith(('libGmatBase', 'libGmatUtil', 'libGmatEstimation')):
+                target = root/'Contents/Frameworks'/Path(old).name
+                if target.is_file():
+                    subprocess.run(['install_name_tool', '-change', old, str(target), str(probe)], check=True)
+        subprocess.run(['codesign', '--force', '--sign', '-', str(probe)], check=True)
     if os.name == 'nt':
         software = qt/'bin/opengl32sw.dll'
         if software.is_file():
