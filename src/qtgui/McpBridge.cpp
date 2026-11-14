@@ -47,14 +47,15 @@ namespace {
 QString stamp() { return QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs); }
 QString installationRoot() {
    const QDir binary(QCoreApplication::applicationDirPath());
-   if (binary.dirName()=="MacOS" && QDir(binary.absoluteFilePath("..")).dirName()=="Contents") {
-      const QDir app(binary.absoluteFilePath("../.."));
-      const QDir parent(app.absoluteFilePath(".."));
-      if(parent.dirName()=="bin" && QFileInfo::exists(parent.filePath("gmat_startup_file.txt")))
-         return QDir(parent.absoluteFilePath("..")).absolutePath();
+   const QDir parent(QDir::cleanPath(binary.absoluteFilePath("..")));
+   if (binary.dirName()=="MacOS" && parent.dirName()=="Contents") {
+      const QDir app(QDir::cleanPath(parent.absoluteFilePath("..")));
+      const QDir appParent(QDir::cleanPath(app.absoluteFilePath("..")));
+      if(appParent.dirName()=="bin" && QFileInfo::exists(appParent.filePath("gmat_startup_file.txt")))
+         return QDir::cleanPath(appParent.absoluteFilePath(".."));
       return app.absolutePath();
    }
-   return QDir(binary.absoluteFilePath("..")).absolutePath();
+   return parent.absolutePath();
 }
 void protect(const QString &path, bool directory) {
 #ifdef Q_OS_WIN
