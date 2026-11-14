@@ -18,6 +18,8 @@ jobs:
         include: >-
           ${{ fromJSON(contains(github.event.head_commit.message, '[linux-package]') &&
           '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"}]' ||
+          contains(github.event.head_commit.message, '[windows-build]') &&
+          '[{"runner":"windows-2022","platform":"windows-x64"}]' ||
           '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"},
           {"runner":"windows-2022","platform":"windows-x64"},
           {"runner":"macos-15","platform":"macos-arm64"},
@@ -36,7 +38,8 @@ jobs:
           python -c "import sys; sys.path.insert(0, 'tools/preview'); from BuildPreviewPackage import production_tree; print('tree=' + production_tree())" >> "$GITHUB_OUTPUT"
       - name: Restore Windows graphics SDK
         if: matrix.platform == 'windows-x64'
-        uses: actions/cache@v4
+        id: windows-sdk
+        uses: actions/cache/restore@v4
         with:
           path: |
             build/preview-package/deps/osg
@@ -77,6 +80,14 @@ jobs:
           path: build/preview-package/logs/
           if-no-files-found: warn
           retention-days: 30
+      - name: Preserve completed Windows dependency SDK
+        if: always() && matrix.platform == 'windows-x64' && steps.windows-sdk.outputs.cache-hit != 'true' && hashFiles('build/preview-package/deps/osg/preview-sdk-sha256.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build/preview-package/deps/osg
+            C:\vcpkg\installed
+          key: gmat-qt-preview-windows-2022-osg365-sdk-v1
       - name: Preserve compiled inputs
         if: always()
         uses: actions/upload-artifact@v4

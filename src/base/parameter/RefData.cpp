@@ -34,7 +34,14 @@
 #include "StringUtil.hpp"          // for ParseParameter()
 #include "MessageInterface.hpp"
 
+#ifdef _MSC_VER
+// MSVC cannot export thread-local class data through the DLL interface.
+namespace {
+thread_local const RefData *retiringPrototype = nullptr;
+}
+#else
 thread_local const RefData *RefData::retiringPrototype = nullptr;
+#endif
 
 //#define DEBUG_REFDATA_CREATE
 //#define DEBUG_REFDATA_OBJECT 2

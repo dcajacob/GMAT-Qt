@@ -150,15 +150,16 @@ def build(target, qt, osg, prefix):
         # CL supplements MSVC's normal flags instead of replacing CMake's
         # exception-handling, runtime-library or release configuration.
         build_env = dict(os.environ)
-        build_env['CL'] = (build_env.get('CL', '') + ' /DNOMINMAX').strip()
-        print('MSVC native build: add /DNOMINMAX', flush=True)
+        build_env['CL'] = (build_env.get('CL', '') + ' /DNOMINMAX /MP' + BUILD_JOBS).strip()
+        print('MSVC native build: add /DNOMINMAX and file-level parallel compilation', flush=True)
     elif target.startswith('macos'):
         architecture = 'arm64' if target.endswith('arm64') else 'x86_64'
         options += ['-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
                     f'-DCMAKE_OSX_ARCHITECTURES={architecture}']
     run(['cmake', '-S', REPO, '-B', ROOT / 'gmat-build', *options], 'gmat-configure', env=build_env)
     run(['cmake', '--build', ROOT / 'gmat-build', '--config', 'Release',
-         '--target', 'GmatQt', '--parallel', BUILD_JOBS], 'gmat-build', env=build_env)
+         '--target', 'GmatQt', '--parallel', '1' if target.startswith('windows') else BUILD_JOBS],
+        'gmat-build', env=build_env)
 
 
 def production_tree():

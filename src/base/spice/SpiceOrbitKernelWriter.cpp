@@ -761,7 +761,11 @@ Integer SpiceOrbitKernelWriter::GetMinNumberOfStates()
    // Type 13 uses Hermite position/velocity pairs: each state supplies two
    // constraints. The descriptor must also span a positive interval covered
    // by the records, so a segment needs at least two distinct epochs.
+#ifdef _MSC_VER
+   return std::max<SpiceInt>(2, degree / 2 + 1);
+#else
    return std::max(2, degree / 2 + 1);
+#endif
 }
 
 

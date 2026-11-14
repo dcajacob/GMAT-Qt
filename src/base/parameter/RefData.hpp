@@ -163,7 +163,9 @@ protected:
          const std::function<GmatBase*(GmatBase*)> &resolve);
 
    bool IsRetiringPrototypeReferences() const;
+#ifndef _MSC_VER
    static thread_local const RefData *retiringPrototype;
+#endif
 
    template <class T> T *BindClonedParameterReference(T *source,
          const std::function<GmatBase*(GmatBase*)> &resolve) const
