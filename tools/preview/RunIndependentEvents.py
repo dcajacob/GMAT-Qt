@@ -55,6 +55,9 @@ def run_event_results(args, payload, root, binary, executables, environment, pat
             physical_inputs[path] = actual
         for case in cases['cases']:
             name = 'QtGui.Nasa'+family+'Result'+case['key']
+            selected = os.environ.get('GMAT_EVENT_CASES', '').split(',')
+            if selected != [''] and name not in selected:
+                continue
             folder = output/name
             folder.mkdir(exist_ok=False)
             selected = startup_text

@@ -88,16 +88,24 @@ option(GMAT_EVENT_RESULT_TESTS "Build the independent eclipse and contact checks
 if(GMAT_EVENT_RESULT_TESTS)
    find_package(Qt6 REQUIRED COMPONENTS Test)
    find_library(event_cspice NAMES cspice cspice.a PATHS "${CSPICE_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
+   if(GMAT_TUTORIAL_BUILD_BASE)
+      target_sources(GmatBase PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../EventSpiceDiagnostics.cpp")
+   endif()
    foreach(family Eclipse Contact)
       # The current editor uses the window close action for dirty-close prompts.
       # Retain the protected test and replace only its obsolete hidden-button gesture.
       file(READ "${GMAT_SOURCE_DIR}/src/qtgui/tests/Nasa${family}ResultTests.cpp" event_source)
       string(REPLACE "click(buttons,QDialogButtonBox::Close)" "child->close(); events()"
          event_source "${event_source}")
+      if(GMAT_TUTORIAL_BUILD_BASE)
+         string(REPLACE "#include \"SpiceUsr.h\"" "#include \"EventSpiceDiagnostics.hpp\""
+            event_source "${event_source}")
+      endif()
       file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/Nasa${family}ResultCurrent.cpp" "${event_source}")
       add_executable(GmatQtNasa${family}ResultTests
          "${CMAKE_CURRENT_BINARY_DIR}/Nasa${family}ResultCurrent.cpp")
       target_include_directories(GmatQtNasa${family}ResultTests PRIVATE "${GMAT_SOURCE_DIR}/src/qtgui/tests")
+      target_include_directories(GmatQtNasa${family}ResultTests PRIVATE "${CMAKE_CURRENT_LIST_DIR}/..")
       target_link_libraries(GmatQtNasa${family}ResultTests PRIVATE GmatQtFrontend Qt6::Test "${event_cspice}")
    endforeach()
 endif()
