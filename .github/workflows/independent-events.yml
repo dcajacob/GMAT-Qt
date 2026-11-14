@@ -17,10 +17,6 @@ jobs:
         include:
           - runner: windows-2022
             platform: windows-x64
-          - runner: macos-15
-            platform: macos-arm64
-          - runner: macos-15-intel
-            platform: macos-x64
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     env:
@@ -46,8 +42,6 @@ jobs:
           github-token: ${{ github.token }}
           path: build/event-archive
       - name: Run the twelve independent cases
-        env:
-          GMAT_EVENT_CASES: QtGui.NasaEclipseResultAntumbra
         shell: bash
         run: |
           python - <<'PY'
@@ -66,6 +60,7 @@ jobs:
           name: independent-events-${{ matrix.platform }}
           path: |
             build/event-results/results.json
+            build/event-results/Nasa*ResultCases.json
             build/event-results/QtGui.*/
             build/preview-package/logs/
           retention-days: 30

@@ -43,6 +43,7 @@ def run_event_results(args, payload, root, binary, executables, environment, pat
     rows = []
     protected = {}
     physical_inputs = {}
+    text_input_formats = {}
     for family, executable in zip(['Eclipse', 'Contact'], executables):
         fixture = source/('Nasa'+family+'ResultCases.json')
         cases = json.loads(fixture.read_text())
@@ -51,8 +52,15 @@ def run_event_results(args, payload, root, binary, executables, environment, pat
         for path, expected in cases['physical_inputs']['kernels'].items():
             actual = digest(input_root/path)
             if actual != expected:
-                raise RuntimeError('Packaged physical input differs from the frozen oracle: '+path)
+                raw = (input_root/path).read_bytes()
+                if Path(path).suffix.lower() not in {'.tls', '.tpc', '.txt'} or hashlib.sha256(raw.replace(b'\r\n', b'\n')).hexdigest() != expected:
+                    raise RuntimeError('Packaged physical input differs from the frozen oracle: '+path)
+                text_input_formats[path] = {'packaged_sha256': actual,
+                    'canonical_lf_sha256': expected, 'difference': 'CRLF line endings only'}
+                cases['physical_inputs']['kernels'][path] = actual
             physical_inputs[path] = actual
+        executed_fixture = output/fixture.name
+        executed_fixture.write_text(json.dumps(cases, indent=2)+'\n')
         for case in cases['cases']:
             name = 'QtGui.Nasa'+family+'Result'+case['key']
             selected = os.environ.get('GMAT_EVENT_CASES', '').split(',')
@@ -72,7 +80,7 @@ def run_event_results(args, payload, root, binary, executables, environment, pat
                 GMAT_QT_ACCEPTANCE_MODE='offscreen', LIBGL_ALWAYS_SOFTWARE='1',
                 GMAT_QT_ACCEPTANCE_DIR=str(folder),
                 GMAT_QT_ACCEPTANCE_STARTUP_ORIGINAL=str(application/'bin/startup.txt'))
-            command = [str(executable), str(private_startup), str(fixture), case['key']]
+            command = [str(executable), str(private_startup), str(executed_fixture), case['key']]
             started = time.monotonic()
             with (folder/'test.log').open('wb') as log:
                 try:
@@ -103,6 +111,7 @@ def run_event_results(args, payload, root, binary, executables, environment, pat
         'archive_sha256': digest(args.archive), 'extracted_root': str(root),
         'targeted_library_patches': patches, 'graphics_profile': 'offscreen',
         'tests': rows, 'protected_sources': protected, 'physical_inputs': physical_inputs,
+        'text_input_formats': text_input_formats,
         'oracle_policy': 'Reuse frozen independently computed geometry and physical-input hashes',
         'full_regression_run': False}
     (output/'results.json').write_text(json.dumps(receipt, indent=2)+'\n')
