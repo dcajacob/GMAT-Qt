@@ -5,6 +5,8 @@
 #include <QScrollBar>
 #include <QSettings>
 #include <QStyle>
+#include <QPointer>
+#include <QTimer>
 #include <QVector>
 #include <algorithm>
 
@@ -64,14 +66,31 @@ inline void tileWorkspaceWindows(QMdiArea *area, const QList<QMdiSubWindow *> &c
    // Snapshot eligibility before changing states, since MDI activation can
    // otherwise restore a window while another maximized window is normalized.
    for (auto *window:windows) if (window->isMaximized()) window->showNormal();
-   const auto rectangles=workspaceTileRectangles(area,windows,columnLimit);
-   for (int index=rectangles.size();index<windows.size();++index) windows[index]->showMinimized();
+   const int visibleCount=workspaceTileRectangles(area,windows,columnLimit).size();
+   for (int index=visibleCount;index<windows.size();++index) windows[index]->showMinimized();
    area->horizontalScrollBar()->setValue(0);
    area->verticalScrollBar()->setValue(0);
-   for (int index=0; index<rectangles.size(); ++index) windows[index]->setGeometry(rectangles[index]);
+   QList<QPointer<QMdiSubWindow>> visible;
+   for (int index=0;index<visibleCount;++index) visible.append(windows[index]);
+   const auto arrange=[area=QPointer<QMdiArea>(area),visible,columnLimit] {
+      if (!area) return;
+      QList<QMdiSubWindow *> current;
+      for (const auto &window:visible) {
+         if (!window || window->isHidden() || window->isMinimized() || window->isMaximized()) return;
+         current.append(window);
+      }
+      area->horizontalScrollBar()->setValue(0);
+      area->verticalScrollBar()->setValue(0);
+      const auto rectangles=workspaceTileRectangles(area,current,columnLimit);
+      for (int index=rectangles.size();index<current.size();++index) current[index]->showMinimized();
+      for (int index=0;index<rectangles.size();++index) current[index]->setGeometry(rectangles[index]);
+   };
+   arrange();
    area->setActiveSubWindow(windows.first());
    windows.first()->raise();
    area->setOption(QMdiArea::DontMaximizeSubWindowOnActivation,dontMaximizeOnActivation);
+   // Scrollbar removal can resize the viewport after the window-state changes.
+   QTimer::singleShot(0,area,arrange);
 }
 
 inline void tileWorkspaceWindows(QMdiArea *area, int columnLimit=workspaceColumnLimit())

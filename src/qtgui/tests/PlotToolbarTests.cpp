@@ -145,6 +145,13 @@ int main(int argc,char **argv)
             plot.setSimulationClock(std::nullopt); events();
          }
          plot.resize(480,480); events();
+         if (controls->property("controlRows").toInt()!=1) {
+            std::cerr<<"Toolbar rows="<<controls->property("controlRows").toInt()<<" width="<<controls->width()<<std::endl;
+            for (auto *child:controls->findChildren<QWidget *>(QString(),Qt::FindDirectChildrenOnly))
+               std::cerr<<child->metaObject()->className()<<' '<<child->objectName().toStdString()<<" width="<<child->width()
+                        <<" hint="<<child->sizeHint().width()<<" minimum="<<child->minimumSizeHint().width()
+                        <<" hidden="<<child->isHidden()<<std::endl;
+         }
          require(controls->property("controlRows").toInt()==1,"A normal tiled pane unnecessarily wraps its controls");
          if (!directory.isEmpty()) plot.grab().save(directory+QString("/kind-%1-480.png").arg(int(kind)));
          plot.resize(320,480); events();

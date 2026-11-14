@@ -58,6 +58,9 @@ void checkTiles(QMdiArea *area,int limit)
       require(!window->isMaximized(),"Tiling left a window maximized");
       const auto rect=window->geometry().translated(offset);
       require(rect.width()>=480 && rect.height()>=360,"Tiled content shrank below its readable size");
+      if (rect.top()!=0 || rect.height()!=area->viewport()->height())
+         std::cerr<<"Tile "<<window->windowTitle().toStdString()<<" geometry="<<rect.x()<<','<<rect.y()<<','<<rect.width()<<','<<rect.height()
+                  <<" viewport="<<area->viewport()->width()<<'x'<<area->viewport()->height()<<std::endl;
       require(rect.top()==0 && rect.height()==area->viewport()->height(),"Tiled content does not fill the workspace height");
       for (const auto &other:rectangles) require(!rect.intersects(other),"Tiled windows overlap");
       rectangles.append(rect); ++rowCounts[rect.top()];

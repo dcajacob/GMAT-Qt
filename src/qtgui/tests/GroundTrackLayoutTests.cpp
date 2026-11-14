@@ -111,9 +111,9 @@ int main(int argc,char **argv)
             canvas.zoomBy(std::log(2.)/std::log(1.15)); canvas.repaint();
             hover(canvas,area.center(),0,0,tolerance);
             const QPointF from=area.center(),to=from+QPointF(10,6);
-            QMouseEvent press(QEvent::MouseButtonPress,from,canvas.mapToGlobal(from.toPoint()),Qt::LeftButton,Qt::LeftButton,Qt::NoModifier);
-            QMouseEvent drag(QEvent::MouseMove,to,canvas.mapToGlobal(to.toPoint()),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
-            QMouseEvent release(QEvent::MouseButtonRelease,to,canvas.mapToGlobal(to.toPoint()),Qt::LeftButton,Qt::NoButton,Qt::NoModifier);
+            QMouseEvent press(QEvent::MouseButtonPress,from,canvas.mapToGlobal(from.toPoint()),Qt::LeftButton,Qt::LeftButton,Qt::ShiftModifier);
+            QMouseEvent drag(QEvent::MouseMove,to,canvas.mapToGlobal(to.toPoint()),Qt::NoButton,Qt::LeftButton,Qt::ShiftModifier);
+            QMouseEvent release(QEvent::MouseButtonRelease,to,canvas.mapToGlobal(to.toPoint()),Qt::LeftButton,Qt::NoButton,Qt::ShiftModifier);
             QApplication::sendEvent(&canvas,&press); QApplication::sendEvent(&canvas,&drag); QApplication::sendEvent(&canvas,&release);
             canvas.repaint(); hover(canvas,area.center(),-10*180/area.width(),6*90/area.height(),tolerance);
             canvas.fit(); canvas.repaint(); hover(canvas,area.center(),0,0,tolerance);

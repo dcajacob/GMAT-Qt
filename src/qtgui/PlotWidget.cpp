@@ -865,7 +865,7 @@ private:
          return !groups[index] || groups[index]->isHidden() ? 0 : groups[index]->sizeHint().width();
       };
       const int available=width()-8;
-      const int minimumViews=std::min(viewBar->sizeHint().width(),2*viewBar->sizeHint().height());
+      const int minimumViews=std::min(viewBar->sizeHint().width(),viewBar->minimumSizeHint().width());
       const int playback=hint(0)+hint(1)+hint(2)+more->sizeHint().width()+20;
       if (position) {
          auto *label=position->findChild<QLabel *>("plotReplayPosition");
