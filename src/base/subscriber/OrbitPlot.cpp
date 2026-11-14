@@ -2318,6 +2318,9 @@ void OrbitPlot::PublishArcMetadata(const Real *dat,Integer len)
            << ' ' << (runstate==Gmat::SOLVING) << ' ' << mNumData << ' ' << PlotProviderName(currentProvider);
    mArcContext=context.str(); PlotInterface::TakeGlAction(GetRuntimePlotName(),mArcContext);
    PlotInterface::TakeGlAction(GetRuntimePlotName(),"BeginOrbitArcSample");
+   std::ostringstream frameEpoch; frameEpoch.imbue(std::locale::classic());
+   frameEpoch << "CaptureOrbitFrame:" << std::setprecision(17) << dat[0];
+   PlotInterface::TakeGlAction(GetRuntimePlotName(),frameEpoch.str());
    if (runstate==Gmat::SOLVING || !isDataOn || theDataLabels.empty()) return;
    for (Integer sc=0;sc<mScCount;++sc) {
       const auto &name=mScNameArray[sc];

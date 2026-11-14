@@ -97,7 +97,7 @@ def main():
         environment['QT_PLUGIN_PATH'] = str(qt/'plugins')
         environment['GMAT_QT_TUTORIAL_PLUGIN_PATH'] = str(qt/'plugins')
     if args.smoother_fix:
-        options += ['-DGMAT_TUTORIAL_PATCH_SMOOTHER=ON']
+        options += ['-DGMAT_TUTORIAL_PATCH_SMOOTHER=ON', '-DGMAT_TUTORIAL_BUILD_BASE=ON']
     builder.run(['cmake', '-S', builder.REPO/'tools/preview/tutorial-probe', '-B', build, *options],
                 'tutorial-probe-configure', env=environment)
     builder.run(['cmake', '--build', build, '--config', 'Release', '--parallel', builder.BUILD_JOBS],
@@ -105,17 +105,18 @@ def main():
     patches = []
     if args.smoother_fix:
         suffix = '.dll' if os.name == 'nt' else '.dylib' if args.platform.startswith('macos') else '.so'
-        repaired = next(build.rglob('libEKF'+suffix))
         plugins = root/'Contents/PlugIns' if args.platform.startswith('macos') else root/'plugins'
-        destination = plugins/('libEKF'+suffix)
-        original_hash = hashlib.sha256(destination.read_bytes()).hexdigest()
-        shutil.copyfile(repaired, destination.resolve())
-        if args.platform.startswith('macos'):
-            subprocess.run(['codesign', '--force', '--sign', '-', str(destination)], check=True)
-        patches.append({'file': str(destination.relative_to(root)),
-                        'original_sha256': original_hash,
-                        'patched_sha256': hashlib.sha256(destination.read_bytes()).hexdigest(),
-                        'reason': 'Smoother propagation initialization and MATLAB output block repair'})
+        for name, directory in [('EKF', plugins), ('GmatBase', binary)]:
+            repaired = next(build.rglob('lib'+name+suffix))
+            destination = directory/('lib'+name+suffix)
+            original_hash = hashlib.sha256(destination.read_bytes()).hexdigest()
+            shutil.copyfile(repaired, destination.resolve())
+            if args.platform.startswith('macos'):
+                subprocess.run(['codesign', '--force', '--sign', '-', str(destination)], check=True)
+            patches.append({'file': str(destination.relative_to(root)),
+                            'original_sha256': original_hash,
+                            'patched_sha256': hashlib.sha256(destination.read_bytes()).hexdigest(),
+                            'reason': 'Tutorial regression repairs'})
     suffix = '.exe' if os.name == 'nt' else ''
     probe = next(build.rglob('GmatQtTutorialProbe'+suffix))
     driver = next(build.rglob('GmatQtTutorialDriverTests'+suffix))

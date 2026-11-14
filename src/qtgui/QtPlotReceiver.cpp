@@ -1158,8 +1158,6 @@ bool QtPlotReceiver::TakeGlAction(const std::string &name,const std::string &act
       }
       stream>>std::ws; if (!stream.eof()) return false;
       entry->dataAvailability=std::move(sample);
-      if (!entry->replayArcCamera)
-         TakeGlAction(name,"CaptureOrbitFrame:"+action.substr(stepMask ? stepPrefix.size() : 22));
       return true;
    }
    if (action=="NeedsOrbitSolverLifecycle") return cameraSettings.value(text(name)).solverLastN.has_value();
