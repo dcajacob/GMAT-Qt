@@ -3023,8 +3023,15 @@ void FileManager::AddGmatFunctionPath(const std::string &path, bool addFront)
    std::string pathname = path;
 
    // if path has full pathname (directory and filename), remove filename first
-   if (path.find(".") != path.npos)
-      pathname = GmatFileUtil::ParsePathName(path);
+   std::error_code pathError;
+   const auto filesystemPath = std::filesystem::u8path(path);
+   if (std::filesystem::is_directory(filesystemPath, pathError))
+   {
+      if (!pathname.empty() && pathname.back() != '/' && pathname.back() != '\\')
+         pathname += GmatFileUtil::GetPathSeparator();
+   }
+   else if (path.find(".") != path.npos)
+      pathname = filesystemPath.parent_path().u8string() + GmatFileUtil::GetPathSeparator();
 
    std::list<std::string>::iterator pos =
       find(mGmatFunctionPaths.begin(), mGmatFunctionPaths.end(), pathname);
@@ -3465,7 +3472,8 @@ std::string FileManager::GetGmatPath(GmatPathType type,
    }
 
    if (fileFound)
-      fullPath = GmatFileUtil::ParsePathName(fullPath);
+      fullPath = std::filesystem::u8path(fullPath).parent_path().u8string() +
+         GmatFileUtil::GetPathSeparator();
    else
       fullPath = "";
 

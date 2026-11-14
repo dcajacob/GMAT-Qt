@@ -84,7 +84,7 @@ jobs:
                      '--platform', '${{ matrix.platform }}', '--archive', str(archives[0]), '--smoother-fix']
           selection = os.environ.get('TUTORIAL_SELECTION', '')
           if '[mac-retry]' in os.environ.get('COMMIT_MESSAGE', '') and not selection:
-              selection = '6,11'
+              selection = '6'
           if '[windows-only]' in os.environ.get('COMMIT_MESSAGE', '') and not selection:
               selection = '4,6,8,9,10,11,13,14,15,16,17,18'
           for number in filter(None, selection.split(',')):
