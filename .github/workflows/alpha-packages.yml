@@ -4,6 +4,15 @@ on:
   push:
     branches: ['codex/alpha-0.1.0']
   workflow_dispatch:
+    inputs:
+      version:
+        description: Package version
+        default: '0.1.0-alpha.2'
+        required: true
+      reuse_run:
+        description: Shared-suite run containing the matching compiled application
+        default: '43573128861'
+        required: true
 
 permissions:
   contents: read
@@ -30,6 +39,8 @@ jobs:
     timeout-minutes: 210
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 5
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -59,6 +70,21 @@ jobs:
         run: |
           mkdir -p build/preview-package/reuse-native
           cp build/preview-package/native-inputs-${{ matrix.platform }}.tar.gz build/preview-package/reuse-native/
+      - name: Restore tested application for the refreshed alpha
+        if: inputs.reuse_run != '' || contains(github.event.head_commit.message, '[alpha-refresh]')
+        uses: actions/download-artifact@v4
+        with:
+          name: shared-native-${{ matrix.platform }}
+          run-id: ${{ inputs.reuse_run || '43573128861' }}
+          github-token: ${{ github.token }}
+          path: build/preview-package/reuse-native
+      - name: Restore existing native orbit interaction test
+        uses: actions/download-artifact@v4
+        with:
+          name: shared-native-${{ matrix.platform }}
+          run-id: 43571970404
+          github-token: ${{ github.token }}
+          path: build/preview-package/reuse-drag
       - name: Restore verified compilation for Linux packaging repair
         if: matrix.platform == 'linux-x86_64' && contains(github.event.head_commit.message, '[linux-package]')
         uses: actions/download-artifact@v4
@@ -81,7 +107,18 @@ jobs:
           github-token: ${{ github.token }}
           path: build/preview-package/reuse-native
       - name: Build and verify alpha package
-        run: python tools/preview/BuildPreviewPackage.py --platform ${{ matrix.platform }} --version 0.1.0-alpha.1
+        env:
+          PACKAGE_VERSION: ${{ inputs.version || '0.1.0-alpha.2' }}
+        run: python tools/preview/BuildPreviewPackage.py --platform ${{ matrix.platform }} --version "$PACKAGE_VERSION"
+        shell: bash
+      - name: Check native OpenGL orbit interaction
+        shell: bash
+        run: |
+          if [ '${{ matrix.platform }}' = 'linux-x86_64' ]; then
+            xvfb-run -a -s '-screen 0 1600x1000x24' python tools/preview/ProbeNativeDesktop.py --platform '${{ matrix.platform }}'
+          else
+            python tools/preview/ProbeNativeDesktop.py --platform '${{ matrix.platform }}'
+          fi
       - name: Preserve diagnostics
         if: always()
         uses: actions/upload-artifact@v4
