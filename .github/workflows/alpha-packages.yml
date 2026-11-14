@@ -18,6 +18,10 @@ on:
         description: Optional run containing matching API-enabled native inputs
         default: ''
         required: false
+      complete_run:
+        description: Optional run whose Mac archives await only the Python-free startup check
+        default: ''
+        required: false
 
 permissions:
   contents: read
@@ -25,7 +29,7 @@ permissions:
 
 jobs:
   package:
-    if: "!contains(github.event.head_commit.message, '[shared-suite]')"
+    if: "!contains(github.event.head_commit.message, '[shared-suite]') && !contains(github.event.head_commit.message, '[complete-macos:') && inputs.complete_run == ''"
     strategy:
       fail-fast: false
       matrix:
@@ -140,4 +144,74 @@ jobs:
           name: alpha3-${{ matrix.platform }}
           path: build/preview-package/dist/*
           if-no-files-found: error
+          retention-days: 30
+
+  complete_macos:
+    if: "contains(github.event.head_commit.message, '[complete-macos:') || inputs.complete_run != ''"
+    strategy:
+      fail-fast: false
+      matrix:
+        include: >-
+          ${{ fromJSON((inputs.platform == 'macos-arm64' || contains(github.event.head_commit.message, '[macos-arm64]')) &&
+          '[{"runner":"macos-15","platform":"macos-arm64"}]' ||
+          (inputs.platform == 'macos-x64' || contains(github.event.head_commit.message, '[macos-x64]')) &&
+          '[{"runner":"macos-15-intel","platform":"macos-x64"}]' ||
+          '[{"runner":"macos-15","platform":"macos-arm64"},
+          {"runner":"macos-15-intel","platform":"macos-x64"}]') }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Identify the archive qualification to complete
+        id: prior
+        env:
+          PREVIOUS_RUN: ${{ inputs.complete_run }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os, re
+          run = os.environ['PREVIOUS_RUN']
+          if not run:
+              run = re.search(r'\[complete-macos:(\d+)\]', os.environ['COMMIT_MESSAGE']).group(1)
+          assert re.fullmatch(r'\d+', run)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('run=' + run + '\n')
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: alpha3-${{ matrix.platform }}
+          run-id: ${{ steps.prior.outputs.run }}
+          github-token: ${{ github.token }}
+          path: build/preview-package/dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: diagnostics-alpha3-${{ matrix.platform }}
+          run-id: ${{ steps.prior.outputs.run }}
+          github-token: ${{ github.token }}
+          path: build/preview-package/logs
+      - name: Re-extract the exact archive and reuse its passing qualification
+        run: python -c "import sys; sys.path.insert(0, 'tools/preview'); from QualifyPythonPackage import resume_no_python; resume_no_python('${{ matrix.platform }}')"
+      - name: Start the extracted GUI with CPython unavailable
+        run: cmake -P build/preview-package/logs/archive-qualification/without-python.cmake
+      - name: Finalize archive qualification
+        run: python -c "import sys; sys.path.insert(0, 'tools/preview'); from QualifyPythonPackage import finish; finish('${{ matrix.platform }}')"
+      - name: Preserve completion diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-alpha3-${{ matrix.platform }}
+          path: build/preview-package/logs/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Upload completed archives and receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha3-${{ matrix.platform }}
+          path: build/preview-package/dist/*
+          if-no-files-found: warn
           retention-days: 30

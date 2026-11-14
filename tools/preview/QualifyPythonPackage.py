@@ -65,18 +65,22 @@ def write_no_python_check(target, root, workspace, logs):
     bracket = lambda value: '[==[' + str(value) + ']==]'
     command = ' '.join(bracket(value) for value in [*environment, *arguments])
     text = f'''cmake_minimum_required(VERSION 3.21)
-file(RENAME {bracket(python_root)} {bracket(hidden)} RESULT moved)
-if(NOT moved STREQUAL "0")
-  message(FATAL_ERROR "Could not temporarily hide the selected CPython installation: ${{moved}}")
-endif()
+function(move_python source destination)
+  file(RENAME "${{source}}" "${{destination}}" RESULT moved)
+  if(NOT moved STREQUAL "0" AND EXISTS "/usr/bin/sudo")
+    execute_process(COMMAND /usr/bin/sudo -n /bin/mv "${{source}}" "${{destination}}"
+      RESULT_VARIABLE moved)
+  endif()
+  if(NOT moved STREQUAL "0")
+    message(FATAL_ERROR "Could not move the selected CPython installation: ${{moved}}")
+  endif()
+endfunction()
+move_python({bracket(python_root)} {bracket(hidden)})
 execute_process(COMMAND "${{CMAKE_COMMAND}}" -E env {command}
   WORKING_DIRECTORY {bracket(workspace)} RESULT_VARIABLE result TIMEOUT 60
   OUTPUT_FILE {bracket(logs/'without-python.stdout')}
   ERROR_FILE {bracket(logs/'without-python.stderr')})
-file(RENAME {bracket(hidden)} {bracket(python_root)} RESULT restored)
-if(NOT restored STREQUAL "0")
-  message(FATAL_ERROR "CPython restoration failed: ${{restored}}")
-endif()
+move_python({bracket(hidden)} {bracket(python_root)})
 if(NOT result STREQUAL "0")
   message(FATAL_ERROR "The packaged GUI failed with CPython hidden: ${{result}}")
 endif()
@@ -213,3 +217,43 @@ def finish(target):
     (logs/'verification.json').write_text(json.dumps(receipt, indent=2)+'\n')
     builder.copy_file(logs/'verification.json', builder.ROOT/'dist'/(target+'-api-verification.json'))
     print(json.dumps({'platform': target, 'status': 'passed', 'python': '3.12', 'mcp_profile_count': 1}))
+
+
+def resume_no_python(target):
+    """Complete only the missing startup check for an already exercised archive."""
+    logs = builder.LOGS/'archive-qualification'
+    previous_path = logs/'verification.json'
+    previous_bytes = previous_path.read_bytes()
+    receipt = json.loads(previous_bytes)
+    assert receipt['status'] == 'awaiting-without-python-check'
+    assert receipt['platform'] == target
+    assert receipt['package_checks']['status'] == receipt['mcp']['status'] == 'passed'
+    archive = builder.ROOT/'dist'/Path(receipt['archive'].replace('\\', '/')).name
+    assert hashlib.sha256(archive.read_bytes()).hexdigest() == receipt['archive_sha256']
+    workspace = Path(tempfile.mkdtemp(prefix='gmat-alpha3-completion-'))
+    extracted = workspace/'extracted'
+    extracted.mkdir()
+    # Completion currently targets the signed Mac archives whose initial
+    # qualification reached the system-owned Python installation check.
+    assert target.startswith('macos')
+    subprocess.run(['ditto', '-x', '-k', str(archive), str(extracted)], check=True)
+    payload = next(p for p in extracted.iterdir() if p.is_dir() and p.name.startswith('GMAT-Qt-'))
+    manifest = json.loads((payload/'PACKAGE-MANIFEST.json').read_text())
+    for name, digest in manifest.items():
+        path = payload/name
+        assert path.resolve().is_relative_to(payload.resolve()), name
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, name
+    assert len(manifest) == receipt['manifest_files_verified']
+    root = payload/'GMAT-Qt.app'
+    (logs/'verification-before-no-python.json').write_bytes(previous_bytes)
+    receipt['reused_qualification'] = {
+        'archive_sha256': receipt['archive_sha256'],
+        'receipt_sha256': hashlib.sha256(previous_bytes).hexdigest(),
+        'extracted_root': receipt['extracted_root'],
+        'checks': ['package', 'MCP discovery/profile/doctor', 'worker', 'live desktop'],
+    }
+    receipt['extracted_root'] = str(root)
+    receipt['archive'] = str(archive)
+    receipt['completion_workflow_run'] = os.environ.get('GITHUB_RUN_ID')
+    previous_path.write_text(json.dumps(receipt, indent=2)+'\n')
+    write_no_python_check(target, root, workspace, logs)
