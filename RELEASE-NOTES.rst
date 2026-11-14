@@ -1,10 +1,21 @@
-GMAT Qt 0.1.0-alpha.1
+GMAT Qt 0.1.0-alpha.2
 ====================
 
 This early alpha includes the Qt mission editor, resource dialogs, reports,
 2D and 3D plots, shared playback, map overlays, and satellite and ground-site
 import tools. New Qt orbit plots use an oblique north-up Earth view. Workspace
 windows open maximized, with tabs and two-column tiling available.
+
+Changes in alpha.2
+------------------
+
+Tiled windows fill the workspace after scrollbar changes. Plot controls use
+their measured minimum width to avoid unnecessary wrapping. Ground-track
+maps reserve space for their displayed latitude labels.
+
+The shared targeted suite has passing evidence for all 21 cases on Linux,
+Windows, Apple Silicon and Intel Mac, retaining the original assertions and
+tolerances. Package checks retain the existing numerical bounds.
 
 Installation
 ------------
