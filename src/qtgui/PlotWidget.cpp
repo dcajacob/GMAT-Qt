@@ -332,7 +332,8 @@ void PlotCanvas::paintEvent(QPaintEvent *)
    QRectF area(orbit ? 35 : 74,top,width()-(orbit ? 70 : 100),height()-top-56-epochRow);
    const int groundTitleSpace=compactGround ? 0 : metrics.height()+4;
    if (ground) {
-      const int left=metrics.horizontalAdvance("-9000")+12+groundTitleSpace;
+      // The visible latitude ticks reserve their measured width below.
+      const int left=12+groundTitleSpace;
       const int bottom=metrics.height()+(compactGround ? 4 : 6)+groundTitleSpace+epochRow;
       area=QRectF(left,top,width()-left-12,height()-top-bottom);
    }

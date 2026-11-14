@@ -67,9 +67,9 @@ jobs:
           sudo apt-get install -y libopenscenegraph-dev libxerces-c-dev libgl1-mesa-dev libglu1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-render-util0 libxcb-image0 libfontconfig1 xvfb xauth
       - name: Build and run shared cases
         env:
-          # Recheck the failed gesture and the callers of the repaired layouts.
+          # Recheck the map gutter and the ground-map callers it affects.
           # The 21-case SharedSuite.json remains the comparison contract.
-          SHARED_CASES: ${{ inputs.cases || 'QtGui.GroundTrackLayout,QtGui.WorkspaceNavigation,QtGui.TreeActivation,QtGui.OrbitViewCreationDefaults,QtGui.PlotToolbar,QtGui.SharedPlaybackButtons,QtGui.InterpolatedPlayback,QtGui.GroundTrackRegionZoom,QtGui.GroundMapOverlays' }}
+          SHARED_CASES: ${{ inputs.cases || 'QtGui.GroundTrackLayout,QtGui.GroundTrackRegionZoom,QtGui.GroundMapOverlays' }}
         run: python tools/preview/RunSharedSuite.py --platform ${{ matrix.platform }}
       - name: Preserve results and diagnostics
         if: always()

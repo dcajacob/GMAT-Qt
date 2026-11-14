@@ -75,7 +75,7 @@ def main():
         build_dir = builder.ROOT / 'gmat-build'
         if not restored:
             builder.build(args.platform, qt, osg, prefix,
-                          extra_options=['-DGMAT_QT_BUILD_TESTS=ON'], targets=targets)
+                          extra_options=['-DGMAT_QT_BUILD_TESTS=ON'], targets=['GmatQt', *targets])
             binaries = [executable(build_dir, name, args.platform) for name in targets]
             metadata = list(build_dir.rglob('CTestTestfile.cmake'))
             builder.preserve_native(args.platform, qt, osg, prefix, extra_files=binaries + metadata)
