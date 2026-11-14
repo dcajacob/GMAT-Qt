@@ -111,6 +111,8 @@ def main():
             destinations = [directory/('lib'+name+suffix)]
             if args.platform.startswith('macos'):
                 destinations = sorted({path.resolve() for path in root.rglob('lib'+name+'*.dylib')})
+            elif args.platform.startswith('linux'):
+                destinations = sorted({path.resolve() for path in root.rglob('lib'+name+'.so*')})
             for destination in destinations:
                 original_hash = hashlib.sha256(destination.read_bytes()).hexdigest()
                 shutil.copyfile(repaired, destination.resolve())
