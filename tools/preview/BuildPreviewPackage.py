@@ -562,7 +562,13 @@ def stage_package(target, qt, osg, prefix):
                                  'OUTPUT_PATH = ../../../output/', startup_text)
                             .replace('../plugins/', '../PlugIns/'))
     if PYTHON_API:
-        copy_file(startup_path, contents / 'MacOS/gmat_startup_file.txt')
+        # Keep Python source and configuration in Resources. Relative aliases
+        # retain the standard API discovery layout beside the GUI executable.
+        shutil.move(contents / 'MacOS/gmatpy', resources / 'gmatpy')
+        (contents / 'MacOS/gmatpy').symlink_to('../Resources/gmatpy', target_is_directory=True)
+        (contents / 'MacOS/gmat_startup_file.txt').unlink()
+        copy_file(startup_path, resources / 'gmat_startup_file.txt')
+        (contents / 'MacOS/gmat_startup_file.txt').symlink_to('../Resources/gmat_startup_file.txt')
     binary = contents / 'MacOS/GmatQt'
     copy_file(REPO / 'application/bin/GmatQt', binary)
     binary.chmod(0o755)
