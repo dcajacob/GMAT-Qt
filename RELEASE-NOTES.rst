@@ -17,7 +17,8 @@ Qt ephemeris editor. It uses sampled positions and velocities, supports odd
 degrees 3 through 9, and retains Lagrange as the default. Sparse endpoint,
 fixed-step, long-buffer, segment-reset, single-record and strict-data checks
 passed with the original numerical tolerances across all four platforms.
-Windows OEM input and output preserve Unicode filenames.
+Windows OEM input and output preserve Unicode filenames. The script editor
+avoids recursive resize events when updating its line-number margin.
 
 The standard archives include the core, station and navigation Python bindings
 for CPython 3.12, 3.13, 3.14 and 3.15. The package selects the bindings for

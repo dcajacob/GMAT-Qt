@@ -352,7 +352,7 @@ jobs:
           arch: x64
       - name: Finish archive with saved bindings
         env:
-          GMAT_SAVED_BINDING_SOURCE: ea86de81
+          GMAT_SAVED_BINDING_SOURCE: ea86de81a71d6d55c62680f45b0145265730a87c
         run: python tools/preview/FinishWindowsPythonRange.py
       - name: Qualify all Python versions
         env:

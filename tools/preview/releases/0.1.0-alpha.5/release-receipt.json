@@ -1,0 +1,112 @@
+{
+  "version": "0.1.0-alpha.5",
+  "status": "passed",
+  "python_versions": [
+    "3.12",
+    "3.13",
+    "3.14",
+    "3.15"
+  ],
+  "architectures": [
+    "linux-x86_64",
+    "windows-x64",
+    "macos-arm64",
+    "macos-x64"
+  ],
+  "base_package_source": "c7efc72151c53c951363250c5763a6aa4436f7fb",
+  "packages": [
+    {
+      "platform": "linux-x86_64",
+      "archive": "GMAT-Qt-0.1.0-alpha.5-linux-x86_64.tar.gz",
+      "bytes": 312095096,
+      "sha256": "b4e27e699a6c733b15be6321309e8a13ecb3adab09d49254a735714dadb72e83",
+      "status": "passed",
+      "python_versions": [
+        "3.12",
+        "3.13",
+        "3.14",
+        "3.15"
+      ],
+      "workflow_run": 43682797657,
+      "receipt": "linux-x86_64/verification.json",
+      "receipt_sha256": "babdeac733ce48d27fa3c39f0eabc6a4e5a806521d331d398849bfb2bc55a975",
+      "engine_source": "c7efc72151c53c951363250c5763a6aa4436f7fb",
+      "bindings_source": "d0dd02f5887d24e4e124a757798ab1498cebb8ff",
+      "gui_source": "d0dd02f5887d24e4e124a757798ab1498cebb8ff",
+      "relocation_source": null,
+      "base_package_source": "c7efc72151c53c951363250c5763a6aa4436f7fb"
+    },
+    {
+      "platform": "windows-x64",
+      "archive": "GMAT-Qt-0.1.0-alpha.5-windows-x64.zip",
+      "bytes": 263417539,
+      "sha256": "b7a23a3776897ea5a0bef02b09cc31ac9e99d61860e5e2b63482981db781ed51",
+      "status": "passed",
+      "python_versions": [
+        "3.12",
+        "3.13",
+        "3.14",
+        "3.15"
+      ],
+      "workflow_run": 43685383145,
+      "receipt": "windows-x64/verification.json",
+      "receipt_sha256": "c5b605ec69c6d954dd7b35980f53456788183aac1a7da33c14c49a6e9de3cf85",
+      "engine_source": "27249d0b5d12ea156115bc577abcf1cf5a68324a",
+      "bindings_source": "ea86de81a71d6d55c62680f45b0145265730a87c",
+      "gui_source": "0c9f99e3c38dd6de9a8f1cdc1819123015b99a75",
+      "relocation_source": null,
+      "base_package_source": "c7efc72151c53c951363250c5763a6aa4436f7fb"
+    },
+    {
+      "platform": "macos-arm64",
+      "archive": "GMAT-Qt-0.1.0-alpha.5-macos-arm64.zip",
+      "bytes": 290710374,
+      "sha256": "3b91630d3aed9fb7d27bee96981bfa7a491a0b34dc677f2f84a298a1091185b8",
+      "status": "passed",
+      "python_versions": [
+        "3.12",
+        "3.13",
+        "3.14",
+        "3.15"
+      ],
+      "workflow_run": 43683903883,
+      "receipt": "macos-arm64/verification.json",
+      "receipt_sha256": "c1730ab8dcb78f46b50f55f34b27d64f9b71317316359c241af415e34524d7f6",
+      "engine_source": "e4179175aed826b9ff79650371789c26a47ff03d",
+      "bindings_source": "e64ce09b7328e759b51b7a17e4c39f726f5b32d0",
+      "gui_source": "e64ce09b7328e759b51b7a17e4c39f726f5b32d0",
+      "relocation_source": "17a84311c282f9a5b172801768e3b8d0ecdada95",
+      "base_package_source": "c7efc72151c53c951363250c5763a6aa4436f7fb"
+    },
+    {
+      "platform": "macos-x64",
+      "archive": "GMAT-Qt-0.1.0-alpha.5-macos-x64.zip",
+      "bytes": 300155833,
+      "sha256": "e982238ac4f193b50fa0797a86b46fdda7750c271560f0dabc346cc434948342",
+      "status": "passed",
+      "python_versions": [
+        "3.12",
+        "3.13",
+        "3.14",
+        "3.15"
+      ],
+      "workflow_run": 43684821453,
+      "receipt": "macos-x64/verification.json",
+      "receipt_sha256": "95ae36bb485a579315d2e47dc7f22c50a80a203d5ae75bd9d7526b0e234a165a",
+      "engine_source": "e4179175aed826b9ff79650371789c26a47ff03d",
+      "bindings_source": "4cb8c62d525847f3dd847b75023f29679db0130f",
+      "gui_source": "4cb8c62d525847f3dd847b75023f29679db0130f",
+      "relocation_source": "17a84311c282f9a5b172801768e3b8d0ecdada95",
+      "base_package_source": "c7efc72151c53c951363250c5763a6aa4436f7fb"
+    }
+  ],
+  "published": false,
+  "full_regression_run": false,
+  "notes": [
+    "Native engine builds are reused with their original source identities.",
+    "Python bindings target standard GIL-enabled CPython.",
+    "macOS bundles are ad-hoc signed.",
+    "Hosted graphics checks do not qualify every hardware/driver combination.",
+    "Original sparse Lagrange and stale-panel failures remain separately recorded."
+  ]
+}

@@ -1,0 +1,198 @@
+{
+  "profiles": [
+    {
+      "id": "gmat-qt",
+      "variant": "qt",
+      "root": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\gmat-python-range-01esusuv\\extracted\\GMAT-Qt-0.1.0-alpha.5-windows-x64",
+      "startup_file": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\gmat-python-range-01esusuv\\extracted\\GMAT-Qt-0.1.0-alpha.5-windows-x64\\bin\\gmat_startup_qt.txt",
+      "python_executable": "C:\\hostedtoolcache\\windows\\Python\\3.13.17\\x64\\python.exe",
+      "bindings": [
+        {
+          "python": [
+            3,
+            12
+          ],
+          "architecture": "x86_64",
+          "architectures": [
+            "x86_64"
+          ],
+          "directory": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\gmat-python-range-01esusuv\\extracted\\GMAT-Qt-0.1.0-alpha.5-windows-x64\\bin\\gmatpy\\_py312",
+          "present": true
+        },
+        {
+          "python": [
+            3,
+            13
+          ],
+          "architecture": "x86_64",
+          "architectures": [
+            "x86_64"
+          ],
+          "directory": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\gmat-python-range-01esusuv\\extracted\\GMAT-Qt-0.1.0-alpha.5-windows-x64\\bin\\gmatpy\\_py313",
+          "present": true
+        },
+        {
+          "python": [
+            3,
+            14
+          ],
+          "architecture": "x86_64",
+          "architectures": [
+            "x86_64"
+          ],
+          "directory": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\gmat-python-range-01esusuv\\extracted\\GMAT-Qt-0.1.0-alpha.5-windows-x64\\bin\\gmatpy\\_py314",
+          "present": true
+        },
+        {
+          "python": [
+            3,
+            15
+          ],
+          "architecture": "x86_64",
+          "architectures": [
+            "x86_64"
+          ],
+          "directory": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\gmat-python-range-01esusuv\\extracted\\GMAT-Qt-0.1.0-alpha.5-windows-x64\\bin\\gmatpy\\_py315",
+          "present": true
+        }
+      ],
+      "ready": true,
+      "setup": null
+    }
+  ],
+  "interpreters": [
+    {
+      "version": [
+        3,
+        13,
+        17
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "AMD64",
+      "executable": "C:\\hostedtoolcache\\windows\\Python\\3.13.17\\x64\\python.exe",
+      "architecture": "x86_64"
+    },
+    {
+      "version": [
+        3,
+        13,
+        17
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "AMD64",
+      "executable": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\gmat-python-range-01esusuv\\mcp-environment-3.13\\Scripts\\python.exe",
+      "architecture": "x86_64"
+    },
+    {
+      "version": [
+        3,
+        15,
+        2
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "AMD64",
+      "executable": "C:\\hostedtoolcache\\windows\\Python\\3.15.2\\x64\\python.exe",
+      "architecture": "x86_64"
+    },
+    {
+      "version": [
+        3,
+        15,
+        2
+      ],
+      "implementation": "cpython",
+      "bits": 32,
+      "machine": "AMD64",
+      "executable": "C:\\hostedtoolcache\\windows\\Python\\3.15.2\\x86\\python.exe",
+      "architecture": "x86"
+    },
+    {
+      "version": [
+        3,
+        14,
+        10
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "AMD64",
+      "executable": "C:\\hostedtoolcache\\windows\\Python\\3.14.10\\x64\\python.exe",
+      "architecture": "x86_64"
+    },
+    {
+      "version": [
+        3,
+        14,
+        10
+      ],
+      "implementation": "cpython",
+      "bits": 32,
+      "machine": "AMD64",
+      "executable": "C:\\hostedtoolcache\\windows\\Python\\3.14.10\\x86\\python.exe",
+      "architecture": "x86"
+    },
+    {
+      "version": [
+        3,
+        13,
+        17
+      ],
+      "implementation": "cpython",
+      "bits": 32,
+      "machine": "AMD64",
+      "executable": "C:\\hostedtoolcache\\windows\\Python\\3.13.17\\x86\\python.exe",
+      "architecture": "x86"
+    },
+    {
+      "version": [
+        3,
+        12,
+        10
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "AMD64",
+      "executable": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+      "architecture": "x86_64"
+    },
+    {
+      "version": [
+        3,
+        12,
+        10
+      ],
+      "implementation": "cpython",
+      "bits": 32,
+      "machine": "AMD64",
+      "executable": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x86\\python.exe",
+      "architecture": "x86"
+    },
+    {
+      "version": [
+        3,
+        11,
+        9
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "AMD64",
+      "executable": "C:\\hostedtoolcache\\windows\\Python\\3.11.9\\x64\\python.exe",
+      "architecture": "x86_64"
+    },
+    {
+      "version": [
+        3,
+        11,
+        9
+      ],
+      "implementation": "cpython",
+      "bits": 32,
+      "machine": "AMD64",
+      "executable": "C:\\hostedtoolcache\\windows\\Python\\3.11.9\\x86\\python.exe",
+      "architecture": "x86"
+    }
+  ],
+  "search_limited": false
+}

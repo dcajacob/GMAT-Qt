@@ -12,7 +12,11 @@ This guide compares the stock R2026a source tag
 ``08c2a2aae0b5fed077b2e7b4fda992ff54386c60`` with the following release sources.
 
 * Published alpha.4 uses ``a22ef7e636203b2ccfaba51deb7fac37f5cb5ffa``.
-* Alpha.5 packages use ``c7efc72151c53c951363250c5763a6aa4436f7fb``.
+* Alpha.5 engine comparisons use ``c7efc72151c53c951363250c5763a6aa4436f7fb``.
+  Its final archives reuse the qualified engine builds and add version-specific
+  Python bindings and the script-editor resize repair. The
+  `alpha.5 qualification record <tools/preview/releases/0.1.0-alpha.5/README.rst>`_
+  lists each archive's engine, GUI, bindings and relocation source revisions.
 
 The exact source inventories and patches are linked below. The descriptions
 summarize the main user-facing changes. They are accompanied by focused test

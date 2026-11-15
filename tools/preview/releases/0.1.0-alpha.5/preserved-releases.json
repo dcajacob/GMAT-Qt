@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "repository": "dcajacob/GMAT-Qt",
+  "before": "build/oem-hermite-platforms/releases-before-alpha5.json",
+  "checked": "build/alpha-0.1.0-alpha.5/python-range/releases-current.json",
+  "published_releases": [
+    {
+      "tag": "v0.1.0-alpha.4",
+      "assets": 17
+    },
+    {
+      "tag": "qt-preview-20261104-winvm1",
+      "assets": 10
+    }
+  ],
+  "checks": [
+    "release ids",
+    "asset ids",
+    "names",
+    "sizes",
+    "SHA256 digests"
+  ],
+  "new_release_published": false
+}

@@ -1,0 +1,102 @@
+{
+  "profiles": [
+    {
+      "id": "gmat-qt",
+      "variant": "qt",
+      "root": "/tmp/gmat-python-range-z9x8o6q0/extracted/GMAT-Qt-0.1.0-alpha.5-linux-x86_64",
+      "startup_file": "/tmp/gmat-python-range-z9x8o6q0/extracted/GMAT-Qt-0.1.0-alpha.5-linux-x86_64/bin/gmat_startup_qt.txt",
+      "python_executable": "/opt/hostedtoolcache/Python/3.13.18/x64/bin/python",
+      "bindings": [
+        {
+          "python": [
+            3,
+            12
+          ],
+          "architecture": "x86_64",
+          "architectures": [
+            "x86_64"
+          ],
+          "directory": "/tmp/gmat-python-range-z9x8o6q0/extracted/GMAT-Qt-0.1.0-alpha.5-linux-x86_64/bin/gmatpy/_py312",
+          "present": true
+        },
+        {
+          "python": [
+            3,
+            13
+          ],
+          "architecture": "x86_64",
+          "architectures": [
+            "x86_64"
+          ],
+          "directory": "/tmp/gmat-python-range-z9x8o6q0/extracted/GMAT-Qt-0.1.0-alpha.5-linux-x86_64/bin/gmatpy/_py313",
+          "present": true
+        },
+        {
+          "python": [
+            3,
+            14
+          ],
+          "architecture": "x86_64",
+          "architectures": [
+            "x86_64"
+          ],
+          "directory": "/tmp/gmat-python-range-z9x8o6q0/extracted/GMAT-Qt-0.1.0-alpha.5-linux-x86_64/bin/gmatpy/_py314",
+          "present": true
+        },
+        {
+          "python": [
+            3,
+            15
+          ],
+          "architecture": "x86_64",
+          "architectures": [
+            "x86_64"
+          ],
+          "directory": "/tmp/gmat-python-range-z9x8o6q0/extracted/GMAT-Qt-0.1.0-alpha.5-linux-x86_64/bin/gmatpy/_py315",
+          "present": true
+        }
+      ],
+      "ready": true,
+      "setup": null
+    }
+  ],
+  "interpreters": [
+    {
+      "version": [
+        3,
+        13,
+        18
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "x86_64",
+      "executable": "/opt/hostedtoolcache/Python/3.13.18/x64/bin/python",
+      "architecture": "x86_64"
+    },
+    {
+      "version": [
+        3,
+        13,
+        18
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "x86_64",
+      "executable": "/tmp/gmat-python-range-z9x8o6q0/mcp-environment-3.13/bin/python",
+      "architecture": "x86_64"
+    },
+    {
+      "version": [
+        3,
+        12,
+        3
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "x86_64",
+      "executable": "/usr/bin/python3.12",
+      "architecture": "x86_64"
+    }
+  ],
+  "search_limited": false
+}

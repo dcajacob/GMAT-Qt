@@ -1,0 +1,174 @@
+{
+  "profiles": [
+    {
+      "id": "gmat-qt",
+      "variant": "qt",
+      "root": "/private/var/folders/2s/vty41l455yv698g4xkgfv7z00000gn/T/gmat-python-range-a3007u0x/extracted/GMAT-Qt-0.1.0-alpha.5-macos-arm64/GMAT-Qt.app",
+      "startup_file": "/private/var/folders/2s/vty41l455yv698g4xkgfv7z00000gn/T/gmat-python-range-a3007u0x/extracted/GMAT-Qt-0.1.0-alpha.5-macos-arm64/gmat_startup_qt.txt",
+      "python_executable": "/Users/runner/hostedtoolcache/Python/3.12.10/arm64/bin/python",
+      "bindings": [
+        {
+          "python": [
+            3,
+            12
+          ],
+          "architecture": "arm64",
+          "architectures": [
+            "arm64"
+          ],
+          "directory": "/private/var/folders/2s/vty41l455yv698g4xkgfv7z00000gn/T/gmat-python-range-a3007u0x/extracted/GMAT-Qt-0.1.0-alpha.5-macos-arm64/GMAT-Qt.app/Contents/MacOS/gmatpy/_py312",
+          "present": true
+        },
+        {
+          "python": [
+            3,
+            13
+          ],
+          "architecture": "arm64",
+          "architectures": [
+            "arm64"
+          ],
+          "directory": "/private/var/folders/2s/vty41l455yv698g4xkgfv7z00000gn/T/gmat-python-range-a3007u0x/extracted/GMAT-Qt-0.1.0-alpha.5-macos-arm64/GMAT-Qt.app/Contents/MacOS/gmatpy/_py313",
+          "present": true
+        },
+        {
+          "python": [
+            3,
+            14
+          ],
+          "architecture": "arm64",
+          "architectures": [
+            "arm64"
+          ],
+          "directory": "/private/var/folders/2s/vty41l455yv698g4xkgfv7z00000gn/T/gmat-python-range-a3007u0x/extracted/GMAT-Qt-0.1.0-alpha.5-macos-arm64/GMAT-Qt.app/Contents/MacOS/gmatpy/_py314",
+          "present": true
+        },
+        {
+          "python": [
+            3,
+            15
+          ],
+          "architecture": "arm64",
+          "architectures": [
+            "arm64"
+          ],
+          "directory": "/private/var/folders/2s/vty41l455yv698g4xkgfv7z00000gn/T/gmat-python-range-a3007u0x/extracted/GMAT-Qt-0.1.0-alpha.5-macos-arm64/GMAT-Qt.app/Contents/MacOS/gmatpy/_py315",
+          "present": true
+        }
+      ],
+      "ready": true,
+      "setup": null
+    }
+  ],
+  "interpreters": [
+    {
+      "version": [
+        3,
+        12,
+        10
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "arm64",
+      "executable": "/Users/runner/hostedtoolcache/Python/3.12.10/arm64/bin/python",
+      "architecture": "arm64"
+    },
+    {
+      "version": [
+        3,
+        12,
+        10
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "arm64",
+      "executable": "/private/var/folders/2s/vty41l455yv698g4xkgfv7z00000gn/T/gmat-python-range-a3007u0x/mcp-environment-3.12/bin/python",
+      "architecture": "arm64"
+    },
+    {
+      "version": [
+        3,
+        14,
+        10
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "arm64",
+      "executable": "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "architecture": "arm64"
+    },
+    {
+      "version": [
+        3,
+        15,
+        2
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "arm64",
+      "executable": "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "architecture": "arm64"
+    },
+    {
+      "version": [
+        3,
+        11,
+        9
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "arm64",
+      "executable": "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3.11",
+      "architecture": "arm64"
+    },
+    {
+      "version": [
+        3,
+        14,
+        10
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "arm64",
+      "executable": "/Library/Frameworks/Python.framework/Versions/3.14/bin/python3.14",
+      "architecture": "arm64"
+    },
+    {
+      "version": [
+        3,
+        13,
+        17
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "arm64",
+      "executable": "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3.13",
+      "architecture": "arm64"
+    },
+    {
+      "version": [
+        3,
+        12,
+        10
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "arm64",
+      "executable": "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12",
+      "architecture": "arm64"
+    },
+    {
+      "version": [
+        3,
+        15,
+        2
+      ],
+      "implementation": "cpython",
+      "bits": 64,
+      "machine": "arm64",
+      "executable": "/Library/Frameworks/Python.framework/Versions/3.15/bin/python3.15",
+      "architecture": "arm64"
+    }
+  ],
+  "search_limited": false
+}
