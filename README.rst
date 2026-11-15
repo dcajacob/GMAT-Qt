@@ -8,6 +8,8 @@ plugins. The upstream `GMAT project website <https://gmat.atlassian.net/wiki/spa
 provides project information and documentation, and the
 `NASA GMAT Git repository <https://github.com/nasa/GMAT>`_ hosts the upstream source.
 
+This independent project is not affiliated with or endorsed by NASA.
+
 Our intent is to follow upstream GMAT development while making the application
 available through a consistent Qt desktop and ready-to-run packages across
 Linux, Windows, and both Apple Silicon and Intel Macs. We document this fork's
@@ -194,5 +196,7 @@ Those results apply to their recorded source versions. Each alpha package
 records its own source commit and targeted validation in
 ``PACKAGE-VERIFICATION.json``.
 
-The original project overview and license remain in ``README.txt`` and
-``License.txt``.
+The original project overview remains in ``README.txt``. NASA's original
+copyright notice is retained in
+`application/README.txt <application/README.txt>`_ and the source headers.
+The upstream Apache 2.0 license is preserved in `License.txt <License.txt>`_.

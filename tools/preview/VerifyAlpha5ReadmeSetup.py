@@ -144,7 +144,14 @@ def review_saved(receipts):
     summary=json.loads((receipts/'summary.json').read_text())
     assert summary['status']=='passed' and not summary['remaining_setup_failures']
     assert summary['platform_python_combinations']==16
-    assert sha256(REPOSITORY/'README.rst')==summary['readme_sha256']
+    tested_readme=(receipts/'tested-readme.rst').read_text()
+    assert sha256(receipts/'tested-readme.rst')==summary['readme_sha256']
+    current_readme=(REPOSITORY/'README.rst').read_text()
+    # Attribution edits outside the instructions preserve the saved setup proof.
+    setup_start='Download alpha.5\n'
+    setup_end='Validation and project information\n'
+    assert current_readme.split(setup_start,1)[1].split(setup_end,1)[0] == \
+        tested_readme.split(setup_start,1)[1].split(setup_end,1)[0]
     example=hashlib.sha256(readme_example().encode()).hexdigest()
     assert example==summary['executed_python_example_sha256']
     packages=json.loads((receipts.parent/'release-receipt.json').read_text())['packages']

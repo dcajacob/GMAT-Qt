@@ -1,10 +1,14 @@
 GMAT Qt alpha testing
 =====================
 
-Obtain the frozen source with::
+Clone the current development source from main::
 
-  git clone --branch codex/alpha-0.1.0 https://github.com/dcajacob/GMAT-Qt.git
+  git clone --branch main https://github.com/dcajacob/GMAT-Qt.git
   cd GMAT-Qt
+
+For the published alpha.5 source snapshot, replace ``--branch main`` with
+``--branch v0.1.0-alpha.5``. The release receipts identify the exact engine,
+GUI and Python binding revisions used in each archive.
 
 Native package builds use ``tools/preview/BuildPreviewPackage.py``. The
 ``Alpha packages`` workflow supplies the platform dependencies and preserves
