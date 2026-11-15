@@ -5,6 +5,10 @@ GMAT Qt provides a Qt 6 desktop interface and related engine improvements for
 NASA's General Mission Analysis Tool. Version 0.1.0-alpha.4 provides prebuilt
 packages for Linux x86-64, Windows x64, and Apple Silicon and Intel Macs.
 
+For the user-facing changes from stock GMAT R2026a, engine compatibility,
+validation scope and exact source inventories, see
+`GMAT Qt differences <GMAT-Qt-Differences.rst>`_.
+
 Download alpha.4
 ----------------
 

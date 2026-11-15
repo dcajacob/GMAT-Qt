@@ -6,6 +6,9 @@ This early alpha includes the Qt mission editor, resource dialogs, reports,
 import tools. New Qt orbit plots use an oblique north-up Earth view. Workspace
 windows open maximized, with tabs and two-column tiling available.
 
+For a release-specific comparison with stock GMAT R2026a, see
+`GMAT Qt differences <GMAT-Qt-Differences.rst>`_.
+
 Changes in alpha.5
 ------------------
 
@@ -119,8 +122,9 @@ external OpenFrames plugins are excluded from these portable alpha packages.
 The ``gmatpy`` API includes the core, station and navigation bindings.
 Additional native plugins can be enabled in a source build with their dependencies.
 
-Sparse OEM interpolation has a retained strict-accuracy failure at an end
-point. VF13ad forward finite differences also retain a strict exact-optimum
+The original sparse Lagrange OEM configuration retains a strict-accuracy
+failure at an endpoint. The explicit Hermite option in alpha.5 passes that
+case's original bounds. VF13ad forward finite differences also retain a strict exact-optimum
 failure in the optional plugin's evidence. Review numerical accuracy for the
 specific missions and ephemerides you use.
 
