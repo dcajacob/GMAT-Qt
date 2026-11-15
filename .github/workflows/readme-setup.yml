@@ -1,0 +1,67 @@
+name: Published README setup
+
+on:
+  push:
+    branches: ['codex/readme-setup-alpha4']
+  workflow_dispatch:
+    inputs:
+      run_fresh:
+        description: Explicitly run fresh native setup checks
+        type: boolean
+        default: false
+      platform:
+        description: Native platform to check
+        type: choice
+        default: all
+        options: [all, linux-x86_64, windows-x64, macos-arm64, macos-x64]
+
+permissions:
+  contents: read
+
+jobs:
+  saved_evidence:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Review saved clean-install receipts without native execution
+        run: python tools/preview/VerifyReadmeSetup.py --review-saved tools/preview/releases/0.1.0-alpha.4/readme-setup
+
+  setup:
+    if: github.event_name == 'workflow_dispatch' && inputs.run_fresh
+    strategy:
+      fail-fast: false
+      matrix:
+        include: >-
+          ${{ fromJSON(inputs.platform == 'linux-x86_64' &&
+          '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"}]' ||
+          inputs.platform == 'windows-x64' &&
+          '[{"runner":"windows-2022","platform":"windows-x64"}]' ||
+          inputs.platform == 'macos-arm64' &&
+          '[{"runner":"macos-15","platform":"macos-arm64"}]' ||
+          inputs.platform == 'macos-x64' &&
+          '[{"runner":"macos-15-intel","platform":"macos-x64"}]' ||
+          '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"},
+          {"runner":"windows-2022","platform":"windows-x64"},
+          {"runner":"macos-15","platform":"macos-arm64"},
+          {"runner":"macos-15-intel","platform":"macos-x64"}]') }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check missing README setup paths in the published archive
+        shell: bash
+        run: python tools/preview/VerifyReadmeSetup.py --platform ${{ matrix.platform }} --output build/readme-setup/${{ matrix.platform }}
+      - name: Preserve setup evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: readme-setup-${{ matrix.platform }}
+          path: build/readme-setup/${{ matrix.platform }}
+          if-no-files-found: warn
+          retention-days: 30

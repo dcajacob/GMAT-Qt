@@ -1,0 +1,114 @@
+Actual environment location may have moved due to redirects, links or junctions.
+  Requested location: "C:\Users\RUNNER~1\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-env\Scripts\python.exe"
+  Actual location:    "C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-env\Scripts\python.exe"
+Ignoring contourpy: markers 'python_full_version < "3.12"' don't match your environment
+Ignoring httpx2-jsfetch: markers 'python_full_version >= "3.12" and sys_platform == "emscripten"' don't match your environment
+Ignoring numpy: markers 'python_full_version < "3.12"' don't match your environment
+Ignoring scipy: markers 'python_full_version < "3.12"' don't match your environment
+Collecting annotated-types==0.8.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 3))
+  Downloading annotated_types-0.8.0-py3-none-any.whl (13 kB)
+Collecting anyio==4.16.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 7))
+  Downloading anyio-4.16.0-py3-none-any.whl (134 kB)
+Collecting attrs==26.1.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 15))
+  Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+Collecting cffi==2.1.1 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 21))
+  Downloading cffi-2.1.1-cp312-cp312-win_amd64.whl (185 kB)
+Collecting click==8.5.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 111))
+  Downloading click-8.5.0-py3-none-any.whl (125 kB)
+Collecting contourpy==1.4.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 189))
+  Downloading contourpy-1.4.0-cp312-cp312-win_amd64.whl (234 kB)
+Collecting cryptography==50.0.2 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 261))
+  Downloading cryptography-50.0.2-cp311-abi3-win_amd64.whl (3.8 MB)
+     ---------------------------------------- 3.8/3.8 MB 114.9 MB/s eta 0:00:00
+Collecting cycler==0.12.1 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 322))
+  Downloading cycler-0.12.1-py3-none-any.whl (8.3 kB)
+Collecting fonttools==4.68.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 326))
+  Downloading fonttools-4.68.0-cp312-cp312-win_amd64.whl (2.5 MB)
+     ---------------------------------------- 2.5/2.5 MB 73.3 MB/s eta 0:00:00
+Collecting h11==0.16.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 393))
+  Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+Collecting httpcore2==2.16.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 399))
+  Downloading httpcore2-2.16.0-py3-none-any.whl (85 kB)
+Collecting httpx2==2.16.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 403))
+  Downloading httpx2-2.16.0-py3-none-any.whl (97 kB)
+Collecting idna==3.20 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 411))
+  Downloading idna-3.20-py3-none-any.whl (69 kB)
+Collecting jsonschema==4.26.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 417))
+  Downloading jsonschema-4.26.0-py3-none-any.whl (90 kB)
+Collecting jsonschema-specifications==2025.9.1 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 421))
+  Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+Collecting kiwisolver==1.5.1 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 425))
+  Downloading kiwisolver-1.5.1-cp312-cp312-win_amd64.whl (70 kB)
+Collecting matplotlib==3.11.2 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 550))
+  Downloading matplotlib-3.11.2-cp312-cp312-win_amd64.whl (9.3 MB)
+     ---------------------------------------- 9.3/9.3 MB 41.5 MB/s eta 0:00:00
+Collecting mcp==2.3.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 605))
+  Downloading mcp-2.3.0-py3-none-any.whl (368 kB)
+Collecting mcp-types==2.3.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 609))
+  Downloading mcp_types-2.3.0-py3-none-any.whl (69 kB)
+Collecting numpy==2.5.4 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 690))
+  Downloading numpy-2.5.4-cp312-cp312-win_amd64.whl (12.6 MB)
+     --------------------------------------- 12.6/12.6 MB 23.2 MB/s eta 0:00:00
+Collecting opentelemetry-api==1.45.2 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 761))
+  Downloading opentelemetry_api-1.45.2-py3-none-any.whl (60 kB)
+Collecting packaging==26.3 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 765))
+  Downloading packaging-26.3-py3-none-any.whl (129 kB)
+Collecting pillow==13.0.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 769))
+  Downloading pillow-13.0.0-cp312-cp312-win_amd64.whl (7.3 MB)
+     ---------------------------------------- 7.3/7.3 MB 74.6 MB/s eta 0:00:00
+Collecting platformdirs==4.14.5 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 854))
+  Downloading platformdirs-4.14.5-py3-none-any.whl (35 kB)
+Collecting pycparser==3.12 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 858))
+  Downloading pycparser-3.12-py3-none-any.whl (62 kB)
+Collecting pydantic==2.14.2 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 862))
+  Downloading pydantic-2.14.2-py3-none-any.whl (490 kB)
+Collecting pydantic-core==2.50.2 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 869))
+  Downloading pydantic_core-2.50.2-cp312-cp312-win_amd64.whl (2.3 MB)
+     ---------------------------------------- 2.3/2.3 MB 64.2 MB/s eta 0:00:00
+Collecting pyjwt==2.15.1 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 998))
+  Downloading pyjwt-2.15.1-py3-none-any.whl (33 kB)
+Collecting pyparsing==3.3.3 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 1002))
+  Downloading pyparsing-3.3.3-py3-none-any.whl (126 kB)
+Collecting python-dateutil==4.0.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 1006))
+  Downloading python_dateutil-4.0.0-py3-none-any.whl (92 kB)
+Collecting python-multipart==0.0.33 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 1010))
+  Downloading python_multipart-0.0.33-py3-none-any.whl (32 kB)
+Collecting pywin32==312 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 1014))
+  Downloading pywin32-312-cp312-cp312-win_amd64.whl (6.9 MB)
+     ---------------------------------------- 6.9/6.9 MB 107.3 MB/s eta 0:00:00
+Collecting referencing==0.37.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 1033))
+  Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+Collecting rpds-py==2026.9.1 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 1039))
+  Downloading rpds_py-2026.9.1-cp312-cp312-win_amd64.whl (222 kB)
+Collecting scipy==1.18.1 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 1234))
+  Downloading scipy-1.18.1-cp312-cp312-win_amd64.whl (36.7 MB)
+     --------------------------------------- 36.7/36.7 MB 52.9 MB/s eta 0:00:00
+Collecting sse-starlette==3.6.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 1297))
+  Downloading sse_starlette-3.6.0-py3-none-any.whl (17 kB)
+Collecting starlette==1.10.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 1301))
+  Downloading starlette-1.10.0-py3-none-any.whl (80 kB)
+Collecting truststore==0.10.5 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 1307))
+  Downloading truststore-0.10.5-py3-none-any.whl (19 kB)
+Collecting typing-extensions==4.16.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 1313))
+  Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+Collecting typing-inspection==0.4.5 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 1327))
+  Downloading typing_inspection-0.4.5-py3-none-any.whl (14 kB)
+Collecting tzdata==2026.6 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 1333))
+  Downloading tzdata-2026.6-py2.py3-none-any.whl (348 kB)
+Collecting uvicorn==0.54.0 (from -r C:\Users\runneradmin\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\requirements.lock (line 1337))
+  Downloading uvicorn-0.54.0-py3-none-any.whl (87 kB)
+Installing collected packages: tzdata, typing-extensions, truststore, rpds-py, pywin32, python-multipart, pyparsing, pyjwt, pycparser, platformdirs, pillow, packaging, numpy, kiwisolver, idna, h11, fonttools, cycler, click, attrs, annotated-types, uvicorn, typing-inspection, scipy, referencing, python-dateutil, pydantic-core, opentelemetry-api, httpcore2, contourpy, cffi, anyio, starlette, pydantic, matplotlib, jsonschema-specifications, httpx2, cryptography, sse-starlette, mcp-types, jsonschema, mcp
+Successfully installed annotated-types-0.8.0 anyio-4.16.0 attrs-26.1.0 cffi-2.1.1 click-8.5.0 contourpy-1.4.0 cryptography-50.0.2 cycler-0.12.1 fonttools-4.68.0 h11-0.16.0 httpcore2-2.16.0 httpx2-2.16.0 idna-3.20 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 kiwisolver-1.5.1 matplotlib-3.11.2 mcp-2.3.0 mcp-types-2.3.0 numpy-2.5.4 opentelemetry-api-1.45.2 packaging-26.3 pillow-13.0.0 platformdirs-4.14.5 pycparser-3.12 pydantic-2.14.2 pydantic-core-2.50.2 pyjwt-2.15.1 pyparsing-3.3.3 python-dateutil-4.0.0 python-multipart-0.0.33 pywin32-312 referencing-0.37.0 rpds-py-2026.9.1 scipy-1.18.1 sse-starlette-3.6.0 starlette-1.10.0 truststore-0.10.5 typing-extensions-4.16.0 typing-inspection-0.4.5 tzdata-2026.6 uvicorn-0.54.0
+
+[notice] A new release of pip is available: 25.0.1 -> 26.3
+[notice] To update, run: C:\Users\RUNNER~1\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-env\Scripts\python.exe -m pip install --upgrade pip
+Processing c:\users\runneradmin\appdata\local\temp\gmat-readme-install-fe9evtgi\mcp-bundle\gmat-mcp-0.4.0rc1\gmat_mcp-0.4.0rc1-py3-none-any.whl
+Installing collected packages: gmat-mcp
+Successfully installed gmat-mcp-0.4.0rc1
+
+[notice] A new release of pip is available: 25.0.1 -> 26.3
+[notice] To update, run: C:\Users\RUNNER~1\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-env\Scripts\python.exe -m pip install --upgrade pip
+{
+  "command": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\gmat-readme-install-fe9evtgi\\mcp-env\\Scripts\\gmat-mcp.exe",
+  "next": "Run discover, init, then doctor with your GMAT roots"
+}

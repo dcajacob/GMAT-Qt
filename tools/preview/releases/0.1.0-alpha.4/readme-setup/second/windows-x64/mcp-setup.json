@@ -1,0 +1,8 @@
+{
+  "status": "failed",
+  "profile_sha256": "db6f86c18a72275ac70f67ce68a6cafa485486ef74bfe174b4bdf553dc845f1d",
+  "uses_generated_profile_without_edits": true,
+  "desktop_discovery_directory": "C:\\Users\\runneradmin\\AppData\\Local\\gmat-mcp\\desktops",
+  "worker_core_station_navigation": "passed",
+  "error": "unhandled errors in a TaskGroup (1 sub-exception)"
+}

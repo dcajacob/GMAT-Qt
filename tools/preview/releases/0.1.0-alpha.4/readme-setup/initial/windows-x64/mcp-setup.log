@@ -1,0 +1,50 @@
+  + Exception Group Traceback (most recent call last):
+  |   File "C:\Users\RUNNER~1\AppData\Local\Temp\gmat-readme-install-fe9evtgi\VerifyReadmeSetup.py", line 264, in <module>
+  |     asyncio.run(check_mcp(arguments))
+  |   File "C:\hostedtoolcache\windows\Python\3.12.10\x64\Lib\asyncio\runners.py", line 195, in run
+  |     return runner.run(main)
+  |            ^^^^^^^^^^^^^^^^
+  |   File "C:\hostedtoolcache\windows\Python\3.12.10\x64\Lib\asyncio\runners.py", line 118, in run
+  |     return self._loop.run_until_complete(task)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "C:\hostedtoolcache\windows\Python\3.12.10\x64\Lib\asyncio\base_events.py", line 691, in run_until_complete
+  |     return future.result()
+  |            ^^^^^^^^^^^^^^^
+  |   File "C:\Users\RUNNER~1\AppData\Local\Temp\gmat-readme-install-fe9evtgi\VerifyReadmeSetup.py", line 82, in check_mcp
+  |     async with Client(parameters, cache=None) as client:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "C:\Users\RUNNER~1\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-env\Lib\site-packages\mcp\client\client.py", line 480, in __aexit__
+  |     await self._exit_stack.__aexit__(exc_type, exc_val, exc_tb)
+  |   File "C:\hostedtoolcache\windows\Python\3.12.10\x64\Lib\contextlib.py", line 754, in __aexit__
+  |     raise exc_details[1]
+  |   File "C:\hostedtoolcache\windows\Python\3.12.10\x64\Lib\contextlib.py", line 737, in __aexit__
+  |     cb_suppress = await cb(*exc_details)
+  |                   ^^^^^^^^^^^^^^^^^^^^^^
+  |   File "C:\hostedtoolcache\windows\Python\3.12.10\x64\Lib\contextlib.py", line 231, in __aexit__
+  |     await self.gen.athrow(value)
+  |   File "C:\Users\RUNNER~1\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-env\Lib\site-packages\mcp\client\stdio.py", line 201, in stdio_client
+  |     async with anyio.create_task_group() as tg:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "C:\Users\RUNNER~1\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-env\Lib\site-packages\anyio\_backends\_asyncio.py", line 871, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Exception Group Traceback (most recent call last):
+    |   File "C:\Users\RUNNER~1\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-env\Lib\site-packages\mcp\client\stdio.py", line 205, in stdio_client
+    |     yield read_stream, write_stream
+    |   File "C:\hostedtoolcache\windows\Python\3.12.10\x64\Lib\contextlib.py", line 737, in __aexit__
+    |     cb_suppress = await cb(*exc_details)
+    |                   ^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\RUNNER~1\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-env\Lib\site-packages\mcp\client\session.py", line 514, in __aexit__
+    |     result = await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\RUNNER~1\AppData\Local\Temp\gmat-readme-install-fe9evtgi\mcp-env\Lib\site-packages\anyio\_backends\_asyncio.py", line 871, in __aexit__
+    |     raise BaseExceptionGroup(
+    | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    +-+---------------- 1 ----------------
+      | Traceback (most recent call last):
+      |   File "C:\Users\RUNNER~1\AppData\Local\Temp\gmat-readme-install-fe9evtgi\VerifyReadmeSetup.py", line 90, in check_mcp
+      |     created = await call(client, 'create_object', session_id=session['session_id'],
+      |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      | TypeError: check_mcp.<locals>.call() got multiple values for argument 'name'
+      +------------------------------------

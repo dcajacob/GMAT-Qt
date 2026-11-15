@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/gmat-readme-install-_yw2u2u0/check_gmat.py", line 17, in <module>
+    satellite = gmat.Construct("Spacecraft", "Sat")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/gmat-readme-install-_yw2u2u0/installed/GMAT-Qt-0.1.0-alpha.4-macos-x64/GMAT-Qt.app/Contents/MacOS/gmatpy/_py312/gmat_py.py", line 23688, in Construct
+    typestr = val.GetTypeName()
+              ^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'GetTypeName'

@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "platform": "macos-x64",
+  "native_os": "macOS-15.7.9-x86_64-i386-64bit",
+  "workspace": "/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/gmat-readme-install-lwu9j__8",
+  "readme_sha256": "36039108362b5b64ed95d698b13f09b639bcf58701b9755eebe42f8803f71ba8",
+  "native_missions_reused": true,
+  "full_regression_run": false,
+  "archive_sha256": "a9c331f085f08df8142b57b5eb4ad12b21815ac309b867d61d9e02590087f6c1",
+  "reused_qualification": {
+    "sha256": "82ec9699470c3e16fb7d271fbab19befd514ec9bcde6816a33150e569c632777",
+    "package_checks": "passed",
+    "mcp_worker": "succeeded",
+    "mcp_desktop": "succeeded",
+    "gui_without_python": "passed"
+  },
+  "python_executable": "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12",
+  "direct_python_example": "reused-passed",
+  "reused_setup_receipt_sha256": "a219f345618ffaaa818bf216c86a20cc0b157bcb7797a9fcab6fc1c024d41c62",
+  "doctor": "passed",
+  "mcp_setup": {
+    "status": "passed",
+    "profile_sha256": "daeeefb94973414c87eed8d6bf51d4602e08606f765caa3fa461787bfcfc9156",
+    "uses_generated_profile_without_edits": true,
+    "desktop_discovery_directory": "/Users/runner/Library/Application Support/gmat-mcp/desktops",
+    "worker_core_station_navigation": "passed",
+    "default_gui_startup_and_discovery": "passed",
+    "same_profile_desktop_attachment": "passed",
+    "profile_unchanged_after_checks": true
+  },
+  "archive_contents_unchanged": true
+}

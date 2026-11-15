@@ -1,0 +1,50 @@
+  + Exception Group Traceback (most recent call last):
+  |   File "/tmp/gmat-readme-install-ztxmt2ew/VerifyReadmeSetup.py", line 259, in <module>
+  |     asyncio.run(check_mcp(arguments))
+  |   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/asyncio/runners.py", line 195, in run
+  |     return runner.run(main)
+  |            ^^^^^^^^^^^^^^^^
+  |   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/asyncio/runners.py", line 118, in run
+  |     return self._loop.run_until_complete(task)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+  |     return future.result()
+  |            ^^^^^^^^^^^^^^^
+  |   File "/tmp/gmat-readme-install-ztxmt2ew/VerifyReadmeSetup.py", line 82, in check_mcp
+  |     async with Client(parameters, cache=None) as client:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/tmp/gmat-readme-install-ztxmt2ew/mcp-env/lib/python3.12/site-packages/mcp/client/client.py", line 480, in __aexit__
+  |     await self._exit_stack.__aexit__(exc_type, exc_val, exc_tb)
+  |   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/contextlib.py", line 754, in __aexit__
+  |     raise exc_details[1]
+  |   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/contextlib.py", line 737, in __aexit__
+  |     cb_suppress = await cb(*exc_details)
+  |                   ^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/contextlib.py", line 231, in __aexit__
+  |     await self.gen.athrow(value)
+  |   File "/tmp/gmat-readme-install-ztxmt2ew/mcp-env/lib/python3.12/site-packages/mcp/client/stdio.py", line 201, in stdio_client
+  |     async with anyio.create_task_group() as tg:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/tmp/gmat-readme-install-ztxmt2ew/mcp-env/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 871, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Exception Group Traceback (most recent call last):
+    |   File "/tmp/gmat-readme-install-ztxmt2ew/mcp-env/lib/python3.12/site-packages/mcp/client/stdio.py", line 205, in stdio_client
+    |     yield read_stream, write_stream
+    |   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/contextlib.py", line 737, in __aexit__
+    |     cb_suppress = await cb(*exc_details)
+    |                   ^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/gmat-readme-install-ztxmt2ew/mcp-env/lib/python3.12/site-packages/mcp/client/session.py", line 514, in __aexit__
+    |     result = await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/gmat-readme-install-ztxmt2ew/mcp-env/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 871, in __aexit__
+    |     raise BaseExceptionGroup(
+    | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    +-+---------------- 1 ----------------
+      | Traceback (most recent call last):
+      |   File "/tmp/gmat-readme-install-ztxmt2ew/VerifyReadmeSetup.py", line 115, in check_mcp
+      |     if Path(desktop['installation_root']).resolve() == root]
+      |             ~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+      | KeyError: 'installation_root'
+      +------------------------------------

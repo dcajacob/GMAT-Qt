@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "platform": "windows-x64",
+  "native_os": "Windows-2022Server-10.0.20348-SP0",
+  "workspace": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\gmat-readme-install-rjmi7ph6",
+  "readme_sha256": "713687f234a5320175b6b11a91c752d8bbdc70b009055919d5858fbadd3090c7",
+  "native_missions_reused": true,
+  "full_regression_run": false,
+  "archive_sha256": "845d09516eaae37b5a2f4eb9c93874bcd9e80506801da80906708010ebb16f66",
+  "reused_qualification": {
+    "sha256": "414841136df9886473da0195e9549fdf01eaff0e7abd006cc6b69501942c9a72",
+    "package_checks": "passed",
+    "mcp_worker": "succeeded",
+    "mcp_desktop": "succeeded",
+    "gui_without_python": "passed"
+  },
+  "python_executable": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+  "direct_python_example": "reused-passed",
+  "reused_setup_receipt_sha256": "0b7fc993bb491aa84021007ed01b98f52fcadd8b2c56e2e720bcdc401cdb69c4",
+  "doctor": "reused-passed",
+  "mcp_setup": {
+    "status": "passed",
+    "profile_sha256": "f61b696ba63e07f29f4e0fbf34e6ede029151e6c563b4cb9ff832a722f380888",
+    "uses_generated_profile_without_edits": true,
+    "desktop_discovery_directory": "C:\\Users\\runneradmin\\AppData\\Local\\gmat-mcp\\desktops",
+    "worker_core_station_navigation": "reused-passed",
+    "default_gui_startup_and_discovery": "passed",
+    "same_profile_desktop_attachment": "passed",
+    "profile_unchanged_after_checks": true
+  },
+  "archive_contents_unchanged": true
+}

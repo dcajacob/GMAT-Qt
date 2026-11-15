@@ -1,0 +1,21 @@
+{
+  "original_summary_sha256": "47063679f30a8c36247a66cfb2d18241ef73679a278f0ee0c4fcdfe8eaf103b1",
+  "tested_readme_commit": "1a8f016f9f201dd0430bc10407222819f47517f7",
+  "tested_readme_sha256": "36039108362b5b64ed95d698b13f09b639bcf58701b9755eebe42f8803f71ba8",
+  "tested_readme_crlf_sha256": "713687f234a5320175b6b11a91c752d8bbdc70b009055919d5858fbadd3090c7",
+  "published_readme_commit": "2ff0a3984637a62b2e195be1942e43c0fa11ff93",
+  "direct_example_workflow": 43660164265,
+  "completed_workflow": 43660660269,
+  "intel_completion_workflow": 43660986580,
+  "executed_tool_sources": {
+    "first_attempt": "9df88ca4e52ea1f2260f701c3287dd716a0ae54b",
+    "corrected_example": "1a8f016f9f201dd0430bc10407222819f47517f7",
+    "completed_three_platforms": "6fa6ddf9e2988e0d5deee93bf1e2797ee1c452bf",
+    "intel_completion": "53fbdc8f4a3a4706273b056ced5539f873fd4d2d"
+  },
+  "native_qualification_workflow": 43652888697,
+  "release_archive_source": "a22ef7e636203b2ccfaba51deb7fac37f5cb5ffa",
+  "raw_receipts": "Copied byte-for-byte from the retained native runner artifacts.",
+  "summary_path_edit": "Receipt paths changed from build-local paths to paths relative to this directory.",
+  "archive_copies": "The public release download URLs and original SHA-256 values identify the qualified archive bytes."
+}

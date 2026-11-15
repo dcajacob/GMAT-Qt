@@ -1,0 +1,20 @@
+{
+  "status": "failed",
+  "platform": "macos-x64",
+  "native_os": "macOS-15.7.9-x86_64-i386-64bit",
+  "workspace": "/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/gmat-readme-install-2nrv9558",
+  "readme_sha256": "36039108362b5b64ed95d698b13f09b639bcf58701b9755eebe42f8803f71ba8",
+  "native_missions_reused": true,
+  "full_regression_run": false,
+  "archive_sha256": "a9c331f085f08df8142b57b5eb4ad12b21815ac309b867d61d9e02590087f6c1",
+  "reused_qualification": {
+    "sha256": "82ec9699470c3e16fb7d271fbab19befd514ec9bcde6816a33150e569c632777",
+    "package_checks": "passed",
+    "mcp_worker": "succeeded",
+    "mcp_desktop": "succeeded",
+    "gui_without_python": "passed"
+  },
+  "python_executable": "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12",
+  "direct_python_example": "passed",
+  "error": "Command '['python3.12', '/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/gmat-readme-install-2nrv9558/mcp-bundle/gmat-mcp-0.4.0rc1/install.py', '--destination', '/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/gmat-readme-install-2nrv9558/mcp-env']' timed out after 180 seconds"
+}

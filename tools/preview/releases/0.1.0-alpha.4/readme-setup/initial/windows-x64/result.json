@@ -1,0 +1,20 @@
+{
+  "status": "failed",
+  "platform": "windows-x64",
+  "native_os": "Windows-2022Server-10.0.20348-SP0",
+  "workspace": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\gmat-readme-install-fe9evtgi",
+  "readme_sha256": "c5c33db4701b5c08ec2b9619a6e0bfeaeac0d435278d78d28817b89bce0446aa",
+  "native_missions_reused": true,
+  "full_regression_run": false,
+  "archive_sha256": "845d09516eaae37b5a2f4eb9c93874bcd9e80506801da80906708010ebb16f66",
+  "reused_qualification": {
+    "sha256": "414841136df9886473da0195e9549fdf01eaff0e7abd006cc6b69501942c9a72",
+    "package_checks": "passed",
+    "mcp_worker": "succeeded",
+    "mcp_desktop": "succeeded",
+    "gui_without_python": "passed"
+  },
+  "python_executable": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+  "direct_python_example": "passed",
+  "error": "mcp-setup.log failed with 1: sers\\RUNNER~1\\AppData\\Local\\Temp\\gmat-readme-install-fe9evtgi\\VerifyReadmeSetup.py\", line 82, in check_mcp\n  |     async with Client(parameters, cache=None) as client:\n  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  |   File \"C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\gmat-readme-install-fe9evtgi\\mcp-env\\Lib\\site-packages\\mcp\\client\\client.py\", line 480, in __aexit__\n  |     await self._exit_stack.__aexit__(exc_type, exc_val, exc_tb)\n  |   File \"C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\contextlib.py\", line 754, in __aexit__\n  |     raise exc_details[1]\n  |   File \"C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\contextlib.py\", line 737, in __aexit__\n  |     cb_suppress = await cb(*exc_details)\n  |                   ^^^^^^^^^^^^^^^^^^^^^^\n  |   File \"C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\contextlib.py\", line 231, in __aexit__\n  |     await self.gen.athrow(value)\n  |   File \"C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\gmat-readme-install-fe9evtgi\\mcp-env\\Lib\\site-packages\\mcp\\client\\stdio.py\", line 201, in stdio_client\n  |     async with anyio.create_task_group() as tg:\n  |                ^^^^^^^^^^^^^^^^^^^^^^^^^\n  |   File \"C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\gmat-readme-install-fe9evtgi\\mcp-env\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py\", line 871, in __aexit__\n  |     raise BaseExceptionGroup(\n  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)\n  +-+---------------- 1 ----------------\n    | Exception Group Traceback (most recent call last):\n    |   File \"C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\gmat-readme-install-fe9evtgi\\mcp-env\\Lib\\site-packages\\mcp\\client\\stdio.py\", line 205, in stdio_client\n    |     yield read_stream, write_stream\n    |   File \"C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\contextlib.py\", line 737, in __aexit__\n    |     cb_suppress = await cb(*exc_details)\n    |                   ^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\gmat-readme-install-fe9evtgi\\mcp-env\\Lib\\site-packages\\mcp\\client\\session.py\", line 514, in __aexit__\n    |     result = await self._task_group.__aexit__(exc_type, exc_val, exc_tb)\n    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\gmat-readme-install-fe9evtgi\\mcp-env\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py\", line 871, in __aexit__\n    |     raise BaseExceptionGroup(\n    | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)\n    +-+---------------- 1 ----------------\n      | Traceback (most recent call last):\n      |   File \"C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\gmat-readme-install-fe9evtgi\\VerifyReadmeSetup.py\", line 90, in check_mcp\n      |     created = await call(client, 'create_object', session_id=session['session_id'],\n      |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      | TypeError: check_mcp.<locals>.call() got multiple values for argument 'name'\n      +------------------------------------\n"
+}

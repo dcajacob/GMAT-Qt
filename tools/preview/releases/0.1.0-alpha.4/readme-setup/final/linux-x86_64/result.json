@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "platform": "linux-x86_64",
+  "native_os": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39",
+  "workspace": "/tmp/gmat-readme-install-3ieveu6a",
+  "readme_sha256": "36039108362b5b64ed95d698b13f09b639bcf58701b9755eebe42f8803f71ba8",
+  "native_missions_reused": true,
+  "full_regression_run": false,
+  "archive_sha256": "7b84b94201a4968d2d32a59ebdeb766bc61261795efd60c3bf810ccf37d1d24b",
+  "reused_qualification": {
+    "sha256": "a1fa4748790fd5c11446f6d58572293c0a9be2ed09c85d72c7006f636e00d9fc",
+    "package_checks": "passed",
+    "mcp_worker": "succeeded",
+    "mcp_desktop": "succeeded",
+    "gui_without_python": "passed"
+  },
+  "python_executable": "/opt/hostedtoolcache/Python/3.12.16/x64/bin/python3.12",
+  "direct_python_example": "reused-passed",
+  "reused_setup_receipt_sha256": "f9bdced10f309add565ca7e798982fbbb3e66b18ceabec323f119840f7fc9b38",
+  "doctor": "reused-passed",
+  "mcp_setup": {
+    "status": "passed",
+    "profile_sha256": "fdaed5068f0f56565f5c66191ecb225f99833eba168179ace5da563a5831be74",
+    "uses_generated_profile_without_edits": true,
+    "desktop_discovery_directory": "/tmp/gmat-readme-install-3ieveu6a/user-data/gmat-mcp/desktops",
+    "worker_core_station_navigation": "reused-passed",
+    "default_gui_startup_and_discovery": "passed",
+    "same_profile_desktop_attachment": "passed",
+    "profile_unchanged_after_checks": true
+  },
+  "archive_contents_unchanged": true
+}

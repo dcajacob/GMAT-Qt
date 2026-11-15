@@ -1,6 +1,9 @@
 # These license bytes are checked against the upstream SHA-256 receipts.
 /tools/preview/licenses/*.txt -text
 
+# Preserve the bytes of native-runner clean-install receipts, including CRLF.
+/tools/preview/releases/0.1.0-alpha.4/readme-setup/** -text
+
 # Tutorial reference hashes use the original bytes on every host.
 /application/docs/help/files/scripts/ForceModelsTutorial.script -text
 /application/docs/help/files/scripts/FormationRendezvousTutorial.script -text

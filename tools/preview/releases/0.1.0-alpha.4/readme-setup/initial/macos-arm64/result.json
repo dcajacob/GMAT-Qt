@@ -1,0 +1,19 @@
+{
+  "status": "failed",
+  "platform": "macos-arm64",
+  "native_os": "macOS-15.8.2-arm64-arm-64bit",
+  "workspace": "/var/folders/2s/vty41l455yv698g4xkgfv7z00000gn/T/gmat-readme-install-jbj4d4a5",
+  "readme_sha256": "34d2bee5e28a0f49240e5522f3fdfe9311a8c3185bfadf5d2383313bc6ecb6f8",
+  "native_missions_reused": true,
+  "full_regression_run": false,
+  "archive_sha256": "afb150bd1eb220e812e7e5a798765b08f317f66c5c663e8170a27a03203b33d7",
+  "reused_qualification": {
+    "sha256": "ec1bee6469076fde41746846522f3cde2e68e3461e4f655ced4bc4b113f433e3",
+    "package_checks": "passed",
+    "mcp_worker": "succeeded",
+    "mcp_desktop": "succeeded",
+    "gui_without_python": "passed"
+  },
+  "python_executable": "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12",
+  "error": "python-example.log failed with 1: Traceback (most recent call last):\n  File \"/var/folders/2s/vty41l455yv698g4xkgfv7z00000gn/T/gmat-readme-install-jbj4d4a5/check_gmat.py\", line 17, in <module>\n    satellite = gmat.Construct(\"Spacecraft\", \"Sat\")\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/var/folders/2s/vty41l455yv698g4xkgfv7z00000gn/T/gmat-readme-install-jbj4d4a5/installed/GMAT-Qt-0.1.0-alpha.4-macos-arm64/GMAT-Qt.app/Contents/MacOS/gmatpy/_py312/gmat_py.py\", line 23688, in Construct\n    typestr = val.GetTypeName()\n              ^^^^^^^^^^^^^^^\nAttributeError: 'NoneType' object has no attribute 'GetTypeName'\n"
+}

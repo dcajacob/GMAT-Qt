@@ -1,0 +1,20 @@
+{
+  "status": "failed",
+  "platform": "linux-x86_64",
+  "native_os": "Linux-7.0.0-1014-aws-x86_64-with-glibc2.39",
+  "workspace": "/tmp/gmat-readme-install-a88hre5h",
+  "readme_sha256": "34d2bee5e28a0f49240e5522f3fdfe9311a8c3185bfadf5d2383313bc6ecb6f8",
+  "native_missions_reused": true,
+  "full_regression_run": false,
+  "archive_sha256": "7b84b94201a4968d2d32a59ebdeb766bc61261795efd60c3bf810ccf37d1d24b",
+  "reused_qualification": {
+    "sha256": "a1fa4748790fd5c11446f6d58572293c0a9be2ed09c85d72c7006f636e00d9fc",
+    "package_checks": "passed",
+    "mcp_worker": "succeeded",
+    "mcp_desktop": "succeeded",
+    "gui_without_python": "passed"
+  },
+  "python_executable": "/opt/hostedtoolcache/Python/3.12.16/x64/bin/python3.12",
+  "direct_python_example": "reused-passing-linux-readme-example",
+  "error": "mcp-setup.log failed with 1: /Python/3.12.16/x64/lib/python3.12/asyncio/base_events.py\", line 691, in run_until_complete\n  |     return future.result()\n  |            ^^^^^^^^^^^^^^^\n  |   File \"/tmp/gmat-readme-install-a88hre5h/VerifyReadmeSetup.py\", line 82, in check_mcp\n  |     async with Client(parameters, cache=None) as client:\n  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  |   File \"/tmp/gmat-readme-install-a88hre5h/mcp-env/lib/python3.12/site-packages/mcp/client/client.py\", line 480, in __aexit__\n  |     await self._exit_stack.__aexit__(exc_type, exc_val, exc_tb)\n  |   File \"/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/contextlib.py\", line 754, in __aexit__\n  |     raise exc_details[1]\n  |   File \"/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/contextlib.py\", line 737, in __aexit__\n  |     cb_suppress = await cb(*exc_details)\n  |                   ^^^^^^^^^^^^^^^^^^^^^^\n  |   File \"/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/contextlib.py\", line 231, in __aexit__\n  |     await self.gen.athrow(value)\n  |   File \"/tmp/gmat-readme-install-a88hre5h/mcp-env/lib/python3.12/site-packages/mcp/client/stdio.py\", line 201, in stdio_client\n  |     async with anyio.create_task_group() as tg:\n  |                ^^^^^^^^^^^^^^^^^^^^^^^^^\n  |   File \"/tmp/gmat-readme-install-a88hre5h/mcp-env/lib/python3.12/site-packages/anyio/_backends/_asyncio.py\", line 871, in __aexit__\n  |     raise BaseExceptionGroup(\n  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)\n  +-+---------------- 1 ----------------\n    | Exception Group Traceback (most recent call last):\n    |   File \"/tmp/gmat-readme-install-a88hre5h/mcp-env/lib/python3.12/site-packages/mcp/client/stdio.py\", line 205, in stdio_client\n    |     yield read_stream, write_stream\n    |   File \"/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/contextlib.py\", line 737, in __aexit__\n    |     cb_suppress = await cb(*exc_details)\n    |                   ^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/tmp/gmat-readme-install-a88hre5h/mcp-env/lib/python3.12/site-packages/mcp/client/session.py\", line 514, in __aexit__\n    |     result = await self._task_group.__aexit__(exc_type, exc_val, exc_tb)\n    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/tmp/gmat-readme-install-a88hre5h/mcp-env/lib/python3.12/site-packages/anyio/_backends/_asyncio.py\", line 871, in __aexit__\n    |     raise BaseExceptionGroup(\n    | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)\n    +-+---------------- 1 ----------------\n      | Traceback (most recent call last):\n      |   File \"/tmp/gmat-readme-install-a88hre5h/VerifyReadmeSetup.py\", line 90, in check_mcp\n      |     created = await call(client, 'create_object', session_id=session['session_id'],\n      |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n      | TypeError: check_mcp.<locals>.call() got multiple values for argument 'name'\n      +------------------------------------\n"
+}

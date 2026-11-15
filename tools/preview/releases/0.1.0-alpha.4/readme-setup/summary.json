@@ -1,0 +1,132 @@
+{
+  "status": "passed",
+  "completed_utc": "2026-11-15T01:09:43.901604+00:00",
+  "release": "v0.1.0-alpha.4",
+  "release_source": "a22ef7e636203b2ccfaba51deb7fac37f5cb5ffa",
+  "readme_sha256": "499f933ab6dbe11108e06155016d4854002fd796725ba17f35b9c14db807efd1",
+  "executed_python_example_sha256": "72349707e7cef2c83af438f1305dfef46eb0a26b3dd3b4fb126140d131be1108",
+  "executed_readme_source": "1a8f016f9f201dd0430bc10407222819f47517f7",
+  "readme_delta": "Added documented Intel Mac build prerequisites after observing cryptography compile. The executed example and setup commands are unchanged.",
+  "platforms": [
+    {
+      "platform": "linux-x86_64",
+      "status": "passed",
+      "archive_sha256": "7b84b94201a4968d2d32a59ebdeb766bc61261795efd60c3bf810ccf37d1d24b",
+      "setup_receipt": "final/linux-x86_64/result.json",
+      "setup_receipt_sha256": "4ed441b2def1f602ff8760814ed93aed25a0592296630e588873fc2a85b56766",
+      "direct_python_receipt": "second/linux-x86_64/result.json",
+      "direct_python_receipt_sha256": "f9bdced10f309add565ca7e798982fbbb3e66b18ceabec323f119840f7fc9b38",
+      "doctor": "reused-passed",
+      "mcp": {
+        "status": "passed",
+        "profile_sha256": "fdaed5068f0f56565f5c66191ecb225f99833eba168179ace5da563a5831be74",
+        "uses_generated_profile_without_edits": true,
+        "desktop_discovery_directory": "/tmp/gmat-readme-install-3ieveu6a/user-data/gmat-mcp/desktops",
+        "worker_core_station_navigation": "reused-passed",
+        "default_gui_startup_and_discovery": "passed",
+        "same_profile_desktop_attachment": "passed",
+        "profile_unchanged_after_checks": true
+      },
+      "reused_native_qualification_sha256": "a1fa4748790fd5c11446f6d58572293c0a9be2ed09c85d72c7006f636e00d9fc"
+    },
+    {
+      "platform": "windows-x64",
+      "status": "passed",
+      "archive_sha256": "845d09516eaae37b5a2f4eb9c93874bcd9e80506801da80906708010ebb16f66",
+      "setup_receipt": "final/windows-x64/result.json",
+      "setup_receipt_sha256": "3767c7cb44ab948d5aeace2abe91e490452f744457c06e6ef0ad5967d00886bc",
+      "direct_python_receipt": "second/windows-x64/result.json",
+      "direct_python_receipt_sha256": "0b7fc993bb491aa84021007ed01b98f52fcadd8b2c56e2e720bcdc401cdb69c4",
+      "doctor": "reused-passed",
+      "mcp": {
+        "status": "passed",
+        "profile_sha256": "f61b696ba63e07f29f4e0fbf34e6ede029151e6c563b4cb9ff832a722f380888",
+        "uses_generated_profile_without_edits": true,
+        "desktop_discovery_directory": "C:\\Users\\runneradmin\\AppData\\Local\\gmat-mcp\\desktops",
+        "worker_core_station_navigation": "reused-passed",
+        "default_gui_startup_and_discovery": "passed",
+        "same_profile_desktop_attachment": "passed",
+        "profile_unchanged_after_checks": true
+      },
+      "reused_native_qualification_sha256": "414841136df9886473da0195e9549fdf01eaff0e7abd006cc6b69501942c9a72"
+    },
+    {
+      "platform": "macos-arm64",
+      "status": "passed",
+      "archive_sha256": "afb150bd1eb220e812e7e5a798765b08f317f66c5c663e8170a27a03203b33d7",
+      "setup_receipt": "final/macos-arm64/result.json",
+      "setup_receipt_sha256": "8089e52f127755229de1900b8bd0a2c39e3ae723327cbfbf8bfa8d6f6c1607d9",
+      "direct_python_receipt": "second/macos-arm64/result.json",
+      "direct_python_receipt_sha256": "6bc77fddd81e948debd80a03cbff6e16fdbb6364985a9d6c7b02695ef40719b8",
+      "doctor": "reused-passed",
+      "mcp": {
+        "status": "passed",
+        "profile_sha256": "af1aa991060c044148556989a06a3a97a4344ad20e698e8732df9ab09115309d",
+        "uses_generated_profile_without_edits": true,
+        "desktop_discovery_directory": "/Users/runner/Library/Application Support/gmat-mcp/desktops",
+        "worker_core_station_navigation": "reused-passed",
+        "default_gui_startup_and_discovery": "passed",
+        "same_profile_desktop_attachment": "passed",
+        "profile_unchanged_after_checks": true
+      },
+      "reused_native_qualification_sha256": "ec1bee6469076fde41746846522f3cde2e68e3461e4f655ced4bc4b113f433e3"
+    },
+    {
+      "platform": "macos-x64",
+      "status": "passed",
+      "archive_sha256": "a9c331f085f08df8142b57b5eb4ad12b21815ac309b867d61d9e02590087f6c1",
+      "setup_receipt": "final/macos-x64/result.json",
+      "setup_receipt_sha256": "c7413dc5597e3aa74cd7fc3bb2f23d8fc8cb46d48943e0c8bf8765a2a51db637",
+      "direct_python_receipt": "second/macos-x64/result.json",
+      "direct_python_receipt_sha256": "a219f345618ffaaa818bf216c86a20cc0b157bcb7797a9fcab6fc1c024d41c62",
+      "doctor": "passed",
+      "mcp": {
+        "status": "passed",
+        "profile_sha256": "daeeefb94973414c87eed8d6bf51d4602e08606f765caa3fa461787bfcfc9156",
+        "uses_generated_profile_without_edits": true,
+        "desktop_discovery_directory": "/Users/runner/Library/Application Support/gmat-mcp/desktops",
+        "worker_core_station_navigation": "passed",
+        "default_gui_startup_and_discovery": "passed",
+        "same_profile_desktop_attachment": "passed",
+        "profile_unchanged_after_checks": true
+      },
+      "reused_native_qualification_sha256": "82ec9699470c3e16fb7d271fbab19befd514ec9bcde6816a33150e569c632777"
+    }
+  ],
+  "new_checks": [
+    "README direct Python example",
+    "installed gmat-mcp executable with generated unmodified profile",
+    "MCP core/station/navigation object access",
+    "default desktop startup and discovery",
+    "same-profile desktop attachment and detach"
+  ],
+  "reused_checks": [
+    "four-platform package missions, plots, reports and save/reopen",
+    "MCP propagation, desktop edit/run and numerical results",
+    "GUI startup with Python unavailable",
+    "published archive byte identity"
+  ],
+  "runtime_fixes": [],
+  "readme_fixes": [
+    "Use the binary working directory and startup basename for the direct Python example on macOS",
+    "Document Intel Mac compiler, OpenSSL, Rust and pkg-config requirements for the locked MCP dependency"
+  ],
+  "retained_failures": [
+    "initial direct Mac API example failed through the legacy bundle path parser",
+    "local preflight Python symlink could not create a usable venv",
+    "MCP test helper parameter collision",
+    "test expected a newer MCP discovery field absent from the released bundle",
+    "Intel dependency build exceeded the initial 180-second test timeout",
+    "Intel retry incorrectly expected a previously completed doctor receipt"
+  ],
+  "limits": [
+    "Hosted native runners supplied the documented compiler tools",
+    "macOS Gatekeeper approval and hardware-specific GPU behavior were not newly tested"
+  ],
+  "native_missions_rerun": false,
+  "full_regression_run": false,
+  "remaining_setup_failures": [],
+  "published_readme_commit": "2ff0a3984637a62b2e195be1942e43c0fa11ff93",
+  "published_releases_unchanged": true,
+  "receipt_paths_relative_to": "this directory"
+}

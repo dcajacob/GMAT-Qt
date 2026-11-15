@@ -1,0 +1,7 @@
+{
+  "status": "failed",
+  "profile_sha256": "13cdc38ccc9ebdd9a499e1dbd2c6553f47ca80d03b33b7e7f6b51715346eee1f",
+  "uses_generated_profile_without_edits": true,
+  "desktop_discovery_directory": "/tmp/gmat-readme-install-a88hre5h/user-data/gmat-mcp/desktops",
+  "error": "unhandled errors in a TaskGroup (1 sub-exception)"
+}
