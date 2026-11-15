@@ -1,0 +1,23 @@
+{
+  "source_commit": "a22ef7e636203b2ccfaba51deb7fac37f5cb5ffa",
+  "inputs": [
+    {
+      "path": "build/tutorial-alpha3-20261114/summary.json",
+      "sha256": "606f860e4ce0d4b4d0a458ea4d3798cca8d84de83a950e7a41683ef301dfde7c",
+      "status": "complete"
+    },
+    {
+      "path": "build/event-results-20261114/summary.json",
+      "sha256": "4ac632c4e529033403171b3d133759aff23edcc9f632e22536a50495822566be",
+      "status": "passed"
+    }
+  ],
+  "tutorial_evidence_files_rechecked": 425,
+  "independent_event_cases": 48,
+  "protected_event_inputs_unchanged": true,
+  "runtime_changes_since_tutorials": [
+    "src/base/event/EventLocator.cpp"
+  ],
+  "rationale": "Tutorial behavior retains its source-versioned passing evidence. The subsequent event-report path repair has independent event evidence and targeted Unicode report checks in each new archive.",
+  "qualification_scope": "Saved passes retain their recorded source revisions. Each new archive receives fresh package, event mission, MCP worker and desktop, and Python-free GUI checks."
+}

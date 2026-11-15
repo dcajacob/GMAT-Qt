@@ -1,0 +1,146 @@
+{
+  "version": "0.1.0-alpha.4",
+  "status": "passed",
+  "source_commit": "a22ef7e636203b2ccfaba51deb7fac37f5cb5ffa",
+  "workflow_run": 43652888697,
+  "created_utc": "2026-11-15T00:16:02.408355+00:00",
+  "python": "CPython 3.12 matching the archive architecture",
+  "mcp_release": "0.4.0rc1",
+  "platforms": [
+    {
+      "platform": "linux-x86_64",
+      "archive": "packages/linux-x86_64/GMAT-Qt-0.1.0-alpha.4-linux-x86_64.tar.gz",
+      "sha256": "7b84b94201a4968d2d32a59ebdeb766bc61261795efd60c3bf810ccf37d1d24b",
+      "bytes": 301423239,
+      "receipt": "packages/linux-x86_64/linux-x86_64-api-verification.json",
+      "receipt_sha256": "a1fa4748790fd5c11446f6d58572293c0a9be2ed09c85d72c7006f636e00d9fc",
+      "status": "passed",
+      "native_os": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39",
+      "manifest_files_verified": 843,
+      "worker_result_rows": 121,
+      "desktop_result_rows": 121,
+      "python_build": "3.12.16",
+      "independent_archive_event_cases": 2
+    },
+    {
+      "platform": "windows-x64",
+      "archive": "packages/windows-x64/GMAT-Qt-0.1.0-alpha.4-windows-x64.zip",
+      "sha256": "845d09516eaae37b5a2f4eb9c93874bcd9e80506801da80906708010ebb16f66",
+      "bytes": 253770274,
+      "receipt": "packages/windows-x64/windows-x64-api-verification.json",
+      "receipt_sha256": "414841136df9886473da0195e9549fdf01eaff0e7abd006cc6b69501942c9a72",
+      "status": "passed",
+      "native_os": "Windows-2022Server-10.0.20348-SP0",
+      "manifest_files_verified": 689,
+      "worker_result_rows": 121,
+      "desktop_result_rows": 121,
+      "python_build": "3.12.10",
+      "independent_archive_event_cases": 2
+    },
+    {
+      "platform": "macos-arm64",
+      "archive": "packages/macos-arm64/GMAT-Qt-0.1.0-alpha.4-macos-arm64.zip",
+      "sha256": "afb150bd1eb220e812e7e5a798765b08f317f66c5c663e8170a27a03203b33d7",
+      "bytes": 281108919,
+      "receipt": "packages/macos-arm64/macos-arm64-api-verification.json",
+      "receipt_sha256": "ec1bee6469076fde41746846522f3cde2e68e3461e4f655ced4bc4b113f433e3",
+      "status": "passed",
+      "native_os": "macOS-15.8.2-arm64-arm-64bit",
+      "manifest_files_verified": 1253,
+      "worker_result_rows": 121,
+      "desktop_result_rows": 121,
+      "python_build": "3.12.10",
+      "independent_archive_event_cases": 2
+    },
+    {
+      "platform": "macos-x64",
+      "archive": "packages/macos-x64/GMAT-Qt-0.1.0-alpha.4-macos-x64.zip",
+      "sha256": "a9c331f085f08df8142b57b5eb4ad12b21815ac309b867d61d9e02590087f6c1",
+      "bytes": 289240924,
+      "receipt": "packages/macos-x64/macos-x64-api-verification.json",
+      "receipt_sha256": "82ec9699470c3e16fb7d271fbab19befd514ec9bcde6816a33150e569c632777",
+      "status": "passed",
+      "native_os": "macOS-15.7.9-x86_64-i386-64bit",
+      "manifest_files_verified": 1267,
+      "worker_result_rows": 121,
+      "desktop_result_rows": 121,
+      "python_build": "3.12.10",
+      "independent_archive_event_cases": 2
+    }
+  ],
+  "full_regression_run": false,
+  "working_checkout_preserved": true,
+  "previous_release_files_preserved": {
+    "build/alpha-0.1.0-alpha.2/release-receipt.json": "95c5b6865f9610aeb8b98dbe674a5dac49ed14ed8668d19795e95b13943b2784",
+    "build/alpha-0.1.0-alpha.2/REVIEW.md": "3b201c84bd4568e0fd508de483bcd636a7975d424583ef38f6ff83f1c2328679",
+    "build/alpha-0.1.0-alpha.2/SHA256SUMS": "f03108a3fb0bbe13f304da8c06a6c87e893c910bbd2b5e8ae87c39607556fa9c",
+    "build/alpha-0.1.0-alpha.2/packages/windows-x64/GMAT-Qt-0.1.0-alpha.2-windows-x64.zip": "eb05e39df551298fc61219a11bd4f8e51cd8f0661fc764d8cf7b7301191a6987",
+    "build/alpha-0.1.0-alpha.2/packages/windows-x64/GMAT-Qt-0.1.0-alpha.2-windows-x64.zip.sha256": "d756b2ff03bb207eefa780d86994ad3938be34458633a56b63ede0fe3d735e41",
+    "build/alpha-0.1.0-alpha.2/packages/linux-x86_64/GMAT-Qt-0.1.0-alpha.2-linux-x86_64.tar.gz": "b60c2aff46b55e21dcb094b878470476ff715980e448ea096d9b5ff11a9a3913",
+    "build/alpha-0.1.0-alpha.2/packages/linux-x86_64/GMAT-Qt-0.1.0-alpha.2-linux-x86_64.tar.gz.sha256": "e3b109fda9f7ad315cd817fdee1bd86f419920dcd8086e1331e0b196981cd905",
+    "build/alpha-0.1.0-alpha.2/packages/macos-x64/GMAT-Qt-0.1.0-alpha.2-macos-x64.zip": "f21cd4193ee58fbdfae97002a752695ccff51ec1cbe0c304b1105d2c345677e0",
+    "build/alpha-0.1.0-alpha.2/packages/macos-x64/GMAT-Qt-0.1.0-alpha.2-macos-x64.zip.sha256": "fbfc28d5d6786799a03af3ec847b6451b720d3c8c79e77205434f22c344dca39",
+    "build/alpha-0.1.0-alpha.2/packages/macos-arm64/GMAT-Qt-0.1.0-alpha.2-macos-arm64.zip": "ba39b5cbe4991a20e686f9e79775a912db5e6fa71b9d46972df8c41370e95146",
+    "build/alpha-0.1.0-alpha.2/packages/macos-arm64/GMAT-Qt-0.1.0-alpha.2-macos-arm64.zip.sha256": "1cc85d874c24709a7bc7000bc5f1d0a52d226e465b078cb1bc5181d185b6224f",
+    "build/alpha-0.1.0-alpha.3/release-receipt.json": "8ec1c2ef0fa008b7482d4de880a4b932913586e9ada19808f127000dae6005c8",
+    "build/alpha-0.1.0-alpha.3/REVIEW.md": "0b55bf73afa89c4c09f1061ccf5671b27dff69c9242112e815d3de99e778a10c",
+    "build/alpha-0.1.0-alpha.3/SHA256SUMS": "f06cabecd41fdb2b854736371cedd78e09b7619857f7964a120ef82c933807d3",
+    "build/alpha-0.1.0-alpha.3/packages/windows-x64/GMAT-Qt-0.1.0-alpha.3-windows-x64.zip": "9dda355e76b14c4b2f775019ddc6d7bc965fc9d037b2a53419aea0b30d39c1b0",
+    "build/alpha-0.1.0-alpha.3/packages/windows-x64/GMAT-Qt-0.1.0-alpha.3-windows-x64.zip.sha256": "fbc594134b3d9ea464bb7078eb65c7288f1328fc26920296b6a586e9150fcbe1",
+    "build/alpha-0.1.0-alpha.3/packages/windows-x64/github-artifact.zip": "8728ce1759ef67b3329b1eb87c0795638fa480875ddc8cf96f855d64017a71c5",
+    "build/alpha-0.1.0-alpha.3/packages/linux-x86_64/GMAT-Qt-0.1.0-alpha.3-linux-x86_64.tar.gz": "81382e8b011e75f356ff8710d061599c48a0f530472183fb5d545f89dcb63c8c",
+    "build/alpha-0.1.0-alpha.3/packages/linux-x86_64/GMAT-Qt-0.1.0-alpha.3-linux-x86_64.tar.gz.sha256": "75c9cd9a592e13b169f8266c634cd7e6ddccfce50b99f467a1d2b928bb12bf0d",
+    "build/alpha-0.1.0-alpha.3/packages/linux-x86_64/github-artifact.zip": "39aca71707c7c7280a8953a36fe1cce34774a5abd6764b1555dec2e1e38a95f7",
+    "build/alpha-0.1.0-alpha.3/packages/macos-x64/GMAT-Qt-0.1.0-alpha.3-macos-x64.zip": "6de1a5df508c09e86c17d5bc3a192d61bcb771037ea805453501038ac5cb6332",
+    "build/alpha-0.1.0-alpha.3/packages/macos-x64/GMAT-Qt-0.1.0-alpha.3-macos-x64.zip.sha256": "5a26d152fc425ca5c1f6086143e233e35a124bd1faa0711ce6952a07c491b67b",
+    "build/alpha-0.1.0-alpha.3/packages/macos-x64/github-artifact.zip": "7c6fc7c191c9ab23f8d3e11d51040e6d6a2136d474a6904b120d13020d870d02",
+    "build/alpha-0.1.0-alpha.3/packages/macos-arm64/GMAT-Qt-0.1.0-alpha.3-macos-arm64.zip": "95a2d6af650a555dd1b5293153154f78e28fabbaa0f9d1e7b41ab2bd507869f4",
+    "build/alpha-0.1.0-alpha.3/packages/macos-arm64/GMAT-Qt-0.1.0-alpha.3-macos-arm64.zip.sha256": "5b63db1114552200dcde23e18165286b7bdee5d2f1917e28305ef6448e08f4a1",
+    "build/alpha-0.1.0-alpha.3/packages/macos-arm64/github-artifact.zip": "3c60515c95a7dddef418bb204ee42bcf5713f824ed5917484729c52b6405206b",
+    "build/alpha-0.1.0-alpha.3/attempt-2/windows-x64/packages/GMAT-Qt-0.1.0-alpha.3-windows-x64.zip": "1602ef481ac56a02b3b8b46cca5273e5b9074614f666be87de0434b7b2dbf635",
+    "build/alpha-0.1.0-alpha.3/attempt-2/windows-x64/packages/GMAT-Qt-0.1.0-alpha.3-windows-x64.zip.sha256": "7c781de721bff46b7a197faa7f1307f0a79464d68830fd0b182d3880a38da313",
+    "build/alpha-0.1.0-alpha.3/attempt-2/windows-x64/packages/github-artifact.zip": "727fbdda10ce2ce0a3fa9711805794e8706a3a42f18025486b73715d9f802d17"
+  },
+  "reused_evidence": {
+    "source_commit": "a22ef7e636203b2ccfaba51deb7fac37f5cb5ffa",
+    "inputs": [
+      {
+        "path": "build/tutorial-alpha3-20261114/summary.json",
+        "sha256": "606f860e4ce0d4b4d0a458ea4d3798cca8d84de83a950e7a41683ef301dfde7c",
+        "status": "complete"
+      },
+      {
+        "path": "build/event-results-20261114/summary.json",
+        "sha256": "4ac632c4e529033403171b3d133759aff23edcc9f632e22536a50495822566be",
+        "status": "passed"
+      }
+    ],
+    "tutorial_evidence_files_rechecked": 425,
+    "independent_event_cases": 48,
+    "protected_event_inputs_unchanged": true,
+    "runtime_changes_since_tutorials": [
+      "src/base/event/EventLocator.cpp"
+    ],
+    "rationale": "Tutorial behavior retains its source-versioned passing evidence. The subsequent event-report path repair has independent event evidence and targeted Unicode report checks in each new archive.",
+    "qualification_scope": "Saved passes retain their recorded source revisions. Each new archive receives fresh package, event mission, MCP worker and desktop, and Python-free GUI checks."
+  },
+  "checks": [
+    "Actual archive extracted into a fresh directory on its native platform",
+    "Existing package mission, three plot types, reports and save/reopen",
+    "Mixed eclipse and multi-station contact missions with independent timing and Unicode paths",
+    "GMAT MCP discovery, one generated profile and doctor",
+    "Isolated worker propagation and results retrieval",
+    "Live Qt bridge attachment with the same profile, mission edit, run and results",
+    "GUI startup with the selected CPython installation hidden and runtime paths removed",
+    "MCP bridge disabled without --mcp-bridge",
+    "Source/build outputs hidden during archive qualification",
+    "Archive manifest unchanged after qualification"
+  ],
+  "remaining_release_check_failures": [],
+  "limitations": [
+    "macOS bundles use ad-hoc signatures",
+    "Hosted graphics checks do not establish hardware-specific GPU behavior",
+    "Earlier tutorial and full independent event checks retain their recorded source revisions",
+    "Optional provider and plugin limitations remain listed in RELEASE-NOTES.rst"
+  ]
+}
