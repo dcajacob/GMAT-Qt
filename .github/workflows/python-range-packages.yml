@@ -20,6 +20,9 @@ on:
         options: [all, linux-x86_64, windows-x64, macos-arm64, macos-x64]
   workflow_call:
     inputs:
+      complete_run:
+        type: string
+        default: ''
       base_run:
         type: string
         required: true
@@ -194,7 +197,7 @@ jobs:
 
   complete:
     if: inputs.complete_run != ''
-    runs-on: ubuntu-24.04
+    runs-on: ${{ inputs.platform == 'windows-x64' && 'windows-2022' || inputs.platform == 'macos-arm64' && 'macos-15' || inputs.platform == 'macos-x64' && 'macos-15-intel' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -206,15 +209,34 @@ jobs:
           run-id: ${{ inputs.complete_run }}
           github-token: ${{ github.token }}
           path: build/range-completion
+      - name: Prepare Linux display
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake xvfb xauth libgl1 libglu1-mesa libxcb-cursor0 libxkbcommon-x11-0
       - name: Prepare the remaining startup check
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake xvfb xauth libgl1 libglu1-mesa libxcb-cursor0 libxkbcommon-x11-0
-          python tools/preview/CompletePythonRange.py --archive build/range-completion/dist/GMAT-Qt-${{ inputs.version }}-${{ inputs.platform }}.tar.gz --output build/range-completion/verification
+          python - <<'PYCODE'
+          import pathlib, shutil, sys
+          sys.path.insert(0, 'tools/preview')
+          from CompletePythonRange import prepare
+          root = pathlib.Path('build/range-completion')
+          archive, = [p for p in root.rglob('GMAT-Qt-*') if p.name.endswith(('.tar.gz', '.zip'))]
+          verification, = root.rglob('verification.json')
+          prepare(archive.resolve(), verification.parent.resolve())
+          pathlib.Path('build/range-completion-location.txt').write_text(str(verification.parent.resolve()))
+          PYCODE
       - name: Run Python-free startup and finalize
+        shell: bash
         run: |
-          /usr/bin/cmake -P build/range-completion/verification/without-python.cmake
-          python tools/preview/QualifyPythonRange.py --finish --output build/range-completion/verification
+          gmat_verification=$(cat build/range-completion-location.txt)
+          if [ "$RUNNER_OS" = macOS ]; then
+            sudo -n "$(command -v cmake)" -P "$gmat_verification/without-python.cmake"
+          elif [ "$RUNNER_OS" = Linux ]; then
+            /usr/bin/cmake -P "$gmat_verification/without-python.cmake"
+          else
+            cmake -P "$gmat_verification/without-python.cmake"
+          fi
+          python tools/preview/QualifyPythonRange.py --finish --output "$gmat_verification"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

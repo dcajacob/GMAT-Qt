@@ -70,7 +70,12 @@ def write_no_python_check(target, root, workspace, logs):
     command = ' '.join(bracket(value) for value in [*environment, *arguments])
     # A pip-installed cmake may live inside the Python directory being hidden.
     # Resolve an independent CMake executable before moving that directory.
-    cmake = shutil.which('cmake', path='/usr/bin:/bin') if target.startswith('linux') else None
+    if target.startswith('windows'):
+        cmake_candidates = [Path(os.environ.get('ProgramFiles', 'C:/Program Files'))/'CMake/bin/cmake.exe']
+    else:
+        cmake_candidates = [Path(path)/'cmake' for path in ['/usr/bin', '/opt/homebrew/bin', '/usr/local/bin']]
+    cmake = next((path for path in cmake_candidates if path.is_file() and
+                  not path.resolve().is_relative_to(python_root.resolve())), None)
     cmake_command = bracket(cmake) if cmake else '"${CMAKE_COMMAND}"'
     text = f'''cmake_minimum_required(VERSION 3.21)
 function(move_python source destination)

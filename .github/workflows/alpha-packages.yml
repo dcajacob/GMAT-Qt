@@ -14,6 +14,10 @@ on:
         type: choice
         default: all
         options: [all, linux-x86_64, windows-x64, macos-arm64, macos-x64]
+      python_range:
+        description: Include and qualify CPython 3.12 through 3.15 bindings
+        type: boolean
+        default: true
       reuse_run:
         description: Optional run containing matching API-enabled native inputs
         default: ''
@@ -268,7 +272,7 @@ jobs:
           github-token: ${{ github.token }}
           path: build/preview-package/logs
       - name: Install private display dependencies
-        run: sudo apt-get update && sudo apt-get install -y xvfb xauth libgl1 libglu1-mesa libxkbcommon-x11-0 libxcb-cursor0
+        run: sudo apt-get update && sudo apt-get install -y gdb xvfb xauth libgl1 libglu1-mesa libxkbcommon-x11-0 libxcb-cursor0
       - name: Qualify missing archive paths and reuse package passes
         run: python tools/preview/ResumeLinuxArchive.py
       - name: Start the extracted GUI without CPython
@@ -289,3 +293,12 @@ jobs:
           name: alpha-${{ inputs.version }}-linux-x86_64
           path: build/preview-package/dist/*
           retention-days: 30
+
+  python_range_packages:
+    needs: package
+    if: inputs.python_range && inputs.complete_run == '' && inputs.qualify_archive_run == ''
+    uses: ./.github/workflows/python-range-packages.yml
+    with:
+      base_run: ${{ github.run_id }}
+      version: ${{ inputs.version }}
+      platform: ${{ inputs.platform }}
