@@ -2,9 +2,11 @@ GMAT Qt differences from stock GMAT R2026a
 =========================================
 
 GMAT Qt is a fork of GMAT with a Qt 6 desktop and changes to the mission engine,
-utilities and plugins. These changes can affect execution, validation,
-serialization and numerical results. Existing GMAT users should evaluate their
-missions against the specific build they intend to use.
+utilities and plugins. The project's intent is to follow upstream GMAT
+development while providing a consistent desktop and ready-to-run packages
+across Linux, Windows, and both Mac architectures. These changes can affect
+execution, validation, serialization and numerical results. Existing GMAT users
+should evaluate their missions against the specific build they intend to use.
 
 This guide compares the stock R2026a source tag
 ``08c2a2aae0b5fed077b2e7b4fda992ff54386c60`` with the following release sources.

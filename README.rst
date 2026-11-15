@@ -8,6 +8,12 @@ plugins. The upstream `GMAT project website <https://gmat.atlassian.net/wiki/spa
 provides project information and documentation, and the
 `NASA GMAT Git repository <https://github.com/nasa/GMAT>`_ hosts the upstream source.
 
+Our intent is to follow upstream GMAT development while making the application
+available through a consistent Qt desktop and ready-to-run packages across
+Linux, Windows, and both Apple Silicon and Intel Macs. We document this fork's
+engine changes and compatibility differences so users can evaluate them
+alongside upstream GMAT.
+
 Version 0.1.0-alpha.4 provides prebuilt packages for Linux x86-64, Windows x64,
 and Apple Silicon and Intel Macs.
 
