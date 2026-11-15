@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="(empty)"
+	tests="1"
+	failures="0"
+	disabled="0"
+	skipped="0"
+	hostname=""
+	time="9"
+	timestamp="2026-11-15T02:10:11"
+	>
+	<testcase name="QtGui.InterpolationSufficiencyPolicy" classname="QtGui.InterpolationSufficiencyPolicy" time="9.8666" status="run">
+		<properties>
+			<property name="cmake_labels" value="qt-gui"/>
+		</properties>
+		<system-out>qt.qpa.fonts: Populating font family aliases took 87 ms. Replace uses of missing font family "Sans Serif" with one that exists to avoid this cost. 
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+Policy passed: 90 observations
+</system-out>
+	</testcase>
+</testsuite>

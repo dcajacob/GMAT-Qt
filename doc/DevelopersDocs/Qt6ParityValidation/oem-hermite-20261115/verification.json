@@ -1,0 +1,211 @@
+{
+  "status": "passed",
+  "base_source": "e79b05937b42fddb66de7cc9f7a1025802ea9d17",
+  "changed_source_sha256": {
+    "src/base/subscriber/EphemerisFile.cpp": "cf67db09a85d0b5120298cc7300656664a10dc4777401fde24f920a51e175b06",
+    "src/base/subscriber/EphemWriterWithInterpolator.cpp": "2584701412334bff23efbb8e719dcd69e69a5e9bd3a92f1bd82449a67997c155",
+    "src/base/subscriber/EphemWriterWithInterpolator.hpp": "7b716becf7ff9a80c429ab52ee9ee0387b7dcf8005d5ead44e72cc7031cce3f2",
+    "src/base/subscriber/EphemWriterCCSDS.cpp": "1cb5217d341dd08c48c00d2abc207539574eb839defe935f609e8489289937d4",
+    "src/gmatutil/util/CCSDSOEMSegment.cpp": "ae69dbf30cad8ed9f37d1d21e4df3b4456a29f88ec1d6ac52e7365a31a23bdf2",
+    "src/gmatutil/util/CCSDSOEMSegment.hpp": "0ac4d8c1cd4fa7a80a01ccd2acd5c8b3bb6988762d06459a8bc257306307057f",
+    "src/gmatutil/util/Ephemeris.cpp": "4ab4b3f83bcbea9c7256134323d31b1f8be7b59de8cc813c395bc353ee74117d",
+    "src/qtgui/EphemerisDialog.cpp": "ec79f02fa8619fd9ac8e4c00d9d97a14616f02ac6fd6d2dd7a81b3b0fccb1610",
+    "src/qtgui/tests/OemHermiteTests.cpp": "c3507d0fe2c13e110650bf455c645dffe993c044d36bba01b08b378a7ca0612f",
+    "src/qtgui/CMakeLists.txt": "0ba288c1846a793cf2548f7eebe23fd8565440d88b66ca5d3b52e4f68488d1ea",
+    "doc/help/src/Resource_EphemerisFile.xml": "190d890fab36461cbd622d62714bc0d56447dd29066e887b4d3cdc61fb359553"
+  },
+  "protected_tests_unchanged": true,
+  "release_assets_unchanged": [
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/GMAT-Qt-0.1.0-alpha.4-linux-x86_64.tar.gz",
+      "sha256": "7b84b94201a4968d2d32a59ebdeb766bc61261795efd60c3bf810ccf37d1d24b"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/GMAT-Qt-0.1.0-alpha.4-linux-x86_64.tar.gz.sha256",
+      "sha256": "0025b621b3eede40f6918733081c85d4a8a5490bf38b80c2dffb8700439fc68d"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/GMAT-Qt-0.1.0-alpha.4-macos-arm64.zip",
+      "sha256": "afb150bd1eb220e812e7e5a798765b08f317f66c5c663e8170a27a03203b33d7"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/GMAT-Qt-0.1.0-alpha.4-macos-arm64.zip.sha256",
+      "sha256": "a39777b42b7025daf4972612d22344bd7e6089527028038361135e1da1186f4c"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/GMAT-Qt-0.1.0-alpha.4-macos-x64.zip",
+      "sha256": "a9c331f085f08df8142b57b5eb4ad12b21815ac309b867d61d9e02590087f6c1"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/GMAT-Qt-0.1.0-alpha.4-macos-x64.zip.sha256",
+      "sha256": "a90e8874d49d70107656601e28c2f820fa54cea15af24d380004c88ee6de11cb"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/GMAT-Qt-0.1.0-alpha.4-windows-x64.zip",
+      "sha256": "845d09516eaae37b5a2f4eb9c93874bcd9e80506801da80906708010ebb16f66"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/GMAT-Qt-0.1.0-alpha.4-windows-x64.zip.sha256",
+      "sha256": "c7a14c29393541e4f54f055098abe3c1968a864e055ef299c6cb9b510bde2e2a"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/RELEASE-NOTES.md",
+      "sha256": "a54a45a7bb311bf100b79a66c782d7533f263ae7837fc018c6e42d0c007c1668"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/RELEASE-NOTES.rst",
+      "sha256": "dc11a2868592bb7e4bab4cd0915151bef99757b1f3db3b4fdaa9984345bdc424"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/SHA256SUMS",
+      "sha256": "7eb5163c7a0e257bddf10d073766756cfb570d21c02cabc7896c41d88b9cce16"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/linux-x86_64-api-verification.json",
+      "sha256": "a1fa4748790fd5c11446f6d58572293c0a9be2ed09c85d72c7006f636e00d9fc"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/macos-arm64-api-verification.json",
+      "sha256": "ec1bee6469076fde41746846522f3cde2e68e3461e4f655ced4bc4b113f433e3"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/macos-x64-api-verification.json",
+      "sha256": "82ec9699470c3e16fb7d271fbab19befd514ec9bcde6816a33150e569c632777"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/release-receipt.json",
+      "sha256": "859130ddd85c64a443906e7ffb1872d2e6cc1abccb9e6dc67f6885b5c2288538"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/reused-evidence.json",
+      "sha256": "1f7a1cfd8ca6da6ac8bd95ebea469d5749381467326d7381025474fc300b04a6"
+    },
+    {
+      "file": "build/alpha-0.1.0-alpha.4/published-download-check-20261115/downloads/windows-x64-api-verification.json",
+      "sha256": "414841136df9886473da0195e9549fdf01eaff0e7abd006cc6b69501942c9a72"
+    }
+  ],
+  "checks": [
+    {
+      "case": "NarrowAtLast",
+      "evidence": "build/oem-hermite-20261115/final-qualified/NarrowAtLast",
+      "proof": {
+        "case": "NarrowAtLast",
+        "degrees": [
+          3
+        ],
+        "gui_apply_undo_redo_save_reopen": true,
+        "interpolator": "Hermite",
+        "max_position_error_km": 2.6131070285373426e-07,
+        "max_velocity_error_km_s": 1.1043243652864021e-08,
+        "native_quintic_rolling_clone_reset": true,
+        "original_position_tolerance": 2e-05,
+        "original_velocity_tolerance": 2e-08,
+        "outcome": "passed",
+        "readback_reference": "independent confluent divided differences",
+        "reader_roundtrip": true,
+        "strict_input_and_output_rejection": true
+      }
+    },
+    {
+      "case": "SingleRecord",
+      "evidence": "build/oem-hermite-20261115/final-qualified/SingleRecord",
+      "proof": {
+        "case": "EqualBetween",
+        "degrees": [
+          1
+        ],
+        "gui_apply_undo_redo_save_reopen": true,
+        "interpolator": "Hermite",
+        "max_position_error_km": 2.6175789002991223e-07,
+        "max_velocity_error_km_s": 1.2433316598503552e-09,
+        "native_quintic_rolling_clone_reset": true,
+        "original_position_tolerance": 2e-05,
+        "original_velocity_tolerance": 2e-08,
+        "outcome": "passed",
+        "readback_reference": "independent confluent divided differences",
+        "reader_roundtrip": true,
+        "strict_input_and_output_rejection": false
+      }
+    },
+    {
+      "case": "LongBuffer",
+      "evidence": "build/oem-hermite-20261115/final-qualified/LongBuffer",
+      "proof": {
+        "case": "LongInitial",
+        "degrees": [
+          7
+        ],
+        "gui_apply_undo_redo_save_reopen": true,
+        "interpolator": "Hermite",
+        "max_position_error_km": 1.5363876570972934e-06,
+        "max_velocity_error_km_s": 1.6562374249851075e-09,
+        "native_quintic_rolling_clone_reset": true,
+        "original_position_tolerance": 2e-05,
+        "original_velocity_tolerance": 2e-08,
+        "outcome": "passed",
+        "readback_reference": "independent confluent divided differences",
+        "reader_roundtrip": true,
+        "strict_input_and_output_rejection": false
+      }
+    },
+    {
+      "case": "SegmentReset",
+      "evidence": "build/oem-hermite-20261115/final-qualified/SegmentReset",
+      "proof": {
+        "case": "WindowSplit",
+        "degrees": [
+          7,
+          7
+        ],
+        "gui_apply_undo_redo_save_reopen": true,
+        "interpolator": "Hermite",
+        "max_position_error_km": 1.7953573205886642e-06,
+        "max_velocity_error_km_s": 1.9354092772871923e-09,
+        "native_quintic_rolling_clone_reset": true,
+        "original_position_tolerance": 2e-05,
+        "original_velocity_tolerance": 2e-08,
+        "outcome": "passed",
+        "readback_reference": "independent confluent divided differences",
+        "reader_roundtrip": true,
+        "strict_input_and_output_rejection": false
+      }
+    },
+    {
+      "case": "FixedStep",
+      "evidence": "build/oem-hermite-20261115/final-qualified/FixedStep",
+      "proof": {
+        "case": "ThreeRecords",
+        "degrees": [
+          5
+        ],
+        "gui_apply_undo_redo_save_reopen": true,
+        "interpolator": "Hermite",
+        "max_position_error_km": 8.584927968513512e-07,
+        "max_velocity_error_km_s": 9.254619293130872e-10,
+        "native_quintic_rolling_clone_reset": true,
+        "original_position_tolerance": 2e-05,
+        "original_velocity_tolerance": 2e-08,
+        "outcome": "passed",
+        "readback_reference": "independent confluent divided differences",
+        "reader_roundtrip": true,
+        "strict_input_and_output_rejection": false
+      }
+    }
+  ],
+  "native_x11": "build/oem-hermite-20261115/native-x11-v3",
+  "lagrange_policy": "build/oem-hermite-20261115/final-v6/LagrangePolicy",
+  "previous_failure_retained": {
+    "evidence": "build/nasa-coverage/coverage95-20261110-aggregate-regression-v1/headless-all-v2/QtGui.Ephemeris/test.log",
+    "current": "build/oem-hermite-20261115/final-v5/LegacyEphemeris/ctest.log",
+    "message": "FAIL CCSDS-OEM: The mission has changed. Build the current script and reopen this panel."
+  },
+  "scope": "Linux targeted development build. No new release archives. Windows and macOS have not run this change. The original Lagrange NarrowAtLast failure remains applicable to Lagrange. Readback polynomial identity is independent of the physical-orbit export tolerance.",
+  "retained_evidence_sha256": {
+    "src/qtgui/tests/NasaOemRecordSupportTests.cpp": "75bef1974a53489c3c3f94b9d996b9fe479f3c35926deb7bce45ffe3442d9319",
+    "src/qtgui/tests/NasaOemShortWindowCases.json": "d45bbf757ca9473769db739871045416a491534160031b0fa45266f855afddb0",
+    "build/nasa-coverage/coverage95-20261110-aggregate-regression-v1/headless-all-v2/QtGui.Ephemeris/test.log": "b0c2413fa1f23b6768bbbb325b2bfcaa44c8e9fdce87af8f25e7d83f214d70a4",
+    "build/nasa-coverage/coverage95-20261108-oem-endpoint-epoch-current-review/sparse-support-diagnosis-v1.json": "e77f90eb0097b911cdfb84da1934512c16acb7fc456eab55aa1fcc2240f1884b"
+  },
+  "published_tag_verified": "a22ef7e636203b2ccfaba51deb7fac37f5cb5ffa"
+}

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="(empty)"
+	tests="1"
+	failures="0"
+	disabled="0"
+	skipped="0"
+	hostname=""
+	time="2"
+	timestamp="2026-11-15T02:22:44"
+	>
+	<testcase name="QtGui.OemHermiteNarrowAtLast" classname="QtGui.OemHermiteNarrowAtLast" time="2.23568" status="run">
+		<properties>
+			<property name="cmake_labels" value="qt-gui"/>
+		</properties>
+		<system-out>qt.qpa.fonts: Populating font family aliases took 188 ms. Replace uses of missing font family "Sans Serif" with one that exists to avoid this cost. 
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+{"case":"NarrowAtLast","degrees":[3],"gui_apply_undo_redo_save_reopen":true,"interpolator":"Hermite","max_position_error_km":2.6131070285373426e-07,"max_velocity_error_km_s":1.1043243652864021e-08,"native_quintic_rolling_clone_reset":true,"original_position_tolerance":2e-05,"original_velocity_tolerance":2e-08,"outcome":"passed","readback_reference":"independent confluent divided differences","reader_roundtrip":true,"strict_input_and_output_rejection":true}
+</system-out>
+	</testcase>
+</testsuite>

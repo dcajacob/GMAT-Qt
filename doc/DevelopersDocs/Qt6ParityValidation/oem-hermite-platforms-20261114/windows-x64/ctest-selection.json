@@ -1,0 +1,361 @@
+{
+  "backtraceGraph" : 
+  {
+    "commands" : 
+    [
+      "add_test",
+      "add_qt_test"
+    ],
+    "files" : 
+    [
+      "D:/a/GMAT-Qt/GMAT-Qt/src/qtgui/CMakeLists.txt"
+    ],
+    "nodes" : 
+    [
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 4717,
+        "parent" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 2089,
+        "parent" : 1
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 4718,
+        "parent" : 3
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 2089,
+        "parent" : 4
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 4719,
+        "parent" : 6
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 2089,
+        "parent" : 7
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 4720,
+        "parent" : 9
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 2089,
+        "parent" : 10
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 4721,
+        "parent" : 12
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 2089,
+        "parent" : 13
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 4722,
+        "parent" : 15
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 2089,
+        "parent" : 16
+      }
+    ]
+  },
+  "kind" : "ctestInfo",
+  "tests" : 
+  [
+    {
+      "backtrace" : 2,
+      "command" : 
+      [
+        "C:/hostedtoolcache/windows/Python/3.12.10/x64/python.exe",
+        "D:/a/GMAT-Qt/GMAT-Qt/src/qtgui/tests/RunTest.py",
+        "D:/a/GMAT-Qt/GMAT-Qt/application/bin",
+        "D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/deps/qt/6.10.2/msvc2022_64/bin",
+        "D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build/src/qtgui/Release/GmatQtOemPortablePolicyTests.exe",
+        "D:/a/GMAT-Qt/GMAT-Qt/application/bin/gmat_startup_qt.txt",
+        "Policy"
+      ],
+      "config" : "Release",
+      "name" : "QtGui.OemPortableInterpolationPolicy",
+      "properties" : 
+      [
+        {
+          "name" : "LABELS",
+          "value" : 
+          [
+            "qt-gui"
+          ]
+        },
+        {
+          "name" : "RESOURCE_LOCK",
+          "value" : 
+          [
+            "gmat_qt_engine"
+          ]
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 60.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "D:/a/GMAT-Qt/GMAT-Qt/application/bin"
+        }
+      ]
+    },
+    {
+      "backtrace" : 5,
+      "command" : 
+      [
+        "C:/hostedtoolcache/windows/Python/3.12.10/x64/python.exe",
+        "D:/a/GMAT-Qt/GMAT-Qt/src/qtgui/tests/RunTest.py",
+        "D:/a/GMAT-Qt/GMAT-Qt/application/bin",
+        "D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/deps/qt/6.10.2/msvc2022_64/bin",
+        "D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build/src/qtgui/Release/GmatQtOemHermiteTests.exe",
+        "D:/a/GMAT-Qt/GMAT-Qt/application/bin/gmat_startup_qt.txt",
+        "D:/a/GMAT-Qt/GMAT-Qt/src/qtgui/tests/NasaOemShortWindowCases.json",
+        "NarrowAtLast"
+      ],
+      "config" : "Release",
+      "name" : "QtGui.OemHermiteNarrowAtLast",
+      "properties" : 
+      [
+        {
+          "name" : "LABELS",
+          "value" : 
+          [
+            "qt-gui"
+          ]
+        },
+        {
+          "name" : "RESOURCE_LOCK",
+          "value" : 
+          [
+            "gmat_qt_engine"
+          ]
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 60.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "D:/a/GMAT-Qt/GMAT-Qt/application/bin"
+        }
+      ]
+    },
+    {
+      "backtrace" : 8,
+      "command" : 
+      [
+        "C:/hostedtoolcache/windows/Python/3.12.10/x64/python.exe",
+        "D:/a/GMAT-Qt/GMAT-Qt/src/qtgui/tests/RunTest.py",
+        "D:/a/GMAT-Qt/GMAT-Qt/application/bin",
+        "D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/deps/qt/6.10.2/msvc2022_64/bin",
+        "D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build/src/qtgui/Release/GmatQtOemHermiteTests.exe",
+        "D:/a/GMAT-Qt/GMAT-Qt/application/bin/gmat_startup_qt.txt",
+        "D:/a/GMAT-Qt/GMAT-Qt/src/qtgui/tests/NasaOemShortWindowCases.json",
+        "EqualBetween"
+      ],
+      "config" : "Release",
+      "name" : "QtGui.OemHermiteSingleRecord",
+      "properties" : 
+      [
+        {
+          "name" : "LABELS",
+          "value" : 
+          [
+            "qt-gui"
+          ]
+        },
+        {
+          "name" : "RESOURCE_LOCK",
+          "value" : 
+          [
+            "gmat_qt_engine"
+          ]
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 60.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "D:/a/GMAT-Qt/GMAT-Qt/application/bin"
+        }
+      ]
+    },
+    {
+      "backtrace" : 11,
+      "command" : 
+      [
+        "C:/hostedtoolcache/windows/Python/3.12.10/x64/python.exe",
+        "D:/a/GMAT-Qt/GMAT-Qt/src/qtgui/tests/RunTest.py",
+        "D:/a/GMAT-Qt/GMAT-Qt/application/bin",
+        "D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/deps/qt/6.10.2/msvc2022_64/bin",
+        "D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build/src/qtgui/Release/GmatQtOemHermiteTests.exe",
+        "D:/a/GMAT-Qt/GMAT-Qt/application/bin/gmat_startup_qt.txt",
+        "D:/a/GMAT-Qt/GMAT-Qt/src/qtgui/tests/NasaOemShortWindowCases.json",
+        "LongInitial"
+      ],
+      "config" : "Release",
+      "name" : "QtGui.OemHermiteLongBuffer",
+      "properties" : 
+      [
+        {
+          "name" : "LABELS",
+          "value" : 
+          [
+            "qt-gui"
+          ]
+        },
+        {
+          "name" : "RESOURCE_LOCK",
+          "value" : 
+          [
+            "gmat_qt_engine"
+          ]
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 60.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "D:/a/GMAT-Qt/GMAT-Qt/application/bin"
+        }
+      ]
+    },
+    {
+      "backtrace" : 14,
+      "command" : 
+      [
+        "C:/hostedtoolcache/windows/Python/3.12.10/x64/python.exe",
+        "D:/a/GMAT-Qt/GMAT-Qt/src/qtgui/tests/RunTest.py",
+        "D:/a/GMAT-Qt/GMAT-Qt/application/bin",
+        "D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/deps/qt/6.10.2/msvc2022_64/bin",
+        "D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build/src/qtgui/Release/GmatQtOemHermiteTests.exe",
+        "D:/a/GMAT-Qt/GMAT-Qt/application/bin/gmat_startup_qt.txt",
+        "D:/a/GMAT-Qt/GMAT-Qt/src/qtgui/tests/NasaOemShortWindowCases.json",
+        "WindowSplit"
+      ],
+      "config" : "Release",
+      "name" : "QtGui.OemHermiteSegmentReset",
+      "properties" : 
+      [
+        {
+          "name" : "LABELS",
+          "value" : 
+          [
+            "qt-gui"
+          ]
+        },
+        {
+          "name" : "RESOURCE_LOCK",
+          "value" : 
+          [
+            "gmat_qt_engine"
+          ]
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 60.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "D:/a/GMAT-Qt/GMAT-Qt/application/bin"
+        }
+      ]
+    },
+    {
+      "backtrace" : 17,
+      "command" : 
+      [
+        "C:/hostedtoolcache/windows/Python/3.12.10/x64/python.exe",
+        "D:/a/GMAT-Qt/GMAT-Qt/src/qtgui/tests/RunTest.py",
+        "D:/a/GMAT-Qt/GMAT-Qt/application/bin",
+        "D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/deps/qt/6.10.2/msvc2022_64/bin",
+        "D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build/src/qtgui/Release/GmatQtOemHermiteTests.exe",
+        "D:/a/GMAT-Qt/GMAT-Qt/application/bin/gmat_startup_qt.txt",
+        "D:/a/GMAT-Qt/GMAT-Qt/src/qtgui/tests/NasaOemRecordSupportCases.json",
+        "ThreeRecords"
+      ],
+      "config" : "Release",
+      "name" : "QtGui.OemHermiteFixedStep",
+      "properties" : 
+      [
+        {
+          "name" : "LABELS",
+          "value" : 
+          [
+            "qt-gui"
+          ]
+        },
+        {
+          "name" : "RESOURCE_LOCK",
+          "value" : 
+          [
+            "gmat_qt_engine"
+          ]
+        },
+        {
+          "name" : "TIMEOUT",
+          "value" : 60.0
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "D:/a/GMAT-Qt/GMAT-Qt/application/bin"
+        }
+      ]
+    }
+  ],
+  "version" : 
+  {
+    "major" : 1,
+    "minor" : 0
+  }
+}

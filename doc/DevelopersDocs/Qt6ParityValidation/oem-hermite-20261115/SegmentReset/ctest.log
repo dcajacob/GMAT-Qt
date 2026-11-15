@@ -1,0 +1,10 @@
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start 3674: QtGui.OemHermiteSegmentReset
+1/1 Test #3674: QtGui.OemHermiteSegmentReset .....   Passed    0.38 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.38 sec*proc (1 test)
+
+Total Test time (real) =   0.51 sec

@@ -1,0 +1,26 @@
+[
+  {
+    "platform": "macos-arm64",
+    "archive": "build/oem-hermite-platforms/native/macos-arm64/native-inputs-api-py312-v2-macos-arm64.tar.gz",
+    "sha256": "657f10a250aff4c4ddc31b88c44bfdb49f77b926c52c7e092c2dfef545bb5e1d",
+    "source_commit": "e4179175aed826b9ff79650371789c26a47ff03d",
+    "build_flavor": "api-py312-v2",
+    "verified_file_count": 82
+  },
+  {
+    "platform": "macos-x64",
+    "archive": "build/oem-hermite-platforms/native/macos-x64/native-inputs-api-py312-v2-macos-x64.tar.gz",
+    "sha256": "470767ea14420307234e937f5a66f75412ce11e6cc33f8137bc76e7295f6f892",
+    "source_commit": "e4179175aed826b9ff79650371789c26a47ff03d",
+    "build_flavor": "api-py312-v2",
+    "verified_file_count": 82
+  },
+  {
+    "platform": "windows-x64",
+    "archive": "build/oem-hermite-platforms/native/windows-x64/native-inputs-api-py312-v2-windows-x64.tar.gz",
+    "sha256": "aeefb9e3219a97160dc5c8c95393f71d7cb88c1908a3116fe864b4c1aceebd85",
+    "source_commit": "27249d0b5d12ea156115bc577abcf1cf5a68324a",
+    "build_flavor": "api-py312-v2",
+    "verified_file_count": 5958
+  }
+]

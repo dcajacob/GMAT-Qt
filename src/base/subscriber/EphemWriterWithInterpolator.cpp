@@ -31,6 +31,11 @@
 #include "SubscriberException.hpp"   // for exception
 #include "StringUtil.hpp"            // for ToString()
 #include "LagrangeInterpolator.hpp"  // for LagrangeInterpolator
+#include "HermiteInterpolator.hpp"
+#include "InterpolatorException.hpp"
+#include <cmath>
+#include "TimeSystemConverter.hpp"
+#include <map>
 #include "MessageInterface.hpp"
 
 //#define DEBUG_EPHEMFILE_INSTANCE
@@ -49,6 +54,126 @@
 #ifdef DEBUG_MEMORY
 #include "MemoryTracker.hpp"
 #endif
+
+namespace
+{
+// Reuse the rolling sample buffer and stencil scheduling used by OEM output.
+// Ancillary fields retain their value-only interpolation. Cartesian position
+// and velocity come from one polynomial constrained by both at every node.
+class OemHermiteInterpolator : public LagrangeInterpolator
+{
+public:
+   OemHermiteInterpolator(const std::string &name, Integer degree) :
+      LagrangeInterpolator(name, 34, (degree + 1) / 2 - 1),
+      sampleTimes(bufferSize), hasPublishedEpoch(false), preciseClock(false), clockOrigin(0.0)
+   {
+   }
+
+   void SetEpochBounds(const std::string &format, const std::string &initial,
+         const std::string &final)
+   {
+      for (const auto &text : {initial, final})
+      {
+         if (text == "InitialSpacecraftEpoch" || text == "FinalSpacecraftEpoch") continue;
+         Real rounded;
+         GmatTime precise;
+         std::string result;
+         auto *converter = TimeSystemConverter::Instance();
+         converter->Convert(format, -999.999, text, "A1ModJulian", rounded, result);
+         converter->Convert(format, GmatTime(-999.999), text, "A1ModJulian", precise, result);
+         epochBounds[rounded * GmatTimeConstants::SECS_PER_DAY] = precise;
+      }
+   }
+
+   void SetPublishedEpoch(const GmatTime &epoch)
+   {
+      publishedEpoch = epoch;
+      hasPublishedEpoch = true;
+   }
+
+   bool AddPoint(Real epoch, const Real *state) override
+   {
+      if (!std::isfinite(epoch) || !state)
+         throw InterpolatorException("OEM Hermite requires a finite epoch and Cartesian state.");
+      for (Integer i = 0; i < 6; ++i)
+         if (!std::isfinite(state[i]))
+            throw InterpolatorException("OEM Hermite requires finite positions and velocities.");
+      if (pointCount == 0)
+      {
+         preciseClock = hasPublishedEpoch;
+         clockOrigin = epoch;
+         preciseOrigin = publishedEpoch;
+      }
+      if (!LagrangeInterpolator::AddPoint(epoch, state))
+         return false;
+      sampleTimes[latestPoint] = preciseClock && hasPublishedEpoch ?
+            (publishedEpoch - preciseOrigin).GetTimeInSec() : epoch - clockOrigin;
+      hasPublishedEpoch = false;
+      return true;
+   }
+
+   void Clear() override
+   {
+      LagrangeInterpolator::Clear();
+      preciseClock = false;
+   }
+
+   Interpolator *Clone() const override
+   {
+      return new OemHermiteInterpolator(*this);
+   }
+
+   bool Interpolate(Real epoch, Real *results) override
+   {
+      if (!LagrangeInterpolator::Interpolate(epoch, results))
+         return false;
+
+      const Integer count = order + 1;
+      RealArray times(count);
+      for (Integer i = 0; i < count; ++i)
+         for (Integer slot = 0; slot < std::min(pointCount, bufferSize); ++slot)
+            if (independent[slot] == x[startPoint + i])
+            {
+               times[i] = sampleTimes[slot];
+               break;
+            }
+      const Real anchor = times[0];
+      Real query = preciseClock ?
+            (GmatTime(epoch / GmatTimeConstants::SECS_PER_DAY) - preciseOrigin).GetTimeInSec() :
+            epoch - clockOrigin;
+      if (preciseClock && !epochBounds.empty())
+      {
+         // Fixed output grids are increments from the selected start bound.
+         // An exact final bound has its own conversion and takes precedence.
+         auto bound = epochBounds.find(epoch);
+         if (bound == epochBounds.end()) bound = epochBounds.begin();
+         query = (bound->second - preciseOrigin).GetTimeInSec() + epoch - bound->first;
+      }
+      HermiteInterpolator stateInterpolator("", 6, count);
+      for (Integer i = 0; i < count; ++i)
+         stateInterpolator.AddPoint(times[i] - anchor, y[startPoint + i]);
+      // Add all nodes before derivatives so the native Hermite table has its
+      // complete shape. Local seconds avoid large absolute epoch powers.
+      for (Integer i = 0; i < count; ++i)
+      {
+         const Real *state = y[startPoint + i];
+         const Real derivatives[6] = {state[3], state[4], state[5],
+               -1.0e100, -1.0e100, -1.0e100};
+         stateInterpolator.AddDerivative(times[i] - anchor, derivatives);
+      }
+      return stateInterpolator.InterpolateCartesianState(query - anchor, results);
+   }
+
+private:
+   std::map<Real, GmatTime> epochBounds;
+   RealArray sampleTimes;
+   GmatTime publishedEpoch;
+   GmatTime preciseOrigin;
+   bool hasPublishedEpoch;
+   bool preciseClock;
+   Real clockOrigin;
+};
+}
 
 //---------------------------------
 // static data
@@ -279,6 +404,11 @@ void EphemWriterWithInterpolator::CreateInterpolator()
          (interpolator, interpolator->GetName(), "EphemWriterWithInterpolator::CreateInterpolator()",
           "interpolator = new LagrangeInterpolator()");
       #endif
+   }
+   else if (interpolatorName == "Hermite" && fileType == CCSDS_OEM)
+   {
+      interpolator = new OemHermiteInterpolator(ephemName + "_Hermite", interpolationOrder);
+      interpolator->SetForceInterpolation(false);
    }
    else if (interpolatorName == "SLERP")
    {
@@ -1216,7 +1346,7 @@ void EphemWriterWithInterpolator::FormatErrorMessage(std::string &ephemMsg, std:
       std::string detailedMsg1 = " at the requested interpolation order or to "
          "temporarily reduce the order. ";
       std::string detailedMsg2 = "Number of required points is " +
-         GmatStringUtil::ToString(interpolationOrder + 1, 1) + " for the requested "
+         GmatStringUtil::ToString(GetInterpolationPointCount(), 1) + " for the requested "
          "order, or at least 2 points for a reduced order, but received " +
          GmatStringUtil::ToString(interpolator->GetPointCount(), 1) + ". ";
       std::string detailedMsg3 = "There should be at least one data point more than interpolation order.";
@@ -1242,14 +1372,39 @@ void EphemWriterWithInterpolator::DebugWriteEpochsOnWaiting(const std::string &m
 void EphemWriterWithInterpolator::RequireInterpolationData(Integer count,
       const std::string &context)
 {
-   if (!allowOrderReduction && count < interpolationOrder+1)
+   const Integer required = GetInterpolationPointCount();
+   if (!allowOrderReduction && count < required)
    {
       // Finalization must not retry order reduction while unwinding this error.
       isFinalized=true;
       throw SubscriberException("Insufficient data for " + interpolatorName +
             " interpolation of order " + GmatStringUtil::ToString(interpolationOrder,0) +
             " in ephemeris file \"" + fileName + "\": " + context + " requires at least " +
-            GmatStringUtil::ToString(interpolationOrder+1,0) + " points; received " +
+            GmatStringUtil::ToString(required,0) + " points; received " +
             GmatStringUtil::ToString(count,0) + ". InsufficientDataAction is Error.");
    }
+}
+
+Integer EphemWriterWithInterpolator::GetInterpolationPointCount() const
+{
+   return interpolatorName == "Hermite" ? (interpolationOrder + 1) / 2 : interpolationOrder + 1;
+}
+
+Integer EphemWriterWithInterpolator::GetSupportedInterpolationOrder(Integer count) const
+{
+   const Integer supported = interpolatorName == "Hermite" ? 2 * count - 1 : count - 1;
+   return std::min(interpolationOrder, std::max(0, supported));
+}
+
+void EphemWriterWithInterpolator::SetPublishedEpoch(const GmatTime &epoch)
+{
+   if (auto *hermite = dynamic_cast<OemHermiteInterpolator *>(interpolator))
+      hermite->SetPublishedEpoch(epoch);
+}
+
+void EphemWriterWithInterpolator::SetInterpolationBounds(const std::string &format,
+      const std::string &initial, const std::string &final)
+{
+   if (auto *hermite = dynamic_cast<OemHermiteInterpolator *>(interpolator))
+      hermite->SetEpochBounds(format, initial, final);
 }

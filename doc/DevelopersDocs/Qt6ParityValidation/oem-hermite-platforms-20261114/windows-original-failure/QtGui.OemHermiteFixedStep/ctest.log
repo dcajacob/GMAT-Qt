@@ -1,0 +1,18 @@
+Internal ctest changing into directory: D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build
+Test project D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build
+    Start 2745: QtGui.OemHermiteFixedStep
+1/1 Test #2745: QtGui.OemHermiteFixedStep ........***Failed    0.78 sec
+Cannot read Hermite witness
+Test process exit: 1 (0x00000001)
+
+
+0% tests passed, 1 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.78 sec*proc (1 test)
+
+Total Test time (real) =   1.29 sec
+
+The following tests FAILED:
+	2745 - QtGui.OemHermiteFixedStep (Failed)                qt-gui
+Errors while running CTest

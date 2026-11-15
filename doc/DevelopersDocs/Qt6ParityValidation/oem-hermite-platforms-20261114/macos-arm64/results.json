@@ -1,0 +1,118 @@
+{
+  "source_commit": "e4179175aed826b9ff79650371789c26a47ff03d",
+  "platform": "macos-arm64",
+  "graphics_profile": "offscreen",
+  "cases": [
+    {
+      "name": "QtGui.OemHermiteNarrowAtLast",
+      "target": "GmatQtOemHermiteTests",
+      "source": "src/qtgui/tests/OemHermiteTests.cpp"
+    },
+    {
+      "name": "QtGui.OemHermiteSingleRecord",
+      "target": "GmatQtOemHermiteTests",
+      "source": "src/qtgui/tests/OemHermiteTests.cpp"
+    },
+    {
+      "name": "QtGui.OemHermiteLongBuffer",
+      "target": "GmatQtOemHermiteTests",
+      "source": "src/qtgui/tests/OemHermiteTests.cpp"
+    },
+    {
+      "name": "QtGui.OemHermiteSegmentReset",
+      "target": "GmatQtOemHermiteTests",
+      "source": "src/qtgui/tests/OemHermiteTests.cpp"
+    },
+    {
+      "name": "QtGui.OemHermiteFixedStep",
+      "target": "GmatQtOemHermiteTests",
+      "source": "src/qtgui/tests/OemHermiteTests.cpp"
+    },
+    {
+      "name": "QtGui.InterpolationSufficiencyPolicy",
+      "target": "GmatQtInterpolationSufficiencyTests",
+      "source": "src/qtgui/tests/InterpolationSufficiencyTests.cpp"
+    }
+  ],
+  "build_flavor": "api-py312-v2",
+  "test_source_sha256": {
+    "src/qtgui/tests/AccelerationFrameOracle.hpp": "0378eb29343ccadcb280e3a17b30c048bf2d57e5872d0a3b8a10cb2cb838930d",
+    "src/qtgui/tests/AcceptancePlatform.hpp": "dc31cfe364dca6d0d30566e9da29f622ccbcdefed8a60d973841fb7095d18f09",
+    "src/qtgui/tests/AcceptanceRuntime.py": "dd7e32bad11da8a7bb4028593a81f0c7094c8d72f12ca1d24049fabb7c5388a8",
+    "src/qtgui/tests/AcceptanceView.hpp": "e55fae7e5aaa3bcebba604b089edbb1bda3cee1ec2bd784e3ad5091984198c5d",
+    "src/qtgui/tests/EventRootSettingsAcceptance.hpp": "78fe433991df16dc07207b6591ede2d0d83f95aa63b645e3c7776865739f17a6",
+    "src/qtgui/tests/FormationAcceptance.hpp": "ce777b39de79f60f8931c7ea6bfa980e305f622a91564937c5b743664df50517",
+    "src/qtgui/tests/FunctionOwnedInputFixtures.hpp": "9877d4f467afe630fd1654ceba7351e5f38a019d137615954194e8924a3bb5db",
+    "src/qtgui/tests/FunctionScopeUi.hpp": "769bb16ca246041c52db0debe85effc4fb3a5c31f49fe5723f2eeb48a897867b",
+    "src/qtgui/tests/HarmonicGravityOracle.hpp": "2d40f684ae75b931e25e2018b2f93faf046f7f10db72173ae73bc3ac99ba5105",
+    "src/qtgui/tests/InterpolationSufficiencyTests.cpp": "eec1d82add8d2313a5dd0701e68447de8630e3cc244a61c3729f133b45af8a01",
+    "src/qtgui/tests/MarkerRasterOracle.hpp": "85e4e97147e0990576c9bda461a5571f8e774540c97f0cf0596ad207e4cec6ec",
+    "src/qtgui/tests/MatlabAcceptanceStartup.hpp": "d380c40d66269c3eb5d028a7091e1a1908d7932ccd06c1eae098960b62062768",
+    "src/qtgui/tests/NasaOemRecordSupportCases.json": "7b220791fb297e936ed707d965dac833ee01f6e0eacd6d2a38ec7d0be4a2d732",
+    "src/qtgui/tests/NasaOemShortWindowCases.json": "d45bbf757ca9473769db739871045416a491534160031b0fa45266f855afddb0",
+    "src/qtgui/tests/NativeMessageCapture.hpp": "b8af4c4ffbee365c92c8404c5d3ab035bad51408e7c0931404b07bddf57e48c8",
+    "src/qtgui/tests/NestedInputCatalog.hpp": "e402d68cb9b5b2d73f4fdfb1a0fab26432533b907ee6f92f213a93adeeccc860",
+    "src/qtgui/tests/OemHermiteTests.cpp": "c3507d0fe2c13e110650bf455c645dffe993c044d36bba01b08b378a7ca0612f",
+    "src/qtgui/tests/OrbitTrialHistoryChecks.hpp": "2da042de1a1d2055eee27e0bcbf483135d88893a6eec9737993d0dc3a2b69bbd",
+    "src/qtgui/tests/PlotStepBoundaryOracle.hpp": "91d7f484f79e72e9e2be17f0c636de26343bc964b334b1e4c866e7ff48404aba",
+    "src/qtgui/tests/PlotStepBurnOracle.hpp": "02c437c5bf215722c160656b53970571e1fcc6538f34cd80c4175348e1a6cac3",
+    "src/qtgui/tests/PlotStepCadenceObservation.hpp": "c10a72ac027f262d310d01fabcc3562f792cb25cb6c000a16245a305ba46c72d",
+    "src/qtgui/tests/PlotStepEphemerisOracle.hpp": "b18fb90b136ffa9572b0d80608263f28b22b70cf3f2dff00013bda01353d6789",
+    "src/qtgui/tests/PlotStepFunctionOracle.hpp": "498b06437178c6edd7c1102a3789100d0edc64be429c6ff223054308b0b80b1f",
+    "src/qtgui/tests/PlotStepGravityOracle.hpp": "a0535fc56a6cc9e901c3e87c95c43a8ab01275aa3a16b29d8547503c655a20c6",
+    "src/qtgui/tests/PlotStepLacOracle.hpp": "6cc971a311931d8cc360bfc6579d05447d00a2e16f008d95d2524879ef27cd2d",
+    "src/qtgui/tests/PlotStepLifetimeOracle.hpp": "bf7573cdaf1bd219c48ec3a5e8377ea1f131068e1c0a8cae2124be92840d0c22",
+    "src/qtgui/tests/PlotStepLiveObservation.hpp": "fa8ef88a5746066ce041730faeceda9b7961df7b605fb0a548e501bfc9cac15e",
+    "src/qtgui/tests/PlotStepOriginOracle.hpp": "d6a528560e990fa0aafcb532cf95c9ecd86399fbb000a94860e6b19e8454dbb8",
+    "src/qtgui/tests/PlotStepRedrawOracle.hpp": "c14e8a96bc1d52f55d67bc28a6fc10736a5358ef82b62dce661edb2ae0d19c97",
+    "src/qtgui/tests/PlotStepRotatingOracle.hpp": "c3bd2d246843af215b44e1ef15cc6bc142cbbc9a991bc72f9e8dff669522f6c9",
+    "src/qtgui/tests/RunTest.py": "7f03151b006a2496536be1f995561a50b0b2042c72368ed5fc24b8f52a9c9705",
+    "src/qtgui/tests/SampledHarmonicGravityOracle.hpp": "e8d2b5b7ad193edd878ef98fa9bdc097a8eb11dc79d71a6e2d18f8fcab1363cf",
+    "src/qtgui/tests/TestSettings.hpp": "809e79361a39193a96f8c3db419cce1bae124ca6b96b2318b89da53c9f8846f1",
+    "src/qtgui/tests/TutorialQtTestDriver.hpp": "9881e2f2668e7896855ee2c12029b704574ce423b3b898e4bf4e552e6ac7f0b8",
+    "src/qtgui/tests/Vf13adAcceptance.hpp": "2645e018184c1bb9ae97cc1425d00dc561c8fde87ce36b07bf195f112ecb47b4"
+  },
+  "suite_sha256": "e50b25453e5f79702b05fe0cc4e9c41bffb50e92f2748ecadcc662d551b01903",
+  "assertions_and_tolerances": "existing C++ test sources",
+  "status": "passed",
+  "results": [
+    {
+      "name": "QtGui.OemHermiteNarrowAtLast",
+      "status": "passed",
+      "seconds": 2.44822,
+      "ctest_exit": 0
+    },
+    {
+      "name": "QtGui.OemHermiteSingleRecord",
+      "status": "passed",
+      "seconds": 1.091,
+      "ctest_exit": 0
+    },
+    {
+      "name": "QtGui.OemHermiteLongBuffer",
+      "status": "passed",
+      "seconds": 1.20706,
+      "ctest_exit": 0
+    },
+    {
+      "name": "QtGui.OemHermiteSegmentReset",
+      "status": "passed",
+      "seconds": 1.32812,
+      "ctest_exit": 0
+    },
+    {
+      "name": "QtGui.OemHermiteFixedStep",
+      "status": "passed",
+      "seconds": 1.26095,
+      "ctest_exit": 0
+    },
+    {
+      "name": "QtGui.InterpolationSufficiencyPolicy",
+      "status": "passed",
+      "seconds": 9.8666,
+      "ctest_exit": 0
+    }
+  ],
+  "ctest_exit": 0,
+  "full_regression_run": false
+}

@@ -174,6 +174,8 @@ def qualify(target, archive):
         # against the extracted archive while the build outputs are unavailable.
         package_result = builder.probe(target, payload, executable, model_reader=False,
                                        record_in_payload=False)
+        from OemArchiveCheck import check as check_oem
+        oem_result = check_oem(root, target, logs/'hermite', environment)
         from EventArchiveCheck import check as check_events
         event_result = check_events(root, target, logs/'events', environment)
         with (logs/'mcp-protocol.log').open('w') as log:
@@ -193,6 +195,7 @@ def qualify(target, archive):
                'python': metadata, 'mcp_release': MCP_VERSION, 'mcp_bundle_sha256': MCP_SHA256,
                'package_checks': package_result,
                'event_checks': event_result,
+               'hermite_checks': oem_result,
                'mcp': json.loads((logs/'mcp/mcp-verification.json').read_text()),
                'qualification_library_environment': {key: environment.get(key, '')
                    for key in ['LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'PYTHONPATH']},

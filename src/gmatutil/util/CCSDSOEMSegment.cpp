@@ -31,6 +31,8 @@
 #include "StringUtil.hpp"
 #include "TimeSystemConverter.hpp"
 #include "CcsdsOemB1Text.hpp"
+#include "HermiteInterpolator.hpp"
+#include <algorithm>
 #include <sstream>
 
 //#define DEBUG_OEM_VALIDATE
@@ -112,12 +114,13 @@ bool CCSDSOEMSegment::Validate(bool checkData)
    #endif
    
    // Cartesian type
-   if (GmatStringUtil::ToUpper(interpolationMethod) != "LAGRANGE")
+   const std::string method = GmatStringUtil::ToUpper(interpolationMethod);
+   if (method != "LAGRANGE" && method != "HERMITE")
    {
       std::string errmsg = segError;
       errmsg += "Interpolation type \"";
       errmsg += interpolationMethod + "\" is not valid for Orbit type. ";
-      errmsg += "The only supported value is \"LAGRANGE\".\n";
+      errmsg += "Supported values are \"LAGRANGE\" and \"HERMITE\".\n";
       throw UtilityException(errmsg);
    }
    
@@ -125,6 +128,9 @@ bool CCSDSOEMSegment::Validate(bool checkData)
    MessageInterface::ShowMessage
       ("CCSDSOEMSegment::Validate() returning CCSDSEMSegment::Validate()\n");
    #endif
+   if (method == "HERMITE" &&
+         (interpolationDegree < 0 || interpolationDegree > 9 || (interpolationDegree > 0 && interpolationDegree % 2 == 0)))
+      throw UtilityException(segError + "HERMITE interpolation requires an odd degree from 1 to 9.");
    return CCSDSEMSegment::Validate(checkData);
 }
 
@@ -347,6 +353,55 @@ void CCSDSOEMSegment::ClearMetaData()
 //------------------------------------------------------------------------------
 Rvector CCSDSOEMSegment::Interpolate(Real atEpoch)
 {
-   return InterpolateLagrange(atEpoch);
+   if (GmatStringUtil::ToUpper(interpolationMethod) != "HERMITE")
+      return InterpolateLagrange(atEpoch);
+
+   const Integer count = (interpolationDegree + 1) / 2;
+   if (lastUsable - firstUsable + 1 < count)
+      throw UtilityException(segError + "Insufficient usable data for HERMITE interpolation.");
+   if (atEpoch < dataStore[firstUsable]->epoch || atEpoch > dataStore[lastUsable]->epoch)
+      throw UtilityException(segError + "Requested HERMITE epoch is outside the usable range.");
+
+   Integer upper = firstUsable;
+   while (upper < lastUsable && dataStore[upper]->epoch < atEpoch)
+      ++upper;
+   const Integer start = std::max(firstUsable,
+         std::min(upper - count / 2, lastUsable - count + 1));
+   const auto *first = dataStore[start];
+   const GmatTime anchor = first->hasPrecisionEpoch ? first->preciseEpoch : GmatTime(first->epoch);
+   HermiteInterpolator interpolator("", 6, count);
+   for (Integer i = start; i < start + count; ++i)
+   {
+      const auto *point = dataStore[i];
+      const GmatTime epoch = point->hasPrecisionEpoch ? point->preciseEpoch : GmatTime(point->epoch);
+      interpolator.AddPoint((epoch - anchor).GetTimeInSec(), point->data.GetDataVector());
+   }
+   for (Integer i = start; i < start + count; ++i)
+   {
+      const auto *point = dataStore[i];
+      const GmatTime epoch = point->hasPrecisionEpoch ? point->preciseEpoch : GmatTime(point->epoch);
+      const Real derivatives[6] = {point->data[3], point->data[4], point->data[5],
+            -1.0e100, -1.0e100, -1.0e100};
+      interpolator.AddDerivative((epoch - anchor).GetTimeInSec(), derivatives);
+   }
+   Real state[6];
+   if (!interpolator.InterpolateCartesianState((GmatTime(atEpoch) - anchor).GetTimeInSec(), state))
+      throw UtilityException(segError + "Unable to interpolate HERMITE state.");
+   Rvector result(dataSize);
+   for (Integer i = 0; i < 6; ++i)
+      result[i] = state[i];
+   return result;
 }
 
+
+// A single record has one position and velocity constraint. It can provide
+// its exact state even though it spans no interpolation interval.
+bool CCSDSOEMSegment::GetUsableIndexRange(Integer &first, Integer &last)
+{
+   if (interpolationMethod == "HERMITE" && interpolationDegree <= 1 && dataStore.size() == 1)
+   {
+      first = last = 0;
+      return true;
+   }
+   return CCSDSEMSegment::GetUsableIndexRange(first, last);
+}

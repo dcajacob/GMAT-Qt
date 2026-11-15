@@ -23,8 +23,8 @@
     <title>Insufficient interpolation data</title>
     <para><guilabel>InsufficientDataAction</guilabel> selects
     <literal>ReduceOrder</literal> (the default) or <literal>Error</literal>
-    for the Lagrange generation paths used by CCSDS-OEM, STK-TimePosVel and
-    Code-500. ReduceOrder retains the existing attempt to lower interpolation
+    for CCSDS-OEM generation with Lagrange or Hermite, and for the Lagrange
+    generation paths used by STK-TimePosVel and Code-500. ReduceOrder retains the existing attempt to lower interpolation
     order at a finalized short segment. Error stops generation with a diagnostic
     when that segment cannot supply the requested interpolation order, including
     segments closed by a maneuver, dynamics change or assignment. Error
@@ -39,6 +39,30 @@
     at intermediate output epochs. Select <literal>Error</literal> to reject
     under-supported segments, or configure propagation to provide enough
     samples for the required interpolation accuracy.</para>
+  </refsection>
+
+  <refsection xml:id="EphemerisFile_Hermite">
+    <title>Hermite interpolation for OEM output</title>
+    <para>Set <literal>Interpolator = Hermite</literal> for CCSDS-OEM output
+    to use both sampled Cartesian positions and velocities. Lagrange remains
+    the default. Hermite supports odd <literal>InterpolationOrder</literal>
+    values 3, 5, 7 and 9. Degree 7 requires four distinct native samples,
+    compared with eight for Lagrange degree 7. With
+    <literal>InsufficientDataAction = ReduceOrder</literal>, a short segment
+    uses degree 2N-1 for N available samples, up to the requested degree.
+    Exported metadata also accounts for the number of serialized records.
+    <literal>Error</literal> rejects insufficient native or exported support.
+    Fixed-step sampling and explicit initial/final epochs are supported.</para>
+    <programlisting>Create EphemerisFile Export;
+Export.Spacecraft = Sat;
+Export.FileFormat = CCSDS-OEM;
+Export.Interpolator = Hermite;
+Export.InterpolationOrder = 7;
+Export.InsufficientDataAction = ReduceOrder;</programlisting>
+    <para>In the Qt ephemeris editor, select Hermite under Sampling and format.
+    The selected method is saved in the mission script. GMAT can read generated
+    Hermite OEM files using their declared degree. Interpolation accuracy
+    depends on sample spacing, polynomial degree and source data accuracy.</para>
   </refsection>
 
   <refsection>
@@ -869,9 +893,9 @@
                   <term>Allowed Values</term>
 
                   <listitem>
-                    <para><guilabel>Lagrange</guilabel> for CCSDS-OEM,
-                    Code-500 and STK-TimePosVel ephemeris
-                    types,<guilabel>Hermite</guilabel> for SPK file</para>
+                    <para><guilabel>Lagrange</guilabel> or <guilabel>Hermite</guilabel>
+                    for CCSDS-OEM, <guilabel>Lagrange</guilabel> for Code-500 and
+                    STK-TimePosVel, and <guilabel>Hermite</guilabel> for SPK.</para>
                   </listitem>
                 </varlistentry>
 

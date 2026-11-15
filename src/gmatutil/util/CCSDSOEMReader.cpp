@@ -31,6 +31,9 @@
 #include <cstdlib>
 #include "StringUtil.hpp"
 #include "CCSDSOEMReader.hpp"
+#ifdef _WIN32
+#include <filesystem>
+#endif
 #include "CCSDSOEMSegment.hpp"
 #include "UtilityException.hpp"
 #include "MessageInterface.hpp"
@@ -201,7 +204,11 @@ bool CCSDSOEMReader::ParseFile()
 
    // Open the file for reading
    std::string   line;
+#ifdef _WIN32
+   ephFile.open(std::filesystem::u8path(emFile), std::ios_base::in);
+#else
    ephFile.open(emFile.c_str(), std::ios_base::in);
+#endif
    if (ephFile)
    {
       if (!ephFile.is_open())

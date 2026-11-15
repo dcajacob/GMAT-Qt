@@ -38,6 +38,9 @@
 #include "CcsdsOemB1Chronology.hpp"
 #include <sstream>
 #include <ctime>
+#ifdef _WIN32
+#include <filesystem>
+#endif
 
 //#define DEBUG_INIT_EM_FILE
 //#define DEBUG_EM_FILE
@@ -132,7 +135,11 @@ bool CCSDSEMWriter::OpenFile(const std::string &filename)
    CcsdsOemB1Chronology::Reset(this);
    
    emFileName = filename;
+#ifdef _WIN32
+   emOutStream.open(std::filesystem::u8path(emFileName));
+#else
    emOutStream.open(emFileName.c_str());
+#endif
    
    if (emOutStream.is_open())
    {

@@ -235,20 +235,49 @@ def preserve_native(target, qt, osg, prefix, *, extra_files=(), python_api=False
     print('Preserved native inputs: ' + str(archive), flush=True)
 
 
+def approved_native_reuse(metadata, target):
+    """Match the explicitly reviewed non-Windows source delta for alpha.5."""
+    plan_path = Path(__file__).with_name('Alpha5NativeReuse.json')
+    if not plan_path.is_file() or not target.startswith('macos'):
+        return None
+    plan = json.loads(plan_path.read_text())
+    record = plan.get('platforms', {}).get(target)
+    if not record or production_tree() != plan['package_production_tree_sha256']:
+        return None
+    if (metadata['source_commit'] != record['compiled_source'] or
+            metadata['production_tree_sha256'] != record['compiled_production_tree_sha256']):
+        return None
+    for change in record['changes']:
+        content = subprocess.check_output(['git', 'show', 'HEAD:' + change['path']], cwd=REPO)
+        if hashlib.sha256(content).hexdigest() != change['package_sha256']:
+            return None
+    return {'compiled_source': metadata['source_commit'],
+            'package_source': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+            'reviewed_manifest_sha256': hashlib.sha256(plan_path.read_bytes()).hexdigest(),
+            'reason': record['reason'], 'changes': record['changes']}
+
+
 def restore_native(target, python_api=False):
     archive = ROOT / 'reuse-native' / native_filename(target, python_api)
     if not archive.exists():
         return None
     with tarfile.open(archive) as source:
         metadata = json.load(source.extractfile('build/preview-package/native-build-context.json'))
-        assert metadata['platform'] == target and metadata['production_tree_sha256'] == production_tree()
+        assert metadata['platform'] == target
+        if metadata['production_tree_sha256'] != production_tree():
+            reuse = approved_native_reuse(metadata, target)
+            if reuse is None:
+                raise RuntimeError('Saved native inputs differ from the current production source')
+            metadata['reviewed_source_reuse'] = reuse
         assert metadata.get('build_flavor', 'desktop-v1') == build_flavor(python_api)
         assert all(m.isfile() and not Path(m.name).is_absolute() and '..' not in Path(m.name).parts
                    for m in source.getmembers())
         source.extractall(REPO, filter='data')
     assert all(hashlib.sha256((REPO / n).read_bytes()).hexdigest() == h
                for n,h in metadata['file_sha256'].items())
-    print('Restored exact native binaries; production tree matches ' + metadata['source_commit'], flush=True)
+    context = ROOT / 'native-build-context.json'
+    context.write_text(json.dumps(metadata, indent=2) + '\n')
+    print('Restored verified native binaries from ' + metadata['source_commit'], flush=True)
     return metadata
 
 
@@ -512,6 +541,8 @@ def stage_package(target, qt, osg, prefix):
                     'build_flavor': build_flavor(True),
                     'source_commit': compiled['source_commit'],
                     'package_source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()}
+        if compiled.get('reviewed_source_reuse'):
+            metadata['reviewed_source_reuse'] = compiled['reviewed_source_reuse']
         (payload / 'PYTHON-API.json').write_text(json.dumps(metadata, indent=2) + '\n')
     collect_notices(payload, qt, osg, prefix)
     suffix = '.dll' if target.startswith('windows') else '.so*' if target.startswith('linux') else '.dylib'

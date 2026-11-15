@@ -1,0 +1,24 @@
+Test project /home/dan/GIT/GMAT-Qt/build/linux-gui
+    Start 3707: QtGui.Ephemeris
+1/1 Test #3707: QtGui.Ephemeris ..................***Failed    0.71 sec
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+Analytic circular state at 600 s: max position error 8.18545e-12 km, max velocity error 6.21725e-15 km/s
+FAIL CCSDS-OEM: The mission has changed. Build the current script and reopen this panel.
+Test process exit: 1 (0x00000001)
+
+
+0% tests passed, 1 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.71 sec*proc (1 test)
+
+Total Test time (real) =   0.85 sec
+
+The following tests FAILED:
+	3707 - QtGui.Ephemeris (Failed)                          qt-gui
+Errors while running CTest

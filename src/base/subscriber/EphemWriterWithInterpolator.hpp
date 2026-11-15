@@ -45,10 +45,15 @@ public:
    virtual void         Copy(const GmatBase* orig);
    
    
+   void SetPublishedEpoch(const GmatTime &epoch);
+   void SetInterpolationBounds(const std::string &format, const std::string &initial,
+         const std::string &final);
    void SetOrderReductionAllowed(bool allowed) { allowOrderReduction=allowed; }
 
 protected:
    void RequireInterpolationData(Integer count, const std::string &context);
+   Integer GetInterpolationPointCount() const;
+   Integer GetSupportedInterpolationOrder(Integer count) const;
 
    Interpolator *interpolator;     // owned object
    

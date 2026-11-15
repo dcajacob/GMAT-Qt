@@ -1,0 +1,106 @@
+Moderator is updating data files...
+Moderator is creating core engine...
+Previous SPICE diagnostics retained. New diagnostics: /home/dan/GIT/GMAT-Qt/application/bin/../output/GMATSpiceKernelError.5.txt
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+Setting nutation file to /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/NUTATION.DAT
+Setting leap seconds file to /home/dan/GIT/GMAT-Qt/application/bin/../data/time/tai-utc.dat
+2026-11-14 18:28:41 GMAT Moderator successfully created core engine
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+
+Interpreting scripts from the input stream
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+
+Interpreting scripts from the input stream
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+
+Interpreting scripts from the input stream
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+
+Interpreting scripts from the input stream
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+
+Interpreting scripts from the input stream
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+
+Interpreting scripts from the input stream
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+Running mission...
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_ephem/spk/DE405AllPlanets.bsp has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/SPICEPlanetaryConstantsKernel.tpc has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/time/SPICELeapSecondKernel.tls has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/SPICEEarthPredictedKernel.bpc has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/SPICEEarthCurrentKernel.bpc has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/earth_latest_high_prec.bpc has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/SPICELunaCurrentKernel.bpc has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/SPICELunaFrameKernel.tf has been loaded.
+WARNING: Not enough points provided to the Hermite interpolator of order 7 for ephemeris file "/tmp/OemHermite-hCwowL/Hermite Δ.oem", segment 1. The order will be reduced to 5 for this segment.
+===> Total Run Time: 0.025 seconds
+
+========================================
+
+Mission run completed.
+
+Mission failed. Last command reached: Propagate.
+Interpreting scripts from the input stream
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+
+Interpreting scripts from the input stream
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+Running mission...
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_ephem/spk/DE405AllPlanets.bsp has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/SPICEPlanetaryConstantsKernel.tpc has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/time/SPICELeapSecondKernel.tls has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/SPICEEarthPredictedKernel.bpc has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/SPICEEarthCurrentKernel.bpc has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/earth_latest_high_prec.bpc has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/SPICELunaCurrentKernel.bpc has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/SPICELunaFrameKernel.tf has been loaded.
+Subscriber Exception: Insufficient data for Hermite interpolation of order 7 in ephemeris file "/tmp/OemHermite-hCwowL/Hermite Δ.oem": interpolation input samples requires at least 4 points; received 3. InsufficientDataAction is Error.
+Mission completion error (subscriber end-of-run notification): Subscriber Exception: Insufficient data for Hermite interpolation of order 7 in ephemeris file "/tmp/OemHermite-hCwowL/Hermite Δ.oem": interpolation input samples requires at least 4 points; received 3. InsufficientDataAction is Error.
+===> Total Run Time: 0.025 seconds
+
+========================================
+
+ *** Mission run failed.
+
+Interpreting scripts from the input stream
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+
+Interpreting scripts from the input stream
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+Running mission...
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_ephem/spk/DE405AllPlanets.bsp has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/SPICEPlanetaryConstantsKernel.tpc has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/time/SPICELeapSecondKernel.tls has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/SPICEEarthPredictedKernel.bpc has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/SPICEEarthCurrentKernel.bpc has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/earth_latest_high_prec.bpc has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/SPICELunaCurrentKernel.bpc has been loaded.
+Kernel /home/dan/GIT/GMAT-Qt/application/bin/../data/planetary_coeff/SPICELunaFrameKernel.tf has been loaded.
+
+Mission failed. Last command reached: Propagate.Subscriber Exception: Insufficient data for Hermite interpolation of order 5 in ephemeris file "/tmp/OemHermite-hCwowL/Hermite Δ.oem": exported OEM records requires at least 3 points; received 2. InsufficientDataAction is Error.
+Mission completion error (subscriber end-of-run notification): Utility Exception: CCSDS OEM 1.0 record epochs are out of order: 2000-01-01T12:00:05.250 precedes 2000-01-01T12:00:05.75
+===> Total Run Time: 0.028 seconds
+
+========================================
+
+ *** Mission run failed.

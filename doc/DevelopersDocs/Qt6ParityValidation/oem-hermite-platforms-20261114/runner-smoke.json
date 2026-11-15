@@ -1,0 +1,4 @@
+{
+  "status": "passed",
+  "scope": "Mock CTest registration, per-case receipt and fixture hashing. No native tests executed."
+}

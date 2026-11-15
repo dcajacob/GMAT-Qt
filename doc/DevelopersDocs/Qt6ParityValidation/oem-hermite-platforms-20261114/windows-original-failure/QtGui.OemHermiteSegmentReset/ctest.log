@@ -1,0 +1,18 @@
+Internal ctest changing into directory: D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build
+Test project D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build
+    Start 2744: QtGui.OemHermiteSegmentReset
+1/1 Test #2744: QtGui.OemHermiteSegmentReset .....***Failed    0.87 sec
+Cannot read Hermite witness
+Test process exit: 1 (0x00000001)
+
+
+0% tests passed, 1 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.87 sec*proc (1 test)
+
+Total Test time (real) =   1.44 sec
+
+The following tests FAILED:
+	2744 - QtGui.OemHermiteSegmentReset (Failed)             qt-gui
+Errors while running CTest

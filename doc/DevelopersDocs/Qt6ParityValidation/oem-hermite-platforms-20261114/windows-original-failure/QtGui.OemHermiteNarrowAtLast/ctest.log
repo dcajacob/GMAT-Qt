@@ -1,0 +1,18 @@
+Internal ctest changing into directory: D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build
+Test project D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build
+    Start 2741: QtGui.OemHermiteNarrowAtLast
+1/1 Test #2741: QtGui.OemHermiteNarrowAtLast .....***Failed    2.39 sec
+Cannot read Hermite witness
+Test process exit: 1 (0x00000001)
+
+
+0% tests passed, 1 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   2.39 sec*proc (1 test)
+
+Total Test time (real) =   2.92 sec
+
+The following tests FAILED:
+	2741 - QtGui.OemHermiteNarrowAtLast (Failed)             qt-gui
+Errors while running CTest
