@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "package_production_tree_sha256": "eb155eb1c9187c0b624ac180c8ac7221ffbc4482b7109cf38c231e844f89ff2c",
+  "package_source_reference": "8e9e0f1e94aa61aea93ca08c9c288e131b4e608d",
+  "platforms": {
+    "macos-arm64": {
+      "compiled_source": "e4179175aed826b9ff79650371789c26a47ff03d",
+      "compiled_production_tree_sha256": "7cbd10290fb8c0bc64ddd8b79162a15dbe43aaa501fd370ac7118894891463a2",
+      "reason": "Three Windows-only filesystem branches and two test-only changes. Non-Windows runtime paths are unchanged. Both Mac targeted suites passed on the compiled source.",
+      "changes": [
+        {
+          "path": "src/gmatutil/util/CCSDSEMReader.cpp",
+          "compiled_sha256": "7cca32f5689801f4ea02eb4007a8662c5929773ae6faf6c4252bd904c6936b43",
+          "package_sha256": "bdaa13c94249e415aef01b42cbe6c593e54eb5f5101c504729386f68ff47c5dc"
+        },
+        {
+          "path": "src/gmatutil/util/CCSDSEMWriter.cpp",
+          "compiled_sha256": "a77288450ad4c78b32f21450414a37d70248cdfcd96ef33cecd0fc020b7ee36f",
+          "package_sha256": "0f93d34457a5b21da46659149165611d65b25fdb204bffbd006e2c09e0be9965"
+        },
+        {
+          "path": "src/gmatutil/util/CCSDSOEMReader.cpp",
+          "compiled_sha256": "99100d932e1071d33216a092f42bd2a78c0cc3a9ce50add8341de21a02b4837b",
+          "package_sha256": "bb0076e9cb63983cf496c465b3206ed3191627663d8f804c9391ae0a7e98801e"
+        },
+        {
+          "path": "src/qtgui/CMakeLists.txt",
+          "compiled_sha256": "0ba288c1846a793cf2548f7eebe23fd8565440d88b66ca5d3b52e4f68488d1ea",
+          "package_sha256": "1786bf4d08d2a9a6ca07bd355b2d77e0093ceb8f61e30d8599c9d10b8f8c1a10"
+        },
+        {
+          "path": "src/qtgui/tests/OemHermiteTests.cpp",
+          "compiled_sha256": "c3507d0fe2c13e110650bf455c645dffe993c044d36bba01b08b378a7ca0612f",
+          "package_sha256": "402886bbc624717b7e5012d37ef58e37a9d0691d9844283a697154ad40050bc9"
+        }
+      ]
+    },
+    "macos-x64": {
+      "compiled_source": "e4179175aed826b9ff79650371789c26a47ff03d",
+      "compiled_production_tree_sha256": "7cbd10290fb8c0bc64ddd8b79162a15dbe43aaa501fd370ac7118894891463a2",
+      "reason": "Three Windows-only filesystem branches and two test-only changes. Non-Windows runtime paths are unchanged. Both Mac targeted suites passed on the compiled source.",
+      "changes": [
+        {
+          "path": "src/gmatutil/util/CCSDSEMReader.cpp",
+          "compiled_sha256": "7cca32f5689801f4ea02eb4007a8662c5929773ae6faf6c4252bd904c6936b43",
+          "package_sha256": "bdaa13c94249e415aef01b42cbe6c593e54eb5f5101c504729386f68ff47c5dc"
+        },
+        {
+          "path": "src/gmatutil/util/CCSDSEMWriter.cpp",
+          "compiled_sha256": "a77288450ad4c78b32f21450414a37d70248cdfcd96ef33cecd0fc020b7ee36f",
+          "package_sha256": "0f93d34457a5b21da46659149165611d65b25fdb204bffbd006e2c09e0be9965"
+        },
+        {
+          "path": "src/gmatutil/util/CCSDSOEMReader.cpp",
+          "compiled_sha256": "99100d932e1071d33216a092f42bd2a78c0cc3a9ce50add8341de21a02b4837b",
+          "package_sha256": "bb0076e9cb63983cf496c465b3206ed3191627663d8f804c9391ae0a7e98801e"
+        },
+        {
+          "path": "src/qtgui/CMakeLists.txt",
+          "compiled_sha256": "0ba288c1846a793cf2548f7eebe23fd8565440d88b66ca5d3b52e4f68488d1ea",
+          "package_sha256": "1786bf4d08d2a9a6ca07bd355b2d77e0093ceb8f61e30d8599c9d10b8f8c1a10"
+        },
+        {
+          "path": "src/qtgui/tests/OemHermiteTests.cpp",
+          "compiled_sha256": "c3507d0fe2c13e110650bf455c645dffe993c044d36bba01b08b378a7ca0612f",
+          "package_sha256": "402886bbc624717b7e5012d37ef58e37a9d0691d9844283a697154ad40050bc9"
+        }
+      ]
+    }
+  }
+}

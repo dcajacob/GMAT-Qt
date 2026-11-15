@@ -1,10 +1,26 @@
-GMAT Qt 0.1.0-alpha.4
+GMAT Qt 0.1.0-alpha.5
 ====================
 
 This early alpha includes the Qt mission editor, resource dialogs, reports,
 2D and 3D plots, shared playback, map overlays, and satellite and ground-site
 import tools. New Qt orbit plots use an oblique north-up Earth view. Workspace
 windows open maximized, with tabs and two-column tiling available.
+
+Changes in alpha.5
+------------------
+
+CCSDS OEM output now offers explicit Hermite interpolation in scripts and the
+Qt ephemeris editor. It uses sampled positions and velocities, supports odd
+degrees 3 through 9, and retains Lagrange as the default. Sparse endpoint,
+fixed-step, long-buffer, segment-reset, single-record and strict-data checks
+passed with the original numerical tolerances across all four platforms.
+Windows OEM input and output preserve Unicode filenames.
+
+The standard archives include the core, station and navigation Python bindings
+for CPython 3.12. Select the archive matching Linux x86-64, Windows x64,
+macOS Apple Silicon or macOS Intel and install matching-architecture Python
+when using the API. The GUI runs without Python, and the live MCP bridge is
+enabled with ``--mcp-bridge``. Earlier releases remain available unchanged.
 
 Changes in alpha.4
 ------------------

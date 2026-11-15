@@ -7,7 +7,7 @@ on:
     inputs:
       version:
         description: Package version
-        default: '0.1.0-alpha.4'
+        default: '0.1.0-alpha.5'
         required: true
       platform:
         description: Native platform to build
@@ -18,6 +18,10 @@ on:
         description: Optional run containing matching API-enabled native inputs
         default: ''
         required: false
+      reuse_hermite:
+        description: Reuse qualified Windows and Mac Hermite builds
+        type: boolean
+        default: false
       complete_run:
         description: Optional run whose Mac archives await only the Python-free startup check
         default: ''
@@ -89,6 +93,14 @@ jobs:
           run-id: ${{ inputs.reuse_run }}
           github-token: ${{ github.token }}
           path: build/preview-package/reuse-native
+      - name: Restore qualified Hermite native inputs
+        if: inputs.reuse_hermite && matrix.platform != 'linux-x86_64'
+        uses: actions/download-artifact@v4
+        with:
+          name: oem-hermite-native-${{ matrix.platform }}
+          run-id: ${{ matrix.platform == 'windows-x64' && '43669445676' || '43665317617' }}
+          github-token: ${{ github.token }}
+          path: build/preview-package/reuse-native
       - name: Install Linux native dependencies
         if: matrix.platform == 'linux-x86_64'
         run: |
@@ -99,7 +111,7 @@ jobs:
         run: choco install swig --yes --no-progress
       - name: Build GUI and Python API and qualify the extracted archive
         env:
-          PACKAGE_VERSION: ${{ inputs.version || '0.1.0-alpha.4' }}
+          PACKAGE_VERSION: ${{ inputs.version || '0.1.0-alpha.5' }}
         shell: bash
         run: python tools/preview/BuildPreviewPackage.py --platform ${{ matrix.platform }} --version "$PACKAGE_VERSION" --python-api
       - name: Start the extracted GUI with CPython unavailable
@@ -118,7 +130,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: diagnostics-alpha4-${{ matrix.platform }}
+          name: diagnostics-${{ inputs.version || '0.1.0-alpha.5' }}-${{ matrix.platform }}
           path: build/preview-package/logs/
           if-no-files-found: warn
           retention-days: 30
@@ -144,11 +156,11 @@ jobs:
           path: build/preview-package/native-inputs-api-py312-v2-*.tar.gz
           if-no-files-found: ignore
           retention-days: 7
-      - name: Upload alpha.4 archives and receipts
+      - name: Upload versioned archives and receipts
         if: always() && hashFiles('build/preview-package/dist/*') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: alpha4-${{ matrix.platform }}
+          name: alpha-${{ inputs.version || '0.1.0-alpha.5' }}-${{ matrix.platform }}
           path: build/preview-package/dist/*
           if-no-files-found: error
           retention-days: 30
@@ -190,13 +202,13 @@ jobs:
           PY
       - uses: actions/download-artifact@v4
         with:
-          name: alpha4-${{ matrix.platform }}
+          name: alpha-${{ inputs.version || '0.1.0-alpha.5' }}-${{ matrix.platform }}
           run-id: ${{ steps.prior.outputs.run }}
           github-token: ${{ github.token }}
           path: build/preview-package/dist
       - uses: actions/download-artifact@v4
         with:
-          name: diagnostics-alpha4-${{ matrix.platform }}
+          name: diagnostics-${{ inputs.version || '0.1.0-alpha.5' }}-${{ matrix.platform }}
           run-id: ${{ steps.prior.outputs.run }}
           github-token: ${{ github.token }}
           path: build/preview-package/logs
@@ -217,7 +229,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: diagnostics-alpha4-${{ matrix.platform }}
+          name: diagnostics-${{ inputs.version || '0.1.0-alpha.5' }}-${{ matrix.platform }}
           path: build/preview-package/logs/
           if-no-files-found: warn
           retention-days: 30
@@ -225,7 +237,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: alpha4-${{ matrix.platform }}
+          name: alpha-${{ inputs.version || '0.1.0-alpha.5' }}-${{ matrix.platform }}
           path: build/preview-package/dist/*
           if-no-files-found: warn
           retention-days: 30
