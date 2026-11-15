@@ -4,6 +4,12 @@ on:
   push:
     branches: ['codex/readme-setup-alpha4']
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Native platform to check
+        type: choice
+        default: all
+        options: [all, linux-x86_64, windows-x64, macos-arm64, macos-x64]
 
 permissions:
   contents: read
@@ -13,15 +19,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - runner: ubuntu-24.04
-            platform: linux-x86_64
-          - runner: windows-2022
-            platform: windows-x64
-          - runner: macos-15
-            platform: macos-arm64
-          - runner: macos-15-intel
-            platform: macos-x64
+        include: >-
+          ${{ fromJSON((inputs.platform == 'macos-x64' || contains(github.event.head_commit.message, '[macos-x64]')) &&
+          '[{"runner":"macos-15-intel","platform":"macos-x64"}]' ||
+          '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"},
+          {"runner":"windows-2022","platform":"windows-x64"},
+          {"runner":"macos-15","platform":"macos-arm64"},
+          {"runner":"macos-15-intel","platform":"macos-x64"}]') }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     steps:

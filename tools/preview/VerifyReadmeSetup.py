@@ -35,14 +35,20 @@ def download(url, path):
         shutil.copyfileobj(response, stream)
 
 
-def run(command, folder, environment, log):
-    result = subprocess.run(list(map(str, command)), cwd=folder, env=environment,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            timeout=180, text=True, encoding='utf-8', errors='replace')
-    log.write_text(result.stdout, encoding='utf-8')
-    if result.returncode:
-        raise RuntimeError(f'{log.name} failed with {result.returncode}: {result.stdout[-3000:]}')
-    return result.stdout
+def run(command, folder, environment, log, timeout=180):
+    with log.open('w', encoding='utf-8') as stream:
+        process = subprocess.Popen(list(map(str, command)), cwd=folder, env=environment,
+                                   stdout=stream, stderr=subprocess.STDOUT)
+        try:
+            code = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
+            raise
+    text = log.read_text(encoding='utf-8', errors='replace')
+    if code:
+        raise RuntimeError(f'{log.name} failed with {code}: {text[-3000:]}')
+    return text
 
 
 def clean_environment():
@@ -82,8 +88,9 @@ async def check_mcp(args):
         async with Client(parameters, cache=None) as client:
             profiles = await call(client, 'list_profiles')
             assert [profile['id'] for profile in profiles['profiles']] == ['gmat-qt']
-            if args.reuse_setup:
-                prior_mcp = json.loads((args.reuse_setup / 'mcp-setup.json').read_text())
+            prior_mcp = args.reuse_setup / 'mcp-setup.json' if args.reuse_setup else None
+            if prior_mcp is not None and prior_mcp.is_file():
+                prior_mcp = json.loads(prior_mcp.read_text())
                 assert prior_mcp['worker_core_station_navigation'] == 'passed'
                 result['worker_core_station_navigation'] = 'reused-passed'
             else:
@@ -231,13 +238,13 @@ def check_setup(args):
         installer = next(bundle_folder.iterdir()) / 'install.py'
         venv = workspace / 'mcp-env'
         run([*python_command, installer, '--destination', venv], workspace, environment,
-            output / 'mcp-install.log')
+            output / 'mcp-install.log', timeout=900)
         scripts = venv / ('Scripts' if os.name == 'nt' else 'bin')
         cli = scripts / ('gmat-mcp.exe' if os.name == 'nt' else 'gmat-mcp')
         config = workspace / 'profiles.toml'
         run([cli, 'init', '--root', root, '--python', selected, '--output', config],
             workspace, environment, output / 'profile-generation.log')
-        if args.reuse_setup:
+        if args.reuse_setup and (args.reuse_setup / 'doctor.json').is_file():
             doctor = json.loads((args.reuse_setup / 'doctor.json').read_text())
             report['doctor'] = 'reused-passed'
         else:
