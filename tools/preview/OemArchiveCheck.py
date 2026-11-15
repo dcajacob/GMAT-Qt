@@ -68,6 +68,12 @@ BeginMissionSequence;
     with (output / 'run.log').open('wb') as log:
         result = subprocess.run(command, cwd=output, env=env, stdout=log,
                                 stderr=subprocess.STDOUT, timeout=180)
+    if result.returncode and target.startswith('linux'):
+        diagnostic = ['xvfb-run', '-a', 'gdb', '--batch', '-ex', 'run', '-ex', 'thread apply all bt',
+                      '--args', str(binary / 'GmatQt'), *command[6:]]
+        with (output / 'debugger.log').open('wb') as log:
+            subprocess.run(diagnostic, cwd=output, env=env, stdout=log,
+                           stderr=subprocess.STDOUT, timeout=180)
     if result.returncode:
         raise RuntimeError(f'Extracted Hermite mission failed with exit {result.returncode}')
     text = oem.read_text(encoding='utf-8')

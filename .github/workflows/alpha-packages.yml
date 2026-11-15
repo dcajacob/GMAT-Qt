@@ -268,7 +268,7 @@ jobs:
           github-token: ${{ github.token }}
           path: build/preview-package/logs
       - name: Install private display dependencies
-        run: sudo apt-get update && sudo apt-get install -y xvfb xauth libgl1 libglu1-mesa libxkbcommon-x11-0 libxcb-cursor0
+        run: sudo apt-get update && sudo apt-get install -y gdb xvfb xauth libgl1 libglu1-mesa libxkbcommon-x11-0 libxcb-cursor0
       - name: Qualify missing archive paths and reuse package passes
         run: python tools/preview/ResumeLinuxArchive.py
       - name: Start the extracted GUI without CPython
