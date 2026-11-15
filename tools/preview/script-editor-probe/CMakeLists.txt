@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.21)
+project(ScriptEditorMarginProbe LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
+add_executable(ScriptEditorMarginProbe Probe.cpp ../../../src/qtgui/ScriptEditor.cpp)
+target_include_directories(ScriptEditorMarginProbe PRIVATE ../../../src/qtgui)
+target_link_libraries(ScriptEditorMarginProbe PRIVATE Qt6::Widgets)

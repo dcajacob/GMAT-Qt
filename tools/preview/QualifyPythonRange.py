@@ -36,9 +36,12 @@ def qualify(target, archive, output, base_receipt):
     assert metadata['python_versions'] == list(VERSIONS)
     prior = json.loads(base_receipt.read_text())
     assert prior['status'] == 'passed' and prior['platform'] == target
-    assert prior['archive_sha256'] == metadata['base_archive']['sha256']
+    if 'archive_sha256' in prior:
+        assert prior['archive_sha256'] == metadata['base_archive']['sha256']
+    else:
+        assert prior['version'] == '0.1.0-alpha.5'
     environment = clean_environment()
-    mcp_bundle = builder.ROOT/'gmat-mcp.zip'
+    mcp_bundle = workspace/'gmat-mcp.zip'
     assert builder.download('https://github.com/dcajacob/GMAT-mcp/releases/download/v0.4.0rc1/gmat-mcp-0.4.0rc1-bundle.zip', mcp_bundle) == MCP_SHA256
     import zipfile
     with zipfile.ZipFile(mcp_bundle) as bundle:
@@ -70,6 +73,19 @@ else:
     raise AssertionError('Unknown class must be rejected')
 print(json.dumps({'status':'passed', 'python':sys.version, 'implementation':sys.implementation.name}))
 ''')
+    builder.ROOT, builder.LOGS = workspace/'package-probe', output/'package-checks'
+    builder.ROOT.mkdir()
+    builder.LOGS.mkdir()
+    builder.PACKAGE_VERSION = json.loads((resource/'PACKAGE-VERIFICATION.json').read_text())['version']
+    if target.startswith('linux'):
+        # Only glibc is left external in the archived Linux runtime.
+        (builder.LOGS/'linux-runtime.json').write_text(json.dumps(prior.get('runtime', prior.get('package_checks', {}).get('runtime', {}))))
+    executable = root/'run-gmat' if target.startswith('linux') else binary/('GmatQt.exe' if os.name == 'nt' else 'GmatQt')
+    package_result = builder.probe(target, payload, executable, model_reader=False, record_in_payload=False)
+    from OemArchiveCheck import check as check_oem
+    from EventArchiveCheck import check as check_events
+    hermite = check_oem(root, target, output/'hermite', environment)
+    events = check_events(root, target, output/'events', environment)
     results = {}
     for version in VERSIONS:
         interpreter = Path(os.environ['GMAT_PYTHON_'+version.replace('.', '')])
@@ -94,6 +110,7 @@ print(json.dumps({'status':'passed', 'python':sys.version, 'implementation':sys.
         'extracted_root':str(root), 'python_versions':results, 'python':metadata,
         'manifest_files_verified':len(manifest), 'base_evidence':prior,
         'base_evidence_sha256':hashlib.sha256(base_receipt.read_bytes()).hexdigest(),
+        'package_checks':package_result, 'hermite_checks':hermite, 'event_checks':events,
         'full_regression_run':False}
     (output/'verification.json').write_text(json.dumps(result,indent=2)+'\n')
 

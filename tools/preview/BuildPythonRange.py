@@ -38,8 +38,8 @@ def libraries(payload, target):
     root = payload/'GMAT-Qt.app/Contents' if target.startswith('macos') else payload
     found = {}
     for native in ('GmatUtil', 'GmatBase', 'Station', 'GmatEstimation'):
-        suffix = '.dll' if target.startswith('windows') else '.dylib' if target.startswith('macos') else '.so'
-        candidates = [p for p in root.rglob('lib'+native+suffix+'*') if p.is_file()]
+        pattern = 'lib'+native+'*.dylib' if target.startswith('macos') else 'lib'+native+('.dll' if target.startswith('windows') else '.so*')
+        candidates = [p for p in root.rglob(pattern) if p.is_file()]
         # Linux dependency copies have directory-relative RPATHs. Link the
         # canonical runtime copy from bin or plugins, as the loader does.
         assert candidates, native
@@ -66,6 +66,7 @@ def main():
     parser.add_argument('--archive-dir', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--cspice-include', type=Path, required=True)
+    parser.add_argument('--gui-prefix', help='Qt, OpenSceneGraph and Xerces prefixes for the affected GUI rebuild')
     args = parser.parse_args()
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -112,10 +113,31 @@ def main():
         run(command, output/('configure-'+version+'.log'))
         run(['cmake', '--build', folder, '--config', 'Release', '--parallel', str(min(os.cpu_count() or 2, 3))],
             output/('build-'+version+'.log'))
+        for generated in module_dir.glob('*_wrap.*'):
+            generated.unlink()
         for module in ('gmat', 'station', 'navigation'):
             assert (module_dir/(module+'_py.py')).is_file()
             assert len(list(module_dir.glob('_'+module+'_py.*'))) == 1
         versions[version] = info
+    if args.gui_prefix:
+        gui_build = output/'gui-build'
+        command = ['cmake', '-S', builder.REPO/'tools/preview/archived-gui', '-B', gui_build,
+            '-DCMAKE_BUILD_TYPE=Release', f'-DCSPICE_DIR={args.cspice_include.resolve().parent}',
+            f'-DCMAKE_PREFIX_PATH={args.gui_prefix}', *options]
+        if args.platform.startswith('windows'):
+            command += ['-G', 'Visual Studio 17 2022', '-A', 'x64']
+        elif args.platform.startswith('macos'):
+            command += ['-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
+                        '-DCMAKE_OSX_ARCHITECTURES='+('arm64' if args.platform.endswith('arm64') else 'x86_64')]
+        run(command, output/'gui-configure.log')
+        run(['cmake', '--build', gui_build, '--config', 'Release', '--target', 'GmatQt',
+             '--parallel', '3'], output/'gui-build.log')
+        executable = 'GmatQt.exe' if args.platform.startswith('windows') else 'GmatQt'
+        candidates = list(gui_build.rglob(executable))
+        assert len(candidates) == 1, candidates
+        destination = root/'Contents/MacOS'/executable if args.platform.startswith('macos') else root/'bin'/executable
+        shutil.copy2(candidates[0], destination)
+        metadata['gui_source_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     metadata.update(python_versions=list(VERSIONS), python_builds=versions,
                     bindings_source_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
                     build_flavor='api-py312-315-v1',
@@ -126,7 +148,8 @@ def main():
     for document in ('README.rst', 'GMAT-Qt-Differences.rst'):
         shutil.copy2(builder.REPO/document, payload/document)
     for name, digest in original_manifest.items():
-        if '/gmatpy/' in '/'+name or name.endswith(('PYTHON-API.json', 'RELEASE-NOTES.rst')):
+        if ('/gmatpy/' in '/'+name or name.endswith(('PYTHON-API.json', 'RELEASE-NOTES.rst', '_CodeSignature/CodeResources'))
+                or (args.gui_prefix and Path(name).name in ('GmatQt', 'GmatQt.exe'))):
             continue
         assert hashlib.sha256((payload/name).read_bytes()).hexdigest() == digest, name
     if args.platform.startswith('macos'):
@@ -160,7 +183,7 @@ def main():
     receipt = {'status':'built', 'platform':args.platform, 'base_archive_sha256':original_hash,
         'archive_sha256':digest, 'source_commit':metadata['bindings_source_commit'],
         'native_source_commit':metadata['source_commit'], 'python_versions':versions,
-        'engine_desktop_rebuilt':False, 'native_libraries':{n:hashlib.sha256(p.read_bytes()).hexdigest() for n,p in native_libraries.items()}}
+        'engine_rebuilt':False, 'desktop_rebuilt':bool(args.gui_prefix), 'native_libraries':{n:hashlib.sha256(p.read_bytes()).hexdigest() for n,p in native_libraries.items()}}
     (dist/'python-range-build.json').write_text(json.dumps(receipt, indent=2)+'\n')
     print(json.dumps({'status':'built', 'archive':str(destination), 'sha256':digest}), flush=True)
 

@@ -63,6 +63,10 @@ def write_no_python_check(target, root, workspace, logs):
                  str(workspace/'without-python-settings'), '--mcp-discovery-dir',
                  str(workspace/'without-python-discovery'), '--screenshot', str(screenshot)]
     bracket = lambda value: '[==[' + str(value) + ']==]'
+    if target.startswith('linux'):
+        environment.remove('QT_QPA_PLATFORM=offscreen')
+        environment += ['QT_QPA_PLATFORM=xcb', 'LIBGL_ALWAYS_SOFTWARE=1']
+        arguments = ['xvfb-run', '-a', '-s', '-screen 0 1600x1000x24', *arguments]
     command = ' '.join(bracket(value) for value in [*environment, *arguments])
     text = f'''cmake_minimum_required(VERSION 3.21)
 function(move_python source destination)

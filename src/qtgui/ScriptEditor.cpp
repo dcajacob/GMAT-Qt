@@ -127,7 +127,8 @@ void ScriptEditor::editLines(LineEdit operation)
 void ScriptEditor::updateMargin()
 {
    const int width=showNumbers ? 12+fontMetrics().horizontalAdvance('9')*QString::number(blockCount()).size() : 0;
-   setViewportMargins(width,0,0,0);
+   if (viewportMargins().left()!=width)
+      setViewportMargins(width,0,0,0);
    const auto area=contentsRect();
    numbers->setGeometry(area.x(),area.y(),width,area.height());
    numbers->update();

@@ -92,10 +92,41 @@ jobs:
           arch: x64
       - name: Linux display dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y xvfb xauth gdb libgl1 libglu1-mesa libxcb-cursor0 libxkbcommon-x11-0
+        run: sudo apt-get update && sudo apt-get install -y xvfb xauth gdb libgl1-mesa-dev libglu1-mesa-dev libopenscenegraph-dev libxerces-c-dev libxcb-cursor0 libxkbcommon-x11-0
       - name: Mac MCP build dependencies
         if: runner.os == 'macOS'
-        run: brew install openssl@3 rust pkg-config
+        run: brew install openssl@3 rust pkg-config qt open-scene-graph xerces-c
+      - name: Restore Windows Qt and graphics SDK
+        if: runner.os == 'Windows'
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/preview-package/deps/osg
+            C:\vcpkg\installed
+          key: gmat-qt-preview-windows-2022-osg365-sdk-v1
+      - name: Locate Qt and graphics dependencies
+        shell: bash
+        run: |
+          python - <<'PYCODE'
+          import os, pathlib, subprocess, sys
+          sys.path.insert(0, 'tools/preview')
+          import BuildPreviewPackage as builder
+          builder.DEPS.mkdir(parents=True, exist_ok=True)
+          builder.LOGS.mkdir(parents=True, exist_ok=True)
+          target = '${{ matrix.platform }}'
+          if target.startswith('linux'):
+              builder.run([sys.executable, '-m', 'pip', 'install', 'aqtinstall==3.3.0'], 'aqt-install')
+              builder.run([sys.executable, '-m', 'aqt', 'install-qt', 'linux', 'desktop', '6.10.2', 'linux_gcc_64', '-O', builder.DEPS/'qt'], 'qt-install')
+              paths = [builder.DEPS/'qt/6.10.2/gcc_64', pathlib.Path('/usr')]
+          elif target.startswith('windows'):
+              builder.run([sys.executable, '-m', 'pip', 'install', 'aqtinstall==3.3.0'], 'aqt-install')
+              builder.run([sys.executable, '-m', 'aqt', 'install-qt', 'windows', 'desktop', '6.10.2', 'win64_msvc2022_64', '-O', builder.DEPS/'qt'], 'qt-install')
+              paths = [builder.DEPS/'qt/6.10.2/msvc2022_64', builder.DEPS/'osg', pathlib.Path(os.environ['VCPKG_INSTALLATION_ROOT'])/'installed/x64-windows']
+          else:
+              paths = [pathlib.Path(subprocess.check_output(['brew','--prefix',name],text=True).strip()) for name in ['qt','open-scene-graph','xerces-c']]
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              env.write('GMAT_GUI_PREFIX='+';'.join(map(str, paths))+'\n')
+          PYCODE
       - name: Fetch matching CSPICE headers
         shell: bash
         run: |
@@ -115,8 +146,9 @@ jobs:
           else:
               subprocess.run(['tar','-xf',str(root/name),'-C',str(root)],check=True)
           PY
-      - name: Build version-specific wrappers and fresh archive
-        run: python tools/preview/BuildPythonRange.py --platform ${{ matrix.platform }} --archive-dir build/python-range/base --output build/python-range/result --cspice-include build/python-range/cspice/include
+      - name: Build version-specific wrappers and affected GUI
+        shell: bash
+        run: python tools/preview/BuildPythonRange.py --platform ${{ matrix.platform }} --archive-dir build/python-range/base --output build/python-range/result --cspice-include build/python-range/cspice/include --gui-prefix "$GMAT_GUI_PREFIX"
       - name: Qualify each Python version on a clean extraction
         shell: bash
         run: |
@@ -126,7 +158,7 @@ jobs:
           archive, = [p for p in (root/'dist').iterdir() if p.name.endswith(('.zip','.tar.gz'))]
           subprocess.run(['python','tools/preview/QualifyPythonRange.py', '--platform','${{ matrix.platform }}',
               '--archive',str(archive),'--output',str(root/'verification'),
-              '--base-receipt','build/python-range/base/${{ matrix.platform }}-api-verification.json'],check=True)
+              '--base-receipt','build/python-range/base/${{ matrix.platform }}'+('-verification.json' if '${{ matrix.platform }}'.startswith('linux') else '-api-verification.json')],check=True)
           PY
       - name: Launch with CPython unavailable
         shell: bash
