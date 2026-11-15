@@ -1,0 +1,64 @@
+name: Alpha.5 README setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform with missing README setup witnesses
+        type: choice
+        default: remaining
+        options: [remaining, linux-x86_64, windows-x64, macos-arm64, macos-x64]
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    strategy:
+      fail-fast: false
+      matrix:
+        include: >-
+          ${{ fromJSON(inputs.platform == 'linux-x86_64' &&
+          '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"}]' ||
+          inputs.platform == 'windows-x64' &&
+          '[{"runner":"windows-2022","platform":"windows-x64"}]' ||
+          inputs.platform == 'macos-arm64' &&
+          '[{"runner":"macos-15","platform":"macos-arm64"}]' ||
+          inputs.platform == 'macos-x64' &&
+          '[{"runner":"macos-15-intel","platform":"macos-x64"}]' ||
+          '[{"runner":"windows-2022","platform":"windows-x64"},
+          {"runner":"macos-15","platform":"macos-arm64"},
+          {"runner":"macos-15-intel","platform":"macos-x64"}]') }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.15'
+      - name: Install Intel Mac MCP build dependencies
+        if: matrix.platform == 'macos-x64'
+        run: brew install openssl@3 rust pkg-config
+      - name: Install Linux private display dependencies
+        if: matrix.platform == 'linux-x86_64'
+        run: sudo apt-get update && sudo apt-get install -y xvfb xauth libgl1 libglu1-mesa libxcb-cursor0 libxkbcommon-x11-0
+      - name: Run missing README checks and reuse prior qualification
+        run: python tools/preview/VerifyAlpha5ReadmeSetup.py --platform ${{ matrix.platform }} --output build/readme-alpha5/${{ matrix.platform }}
+      - name: Preserve setup evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha5-readme-${{ matrix.platform }}
+          path: build/readme-alpha5/${{ matrix.platform }}/
+          retention-days: 30

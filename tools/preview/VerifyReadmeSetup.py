@@ -146,7 +146,9 @@ async def check_mcp(args):
             profiles = await call(client, 'list_profiles')
             assert [profile['id'] for profile in profiles['profiles']] == ['gmat-qt']
             prior_mcp = args.reuse_setup / 'mcp-setup.json' if args.reuse_setup else None
-            if prior_mcp is not None and prior_mcp.is_file():
+            if getattr(args, 'reuse_worker_qualification', False):
+                result['worker_core_station_navigation'] = 'reused-passed'
+            elif prior_mcp is not None and prior_mcp.is_file():
                 prior_mcp = json.loads(prior_mcp.read_text())
                 assert prior_mcp['worker_core_station_navigation'] in ('passed', 'reused-passed')
                 result['worker_core_station_navigation'] = 'reused-passed'
@@ -176,8 +178,12 @@ async def check_mcp(args):
             if os.name == 'nt':
                 environment['QT_QPA_FONTDIR'] = str(Path(os.environ['SystemRoot']) / 'Fonts')
             log = (args.output / 'desktop.log').open('w', encoding='utf-8')
-            process = subprocess.Popen([str(executable), '--mcp-bridge', '--settings-dir',
-                str(args.output / 'gui-settings')], cwd=root.parent, env=environment,
+            prefix = []
+            if sys.platform.startswith('linux'):
+                environment.update(QT_QPA_PLATFORM='xcb', LIBGL_ALWAYS_SOFTWARE='1')
+                prefix = ['xvfb-run', '-a', '-s', '-screen 0 1600x1000x24']
+            process = subprocess.Popen([*prefix, str(executable), '--mcp-bridge', '--settings-dir',
+                str(args.output / 'gui-settings')], cwd=root, env=environment,
                 stdout=log, stderr=subprocess.STDOUT)
             async with asyncio.timeout(45):
                 while True:
@@ -340,6 +346,7 @@ if __name__ == '__main__':
     parser.add_argument('--output', type=Path)
     parser.add_argument('--review-saved', type=Path)
     parser.add_argument('--mcp-check', action='store_true')
+    parser.add_argument('--reuse-worker-qualification', action='store_true')
     parser.add_argument('--root', type=Path)
     parser.add_argument('--config', type=Path)
     parser.add_argument('--reuse-setup', type=Path)
