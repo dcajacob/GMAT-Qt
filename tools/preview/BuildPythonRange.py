@@ -43,7 +43,7 @@ def libraries(payload, target):
         # Linux dependency copies have directory-relative RPATHs. Link the
         # canonical runtime copy from bin or plugins, as the loader does.
         assert candidates, native
-        directory = 'bin' if native in ('GmatUtil', 'GmatBase') else 'plugins'
+        directory = 'Frameworks' if target.startswith('macos') else ('bin' if native in ('GmatUtil', 'GmatBase') else 'plugins')
         preferred = [p for p in candidates if p.parent.name == directory]
         found[native] = sorted(preferred or candidates, key=lambda p: len(str(p)))[0]
     return found
@@ -145,7 +145,7 @@ def main():
                 suffix = old[old.index('/Qt')+1:] if '/Qt' in old and '.framework/' in old else Path(old).name
                 matches = [p for p in root.rglob(Path(old).name) if p.is_file() and p.as_posix().endswith(suffix)]
                 assert matches, ('Unpackaged GUI dependency', old)
-                dependency = min(matches, key=lambda p: len(str(p)))
+                dependency = min(matches, key=lambda p: (p.parent.name != 'Frameworks', len(str(p))))
                 replacement = '@executable_path/'+os.path.relpath(dependency, destination.parent)
                 subprocess.run(['install_name_tool', '-change', old, replacement, str(destination)], check=True)
         metadata['gui_source_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
