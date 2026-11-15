@@ -3,6 +3,9 @@ name: Python 3.12-3.15 archive qualification
 on:
   workflow_dispatch:
     inputs:
+      windows_finish_run:
+        description: Reuse completed Windows bindings for final packaging
+        default: ''
       repair_run:
         description: Repair engine load paths in an existing Mac range archive
         default: ''
@@ -23,6 +26,9 @@ on:
         options: [all, linux-x86_64, windows-x64, macos-arm64, macos-x64]
   workflow_call:
     inputs:
+      windows_finish_run:
+        type: string
+        default: ''
       repair_run:
         type: string
         default: ''
@@ -45,7 +51,7 @@ permissions:
 
 jobs:
   package:
-    if: inputs.complete_run == '' && inputs.repair_run == ''
+    if: inputs.complete_run == '' && inputs.repair_run == '' && inputs.windows_finish_run == ''
     strategy:
       fail-fast: false
       matrix:
@@ -305,4 +311,66 @@ jobs:
           path: |
             build/repair-result/dist/
             build/repair-result/verification/
+          retention-days: 30
+
+  finish_windows:
+    if: inputs.windows_finish_run != ''
+    runs-on: windows-2022
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-range-${{ inputs.version }}-windows-x64
+          run-id: ${{ inputs.windows_finish_run }}
+          github-token: ${{ github.token }}
+          path: build/windows-finish/saved
+      - uses: actions/download-artifact@v4
+        with:
+          name: alpha-${{ inputs.version }}-windows-x64
+          run-id: ${{ inputs.base_run }}
+          github-token: ${{ github.token }}
+          path: build/windows-finish/base
+      - uses: actions/setup-python@v5
+        id: py315
+        with:
+          python-version: '3.15'
+      - uses: actions/setup-python@v5
+        id: py314
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-python@v5
+        id: py313
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-python@v5
+        id: py312
+        with:
+          python-version: '3.12'
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Finish archive with saved bindings
+        env:
+          GMAT_SAVED_BINDING_SOURCE: ea86de81
+        run: python tools/preview/FinishWindowsPythonRange.py
+      - name: Qualify all Python versions
+        env:
+          GMAT_PYTHON_312: ${{ steps.py312.outputs.python-path }}
+          GMAT_PYTHON_313: ${{ steps.py313.outputs.python-path }}
+          GMAT_PYTHON_314: ${{ steps.py314.outputs.python-path }}
+          GMAT_PYTHON_315: ${{ steps.py315.outputs.python-path }}
+        run: python tools/preview/QualifyPythonRange.py --platform windows-x64 --archive build/windows-finish/result/dist/GMAT-Qt-${{ inputs.version }}-windows-x64.zip --output build/windows-finish/result/verification --base-receipt build/windows-finish/base/windows-x64-api-verification.json
+      - name: Start without Python and finish
+        run: |
+          cmake -P build/windows-finish/result/verification/without-python.cmake
+          python tools/preview/QualifyPythonRange.py --finish --output build/windows-finish/result/verification
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: python-range-${{ inputs.version }}-windows-x64
+          path: |
+            build/windows-finish/result/dist/
+            build/windows-finish/result/verification/
+            build/windows-finish/result/*.log
           retention-days: 30

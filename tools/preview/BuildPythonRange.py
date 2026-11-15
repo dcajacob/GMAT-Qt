@@ -159,7 +159,7 @@ def main():
     for document in ('README.rst', 'GMAT-Qt-Differences.rst'):
         shutil.copy2(builder.REPO/document, payload/document)
     for name, digest in original_manifest.items():
-        if ('/gmatpy/' in '/'+name or name.endswith(('PYTHON-API.json', 'RELEASE-NOTES.rst', '_CodeSignature/CodeResources'))
+        if ('/gmatpy/' in '/'+name.replace('\\', '/') or name.endswith(('PYTHON-API.json', 'RELEASE-NOTES.rst', '_CodeSignature/CodeResources'))
                 or (args.gui_prefix and Path(name).name in ('GmatQt', 'GmatQt.exe'))):
             continue
         assert hashlib.sha256((payload/name).read_bytes()).hexdigest() == digest, name
