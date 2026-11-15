@@ -60,10 +60,10 @@ async def check_mcp(args):
     from mcp import Client, StdioServerParameters
     from gmat_mcp.config import load_config
 
-    async def call(client, name, **arguments):
-        result = await client.call_tool(name, arguments)
+    async def call(client, tool_name, **arguments):
+        result = await client.call_tool(tool_name, arguments)
         if result.is_error or result.structured_content is None:
-            raise RuntimeError(f'{name} failed: {result}')
+            raise RuntimeError(f'{tool_name} failed: {result}')
         return result.structured_content
 
     config_path = args.config.resolve()
@@ -202,14 +202,10 @@ def check_setup(args):
         ast.parse(code)
         script = workspace / 'check_gmat.py'
         script.write_text(code)
-        if args.reuse_linux_api:
-            assert args.platform == 'linux-x86_64'
-            report['direct_python_example'] = 'reused-passing-linux-readme-example'
-        else:
-            text = run([*python_command, script, root], workspace, environment,
-                       output / 'python-example.log')
-            assert 'Sat' in text.splitlines()
-            report['direct_python_example'] = 'passed'
+        text = run([*python_command, script, root], workspace, environment,
+                   output / 'python-example.log')
+        assert 'Sat' in text.splitlines()
+        report['direct_python_example'] = 'passed'
 
         bundle = workspace / 'gmat-mcp.zip'
         download(MCP_BUNDLE, bundle)
@@ -255,7 +251,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--platform')
     parser.add_argument('--output', required=True, type=Path)
-    parser.add_argument('--reuse-linux-api', action='store_true')
     parser.add_argument('--mcp-check', action='store_true')
     parser.add_argument('--root', type=Path)
     parser.add_argument('--config', type=Path)

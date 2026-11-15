@@ -70,7 +70,8 @@ folder as its argument. On Mac, pass the ``GMAT-Qt.app`` path.
 
    import gmatpy as gmat
 
-   gmat.Setup(str(binary / "gmat_startup_file.txt"))
+   os.chdir(binary)
+   gmat.Setup("gmat_startup_file.txt")
    satellite = gmat.Construct("Spacecraft", "Sat")
    print(satellite.GetName())
 
