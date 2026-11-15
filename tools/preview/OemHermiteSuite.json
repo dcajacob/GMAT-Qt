@@ -33,8 +33,8 @@
       "source": "src/qtgui/tests/OemHermiteTests.cpp"
     },
     {
-      "name": "QtGui.InterpolationSufficiencyPolicy",
-      "target": "GmatQtInterpolationSufficiencyTests",
+      "name": "QtGui.OemPortableInterpolationPolicy",
+      "target": "GmatQtOemPortablePolicyTests",
       "source": "src/qtgui/tests/InterpolationSufficiencyTests.cpp"
     }
   ]

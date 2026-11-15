@@ -36,6 +36,9 @@
 #include "StringUtil.hpp"
 
 #include "CCSDSEMReader.hpp"
+#ifdef _WIN32
+#include <filesystem>
+#endif
 #include "UtilityException.hpp"
 #include "MessageInterface.hpp"
 
@@ -194,7 +197,12 @@ void CCSDSEMReader::Initialize()
             emFile.c_str());
    #endif
    // Check for the existence of the file
-   if (!GmatFileUtil::DoesFileExist(emFile))
+#ifdef _WIN32
+   const bool exists = std::filesystem::exists(std::filesystem::u8path(emFile));
+#else
+   const bool exists = GmatFileUtil::DoesFileExist(emFile);
+#endif
+   if (!exists)
    {
       #ifdef DEBUG_INIT_EM_FILE
          MessageInterface::ShowMessage("In CCSDSEMReader::Initialize, file %s does NOT exist!\n",

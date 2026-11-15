@@ -53,7 +53,8 @@ static void events()
 static QByteArray read(const QString &path)
 {
    QFile file(path);
-   require(file.open(QIODevice::ReadOnly), "Cannot read Hermite witness");
+   if (!file.open(QIODevice::ReadOnly))
+      throw std::runtime_error(("Cannot read Hermite witness " + path + ": " + file.errorString()).toStdString());
    return file.readAll();
 }
 static void write(const QString &path, const QByteArray &data)
@@ -169,7 +170,7 @@ int main(int argc, char **argv)
       QDir::setCurrent(QFileInfo(startup).absolutePath());
       TestSettings settings;
       QTemporaryDir temporary;
-      const QString output=temporary.filePath("Hermite Δ.oem"), saved=temporary.filePath("Hermite Δ.script");
+      const QString output=temporary.filePath(QStringLiteral("Hermite \u0394.oem")), saved=temporary.filePath(QStringLiteral("Hermite \u0394.script"));
       MainWindow window;
       require(window.initialize(startup), "Hermite GUI initialization failed");
       window.show(); events();

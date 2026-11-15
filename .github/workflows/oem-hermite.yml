@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         include: >-
-          ${{ fromJSON(inputs.platform == 'windows-x64' &&
+          ${{ fromJSON((inputs.platform == 'windows-x64' || contains(github.event.head_commit.message, '[windows-only]')) &&
           '[{"runner":"windows-2022","platform":"windows-x64"}]' ||
           inputs.platform == 'macos-arm64' &&
           '[{"runner":"macos-15","platform":"macos-arm64"}]' ||
@@ -61,7 +61,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
       - name: Preserve matching compiled API and GUI
-        if: success()
+        if: always() && hashFiles('build/preview-package/native-inputs-api-py312-v2-*.tar.gz') != ''
         uses: actions/upload-artifact@v4
         with:
           name: oem-hermite-native-${{ matrix.platform }}
