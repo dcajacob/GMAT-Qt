@@ -69,10 +69,15 @@ BeginMissionSequence;
         result = subprocess.run(command, cwd=output, env=env, stdout=log,
                                 stderr=subprocess.STDOUT, timeout=180)
     if result.returncode and target.startswith('linux'):
+        debug_env = dict(env,
+            LD_LIBRARY_PATH=str(root / 'bin') + ':' + str(root / 'lib'),
+            QT_PLUGIN_PATH=str(root / 'qt/plugins'),
+            QT_QPA_PLATFORM_PLUGIN_PATH=str(root / 'qt/plugins/platforms'),
+            OSG_LIBRARY_PATH=str(root / 'osgPlugins'))
         diagnostic = ['xvfb-run', '-a', 'gdb', '--batch', '-ex', 'run', '-ex', 'thread apply all bt',
-                      '--args', str(binary / 'GmatQt'), *command[6:]]
+                      '--args', str(binary / 'GmatQt'), *command[5:]]
         with (output / 'debugger.log').open('wb') as log:
-            subprocess.run(diagnostic, cwd=output, env=env, stdout=log,
+            subprocess.run(diagnostic, cwd=output, env=debug_env, stdout=log,
                            stderr=subprocess.STDOUT, timeout=180)
     if result.returncode:
         raise RuntimeError(f'Extracted Hermite mission failed with exit {result.returncode}')
