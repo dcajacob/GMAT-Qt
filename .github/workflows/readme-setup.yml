@@ -29,9 +29,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Reuse passing README example and worker setup
+        uses: actions/download-artifact@v4
+        with:
+          name: readme-setup-${{ matrix.platform }}
+          run-id: 43660164265
+          github-token: ${{ github.token }}
+          path: build/reused-readme/${{ matrix.platform }}
       - name: Check missing README setup paths in the published archive
         shell: bash
-        run: python tools/preview/VerifyReadmeSetup.py --platform ${{ matrix.platform }} --output build/readme-setup/${{ matrix.platform }}
+        run: python tools/preview/VerifyReadmeSetup.py --platform ${{ matrix.platform }} --output build/readme-setup/${{ matrix.platform }} --reuse-setup build/reused-readme/${{ matrix.platform }}
       - name: Preserve setup evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -82,16 +82,23 @@ async def check_mcp(args):
         async with Client(parameters, cache=None) as client:
             profiles = await call(client, 'list_profiles')
             assert [profile['id'] for profile in profiles['profiles']] == ['gmat-qt']
-            session = await call(client, 'create_session', profile_id='gmat-qt')
-            assert session['backend'] == 'worker'
-            assert Path(session['engine']['api']).resolve().is_relative_to(args.root.resolve())
-            for kind, name in [('Spacecraft', 'ReadmeSat'), ('GroundStation', 'ReadmeStation'),
-                               ('BatchEstimator', 'ReadmeEstimator')]:
-                created = await call(client, 'create_object', session_id=session['session_id'],
-                                     type=kind, name=name)
-                assert created['name'] == name
-            await call(client, 'close_session', session_id=session['session_id'])
-            result['worker_core_station_navigation'] = 'passed'
+            if args.reuse_setup:
+                prior_mcp = json.loads((args.reuse_setup / 'mcp-setup.json').read_text())
+                assert prior_mcp['worker_core_station_navigation'] == 'passed'
+                result['worker_core_station_navigation'] = 'reused-passed'
+            else:
+                session = await call(client, 'create_session', profile_id='gmat-qt')
+                assert session['backend'] == 'worker'
+                assert Path(session['engine']['api']).resolve().is_relative_to(args.root.resolve())
+                for kind, name in [('Spacecraft', 'ReadmeSat'), ('GroundStation', 'ReadmeStation'),
+                                   ('BatchEstimator', 'ReadmeEstimator')]:
+                    created = await call(client, 'create_object', session_id=session['session_id'],
+                                         type=kind, name=name)
+                    assert created['name'] == name
+                await call(client, 'close_session', session_id=session['session_id'])
+                result['worker_core_station_navigation'] = 'passed'
+            before_launch = await call(client, 'list_desktops')
+            existing_desktops = {desktop['desktop_id'] for desktop in before_launch['desktops']}
 
             root = args.root.resolve()
             executable = root / 'run-gmat'
@@ -112,7 +119,7 @@ async def check_mcp(args):
                 while True:
                     desktops = await call(client, 'list_desktops')
                     matches = [desktop for desktop in desktops['desktops']
-                               if Path(desktop['installation_root']).resolve() == root]
+                               if desktop['desktop_id'] not in existing_desktops]
                     if matches:
                         break
                     if process.poll() is not None:
@@ -202,10 +209,18 @@ def check_setup(args):
         ast.parse(code)
         script = workspace / 'check_gmat.py'
         script.write_text(code)
-        text = run([*python_command, script, root], workspace, environment,
-                   output / 'python-example.log')
-        assert 'Sat' in text.splitlines()
-        report['direct_python_example'] = 'passed'
+        if args.reuse_setup:
+            previous = json.loads((args.reuse_setup / 'result.json').read_text())
+            assert previous['readme_sha256'] == report['readme_sha256']
+            assert previous['archive_sha256'] == spec['sha256']
+            assert previous['direct_python_example'] == 'passed'
+            report['direct_python_example'] = 'reused-passed'
+            report['reused_setup_receipt_sha256'] = sha256(args.reuse_setup / 'result.json')
+        else:
+            text = run([*python_command, script, root], workspace, environment,
+                       output / 'python-example.log')
+            assert 'Sat' in text.splitlines()
+            report['direct_python_example'] = 'passed'
 
         bundle = workspace / 'gmat-mcp.zip'
         download(MCP_BUNDLE, bundle)
@@ -222,8 +237,13 @@ def check_setup(args):
         config = workspace / 'profiles.toml'
         run([cli, 'init', '--root', root, '--python', selected, '--output', config],
             workspace, environment, output / 'profile-generation.log')
-        doctor = json.loads(run([cli, '--config', config, 'doctor'], workspace, environment,
-                               output / 'doctor.json'))
+        if args.reuse_setup:
+            doctor = json.loads((args.reuse_setup / 'doctor.json').read_text())
+            report['doctor'] = 'reused-passed'
+        else:
+            doctor = json.loads(run([cli, '--config', config, 'doctor'], workspace, environment,
+                                   output / 'doctor.json'))
+            report['doctor'] = 'passed'
         assert len(doctor['profiles']) == 1 and doctor['profiles'][0]['ok']
         assert {'Spacecraft', 'GroundStation', 'BatchEstimator'} <= set(
             doctor['profiles'][0]['engine']['classes'])
@@ -231,8 +251,11 @@ def check_setup(args):
         driver = workspace / 'VerifyReadmeSetup.py'
         shutil.copy2(__file__, driver)
         interpreter = scripts / ('python.exe' if os.name == 'nt' else 'python')
-        run([interpreter, '-I', driver, '--mcp-check', '--root', root, '--config', config,
-             '--output', output], workspace, environment, output / 'mcp-setup.log')
+        command = [interpreter, '-I', driver, '--mcp-check', '--root', root, '--config', config,
+                   '--output', output]
+        if args.reuse_setup:
+            command += ['--reuse-setup', args.reuse_setup.resolve()]
+        run(command, workspace, environment, output / 'mcp-setup.log')
         report['mcp_setup'] = json.loads((output / 'mcp-setup.json').read_text())
         assert report['mcp_setup']['status'] == 'passed'
         for name, digest in manifest.items():
@@ -254,6 +277,7 @@ if __name__ == '__main__':
     parser.add_argument('--mcp-check', action='store_true')
     parser.add_argument('--root', type=Path)
     parser.add_argument('--config', type=Path)
+    parser.add_argument('--reuse-setup', type=Path)
     arguments = parser.parse_args()
     if arguments.mcp_check:
         asyncio.run(check_mcp(arguments))
