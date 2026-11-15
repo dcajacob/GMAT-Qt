@@ -1,0 +1,46 @@
+name: Published README setup
+
+on:
+  push:
+    branches: ['codex/readme-setup-alpha4']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux-x86_64
+            options: --reuse-linux-api
+          - runner: windows-2022
+            platform: windows-x64
+            options: ''
+          - runner: macos-15
+            platform: macos-arm64
+            options: ''
+          - runner: macos-15-intel
+            platform: macos-x64
+            options: ''
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check missing README setup paths in the published archive
+        shell: bash
+        run: python tools/preview/VerifyReadmeSetup.py --platform ${{ matrix.platform }} --output build/readme-setup/${{ matrix.platform }} ${{ matrix.options }}
+      - name: Preserve setup evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: readme-setup-${{ matrix.platform }}
+          path: build/readme-setup/${{ matrix.platform }}
+          if-no-files-found: warn
+          retention-days: 30
