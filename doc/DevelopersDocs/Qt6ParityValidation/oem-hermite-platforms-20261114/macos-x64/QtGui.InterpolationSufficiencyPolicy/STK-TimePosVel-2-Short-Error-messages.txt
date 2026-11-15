@@ -1,0 +1,26 @@
+Mission failed. Last command reached: Propagate.
+Interpreting scripts from the input stream
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+
+Interpreting scripts from the input stream
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+Running mission...
+Successfully set Planetary Source to use: DE405
+Successfully set Planetary Source to use: DE405
+Kernel /Users/runner/work/GMAT-Qt/GMAT-Qt/application/bin/../data/planetary_ephem/spk/DE405AllPlanets.bsp has been loaded.
+Kernel /Users/runner/work/GMAT-Qt/GMAT-Qt/application/bin/../data/planetary_coeff/SPICEPlanetaryConstantsKernel.tpc has been loaded.
+Kernel /Users/runner/work/GMAT-Qt/GMAT-Qt/application/bin/../data/time/SPICELeapSecondKernel.tls has been loaded.
+Kernel /Users/runner/work/GMAT-Qt/GMAT-Qt/application/bin/../data/planetary_coeff/SPICEEarthPredictedKernel.bpc has been loaded.
+Kernel /Users/runner/work/GMAT-Qt/GMAT-Qt/application/bin/../data/planetary_coeff/SPICEEarthCurrentKernel.bpc has been loaded.
+Kernel /Users/runner/work/GMAT-Qt/GMAT-Qt/application/bin/../data/planetary_coeff/earth_latest_high_prec.bpc has been loaded.
+Kernel /Users/runner/work/GMAT-Qt/GMAT-Qt/application/bin/../data/planetary_coeff/SPICELunaCurrentKernel.bpc has been loaded.
+Kernel /Users/runner/work/GMAT-Qt/GMAT-Qt/application/bin/../data/planetary_coeff/SPICELunaFrameKernel.tf has been loaded.
+Subscriber Exception: Insufficient data for Lagrange interpolation of order 2 in ephemeris file "/Users/runner/work/GMAT-Qt/GMAT-Qt/build/oem-hermite-platforms/macos-x64/QtGui.InterpolationSufficiencyPolicy/STK-TimePosVel-2-Short-Error.eph": interpolation input samples requires at least 3 points; received 2. InsufficientDataAction is Error.
+Mission completion error (subscriber end-of-run notification): Subscriber Exception: Insufficient data for Lagrange interpolation of order 2 in ephemeris file "/Users/runner/work/GMAT-Qt/GMAT-Qt/build/oem-hermite-platforms/macos-x64/QtGui.InterpolationSufficiencyPolicy/STK-TimePosVel-2-Short-Error.eph": interpolation input samples requires at least 3 points; received 2. InsufficientDataAction is Error.
+===> Total Run Time: 0.072 seconds
+
+========================================
+
+ *** Mission run failed.

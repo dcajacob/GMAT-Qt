@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="(empty)"
+	tests="1"
+	failures="0"
+	disabled="0"
+	skipped="0"
+	hostname=""
+	time="1"
+	timestamp="2026-11-15T02:22:52"
+	>
+	<testcase name="QtGui.OemHermiteFixedStep" classname="QtGui.OemHermiteFixedStep" time="1.49355" status="run">
+		<properties>
+			<property name="cmake_labels" value="qt-gui"/>
+		</properties>
+		<system-out>qt.qpa.fonts: Populating font family aliases took 186 ms. Replace uses of missing font family "Sans Serif" with one that exists to avoid this cost. 
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+{"case":"ThreeRecords","degrees":[5],"gui_apply_undo_redo_save_reopen":true,"interpolator":"Hermite","max_position_error_km":8.584927968513512e-07,"max_velocity_error_km_s":9.254619293130872e-10,"native_quintic_rolling_clone_reset":true,"original_position_tolerance":2e-05,"original_velocity_tolerance":2e-08,"outcome":"passed","readback_reference":"independent confluent divided differences","reader_roundtrip":true,"strict_input_and_output_rejection":false}
+</system-out>
+	</testcase>
+</testsuite>

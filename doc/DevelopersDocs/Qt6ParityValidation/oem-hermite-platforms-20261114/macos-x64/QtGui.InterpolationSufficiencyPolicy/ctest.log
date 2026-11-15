@@ -1,0 +1,10 @@
+Test project /Users/runner/work/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build
+    Start 28: QtGui.InterpolationSufficiencyPolicy
+1/1 Test #28: QtGui.InterpolationSufficiencyPolicy ...   Passed   18.41 sec
+
+100% tests passed out of 1
+
+Label Time Summary:
+qt-gui    =  18.41 sec*proc (1 test)
+
+Total Test time (real) =  18.64 sec

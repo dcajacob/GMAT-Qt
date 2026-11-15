@@ -1,0 +1,18 @@
+Internal ctest changing into directory: D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build
+Test project D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build
+    Start 28: QtGui.InterpolationSufficiencyPolicy
+1/1 Test #28: QtGui.InterpolationSufficiencyPolicy ...***Failed    0.55 sec
+FAIL OEM header is missing or malformed
+Test process exit: 1 (0x00000001)
+
+
+0% tests passed, 1 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.55 sec*proc (1 test)
+
+Total Test time (real) =   1.06 sec
+
+The following tests FAILED:
+	 28 - QtGui.InterpolationSufficiencyPolicy (Failed)     qt-gui
+Errors while running CTest

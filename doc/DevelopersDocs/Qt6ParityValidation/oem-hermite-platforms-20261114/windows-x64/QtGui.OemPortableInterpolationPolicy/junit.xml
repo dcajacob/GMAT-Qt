@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="(empty)"
+	tests="1"
+	failures="0"
+	disabled="0"
+	skipped="0"
+	hostname=""
+	time="7"
+	timestamp="2026-11-15T03:10:23"
+	>
+	<testcase name="QtGui.OemPortableInterpolationPolicy" classname="QtGui.OemPortableInterpolationPolicy" time="7.70846" status="run">
+		<properties>
+			<property name="cmake_labels" value="qt-gui"/>
+		</properties>
+		<system-out>Policy passed: 90 observations
+</system-out>
+	</testcase>
+</testsuite>

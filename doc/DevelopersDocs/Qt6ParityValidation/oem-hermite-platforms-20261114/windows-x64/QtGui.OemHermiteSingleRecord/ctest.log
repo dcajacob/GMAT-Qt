@@ -1,0 +1,11 @@
+Internal ctest changing into directory: D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build
+Test project D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build
+    Start 2743: QtGui.OemHermiteSingleRecord
+1/1 Test #2743: QtGui.OemHermiteSingleRecord .....   Passed    0.77 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   0.77 sec*proc (1 test)
+
+Total Test time (real) =   1.26 sec

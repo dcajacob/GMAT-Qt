@@ -1,0 +1,10 @@
+Test project /Users/runner/work/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build
+    Start 2744: QtGui.OemHermiteSegmentReset
+1/1 Test #2744: QtGui.OemHermiteSegmentReset .....   Passed    1.33 sec
+
+100% tests passed out of 1
+
+Label Time Summary:
+qt-gui    =   1.33 sec*proc (1 test)
+
+Total Test time (real) =   1.52 sec

@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "prior_source": "e4179175aed826b9ff79650371789c26a47ff03d",
+  "repair_source": "27249d0b5d12ea156115bc577abcf1cf5a68324a",
+  "reused_platforms": [
+    "linux-x86_64",
+    "macos-arm64",
+    "macos-x64"
+  ],
+  "changed_runtime_paths": [
+    "src/gmatutil/util/CCSDSEMReader.cpp",
+    "src/gmatutil/util/CCSDSEMWriter.cpp",
+    "src/gmatutil/util/CCSDSOEMReader.cpp"
+  ],
+  "non_windows_runtime_equivalence": true,
+  "protected_test_unchanged": "eec1d82add8d2313a5dd0701e68447de8630e3cc244a61c3729f133b45af8a01",
+  "supplementary_test_change": "CRLF normalization only in three header checks; all numeric comparisons identical"
+}

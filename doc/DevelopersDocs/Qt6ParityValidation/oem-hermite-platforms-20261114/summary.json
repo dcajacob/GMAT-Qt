@@ -1,0 +1,157 @@
+{
+  "status": "passed",
+  "review_source": "27249d0b5d12ea156115bc577abcf1cf5a68324a",
+  "implementation_source": "3089594492937d76919685ea60af8240c201e318",
+  "platforms": [
+    {
+      "platform": "linux-x86_64",
+      "status": "passed",
+      "evidence": "doc/DevelopersDocs/Qt6ParityValidation/oem-hermite-20261115/verification.json",
+      "reused": true
+    },
+    {
+      "platform": "macos-arm64",
+      "status": "passed",
+      "source_commit": "e4179175aed826b9ff79650371789c26a47ff03d",
+      "cases": [
+        {
+          "name": "QtGui.OemHermiteNarrowAtLast",
+          "status": "passed",
+          "seconds": 2.44822,
+          "ctest_exit": 0
+        },
+        {
+          "name": "QtGui.OemHermiteSingleRecord",
+          "status": "passed",
+          "seconds": 1.091,
+          "ctest_exit": 0
+        },
+        {
+          "name": "QtGui.OemHermiteLongBuffer",
+          "status": "passed",
+          "seconds": 1.20706,
+          "ctest_exit": 0
+        },
+        {
+          "name": "QtGui.OemHermiteSegmentReset",
+          "status": "passed",
+          "seconds": 1.32812,
+          "ctest_exit": 0
+        },
+        {
+          "name": "QtGui.OemHermiteFixedStep",
+          "status": "passed",
+          "seconds": 1.26095,
+          "ctest_exit": 0
+        },
+        {
+          "name": "QtGui.InterpolationSufficiencyPolicy",
+          "status": "passed",
+          "seconds": 9.8666,
+          "ctest_exit": 0
+        }
+      ],
+      "build_flavor": "api-py312-v2",
+      "reused": false
+    },
+    {
+      "platform": "macos-x64",
+      "status": "passed",
+      "source_commit": "e4179175aed826b9ff79650371789c26a47ff03d",
+      "cases": [
+        {
+          "name": "QtGui.OemHermiteNarrowAtLast",
+          "status": "passed",
+          "seconds": 2.23568,
+          "ctest_exit": 0
+        },
+        {
+          "name": "QtGui.OemHermiteSingleRecord",
+          "status": "passed",
+          "seconds": 1.44779,
+          "ctest_exit": 0
+        },
+        {
+          "name": "QtGui.OemHermiteLongBuffer",
+          "status": "passed",
+          "seconds": 1.57827,
+          "ctest_exit": 0
+        },
+        {
+          "name": "QtGui.OemHermiteSegmentReset",
+          "status": "passed",
+          "seconds": 1.56372,
+          "ctest_exit": 0
+        },
+        {
+          "name": "QtGui.OemHermiteFixedStep",
+          "status": "passed",
+          "seconds": 1.49355,
+          "ctest_exit": 0
+        },
+        {
+          "name": "QtGui.InterpolationSufficiencyPolicy",
+          "status": "passed",
+          "seconds": 18.4069,
+          "ctest_exit": 0
+        }
+      ],
+      "build_flavor": "api-py312-v2",
+      "reused": false
+    },
+    {
+      "platform": "windows-x64",
+      "status": "passed",
+      "source_commit": "27249d0b5d12ea156115bc577abcf1cf5a68324a",
+      "cases": [
+        {
+          "name": "QtGui.OemHermiteNarrowAtLast",
+          "status": "passed",
+          "seconds": 2.76558,
+          "ctest_exit": 0
+        },
+        {
+          "name": "QtGui.OemHermiteSingleRecord",
+          "status": "passed",
+          "seconds": 0.770732,
+          "ctest_exit": 0
+        },
+        {
+          "name": "QtGui.OemHermiteLongBuffer",
+          "status": "passed",
+          "seconds": 0.780359,
+          "ctest_exit": 0
+        },
+        {
+          "name": "QtGui.OemHermiteSegmentReset",
+          "status": "passed",
+          "seconds": 0.783561,
+          "ctest_exit": 0
+        },
+        {
+          "name": "QtGui.OemHermiteFixedStep",
+          "status": "passed",
+          "seconds": 0.750968,
+          "ctest_exit": 0
+        },
+        {
+          "name": "QtGui.OemPortableInterpolationPolicy",
+          "status": "passed",
+          "seconds": 7.70846,
+          "ctest_exit": 0
+        }
+      ],
+      "build_flavor": "api-py312-v2",
+      "reused": false
+    }
+  ],
+  "full_regression_run": false,
+  "published_alpha4_unchanged": true,
+  "new_archives_packaged": false,
+  "limitations": [
+    "Existing stale-panel QtGui.Ephemeris failure retained separately.",
+    "Original Lagrange sparse endpoint failure remains applicable to the original Lagrange configuration.",
+    "Hosted offscreen GUI checks do not qualify interactive hardware graphics."
+  ],
+  "reuse_reason": "The Windows UTF-8 path branches are excluded on Linux and macOS. Non-Windows code equivalence is recorded in windows-repair-scope.json."
+}

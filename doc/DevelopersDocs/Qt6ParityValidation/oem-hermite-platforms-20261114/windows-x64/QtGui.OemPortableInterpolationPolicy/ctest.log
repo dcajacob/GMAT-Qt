@@ -1,0 +1,11 @@
+Internal ctest changing into directory: D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build
+Test project D:/a/GMAT-Qt/GMAT-Qt/build/preview-package/gmat-build
+    Start 2741: QtGui.OemPortableInterpolationPolicy
+1/1 Test #2741: QtGui.OemPortableInterpolationPolicy ...   Passed    7.71 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Label Time Summary:
+qt-gui    =   7.71 sec*proc (1 test)
+
+Total Test time (real) =   8.19 sec
