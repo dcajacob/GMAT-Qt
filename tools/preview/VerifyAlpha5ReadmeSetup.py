@@ -135,11 +135,68 @@ def check(args):
     print(json.dumps({'status':'passed','platform':args.platform,'python_versions':list(VERSIONS)}))
 
 
+def review_saved(receipts):
+    receipts=receipts.resolve()
+    for name,digest in json.loads((receipts/'SHA256.json').read_text()).items():
+        path=(receipts/name).resolve()
+        assert path.is_relative_to(receipts)
+        assert sha256(path)==digest,name
+    summary=json.loads((receipts/'summary.json').read_text())
+    assert summary['status']=='passed' and not summary['remaining_setup_failures']
+    assert summary['platform_python_combinations']==16
+    assert sha256(REPOSITORY/'README.rst')==summary['readme_sha256']
+    example=hashlib.sha256(readme_example().encode()).hexdigest()
+    assert example==summary['executed_python_example_sha256']
+    packages=json.loads((receipts.parent/'release-receipt.json').read_text())['packages']
+    packages={p['platform']:p for p in packages}
+    published=json.loads((receipts/'published-assets.json').read_text())
+    assets={a['name']:a for a in published['assets']}
+    for record in summary['platforms']:
+        package=packages[record['platform']]
+        saved_path=receipts.parent/package['receipt']
+        assert sha256(saved_path)==package['receipt_sha256']
+        saved=json.loads(saved_path.read_text())
+        path=receipts/record['receipt']
+        assert sha256(path)==record['receipt_sha256']
+        result=json.loads(path.read_text())
+        assert result['status']=='passed' and result['archive_contents_unchanged']
+        assert result['archive_sha256']==package['sha256']
+        assert result['readme_sha256'] in {summary['readme_sha256'],summary['readme_crlf_sha256']}
+        assert result['executed_python_example_sha256']==example
+        assert result['saved_qualification_sha256']==package['receipt_sha256']
+        asset=assets[package['archive']]
+        assert asset['digest']=='sha256:'+package['sha256'] and asset['size']==package['bytes']
+        assert [v['version'] for v in result['python_versions']]==list(VERSIONS)
+        for case in result['python_versions']:
+            folder=path.parent/case['version']
+            assert case['status']=='passed' and case['direct_python_example']=='passed'
+            assert 'Sat' in (folder/'python-example.log').read_text().splitlines()
+            mcp=json.loads((folder/'mcp-setup.json').read_text())
+            assert mcp==case['default_profile_attachment']
+            assert mcp['status']=='passed' and mcp['uses_generated_profile_without_edits']
+            assert mcp['profile_unchanged_after_checks'] and sha256(folder/'profiles.toml')==mcp['profile_sha256']
+            assert mcp['default_gui_startup_and_discovery']==mcp['same_profile_desktop_attachment']=='passed'
+            previous=saved['python_versions'][case['version']]['mcp']
+            assert all(p['ok'] for p in previous['doctor']['profiles'])
+            assert previous['worker']['status']==previous['desktop']['status']=='succeeded'
+        assert saved['gui_without_python']['status']=='passed'
+        assert not result['native_missions_rerun'] and not result['full_regression_run']
+    print(json.dumps({'status':'passed','platforms':4,'python_versions':list(VERSIONS),
+                      'combinations':16,'native_execution':False}))
+
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--platform',required=True,choices=['linux-x86_64','windows-x64','macos-arm64','macos-x64'])
-    parser.add_argument('--output',required=True,type=Path)
+    parser.add_argument('--platform',choices=['linux-x86_64','windows-x64','macos-arm64','macos-x64'])
+    parser.add_argument('--output',type=Path)
+    parser.add_argument('--review-saved',type=Path)
     parser.add_argument('--archive',type=Path)
     parser.add_argument('--mcp-environment',type=Path)
     parser.add_argument('--source-ref',default='HEAD')
-    check(parser.parse_args())
+    args=parser.parse_args()
+    if args.review_saved:
+        review_saved(args.review_saved)
+    elif not args.platform or not args.output:
+        parser.error('--platform and --output are required for missing setup checks')
+    else:
+        check(args)

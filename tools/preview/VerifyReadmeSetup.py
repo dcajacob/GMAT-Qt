@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import platform
 import re
+import signal
 import shutil
 import subprocess
 import sys
@@ -184,7 +185,7 @@ async def check_mcp(args):
                 prefix = ['xvfb-run', '-a', '-s', '-screen 0 1600x1000x24']
             process = subprocess.Popen([*prefix, str(executable), '--mcp-bridge', '--settings-dir',
                 str(args.output / 'gui-settings')], cwd=root, env=environment,
-                stdout=log, stderr=subprocess.STDOUT)
+                stdout=log, stderr=subprocess.STDOUT, start_new_session=os.name != 'nt')
             async with asyncio.timeout(45):
                 while True:
                     desktops = await call(client, 'list_desktops')
@@ -212,11 +213,17 @@ async def check_mcp(args):
         raise
     finally:
         if process is not None and process.poll() is None:
-            process.terminate()
+            if os.name == 'nt':
+                process.terminate()
+            else:
+                os.killpg(process.pid, signal.SIGTERM)
             try:
                 process.wait(timeout=10)
             except subprocess.TimeoutExpired:
-                process.kill()
+                if os.name == 'nt':
+                    process.kill()
+                else:
+                    os.killpg(process.pid, signal.SIGKILL)
                 process.wait()
         if log is not None:
             log.close()

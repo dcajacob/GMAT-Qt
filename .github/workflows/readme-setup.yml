@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Review saved clean-install receipts without native execution
-        run: python tools/preview/VerifyReadmeSetup.py --review-saved tools/preview/releases/0.1.0-alpha.4/readme-setup
+        run: python tools/preview/VerifyAlpha5ReadmeSetup.py --review-saved tools/preview/releases/0.1.0-alpha.5/readme-setup
 
   setup:
     if: github.event_name == 'workflow_dispatch' && inputs.run_fresh
@@ -54,9 +54,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.15'
+      - name: Install Intel Mac MCP build dependencies
+        if: matrix.platform == 'macos-x64'
+        run: brew install openssl@3 rust pkg-config
+      - name: Install Linux private display dependencies
+        if: matrix.platform == 'linux-x86_64'
+        run: sudo apt-get update && sudo apt-get install -y xvfb xauth libgl1 libglu1-mesa libxcb-cursor0 libxkbcommon-x11-0
       - name: Check missing README setup paths in the published archive
         shell: bash
-        run: python tools/preview/VerifyReadmeSetup.py --platform ${{ matrix.platform }} --output build/readme-setup/${{ matrix.platform }}
+        run: python tools/preview/VerifyAlpha5ReadmeSetup.py --platform ${{ matrix.platform }} --output build/readme-setup/${{ matrix.platform }}
       - name: Preserve setup evidence
         if: always()
         uses: actions/upload-artifact@v4

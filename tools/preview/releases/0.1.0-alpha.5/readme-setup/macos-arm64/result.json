@@ -1,0 +1,122 @@
+{
+  "status": "passed",
+  "platform": "macos-arm64",
+  "release": "0.1.0-alpha.5",
+  "archive_sha256": "3b91630d3aed9fb7d27bee96981bfa7a491a0b34dc677f2f84a298a1091185b8",
+  "published_archive_url": "https://github.com/dcajacob/GMAT-Qt/releases/download/v0.1.0-alpha.5/GMAT-Qt-0.1.0-alpha.5-macos-arm64.zip",
+  "readme_sha256": "0ec3c22efa8ed6ab695fde43161b58480eb95c12681088d736ea320b85fcf3bc",
+  "executed_python_example_sha256": "e03ea83ee30c20a3d08809a496eb89a23435fc78435408257554ae9c3ff39631",
+  "source_commit": "a495db6d8ac4a623d623f72f04baea1580c5e754",
+  "saved_qualification_sha256": "c1730ab8dcb78f46b50f55f34b27d64f9b71317316359c241af415e34524d7f6",
+  "archive_contents_unchanged": true,
+  "python_versions": [
+    {
+      "version": "3.12",
+      "status": "passed",
+      "python_executable": "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12",
+      "direct_python_example": "passed",
+      "default_profile_attachment": {
+        "status": "passed",
+        "profile_sha256": "941a9da541497ab963b79b460977285cb3e73bfd890273bd06e0ff5159630663",
+        "uses_generated_profile_without_edits": true,
+        "desktop_discovery_directory": "/Users/runner/Library/Application Support/gmat-mcp/desktops",
+        "worker_core_station_navigation": "reused-passed",
+        "default_gui_startup_and_discovery": "passed",
+        "same_profile_desktop_attachment": "passed",
+        "profile_unchanged_after_checks": true
+      },
+      "reused_checks": [
+        "MCP install",
+        "doctor",
+        "worker propagation",
+        "desktop mission editing and results"
+      ],
+      "reused_receipt_sha256": "c1730ab8dcb78f46b50f55f34b27d64f9b71317316359c241af415e34524d7f6"
+    },
+    {
+      "version": "3.13",
+      "status": "passed",
+      "python_executable": "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3.13",
+      "direct_python_example": "passed",
+      "default_profile_attachment": {
+        "status": "passed",
+        "profile_sha256": "4de373c71a817ce1a07d41263743ead0f7285f2a3d95536ffa35f4c856008aeb",
+        "uses_generated_profile_without_edits": true,
+        "desktop_discovery_directory": "/Users/runner/Library/Application Support/gmat-mcp/desktops",
+        "worker_core_station_navigation": "reused-passed",
+        "default_gui_startup_and_discovery": "passed",
+        "same_profile_desktop_attachment": "passed",
+        "profile_unchanged_after_checks": true
+      },
+      "reused_checks": [
+        "MCP install",
+        "doctor",
+        "worker propagation",
+        "desktop mission editing and results"
+      ],
+      "reused_receipt_sha256": "c1730ab8dcb78f46b50f55f34b27d64f9b71317316359c241af415e34524d7f6"
+    },
+    {
+      "version": "3.14",
+      "status": "passed",
+      "python_executable": "/Library/Frameworks/Python.framework/Versions/3.14/bin/python3.14",
+      "direct_python_example": "passed",
+      "default_profile_attachment": {
+        "status": "passed",
+        "profile_sha256": "2c70ebad50b871eb2edfba36185e819f9ae7932d9655864cb7fa41c83159163b",
+        "uses_generated_profile_without_edits": true,
+        "desktop_discovery_directory": "/Users/runner/Library/Application Support/gmat-mcp/desktops",
+        "worker_core_station_navigation": "reused-passed",
+        "default_gui_startup_and_discovery": "passed",
+        "same_profile_desktop_attachment": "passed",
+        "profile_unchanged_after_checks": true
+      },
+      "reused_checks": [
+        "MCP install",
+        "doctor",
+        "worker propagation",
+        "desktop mission editing and results"
+      ],
+      "reused_receipt_sha256": "c1730ab8dcb78f46b50f55f34b27d64f9b71317316359c241af415e34524d7f6"
+    },
+    {
+      "version": "3.15",
+      "status": "passed",
+      "python_executable": "/Library/Frameworks/Python.framework/Versions/3.15/bin/python3.15",
+      "direct_python_example": "passed",
+      "default_profile_attachment": {
+        "status": "passed",
+        "profile_sha256": "04576c8798a59b4de4115c17c581e19a3d86a8e65378dd9482dd03620b7b3bed",
+        "uses_generated_profile_without_edits": true,
+        "desktop_discovery_directory": "/Users/runner/Library/Application Support/gmat-mcp/desktops",
+        "worker_core_station_navigation": "reused-passed",
+        "default_gui_startup_and_discovery": "passed",
+        "same_profile_desktop_attachment": "passed",
+        "profile_unchanged_after_checks": true
+      },
+      "reused_checks": [
+        "MCP install",
+        "doctor",
+        "worker propagation",
+        "desktop mission editing and results"
+      ],
+      "reused_receipt_sha256": "c1730ab8dcb78f46b50f55f34b27d64f9b71317316359c241af415e34524d7f6"
+    }
+  ],
+  "new_checks": [
+    "Exact README Python example",
+    "Unmodified generated MCP profile and default desktop discovery"
+  ],
+  "reused_checks": [
+    "Published download integrity",
+    "CPython-version MCP installation",
+    "doctor",
+    "isolated propagation",
+    "live mission edit/run/results",
+    "Python-free GUI startup",
+    "package mission/plots/reports/save-reopen",
+    "independent event and Hermite numerics"
+  ],
+  "native_missions_rerun": false,
+  "full_regression_run": false
+}

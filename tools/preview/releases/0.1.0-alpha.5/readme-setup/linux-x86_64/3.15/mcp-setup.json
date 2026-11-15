@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "profile_sha256": "eb67a5d51bb1f37b2d89642df1cfd88b3653e60d73f3a856a2e3544e3b6a7220",
+  "uses_generated_profile_without_edits": true,
+  "desktop_discovery_directory": "/tmp/gmat-alpha5-readme-l2h4flyi/user-data/gmat-mcp/desktops",
+  "worker_core_station_navigation": "reused-passed",
+  "default_gui_startup_and_discovery": "passed",
+  "same_profile_desktop_attachment": "passed",
+  "profile_unchanged_after_checks": true
+}

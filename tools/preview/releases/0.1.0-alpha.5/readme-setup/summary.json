@@ -1,0 +1,89 @@
+{
+  "status": "passed",
+  "release": "v0.1.0-alpha.5",
+  "readme_commit": "61df35218ea93a36b6affd3e195e4114f3894c22",
+  "readme_sha256": "0ec3c22efa8ed6ab695fde43161b58480eb95c12681088d736ea320b85fcf3bc",
+  "readme_crlf_sha256": "f1f511dfa0235931ab9942ef6d7bdce8059b9eb95f5e4097a10e4f59f55fb81f",
+  "executed_python_example_sha256": "e03ea83ee30c20a3d08809a496eb89a23435fc78435408257554ae9c3ff39631",
+  "platform_python_combinations": 16,
+  "platforms": [
+    {
+      "platform": "linux-x86_64",
+      "status": "passed",
+      "receipt": "linux-x86_64/result.json",
+      "receipt_sha256": "57395e54040e1471f1d678ec60bd2c8861697ca98467d15ee1a34dd398580346",
+      "archive_sha256": "b4e27e699a6c733b15be6321309e8a13ecb3adab09d49254a735714dadb72e83",
+      "versions": [
+        "3.12",
+        "3.13",
+        "3.14",
+        "3.15"
+      ],
+      "source_commit": "61df35218ea93a36b6affd3e195e4114f3894c22",
+      "workflow_run": null
+    },
+    {
+      "platform": "windows-x64",
+      "status": "passed",
+      "receipt": "windows-x64/result.json",
+      "receipt_sha256": "929c29a035a0c930c523c0e191bae7c8ca6d21d84e8d2948a72772ade8c5a143",
+      "archive_sha256": "b7a23a3776897ea5a0bef02b09cc31ac9e99d61860e5e2b63482981db781ed51",
+      "versions": [
+        "3.12",
+        "3.13",
+        "3.14",
+        "3.15"
+      ],
+      "source_commit": "a495db6d8ac4a623d623f72f04baea1580c5e754",
+      "workflow_run": 43688000473
+    },
+    {
+      "platform": "macos-arm64",
+      "status": "passed",
+      "receipt": "macos-arm64/result.json",
+      "receipt_sha256": "464a40e645f733e266932918c453211135db703a6b6ff9ed41194bb80b91d00f",
+      "archive_sha256": "3b91630d3aed9fb7d27bee96981bfa7a491a0b34dc677f2f84a298a1091185b8",
+      "versions": [
+        "3.12",
+        "3.13",
+        "3.14",
+        "3.15"
+      ],
+      "source_commit": "a495db6d8ac4a623d623f72f04baea1580c5e754",
+      "workflow_run": 43688000473
+    },
+    {
+      "platform": "macos-x64",
+      "status": "passed",
+      "receipt": "macos-x64/result.json",
+      "receipt_sha256": "34aaa181d6a6c050d6f0f9dfe9ac625d431f36a98643f625ccc422d86ebed681",
+      "archive_sha256": "e982238ac4f193b50fa0797a86b46fdda7750c271560f0dabc346cc434948342",
+      "versions": [
+        "3.12",
+        "3.13",
+        "3.14",
+        "3.15"
+      ],
+      "source_commit": "a495db6d8ac4a623d623f72f04baea1580c5e754",
+      "workflow_run": 43688000473
+    }
+  ],
+  "remaining_setup_failures": [],
+  "new_checks": [
+    "Exact README Python example under all four versions",
+    "Untouched generated MCP profiles and default desktop discovery/attachment"
+  ],
+  "reused_checks": [
+    "MCP installation under each version",
+    "doctor",
+    "isolated propagation",
+    "live mission editing, running and results",
+    "Python-free GUI startup",
+    "package plots, reports and persistence",
+    "independent numerical checks"
+  ],
+  "native_missions_rerun": false,
+  "full_regression_run": false,
+  "linux_archive": "Local copy matched the already verified published download hash.",
+  "remote_archives": "Downloaded from published GitHub alpha.5 URLs and checked against saved hashes."
+}

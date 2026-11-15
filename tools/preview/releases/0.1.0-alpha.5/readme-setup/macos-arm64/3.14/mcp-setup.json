@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "profile_sha256": "2c70ebad50b871eb2edfba36185e819f9ae7932d9655864cb7fa41c83159163b",
+  "uses_generated_profile_without_edits": true,
+  "desktop_discovery_directory": "/Users/runner/Library/Application Support/gmat-mcp/desktops",
+  "worker_core_station_navigation": "reused-passed",
+  "default_gui_startup_and_discovery": "passed",
+  "same_profile_desktop_attachment": "passed",
+  "profile_unchanged_after_checks": true
+}
