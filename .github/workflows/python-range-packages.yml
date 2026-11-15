@@ -96,7 +96,7 @@ jobs:
           arch: x64
       - name: Linux display dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y xvfb xauth gdb libgl1-mesa-dev libglu1-mesa-dev libopenscenegraph-dev libxerces-c-dev libxcb-cursor0 libxkbcommon-x11-0
+        run: sudo apt-get update && sudo apt-get install -y cmake xvfb xauth gdb libgl1-mesa-dev libglu1-mesa-dev libopenscenegraph-dev libxerces-c-dev libxcb-cursor0 libxkbcommon-x11-0
       - name: Mac MCP build dependencies
         if: runner.os == 'macOS'
         run: brew install openssl@3 rust pkg-config qt open-scene-graph xerces-c
@@ -209,7 +209,7 @@ jobs:
       - name: Prepare the remaining startup check
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb xauth libgl1 libglu1-mesa libxcb-cursor0 libxkbcommon-x11-0
+          sudo apt-get install -y cmake xvfb xauth libgl1 libglu1-mesa libxcb-cursor0 libxkbcommon-x11-0
           python tools/preview/CompletePythonRange.py --archive build/range-completion/dist/GMAT-Qt-${{ inputs.version }}-${{ inputs.platform }}.tar.gz --output build/range-completion/verification
       - name: Run Python-free startup and finalize
         run: |
